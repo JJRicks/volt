@@ -92,6 +92,7 @@ public final class GpsAccuracyValidation extends Instrumentation {
         locale = args.getString("locale", "");
         // The preference files as they were before this run: restored after an admitted run, and compared after a refused one.
         java.util.Map<String, java.util.Map<String, ?>> before = snapshot();
+        java.util.Map<String, byte[]> files = prefFiles();
         boolean admitted = false;
         try {
             require(part.equals("riding") || part.equals("graph"), "Use -e part riding or graph");
@@ -135,9 +136,13 @@ public final class GpsAccuracyValidation extends Instrumentation {
             if (admitted) cleanup(before);
             else {
                 // A refused run changed nothing, so it undoes nothing: it checks that about itself.
-                boolean untouched = before.equals(snapshot());
-                result.putString("preferences", untouched ? "untouched" : "CHANGED");
-                if (!untouched) result.putString("error", result.getString("error", "") + "\nA refused run changed the preferences.");
+                java.util.Map<String, byte[]> now = prefFiles();
+                List<String> changed = new ArrayList<>();
+                for (String name : new java.util.TreeSet<>(files.keySet())) if (!Arrays.equals(files.get(name), now.get(name))) changed.add(name);
+                for (String name : now.keySet()) if (!files.containsKey(name)) changed.add(name);
+                if (!before.equals(snapshot())) changed.add("(contents)");
+                result.putString("preferences", changed.isEmpty() ? "untouched: " + files.size() + " files byte-identical" : "CHANGED " + changed);
+                if (!changed.isEmpty()) result.putString("error", result.getString("error", "") + "\nA refused run changed the preferences: " + changed);
             }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
@@ -156,6 +161,16 @@ public final class GpsAccuracyValidation extends Instrumentation {
         for (String key : prefs("app_settings").getAll().keySet())
             if (Arrays.asList(FIXTURE_SETTINGS).contains(key) || key.startsWith(RIDING_LAYOUT)) found.add(key);
         require(found.isEmpty(), "Refusing existing settings " + found + "; use a fresh install");
+    }
+
+    /** Every preference file's bytes, by name: a refused run must leave each one as it was. */
+    private java.util.Map<String, byte[]> prefFiles() {
+        java.util.Map<String, byte[]> out = new java.util.HashMap<>();
+        File[] list = new File(getTargetContext().getDataDir(), "shared_prefs").listFiles();
+        if (list != null) for (File f : list) {
+            try { out.put(f.getName(), java.nio.file.Files.readAllBytes(f.toPath())); } catch (Exception e) { out.put(f.getName(), new byte[0]); }
+        }
+        return out;
     }
 
     private java.util.Map<String, java.util.Map<String, ?>> snapshot() {
