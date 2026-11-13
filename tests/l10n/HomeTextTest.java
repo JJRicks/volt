@@ -83,7 +83,8 @@ public final class HomeTextTest {
                 + "reading and setting tiles and the ride recorder, in a grid you arrange.",
                 HubText.homeStylePreview(false), "widgets preview");
         equal("Switching keeps your widget layout.", HubText.homeStyleKeepsLayout(), "keeps layout");
-        equal("Show charging while plugged in", HubText.momentCharging(), "moment charging");
+        // Owner's answer on #383: the view follows charging as the scooter reports it, so the label promises no plug.
+        equal("Show charging automatically", HubText.momentCharging(), "moment charging");
         equal("Home shows the charge by itself when charging starts.", HubText.momentChargingDescription(), "moment charging sub");
         equal("Show the last ride after riding", HubText.momentRide(), "moment ride");
         equal("For about an hour after a ride, until you close it.", HubText.momentRideDescription(), "moment ride sub");
@@ -94,17 +95,29 @@ public final class HomeTextTest {
         equal("Charging to your 80% limit", HubText.chargingToLimit(Msg.verbatim("80%")), "a Msg argument");
         equal("Charging", HubText.charging(), "charging without a limit");
         equal("Charging power", HubText.chargingPower(), "charging power");
-        equal("Ride saved just now", HubText.justBackSaved(0), "saved now");
-        equal("Ride saved just now", HubText.justBackSaved(-3), "a ride that ends in the future reads as now");
-        equal("Ride saved 1 minute ago", HubText.justBackSaved(1), "one minute");
-        equal("Ride saved 12 minutes ago", HubText.justBackSaved(12), "minutes");
-        equal("Ride saved 59 minutes ago", HubText.justBackSaved(59), "last minute of the window");
-        check(HubText.justBackSaved(12).isPlural() && !HubText.justBackSaved(0).isPlural(), "minutes are a count, now is not");
+        // Owner's answer on #383: the minutes count from the ride's shown end (for an automatic end, the last
+        // movement), so the line says the ride ended, not that it was saved.
+        equal("Ride ended just now", HubText.justBackEnded(0), "ended now");
+        equal("Ride ended just now", HubText.justBackEnded(-3), "a ride that ends in the future reads as now");
+        equal("Ride ended 1 minute ago", HubText.justBackEnded(1), "one minute");
+        equal("Ride ended 12 minutes ago", HubText.justBackEnded(12), "minutes");
+        equal("Ride ended 59 minutes ago", HubText.justBackEnded(59), "last minute of the window");
+        check(HubText.justBackEnded(12).isPlural() && !HubText.justBackEnded(0).isPlural(), "minutes are a count, now is not");
         equal("Close the last ride", HubText.justBackClose(), "close");
         equal("Last ride, 6.2 mi. Opens the ride.", HubText.justBackDescription("6.2 mi"), "card description");
         equal("Ride time", HubText.justBackRideTime(), "ride time tile");
         equal("Avg speed", HubText.justBackAvgSpeed(), "avg speed tile");
-        equal("Battery used", HubText.justBackBatteryUsed(), "battery used tile");
+        // Owner's answer on #383: the battery tile reuses the Rides page's pair, chosen by the sign of start minus
+        // end exactly as RidesScreen chooses (a gain only for a known value below zero).
+        equal("Battery drop", HubText.justBackBattery(18.0), "a ride that used battery");
+        equal("Battery gain", HubText.justBackBattery(-2.0), "a ride that ended with more battery");
+        equal("Battery gain", HubText.justBackBattery(-0.4), "a small gain");
+        equal("Battery drop", HubText.justBackBattery(0.0), "no change reads as a drop, as on the Rides page");
+        equal("Battery drop", HubText.justBackBattery(-0.0), "negative zero is not a gain");
+        equal("Battery drop", HubText.justBackBattery(null), "an unknown change reads as a drop, as on the Rides page");
+        equal("Battery drop", HubText.justBackBattery(Double.NaN), "NaN is not a gain");
+        check(T.key(HubText.justBackBattery(18.0).id()).equals("rides_tile_battery_drop"), "the Rides page's drop key");
+        check(T.key(HubText.justBackBattery(-2.0).id()).equals("rides_tile_battery_gain"), "the Rides page's gain key");
     }
 
     private static void quickActions() {
@@ -181,9 +194,9 @@ public final class HomeTextTest {
                 HubText.homeStyleDescription(false), HubText.homeStylePreview(true), HubText.homeStylePreview(false),
                 HubText.homeStyleKeepsLayout(), HubText.momentCharging(), HubText.momentChargingDescription(),
                 HubText.momentRide(), HubText.momentRideDescription(), HubText.chargingToLimit("x"), HubText.charging(),
-                HubText.chargingPower(), HubText.justBackSaved(0), HubText.justBackSaved(5), HubText.justBackClose(),
+                HubText.chargingPower(), HubText.justBackEnded(0), HubText.justBackEnded(5), HubText.justBackClose(),
                 HubText.justBackDescription("x"), HubText.justBackRideTime(), HubText.justBackAvgSpeed(),
-                HubText.justBackBatteryUsed(), HubText.editTitle(), HubText.editQuickActions(), HubText.editQuickSlot(1, "x"),
+                HubText.justBackBattery(1.0), HubText.justBackBattery(-1.0), HubText.editTitle(), HubText.editQuickActions(), HubText.editQuickSlot(1, "x"),
                 HubText.quickActionLabel(HomeQuickActions.RIDING), HubText.quickActionLabel(HomeQuickActions.RECORD),
                 HubText.quickActionShortLabel(HomeQuickActions.RIDING), HubText.quickActionShortLabel(HomeQuickActions.RECORD),
                 HubText.quickActionLabel(HomeQuickActions.CHARGE_ALERTS), HubText.quickActionShortLabel(HomeQuickActions.CHARGE_ALERTS),

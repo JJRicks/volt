@@ -15,6 +15,7 @@ public final class HomeQuickActionsTest {
         normalize();
         storage();
         entries();
+        endsRide();
         System.out.println("HomeQuickActions: " + checks + " checks passed");
     }
 
@@ -31,6 +32,13 @@ public final class HomeQuickActionsTest {
         for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) require(HomeQuickActions.known(entry.id), "Every catalog id is offered: " + entry.id);
         require(!HomeQuickActions.known("bogus") && !HomeQuickActions.known(null) && !HomeQuickActions.known(""), "Unknown ids are not");
         require(!HomeQuickActions.ICON_RIDING.isEmpty() && !HomeQuickActions.ICON_RECORD.isEmpty() && !HomeQuickActions.ICON_CHARGE_ALERTS.isEmpty(), "All have icons");
+    }
+
+    private static void endsRide() {
+        require(HomeQuickActions.endsRide(HomeQuickActions.RECORD, true), "Record while a ride records ends and saves it, and says so");
+        require(!HomeQuickActions.endsRide(HomeQuickActions.RECORD, false), "Record with no ride recording starts one");
+        require(!HomeQuickActions.endsRide(HomeQuickActions.RIDING, true) && !HomeQuickActions.endsRide("rides", true)
+                && !HomeQuickActions.endsRide(null, true), "No other action ends a ride");
     }
 
     private static void defaults() {
