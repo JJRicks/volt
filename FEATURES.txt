@@ -28,9 +28,10 @@ See VERIFICATION.txt for executed checks and physical validation limits.
 NEW IN 1.13.2
 ------------
 - While charging, drag the mark on Home's charging bar to change the charge
-  limit, or the charge alert's level on models without one: it snaps in the
-  control's steps with a light tick and sets the value when you let go. The
-  charging view is one row, Charging power beside one time tile that switches
+  limit, or the charge alert's level on models without one once Charge alert
+  is on (Scooter > Battery): it snaps in the control's steps with a light tick
+  and sets the value when you let go. The charging card above Home's widgets
+  has one row, Charging power beside one time tile that switches
   between the time to the limit or alert and the time to 100% (tap or swipe).
 - Record rides automatically starts in the background only with the new Start
   recording in the background switch (off by default; More > App preferences
@@ -984,8 +985,8 @@ Fold 5 at default display settings. Fewer columns apply only below 280 dp of
 available dashboard width.
 Existing current/empty/custom layouts and all saved slots stay intact.
 The battery overview uses a red cell with percentage/range and configurable
-readings. Fresh charging status swaps to the charging view: Charging power
-beside one time tile, over a bar with a draggable limit or alert mark. Draw is red; charging is green; stale values remain grey with their
+readings. Fresh charging status swaps to separate Charging power and Time to
+full tiles. Draw is red; charging is green; stale values remain grey with their
 timestamps. Battery/health/capacity cards have clearer spacing and explanations.
 Chart widgets support Relative/Absolute axes: percentage axes stay within 0–100,
 signed power/current can center on zero, and timestamp density fits the width.
@@ -1140,15 +1141,16 @@ README.md links official NAVEE specifications and TI's gauging reference.
 
 CHARGING POWER, RECORDING AND ESTIMATES
 
-Fresh charging status shows Charging power beside one time tile; ordinary
-battery details return when charging is no longer freshly reported. With a
-charge limit below 100% or a charge alert ahead, the tile holds the time to that
+Fresh charging status shows separate Charging power and Time to full tiles;
+ordinary battery details return when charging is no longer freshly reported.
+The charging card above the widgets shows Charging power beside one time tile.
+With a charge limit below 100% or a charge alert ahead, the tile holds the time to that
 level and the time to 100% (two dots; tap or swipe sideways to switch,
 remembered per scooter and backed up). The scooter's own limit wins over a
 saved alert. Beside a limit learned from past charges, the time to 100% carries
-the time to the limit on at those charges' rate over their last 5%. The bar
-under it has a mark for the charge limit (or, without one, the charge alert's
-level): dragging it snaps per step with haptic ticks, shows the value with the
+the time to the limit on at those charges' rate over their last 5%. The card's bar
+has a mark for the charge limit (or, without one, the charge alert's level
+while Charge alert is on): dragging it snaps per step with haptic ticks, shows the value with the
 Charge limit row's note, and commits on release through the Charge limit
 control's own checks; arrow keys and TalkBack's adjust actions move one step.
 A dragged alert level is not saved in simulation. Emulator-tested.
@@ -1318,7 +1320,8 @@ shortcuts the scooter can't use in closed sections last, named for the reason;
 search gives one list with each result's section. Battery alerts (Battery
 section; models without a charge limit) opens the Battery alerts sheet; as a
 Setting tile it shows the charge alert's level, Low N% with only the low alert
-on, or Off. Volt 1.13.1 drops that shortcut from a restored dashboard. Direct toggles use
+on, or Off. Volt 1.13.1 refuses a dashboard transfer file holding it and
+restores no backup made by this version. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders and
 settings submenus open over Home; PIN/proximity and experimental controls retain
 their existing guarded flows. Stats and Rides are still page shortcuts. Legacy

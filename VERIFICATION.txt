@@ -11,8 +11,9 @@ VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGN
   #425, #426, #427, #428, #429, #435, #442, #446 and #451. Ported as their
   own pull requests into release/1.13: [PHASE 2: final list as merged,
   from #458 to the language top-up and this release's own PR].
-- Every one merged on a head the independent review came back clean on,
-  with CI passing on that head. [PHASE 2: review rounds worth noting.]
+- [PHASE 2: if it holds at the release, "Every one merged on a head the
+  independent review came back clean on, with CI passing on that head";
+  review rounds worth noting.]
 - Each PR's own checks cover its change. [PHASE 2: the main suites and
   validations per feature: ChargeBarDragTest and ChargeBarValidation,
   AutoStartPolicyTest and BackgroundRecordingValidation, ShortcutPickerTest,
