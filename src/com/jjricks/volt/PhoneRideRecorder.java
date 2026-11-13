@@ -75,6 +75,8 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
     private volatile long lastMotionMs = -1;
     private long lastPressureMs = -1, linearMs = -1, rawMs = -1, rotationMs = -1;
     private volatile long lastFixMs = -1;
+    /** The latest fix's accuracy and time, for riding mode's GPS accuracy reading; never a position. */
+    private volatile GpsAccuracy.Fix lastAccuracy;
     private final StringBuilder journal = new StringBuilder(), motion = new StringBuilder();
     private final float[] raw = new float[3],
             linear = new float[3],
@@ -144,6 +146,25 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                 flags.add(hasLinear ? StatusFlag.MOTION_EXPERIMENTAL : hasRaw ? StatusFlag.MOTION_RAW : StatusFlag.MOTION_UNAVAILABLE);
         }
         return flags;
+    }
+
+    /**
+     * What the GPS is doing, for riding mode's GPS accuracy reading: the choice statusFlags() makes for its GPS part,
+     * read only. Asking never starts, keeps or wakes GPS.
+     */
+    public GpsAccuracy.Phase gpsAccuracyPhase() {
+        if (closing || !active) return GpsAccuracy.Phase.OFF;
+        if (locationActive && lastFixMs >= 0) return GpsAccuracy.Phase.LIVE;
+        switch (gpsStatus) {
+            case GPS_STARTING: case GPS_WAITING: return GpsAccuracy.Phase.WAITING;
+            case GPS_SIGNAL_LOST: case GPS_SIGNAL_UNAVAILABLE: return GpsAccuracy.Phase.LOST;
+            default: return GpsAccuracy.Phase.OFF;
+        }
+    }
+
+    /** The latest fix's accuracy and its own time, or null; GpsAccuracy.reading decides whether it is current. */
+    public GpsAccuracy.Fix latestFix() {
+        return lastAccuracy;
     }
 
     public String liveMotion() {
@@ -375,6 +396,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                         speedAccuracy,
                         altitude,
                         vertical));
+        lastAccuracy = new GpsAccuracy.Fix(mono, location.getAccuracy());
         lastFixMs = mono;
         gpsStatus = GPS_RECORDING;
         updateStatus();
@@ -390,6 +412,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
         if (locationActive) {
             gpsStatus = GPS_SIGNAL_UNAVAILABLE;
             lastFixMs = -1;
+            lastAccuracy = null;
             journal.append(
                     PhoneRideStore.row(
                             "GAP", System.currentTimeMillis(), SystemClock.elapsedRealtime()));

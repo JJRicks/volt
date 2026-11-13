@@ -58,9 +58,13 @@ public final class RidingLayoutTest {
         check(!RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.DRIVE_MODE), "drive mode can't go in the ring");
         check(RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.BATTERY) && RidingLayout.accepts(RidingLayout.Kind.RING, RidingLayout.POWER), "the ring takes battery and power");
         // Chips hold every reading but speed (a tester asked for more choices), in catalog order like the tiles.
-        check(RidingLayout.choices(RidingLayout.Kind.CHIP).equals(Arrays.asList("power", "range_at_pace", "range_scooter", "range_volt", "battery", "trip",
+        // The optional GPS accuracy reading (owner, Nov 12) joins them last, with the name its text pull request
+        // adds; that pull request checks its place. These are the readings that were there before it.
+        List<String> chips = new ArrayList<>(RidingLayout.choices(RidingLayout.Kind.CHIP));
+        chips.remove("gps_accuracy");
+        check(chips.equals(Arrays.asList("power", "range_at_pace", "range_scooter", "range_volt", "battery", "trip",
                 "ride_time", "recording_time", "average_speed", "max_speed", "efficiency", "ride_energy", "voltage", "current",
-                "battery_temperature", "drive_mode", "clock", "odometer")), "chips: every reading but speed, no lock: " + RidingLayout.choices(RidingLayout.Kind.CHIP));
+                "battery_temperature", "drive_mode", "clock", "odometer")), "chips: every reading but speed, no lock: " + chips);
         for (String id : RidingLayout.choices(RidingLayout.Kind.CHIP))
             check(RidingLayout.accepts(RidingLayout.Kind.TILE, id), "a chip shows only what a tile can: " + id);
         check(RidingLayout.chipNamesItself(RidingLayout.DRIVE_MODE) && RidingLayout.chipNamesItself(RidingLayout.BATTERY_TEMPERATURE)
