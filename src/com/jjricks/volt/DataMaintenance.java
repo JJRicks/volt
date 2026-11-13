@@ -30,6 +30,12 @@ public final class DataMaintenance {
         recovered = true;
         return true;
     }
+    /** Read-only (unlike readyForStartup, sets nothing): app data may be mid-restore, so nothing should decide from it yet. */
+    static boolean recoveryPending(Context context) {
+        if (active) return true;
+        if (recovered) return false;
+        return AppDataBackup.needsRecovery(context) || RideBackup.needsRecovery(context) || BackupExportCache.hasOrphans(context.getCacheDir());
+    }
     public static synchronized void ensureRecovered(Context context) throws IOException {
         if (recovered) return;
         // MainActivity's startup gate has not exposed any backup controls yet. Never clean
@@ -42,5 +48,8 @@ public final class DataMaintenance {
             recovered = true;
         }
         catch (Exception error) { throw new IOException("An interrupted restore needs recovery.", error); }
+        // The app-start seed waited for this (HomeStylePrefs.seed): decide the Home style from the recovered data.
+        try { HomeStylePrefs.seed(context, context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)); }
+        catch (RuntimeException ignored) { /* The next app start tries again. */ }
     }
 }
