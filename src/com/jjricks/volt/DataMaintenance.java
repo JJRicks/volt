@@ -30,6 +30,12 @@ public final class DataMaintenance {
         recovered = true;
         return true;
     }
+    /** Read-only (unlike readyForStartup, sets nothing): app data may be mid-restore, so nothing should decide from it yet. */
+    static boolean recoveryPending(Context context) {
+        if (active) return true;
+        if (recovered) return false;
+        return AppDataBackup.needsRecovery(context) || RideBackup.needsRecovery(context) || BackupExportCache.hasOrphans(context.getCacheDir());
+    }
     public static synchronized void ensureRecovered(Context context) throws IOException {
         if (recovered) return;
         // MainActivity's startup gate has not exposed any backup controls yet. Never clean

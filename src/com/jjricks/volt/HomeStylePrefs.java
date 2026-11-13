@@ -58,7 +58,8 @@ final class HomeStylePrefs {
         boolean originKnown = HomeStyle.ORIGIN_INSTALL.equals(origin) || HomeStyle.ORIGIN_UPDATE.equals(origin);
         if (styleStored && originKnown) return;
         // A half-applied restore must not decide this installation's history: its rollback would leave the decision.
-        if (!DataMaintenance.readyForStartup(context)) return;
+        // Read-only check: the startup gates (MainActivity, ScooterService) still decide recovery themselves.
+        if (DataMaintenance.recoveryPending(context)) return;
         boolean hasDashboard = false;
         for (String key : all.keySet()) if (HomeStyle.dashboardKey(key)) { hasDashboard = true; break; }
         boolean hasLastPage = all.containsKey(MaintenanceScreen.LAST_PAGE);
