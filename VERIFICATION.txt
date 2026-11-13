@@ -1,5 +1,6 @@
 VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGNOSTICS, BATTERY ALERTS SHORTCUT, FIXES (versionCode 59)
-Release commit 517e8e46 on release/1.13, 2026-11-13.
+Built and swept at commit 517e8e46 on release/1.13, November 13, 2026.
+The tag is on a later docs-only merge.
 
 - Cut from the release/1.13 branch, not from main: release/1.13 starts at
   v1.13.1 and carries the main pull requests below that don't depend on
@@ -41,8 +42,8 @@ Release commit 517e8e46 on release/1.13, 2026-11-13.
   pl) have 0 of 3856 keys falling back to English, and aapt 36.1.0
   compiled every language's texts exactly.
 - Release candidate checks on commit 517e8e46, release/1.13's head after
-  the last merge. Later commits change only VERIFICATION.txt, which is not
-  in the APK.
+  the last merge. Later commits change only VERIFICATION.txt and one
+  sentence of docs/user-guide.md, neither of which is in the APK.
   - Pinned Shizuku dependencies verified. tests/run.sh passes (182
     suites). The owner-capture guard, capture-owner, hardware-sweep and
     release-sweep summary tests pass.
@@ -75,8 +76,8 @@ Release commit 517e8e46 on release/1.13, 2026-11-13.
     still says the whole state), but the check wants the words. The
     German text came with this release's top-up (before it, the English
     "Not recording" showed). It was not rerun: the result follows from
-    the text's width. [Owner's call: a shorter German text, or keep the
-    dash.] The Portuguese steps ran to their end.
+    the text's width. The release keeps the dash; a shorter German text
+    is a follow-up. The Portuguese steps ran to their end.
   - rides-timing passed. It ran last, alone on the one emulator of ours
     still up. Best of two cold starts per case, slowest case: first frame
     131 ms and service start command 115 ms (budgets 1.5 s). Rides first
