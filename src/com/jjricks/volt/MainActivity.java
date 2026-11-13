@@ -174,7 +174,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private int navFrom = -1;
     private View pageHeader;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
-        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")) {
+        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
             handler.postDelayed(settingsRebuild, Ui.motionEnabled() ? 210 : 0);
         } else if(key.equals("text_scale")) { handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); }
@@ -2096,7 +2096,18 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        if (entry == null) return;
+        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
+        if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
+        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
+        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
+            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
+            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
+            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
+            showChargeAlerts(); return;
+        }
+        boolean ridingMode = HomeQuickActions.RIDING.equals(id);
+        if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
@@ -2104,6 +2115,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
+        if (ridingMode) { openRiding(); return; }
         // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
         String sheet = HubRoutes.sheetFor(id);
         if (sheet != null) { showQuickSettings(sheet); return; }
@@ -3314,31 +3326,39 @@ public final class MainActivity extends Activity implements ScreenHost {
      * step stays a rename and a recreation during the compression can't lose the email. The subject is fixed English for the
      * developer's inbox (IssueReport.chargeRecordingsSubject) and names the model; the body carries only Volt's version
      * and that model, as Report an issue does. The model line comes with the file, taken when the row was tapped
-     * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. Toasts when the attachment can't be
-     * prepared, or no email app can take it.
+     * (ChargeSend.Export), so a scooter selected meanwhile can't relabel it. The attachment, once in place, goes back
+     * through ChargeSend.MAILBOX (ChargeSend.Export.attached), so the activity showing Volt then opens the email, a
+     * recreated one too, exactly once (#419 review: a recreation during this step lost the email); one that can't be
+     * prepared goes the same way as a failure. Toasts when the attachment can't be prepared, or no email app can take it.
      */
     /**
-     * ChargeSend.MAILBOX's receiver while this activity shows Volt: it emails a finished export, or toasts a failed one
-     * ("Charge recordings could not be exported", or the service's other status text), once (#412 round-2 review).
+     * ChargeSend.MAILBOX's receiver while this activity shows Volt: it moves a finished export into place, emails an
+     * attachment that is ready, or toasts a failed one ("Charge recordings could not be exported", or the service's other
+     * status), rendered now in the current language, once (#412 round-2 review; #419 review).
      */
     private final java.util.function.Consumer<ChargeSend.Export> chargeMail=export->{
-        if(export.failed()){if(!destroyed)toast(export.failure.isEmpty()?ScooterService.chargeExportFailed():export.failure);}
-        else if(destroyed)export.discard();else emailChargeRecordings(export.file,export.model);};
+        if(export.failed()){if(!destroyed)toast(export.failure.length()==0?ScooterService.chargeExportFailed():export.failure);}
+        else if(destroyed)export.discard();
+        else if(export.attached())openChargeEmail(export);
+        else emailChargeRecordings(export.file,export.model);};
     @Override public void emailChargeRecordings(File recordings,String model){
-        String version=AppVersion.name(this);
-        String subject=IssueReport.chargeRecordingsSubject(version,model);
-        String body="Volt "+version+(model.isEmpty()?"":"\n"+model)+"\n";
+        Context app=getApplicationContext();
         new Thread(()->{
-            Uri uri;try{uri=DiagnosticsProvider.adopt(this,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
-            final Uri attached=uri;
-            handler.post(()->{
-                if(destroyed)return;
-                // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
-                ChargeSend.Outcome outcome=ChargeSend.outcome(attached!=null,attached!=null&&sendWithUri(subject,body,attached));
-                if(outcome==ChargeSend.Outcome.EXPORT_FAILED)toast(ScooterService.chargeExportFailed());
-                else if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
-            });
+            Uri uri;try{uri=DiagnosticsProvider.adopt(app,recordings);}catch(java.io.IOException|RuntimeException failed){uri=null;}
+            // An attachment that couldn't be prepared says so, not "no email app" (#387 review).
+            ChargeSend.Export ready=uri==null?ChargeSend.Export.failed(ScooterService.chargeExportFailed())
+                    :ChargeSend.Export.attached(uri.toString(),DiagnosticsProvider.file(app,uri),model);
+            // Not this activity's handler: onDestroy clears its queue, which would drop the hand-over with it.
+            new Handler(Looper.getMainLooper()).post(()->ChargeSend.MAILBOX.deliver(ready,System.currentTimeMillis()));
         },"Volt-email-export").start();
+    }
+    /** Opens the email for an attachment already in place (ChargeSend.Export.attached); toasts when no app can take it. */
+    private void openChargeEmail(ChargeSend.Export export){
+        String version=AppVersion.name(this);
+        String subject=IssueReport.chargeRecordingsSubject(version,export.model);
+        String body="Volt "+version+(export.model.isEmpty()?"":"\n"+export.model)+"\n";
+        ChargeSend.Outcome outcome=ChargeSend.outcome(true,sendWithUri(subject,body,Uri.parse(export.attachment)));
+        if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
     }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}

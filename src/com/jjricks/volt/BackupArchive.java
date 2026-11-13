@@ -608,6 +608,13 @@ final class BackupArchive {
             if (categories.contains(BackupRegistry.SCOOTER_PREFERENCES)) perScooter(BackupRegistry.SCOOTER_PREFERENCES, prepared, mapping, uses, names, result, lines);
             history = !historyMapping.isEmpty();
         }
+        // Home style (HomeStyle): a backup made before Home styles existed carries no home_style; restoring it leaves this
+        // phone's style and the owner's choice as they are (hub layout plan, open question 6). One that has it applies it.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && !prepared.preferences.get("app_settings").containsKey(HomeStyle.KEY))
+            for (String key : new String[]{HomeStyle.KEY, HomeStyle.CHOSEN_KEY}) {
+                Object mine = live.get("app_settings").get(key);
+                if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
+            }
         if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))) lines.add(M.backupEnginePlanOnlineMap());
         Map<String, Map<String, Object>> touched = new LinkedHashMap<>();
         for (String name : BackupRegistry.NAMESPACES) if (!result.get(name).equals(live.get(name))) touched.put(name, result.get(name));
