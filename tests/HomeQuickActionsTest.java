@@ -25,8 +25,6 @@ public final class HomeQuickActionsTest {
                 "Widgets' normalize still drops them");
         require(HomeQuickActions.cleanOnly("riding") && HomeQuickActions.cleanOnly("record") && HomeQuickActions.cleanOnly("charge_alerts")
                 && !HomeQuickActions.cleanOnly("rides"), "cleanOnly");
-        require(HomeQuickActions.known(HomeQuickActions.CHARGE_ALERTS) && QuickAccessActions.find(HomeQuickActions.CHARGE_ALERTS) == null,
-                "Charge alerts is Clean's own too, never in the Quick access catalog");
         // Owner's decision, Nov 12 2026 (#383, issuecomment-6845477304): Battery alerts is a Widgets shortcut too, with the
         // same id, accepting that Volt 1.13.1 refuses a saved slot or a transfer holding it.
         require(QuickAccessActions.find(HomeQuickActions.CHARGE_ALERTS) != null, "Battery alerts is in the Quick access catalog too");
