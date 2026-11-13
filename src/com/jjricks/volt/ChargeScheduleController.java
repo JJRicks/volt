@@ -58,9 +58,9 @@ public final class ChargeScheduleController {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;
         public boolean ready, linked, wholeHours;
         /**
-         * The settings report (the status carrying the charge limit, the switch and the start) is live by the readings'
-         * own rule. Only it can say the limit is unchanged, so a plan is judged against its saved target only then (#418).
-         * A model with no limit reading has target null even so. A driver that does not say means live, as before.
+         * The scooter's settings are live (#418): the status carrying the switch and the start is live by the readings' own
+         * rule, and so is the charge limit reading itself, unless the scooter has reported no limit on this connection.
+         * Nothing is reconciled against the saved plan until then. A driver that does not say means live, as before.
          */
         public boolean settingsLive = true;
         public int generation;
@@ -211,10 +211,14 @@ public final class ChargeScheduleController {
         observeTest(c);reconcile(c);
     }
     private void reconcile(Context c){
-        // Readings carry their own freshness, so reconciling needs only the live connection, not a status fresh enough to write.
+        // The live connection, not a status fresh enough to write; the settings' own liveness is asked below.
         State s=state(c);if(busy||!alive(c)||c.scope.isEmpty())return;
         // A running test judges its own intention; an interrupted one is left to the checks below.
         if(test!=null&&c.scope.equals(testContext.scope))return;
+        // Nothing is judged against the scooter's settings (the limit s.target stands for, the switch, the start) until they
+        // are live: the connection outlives a sleep, a battery level can be live without them, and on main the first pass
+        // after a sleep always had a new status (#418). Only a start seen meanwhile is kept, so the live pass can't call it missed.
+        if(!c.settingsLive){if(s.mode!=0&&Integer.valueOf(1).equals(c.charging)&&c.now>=s.start&&!s.started){s.started=true;save(c,s);}return;}
         // Positive changed readback is useful evidence; absent/zero after reboot is ambiguous.
         if(s.wire>0&&c.wireStart!=null&&c.wireStart>0&&c.wireStart!=s.wire){
             long offset=s.wire*1000L-s.start;
@@ -243,13 +247,9 @@ public final class ChargeScheduleController {
             if(s.mode==2){s.mode=1;s.deadline=s.start+24*60*60_000L;s.status="Charge limit changed; update Charge done by";}
             s.target=c.target;save(c,s);
         }
-        // Every outcome from here is judged against the scooter's limit, which s.target stands for only while the settings
-        // report is live (a battery level can be live without it, after a sleep): until then nothing is retired, and the
-        // next live pass decides, so the same charge is never labelled from a limit that may have changed (#418).
-        if(finite(c.soc)&&c.soc>=s.target){if(c.settingsLive)retire(c,s,"Charge target reached",Outcome.TARGET_REACHED);return;}
+        if(finite(c.soc)&&c.soc>=s.target){retire(c,s,"Charge target reached",Outcome.TARGET_REACHED);return;}
         if(c.charging==null)return;
         if(c.charging==1&&c.now>=s.start&&!s.started){s.started=true;save(c,s);}
-        if(!c.settingsLive)return;
         boolean ended=c.now>=s.deadline+START_GRACE_MS;
         // The battery decides whether a passed start ever charged: no rise since arming is a missed
         // start, a rise is a charge that ran and stopped (unplugged or done), and unknown stays quiet.

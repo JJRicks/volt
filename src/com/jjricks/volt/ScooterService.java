@@ -1098,9 +1098,10 @@ public final class ScooterService extends Service {
             else if(m.key.equals("charge_limit_percent"))limit=m;
         }
         long now=SystemClock.elapsedRealtime();
-        Double charging=liveReading(state,now),percent=liveReading(soc,now);
-        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one.
-        Double target=limit==null||limit.numericValue==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limit.numericValue;
+        Double charging=liveReading(state,now),percent=liveReading(soc,now),limitNow=liveReading(limit,now);
+        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one. The limit is
+        // taken only while live, as the other two (#418): the link outlives a sleep, and the limit may have changed in it.
+        Double target=limitNow==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limitNow;
         Boolean on=charging==null||charging!=0&&charging!=1?null:charging==1;
         Integer pct=percent==null||percent<0||percent>100?null:(int)Math.round(percent);
         Integer cap=target==null||target<1||target>100?null:(int)Math.round(target);
@@ -1661,8 +1662,6 @@ public final class ScooterService extends Service {
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
         if(!c.linked)return c;
         // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
-        // The same rule says whether the limit is known unchanged (settingsLive), also for a model that reports none.
-        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000);
         c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
@@ -1673,6 +1672,10 @@ public final class ScooterService extends Service {
         c.sampleMs=charging==null?0:charging.updatedMs;
         c.soc=freshScheduleNumber(readings.get("battery_percent"),mono);
         c.target=freshScheduleNumber(readings.get("charge_limit_percent"),mono);
+        // Settings live (#418): the status, and the limit reading itself, unless this connection has reported no limit (the
+        // readings are cleared at each connect). A recent status that did not carry the limit never vouches for it.
+        Telemetry.Metric limit=readings.get("charge_limit_percent");
+        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)&&(c.target!=null||limit==null||limit.updatedMs<=0);
         Double raw=freshScheduleNumber(readings.get("scheduled_charge_time_raw"),mono);
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){

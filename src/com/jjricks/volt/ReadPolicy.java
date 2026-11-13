@@ -64,11 +64,13 @@ final class ReadPolicy {
         return battery&&sign?new int[]{0x72,0x79}:battery?new int[]{0x72}:sign?new int[]{0x79}:new int[0];
     }
     /**
-     * The read that keeps the connected notice's level current out of sight, with no battery watch and no recording (#418):
-     * 0x72 alone, on every layer, while allowed and only once it has answered this connection, so a read the scooter
-     * ignores is never asked in the background. Never 0x79: the notice shows no direction. Sent as a quiet request.
+     * The reads that keep the connected notice's level current out of sight, with no battery watch and no recording (#418):
+     * exactly periodicBattery's, so the direction read 0x79 goes with 0x72 wherever it would (the UT5 MAX layer, or once it
+     * has answered this session) and the current and temperature each 0x72 reply brings are signed with a direction read
+     * beside them. Only once 0x72 has answered this connection: a model that ignores it is never asked in the background,
+     * where its silence is not counted. Sent as quiet requests.
      */
-    int[] noticeBattery(){return allowed(0x72)&&answered.contains(0x72)?new int[]{0x72}:new int[0];}
+    int[] noticeBattery(){return allowed(0x72)&&answered.contains(0x72)?periodicBattery():new int[0];}
 
     /**
      * A 7-byte read went out. A request that is already outstanding keeps its first time, unless

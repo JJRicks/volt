@@ -100,12 +100,19 @@ public final class ReadPolicyTest {
             ReadPolicy p=layer==null?ReadPolicy.legacy():ReadPolicy.forLayer(layer);
             check(p.noticeBattery().length==0,"Nothing for the notice before 0x72 has answered ("+layer+")");
             p.requested(0x72,0);p.responded(0x72,0,36,300);p.requested(0x79,0);p.responded(0x79,0,2,300);
-            check(Arrays.equals(p.noticeBattery(),new int[]{0x72}),"The notice reads 0x72 alone, never 0x79 ("+layer+")");
+            check(Arrays.equals(p.noticeBattery(),p.periodicBattery())&&Arrays.equals(p.noticeBattery(),new int[]{0x72,0x79}),"The notice reads what periodicBattery would, the direction with the level ("+layer+")");
             for(int i=0;i<20;i++){long t=1000+i*15000L;p.requested(0x72,t,true);p.tick(t+3000);}
-            check(p.suppressed().isEmpty()&&p.allowed(0x72)&&Arrays.equals(p.noticeBattery(),new int[]{0x72}),"Quiet silences are never counted ("+layer+")");
+            check(p.suppressed().isEmpty()&&p.allowed(0x72)&&Arrays.equals(p.noticeBattery(),new int[]{0x72,0x79}),"Quiet silences are never counted ("+layer+")");
             // An identification that follows (no identity yet is legacy) finds nothing switched off by them.
             p.layer(ModelRegistry.Layer.SHARED,true);check(p.allowed(0x72)&&p.suppressed().isEmpty(),"and a later switch to an adaptive layer finds 0x72 allowed ("+layer+")");
         }
+        // Round 6: 0x79 goes with 0x72 only where periodicBattery sends it: on an adaptive layer once it has answered, on
+        // the UT5 MAX layer (and with no identity yet) always; never without 0x72, whose readings it signs.
+        ReadPolicy adaptive=answered72();check(Arrays.equals(adaptive.noticeBattery(),new int[]{0x72}),"Adaptive, 0x79 not answered: 0x72 alone");
+        ReadPolicy ut5=ReadPolicy.forLayer(ModelRegistry.Layer.UT5_MAX);ut5.requested(0x72,0);ut5.responded(0x72,0,36,300);
+        check(Arrays.equals(ut5.noticeBattery(),new int[]{0x72,0x79}),"UT5 MAX: both, as periodicBattery");
+        ReadPolicy signOnly=ReadPolicy.forLayer(ModelRegistry.Layer.OEM_GROUP);signOnly.requested(0x79,0);signOnly.responded(0x79,0,2,300);
+        check(signOnly.noticeBattery().length==0&&Arrays.equals(signOnly.periodicBattery(),new int[]{0x72,0x79}),"No 0x72 answer yet: nothing in the background");
         // In sight, the same requests and ticks suppress at the same moment whether or not quiet requests went before them.
         for(long quietAt=-3000;quietAt<=4000;quietAt+=250){
             ReadPolicy plain=answered72(),mixed=answered72();

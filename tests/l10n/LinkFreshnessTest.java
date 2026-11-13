@@ -260,18 +260,24 @@ public final class LinkFreshnessTest {
          * recording, pollTick's noticeBattery, sent quietly. batteryOutOfSight false is fde6403f's rule (in sight, recording
          * or watching only); noticeOnly false is 4164feba's (periodicBattery with every poll out of sight, counted as any
          * read); batteryAnswers false is a scooter that ignores the battery reads, ignored one that ignores those opcodes.
+         * noticeAlone is 702153ba's noticeBattery (0x72 alone). With tele set, each answer goes into a real Telemetry: the
+         * 0x79 reply carries the scooter's direction (sign), the 0x72 reply a current with no sign bit of its own.
          */
         ReadPolicy batteryPolicy;
-        boolean batteryOutOfSight = true, batteryAnswers = true, noticeOnly = true, watch;
+        boolean batteryOutOfSight = true, batteryAnswers = true, noticeOnly = true, watch, noticeAlone;
+        Telemetry tele;
+        int sign;
         final Set<Integer> ignored = new HashSet<>();
         long batteryMs, lastBatteryPoll;
         final List<Long> batteryReads = new ArrayList<>();
         final List<Integer> batteryCmds = new ArrayList<>();
         void readBattery() { readBattery(false); }
         void readBattery(boolean notice) {
-            for (int cmd : notice ? batteryPolicy.noticeBattery() : batteryPolicy.periodicBattery()) {
+            int[] cmds = !notice ? batteryPolicy.periodicBattery() : !noticeAlone ? batteryPolicy.noticeBattery()
+                    : batteryPolicy.allowed(0x72) && batteryPolicy.answered(0x72) ? new int[]{0x72} : new int[0];
+            for (int cmd : cmds) {
                 batteryPolicy.requested(cmd, clock.up, notice);batteryReads.add(now());batteryCmds.add(cmd);int gen = generation;
-                if (answering && batteryAnswers && !ignored.contains(cmd)) clock.post(() -> { if (gen == generation && up && answering && batteryAnswers) { batteryPolicy.responded(cmd, 0, cmd == 0x79 ? 2 : 36, clock.up);if (cmd != 0x79) batteryMs = now(); } }, reply);
+                if (answering && batteryAnswers && !ignored.contains(cmd)) clock.post(() -> { if (gen == generation && up && answering && batteryAnswers) { batteryPolicy.responded(cmd, 0, cmd == 0x79 ? 2 : 36, clock.up);if (cmd != 0x79) batteryMs = now();if (tele != null) tele.accept(cmd, reply72(cmd, sign), now()); } }, reply);
             }
         }
         /** The connected notice's level: linked, and the battery reading live by its own rule (BleController.liveNumber, 15 s). */
@@ -837,7 +843,7 @@ public final class LinkFreshnessTest {
 
     static final String[] AUDIT = {"sourceAudit", "readsAcrossSleep", "checkAcrossSleep", "noticeBattery", "scheduleMarker",
             "sourceAudit4", "doneTimeAfterWake", "switchAfterWake", "noticeKeepsLevel", "noticeDropsLevel", "batteryReadsOnlyOutOfSight",
-            "backgroundSilence", "inSightSilenceUnchanged", "watchReads"};
+            "backgroundSilence", "inSightSilenceUnchanged", "watchReads", "backgroundSign", "sourceAudit6", "settingsLiveLimit", "liveCardLimit"};
 
     private static void audit(String name) throws Exception {
         switch (name) {
@@ -855,6 +861,10 @@ public final class LinkFreshnessTest {
             case "backgroundSilence": backgroundSilence();break;
             case "inSightSilenceUnchanged": inSightSilenceUnchanged();break;
             case "watchReads": watchReads();break;
+            case "backgroundSign": backgroundSign();break;
+            case "sourceAudit6": sourceAudit6();break;
+            case "settingsLiveLimit": settingsLiveLimit();break;
+            case "liveCardLimit": liveCardLimit();break;
             default: throw new IllegalArgumentException(name);
         }
     }
@@ -1194,7 +1204,7 @@ public final class LinkFreshnessTest {
 
     /**
      * The read joins only the out-of-sight polls: in sight and recording the battery reads are exactly fde6403f's; out of
-     * sight one per 15 s poll (0x72 alone, round 5); none once the link is lost.
+     * sight one per 15 s poll (0x72 alone here: this scooter's 0x79 has not answered); none once the link is lost.
      */
     private static void batteryReadsOnlyOutOfSight() {
         for (int how = 0; how < 2; how++) {
@@ -1212,7 +1222,7 @@ public final class LinkFreshnessTest {
             int at = r.batteryReads.size();r.run(T0 + 5 * 60 * S);
             if (before) { oldReads = r.batteryReads.size() - at;continue; }
             newReads = r.batteryReads.subList(at, r.batteryReads.size());
-            // Polls at 2.5 + 15k s: 0x72 at each, never 0x79 (backgroundSilence has a scooter whose 0x79 has answered).
+            // Polls at 2.5 + 15k s: 0x72 at each (backgroundSilence and backgroundSign have a scooter whose 0x79 has answered).
             check(newReads.size() == 16 && newReads.stream().allMatch(t -> (t - T0 - 2500) % StatusCadence.POLL_SLOW_MS == 0), "out of sight: one battery read per 15 s poll " + newReads);
             r.fail("NATIVE_DISCONNECT");int lost = r.batteryReads.size();r.run(T0 + 10 * 60 * S);
             check(r.batteryReads.size() == lost, "nothing once the link is lost");
@@ -1230,7 +1240,7 @@ public final class LinkFreshnessTest {
      * Round 5 finding. 4164feba sent periodicBattery with every poll out of sight and ReadPolicy counted those silences, so
      * a parked scooter leaving the direction read (0x79) unanswered twice switched it off for the rest of the connection,
      * and back in sight every current reading kept the last direction (the same for 0x72, the battery read itself). Now
-     * out of sight, with no battery watch and no recording, only 0x72 goes out, quietly: its silence is never counted.
+     * out of sight, with no battery watch and no recording, the same reads go out quietly: their silence is never counted.
      */
     private static void backgroundSilence() {
         for (int ignore = 0; ignore < 2; ignore++) for (boolean before : new boolean[]{false, true}) {
@@ -1248,7 +1258,7 @@ public final class LinkFreshnessTest {
                         "4164feba switched a read off from the background (" + what + "): " + r.batteryPolicy.suppressed());
                 continue;
             }
-            check(out.size() >= 17 && !out.contains(0x79) && out.stream().allMatch(c -> c == 0x72), "out of sight: 0x72 alone (" + what + ") " + out);
+            check(out.size() >= 34 && out.stream().filter(c -> c == 0x79).count() == out.stream().filter(c -> c == 0x72).count(), "out of sight: 0x72 with 0x79, quietly (" + what + ") " + out);
             check(r.batteryPolicy.suppressed().isEmpty() && Arrays.equals(r.batteryPolicy.periodicBattery(), new int[]{0x72, 0x79}), "back in sight both reads go out again (" + what + ")");
             check(r.levelShown() && r.batteryCmds.subList(r.batteryCmds.size() - 4, r.batteryCmds.size()).contains(0x79), "and are read (" + what + ")");
         }
@@ -1287,7 +1297,7 @@ public final class LinkFreshnessTest {
 
     /**
      * Which reads go out of sight. With a battery watch: periodicBattery with each poll, counted as any read, exactly as
-     * fde6403f (and main) send them. Without one: 0x72 alone, quietly.
+     * fde6403f (and main) send them. Without one: the same reads, quietly.
      */
     private static void watchReads() {
         List<String> runs = new ArrayList<>();
@@ -1303,7 +1313,127 @@ public final class LinkFreshnessTest {
         Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.connect();r.run(T0 + 5 * S);probe79(r);
         int at = r.batteryCmds.size();r.run(T0 + 3 * 60 * S);
         List<Integer> later = r.batteryCmds.subList(at, r.batteryCmds.size());
-        check(later.size() >= 11 && later.stream().allMatch(c -> c == 0x72) && Arrays.equals(r.batteryPolicy.periodicBattery(), new int[]{0x72, 0x79}),
-                "no watch: 0x72 alone, the direction read left as it was " + later);
+        check(later.size() >= 22 && later.stream().filter(c -> c == 0x79).count() == later.stream().filter(c -> c == 0x72).count() && Arrays.equals(r.batteryPolicy.periodicBattery(), new int[]{0x72, 0x79}),
+                "no watch: 0x72 with 0x79, quietly, nothing switched off " + later);
+    }
+
+    // ---- Round 6 (#418): the background reads sign what they bring; nothing is decided on a stale setting ------------
+
+    /** A reply for the rig's Telemetry: 0x79 the direction (temperature 0, current sign), 0x72 a level, voltage, temperature and a current with no sign bit (0x01010101 either way round). */
+    static byte[] reply72(int cmd, int sign) {
+        if (cmd == 0x79) return new byte[]{0, 0, (byte) sign};
+        byte[] b = new byte[37];b[2] = 80;b[12] = 20;
+        for (int i = 3; i < 7; i++) b[i] = 0x10;
+        for (int i = 7; i < 11; i++) b[i] = 0x01;
+        return b;
+    }
+    /** A 0x70 status reply: long enough to carry the charge limit (byte 31) or not. */
+    static byte[] status70(boolean withLimit, int limit) { byte[] b = new byte[withLimit ? 33 : 21];if (withLimit) b[32] = (byte) limit;return b; }
+    static Telemetry.Metric metric(Telemetry t, String key) { for (Telemetry.Metric m : t.metrics()) if (m.key.equals(key)) return m;return null; }
+    static Double current(Rig r) { Telemetry.Metric m = metric(r.tele, "current_a");return m == null ? null : m.numericValue; }
+
+    /**
+     * Round 6 finding (P2, council review of 702153ba). Out of sight 702153ba read 0x72 alone, so each reply's current and
+     * temperature were signed with the last direction 0x79 had given: a charger plugged in out of sight was stored as
+     * discharging until Volt was opened. Now 0x79 goes with 0x72 wherever periodicBattery sends it, quietly, and the
+     * current carries the scooter's own direction after each poll's replies; nothing is switched off.
+     */
+    private static void backgroundSign() {
+        for (boolean before : new boolean[]{false, true}) {
+            Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.noticeAlone = before;r.tele = new Telemetry();
+            r.visibility(true, false);r.connect();r.run(T0 + 5 * S);probe79(r);r.run(T0 + 30 * S);
+            check(current(r) != null && current(r) > 0, "in sight: discharging, read with its direction " + current(r));
+            r.visibility(false, false);r.run(T0 + 60 * S);
+            r.sign = 1;// the charger goes in out of sight: the current now runs the other way
+            int at = r.batteryCmds.size();long changed = r.now();r.run(T0 + 5 * 60 * S);
+            Telemetry.Metric m = metric(r.tele, "current_a");
+            check(m.updatedMs > changed, "the current was read again out of sight " + (before ? "(702153ba)" : ""));
+            if (before) { check(current(r) > 0, "702153ba: the charging current is stored with the old direction " + current(r));continue; }
+            List<Integer> out = r.batteryCmds.subList(at, r.batteryCmds.size());
+            check(current(r) < 0 && out.contains(0x79) && r.batteryPolicy.suppressed().isEmpty(), "now: stored with the scooter's direction, 0x79 read with 0x72, nothing switched off " + current(r) + " " + out);
+        }
+    }
+
+    /** ScooterService.chargeScheduleContext's settingsLive, mirrored (sourceAudit6 pins it); old is 702153ba's, the status's age alone. */
+    static boolean settingsLive(Telemetry t, long statusMs, long now, long freshMs, boolean old) {
+        boolean status = statusMs > 0 && now - statusMs <= freshMs;
+        if (old) return status;
+        Telemetry.Metric limit = metric(t, "charge_limit_percent");
+        Double target = limit != null && limit.numericValue != null && Double.isFinite(limit.numericValue) && limit.updatedMs > 0
+                && now >= limit.updatedMs && now - limit.updatedMs <= freshMs ? limit.numericValue : null;
+        return status && (target != null || limit == null || limit.updatedMs <= 0);
+    }
+
+    /**
+     * Round 6 finding 5. A recent status that did not carry the limit (shorter than byte 31) must not vouch for a limit read
+     * earlier: the limit reading must be live itself, unless this connection has reported no limit at all.
+     */
+    private static void settingsLiveLimit() {
+        long fresh = 10 * S;
+        Telemetry t = new Telemetry();t.accept(0x70, status70(true, 85), T0);
+        check(settingsLive(t, T0, T0 + S, fresh, false) && settingsLive(t, T0, T0 + S, fresh, true), "a status carrying the limit: live");
+        t.accept(0x70, status70(false, 0), T0 + 12 * S);
+        check(!settingsLive(t, T0 + 12 * S, T0 + 13 * S, fresh, false), "a recent status without the limit does not vouch for one read 13 s ago");
+        check(settingsLive(t, T0 + 12 * S, T0 + 13 * S, fresh, true), "702153ba took it as live");
+        t.accept(0x70, status70(true, 90), T0 + 15 * S);
+        check(settingsLive(t, T0 + 15 * S, T0 + 16 * S, fresh, false) && metric(t, "charge_limit_percent").numericValue == 90, "the limit read again: live");
+        // A new connection (readings cleared) whose scooter reports no limit: the status alone, on its own age.
+        t.clear();t.accept(0x70, status70(false, 0), T0 + 60 * S);
+        check(settingsLive(t, T0 + 60 * S, T0 + 61 * S, fresh, false), "no limit on this connection: the status decides");
+        check(!settingsLive(t, T0 + 60 * S, T0 + 71 * S, fresh, false), "and only while it is live");
+    }
+
+    /** ScooterService.chargeLiveFacts' limit, mirrored (sourceAudit6 pins it): live by liveReading's rule; old is 702153ba's, whatever is stored. */
+    static Integer cardLimit(Telemetry.Metric limit, long now, boolean old) {
+        Double v = old ? (limit == null ? null : limit.numericValue)
+                : limit != null && limit.numericValue != null && Double.isFinite(limit.numericValue) && limit.updatedMs > 0
+                && now >= limit.updatedMs && now - limit.updatedMs <= ChargeAlertPolicy.FRESH_MS ? limit.numericValue : null;
+        return v == null || v < 1 || v > 100 ? null : (int) Math.round(v);
+    }
+
+    /**
+     * Round 6 finding 2. The live charging card took the limit with no age check: after a sleep in which the limit was
+     * raised (80 to 90), the hold armed before the next status named the old 80, and a charger that stopped at 80 was
+     * called finished. Now the limit is taken only while live; the next status brings the new one.
+     */
+    private static void liveCardLimit() {
+        Telemetry t = new Telemetry();t.accept(0x70, status70(true, 80), T0);
+        long wake = T0 + 10 * 60 * S;
+        for (boolean old : new boolean[]{false, true}) {
+            Integer cap = cardLimit(metric(t, "charge_limit_percent"), wake, old);
+            ChargeLiveHold hold = new ChargeLiveHold();
+            check(hold.leave(wake, new ChargeLiveHold.Facts(true, true, true, false, 80, cap, "p")), "armed while charging");
+            ChargeLiveHold.End end = hold.step(wake + S, new ChargeLiveHold.Facts(true, true, false, false, 80, cap, "p"));
+            if (old) check(Integer.valueOf(80).equals(cap) && end == ChargeLiveHold.End.FINISHED, "702153ba: the old limit named, and the stop at it called finished " + end);
+            else check(cap == null && end == ChargeLiveHold.End.NONE, "now: no limit named from before the sleep, the stop not called finished " + end);
+        }
+        t.accept(0x70, status70(true, 90), wake + 2 * S);
+        check(Integer.valueOf(90).equals(cardLimit(metric(t, "charge_limit_percent"), wake + 3 * S, false)), "the next status brings the raised limit");
+    }
+
+    /**
+     * Round 6: the lines the round 6 parts mirror, each failing on 702153ba. Finding 4 is here too: Cancel on setup's
+     * Connect step acts whenever the step shows it, which is whenever ready() is false; a READY link is never torn down.
+     */
+    private static void sourceAudit6() throws Exception {
+        String policy = read("src/com/jjricks/volt/ReadPolicy.java"), svc = read("src/com/jjricks/volt/ScooterService.java"),
+                schedule = read("src/com/jjricks/volt/ChargeScheduleController.java"), setup = read("src/com/jjricks/volt/OnboardingScreen.java");
+        check(policy.contains("int[] noticeBattery(){return allowed(0x72)&&answered.contains(0x72)?periodicBattery():new int[0];}"), "the background reads are periodicBattery's, once 0x72 has answered");
+        String live = "c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)&&(c.target!=null||limit==null||limit.updatedMs<=0);";
+        check(svc.contains(live) && svc.indexOf("c.target=freshScheduleNumber(readings.get(\"charge_limit_percent\"),mono);") < svc.indexOf(live)
+                && svc.indexOf("c.settingsLive=") == svc.lastIndexOf("c.settingsLive="), "settingsLive asks the limit reading itself, after it is read");
+        check(svc.contains("percent=liveReading(soc,now),limitNow=liveReading(limit,now);") && svc.contains("Double target=limitNow==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limitNow;")
+                && !svc.contains("?null:limit.numericValue;"), "the live card takes the limit only while live");
+        check(schedule.contains("if(!c.settingsLive){if(s.mode!=0&&Integer.valueOf(1).equals(c.charging)&&c.now>=s.start&&!s.started){s.started=true;save(c,s);}return;}")
+                && schedule.contains("if(finite(c.soc)&&c.soc>=s.target){retire(c,s,\"Charge target reached\",Outcome.TARGET_REACHED);return;}")
+                && schedule.indexOf("settingsLive", schedule.indexOf("private void reconcile(")) == schedule.indexOf("if(!c.settingsLive){") + 6,
+                "reconcile asks settingsLive once, at the top, keeping only a start seen meanwhile");
+        int stop = setup.indexOf("private void stopConnecting() {");
+        String body = setup.substring(stop, setup.indexOf("\n    }\n", stop));
+        check(body.contains("if (service == null || service.isRecording() || service.ble.ready()) return;") && !body.contains("linked()"),
+                "Cancel stops a connection that is not ready(), as the step shows it");
+        check(setup.contains("boolean ready = service != null && service.ble.ready(), linked = service != null && service.ble.connected();")
+                && setup.contains("boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);")
+                && setup.contains("cancel.setVisibility(busy || waitingToStart ? View.VISIBLE : View.GONE);"), "the step shows Cancel while not ready()");
     }
 }

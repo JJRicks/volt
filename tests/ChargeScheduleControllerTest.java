@@ -37,7 +37,7 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();linkedNotReady();staleSettings();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();linkedNotReady();staleSettings();startSeenStale();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
     }
     /** The start-sent listener hears only a start the scooter confirmed. */
@@ -745,6 +745,24 @@ public final class ChargeScheduleControllerTest {
         check(low.controller.view().manualEnabled&&low.controller.view().missed==null,"stale settings: no missed start yet (4164feba raised one)");
         low.c.settingsLive=true;low.c.target=40d;low.c.enabled=1;low.controller.observe();
         check(!low.controller.view().manualEnabled&&low.controller.view().missed==null&&"Charge target reached".equals(low.controller.view().status),"the live limit says it was reached "+low.controller.view().status);
+    }
+
+    /**
+     * #418 round 6 (finding 3): a charging start seen while the settings are stale is kept. A plan armed at 84% under an
+     * 85% limit; the limit raised unseen in a sleep; after the start, 85% and charging arrive before the next status, then
+     * charging stops. 702153ba returned before recording the start, and the live pass called the charge a missed start.
+     */
+    private static void startSeenStale(){
+        Rig r=withManualOnly();r.c.soc=84d;r.c.target=85d;r.c.charging=0;r.controller.setManualEnabled(true,r.results::add);r.reply(true);r.reply(true);r.c.enabled=1;r.reply(true);
+        check(r.results.get(0)==null&&r.controller.view().manualEnabled,"armed at 84% under an 85% limit");
+        long wire=r.c.wireStart;
+        woken(r);r.c.now=time("2026-10-20T11:01:00Z");r.c.charging=1;r.c.soc=85d;r.controller.observe();
+        check(r.controller.view().manualEnabled&&r.controller.view().status.isEmpty(),"stale settings: nothing decided");
+        r.c.now=time("2026-10-20T11:03:00Z");r.c.charging=0;r.controller.observe();
+        check(r.controller.view().manualEnabled,"still nothing while they stay stale");
+        r.c.ready=true;r.c.settingsLive=true;r.c.target=90d;r.c.enabled=1;r.c.wireStart=wire;r.c.toggleReason=null;r.c.timeReason=null;r.controller.observe();
+        ChargeScheduleController.View v=r.controller.view();
+        check(v.missed==null&&!v.manualEnabled&&"Scheduled start has passed".equals(v.status),"the start seen on stale settings is kept: not a missed start (702153ba raised one) "+v.status);
     }
 
     /** A test armed on a scooter with a manual Charge start preference (11:00Z), ON confirmed and still charging. */

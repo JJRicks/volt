@@ -702,10 +702,10 @@ public final class BleController {
      * One status poll; silence is judged on the cadence the link has been on, in awake time (StatusCadence.Chain.silent).
      * The battery reads join the poll at the poll interval in sight, every 2 s recording, and with every 15 s poll out of
      * sight. In sight, recording or with a battery watch: ReadPolicy.periodicBattery, exactly as before. Out of sight
-     * otherwise, only so the connected notice's level stays current (owner, 2026-11-12): ReadPolicy.noticeBattery (0x72
-     * once it has answered, never the direction read), sent quietly, so its silence can never switch a read off for the
-     * rest of the connection (#418). Only on a link that is up, never with a wake lock of its own: a phone asleep reads
-     * again at the first poll after waking.
+     * otherwise, only so the connected notice's level stays current (owner, 2026-11-12): ReadPolicy.noticeBattery (the
+     * same reads, once 0x72 has answered, so the direction read signs the current it brings), sent quietly, so their
+     * silence can never switch a read off for the rest of the connection (#418). Only on a link that is up, never with a
+     * wake lock of its own: a phone asleep reads again at the first poll after waking.
      */
     private void pollTick(int session){if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;if(lostToSilence())return;if(readPolicy!=null)readPolicy.tick(awake());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&now()-lastBatteryPollMs>=(recording?2000:interval)){if(visible||recording||batteryWatch())for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));else for(int cmd:policy().noticeBattery())sendQuietly(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();cadence.next();}
     /** Every write's admission: the resolver decision for this request, on this session's fresh state. */
