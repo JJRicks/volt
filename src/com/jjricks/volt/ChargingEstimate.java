@@ -300,17 +300,47 @@ public final class ChargingEstimate {
      * limit shown with it. One rule for both of the tile's pairs: the two times are never out of order, and the
      * estimate's own reading (the one the single tile, the live notification and Charge done by use) never changes,
      * so the added reading gives way. Beside a limit the estimate's own reading is the time to the limit, which past
-     * charges that stop there can make longer than a current-rate or reference time to 100%; reaching 100% takes at
-     * least as long, so that bound is the time shown, with no new estimate. Beside an alert the estimate's own reading
-     * is the time to 100%, so the alert time gives way instead (minutesToAlert). Without a limit below 100%, or with
-     * either time unknown, this is the estimate's own time to 100%.
+     * charges that stop there can make longer than a current-rate or reference time to 100%. Reaching 100% takes
+     * longer still (owner, Nov 12 2026): where that time to the limit is learned from past charges, the reading is the
+     * time to the limit plus the percent left above it at the rate those charges took from soc (the battery level the
+     * estimate used) to the limit, so 225 minutes from 50% to 95% gives 250 to 100%. That rate is the learned time
+     * itself over the percent it covers: a limit's past charges stop at the limit, so no learned time covers the rest.
+     * Where the time to the limit is not learned, or soc is unknown or not below the limit, the bound is the time to
+     * the limit itself. Beside an alert the estimate's own reading is the time to 100%, so the alert time gives way
+     * instead (minutesToAlert). Without a limit below 100%, or with either time unknown, this is the estimate's own
+     * time to 100%.
      */
-    public static Double minutesToFullBesideLimit(Result shown) {
+    public static Double minutesToFullBesideLimit(Result shown,Double soc) {
         if(shown==null)return null;
         Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
-        if(full==null||limit==null||target==null||!(target>0&&target<100))return full;
-        return limit>full?limit:full;
+        if(full==null||limit==null||target==null||!(target>0&&target<100)||!(limit>full))return full;
+        Double learned=learnedRateToFull(shown,soc);
+        return learned==null?limit:learned;
     }
+
+    /**
+     * The status spoken with minutesToFullBesideLimit's reading: the estimate's own, less what it says of a time to
+     * 100% this reading did not use (the current rate, or a reference covering 100%) when that reading comes from the
+     * rate learned to the limit. Otherwise the estimate's own status, unchanged.
+     */
+    public static String statusBesideLimit(Result shown,Double soc) {
+        if(shown==null||shown.status==null)return shown==null?null:shown.status;
+        Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
+        if(full==null||limit==null||target==null||!(target>0&&target<100)||!(limit>full)||learnedRateToFull(shown,soc)==null)
+            return shown.status;
+        return shown.status.replace(FULL_AT_CURRENT_RATE,"").replace(REFERENCE_FOR_OTHER,"");
+    }
+
+    /** The time to the limit learned from past charges, extended to 100% at its own rate; null without one. */
+    private static Double learnedRateToFull(Result shown,Double soc) {
+        Double limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
+        if(!shown.learnedToLimit||limit==null||target==null||soc==null||!Double.isFinite(soc)||soc<0||!(soc<target))return null;
+        double minutes=limit*(100-soc)/(target-soc);
+        return Double.isFinite(minutes)&&minutes>=limit?Double.valueOf(minutes):null;
+    }
+
+    private static final String FULL_AT_CURRENT_RATE="Time to 100% uses the current rate. ";
+    private static final String REFERENCE_FOR_OTHER="Experimental UT5 MAX charger reference covers the other target. ";
 
     /** planned, or personal where both exist and personal is longer; an unavailable plan stays unavailable. */
     private static Double atLeast(Double planned,Double personal) {
@@ -371,8 +401,8 @@ public final class ChargingEstimate {
         boolean referenceLimit=!learned.learnedToLimit&&prior.referenceToLimit;
         String status=learned.learnedSessions==1?"Provisional personal estimate from 1 completed charge. "
                 :"Personal estimate from "+learned.learnedSessions+" qualified charges. ";
-        if(referenceFull||referenceLimit)status+="Experimental UT5 MAX charger reference covers the other target. ";
-        if(!learned.learnedToFull&&!referenceFull)status+="Time to 100% uses the current rate. ";
+        if(referenceFull||referenceLimit)status+=REFERENCE_FOR_OTHER;
+        if(!learned.learnedToFull&&!referenceFull)status+=FULL_AT_CURRENT_RATE;
         if(prior.targetPercent!=null&&!learned.learnedToLimit&&!referenceLimit)status+="Time to the limit uses the current rate. ";
         status+="Time to displayed 100%; balancing may continue.";
         status+=cutoffNote(prior.targetPercent);

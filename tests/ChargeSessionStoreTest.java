@@ -285,7 +285,9 @@ public final class ChargeSessionStoreTest {
     /**
      * The charging tile's pair beside a scooter's own limit (council review of #422 at baccf967, finding 1): two past
      * charges that stop at a 95% limit, five minutes a percent, make the time to the limit longer than the current-rate
-     * time to 100%. The tile shows the time to the limit unchanged and a time to 100% no shorter than it.
+     * time to 100%. The tile shows the time to the limit unchanged and a time to 100% no shorter than it: the owner's
+     * choice (Nov 12 2026) adds the percent above the limit at the rate those charges took to it, 225 minutes from 50%
+     * to 95% giving 250 to 100%, and its spoken status no longer says the current rate gave that time.
      */
     static void tilePairOrder()throws Exception{
         ChargeSessionStore s=store();
@@ -297,15 +299,24 @@ public final class ChargeSessionStoreTest {
         check(r.learnedToLimit&&!r.learnedToFull,"Past charges to the limit, none to 100%");
         near(225,r.remainingMinutesToLimit,"Learned time from 50% to the 95% limit");
         near(217.5,r.remainingMinutesToFull,"Current-rate time to 100%, shorter than the time to the limit");
-        Double full=ChargingEstimate.minutesToFullBesideLimit(r);
-        check(full!=null&&full>=r.remainingMinutesToLimit,"The tile's time to 100% is never shorter than its time to the limit: "+full+" vs "+r.remainingMinutesToLimit);
-        near(225,full,"Bounded by the time to the limit, no new estimate");
+        Double full=ChargingEstimate.minutesToFullBesideLimit(r,50d);
+        check(full!=null&&full>r.remainingMinutesToLimit,"The tile's time to 100% is longer than its time to the limit: "+full+" vs "+r.remainingMinutesToLimit);
+        near(250,full,"The limit's 225 minutes plus 5% at the 5 minutes a percent learned to it");
+        check(r.status.contains("Time to 100% uses the current rate."),"The estimate's own status names the current rate: "+r.status);
+        String spoken=ChargingEstimate.statusBesideLimit(r,50d);
+        check(!spoken.contains("current rate")&&spoken.contains("Personal estimate from 2 qualified charges."),
+                "The 100% reading's status does not claim the current rate gave it: "+spoken);
+        // Without the battery level the learned rate is unknown: the bound is the time to the limit, status unchanged.
+        near(225,ChargingEstimate.minutesToFullBesideLimit(r,null),"No battery level: bounded by the time to the limit");
+        near(225,ChargingEstimate.minutesToFullBesideLimit(r,95d),"A level at the limit has no rate to it: bounded by the time to the limit");
+        check(r.status.equals(ChargingEstimate.statusBesideLimit(r,null)),"No battery level: the estimate's own status");
         // Every other case is the estimate's own time to 100%, unchanged.
         ChargingEstimate.Result ordinary=ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),soc,ah,new ChargingEstimate.Value(80d,true,100));
-        near(ordinary.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(ordinary),"A time to the limit already shorter leaves 100% alone");
+        near(ordinary.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(ordinary,50d),"A time to the limit already shorter leaves 100% alone");
+        check(ordinary.status.equals(ChargingEstimate.statusBesideLimit(ordinary,50d)),"A time to the limit already shorter keeps its status");
         ChargingEstimate.Result none=ChargingEstimate.calculate(on,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),soc,ah,new ChargingEstimate.Value(100d,true,100));
-        near(none.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(none),"No limit below 100%: the estimate's own time");
-        check(ChargingEstimate.minutesToFullBesideLimit(null)==null,"No estimate, no time");
+        near(none.remainingMinutesToFull,ChargingEstimate.minutesToFullBesideLimit(none,50d),"No limit below 100%: the estimate's own time");
+        check(ChargingEstimate.minutesToFullBesideLimit(null,50d)==null&&ChargingEstimate.statusBesideLimit(null,50d)==null,"No estimate, no time");
         // The estimate's own fields, which the notification, Charge done by and the single tile read, are untouched.
         near(225,r.remainingMinutesToLimit,"The time to the limit is unchanged");near(217.5,r.remainingMinutesToFull,"The estimate's time to 100% is unchanged");
     }

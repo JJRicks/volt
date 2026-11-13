@@ -1746,15 +1746,17 @@ public final class DashboardScreen implements AppScreen {
          * view already says what it charges to; never shorter than the time to the limit beside it,
          * ChargingEstimate.minutesToFullBesideLimit); with one it is the estimate's own time, exactly as the single
          * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
-         * and speaks no status, as the alert tile did.
+         * and speaks no status, as the alert tile did. level is the battery percent shown above the tile (NaN when
+         * unknown), which minutesToFullBesideLimit needs for the rate learned to the limit.
          */
-        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
+        void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert, double level) {
             ScooterService service = host.service();
             int source = ChargeTimeReadings.limitSource(estimate.targetPercent, service != null && service.chargeAlertsOffered(), alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
+            Double soc = Double.isNaN(level) ? null : level;
             fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
-                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
-                    estimate.status);
+                    estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate, soc) : estimate.remainingMinutesToFull,
+                    scooterLimit ? ChargingEstimate.statusBesideLimit(estimate, soc) : estimate.status);
             if (scooterLimit)
                 fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
             else if (alert != null)
@@ -2238,7 +2240,7 @@ public final class DashboardScreen implements AppScreen {
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
             stage.setMinimumHeight(ui.dp(known ? 236 : 44));
             updatePulse();
-            timeTile.update(estimate, chargeAlertEstimate(values));
+            timeTile.update(estimate, chargeAlertEstimate(values), level);
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
