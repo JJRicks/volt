@@ -87,7 +87,7 @@ public final class HomeTextTest {
         equal("Show charging automatically", HubText.momentCharging(), "moment charging");
         equal("Home shows the charge by itself when charging starts.", HubText.momentChargingDescription(), "moment charging sub");
         equal("Show the last ride after riding", HubText.momentRide(), "moment ride");
-        equal("For about an hour after a ride, until you close it.", HubText.momentRideDescription(), "moment ride sub");
+        equal("For about an hour after a recorded ride, until you close it.", HubText.momentRideDescription(), "moment ride sub");
     }
 
     private static void topArea() {

@@ -1222,7 +1222,9 @@ public final class MoreScreen implements AppScreen {
         valueRefreshers.add(() -> units.value(unitsSummary()));
         Row text = row(display, "text", T.morePrefsTextSize(), null, this::textSize);
         valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
-        preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        // Its own tag, so search (HubSearchTables.SETTING_HAPTICS, PR 12) finds the switch apart from the card.
+        Row haptics = preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        haptics.view.setTag(HubSearchTables.SETTING_HAPTICS);
     }
     private boolean batteryUnrestricted() {
         try {

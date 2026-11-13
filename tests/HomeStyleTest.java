@@ -170,6 +170,25 @@ public final class HomeStyleTest {
         require(!HomeStyle.preHubRestoreGivesWidgets(true, true, HomeStyle.ORIGIN_INSTALL), "A chosen style is kept");
         require(!HomeStyle.preHubRestoreGivesWidgets(false, false, null) && !HomeStyle.preHubRestoreGivesWidgets(false, false, HomeStyle.ORIGIN_UPDATE),
                 "Nothing stored, or an update origin (the seed gives Widgets): left as it is");
+        // Part 9's early council review, note 1: a pre-Hub backup's App preferences restored on a phone with neither a style
+        // nor an origin (the welcome screen, setup under way) store an unchosen Widgets, so setup's end records update.
+        require(HomeStyle.preHubRestoreStoresWidgets(false, null) && HomeStyle.preHubRestoreStoresWidgets(false, "bogus"),
+                "A pre-Hub restore on a phone with no style and no origin stores Widgets");
+        require(!HomeStyle.preHubRestoreStoresWidgets(true, null) && !HomeStyle.preHubRestoreStoresWidgets(false, HomeStyle.ORIGIN_INSTALL)
+                && !HomeStyle.preHubRestoreStoresWidgets(false, HomeStyle.ORIGIN_UPDATE), "but never over a stored style or origin");
+        require(HomeStyle.pickedOrigin(null, true).equals(HomeStyle.ORIGIN_UPDATE), "Finishing setup afterwards records update");
+        String[] skippedAfterPreHub = HomeStyle.afterSkippedSetup(null, true);
+        require(skippedAfterPreHub[0] == null && HomeStyle.ORIGIN_UPDATE.equals(skippedAfterPreHub[1]), "and so does skipping it, keeping Widgets");
+        require(HomeStyle.setupChoice(null, false, HomeStyle.WIDGETS).equals(HomeStyle.WIDGETS), "Setup's last step preselects the earlier owner's Widgets");
+        require(HomeStyle.showWhatsNew(HomeStyle.ORIGIN_UPDATE, false, false, false, true, true) && HomeStyle.whatsNewBackgroundNotice(HomeStyle.ORIGIN_UPDATE, true),
+                "so that owner sees What's new once, with the background-recording notice when Record rides automatically is on");
+        // Note 4: either offer button closes the sheet, so the background-recording notice comes before the offer.
+        require(HomeStyle.whatsNewSections(true, true, true).equals(java.util.Arrays.asList(HomeStyle.SECTION_NOTICE, HomeStyle.SECTION_OFFER, HomeStyle.SECTION_NOTES)),
+                "The notice, then the offer, then the notes");
+        require(HomeStyle.whatsNewSections(true, false, true).equals(java.util.Arrays.asList(HomeStyle.SECTION_OFFER, HomeStyle.SECTION_NOTES)),
+                "Without the notice, the offer leads");
+        require(HomeStyle.whatsNewSections(false, true, false).equals(java.util.Collections.singletonList(HomeStyle.SECTION_NOTICE))
+                && HomeStyle.whatsNewSections(false, false, false).isEmpty(), "Only what the sheet holds");
     }
 
     private static void keys() {
