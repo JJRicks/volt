@@ -185,6 +185,9 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# Developer simulator: UT5 MAX, GT3 Max and GT5 Max EU in Parked, Riding and Charging, then every store compared (phone and wide, dark and light).
+STEPS += [inst(f'simulator-scenes-{size.split("x")[0]}-{theme}', T + 'SimulatorScenesValidation', '-e', 'theme', theme, size=size)
+          for size in (PHONE[0], WIDE[0]) for theme in ('dark', 'light')]
 # Maintenance reminders added with no connection (never-read and stale scooters, a restart), phone and wide.
 STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
           for case in (PHONE, WIDE)]
