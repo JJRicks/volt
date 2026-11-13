@@ -314,6 +314,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK) && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED),
                 "Once chosen, the recording's charger changed again");
         log("out of sight: the owner chose high-speed during the guessed recording: label " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger()) + ", Charge done by no longer waits");
+        String chosenNow = onMainText(() -> service.chargeCaptureStatus());
+        require(!chosenNow.endsWith(T.serviceChargeChargerGuessed("")), "The status line still marked the charger as guessed after the owner chose it: " + chosenNow);
         SystemClock.sleep(5 * S);
         getTargetContext().startForegroundService(new Intent(getTargetContext(), ScooterService.class).setAction("STOP_CHARGE_RECORDING"));
         await(() -> onMain(() -> !service.isChargeRecording()), 10 * S, "The notification's Stop did not stop it");
