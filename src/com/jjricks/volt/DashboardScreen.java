@@ -2273,6 +2273,9 @@ public final class DashboardScreen implements AppScreen {
         final LinearLayout rows;
         /** The model has a photo; there is room for it (always on Widgets; Clean's slot can be too small). */
         boolean photoKnown, photoRoom = true;
+        /** Clean: the percentage's full text size in pixels (ChargingFit shrinks it from there), and its fade. */
+        float percentFullPx;
+        android.graphics.drawable.Drawable percentFade;
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2308,15 +2311,13 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams percentSize = new LinearLayout.LayoutParams(-2, -2);
             percentSize.topMargin = ui.dp(6);
             if (clean) {
-                // A soft dark fade keeps the percentage readable over the photo that reaches up behind it.
-                GradientDrawable fade = new GradientDrawable();
-                fade.setGradientType(GradientDrawable.RADIAL_GRADIENT);
-                fade.setGradientRadius(ui.dp(84));
-                fade.setColors(new int[] {Ui.withAlpha(Color.BLACK, ui.dark ? 120 : 56), Ui.withAlpha(Color.BLACK, 0)});
-                percent.setBackground(fade);
+                // A soft fade in the card's own colour keeps the percentage readable over the photo that reaches up
+                // behind it; it fades out inside the percentage's bounds, so it never ends in a hard edge.
+                percentFade = new SoftFade(Ui.withAlpha(ui.surface, ui.dark ? 150 : 170));
                 percent.setPadding(ui.dp(4), 0, ui.dp(12), 0);
                 percent.setTranslationZ(1);
                 percentSize.topMargin = 0;
+                percentFullPx = percent.getTextSize();
             }
             addView(percent, percentSize);
             stage = new Stage();
@@ -2333,8 +2334,8 @@ public final class DashboardScreen implements AppScreen {
                 photoSize.bottomMargin = ui.dp(18);
             }
             stage.addView(photo, photoSize);
-            LinearLayout.LayoutParams stageSize = clean ? new LinearLayout.LayoutParams(-1, 0, 1) : new LinearLayout.LayoutParams(-1, -2);
-            if (clean) stageSize.topMargin = -ui.dp(40);
+            // Clean's stage gets its height and its reach behind the percentage from ChargingFit (onMeasure).
+            LinearLayout.LayoutParams stageSize = clean ? new LinearLayout.LayoutParams(-1, 0) : new LinearLayout.LayoutParams(-1, -2);
             addView(stage, stageSize);
             LinearLayout rows = column();
             this.rows = rows;
@@ -2428,21 +2429,55 @@ public final class DashboardScreen implements AppScreen {
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
 
         /**
-         * Clean's fixed slot: when the readings leave the photo too little room (a narrow or short window, large
-         * text), the photo and its glow go first and the readings stay; the track still runs along the slot's
-         * bottom. Only when not even the track fits under the readings do they give way. The text never gets smaller.
+         * Clean's fixed slot (council review 5886927849): the line, the full-size percentage and the readings are
+         * measured at the slot's width, and ChargingFit decides what shows. The readings go last: first the photo,
+         * then the percentage gets smaller, then the line, the track and the percentage. The parts then stack top to
+         * bottom inside the slot, the stage taking what is left, so nothing sits on anything else (only the photo
+         * reaches up behind the percentage) and nothing is left empty under the readings.
          */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             if (!clean || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) { super.onMeasure(widthSpec, heightSpec); return; }
-            if (rows.getVisibility() != VISIBLE) rows.setVisibility(VISIBLE);
-            super.onMeasure(widthSpec, heightSpec);
-            if (stage.getMeasuredHeight() < ui.dp(8)) {
-                rows.setVisibility(GONE);
-                super.onMeasure(widthSpec, heightSpec);
+            int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
+            int inner = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom();
+            int across = MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST), free = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+            percentScale(1);
+            chip.measure(across, free);
+            percent.measure(across, free);
+            rows.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), free);
+            int fullPercent = percent.getMeasuredHeight();
+            ChargingFit.Plan plan = ChargingFit.plan(inner, chip.getMeasuredHeight(), fullPercent,
+                    rows.getMeasuredHeight(), getResources().getDisplayMetrics().density);
+            shown(chip, plan.line);
+            shown(percent, plan.percent);
+            percentScale(plan.percentScale);
+            // A smaller text size's own height can differ from the planned share by a pixel or two: the stage absorbs it.
+            int drift = 0;
+            if (plan.percent && plan.percentScale < 1) {
+                percent.measure(across, free);
+                drift = percent.getMeasuredHeight() - ChargingFit.scaled(fullPercent, plan.percentScale);
             }
-            // The stage's height comes from its weight, so the photo's visibility does not change it.
-            photoRoom = stage.getMeasuredHeight() >= ui.dp(72);
+            if (percent.getBackground() != (plan.photo ? percentFade : null)) percent.setBackground(plan.photo ? percentFade : null);
+            LinearLayout.LayoutParams stageSize = (LinearLayout.LayoutParams) stage.getLayoutParams();
+            stageSize.weight = 0;
+            stageSize.height = plan.stageHeight == 0 ? 0 : Math.max(1, plan.stageHeight - drift);
+            stageSize.topMargin = plan.stageTopMargin;
+            shown(stage, plan.stageHeight > 0);
+            shown(rows, plan.readings);
+            ((LinearLayout.LayoutParams) rows.getLayoutParams()).topMargin = plan.readingsGap;
+            photoRoom = plan.photo;
             showPhoto();
+            super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** Clean: the percentage at a share of its full size. */
+        private void percentScale(float scale) {
+            float size = percentFullPx * scale;
+            if (percentFullPx > 0 && percent.getTextSize() != size) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
+        }
+
+        private void shown(View view, boolean shown) {
+            int visibility = shown ? VISIBLE : GONE;
+            if (view.getVisibility() != visibility) view.setVisibility(visibility);
         }
 
         /** The photo shows when the model has one and (in Clean's slot) there is room for it. */
@@ -2610,6 +2645,30 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
         }
+    }
+
+    /**
+     * A fade of one colour, strongest in the middle and gone at the edge of the ellipse inside its bounds: no hard
+     * edge wherever the bounds end (Clean's charging percentage, council review 5886927849).
+     */
+    private static final class SoftFade extends android.graphics.drawable.Drawable {
+        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final int color;
+        SoftFade(int color) {
+            this.color = color;
+            paint.setShader(new RadialGradient(0, 0, 1, new int[] {color, color, Ui.withAlpha(color, 0)},
+                    new float[] {0, .45f, 1}, Shader.TileMode.CLAMP));
+        }
+        @Override protected void onBoundsChange(Rect bounds) {
+            Matrix place = new Matrix();
+            place.setScale(Math.max(1, bounds.width() / 2f), Math.max(1, bounds.height() / 2f));
+            place.postTranslate(bounds.exactCenterX(), bounds.exactCenterY());
+            paint.getShader().setLocalMatrix(place);
+        }
+        @Override public void draw(Canvas canvas) { canvas.drawRect(getBounds(), paint); }
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); invalidateSelf(); }
+        @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); invalidateSelf(); }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
     /** Types whose content carries its own heading, so the card shows no title line. */
