@@ -71,6 +71,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `dashboard_*_unconfigured` | as above | none | Durable | Home's layout while no scooter exists (after **Skip setup**; `<pid>` = `unconfigured`). Not a scooter: backup counts and merges ignore it; only Replace everything restores it. |
 | `range_source_<pid>` | String | per scooter | Durable | `scooter`/`learned` range estimate. ScooterService. |
 | `range_follow_mode_<pid>` | Boolean | per scooter | Durable | Range follows drive mode. |
+| `charge_time_reading_<pid>` | String | per scooter | Durable | Charging view time tile left on `limit` or `full` (ChargeTimeReadings). |
 | `charge_charger_<pid>` | String | per scooter | Durable | Manual charger choice (`STOCK`/`HIGH_SPEED`). |
 | `charge_schedule_owned_<pid>` | String | per scooter | Durable | Confirmed one-shot charging intent, chosen finish time, actual scheduled start, target and expiry. ScooterService / ChargeScheduleController. Simulation and pending operations never persist; restoring this display state never sends or rearms a scooter command. |
 | `charge_alerts_<pid>` | String | per scooter | Durable | Battery alert choices: charge alert on/level, low battery alert on/level, Notify me, Alarm sound (`charge=1;at=80;low=0;below=20;notify=1;alarm=0`). ScooterService / ChargeAlertPolicy. Everything off when absent or unreadable. |
