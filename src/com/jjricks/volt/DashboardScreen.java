@@ -1751,6 +1751,8 @@ public final class DashboardScreen implements AppScreen {
         }
         /** The label icon hides in a narrow cell, where the caption needs the room. */
         void showIcons(boolean shown) { labelIcon.setVisibility(shown ? VISIBLE : GONE); }
+        /** The captions this cell can show (one; the time tile has one per face). */
+        TextView[] captions() { return new TextView[] {label}; }
     }
 
     private final class InfoTiles extends LinearLayout {
@@ -1823,6 +1825,36 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
             super.onMeasure(widthSpec, heightSpec);
+            if (evenLabels()) super.onMeasure(widthSpec, heightSpec);
+        }
+        /**
+         * Tiles side by side give their captions the same number of lines (the most any of them wraps to), so the
+         * values under them share one line when only one label wraps. The line count is the text's own, whatever the
+         * minimum, so this settles in one pass. True when a minimum changed and the row needs measuring again.
+         */
+        private boolean evenLabels() {
+            boolean changed = false;
+            for (int r = 0; r < getChildCount(); r++) {
+                if (!(getChildAt(r) instanceof ViewGroup)) continue;
+                ViewGroup line = (ViewGroup) getChildAt(r);
+                ArrayList<TextView> shown = new ArrayList<>();
+                int most = 1;
+                for (int c = 0; c < line.getChildCount(); c++) {
+                    if (!(line.getChildAt(c) instanceof InfoCell) || line.getChildAt(c).getVisibility() == GONE) continue;
+                    for (TextView caption : ((InfoCell) line.getChildAt(c)).captions()) {
+                        shown.add(caption);
+                        if (caption.getLayout() != null) most = Math.max(most, caption.getLineCount());
+                    }
+                }
+                int lines = shown.size() > 1 ? most : 0;
+                for (TextView caption : shown)
+                    // getMinLines is -1 while a minimum height is set instead; nothing to undo then.
+                    if (caption.getMinLines() != lines && (lines > 0 || caption.getMinLines() > 0)) {
+                        caption.setMinLines(lines);
+                        changed = true;
+                    }
+            }
+            return changed;
         }
     }
 
@@ -1960,6 +1992,8 @@ public final class DashboardScreen implements AppScreen {
             spoken[reading] = spokenChargeTime(names[0], values[reading].getText(), tags[reading], status);
             values[reading].setContentDescription(spoken[reading]);
         }
+
+        @Override TextView[] captions() { return captions; }
 
         /** The reading the user has chosen (or the only one), which the tile shows at rest. */
         int chosen() { return two ? state.target : FULL; }
@@ -2300,6 +2334,8 @@ public final class DashboardScreen implements AppScreen {
         float percentFullPx;
         /** Clean: where the photo and its scooter are in the stage (ChargingPhoto), or null while it does not show. */
         ChargingPhoto.Place photoPlace;
+        /** How far the placed picture moved from ChargingPhoto's left-to-right place (right to left: mirrored). */
+        int photoShift;
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2355,8 +2391,9 @@ public final class DashboardScreen implements AppScreen {
                     new FrameLayout.LayoutParams(-1, ui.dp(196), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             photoSize.bottomMargin = ui.dp(20);
             if (clean) {
-                // The square picture, sized and placed by ChargingPhoto while measuring (onMeasure).
-                photoSize.gravity = Gravity.TOP | Gravity.START;
+                // The square picture, sized and placed by ChargingPhoto while measuring (onMeasure), in absolute
+                // coordinates: placePhoto mirrors it for a right-to-left layout.
+                photoSize.gravity = Gravity.TOP | Gravity.LEFT;
                 photoSize.bottomMargin = 0;
                 stage.setClipChildren(false);
                 stage.setClipToPadding(false);
@@ -2537,7 +2574,10 @@ public final class DashboardScreen implements AppScreen {
             if (photoPlace == null) return;
             FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) photo.getLayoutParams();
             size.width = size.height = photoPlace.size;
-            size.leftMargin = photoPlace.left;
+            // ChargingPhoto places left to right, clear of the percentage at the start; right to left, the percentage
+            // is at the right, so the picture mirrors to the left edge (the picture itself is not flipped).
+            photoShift = getLayoutDirection() == LAYOUT_DIRECTION_RTL ? width - 2 * photoPlace.left - photoPlace.size : 0;
+            size.leftMargin = photoPlace.left + photoShift;
             size.topMargin = photoPlace.top;
         }
 
@@ -2696,7 +2736,7 @@ public final class DashboardScreen implements AppScreen {
              */
             private void drawCleanGlow(Canvas canvas, float w) {
                 ChargingPhoto.Place place = photoPlace;
-                float cx = (place.scooterLeft + place.scooterRight) / 2, floor = place.scooterBottom - ui.dp(3);
+                float cx = (place.scooterLeft + place.scooterRight) / 2 + photoShift, floor = place.scooterBottom - ui.dp(3);
                 float rx = Math.min(place.scooterWidth() * .85f,
                         Math.min(cx + ChargingHero.this.getPaddingLeft(), w - cx + ChargingHero.this.getPaddingRight()));
                 if (rx <= 0) return;
@@ -3900,6 +3940,23 @@ public final class DashboardScreen implements AppScreen {
                         if (lines == 0) readingsBox.setVisibility(GONE);
                     }
                 }
+                // Hiding a whole row can free more height than the percentage needed: bring back what fits again, the
+                // range line first, then the rows from the first, so the spare height goes to the percentage (which
+                // shrinks for it) rather than to blank gaps.
+                if (rangeWanted && range.getVisibility() == GONE) {
+                    range.setVisibility(VISIBLE);
+                    rangeFits = true;
+                    if (!fitPercent(widthSpec)) { range.setVisibility(GONE); rangeFits = false; }
+                }
+                while (lines < readingsBox.getChildCount()) {
+                    readingsBox.setVisibility(VISIBLE);
+                    readingsBox.getChildAt(lines).setVisibility(VISIBLE);
+                    if (fitPercent(widthSpec)) { lines++; continue; }
+                    readingsBox.getChildAt(lines).setVisibility(GONE);
+                    if (lines == 0) readingsBox.setVisibility(GONE);
+                    break;
+                }
+                fitPercent(widthSpec);
                 speak();
                 spread(widthSpec, heightSpec);
             }
