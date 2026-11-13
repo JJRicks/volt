@@ -75,6 +75,9 @@
     <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">Laddningsinspelningen nådde sin lagrings- eller tidsgräns</string>
     <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Laddningsinspelning sparad · batteriet nådde 100 %%</string>
     <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Laddningsinspelning sparad</string>
+    <string name="service_charge_not_kept" volt:src="31f872ceeb975374bc8e8f1ea8331a295f49bb5a">Laddningsinspelningen behölls inte · under 10 min eller 5 %%</string>
+    <string name="service_charge_auto_no_room" volt:src="8c8a5ff695247603854db647ac54d85eaede73c5">Den här laddningen spelas inte in: de 20 sparade laddningsinspelningarna, som delas av alla dina elsparkcyklar, har alla startats av dig. Rensa en elsparkcykels laddningsinspelningar för att göra plats.</string>
+    <string name="service_charge_charger_guessed" volt:src="50ad0009a5426ee1508e0b0681adbddceaf41638">%1$s · laddaren gissad</string>
     <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">Laddningsinspelningen stoppades efter ett lagringsfel</string>
     <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">Laddningsinspelning stoppad · %1$s</string>
     <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">laddningen avslutades</string>

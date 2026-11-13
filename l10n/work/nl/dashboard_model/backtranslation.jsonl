@@ -19,3 +19,6 @@
 {"back":"Locking bar","key":"dashboard_model_type_lockbar","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"02d2f80d03759b90639b3d316a491d5d2d53477a","target":"Vergrendelbalk"}
 {"back":"PIN & proximity","key":"dashboard_model_qa_pin_proximity","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e609bc77142913722bef73d1892af098967f960d","target":"PIN & nabijheid"}
 {"back":"Choose a scooter first","key":"dashboard_model_tile_select_scooter","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"0bdc879ede74c25ac4b6035f02786961ef730f91","target":"Kies eerst een step"}
+{"back":"Battery warnings","key":"dashboard_model_qa_charge_alerts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a3e5ebbd7d27387561d5b73e97446892da8aee4e","target":"Accuwaarschuwingen"}
+{"back":"Notifications","key":"dashboard_model_qa_charge_alerts_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7463b09504a12e15a09561e3e0add16f6cbf5c02","target":"Meldingen"}
+{"back":"Low %1$s","key":"dashboard_model_tile_low_at","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"f637829749c4d22dca0d794dd65b041832a8c9d1","target":"Laag %1$s"}

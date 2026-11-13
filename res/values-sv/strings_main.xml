@@ -614,6 +614,8 @@
     <string name="main_report_email_next">Din e-postapp öppnas härnäst, så att du kan läsa den först.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Välj din elsparkcykel eller ”Vet inte” och tryck sedan på ”Skicka”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">En diagnostikfil bifogas: uppgifter om appen, telefonen och elsparkcykeln, Volts inställningar och senaste krasch, antal inspelningar, de senaste anslutnings- och reglagehändelserna samt den valda elsparkcykelns laddnings- och schemahistorik med tidpunkter. Aldrig din ägarnyckel, PIN-kod, serienummer, plats eller namn.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Skicka e-post till Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

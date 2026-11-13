@@ -7,13 +7,13 @@
     <string name="riding_back" volt:src="48bb68250fa0bc39a723c0fbde0ad659e0e5c3ac">Rijmodus verlaten</string>
     <string name="riding_status_connected_mode" volt:src="a816b4a5952b183a3b7a57488079ff7a4970050c">%1$s · Verbonden</string>
     <string name="riding_status_connected_mode_short" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Verbonden</string>
-    <string name="riding_status_reconnecting" volt:src="fda8d6994ee05b9c6e4ac9fc2b1dfa844694a769">Opnieuw verbinding maken…</string>
+    <string name="riding_status_reconnecting" volt:src="fda8d6994ee05b9c6e4ac9fc2b1dfa844694a769" volt:attempt="2">Opnieuw verbinden…</string>
     <string name="riding_status_not_connected_seen" volt:src="66ad8087bc6e353d966f613727ab8c2c990010d3">Niet verbonden · laatst ontvangen %1$s</string>
     <string name="riding_status_not_connected_seen_short" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Laatst ontvangen %1$s</string>
     <string name="riding_status_not_connected_seen_compact" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Niet verbonden</string>
     <string name="riding_status_recording" volt:src="92a272b9824526f5c9fa0a71fdef7fc3244edc04">REC %1$s</string>
     <string name="riding_status_recording_reconnecting" volt:src="306dc71fe5e8917139a044e445848148e32c71a5">REC %1$s · Opnieuw verbinding maken…</string>
-    <string name="riding_status_recording_reconnecting_short" volt:src="a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0">%1$s · Opnieuw verbinding maken…</string>
+    <string name="riding_status_recording_reconnecting_short" volt:src="a37c99ed8fa7ace111d5063f72ef1568b3fc1ac0" volt:attempt="2">%1$s · Herverbinden…</string>
     <string name="riding_status_recording_not_connected" volt:src="7cd145f757ae7a410c862537586232a2535d1996">REC %1$s · Niet verbonden</string>
     <string name="riding_status_recording_not_connected_short" volt:src="c894ef6f85a4af280fdf302c4e3731f2ca80af4a">%1$s · Niet verbonden</string>
     <string name="riding_status_ride_saved" volt:src="166b70664fe37ad9af57fecda1f9f9f2c61367db">Rit opgeslagen</string>
@@ -48,7 +48,7 @@
     <string name="riding_label_recording_time_short" volt:src="26c252f5e9478adbb273cdf9347a1d0ad8365290">Opn.</string>
     <string name="riding_label_average_speed" volt:src="9f6640b642a193eacddf4ed3aa53100e9bec46f7">Gemiddelde snelheid</string>
     <string name="riding_label_average_speed_short" volt:src="a2755aa4f573c4e5a952a379c4e347dfa8367cc0">Gem.</string>
-    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Topsnelheid</string>
+    <string name="riding_label_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3" volt:attempt="2">Max.</string>
     <string name="riding_label_max_speed_short" volt:src="7a77b48f5b2f34b27e6e85936b3abf2c80a0d02d">Max.</string>
     <string name="riding_label_efficiency" volt:src="deae1c30efa1cde42393254cf1d88b476297f5df">Efficiëntie</string>
     <string name="riding_unit_wh_per" volt:src="0e85b741bc4a3623a94385147993516b603c8e43">Wh/%1$s</string>
@@ -61,8 +61,13 @@
     <string name="riding_label_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Rijmodus</string>
     <string name="riding_label_drive_mode_short" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Modus</string>
     <string name="riding_label_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Klok</string>
-    <string name="riding_label_odometer" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">Kilometerstand</string>
+    <string name="riding_label_odometer" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c" volt:attempt="2">km-stand</string>
     <string name="riding_label_odometer_short" volt:src="31adf29d5b21915924c4aa05d92e9631f043c10e">km-stand</string>
+    <string name="riding_label_gps_accuracy" volt:src="c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601">GPS-nauwkeurigheid</string>
+    <string name="riding_label_gps_accuracy_short" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
+    <string name="riding_gps_not_recording" volt:src="1fb222cbc3bda1c0b4d26fea2e13a42696c1d768">Geen opname</string>
+    <string name="riding_gps_waiting" volt:src="4409bbb1386ef72e4c2145cc33396977580cb2c8">Wachten</string>
+    <string name="riding_gps_no_fix" volt:src="d7d67a1aae77c6e440cadf5f021780e48f58b9cb">Geen fix</string>
     <string name="riding_speed_last" volt:src="2f0265913cb02528d0a25d25b2eb57febffbadac">laatst %1$s</string>
     <string name="riding_power_draw_peak" volt:src="0579aa52f3ff283354e835d1d3b21d9baa7ce6c8">vermogen · piek %1$s</string>
     <string name="riding_power_draw_peak_short" volt:src="9f2b97d4e294e50a65441b6ff2864e994de11722">vermogen</string>
@@ -85,7 +90,7 @@
     <string name="riding_layout_title" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Indeling</string>
     <string name="riding_layout_choose" volt:src="591ae6acf4038658c6088285dfd6803e19f36e9b">Kies een indeling</string>
     <string name="riding_ring_max" volt:src="b12784bd1a78199af50601c39355d949c5494ee0">max. %1$s</string>
-    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5">Terugwinning</string>
+    <string name="riding_trace_regen" volt:src="be82caaed8b18ef144864fbb89e965d5305f01f5" volt:attempt="2">Terugw.</string>
     <string name="riding_trace_start" volt:src="3d0735234e6143966db2a62686d1e50de0336c7b">1 min geleden</string>
     <string name="riding_trace_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">nu</string>
     <string name="riding_trace_description" volt:src="cef14f81743978623ccc12e9535e16cdffee466b">Snelheid en vermogen in de afgelopen minuut</string>
@@ -101,7 +106,7 @@
     <string name="riding_spot_chip" volt:src="06a6ff8d269946cb4eca66e31164f25e59c250cc">Chip %1$s</string>
     <string name="riding_spot_chart" volt:src="170156934b1acb193aeb3aa975b42874105bcc5b">Grafiek</string>
     <string name="riding_content_ring_speed" volt:src="33e7df283558365bbdcdfa89303ee387b99d8520">Snelheid + max</string>
-    <string name="riding_content_trace_speed_power" volt:src="4333eff0fafd0919230240bdeddc6ac75a5332ed">Snelheid en vermogen</string>
+    <string name="riding_content_trace_speed_power" volt:src="4333eff0fafd0919230240bdeddc6ac75a5332ed" volt:attempt="2">Snelheid &amp; vermogen</string>
     <string name="riding_content_trace_power" volt:src="3350903d199aa055bb011acd8bdc4ceb0ed72feb">Alleen vermogen</string>
     <string name="riding_content_trace_speed" volt:src="c9b66119fd75a26eceeeb811eb804979ab757f7e">Alleen snelheid</string>
     <string name="riding_switch_power_bar" volt:src="4976986f5fbce567e5d066aa06b37310c19beb34">Vermogensbalk</string>
