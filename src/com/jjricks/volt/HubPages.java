@@ -93,6 +93,29 @@ public final class HubPages {
         return Collections.unmodifiableList(shown);
     }
     /**
+     * A wide dock's captions (#392's early review, emulator note): true when every subject's full name fits on one line,
+     * so each item shows its full name; false when any would wrap, and then every item shows its short name, keeping the
+     * row even and the dock one line of text tall. nameWidthsDp: each full name's width in dp at the caption's size;
+     * roomDp: the width the page frame gives the dock; items: the dock's items, "All" included; itemMaxDp: a wide item's
+     * cap; paddingDp: the dock's inner padding. Each caption has its item's width less 2 dp each side (Ui.nav).
+     */
+    public static boolean wideDockNames(float[] nameWidthsDp, float roomDp, int items, float itemMaxDp, float paddingDp) {
+        if (items <= 0) return false;
+        float dock = Math.min(itemMaxDp * items + 2 * paddingDp, roomDp);
+        float caption = (dock - 2 * paddingDp) / items - 4;
+        for (float width : nameWidthsDp) if (!(width <= caption)) return false;
+        return true;
+    }
+
+    /**
+     * Whether a move on the dock is its upward swipe (it opens the All sheet at once): more than twice the touch slop
+     * upward, and more up than across. upDp is how far the finger moved up (negative when down), acrossDp how far sideways.
+     */
+    public static boolean dockSwipe(float up, float across, float slop) {
+        return up > slop * 2 && up > across;
+    }
+
+    /**
      * The tab bar's roots, in the bar's order (Scooter was the raised centre button), from parts 1-10. The Hub (PR 11) no
      * longer shows the tab bar or the side rail; MainActivity keeps their code, unused, until the owner has used the Hub and
      * says it can go (owner's answer 8 on #383), and this list with it.

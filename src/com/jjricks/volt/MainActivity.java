@@ -527,7 +527,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
-            dock=new HubDock(this,expanded,dashboard::editing);
+            // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
+            dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
             scroll.setClipToPadding(false);
             scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());

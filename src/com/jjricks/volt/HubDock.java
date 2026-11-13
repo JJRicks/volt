@@ -22,8 +22,12 @@ import java.util.function.BooleanSupplier;
  * every subject with its name and live summary (CleanSubjects), so each stays one tap away, and so does an upward swipe
  * on the dock. Tapping an icon opens its subject on Home's page stack. Service's icon carries the orange dot while a
  * maintenance check is due, or "All" does while Service isn't shown. Each item is read by its subject's full name (All
- * by HubText.dockAll()), and a long press shows it. On a wide window the dock is centred and holds all seven. Hidden
- * while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog references.
+ * by HubText.dockAll()), and a long press shows it. On a wide window the dock is centred and holds all seven, each
+ * under its full name where every full name fits on one line, else every item under its short name (HubPages.wideDockNames),
+ * so the row stays even and no taller than it must be. The sheet also holds Search and Settings at its top: Widgets
+ * Home's header keeps its place and height (the owner's answer on #392's early review), so this is where a Widgets owner
+ * finds them. Hidden while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog
+ * references.
  */
 final class HubDock {
     /**
@@ -46,6 +50,10 @@ final class HubDock {
     private final Ui ui;
     private final boolean wide;
     private final BooleanSupplier hidden;
+    /** The sheet's Search and Settings rows: open those pages (Home's header buttons on Clean). */
+    private final Runnable openSearch, openSettings;
+    /** Wide: whether the items show their full names (else their short names, all alike). */
+    private final boolean fullNames;
     private final Dock view;
     private final List<String> shown;
     private final List<View> items = new ArrayList<>();
@@ -56,13 +64,19 @@ final class HubDock {
     private boolean closed;
     private final ViewTreeObserver.OnPreDrawListener follow;
 
-    /** hidden: whether the dock steps aside now (the dashboard is being edited); read before every frame. */
-    HubDock(ScreenHost host, boolean wide, BooleanSupplier hidden) {
+    /**
+     * hidden: whether the dock steps aside now (the dashboard is being edited); read before every frame. openSearch and
+     * openSettings: the sheet's Search and Settings rows.
+     */
+    HubDock(ScreenHost host, boolean wide, BooleanSupplier hidden, Runnable openSearch, Runnable openSettings) {
         this.host = host;
         this.ui = host.ui();
         this.wide = wide;
         this.hidden = hidden;
+        this.openSearch = openSearch;
+        this.openSettings = openSettings;
         shown = wide ? HubPages.SUBJECTS : HubPages.dockSubjects(phoneRoom(host.contentWidthDp()), textScale());
+        fullNames = wide && fullNamesFit();
         view = new Dock();
         view.setOrientation(LinearLayout.HORIZONTAL);
         view.setGravity(Gravity.CENTER_VERTICAL);
@@ -97,6 +111,21 @@ final class HubDock {
 
     /** The subjects the dock shows, in Home's order (all seven when wide). */
     List<String> shown() { return shown; }
+
+    /**
+     * Wide: whether every subject's full name fits on one line in an item, measured as Ui.nav draws captions (10 sp at
+     * Volt's text size, 2 dp side padding each way), with each item as wide as the dock gives it (Dock.onMeasure).
+     */
+    private boolean fullNamesFit() {
+        android.text.TextPaint paint = new android.text.TextPaint();
+        paint.setTypeface(ui.regular());
+        paint.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10 * ui.textScale,
+                host.activity().getResources().getDisplayMetrics()));
+        float density = host.activity().getResources().getDisplayMetrics().density;
+        float[] widths = new float[shown.size()];
+        for (int i = 0; i < widths.length; i++) widths[i] = paint.measureText(HubText.title(shown.get(i)).render()) / density;
+        return HubPages.wideDockNames(widths, host.contentWidthDp() - 2 * WIDE_SIDE_DP, shown.size() + 1, WIDE_ITEM_DP, PADDING_DP);
+    }
 
     /** App text size times Android's font size, at least 1: the dock's items grow with both. */
     private float textScale() {
@@ -144,7 +173,7 @@ final class HubDock {
         Msg shortName = HubText.shortTitle(subject);
         String name = HubText.title(subject).render();
         String shortLabel = shortName == null ? name : shortName.render();
-        View item = ui.nav(wide ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
+        View item = ui.nav(fullNames ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
         item.setContentDescription(name);
         item.setTooltipText(name);
         return item;
@@ -172,6 +201,14 @@ final class HubDock {
         Runnable dismiss = () -> { if (shown[0] != null && shown[0].isShowing()) shown[0].dismiss(); };
         LinearLayout content = host.sheetContent(HubText.dockAll(), null, dismiss);
         content.setTag(TAG_SHEET);
+        // Search and Settings first, with Clean's header tags (the same jobs), then every subject.
+        LinearLayout pages = ui.groupCard();
+        pages.addView(pageLine(HubPages.SEARCH, CleanHomeScreen.TAG_SEARCH, dismiss, openSearch));
+        ui.divider(pages);
+        pages.addView(pageLine(HubPages.SETTINGS, CleanHomeScreen.TAG_SETTINGS, dismiss, openSettings));
+        LinearLayout.LayoutParams pagesSize = new LinearLayout.LayoutParams(-1, -2);
+        pagesSize.bottomMargin = ui.dp(12);
+        content.addView(pages, pagesSize);
         CleanSubjects subjects = new CleanSubjects(host, dismiss);
         content.addView(subjects.view(), new LinearLayout.LayoutParams(-1, -2));
         subjects.refresh();
@@ -183,9 +220,37 @@ final class HubDock {
         });
     }
 
+    /** A sheet row for a page that is not a subject (Search, Settings): its icon and title; it closes the sheet first. */
+    private View pageLine(String page, String tag, Runnable dismiss, Runnable action) {
+        LinearLayout line = new LinearLayout(host.activity());
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.setMinimumHeight(ui.dp(56));
+        line.setPadding(0, ui.dp(8), 0, ui.dp(8));
+        line.setTag(tag);
+        android.widget.TextView name = ui.text(HubText.title(page), 15, false);
+        name.setMaxLines(2);
+        ui.decorate(name, HubPages.icon(page));
+        line.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
+        chevronSize.setMarginStart(ui.dp(8));
+        line.addView(ui.icon("chevron", 15, ui.muted), chevronSize);
+        line.setClickable(true);
+        line.setFocusable(true);
+        line.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)),
+                null, ui.shape(android.graphics.Color.WHITE, 10, 0)));
+        line.setOnClickListener(v -> {
+            if (closed) return;
+            dismiss.run();
+            if (action != null) action.run();
+        });
+        return line;
+    }
+
     /**
-     * The dock's own touch handling: an upward swipe that starts anywhere on it opens the list of every subject. Taps and
-     * sideways movement go to the icons as usual.
+     * The dock's own touch handling: an upward swipe that starts anywhere on it opens the list of every subject, at the
+     * moment the swipe is recognised (HubPages.dockSwipe), so a quick flick that lifts right after still opens it. Taps
+     * and sideways movement go to the icons as usual.
      */
     private final class Dock extends LinearLayout {
         private final int slop = ViewConfiguration.get(host.activity()).getScaledTouchSlop();
@@ -209,25 +274,24 @@ final class HubDock {
                 case MotionEvent.ACTION_DOWN:
                     downX = event.getX(); downY = event.getY(); swiped = false;
                     return false;
-                case MotionEvent.ACTION_MOVE: {
-                    float up = downY - event.getY(), across = Math.abs(event.getX() - downX);
-                    if (!swiped && up > slop * 2 && up > across) { swiped = true; return true; }
+                case MotionEvent.ACTION_MOVE:
+                    // Taken from the item (its tap is cancelled) and the sheet opens now, not on a later move.
+                    if (!swiped && HubPages.dockSwipe(downY - event.getY(), Math.abs(event.getX() - downX), slop)) {
+                        swiped = true; showAll(); return true;
+                    }
                     return false;
-                }
                 default:
                     return false;
             }
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {
-            if (swiped) {
-                if (event.getActionMasked() == MotionEvent.ACTION_MOVE) { swiped = false; showAll(); }
-                return true;
-            }
+            // The rest of a swipe already taken: the sheet is open.
+            if (swiped) return true;
             // A touch on the dock's own padding: the same upward swipe opens the list.
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) { downX = event.getX(); downY = event.getY(); return true; }
-            if (event.getActionMasked() == MotionEvent.ACTION_MOVE && downY - event.getY() > slop * 2
-                    && downY - event.getY() > Math.abs(event.getX() - downX)) { downY = Float.NaN; showAll(); }
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE
+                    && HubPages.dockSwipe(downY - event.getY(), Math.abs(event.getX() - downX), slop)) { swiped = true; showAll(); }
             return true;
         }
     }
