@@ -168,6 +168,8 @@ STEPS += [
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
     inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
+    # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
+    inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     # The charging view's one time tile; its restart mode needs the same install, so it runs by hand after this one.

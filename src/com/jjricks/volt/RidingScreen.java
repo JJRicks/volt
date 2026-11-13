@@ -1101,8 +1101,16 @@ final class RidingScreen implements AppScreen {
          * the seconds when it reaches the reading: spokenNow).
          */
         boolean seconds;
-        /** The same time without its AM/PM, for a spot too tight for both; null when there's none (24-hour). */
+        /**
+         * A shorter form of main for a spot too tight for the whole: the clock with seconds without its AM/PM (null on a
+         * 24-hour clock), or a GPS accuracy state's no-reading dash. Null for every other reading.
+         */
         CharSequence mainShort;
+        /**
+         * In a tile, main gives way to mainShort when it would draw smaller than this (px) and than the tile's own largest
+         * size: the clock's 32 dp (RidingClockSeconds), or for a GPS state the size the same state has in a chip. 0: the clock's.
+         */
+        float shortMinPx;
     }
 
     /** The clock with seconds, when the tune menu's switch is on. */
@@ -1284,6 +1292,25 @@ final class RidingScreen implements AppScreen {
                 }
                 break;
             }
+            case RidingLayout.GPS_ACCURACY: {
+                s.rungs = new String[]{T.ridingLabelGpsAccuracy(), T.ridingLabelGpsAccuracyShort()};
+                // Read only: asking never starts GPS or keeps it awake. A fix older than 10 s reads as no fix.
+                GpsAccuracy.Reading r = service == null ? GpsAccuracy.reading(false, null, null, now) : service.gpsAccuracy(now);
+                if (r.state == GpsAccuracy.State.FIX) {
+                    boolean feet = GpsAccuracy.feet(units);
+                    split(s, GpsAccuracyText.value(GpsAccuracy.shown(r.metres, feet), GpsAccuracy.unit(feet)));
+                } else {
+                    // A state steps down to the no-reading dash where its words won't fit: a chip that would step aside
+                    // shows the dash (fitChips), and a tile shows it before the words would draw smaller than in a chip.
+                    // Spoken, it's always the whole state.
+                    s.main = GpsAccuracyText.state(r.state);
+                    s.mainShort = GpsAccuracyText.compact(r.state);
+                    s.shortMinPx = ui.dp(GpsAccuracyText.STATE_MIN_SP * Math.min(ui.textScale, labelCap));
+                    s.spoken = s.main.toString();
+                    dim(s);
+                }
+                break;
+            }
             default: none(s); break;
         }
         return s;
@@ -1461,7 +1488,7 @@ final class RidingScreen implements AppScreen {
                 int rung = RidingPowerCue.rungOfLabel(label.picked);
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts, RidingValues.Direction.REGEN_INFERRED, rung))), Fmt.unit(UnitCode.WATT)));
             }
-            number.clock(s.seconds, s.mainShort);
+            number.clock(s.seconds, s.mainShort, s.shortMinPx > 0 ? s.shortMinPx : ui.dp(RidingClockSeconds.MARKER_MIN_DP));
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.name();
             setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
@@ -1638,14 +1665,17 @@ final class RidingScreen implements AppScreen {
         /** A clock with seconds is drawn with the font's tabular figures and its AM/PM can step aside. */
         private boolean tabular;
         private CharSequence mainShort;
+        private float shortMinPx;
         /**
          * Draws the clock with seconds (true) in figures of one width, so the reading never changes width as it
-         * ticks; shortMain is the same time without its AM/PM, drawn when the whole of it would be too small.
+         * ticks. shortMain is a shorter form of the reading (the time without its AM/PM, a GPS state's dash), drawn
+         * when the whole of it would draw smaller than minPx and than this spot's largest size.
          */
-        void clock(boolean seconds, CharSequence shortMain) {
-            if (tabular == seconds && TextUtils.equals(mainShort, shortMain)) return;
+        void clock(boolean seconds, CharSequence shortMain, float minPx) {
+            if (tabular == seconds && TextUtils.equals(mainShort, shortMain) && shortMinPx == minPx) return;
             tabular = seconds;
             mainShort = shortMain;
+            shortMinPx = minPx;
             big.setFontFeatureSettings(seconds ? "tnum" : null);
             invalidate();
         }
@@ -1681,8 +1711,9 @@ final class RidingScreen implements AppScreen {
             if (w <= 0 || h <= 0 || main.length() == 0) return;
             CharSequence main = this.main;
             float size = fitSize(main, w, h);
-            // A clock with seconds too tight for its AM/PM drops the marker, never the seconds, before it gets small.
-            if (mainShort != null && !RidingClockSeconds.keepsMarker(size, maxPx, ui.dp(RidingClockSeconds.MARKER_MIN_DP))) {
+            // A clock with seconds too tight for its AM/PM drops the marker, never the seconds, before it gets small; a GPS
+            // state too long for its tile shows the dash before its words get smaller than in a chip.
+            if (mainShort != null && !RidingClockSeconds.keepsMarker(size, maxPx, shortMinPx)) {
                 main = mainShort;
                 size = fitSize(main, w, h);
             }
@@ -1920,18 +1951,16 @@ final class RidingScreen implements AppScreen {
         int n = wanted.size();
         String[][] marks = new String[n][];
         String[] contents = new String[n];
-        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; }
+        boolean[] canStep = new boolean[n];
+        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).compact != null; }
         // The fit works out names for each set of chips it tries, among the chips in that set (a chip that stepped aside
         // holds no mark); widths come from the probes, never from what's shown, so measuring the result again gives it again.
-        final int[][][] measured = new int[n][RidingChipFit.RUNGS][RidingChipFit.NAME_ICON + 2];
-        RidingChipFit.Widths widths = (chip, rung, step) -> {
-            int[] cell = measured[chip][rung];
-            if (cell[step + 1] == 0) cell[step + 1] = wanted.get(chip).widthAt(rung, step) + 1;
-            return cell[step + 1] - 1;
-        };
+        final int[][][][] measured = new int[2][n][RidingChipFit.RUNGS][RidingChipFit.NAME_ICON + 2];
+        RidingChipFit.Widths widths = (chip, rung, step) -> chipWidth(measured[0], wanted.get(chip), chip, rung, step, false);
+        // A GPS state that would step aside in full shows its dash instead (RidingChipFit.stepping): the chip the rider chose stays.
+        RidingChipFit.Widths compactWidths = (chip, rung, step) -> chipWidth(measured[1], wanted.get(chip), chip, rung, step, true);
         int gap = ui.dp(8);
-        RidingChipFit fit = stacked ? RidingChipFit.column(marks, contents, widths, room)
-                : RidingChipFit.row(marks, contents, widths, gap, room);
+        RidingChipFit fit = RidingChipFit.stepping(marks, contents, widths, compactWidths, canStep, stacked, gap, room);
         int shown = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -1940,13 +1969,19 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(fit.rung, fit.steps[at]);
+                chip.useRung(fit.rung, fit.steps[at], fit.compact[at]);
                 // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, stacked);
                 shown++;
             }
             if (chip.getVisibility() != want) chip.setVisibility(want);
         }
+    }
+
+    private static int chipWidth(int[][][] measured, Chip chip, int at, int rung, int step, boolean compact) {
+        int[] cell = measured[at][rung];
+        if (cell[step + 1] == 0) cell[step + 1] = chip.widthAt(rung, step, compact) + 1;
+        return cell[step + 1] - 1;
     }
 
     private static void setLeadingMargin(ViewGroup group, View chip, int margin, boolean stacked) {
@@ -2025,6 +2060,9 @@ final class RidingScreen implements AppScreen {
         boolean wanted = true;
         /** The reading, and the clock with seconds without its AM/PM for the tightest rung (null for any other). */
         private String full, tight;
+        /** A GPS state's dash, shown in place of its words when in full the chip would step aside (fitChips); null otherwise. */
+        String compact;
+        private boolean compactShown;
         private int rung = RidingChipFit.FULL;
         Chip(String content) {
             super(host.activity());
@@ -2070,8 +2108,12 @@ final class RidingScreen implements AppScreen {
                 probe.setFontFeatureSettings("tnum");
             }
         }
-        /** The text this chip shows at a rung: the clock's AM/PM goes on the tightest one, before the chip would. */
-        private CharSequence textAt(int rung) {
+        /**
+         * The text this chip shows at a rung: the clock's AM/PM goes on the tightest one, before the chip would; a GPS
+         * state shows its dash when the fit asks for its compact form.
+         */
+        private CharSequence textAt(int rung, boolean compactForm) {
+            if (compactForm && compact != null) return compact;
             return rung == RidingChipFit.TIGHT && tight != null ? tight : full != null ? full : text.getText();
         }
         private TextView label() {
@@ -2108,9 +2150,11 @@ final class RidingScreen implements AppScreen {
             return ui.dp(ICON_DP) < measured(nameProbe, names[names.length - 1]);
         }
         /** This chip's whole width at a RidingChipFit rung and name step, with the text it shows there (textAt). */
-        int widthAt(int rung, int step) {
+        int widthAt(int rung, int step) { return widthAt(rung, step, false); }
+        /** The same, with its compact value (a GPS state's dash) when compactForm. */
+        int widthAt(int rung, int step, boolean compactForm) {
             probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            int value = measured(probe, textAt(rung));
+            int value = measured(probe, textAt(rung, compactForm));
             int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
             int mark = 0;
             if (namesItself) mark = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP) : 0;
@@ -2121,10 +2165,11 @@ final class RidingScreen implements AppScreen {
         /** The name step this chip last took, beside its rung (-1 before its first fit, or with no name). */
         int shownStep = -1;
         /** Shows this chip at a RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
-        void useRung(int rung, int step) {
+        void useRung(int rung, int step, boolean compactForm) {
             this.rung = rung;
             shownStep = step;
-            CharSequence shown = textAt(rung);
+            compactShown = compactForm;
+            CharSequence shown = textAt(rung, compactForm);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             boolean iconShown, nameShown;
@@ -2173,9 +2218,13 @@ final class RidingScreen implements AppScreen {
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
             if (s.seconds) value = s.main.toString();
+            // With the dash showing, a new state leaves the shown text as it was: fit again, so words that now fit come back.
+            if (RidingChipFit.refitsCompact(compactShown, full, value)) requestLayout();
             full = value;
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
-            CharSequence shown = textAt(rung);
+            String stepDown = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
+            if (!TextUtils.equals(stepDown, compact)) { compact = stepDown; requestLayout(); }
+            CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             int color = mode ? ui.onAccent : s.color;
             if (text.getCurrentTextColor() != color) text.setTextColor(color);
