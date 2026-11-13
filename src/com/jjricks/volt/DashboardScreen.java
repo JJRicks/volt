@@ -6697,7 +6697,11 @@ public final class DashboardScreen implements AppScreen {
         switch (section.id) {
             case ShortcutPicker.LINE_LIGHTS: return ScooterCommands.find("line_light").label();
             case ShortcutPicker.STAR_LIGHTS: return ScooterCommands.find("star_light").label();
-            default: return section.entries.get(0).groupLabel();
+            default:
+                // Clean Home's own actions lead their sections; the catalog's group still names the section.
+                for (QuickAccessActions.Entry entry : section.entries)
+                    if (!HomeQuickActions.cleanOnly(entry.id)) return entry.groupLabel();
+                return section.entries.get(0).groupLabel();
         }
     }
 

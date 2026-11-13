@@ -28,7 +28,7 @@ final class HomeQuickActions {
     /** Starts or stops recording a ride (RideRecordingApp's one toggle). Clean only. */
     static final String RECORD = "record";
     /** Opens the Battery alerts sheet (MainActivity.showChargeAlerts). Clean only, and only where alerts are offered. */
-    static final String CHARGE_ALERTS = "charge_alerts";
+    static final String CHARGE_ALERTS = QuickAccessActions.CHARGE_ALERTS_ID;
     /** Ui icon keys for the Clean-only actions; RIDE shows the Widgets header RIDE pill's speedometer. */
     static final String ICON_RIDING = "speed", ICON_RECORD = "record", ICON_CHARGE_ALERTS = "bolt";
     /** Per-scooter key prefix; the profile id follows. */
