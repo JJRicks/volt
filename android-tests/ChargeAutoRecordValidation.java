@@ -38,7 +38,10 @@ import com.jjricks.volt.tests.TextCensus;
  * or from the notification) holds until the scooter stops charging; an automatic recording never deletes a manual one.
  * Also: a manual recording is left alone and its hand stop holds while the switch is on; a ride started by hand ends an
  * automatic one; with Stay connected in background off a recording keeps going out of sight and the link then ends;
- * a simulated charge records nothing; the status never says "saved" for a recording that was not kept.
+ * a simulated charge records nothing; the status never says "saved" for a recording that was not kept. Terra's review of
+ * #415: a hand stop's hold survives a not-charging reading while Volt's own schedule holds the current off; a guessed
+ * label is not the charger in effect; an automatic start at the limit deletes nothing until it is kept; out of sight
+ * with Stay connected off, riding away still starts the ride before the link is let go.
  *
  * Mode "page" (needs the switch row): Battery & charging › Charge history & recordings with the switch, screenshots
  * and a text check for cut or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text.
@@ -84,6 +87,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                 if ("limit".equals(args.getString("only", ""))) main(() -> settings().edit().putBoolean(KEY, true).commit());
                 else if ("stay".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); stayConnectedOff(); }
                 else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
+                else if ("rideaway".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); rideAwayOutOfSight(); }
                 else {
                     offByDefault();
                     onScreenChosenLabelAndShortChargeNotKept();
@@ -92,8 +96,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                     manualLeftAlone();
                     rideByHand();
                     outOfSightStartAndNotificationStop();
+                    rideAwayOutOfSight();
                 }
-                if (!"stay".equals(args.getString("only", ""))) manualNeverDeleted();
+                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", ""))) manualNeverDeleted();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
             result.putString("result", "PASS");
@@ -199,7 +204,16 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         SystemClock.sleep(10 * S);
         require(onMain(() -> !service.isChargeRecording()), "A recording started again while held, still charging");
         log("hand stop: held for 10 s while still charging");
-        main(() -> { link.charging(OFF); link.home(); });
+        // Volt holding the current off itself (here: a schedule write in flight, one of scheduledChargePause's cases) reads
+        // exactly like an unplug; the charger is still there, so the hold stays.
+        main(() -> { service.chargeSchedule(); set(field(service, "chargeScheduleController"), "busy", true); link.charging(OFF); link.home(); });
+        try {
+            await(() -> onMain(() -> Double.valueOf(0d).equals(ble.telemetry.number("charging_state"))), 10 * S, "No not-charging reading");
+            SystemClock.sleep(6 * S); main(() -> link.home()); SystemClock.sleep(2 * S);
+            require(holds(), "A not-charging reading while Volt's own schedule held the current off cleared the hold");
+            log("not charging while Volt's schedule holds the current off: still held");
+        } finally { main(() -> set(field(service, "chargeScheduleController"), "busy", false)); }
+        main(() -> link.home());
         await(() -> !holds(), 10 * S, "A fresh not-charging reading did not end the hold");
         log("unplugged: hold cleared");
         plugIn();
@@ -267,6 +281,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> !service.isVisible()), "Volt came to the front");
         require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() != ChargeSessionStore.LabelSource.CHOSEN
                 && chargeStore().charger() == ChargeSessionStore.Charger.STOCK), "Expected a stock label not marked as chosen");
+        require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.GUESS), "Expected a guessed label (no charger chosen, nothing detected yet)");
+        require(onMain(() -> service.chargerBasis() != ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == null),
+                "A guessed label stood in for the charger choice or detection: basis " + onMainText(() -> service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("out of sight: started " + (SystemClock.elapsedRealtime() - plugged) + " ms after plugging in, label " + onMainText(() -> String.valueOf(chargeStore().labelSource())) + "; notice: " + notice());
         SystemClock.sleep(5 * S);
         getTargetContext().startForegroundService(new Intent(getTargetContext(), ScooterService.class).setAction("STOP_CHARGE_RECORDING"));
@@ -306,12 +323,12 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         Set<String> before = names();
         plugIn();
         awaitRecording(20 * S, "with one automatic among 19 manual");
-        Set<String> after = names();
-        require(!after.contains(automatic), "The automatic fixture was not the one replaced");
-        Set<String> manualLeft = new HashSet<>(before); manualLeft.remove(automatic);
-        require(after.containsAll(manualLeft), "A manual recording was deleted for an automatic one");
-        log("19 manual + 1 automatic: only the automatic one made room");
+        Set<String> after = names(); after.removeIf(name -> name.endsWith(".active"));
+        require(after.equals(before), "Starting an automatic recording at the limit deleted a saved one before it was kept: " + before + " -> " + after);
+        log("19 manual + 1 automatic: started, nothing deleted yet");
         main(() -> service.stopChargeRecording());
+        require(names().equals(before), "An automatic recording that was not kept cost a saved one: " + names());
+        log("stopped short, not kept: all 20 still there (room is made only for a kept one; JVM tests cover the replacement)");
         unplugAndSettle();
         for (File file : saved()) file.delete();
     }
@@ -367,6 +384,42 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         log("then the link ended: nothing of this feature keeps one");
         main(() -> settings().edit().putBoolean("background_connection", true).remove(ScooterService.CHARGE_LIVE_ENABLED).commit());
         ensureFront();
+    }
+
+    /**
+     * Out of sight with Stay connected in background off, riding away: the charge recording ends and Record rides
+     * automatically (with its background option) gets its turn on the same reading before the link is let go, so the ride
+     * is recorded rather than lost with the link.
+     */
+    private void rideAwayOutOfSight() {
+        main(() -> settings().edit().putBoolean("background_connection", false).putBoolean(ScooterService.CHARGE_LIVE_ENABLED, false)
+                .putBoolean("auto_record_rides", true).putBoolean("auto_record_background", true).commit());
+        ensureFront();
+        plugIn();
+        awaitRecording(10 * S, "before riding away out of sight");
+        getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        await(() -> onMain(() -> !service.isVisible()), 10000, "Volt never left the foreground");
+        SystemClock.sleep(3 * S);
+        require(onMain(() -> service.isChargeRecording()), "The recording ended on leaving the screen");
+        long moved = SystemClock.elapsedRealtime();
+        main(() -> link.motion(6));
+        await(() -> onMain(() -> !service.isChargeRecording()), 3 * S, "6 km/h out of sight did not end the automatic recording");
+        await(() -> onMain(() -> service.isRecording()), 3 * S, "Out of sight with Stay connected off, the ride's automatic start lost its turn: no ride recording ("
+                + onMainText(() -> "link " + ble.state() + ", connected " + ble.connected()) + ")");
+        require(onMain(() -> ble.connected()), "The link was let go under the starting ride");
+        log("out of sight, Stay connected off, 6 km/h: charge recording ended and a ride recording started within " + (SystemClock.elapsedRealtime() - moved) + " ms, link kept");
+        main(() -> { link.motion(0); link.charging(OFF); link.home(); });
+        SystemClock.sleep(3 * S);
+        // Back on screen with the usual settings before the ride ends, so the link the ride kept stays for the next steps.
+        main(() -> settings().edit().putBoolean("background_connection", true).remove(ScooterService.CHARGE_LIVE_ENABLED)
+                .putBoolean("auto_record_rides", false).putBoolean("auto_record_background", false).commit());
+        ensureFront();
+        main(() -> service.stopRide());
+        if (!onMain(() -> ble.ready())) {
+            main(() -> link.attach());
+            await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link not ready again");
+        }
+        unplugAndSettle();
     }
 
     /** Nothing simulated is ever written as real: a simulated charge with the switch on records nothing. */

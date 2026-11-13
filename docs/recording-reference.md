@@ -338,22 +338,37 @@ already charging starts then; the recording is partial.
   detection for this charge; otherwise a best guess: the charger with more
   qualified recordings for this scooter, or the stock charger on a tie or with
   none. A detected or guessed label follows detection when it settles on the
-  other charger; a chosen one never changes.
+  other charger; a chosen one never changes. Only a chosen or detected label is
+  the charger in effect: a guess labels the file and nothing else, so estimates,
+  Charge done by and the charging view keep waiting for your choice or for
+  detection, and a recording that ends with a guessed label is kept in the list
+  (marked as a guess) but teaches no charger curve. Its gauge readings still count
+  toward the battery capacity estimate, which does not depend on the charger.
+- **Waits.** It never starts during a guided setting test, while one still has a
+  setting to write back, or during a compatibility check (a running recording
+  would block or cut those short). It starts by itself once they are over, if the
+  scooter is still charging.
 - **End.** Every rule that ends a recording today, and also: at once when a live
   speed reading (at most 3 seconds old) is above 4.8 km/h (about 3 mph), so
   Record rides automatically can start the ride in the same moment; and two
   minutes after charging stops instead of 30, unless Volt's own charging
-  schedule is holding the current off. Starting a ride by hand ends an automatic
+  schedule is holding the current off. Riding away out of sight with Stay
+  connected in background off, the ride's automatic start gets its turn before
+  the connection is let go. Starting a ride by hand ends an automatic
   recording instead of being refused, when the ride can start then (connected and
   ready, no ride or phone save running). Manual recordings end as before, and a
   ride by hand still waits for one.
 - **Kept.** An automatic recording under 10 minutes or 5 percentage points is
   deleted when it ends, including one recovered after a process restart. At the
-  20-recording limit it replaces the oldest automatic recording, never a manual
-  one; with 20 manual recordings it does not start.
+  20-recording limit a kept one replaces the oldest automatic recording, never a
+  manual one, and only once it is kept: nothing saved is deleted for one that is
+  discarded, and a process end between saving it and making room is finished at
+  the next start. With 20 manual recordings it does not start.
 - **Hold.** Stopping a recording by hand (Stop on the page or in the
   notification, or a ride started by hand) holds that scooter until a fresh
-  reading says it stopped charging, across reconnects and restarts: an automatic
+  reading says it stopped charging while Volt is not holding the current off
+  itself (a charging schedule, Charge done by or a schedule test pausing the
+  charge is not an unplug), across reconnects and restarts: an automatic
   recording always, and one you started yourself while the switch is on, so Volt
   never starts recording the charge you just stopped recording. A recording that
   ended by itself sets no hold.
@@ -362,7 +377,8 @@ An automatic recording's file name records that Volt started it and how its labe
 was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
 reads it as an ordinary recording. **Export charge recordings** and **Email to
 Volt** add `started_automatically` (true or false) and `label_source`
-(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge.
+(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge;
+`qualified_for_learning` is false for a guess.
 
 The interface adapts to compact/expanded windows. Folding a foldable halfway
 (book or tabletop posture) leaves the screen exactly as it is: a crease never

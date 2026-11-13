@@ -33,6 +33,11 @@ public final class ChargeAutoRecordPolicyTest {
         storeExport();
         storeRecovery();
         storeChargeOff();
+        waits();
+        labelInEffect();
+        storeRoomOnlyWhenKept();
+        storeRoomAfterProcessDeath();
+        storeGuessTeachesNothing();
         System.out.println("ChargeAutoRecordPolicyTest: " + checks + " checks");
     }
 
@@ -109,7 +114,7 @@ public final class ChargeAutoRecordPolicyTest {
         // What the service does with the answer: start only on TRUE, clear a hold only on FALSE.
         for (Boolean live : new Boolean[]{null, Boolean.TRUE, Boolean.FALSE}) {
             boolean start = ChargeAutoRecordPolicy.shouldStart(true, true, Boolean.TRUE.equals(live), false, false, false, false, false);
-            boolean clears = ChargeAutoRecordPolicy.clearsHold(live != null, live == null ? -1 : live ? 1 : 0);
+            boolean clears = ChargeAutoRecordPolicy.clearsHold(live != null, live == null ? -1 : live ? 1 : 0, false);
             check(start == Boolean.TRUE.equals(live), "Starts only on a live charging reading: " + live);
             check(clears == Boolean.FALSE.equals(live), "Clears only on a live not-charging reading: " + live);
         }
@@ -146,9 +151,12 @@ public final class ChargeAutoRecordPolicyTest {
         check(ChargeAutoRecordPolicy.holdsAfterHandStop(true, false), "A hand stop of a recording the owner started holds while the switch is on: Volt doesn't record the charge he just stopped");
         check(!ChargeAutoRecordPolicy.holdsAfterHandStop(false, false), "Switch off, a manual recording: nothing stored, as before");
         check(ChargeAutoRecordPolicy.rideEndsRecording(true) && !ChargeAutoRecordPolicy.rideEndsRecording(false), "A ride ends an automatic recording; a manual one still refuses");
-        check(ChargeAutoRecordPolicy.clearsHold(true, 0), "A fresh not-charging reading clears the hold");
-        check(!ChargeAutoRecordPolicy.clearsHold(true, 1), "Still charging keeps the hold");
-        check(!ChargeAutoRecordPolicy.clearsHold(false, 0), "A stale reading keeps the hold");
+        check(ChargeAutoRecordPolicy.clearsHold(true, 0, false), "A fresh not-charging reading clears the hold");
+        check(!ChargeAutoRecordPolicy.clearsHold(true, 1, false), "Still charging keeps the hold");
+        check(!ChargeAutoRecordPolicy.clearsHold(false, 0, false), "A stale reading keeps the hold");
+        // Terra #2: a pause Volt holds itself (schedule, Charge done by, a schedule test) reads like an unplug but isn't one.
+        check(!ChargeAutoRecordPolicy.clearsHold(true, 0, true), "A not-charging reading while Volt holds the current off keeps the hold");
+        check(!ChargeAutoRecordPolicy.clearsHold(true, 1, true) && !ChargeAutoRecordPolicy.clearsHold(false, 0, true), "Held off, nothing else clears it either");
         Set<String> holds = ChargeAutoRecordPolicy.holds("one  two bad,id ");
         check(holds.equals(new LinkedHashSet<>(Arrays.asList("one", "two"))), "Stored holds parse; malformed entries are dropped: " + holds);
         check(ChargeAutoRecordPolicy.holds(null).isEmpty() && ChargeAutoRecordPolicy.holds("").isEmpty(), "Absent: no hold");
@@ -221,15 +229,14 @@ public final class ChargeAutoRecordPolicyTest {
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max, 0);
         check(!store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO) && !store.active() && names(f).size() == max, "All manual at the limit: no automatic recording, nothing deleted");
         File g = folder(); ChargeSessionStore mixed = store(g); fill(mixed, max - 2, 2);
-        List<String> before = names(g); String oldestAutomatic = null;
-        for (File file : sortedByAge(g)) if (ChargeSessionStore.labelSource(file.getName()) != null) { oldestAutomatic = file.getName(); break; }
-        check(mixed.startAutomatic("one", STOCK, CHOSEN, WALL, MONO), "At the limit an automatic one makes room");
+        List<String> before = names(g); String oldestAutomatic = oldestAutomatic(g);
+        check(before.size() == max, "Fixture filled the store");
+        check(mixed.startAutomatic("one", STOCK, CHOSEN, WALL, MONO), "At the limit with automatic ones saved: an automatic one starts");
+        charge(mixed, 10, 5); mixed.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
         List<String> after = names(g);
-        check(!after.contains(oldestAutomatic) && after.size() == max, "Only the oldest automatic recording was replaced");
+        check(!after.contains(oldestAutomatic) && after.size() == max, "Once kept, only the oldest automatic recording was replaced");
         int manualAfter = 0; for (String name : after) if (ChargeSessionStore.labelSource(name) == null) manualAfter++;
         check(manualAfter == max - 2, "Every manual recording is still there");
-        mixed.stop(ChargeSessionStore.Stop.STOPPED);
-        check(before.size() == max, "Fixture filled the store");
         File h = folder(); ChargeSessionStore manualStore = store(h); fill(manualStore, max - 1, 1);
         manualStore.start("one", STOCK, WALL, MONO); charge(manualStore, 10, 5); manualStore.stop(ChargeSessionStore.Stop.STOPPED);
         check(names(h).size() == max, "A manual start keeps today's pruning (it may remove an automatic one)");
@@ -303,5 +310,107 @@ public final class ChargeAutoRecordPolicyTest {
         check(manual.chargerStopped(WALL + at, at) == ChargeSessionStore.ChargerOff.PAUSED
                 && manual.chargerStopped(WALL + at + wait, at + wait) == ChargeSessionStore.ChargerOff.WAITING, "A manual recording still waits past two minutes");
         manual.stop(ChargeSessionStore.Stop.STOPPED);
+    }
+
+    /** Terra #3: an automatic start never arrives during a guided test, its write-back, or a compatibility check. */
+    static void waits() {
+        check(!ChargeAutoRecordPolicy.waits(false, false, false), "Nothing running: no wait");
+        check(ChargeAutoRecordPolicy.waits(true, false, false), "A guided test is running: wait");
+        check(ChargeAutoRecordPolicy.waits(false, true, false), "A test's write-back is outstanding: wait");
+        check(ChargeAutoRecordPolicy.waits(false, false, true), "A compatibility check is running: wait");
+        check(ChargeAutoRecordPolicy.waits(true, true, true), "All of them: wait");
+    }
+
+    /** Terra #4 and #5: only a chosen or detected label is a charger Volt acts on; a guess labels the file only. */
+    static void labelInEffect() {
+        check(ChargeAutoRecordPolicy.countsAsCharger(null), "A manual recording's charger is in effect, as before");
+        check(ChargeAutoRecordPolicy.countsAsCharger(CHOSEN) && ChargeAutoRecordPolicy.countsAsCharger(DETECTED), "Chosen and detected labels count");
+        check(!ChargeAutoRecordPolicy.countsAsCharger(GUESS), "A guess does not stand in for the choice or detection");
+        String plain = "00000000-0000-4000-8000-000000000000", guess = "00000000-0000-c000-8000-000000000000", detected = "00000000-0000-b000-8000-000000000000";
+        check(ChargeSessionStore.learnsCurve(plain) && ChargeSessionStore.learnsCurve(detected) && !ChargeSessionStore.learnsCurve(guess + ".csv"), "The store's learning rule agrees");
+    }
+
+    static int automaticCount(File folder) { int n = 0; for (String name : names(folder)) if (ChargeSessionStore.labelSource(name) != null) n++; return n; }
+    static String oldestAutomatic(File folder) {
+        for (File file : sortedByAge(folder)) if (ChargeSessionStore.labelSource(file.getName()) != null) return file.getName();
+        return null;
+    }
+    static List<String> saved(File folder) { List<String> out = new ArrayList<>(); for (String n : names(folder)) if (n.endsWith(".csv")) out.add(n); return out; }
+
+    /** Terra #1: nothing saved is ever deleted for a recording that is not kept. */
+    static void storeRoomOnlyWhenKept() throws Exception {
+        int max = ChargeSessionStore.MAX_SESSIONS;
+        File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 2, 2);
+        List<String> before = saved(f);
+        check(before.size() == max, "Fixture: a full list");
+        check(store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO), "A full list with automatic recordings in it: an automatic start");
+        check(saved(f).equals(before), "Starting deleted nothing: room is made only once it is kept");
+        charge(store, 3, 1);
+        check(!store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "A short automatic recording is not kept");
+        check(saved(f).equals(before), "Discarded: the list is exactly as it was");
+        String oldest = oldestAutomatic(f);
+        store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(store, 10, 5);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "A long enough one is kept");
+        List<String> after = saved(f);
+        check(after.size() == max && !after.contains(oldest), "Kept: exactly the oldest automatic recording made room");
+        List<String> gone = new ArrayList<>(before); gone.removeAll(after);
+        check(gone.size() == 1 && gone.get(0).equals(oldest), "Only that one went: " + gone);
+        check(automaticCount(f) == 2, "Still two automatic recordings (one old, the new one)");
+        File g = folder(); ChargeSessionStore manual = store(g); fill(manual, max, 0);
+        List<String> manualBefore = saved(g);
+        check(!manual.startAutomatic("one", STOCK, CHOSEN, WALL, MONO) && !manual.active() && saved(g).equals(manualBefore),
+                "Every saved recording manual: no start, nothing removed");
+    }
+
+    /** Terra #1, process death: there is no moment when both the old recording and the new one are gone. */
+    static void storeRoomAfterProcessDeath() throws Exception {
+        int max = ChargeSessionStore.MAX_SESSIONS;
+        // Death mid-recording, too short to keep: the list is untouched.
+        File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
+        List<String> before = saved(f);
+        store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(store, 3, 1);
+        store(f);
+        check(saved(f).equals(before), "A short recording cut by a process death: the list is unchanged");
+        // Death mid-recording, long enough to keep: recovery keeps it and only then the oldest automatic one goes.
+        String oldest = oldestAutomatic(f);
+        ChargeSessionStore again = store(f);
+        again.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(again, 20, 10);
+        check(saved(f).equals(before), "While it runs, nothing has gone");
+        store(f);
+        List<String> after = saved(f);
+        check(after.size() == max && !after.contains(oldest) && automaticCount(f) == 1, "Recovered and kept: the oldest automatic one made room");
+        int manual = 0; for (String n : after) if (ChargeSessionStore.labelSource(n) == null) manual++;
+        check(manual == max - 1, "Every manual recording is still there");
+        // Death after the new one was saved but before room was made: one file too many; the next start trims an automatic one.
+        File g = folder(); ChargeSessionStore full = store(g); fill(full, max - 1, 1);
+        String old = oldestAutomatic(g);
+        File newer = new File(g, "11111111-1111-a111-8111-111111111111.csv");
+        Files.copy(new File(g, old).toPath(), newer.toPath());
+        newer.setLastModified(System.currentTimeMillis() + 60_000);
+        check(saved(g).size() == max + 1, "Fixture: saved, room not yet made");
+        store(g);
+        List<String> trimmed = saved(g);
+        check(trimmed.size() == max && trimmed.contains(newer.getName()) && !trimmed.contains(old), "The next start removes the older automatic one, keeps the new one");
+        int manualLeft = 0; for (String n : trimmed) if (ChargeSessionStore.labelSource(n) == null) manualLeft++;
+        check(manualLeft == max - 1, "And no manual one");
+    }
+
+    /** Terra #5: a recording that ends with a guessed label teaches no curve; chosen and detected ones learn as before. */
+    static void storeGuessTeachesNothing() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        store.startAutomatic("one", FAST, GUESS, WALL, MONO); charge(store, 60, 30);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "A long guessed recording is kept in the list");
+        ChargeSessionStore.Snapshot snapshot = store.snapshot();
+        check(snapshot.sessions == 1, "It is counted as a saved recording");
+        check(snapshot.curves.get(ChargeSessionStore.key("one", FAST)) == null, "But no high-speed curve is learned from a guess");
+        StringWriter out = new StringWriter(); store.exportJson("one", out);
+        check(out.toString().contains("\"label_source\":\"guess\"") && out.toString().contains("\"qualified_for_learning\":false"), "Export: a guess, not used for learning");
+        check(store.recordings("one").get(0).labelSource == GUESS, "The list still marks it as a guess");
+        store.startAutomatic("one", FAST, DETECTED, WALL + 1000 * MINUTE, MONO); charge(store, 60, 30); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        ChargeSessionStore.Curve learned = store.snapshot().curves.get(ChargeSessionStore.key("one", FAST));
+        check(learned != null && learned.qualifiedSessions == 1, "A detected label learns as before, and only it counts");
+        store.start("one", STOCK, WALL + 2000 * MINUTE, MONO); charge(store, 60, 30); store.stop(ChargeSessionStore.Stop.STOPPED);
+        ChargeSessionStore.Curve manual = store.snapshot().curves.get(ChargeSessionStore.key("one", STOCK));
+        check(manual != null && manual.qualifiedSessions == 1, "A manual recording learns as before");
     }
 }

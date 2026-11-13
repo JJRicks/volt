@@ -146,10 +146,21 @@ public final class RideAutoStopValidation extends Instrumentation {
                 "Parked tail adds no distance or battery use: range=" + r.fullRangeKm + " km=" + r.distanceKm + " points=" + r.batteryPoints);
     }
 
+    /**
+     * A ride's details as a rider opens them: Ride › All rides & compare, then its history row, by touch. Since the Hub's
+     * part 5 the Rides tab is the Ride summary, which is always compact; only All rides & compare has the wide two panes
+     * (725 dp at 1x here), and HubTestPages.openRideDetails fails if a wide window falls back to the dialog (#414 review).
+     */
+    private boolean openDetails(String id) throws Exception {
+        main(() -> { RidesScreen shown = field(activity, "screen") instanceof RidesScreen ? (RidesScreen) field(activity, "screen") : null;
+            if (shown != null) for (Object d : new ArrayList<>((List<?>) field(shown, "dialogs"))) ((AlertDialog) d).dismiss(); }); settle();
+        String title = activity.service().rides.get(id).label;
+        boolean wide = HubTestPages.openRideDetails(this, activity, id, title); settle();
+        return wide;
+    }
     private void details() throws Exception {
-        main(() -> invoke(activity, "select", new Class[]{String.class}, "rides")); settle();
-        RidesScreen screen = (RidesScreen) field(activity, "screen"); boolean wide = (boolean) field(screen, "wide");
-        main(() -> invoke(screen, wide ? "selectRide" : "showDetails", new Class[]{String.class}, automatic.get(2))); settle();
+        boolean wide = openDetails(automatic.get(2));
+        RidesScreen screen = (RidesScreen) field(activity, "screen");
         TextView pill = text(rideRoot(screen), "Saved automatically"); check(pill != null, "Ride details show Saved automatically");
         check("Saved automatically after Bluetooth was lost while parked".contentEquals(pill.getContentDescription()), "Pill explains itself to screen readers");
         main(() -> pill.requestRectangleOnScreen(new Rect(0, -activity.ui().dp(160), pill.getWidth(), pill.getHeight() + activity.ui().dp(120)), true)); settle();
@@ -157,10 +168,11 @@ public final class RideAutoStopValidation extends Instrumentation {
         View parent = (View) pill.getParent(); Rect p = new Rect(), own = new Rect(); parent.getGlobalVisibleRect(p); pill.getGlobalVisibleRect(own);
         check(own.left >= p.left && own.right <= p.right, "Pill sits inside the details column");
         screenshot("details-automatic");
-        if (wide) { main(() -> invoke(screen, "selectRide", new Class[]{String.class}, manual)); }
-        else { main(() -> ((AlertDialog) ((List<?>) field(screen, "dialogs")).get(((List<?>) field(screen, "dialogs")).size() - 1)).dismiss()); settle(); main(() -> invoke(screen, "showDetails", new Class[]{String.class}, manual)); }
-        settle(); check(text(rideRoot(screen), "Saved automatically") == null, "A rider's stop has no automatic pill");
-        if (!wide) { main(() -> { List<?> dialogs = (List<?>) field(screen, "dialogs"); for (Object d : new ArrayList<>(dialogs)) ((AlertDialog) d).dismiss(); }); settle(); }
+        // The rider's own stop, opened the same way (its row tapped; on a wide window the right pane changes ride).
+        check(openDetails(manual) == wide, "The second ride opens in the same layout");
+        RidesScreen manualScreen = (RidesScreen) field(activity, "screen");
+        settle(); check(text(rideRoot(manualScreen), "Saved automatically") == null, "A rider's stop has no automatic pill");
+        if (!wide) { main(() -> { List<?> dialogs = (List<?>) field(manualScreen, "dialogs"); for (Object d : new ArrayList<>(dialogs)) ((AlertDialog) d).dismiss(); }); settle(); }
         screenshot("history");
     }
     private View rideRoot(RidesScreen screen) { List<?> dialogs = (List<?>) field(screen, "dialogs"); return dialogs.isEmpty() ? screen.view() : ((AlertDialog) dialogs.get(dialogs.size() - 1)).getWindow().getDecorView(); }
@@ -168,12 +180,16 @@ public final class RideAutoStopValidation extends Instrumentation {
     private void preference() throws Exception {
         SharedPreferences settings = getTargetContext().getSharedPreferences("app_settings", 0);
         check(!settings.contains(ScooterServiceKeys.AUTO_STOP), "Preference absent on a fresh install");
-        main(() -> { invoke(activity, "select", new Class[]{String.class}, "more"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
+        // End rides automatically left More › App preferences for Ride › Recording settings in the Hub layout (#389).
+        HubTestPages.reach(this, activity, "ride.recording"); settle();
         View root = activity.getWindow().getDecorView();
         TextView title = text(root, "End rides automatically"); check(title != null, "End rides automatically row present");
         TextView sub = text(root, "When the scooter turns off, stays out of reach for 5 min, or doesn't move for 10 min"); check(sub != null, "Row explains the rule");
         View row = (View) title.getParent().getParent(); Switch toggle = find(row, Switch.class); check(toggle != null, "Row has a switch");
-        TextView heading = text(root, "Connection & recording"); check(heading != null, "Connection & recording heading present");
+        // It was under App preferences' Connection & recording heading; that heading stays with My scooters, and the row
+        // is in Recording settings' card of recording options now.
+        View card = row; while (card != null && !"preference-recording-options".equals(card.getTag())) card = card.getParent() instanceof View ? (View) card.getParent() : null;
+        check(card != null, "Row is in Recording settings' recording options card");
         centre(row);
         fullyShown(title, "Preference title"); fullyShown(sub, "Preference detail"); fullyShown(toggle, "Preference switch");
         Rect t = new Rect(), s = new Rect(), w = new Rect(); title.getGlobalVisibleRect(t); sub.getGlobalVisibleRect(s); toggle.getGlobalVisibleRect(w);
@@ -186,7 +202,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         File xml = new File(getTargetContext().getDataDir(), "shared_prefs/app_settings.xml");
         await(() -> { try { return new String(Files.readAllBytes(xml.toPath()), "UTF-8").contains("name=\"ride_auto_stop\" value=\"false\""); } catch (IOException e) { return false; } }, "Off choice written to disk");
         screenshot("preference-off");
-        main(() -> { invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "Data"); invoke(field(activity, "screen"), "selectSection", new Class[]{String.class}, "App"); }); settle();
+        main(() -> invoke(activity, "select", new Class[]{String.class}, "home")); settle(); HubTestPages.reach(this, activity, "ride.recording"); settle();
         Switch again = find((View) text(activity.getWindow().getDecorView(), "End rides automatically").getParent().getParent(), Switch.class);
         check(again != null && !again.isChecked(), "Reopened section still shows off");
         main(() -> ((View) again.getParent()).performClick()); settle();
@@ -321,9 +337,8 @@ public final class RideAutoStopValidation extends Instrumentation {
     }
 
     private void quietDetails(String id) throws Exception {
-        main(() -> invoke(activity, "select", new Class[]{String.class}, "rides")); settle();
-        RidesScreen screen = (RidesScreen) field(activity, "screen"); boolean wide = (boolean) field(screen, "wide");
-        main(() -> invoke(screen, wide ? "selectRide" : "showDetails", new Class[]{String.class}, id)); settle();
+        boolean wide = openDetails(id);
+        RidesScreen screen = (RidesScreen) field(activity, "screen");
         TextView pill = text(rideRoot(screen), "Saved automatically"); check(pill != null, "Quiet ride shows Saved automatically");
         check("Saved automatically after the scooter turned off or went out of range".contentEquals(pill.getContentDescription()), "Pill names the quiet reason for screen readers");
         main(() -> pill.requestRectangleOnScreen(new Rect(0, -activity.ui().dp(160), pill.getWidth(), pill.getHeight() + activity.ui().dp(120)), true)); settle();

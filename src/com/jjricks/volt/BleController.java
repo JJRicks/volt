@@ -919,6 +919,16 @@ public final class BleController {
         for(int i=out.size()-1;i>=0;i--)if(liveTest(out.get(i).testId))out.remove(i);
         return out;
     }
+    /**
+     * An unfinished test of the active scooter is waiting to write its original value back (RESTORE_NEEDED, or
+     * CHANGED_OUTSIDE where a restore is offered). A charge recording would refuse that write (CapabilityResolver, RECORDING),
+     * so Record charges automatically waits for it. Never writes.
+     */
+    public boolean restoreOutstanding(){
+        for(TestJournal.Entry e:unresolvedTests()){GuidedTest.Review r=reviewTest(e.testId);
+            if(r!=null&&(r.state==GuidedTest.ReviewState.RESTORE_NEEDED||r.state==GuidedTest.ReviewState.CHANGED_OUTSIDE))return true;}
+        return false;
+    }
     public int unresolvedTestsElsewhere(){ScooterProfiles.Profile p=profile();Set<String> kept=profileIds();int n=0;for(TestJournal.Entry e:testJournal.unresolved())if((p==null||!e.profileId.equals(p.id))&&kept.contains(e.profileId))n++;return n;}
     /** Unresolved tests whose scooter profile was removed: they can only be dismissed. */
     public List<TestJournal.Entry> orphanedTests(){Set<String> kept=profileIds();List<TestJournal.Entry> out=new ArrayList<>();for(TestJournal.Entry e:testJournal.unresolved())if(!kept.contains(e.profileId))out.add(e);return out;}

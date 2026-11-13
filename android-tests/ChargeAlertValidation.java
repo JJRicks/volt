@@ -215,7 +215,8 @@ public final class ChargeAlertValidation extends Instrumentation {
 
     private void verifySheet() throws Exception {
         choose(gt3); controls();
-        main(() -> ((View) root().findViewWithTag("charge-alert-charge-row")).performClick()); settle();
+        main(() -> { require(shown("charge-alert-charge-row"), "Battery & charging does not show the Charge alert row this opens");
+            ((View) root().findViewWithTag("charge-alert-charge-row")).performClick(); }); settle();
         main(() -> {
             View sheet = sheet();
             require(texts(sheet).contains("Battery alerts") && texts(sheet).contains("Alerts stay on for every charge until you turn them off"), "Sheet heading missing: " + texts(sheet));
@@ -413,7 +414,8 @@ public final class ChargeAlertValidation extends Instrumentation {
     private void verifyNotificationsOff() throws Exception {
         main(() -> require(!getTargetContext().getSystemService(NotificationManager.class).areNotificationsEnabled(), "Notifications are allowed in this mode"));
         choose(gt3); controls();
-        main(() -> ((View) root().findViewWithTag("charge-alert-charge-row")).performClick()); settle();
+        main(() -> { require(shown("charge-alert-charge-row"), "Battery & charging does not show the Charge alert row this opens");
+            ((View) root().findViewWithTag("charge-alert-charge-row")).performClick(); }); settle();
         main(() -> {
             View sheet = sheet();
             ((Switch) sheet.findViewWithTag("charge-alert-charge")).performClick();((Switch) sheet.findViewWithTag("charge-alert-notify")).performClick();
@@ -468,9 +470,10 @@ public final class ChargeAlertValidation extends Instrumentation {
         settle();
         if (!inSheet) { main(() -> sheet()); }
     }
+    /** The battery alert rows' page: Scooter › Battery & charging since the Hub layout (#385). */
     private void controls() {
         main(() -> { settings().edit().putString("scooter_section", "").commit(); invoke(activity, "select", new Class<?>[]{String.class}, "home"); }); settle();
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
+        HubTestPages.reach(this, activity, "battery"); settle();
         main(() -> { if (service.simulating()) service.ble.tickSimulation(); activity.redraw(); }); settle();
     }
     private void reveal(View view) {
