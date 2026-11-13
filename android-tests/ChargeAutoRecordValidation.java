@@ -41,7 +41,9 @@ import com.jjricks.volt.tests.TextCensus;
  * a simulated charge records nothing; the status never says "saved" for a recording that was not kept. Terra's review of
  * #415: a hand stop's hold survives a not-charging reading while Volt's own schedule holds the current off; a guessed
  * label is not the charger in effect; an automatic start at the limit deletes nothing until it is kept; out of sight
- * with Stay connected off, riding away still starts the ride before the link is let go.
+ * with Stay connected off, riding away still starts the ride before the link is let go. Its review of bd671732: during an
+ * automatic recording with a guessed label the owner's charger choice is accepted, labels the recording chosen and
+ * ends Charge done by's wait; it stays refused during a manual recording and an automatic one with the chosen charger.
  *
  * Mode "page" (needs the switch row): Battery & charging › Charge history & recordings with the switch, screenshots
  * and a text check for cut or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text.
@@ -153,6 +155,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         long started = awaitRecording(10 * S, "on screen");
         require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN
                 && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED), "Expected the chosen high-speed label");
+        require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK)
+                && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED
+                && service.chargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED), "The charger changed during an automatic recording with the chosen charger");
         log("on screen: started " + (started) + " ms after plugging in, label chosen high-speed; notice: " + notice());
         require(notice().contains("Synthetic") || notice().length() > 0, "No connection notice while recording");
         SystemClock.sleep(15 * S);
@@ -235,6 +240,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> settings().edit().putBoolean(KEY, true).commit());
         SystemClock.sleep(4 * S);
         require(onMain(() -> service.isChargeRecording() && !chargeStore().automatic()), "The switch ended or replaced a manual recording");
+        main(() -> { ChargeSessionStore.Charger saved = service.chargeCharger();
+            require(!service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED)
+                    && chargeStore().charger() == ChargeSessionStore.Charger.STOCK && service.chargeCharger() == saved, "The charger changed during a manual recording"); });
         main(() -> service.startRide("")); settle();
         require(onMain(() -> service.isChargeRecording() && !service.isRecording()), "A ride started by hand ended a manual recording");
         log("manual recording: untouched by the switch, a ride by hand still refused");
@@ -285,11 +293,25 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(onMain(() -> service.chargerBasis() != ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == null),
                 "A guessed label stood in for the charger choice or detection: basis " + onMainText(() -> service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("out of sight: started " + (SystemClock.elapsedRealtime() - plugged) + " ms after plugging in, label " + onMainText(() -> String.valueOf(chargeStore().labelSource())) + "; notice: " + notice());
+        // Terra's review of bd671732: the owner may still choose; the choice labels the recording and is the charger in effect.
+        require(onMain(() -> ModelRegistry.chargeReferenceProduct(service.modelDescriptor(service.profiles.active())) == Ut5MaxStockChargeReference.PRODUCT_ID), "The fixture is not a UT5 MAX");
+        await(() -> onMain(() -> Integer.valueOf(1).equals(field(scheduleContext(), "charging")) && T.serviceChargerDetection().equals(field(scheduleContext(), "estimateUnavailableReason"))),
+                StatusCadence.POLL_SLOW_MS + 10 * S, "Charge done by did not wait for the charger with a guessed label: " + onMainText(() -> String.valueOf(field(scheduleContext(), "estimateUnavailableReason"))));
+        require(onMain(() -> service.chargerChoosable() && service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED)), "The charger choice was refused during an automatic recording with a guessed label");
+        require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED
+                && service.chargerBasis() == ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED),
+                "The choice did not label the recording or become the charger in effect: " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger() + " " + service.chargerBasis() + " " + service.effectiveChargeCharger()));
+        await(() -> onMain(() -> Integer.valueOf(1).equals(field(scheduleContext(), "charging")) && field(scheduleContext(), "estimateUnavailableReason") == null),
+                StatusCadence.POLL_SLOW_MS + 10 * S, "Charge done by still waits for the charger after the choice: " + onMainText(() -> String.valueOf(field(scheduleContext(), "estimateUnavailableReason"))));
+        require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK) && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED),
+                "Once chosen, the recording's charger changed again");
+        log("out of sight: the owner chose high-speed during the guessed recording: label " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger()) + ", Charge done by no longer waits");
         SystemClock.sleep(5 * S);
         getTargetContext().startForegroundService(new Intent(getTargetContext(), ScooterService.class).setAction("STOP_CHARGE_RECORDING"));
         await(() -> onMain(() -> !service.isChargeRecording()), 10 * S, "The notification's Stop did not stop it");
         require(holds(), "The notification's Stop did not hold");
         log("notification Stop: stopped and held; notice: " + notice());
+        main(() -> require(service.setChargeCharger(null), "Could not set Automatic again"));
         main(() -> link.charging(OFF));
         await(() -> !holds(), StatusCadence.POLL_SLOW_MS + 10 * S, "The background read's not-charging reading did not end the hold");
         log("out of sight unplugged: hold cleared");
@@ -626,6 +648,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         return "answered " + field(policy, "answered") + ", suppressed " + field(policy, "suppressed") + ", legacy " + field(policy, "legacy");
     }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
+    private Object scheduleContext() { return invoke(service, "chargeScheduleContext", new Class<?>[0]); }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }
     private static Object field(Object object, String name) { try { return reflected(object, name).get(object); } catch (Exception error) { throw new IllegalStateException(error); } }
     private static void set(Object object, String name, Object value) { try { reflected(object, name).set(object, value); } catch (Exception error) { throw new IllegalStateException(error); } }

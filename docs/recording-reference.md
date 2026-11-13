@@ -346,6 +346,14 @@ already charging starts then; the recording is partial.
   detection, and a recording that ends with a guessed label is kept in the list
   (marked as a guess) but teaches no charger curve. Its gauge readings still count
   toward the battery capacity estimate, which does not depend on the charger.
+- **Choosing during one.** The charger choice stays open during an automatic
+  recording whose label you did not choose (a guess or a detected label): your
+  choice is saved as usual and relabels the recording as chosen, so it is the
+  charger in effect at once and detection no longer changes it. It is locked, as
+  before, during a recording you started yourself and during an automatic one
+  that already has your chosen charger. If Volt is closed between rewriting the
+  file's charger and renaming it, the recording keeps its old guess or detected
+  name with your charger inside; a guess then teaches nothing.
 - **Waits.** It never starts during a guided setting test, while an unfinished
   one may still have a setting to write back (anything but already back to its
   original value; dismissing the test ends the wait), or during a compatibility check (a running recording

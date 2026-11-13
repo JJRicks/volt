@@ -190,6 +190,15 @@ public final class ChargeAutoRecordPolicy {
      */
     public static boolean countsAsCharger(ChargeSessionStore.LabelSource source) { return source != ChargeSessionStore.LabelSource.GUESS; }
 
+    /**
+     * Whether the owner may choose the charger now. The lock during a recording is for a label the owner chose: a manual
+     * recording's (null source) or an automatic CHOSEN one. An automatic recording labelled by a guess or by detection
+     * takes the owner's choice, which relabels it CHOSEN; from then on detection never changes it (relabel).
+     */
+    public static boolean choiceAllowed(boolean recording, ChargeSessionStore.LabelSource source) {
+        return !recording || source == ChargeSessionStore.LabelSource.GUESS || source == ChargeSessionStore.LabelSource.DETECTED;
+    }
+
     /** The held scooters stored in HOLD_KEY. */
     public static Set<String> holds(String stored) {
         Set<String> result = new LinkedHashSet<>();

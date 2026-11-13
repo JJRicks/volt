@@ -436,6 +436,8 @@ public final class ScooterService extends Service {
      * A recording's manually confirmed label is temporary and never changes the preference. An automatic recording's label
      * is the charger in effect only when it was chosen or detected (ChargeAutoRecordPolicy.countsAsCharger): a guess
      * labels the file, and estimates, Charge done by and the charging view keep waiting for the choice or for detection.
+     * The owner may choose during an automatic recording they did not label (chargerChoosable): the choice is saved as
+     * the preference, as any choice, and relabels the recording CHOSEN, so it is the charger in effect from then on.
      */
     public ChargerBasis chargerBasis(){
         if(isChargeRecording()&&activeProfileId().equals(chargeStore.profile())&&ChargeAutoRecordPolicy.countsAsCharger(chargeStore.labelSource()))return ChargerBasis.RECORDING;
@@ -465,11 +467,20 @@ public final class ScooterService extends Service {
         return curve==null?0:curve.qualifiedSessions;
     }
     public boolean setChargeCharger(ChargeSessionStore.Charger charger){
-        if(destroyed||isChargeRecording()||activeProfileId().isEmpty())return false;
+        if(destroyed||activeProfileId().isEmpty()||!chargerChoosable())return false;
+        // An automatic recording the owner did not label takes the choice as its label (CHOSEN; the header first, then the
+        // name, so a process end between them leaves a guess or detected label that names the owner's charger).
+        boolean relabels=isChargeRecording()&&charger!=null;
+        if(relabels)try{if(!chargeStore.relabel(charger,ChargeSessionStore.LabelSource.CHOSEN))return false;}catch(IOException unchanged){return false;}
         chargeReferenceGate.reset();
         SharedPreferences.Editor edit=settings.edit();
         if(charger==null)edit.remove(chargerKey());else edit.putString(chargerKey(),charger.name());
-        edit.apply();changed();return true;
+        edit.apply();if(relabels)updateNotification();changed();return true;
+    }
+    /** Whether the charger choice is open now: no recording, or an automatic one on this scooter whose label the owner did not choose. */
+    public boolean chargerChoosable(){
+        if(!isChargeRecording())return true;
+        return activeProfileId().equals(chargeStore.profile())&&ChargeAutoRecordPolicy.choiceAllowed(true,chargeStore.labelSource());
     }
     /** Why a charge recording can't start now, in the current language, or null when it can. */
     public String chargeCaptureUnavailable(){CharSequence why=chargeCaptureBlocked();return why==null?null:why.toString();}
