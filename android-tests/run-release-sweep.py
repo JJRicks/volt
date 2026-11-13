@@ -77,12 +77,14 @@ def size_name(size_case):
 
 # Registered but deliberately not run here, with the reason; everything else must have a step.
 EXCLUDED = {'ParkedValidation': 'physical parked-scooter checks that send real lock, PIN and clock commands; run only under an explicit physical test plan',
-            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator'}
+            'RideAutoExportValidation': 'drives the system folder and save pickers and deletes Download/VoltRides and Download/ride-* in shared storage; run it with run-ride-auto-export.py on a disposable emulator',
+            'BackgroundRecordingValidation': 'checks the switch row and What\'s new note that the text pull request adds; its steps are registered there'}
 # Modes not run on their own because a step's mode already runs every check they make.
 SUBSUMED = {'ResponsiveDashboardValidation battery, capacity and fold': 'all (in the default responsive matrix)',
             'DeveloperSettingsValidation preferences': 'all (developer-settings steps)',
             'run-backup-scenario --inspect': 'its default prepare run, which ends with inspect',
-            'AutoStartValidation cadence and location': 'auto-start (the full pass)'}
+            'AutoStartValidation cadence and location': 'auto-start (the full pass)',
+            'ShortcutPickerValidation look': 'the shortcut-picker steps, which take the same pictures and check them (look runs on any build, for before/after pictures)'}
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 STATUS_LABEL = {'passed': 'PASS', 'failed': 'FAIL', 'reported': 'REPORT', 'did-not-finish': 'REPORT (did not finish)', 'skipped': 'SKIPPED'}
 
@@ -167,12 +169,20 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
+    inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
     inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     # The charging view's one time tile; its restart mode needs the same install, so it runs by hand after this one.
     inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
+    # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
+    inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
+    inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
+    inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
@@ -186,7 +196,7 @@ STEPS += [
     # a step's fresh install can't do (order in its class comment).
     inst('auto-start', PKG + '.AutoStartValidation', grant=NEARBY, hidden_api=True),
     *[inst(f'auto-start-{mode}', PKG + '.AutoStartValidation', '-e', 'only', mode, grant=NEARBY, hidden_api=True)
-      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline')],
+      for mode in ('gates', 'gps-grant', 'gps-decline', 'gps-riding', 'dialog-guard', 'cancel-empty', 'restored-grant', 'restored-decline', 'background-switch')],
 ]
 for theme in ('dark', 'light'):
     STEPS += [inst(f'report-invite-{theme}', T + 'ReportInviteValidation', '-e', 'theme', theme),
@@ -196,6 +206,13 @@ for theme in ('dark', 'light'):
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
 # The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
 STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
+# Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
+# and German and European Portuguese (the longest names) on that tightest case.
+PHONE_LARGE = ('344x882', 'dark', '1.4')
+STEPS += [inst(f'shortcut-picker-{w}', T + 'ShortcutPickerValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size)
+          for (size, theme, text), w in [(case, size_name(case)) for case in SIZES] + [(PHONE_LARGE, '344-large')]]
+STEPS += [inst(f'shortcut-picker-{tag}-344-large', T + 'ShortcutPickerValidation', '-e', 'language', tag, '-e', 'theme', 'light',
+               '-e', 'text_scale', '1.4', size='344x882') for tag in ('de', 'pt-PT')]
 # Maintenance reminders added with no connection (never-read and stale scooters, a restart), phone and wide.
 STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOfflineValidation', '-e', 'theme', case[1], '-e', 'text_scale', case[2], size=case[0])
           for case in (PHONE, WIDE)]
