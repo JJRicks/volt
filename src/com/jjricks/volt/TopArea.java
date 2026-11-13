@@ -84,14 +84,12 @@ final class TopArea {
     /**
      * How the parked battery card shares the height it has beyond its own (pixels, {@code extra} ≥ 0): above its top
      * row (the percentage and the photo), between that row and the bar, and between the bar and the readings, so the
-     * readings sit along the card's bottom and the space is spread about evenly, instead of one band under the
-     * readings. The Layout Plan's mock-up keeps the readings closer under the bar (about 36, 37 and 20 dp there), but
-     * this card has more height to spread: with the mock-up's weights, or anything near them, the other two gaps
-     * became bands of 40 dp or more on the emulator's 344 and 412 dp phones (part 8b), so the split stays even.
+     * readings sit along the card's bottom, weighted as the Layout Plan's mock-up spreads it (about 36, 37 and 20 dp
+     * there), so the readings sit close under the bar and no gap becomes a band, instead of one band under the readings.
      */
     static int[] parkedGaps(int extra) {
         int e = Math.max(0, extra);
-        int above = Math.round(e * .34f), under = Math.round(e * .33f);
+        int above = Math.round(e * .39f), under = Math.round(e * .22f);
         return new int[] {above, e - above - under, under};
     }
 }
