@@ -46,6 +46,8 @@ final class JustBackView extends LinearLayout {
     private final Cell time, speed, battery;
     private String rideId;
     private String shownKey = "";
+    /** The card's spoken name without the ended line, which bind puts in front of it each time. */
+    private Msg spokenRide;
 
     /** open gets the shown ride's id; close too. */
     JustBackView(ScreenHost host, java.util.function.Consumer<String> open, java.util.function.Consumer<String> close) {
@@ -87,21 +89,13 @@ final class JustBackView extends LinearLayout {
         routeSize.setMarginEnd(ui.dp(8));
         addView(route, routeSize);
 
-        LinearLayout tiles = new LinearLayout(host.activity());
-        tiles.setOrientation(HORIZONTAL);
-        tiles.setBaselineAligned(false);
-        // The tiles read as one group of their own: the card's name says only the ride and that it opens.
-        tiles.setFocusable(true);
-        if (android.os.Build.VERSION.SDK_INT >= 28) tiles.setScreenReaderFocusable(true);
         time = new Cell(host, HubText.justBackRideTime());
         speed = new Cell(host, HubText.justBackAvgSpeed());
         battery = new Cell(host, HubText.justBackBattery(null));
-        Cell[] cells = {time, speed, battery};
-        for (int i = 0; i < cells.length; i++) {
-            LinearLayout.LayoutParams cellSize = new LinearLayout.LayoutParams(0, -1, 1);
-            if (i > 0) cellSize.setMarginStart(ui.dp(8));
-            tiles.addView(cells[i], cellSize);
-        }
+        Tiles tiles = new Tiles(host, ui.dp(8), time, speed, battery);
+        // The tiles read as one group of their own: the card's name says only the ride and that it opens.
+        tiles.setFocusable(true);
+        if (android.os.Build.VERSION.SDK_INT >= 28) tiles.setScreenReaderFocusable(true);
         LinearLayout.LayoutParams tilesSize = new LinearLayout.LayoutParams(-1, -2);
         tilesSize.topMargin = ui.dp(10);
         tilesSize.setMarginEnd(ui.dp(8));
@@ -116,23 +110,38 @@ final class JustBackView extends LinearLayout {
      * minutes line changes between rides, and the rest is set again only when the ride or the units change.
      */
     void bind(RideStore.Summary s, String units, long now) {
-        saved.setText(HubText.justBackEnded(HomeMoment.minutesAgo(s.shownEndWallMs, now)).render());
+        String ended = HubText.justBackEnded(HomeMoment.minutesAgo(s.shownEndWallMs, now)).render();
+        saved.setText(ended);
         String key = s.id + ":" + units;
-        if (key.equals(shownKey)) return;
+        if (!key.equals(shownKey)) show(s, units, key);
+        // The line sighted owners read first is spoken first too (council early review of part 9, note 7).
+        String spoken = ended + ", " + spokenRide.render();
+        if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
+    }
+
+    /** Everything but the ended line, for ride s in units; key is the ride and units it shows. */
+    private void show(RideStore.Summary s, String units, String key) {
         boolean otherRide = !s.id.equals(rideId);
         shownKey = key;
         rideId = s.id;
         if (otherRide) route.setRoute(null);
         Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units);
         distance.setText(miles == null ? "—" : large(miles));
-        setContentDescription(HubText.justBackDescription(miles == null ? "—" : miles.toString()).render());
-        time.set(s.shownElapsedMs > 0 ? RidingFocus.clockText(s.shownElapsedMs) : null);
-        speed.set(s.averageSpeedKmh == null || !Double.isFinite(s.averageSpeedKmh) ? null : RideText.speed(s.averageSpeedKmh, units).toString());
+        spokenRide = HubText.justBackDescription(miles == null ? "—" : miles.toString());
+        String clock = s.shownElapsedMs > 0 ? RidingFocus.clockText(s.shownElapsedMs) : null;
+        time.set(clock, clock);
+        if (s.averageSpeedKmh == null || !Double.isFinite(s.averageSpeedKmh)) speed.set(null, null);
+        else {
+            // Both units may not fit a narrow tile at its readable floor: then the first unit alone, both spoken (note 3).
+            String both = RideText.speed(s.averageSpeedKmh, units).toString();
+            speed.set(both, "dual".equals(units) ? RideText.speed(s.averageSpeedKmh, "mi").toString() : both);
+        }
         Double drop = s.batteryDropPercent;
+        boolean known = drop != null && Double.isFinite(drop);
         // A ride that gained charge (regeneration downhill) says Battery gain with the size of the gain, as Rides does.
-        battery.setLabel(HubText.justBackBattery(drop == null || !Double.isFinite(drop) ? null : drop));
-        battery.set(drop == null || !Double.isFinite(drop) ? null
-                : Fmt.percent(Fmt.decimalNumber(Locale.US, Math.abs(drop), 0)).toString());
+        battery.setLabel(HubText.justBackBattery(known ? drop : null));
+        String change = known ? Fmt.percent(Fmt.decimalNumber(Locale.US, Math.abs(drop), 0)).toString() : null;
+        battery.set(change, change);
     }
 
     /** The route of ride id, from RidesScreen.readThumb; empty when the ride has no usable GPS fixes. */
@@ -172,9 +181,84 @@ final class JustBackView extends LinearLayout {
         return target;
     }
 
-    /** One of the three small tiles: its label above a value that fits its width. */
+    /**
+     * The three tiles: three in a row while every name fits a third whole in two lines, else two in a row with the
+     * battery tile spanning the second row (TileFit.columns, council early review of part 9, note 2). The names keep
+     * their full words: no name is broken inside a word or cut at normal text size; the route panel above gives up
+     * the height a second row takes (it draws nothing when too little is left).
+     */
+    private static final class Tiles extends android.view.ViewGroup {
+        private final Cell[] cells;
+        private final int gap;
+        private int columns = 3;
+
+        Tiles(ScreenHost host, int gap, Cell... cells) {
+            super(host.activity());
+            this.gap = gap;
+            this.cells = cells;
+            for (Cell cell : cells) addView(cell);
+        }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec);
+            int third = (width - 2 * gap) / 3;
+            String[] names = new String[cells.length];
+            for (int i = 0; i < cells.length; i++) names[i] = cells[i].label();
+            Cell first = cells[0];
+            columns = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
+                    : TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES);
+            int height = 0, row = 0;
+            for (int i = 0; i < cells.length; i++) {
+                int span = columns == 3 ? 1 : i == cells.length - 1 && cells.length % 2 == 1 ? 2 : 1;
+                int each = (width - (columns - 1) * gap) / columns;
+                int cellWidth = span == 2 ? width : each;
+                cells[i].measure(MeasureSpec.makeMeasureSpec(Math.max(0, cellWidth), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                row = Math.max(row, cells[i].getMeasuredHeight());
+                boolean rowEnds = columns == 3 ? i == cells.length - 1 : i % 2 == 1 || i == cells.length - 1;
+                if (rowEnds) { height += (height > 0 ? gap : 0) + row; row = 0; }
+            }
+            // Each row's tiles share its height, so a row reads as one band.
+            int top = 0, rowStart = 0;
+            for (int i = 0; i < cells.length; i++) {
+                boolean rowEnds = columns == 3 ? i == cells.length - 1 : i % 2 == 1 || i == cells.length - 1;
+                if (!rowEnds) continue;
+                int tallest = 0;
+                for (int j = rowStart; j <= i; j++) tallest = Math.max(tallest, cells[j].getMeasuredHeight());
+                for (int j = rowStart; j <= i; j++)
+                    cells[j].measure(MeasureSpec.makeMeasureSpec(cells[j].getMeasuredWidth(), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(tallest, MeasureSpec.EXACTLY));
+                rowStart = i + 1;
+            }
+            setMeasuredDimension(width, resolveSize(height, heightSpec));
+        }
+
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            int width = r - l, x = 0, y = 0, rowHeight = 0;
+            for (int i = 0; i < cells.length; i++) {
+                Cell cell = cells[i];
+                int w = cell.getMeasuredWidth(), h = cell.getMeasuredHeight();
+                int left = rtl ? width - x - w : x;
+                cell.layout(left, y, left + w, y + h);
+                rowHeight = Math.max(rowHeight, h);
+                boolean rowEnds = columns == 3 ? i == cells.length - 1 : i % 2 == 1 || i == cells.length - 1;
+                if (rowEnds) { y += rowHeight + gap; x = 0; rowHeight = 0; }
+                else x += w + gap;
+            }
+        }
+    }
+
+    /**
+     * One of the three small tiles: its name (whole words, at most two lines; Tiles gives it the room) above a value
+     * that fits its width. The value follows the narrow-label ladder (TileFit.pick, note 3): whole on one line at its
+     * readable floor or larger, else its short rung (the speed's first unit alone, with units set to both), while the
+     * full value is what is spoken.
+     */
     private static final class Cell extends LinearLayout {
-        private final TextView name, value;
+        static final int NAME_LINES = 2;
+        private final TextView name;
+        private final Rungs value;
+        private final float valueFloor;
+        private final Paint floorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         Cell(ScreenHost host, Msg label) {
             super(host.activity());
@@ -184,27 +268,72 @@ final class JustBackView extends LinearLayout {
             setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8));
             setBackground(ui.shape(ui.raised, 14, 0));
             name = ui.caption(label.render());
-            name.setMaxLines(2);
+            name.setMaxLines(NAME_LINES);
+            // Only with very large text, where even half a row is too narrow, does a name still end in an ellipsis.
             name.setEllipsize(TextUtils.TruncateAt.END);
             addView(name, new LinearLayout.LayoutParams(-1, -2));
-            value = ui.text("—", 17, true);
-            value.setMaxLines(1);
+            value = new Rungs(ui.text("—", 17, true), 1);
             int floor = Math.round(ui.sp(Ui.READABLE_FLOOR_SP)), top = Math.round(ui.sp(17));
-            if (floor < top) value.setAutoSizeTextTypeUniformWithConfiguration(floor, top, 1, TypedValue.COMPLEX_UNIT_PX);
+            if (floor < top) value.view.setAutoSizeTextTypeUniformWithConfiguration(floor, top, 1, TypedValue.COMPLEX_UNIT_PX);
+            valueFloor = Math.min(floor, top);
             LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-1, Math.round(ui.sp(17) * 1.35f));
             valueSize.topMargin = ui.dp(3);
-            addView(value, valueSize);
+            addView(value.view, valueSize);
         }
+
+        /** The tile's name as shown. */
+        String label() { return name.getText().toString(); }
+
+        Paint namePaint() { return name.getPaint(); }
+
+        int horizontalPadding() { return getPaddingLeft() + getPaddingRight(); }
 
         /** The tile's name, set again when the ride changes (the battery tile names a drop or a gain). */
         void setLabel(Msg label) {
-            name.setText(label.render());
+            String shown = label.render();
+            if (!shown.contentEquals(name.getText())) { name.setText(shown); requestLayout(); }
         }
 
-        /** A measured value, or null for one the ride did not measure (a dash, muted). */
-        void set(String shown) {
-            value.setText(shown == null ? "—" : shown);
-            value.setAlpha(shown == null ? .6f : 1f);
+        /** A measured value and its short rung, or null for one the ride did not measure (a dash, muted). */
+        void set(String shown, String shorter) {
+            String full = shown == null ? "—" : shown;
+            value.set(full, shown == null || shorter == null ? full : shorter);
+            value.view.setAlpha(shown == null ? .6f : 1f);
+            requestLayout();
+        }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                int room = MeasureSpec.getSize(widthSpec) - horizontalPadding();
+                floorPaint.set(value.view.getPaint());
+                floorPaint.setTextSize(valueFloor);
+                value.show(TileFit.pick(value.rungs, floorPaint::measureText, room, 1) > 0);
+            }
+            super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
+    /** A tile value with its long and short rung; the long one is always what is spoken. */
+    private static final class Rungs {
+        final TextView view;
+        String[] rungs = {"", ""};
+
+        Rungs(TextView view, int lines) {
+            this.view = view;
+            view.setMaxLines(lines);
+            // Only the short rung can still be too wide (very large text); it ends in an ellipsis then.
+            view.setEllipsize(TextUtils.TruncateAt.END);
+        }
+
+        void set(String full, String shorter) {
+            rungs = new String[]{full, shorter};
+            view.setContentDescription(full);
+            show(false);
+        }
+
+        void show(boolean shorter) {
+            String pick = rungs[shorter ? 1 : 0];
+            if (!pick.contentEquals(view.getText())) view.setText(pick);
         }
     }
 
