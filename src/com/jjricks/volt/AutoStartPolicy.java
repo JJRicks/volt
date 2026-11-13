@@ -7,6 +7,9 @@ package com.jjricks.volt;
  *
  * Both are off by default and share one gate: Volt is connected to the scooter, the switch is on, and
  * a fresh speed reading above zero arrived (see {@link #moving}). A stale reading never counts.
+ * Auto-record starts while Volt is in the background only with its own switch, also off by default
+ * (see {@link #recordsNow}): Android doesn't let Volt turn on location from the background, so such a
+ * ride has no GPS route.
  *
  * Hold rules:
  * - A recording the rider stops by hand holds auto-record. The automatic ride-end rules (no motion
@@ -22,6 +25,11 @@ package com.jjricks.volt;
 final class AutoStartPolicy {
     /** Settings switches, both off by default (BackupRegistry includes them). */
     static final String AUTO_RECORD_KEY = "auto_record_rides", AUTO_RIDE_MODE_KEY = "riding_auto_open";
+    /**
+     * Lets auto-record also start while Volt is in the background (owner's answer 18 on #383). Absent means off, so
+     * an install or a backup from before the switch starts rides only while Volt is on screen.
+     */
+    static final String AUTO_RECORD_BACKGROUND_KEY = "auto_record_background";
     /** The Rides GPS route switch, on by default. */
     static final String PHONE_GPS_KEY = "phone_gps";
     /** Set while the rider's last answer to auto-record's location offer stands as a decline. A grant leaves it unset, so one that later ends can be offered again. Belongs to this phone's permission, so BackupRegistry leaves it out. */
@@ -64,6 +72,23 @@ final class AutoStartPolicy {
     boolean recordHeld() { return recordHeld; }
 
     boolean rideModeHeld() { return rideModeHeld; }
+
+    /**
+     * Whether auto-record is on for where Volt is now: on screen whenever its switch is on, in the background only
+     * when the background switch is on too. The result is {@link #shouldRecord}'s enabled. A ride that was held
+     * back in the background starts once Volt comes on screen, if the scooter is still moving.
+     *
+     * @param onScreen Volt's activity is resumed (ScooterService's visible)
+     */
+    static boolean recordsNow(boolean autoRecord, boolean backgroundAllowed, boolean onScreen) {
+        return autoRecord && (onScreen || backgroundAllowed);
+    }
+
+    /**
+     * How Recording settings draws Start recording in the background: on only while Record rides automatically is on,
+     * since it counts only then. While that is off the switch is greyed and drawn off; the stored value is kept.
+     */
+    static boolean backgroundSwitchDrawnOn(boolean autoRecord, boolean backgroundAllowed) { return autoRecord && backgroundAllowed; }
 
     /** Whether to start a recording now. Refusal reasons are inputs here so that the automatic start stays silent. */
     boolean shouldRecord(boolean enabled, boolean moving, boolean recording, boolean chargeRecording, boolean simulating,

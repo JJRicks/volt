@@ -36,6 +36,9 @@ import com.jjricks.volt.tests.TextCensus;
  * not kept and the recording ends two minutes after charging stops; moving above 4.8 km/h ends it at once and
  * Record rides automatically starts a ride in that moment, while jostling below it doesn't; a hand stop (on the page
  * or from the notification) holds until the scooter stops charging; an automatic recording never deletes a manual one.
+ * Also: a manual recording is left alone and its hand stop holds while the switch is on; a ride started by hand ends an
+ * automatic one; with Stay connected in background off a recording keeps going out of sight and the link then ends;
+ * a simulated charge records nothing; the status never says "saved" for a recording that was not kept.
  *
  * Mode "page" (needs the switch row): Battery & charging › Charge history & recordings with the switch, screenshots
  * and a text check for cut or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text.
@@ -77,12 +80,21 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                 main(() -> { link = new FakeLink(); link.attach(); });
                 await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link never ready");
                 log("link ready, not charging");
-                offByDefault();
-                onScreenChosenLabelAndShortChargeNotKept();
-                motionEndsAndRideStarts();
-                handStopHolds();
-                outOfSightStartAndNotificationStop();
-                manualNeverDeleted();
+                // only=limit runs the 20-recording step alone, for a quick re-check.
+                if ("limit".equals(args.getString("only", ""))) main(() -> settings().edit().putBoolean(KEY, true).commit());
+                else if ("stay".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); stayConnectedOff(); }
+                else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
+                else {
+                    offByDefault();
+                    onScreenChosenLabelAndShortChargeNotKept();
+                    motionEndsAndRideStarts();
+                    handStopHolds();
+                    manualLeftAlone();
+                    rideByHand();
+                    outOfSightStartAndNotificationStop();
+                }
+                if (!"stay".equals(args.getString("only", ""))) manualNeverDeleted();
+                if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -149,6 +161,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(ended >= ChargeAutoRecordPolicy.CHARGE_OFF_END_MS - 3 * S, "Ended too early: " + ended + " ms");
         log("ended " + ended + " ms after unplugging; status: " + onMainText(() -> service.chargeCaptureStatus()));
         require(saved().length == 0, "A recording under 10 minutes was kept: " + Arrays.toString(saved()));
+        notSaidSaved();
         require(!holds(), "A recording that ended by itself set a hold");
     }
 
@@ -181,6 +194,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         awaitRecording(10 * S, "before the hand stop");
         main(() -> service.stopChargeRecording());
         require(holds(), "A hand stop did not store a hold");
+        require(saved().length == 0, "A hand-stopped recording under 10 minutes was kept");
+        notSaidSaved();
         SystemClock.sleep(10 * S);
         require(onMain(() -> !service.isChargeRecording()), "A recording started again while held, still charging");
         log("hand stop: held for 10 s while still charging");
@@ -191,6 +206,47 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         awaitRecording(10 * S, "after the hold cleared");
         log("plugged in again: recording started");
         main(() -> service.stopChargeRecording());
+        unplugAndSettle();
+    }
+
+    /**
+     * A recording the owner started is never touched: turning the switch on beside it changes nothing, a ride started by
+     * hand is still refused, and its hand stop (switch on) holds, so Volt doesn't start recording the charge he just stopped.
+     */
+    private void manualLeftAlone() {
+        main(() -> settings().edit().putBoolean(KEY, false).commit());
+        plugIn(); SystemClock.sleep(3 * S);
+        require(onMain(() -> !service.isChargeRecording()), "Switch off: a recording started");
+        main(() -> require(service.startChargeRecording(ChargeSessionStore.Charger.STOCK), "Could not start a manual recording"));
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
+        SystemClock.sleep(4 * S);
+        require(onMain(() -> service.isChargeRecording() && !chargeStore().automatic()), "The switch ended or replaced a manual recording");
+        main(() -> service.startRide("")); settle();
+        require(onMain(() -> service.isChargeRecording() && !service.isRecording()), "A ride started by hand ended a manual recording");
+        log("manual recording: untouched by the switch, a ride by hand still refused");
+        main(() -> service.stopChargeRecording());
+        require(holds(), "A hand stop of a manual recording with the switch on did not hold");
+        require(saved().length == 1, "The short manual recording was not kept as before: " + Arrays.toString(saved()));
+        require(onMainText(() -> service.chargeCaptureStatus()).startsWith("Charge recording saved"), "A kept manual recording did not say saved");
+        SystemClock.sleep(6 * S);
+        require(onMain(() -> !service.isChargeRecording()), "An automatic recording started on the charge the owner had just stopped recording");
+        log("manual stop: kept, held for 6 s while still charging");
+        unplugAndSettle();
+        for (File file : saved()) require(file.delete(), "Could not clear the manual recording");
+    }
+
+    /** A ride started by hand ends an automatic recording and starts; the stop holds, as a hand stop does. */
+    private void rideByHand() {
+        plugIn();
+        awaitRecording(10 * S, "before a ride started by hand");
+        main(() -> service.startRide(""));
+        await(() -> onMain(() -> service.isRecording()), 5 * S, "A ride started by hand did not start beside an automatic charge recording");
+        require(onMain(() -> !service.isChargeRecording()), "The automatic charge recording kept running beside a ride");
+        require(holds(), "A ride started by hand did not hold the charge");
+        require(saved().length == 0, "The short recording was kept");
+        notSaidSaved();
+        log("ride by hand: charge recording ended, ride recording running, held");
+        main(() -> service.stopRide());
         unplugAndSettle();
     }
 
@@ -207,7 +263,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> link.charging(ON));
         log("out of sight: charging, no report pushed");
         long plugged = SystemClock.elapsedRealtime();
-        await(() -> onMain(() -> service.isChargeRecording()), StatusCadence.POLL_SLOW_MS + 10 * S, "No automatic recording out of sight");
+        awaitOr(() -> onMain(() -> service.isChargeRecording()), StatusCadence.POLL_SLOW_MS + 10 * S, "No automatic recording out of sight");
         require(onMain(() -> !service.isVisible()), "Volt came to the front");
         require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() != ChargeSessionStore.LabelSource.CHOSEN
                 && chargeStore().charger() == ChargeSessionStore.Charger.STOCK), "Expected a stock label not marked as chosen");
@@ -239,7 +295,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         ensureFront();
         plugIn();
         // The failed start latches the scooter: proof the start was tried, not merely not yet seen.
-        await(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
+        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
         require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
         log("20 manual saved: start tried and refused, all kept");
         main(() -> { link.charging(OFF); link.home(); });
@@ -273,6 +329,62 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         for (String name : names()) if (!before.contains(name)) return name;
         for (String name : names()) if (ChargeSessionStore.labelSource(name) != null == automatic && name.endsWith(".csv")) return name;
         throw new IllegalStateException("Fixture missing");
+    }
+
+    /**
+     * Owner's answer 6: Stay connected in background is not this feature's connection. With it off (and the live
+     * charging card off, so nothing else holds the link), a recording started on screen keeps recording out of sight and
+     * ends there by its own rules; then nothing keeps the link: the switch never holds or opens one itself.
+     */
+    private void stayConnectedOff() {
+        main(() -> settings().edit().putBoolean("background_connection", false).putBoolean(ScooterService.CHARGE_LIVE_ENABLED, false).commit());
+        ensureFront();
+        plugIn();
+        awaitRecording(10 * S, "with Stay connected in background off");
+        getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        await(() -> onMain(() -> !service.isVisible()), 10000, "Volt never left the foreground");
+        int before = onMainInt(() -> chargeStore().sampleCount());
+        // Every 5 s for 35 s: still recording, still linked, and the recording took a fresh reading within its 5 s frame rule
+        // (lastFreshMono). Saved samples need an electrical step to settle first (ChargeSessionStore.confirmElectricalChange).
+        for (int i = 0; i < 7; i++) {
+            SystemClock.sleep(5 * S);
+            require(onMain(() -> service.isChargeRecording() && ble.connected() && !service.isVisible()), "The automatic recording or its link ended out of sight with Stay connected in background off");
+            long age = SystemClock.elapsedRealtime() - onMainLong(() -> chargeStore().lastFreshMono());
+            require(age <= ChargeSessionStore.MAX_FRAME_AGE_MS + S, "Out of sight with Stay connected in background off, the last fresh reading is " + age + " ms old; " + journal() + "; readings " + onMainText(this::readingAges));
+        }
+        int after = onMainInt(() -> chargeStore().sampleCount());
+        require(after > before, "Out of sight with Stay connected in background off, no sample saved in 35 s: " + journal());
+        log("Stay connected in background off: out of sight 35 s, still recording, a fresh reading every check, samples " + before + " to " + after + " (" + journal() + ")");
+        main(() -> link.charging(OFF));
+        long unplugged = SystemClock.elapsedRealtime();
+        await(() -> onMain(() -> !service.isChargeRecording()), ChargeAutoRecordPolicy.CHARGE_OFF_END_MS + 30 * S, "The automatic recording did not end out of sight two minutes after unplugging");
+        long ended = SystemClock.elapsedRealtime() - unplugged;
+        require(ended >= ChargeAutoRecordPolicy.CHARGE_OFF_END_MS - 3 * S, "Ended too early out of sight: " + ended + " ms");
+        require(saved().length == 0 && !holds(), "Out of sight: a short recording was kept, or ending by itself held");
+        notSaidSaved();
+        log("out of sight: ended " + ended + " ms after unplugging, not kept");
+        await(() -> onMain(() -> !ble.connected()), 30 * S, "The link stayed after the recording ended, with Stay connected in background off: the switch kept it");
+        log("then the link ended: nothing of this feature keeps one");
+        main(() -> settings().edit().putBoolean("background_connection", true).remove(ScooterService.CHARGE_LIVE_ENABLED).commit());
+        ensureFront();
+    }
+
+    /** Nothing simulated is ever written as real: a simulated charge with the switch on records nothing. */
+    private void simulationNeverRecords() {
+        ensureFront();
+        main(() -> require(service.setSimulation(true), "Could not enter simulation"));
+        main(() -> ble.setSimulationCharging(true));
+        await(() -> onMain(() -> Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))), 10 * S, "The simulated scooter never reported charging");
+        SystemClock.sleep(8 * S);
+        require(onMain(() -> !service.isChargeRecording() && !latched()) && names().isEmpty(), "A simulated charge started or tried an automatic recording: " + names());
+        log("simulation charging 8 s, switch on: nothing tried, nothing written");
+        main(() -> { ble.setSimulationCharging(false); service.setSimulation(false); });
+    }
+
+    /** The status line never says "saved" for a recording that was not kept (#416 says "not kept"). */
+    private void notSaidSaved() {
+        String status = onMainText(() -> service.chargeCaptureStatus());
+        require(!status.startsWith("Charge recording saved"), "Said saved for a recording it did not keep: " + status);
     }
 
     // ===== Page =====
@@ -318,7 +430,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "charge-auto-record-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory missing");
         File file = new File(dir, label + ".png"); Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath()); TextCensus.writeWithNotifications(this, file);
+        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
 
     // ===== Helpers =====
@@ -387,6 +499,9 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
             callbacks = (BluetoothGattCallback) field(ble, "callbacks"); set(ble, "profile", profile); set(ble, "gatt", gatt); set(ble, "writer", writer); set(ble, "serial", profile.serial);
             set(ble, "authenticated", true); set(ble, "discovered", true); set(ble, "subscribed", true); set(ble, "wanted", false); set(ble, "state", BleController.State.READY);
             status(); home(); battery();
+            // The first reads a real connection makes once authenticated (BleController's 0x30 path: refresh(true)). Out of sight
+            // the poll reads the battery only once 0x72 has answered on this connection (#418's ReadPolicy.noticeBattery).
+            ble.refresh(true);
             Method poll = BleController.class.getDeclaredMethod("poll", int.class); poll.setAccessible(true); poll.invoke(ble, ble.connectionGeneration());
         } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable; relax hidden_api_policy on the disposable emulator", error); } }
         void received(byte[] frame) {
@@ -417,9 +532,43 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
     private void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
     private void main(Runnable task) { final Throwable[] failure = {null}; runOnMainSync(() -> { try { task.run(); } catch (Throwable error) { failure[0] = error; } }); if (failure[0] != null) throw new IllegalStateException(failure[0]); }
     private boolean onMain(BooleanSupplier query) { final boolean[] result = {false}; main(() -> result[0] = query.getAsBoolean()); return result[0]; }
+    private long onMainLong(java.util.function.LongSupplier query) { final long[] result = {0}; main(() -> result[0] = query.getAsLong()); return result[0]; }
+    private int onMainInt(java.util.function.IntSupplier query) { final int[] result = {0}; main(() -> result[0] = query.getAsInt()); return result[0]; }
     private String onMainText(java.util.function.Supplier<String> query) { final String[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
+    private String onMainString(java.util.function.Supplier<String> query) { final String[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
     private View onMainView(java.util.function.Supplier<View> query) { final View[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
     private void await(BooleanSupplier query, long ms, String message) { long end = SystemClock.uptimeMillis() + ms; while (SystemClock.uptimeMillis() < end) { if (query.getAsBoolean()) return; SystemClock.sleep(50); } throw new AssertionError(message); }
+    /** await, with the service's view of an automatic start in the failure. */
+    private void awaitOr(BooleanSupplier query, long ms, String message) {
+        try { await(query, ms, message); }
+        catch (AssertionError failed) { throw new AssertionError(message + " (" + onMainString(() -> "blocked: " + service.chargeCaptureUnavailable()
+                + "; recording " + service.isChargeRecording() + "; ride " + service.isRecording() + "; held " + holds() + "; latched " + latched()
+                + "; switch " + settings().getBoolean(KEY, false) + "; visible " + service.isVisible()
+                + "; charging_state " + ble.telemetry.number("charging_state") + "; link " + ble.state() + " " + ble.message()
+                + "; status age " + ble.statusAge() + " ms; gatt " + field(ble, "gatt") + "; readings " + readingAges() + "; read policy " + readPolicyState()) + ")"); }
+    }
+    /** The running journal's sample lines as seconds since its start, for a failure message. */
+    private String journal() {
+        File[] active = folder().listFiles((dir, name) -> name.endsWith(".active"));
+        if (active == null || active.length == 0) return "no journal";
+        StringBuilder out = new StringBuilder("samples at");
+        try (BufferedReader in = new BufferedReader(new FileReader(active[0]))) {
+            long start = -1; String line;
+            while ((line = in.readLine()) != null) { String[] f = line.split(","); if (f[0].startsWith("charge-v2")) start = Long.parseLong(f[4]); else if (f[0].equals("s")) out.append(' ').append((Long.parseLong(f[2]) - start) / 1000).append('s'); }
+        } catch (IOException | RuntimeException error) { out.append(" (unreadable: ").append(error).append(')'); }
+        return out.toString();
+    }
+    /** Each battery reading's value and age, for a failure message. */
+    private String readingAges() {
+        StringBuilder out = new StringBuilder(); long now = SystemClock.elapsedRealtime();
+        for (Telemetry.Metric m : ble.telemetry.metrics()) if (m.key.equals("charging_state") || m.key.equals("battery_percent") || m.key.equals("voltage_v") || m.key.equals("current_a"))
+            out.append(m.key).append('=').append(m.numericValue).append('@').append(m.updatedMs > 0 ? now - m.updatedMs : -1).append("ms/0x").append(Integer.toHexString(m.sourceCmd)).append(' ');
+        return out.toString().trim();
+    }
+    private String readPolicyState() {
+        Object policy = field(ble, "readPolicy"); if (policy == null) return "none";
+        return "answered " + field(policy, "answered") + ", suppressed " + field(policy, "suppressed") + ", legacy " + field(policy, "legacy");
+    }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }
     private static Object field(Object object, String name) { try { return reflected(object, name).get(object); } catch (Exception error) { throw new IllegalStateException(error); } }

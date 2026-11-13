@@ -961,7 +961,7 @@ public final class MoreScreen implements AppScreen {
         label(T.morePrefsConnection());
         LinearLayout connection = group();
         Row rate = row(connection, "clock", T.morePrefsRefresh(), null, this::telemetryRate);
-        valueRefreshers.add(() -> rate.value(T.fmtQuantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
+        valueRefreshers.add(() -> rate.value(quantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
         preferenceToggle(connection, "bluetooth", T.morePrefsAutoConnect(), null, "auto_connect", true);
         preferenceToggle(connection, "bluetooth", T.morePrefsBackground(), T.morePrefsBackgroundSub(), "background_connection", false);
     }
@@ -977,6 +977,17 @@ public final class MoreScreen implements AppScreen {
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
         preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Off by default, absent is off (owner's answer 18 on #383): lets that switch also start a ride while Volt is in the
+        // background, where Android gives Volt no location, so the note under it says such a ride has no GPS route. It only
+        // counts while Record rides automatically is on, so it waits greyed and drawn off until then, keeping its stored value
+        // (AutoStartPolicy.backgroundSwitchDrawnOn). AutoStartPolicy.recordsNow decides.
+        Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
+                enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
+        inBackground.view.setTag("preference-auto-record-background");
+        valueRefreshers.add(() -> {
+            boolean autoRecord = settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
+            refreshSwitch(inBackground, AutoStartPolicy.backgroundSwitchDrawnOn(autoRecord, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)), autoRecord);
+        });
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
@@ -1418,7 +1429,7 @@ public final class MoreScreen implements AppScreen {
         historyStorageChecked = now; historyStoragePending = true;
         service().history.storage(storage -> {
             historyStoragePending = false; if (closed) return;
-            String used = T.moreHistoryUsed(Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1), Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0), T.moreUnitMib());
+            String used = T.moreHistoryUsed(Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1), Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0), mibUnit());
             historyUsage.setText(used);
             float share = storage.limitBytes <= 0 ? 0f : Math.max(0f, Math.min(1f, storage.bytes / (float) storage.limitBytes));
             // A visible sliver shows that something is stored even when it rounds to nothing.
@@ -1436,6 +1447,15 @@ public final class MoreScreen implements AppScreen {
                     T.moreHistorySamplesDescription(Fmt.groupedInteger(Locale.US, rows[0]), Fmt.groupedInteger(Locale.US, rows[1]), Fmt.groupedInteger(Locale.US, rows[2]))));
         });
     }
+    /**
+     * The stored history's size as Data & history gives it, "0.1 MiB"; empty when nothing is stored. Live Stats' Data &
+     * history link shows it as its value, as More's Data row did before the Hub layout (StatsScreen.refreshStoredSize).
+     */
+    static String mib(long bytes) { return bytes <= 0 ? "" : quantity(Fmt.decimal(Locale.US, bytes / 1048576.0, 1), mibUnit()); }
+    /** "MiB", the unit Data & history's storage card and mib() use. */
+    private static String mibUnit() { return T.moreUnitMib(); }
+    /** A number with its unit, "2 s" or "0.1 MiB", in the current language's form. */
+    private static String quantity(CharSequence number, CharSequence unit) { return T.fmtQuantity(number, unit); }
     private void clearHistory(boolean all) {
         ScooterProfiles.Profile profile = active();
         if (!all && profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
@@ -2641,7 +2661,10 @@ public final class MoreScreen implements AppScreen {
      * first."; the row is disabled then too), while a charge is being recorded (said in a toast) or while an earlier
      * export is still being written (quiet: a double tap; ChargeSend.refusal). The finished export goes to the activity
      * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email,
-     * with the model of the scooter chosen at the tap.
+     * with the model of the scooter chosen at the tap. The export ends ready to attach (over 25 MB, compressed), so the
+     * row stays busy and the hand-over waits until the attachment is final (#412 review). A failed export goes the same
+     * way, as the service's status message (rendered only when shown, #419 review), so the page that exists when it ends
+     * toasts it once (#412 round-2 review, P3 1).
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
@@ -2649,10 +2672,10 @@ public final class MoreScreen implements AppScreen {
         // scooter's model is left out: the recordings are the real profile's.
         DeviceDescriptor d = s.ble.descriptor();
         String model = ModelRegistry.modelLine(d != null && d.simulated ? null : d);
-        if (s.exportChargeRecordings(file -> {
-            if (file != null) { ChargeSend.MAILBOX.deliver(new ChargeSend.Export(file, model), System.currentTimeMillis()); return; }
-            if (!host.activity().isDestroyed()) host.toast(s.chargeCaptureStatus());
-        })) return;
+        // A failure goes through the same hand-over as the file, so the activity showing Volt when the export ends (a
+        // recreated one too) says so, once (#412 round-2 review, P3 1).
+        if (s.exportChargeRecordings(true, file -> ChargeSend.MAILBOX.deliver(file != null ? new ChargeSend.Export(file, model)
+                : ChargeSend.Export.failed(s.chargeStatusMessage()), System.currentTimeMillis()))) return;
         // Refused: tell the reasons apart from the service's state.
         ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
         if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
@@ -3028,6 +3051,8 @@ public final class MoreScreen implements AppScreen {
         private boolean closed;
         private LinearLayout content;
         private Runnable refreshNight = () -> { };
+        /** Whether fill() shows Record rides automatically; withoutAutoRecord() turns it off for Ride › Riding mode. */
+        private boolean autoRecord = true;
 
         /** @param mayChange asked before each change saves: false at riding speed, or once the menu has gone. */
         RidingSettingsMenu(ScreenHost host, Ui ui, SharedPreferences preferences, Runnable changed, BooleanSupplier mayChange) {
@@ -3038,6 +3063,12 @@ public final class MoreScreen implements AppScreen {
             this.mayChange = mayChange;
             context = host.activity();
         }
+
+        /**
+         * Leaves Record rides automatically out of fill(): Ride › Riding mode, whose Hub home for that switch is Ride ›
+         * Recording settings (one home per setting). Riding mode's tune menu keeps it.
+         */
+        RidingSettingsMenu withoutAutoRecord() { autoRecord = false; return this; }
 
         /** Builds the settings into the menu's body. */
         void fill(LinearLayout body) {
@@ -3054,7 +3085,9 @@ public final class MoreScreen implements AppScreen {
             nightPreferences();
             gap();
             content.addView(toggle(autoOpenTitle(), autoOpenSub(), AutoStartPolicy.AUTO_RIDE_MODE_KEY, "preference_riding_auto_open", false, null));
-            content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
+            // Riding mode's own menu keeps Record rides automatically; Ride › Riding mode leaves it to Ride › Recording settings,
+            // its one home in the Hub (withoutAutoRecord).
+            if (autoRecord) content.addView(toggle(autoRecordTitle(), autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, "preference_riding_auto_record", false, save -> offerRideLocation(host, save)));
             // Off by default: the status bar keeps the phone's clock and battery (#254).
             content.addView(toggle(T.ridingDisplayHideStatusBar(), T.ridingDisplayHideStatusBarSub(), RidingBars.HIDE_STATUS_BAR_KEY, "preference_riding_hide_status_bar", true, null));
             // Off by default: the clock reading shows seconds, ticking only while one is on screen (a tester's request).
