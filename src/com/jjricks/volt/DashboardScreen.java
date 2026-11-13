@@ -2235,6 +2235,8 @@ public final class DashboardScreen implements AppScreen {
          */
         final boolean clean;
         final LinearLayout rows;
+        /** The model has a photo; there is room for it (always on Widgets; Clean's slot can be too small). */
+        boolean photoKnown, photoRoom = true;
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2390,17 +2392,27 @@ public final class DashboardScreen implements AppScreen {
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
 
         /**
-         * Clean's fixed slot: when the tiles leave the photo too little room (a short window, large text), the tiles
-         * go first, then the photo shrinks with the stage; the text never gets smaller.
+         * Clean's fixed slot: when the readings leave the photo too little room (a narrow or short window, large
+         * text), the photo and its glow go first and the readings stay; the track still runs along the slot's
+         * bottom. Only when not even the track fits under the readings do they give way. The text never gets smaller.
          */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             if (!clean || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) { super.onMeasure(widthSpec, heightSpec); return; }
             if (rows.getVisibility() != VISIBLE) rows.setVisibility(VISIBLE);
             super.onMeasure(widthSpec, heightSpec);
-            if (stage.getMeasuredHeight() < ui.dp(72)) {
+            if (stage.getMeasuredHeight() < ui.dp(8)) {
                 rows.setVisibility(GONE);
                 super.onMeasure(widthSpec, heightSpec);
             }
+            // The stage's height comes from its weight, so the photo's visibility does not change it.
+            photoRoom = stage.getMeasuredHeight() >= ui.dp(72);
+            showPhoto();
+        }
+
+        /** The photo shows when the model has one and (in Clean's slot) there is room for it. */
+        private void showPhoto() {
+            int visibility = photoKnown && photoRoom ? View.VISIBLE : View.GONE;
+            if (photo.getVisibility() != visibility) photo.setVisibility(visibility);
         }
 
         void refresh(Map<String, TelemetryHistory.Reading> values) {
@@ -2427,7 +2439,8 @@ public final class DashboardScreen implements AppScreen {
                 percent.setContentDescription(T.dashboardBatteryPercent(Math.round(level), Math.round(level)));
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
-            photo.setVisibility(known ? View.VISIBLE : View.GONE);
+            photoKnown = known;
+            showPhoto();
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
             timeTile.update(estimate, chargeAlertEstimate(values));
@@ -2539,7 +2552,10 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
 
-            /** Clean: a full rounded track along the bottom, red to the charge, with a light tick at the limit. */
+            /**
+             * A full rounded track along the bottom, red to the charge, with a light tick at the limit. Clean's
+             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too.
+             */
             private void drawTrack(Canvas canvas, float w, float h) {
                 float thick = ui.dp(8), r = thick / 2, top = h - thick;
                 paint.setShader(null);
