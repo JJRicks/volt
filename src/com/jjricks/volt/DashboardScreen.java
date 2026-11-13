@@ -2441,7 +2441,11 @@ public final class DashboardScreen implements AppScreen {
                 // stacked pair would take the percentage's room (ChargingFit). The time tile is fixed (no switching).
                 timeTile.fixed = true;
                 tiles.pairDp = ChargingFit.PAIR_DP;
-                for (InfoCell cell : new InfoCell[] {powerCell, timeTile}) { cell.narrowDp = 120; cell.keepInset = true; }
+                // Their inset stays 12 dp at large text: a label a little too wide gets a little smaller, not wrapped.
+                for (InfoCell cell : new InfoCell[] {powerCell, timeTile}) {
+                    cell.narrowDp = 120; cell.keepInset = true;
+                    for (TextView caption : cell.captions()) ((DashboardCaption) caption).shrinkToOneLine(.85f);
+                }
                 for (TextView value : new TextView[] {power, timeTile.values[0], timeTile.values[1]}) {
                     ((FittedValue) value).capAt(Math.round(ChargingFit.VALUE_SP * ui.textScale));
                     value.setMinHeight(ui.dp(ChargingFit.VALUE_MIN_DP * ui.textScale));
