@@ -2185,17 +2185,20 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockLine.line.setContentDescription(clockPending?T.mainRowClockSending():accepted?T.mainRowClockSent(DisplayTime.clock(MainActivity.this,preferences,sent)):chip!=null?T.mainRowClockChip(chip):T.mainRowClock());
             zonesValue.setText(zonesSummary());
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();nameValue.setText(profile==null?T.mainRowNameNotSet():profile.name);
-            boolean chargerEditable=profile!=null&&!scooterService.isChargeRecording();
+            boolean chargerEditable=profile!=null&&scooterService.chargerChoosable();
             if(profile!=null)nameValue.setText(profile.shownName());
             chargerLine.line.setEnabled(chargerEditable);chargerLine.name.setTextColor(chargerEditable?design.text:design.muted);
             // Name the family estimates actually use, and why when it is not the saved choice.
             ScooterService.ChargerBasis basis=scooterService==null?ScooterService.ChargerBasis.UNKNOWN:scooterService.chargerBasis();
             ChargeSessionStore.Charger effective=scooterService==null?null:scooterService.effectiveChargeCharger();
             String family=effective==ChargeSessionStore.Charger.HIGH_SPEED?T.mainRowHighSpeed():T.mainRowStock();
-            chargerLine.value.setText(effective==null?T.mainRowAutomatic():basis==ScooterService.ChargerBasis.DETECTED?T.mainRowAutoFamily(family):family);
-            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING?T.mainRowRecordingLabel()
-                    :basis==ScooterService.ChargerBasis.DETECTED?T.mainRowDetected()
-                    :scooterService!=null&&scooterService.isChargeRecording()?T.mainRowStopRecording():null);
+            // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+            boolean chargerLocked=scooterService!=null&&!scooterService.chargerChoosable();
+            boolean detectedFamily=basis==ScooterService.ChargerBasis.DETECTED||basis==ScooterService.ChargerBasis.RECORDING&&!chargerLocked;
+            chargerLine.value.setText(effective==null?T.mainRowAutomatic():detectedFamily?T.mainRowAutoFamily(family):family);
+            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING&&chargerLocked?T.mainRowRecordingLabel()
+                    :detectedFamily?T.mainRowDetected()
+                    :chargerLocked?T.mainRowStopRecording():null);
             if(choiceSheet!=null)choiceSheet.refresh();
         }
     }
@@ -3774,7 +3777,7 @@ public final class MainActivity extends Activity implements ScreenHost {
 
     /** Local per-scooter estimate preference: never sends a charger command or starts capture. */
     private void showChargerEstimateChoice(){
-        if(scooterService==null||scooterService.profiles.active()==null||scooterService.isChargeRecording())return;
+        if(scooterService==null||scooterService.profiles.active()==null||!scooterService.chargerChoosable())return;
         String profile=scooterService.profiles.active().id;
         final AlertDialog[] sheet=new AlertDialog[1];
         LinearLayout content=sheetContent(T.mainRowCharger(),
