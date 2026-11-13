@@ -99,6 +99,12 @@ final class AutoStartPolicy {
     static final String BACKGROUND_NOTICE_KEY = "auto_record_background_notice", NOTICE_DUE = "due", NOTICE_DONE = "done";
 
     /**
+     * View tags of the background switch's row in More › App preferences (main's tag for it) and of the switch in the
+     * What's new note, for the emulator validations. Not shown.
+     */
+    static final String BACKGROUND_ROW_TAG = "preference-auto-record-background", BACKGROUND_NOTICE_ROW_TAG = "whats-new-auto-record-background";
+
+    /**
      * The note's state, decided once, at a process start (VoltApp), before anything can change the switches it is decided
      * from. A decided state stays; any other stored value counts as undecided. Undecided:
      * - settings with nothing in them (a new installation's first start, or cleared data): stays undecided, and nothing is
