@@ -2216,6 +2216,8 @@ final class RidingScreen implements AppScreen {
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
             if (s.seconds) value = s.main.toString();
+            // With the dash showing, a new state leaves the shown text as it was: fit again, so words that now fit come back.
+            if (RidingChipFit.refitsCompact(compactShown, full, value)) requestLayout();
             full = value;
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
             String stepDown = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;

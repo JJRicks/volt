@@ -50,6 +50,15 @@ final class RidingChipFit {
     }
 
     /**
+     * True when a chip showing its compact form must be fitted again because its full value changed. Every GPS
+     * state's compact form is the same dash, so the text on screen does not change and nothing else would measure the
+     * chip again: without this, "Not recording" turning to "Off" would keep the dash although the words now fit.
+     */
+    static boolean refitsCompact(boolean compactShown, String was, String now) {
+        return compactShown && !java.util.Objects.equals(was, now);
+    }
+
+    /**
      * A row or column in which some chips have a compact form for their value: a GPS accuracy state ("Not
      * recording") whose mark is the no-reading dash. Every chip first tries as it reads in full, exactly as
      * {@link #row} or {@link #column} would fit it; a chip with a compact form that would then step aside tries again

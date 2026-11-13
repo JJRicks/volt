@@ -125,6 +125,32 @@ public final class GpsAccuracyTextTest {
         RidingChipFit noFixFit = RidingChipFit.stepping(marks(nf, tc), new String[]{gps, temp}, widths(false, nf, tc), widths(true, nf, tc), new boolean[]{true, false}, true, 8, 105);
         check(noFixFit.shown[0] && !noFixFit.compact[0] && noFixFit.rung == RidingChipFit.ICON_NAMES, "\"No fix\" fits with the icon: its words stay");
 
+        // A ride starting: "Not recording" (the dash), then a state that fits, then "Not recording" again. The dash on
+        // screen is the same for every state, so the chip asks for a new fit whenever its state changes under the dash,
+        // and that fit brings the words back.
+        GpsAccuracy.State[] states = {GpsAccuracy.State.NOT_RECORDING, GpsAccuracy.State.OFF, GpsAccuracy.State.NOT_RECORDING,
+                GpsAccuracy.State.WAITING, GpsAccuracy.State.NOT_RECORDING};
+        int[] stateWidths = {notRecording, 30, notRecording, 48, notRecording};
+        boolean shownCompact = false;
+        String was = null;
+        for (int i = 0; i < states.length; i++) {
+            String now = GpsAccuracyText.state(states[i]);
+            boolean refit = was == null || RidingChipFit.refitsCompact(shownCompact, was, now) || !shownCompact && !now.equals(was);
+            check(refit, "a new state under the dash is fitted again: " + was + " to " + now);
+            Chip c = new Chip("gps-full", "gps-short", 92, 30, stateWidths[i], dash);
+            RidingChipFit f = RidingChipFit.stepping(marks(c, tc), new String[]{gps, temp}, widths(false, c, tc), widths(true, c, tc), new boolean[]{true, false}, true, 8, 105);
+            boolean wantDash = states[i] == GpsAccuracy.State.NOT_RECORDING;
+            check(f.shown[0] && f.compact[0] == wantDash && f.shown[1], now + (wantDash ? " shows the dash" : " shows its words") + ", temperature stays");
+            shownCompact = f.compact[0];
+            was = now;
+        }
+        check(RidingChipFit.refitsCompact(true, GpsAccuracyText.state(GpsAccuracy.State.NOT_RECORDING), GpsAccuracyText.state(GpsAccuracy.State.OFF)),
+                "Not recording to Off under the dash: fit again");
+        check(!RidingChipFit.refitsCompact(true, GpsAccuracyText.state(GpsAccuracy.State.OFF), GpsAccuracyText.state(GpsAccuracy.State.OFF)),
+                "the same state again: nothing to fit");
+        check(!RidingChipFit.refitsCompact(false, GpsAccuracyText.state(GpsAccuracy.State.OFF), GpsAccuracyText.state(GpsAccuracy.State.NOT_RECORDING)),
+                "words showing: the new words' own text change measures the chip");
+
         // Halo's row at 344 dp (296 dp): trip, ride time, then GPS accuracy, which in full would be the chip to go.
         Chip tr = new Chip("trip-name", "trip-name", 32, 32, 50, dash), rt = new Chip("time-full", "time-short", 62, 34, 45, dash);
         String[] rowContents = {trip, time, gps};
