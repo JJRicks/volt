@@ -18,14 +18,21 @@ final class HubNav {
      */
     static final class Args {
         final String inspect, ride, anchor;
+        /**
+         * A reading's key for Data's Readings to show by itself on this visit only (a Hub search result), leaving the
+         * owner's own saved Readings search as it was (#393 review, finding 4).
+         */
+        final String reading;
         final boolean recovery;
-        Args(String inspect, boolean recovery, String ride, String anchor) {
-            this.inspect = inspect; this.recovery = recovery; this.ride = ride; this.anchor = anchor;
+        Args(String inspect, boolean recovery, String ride, String anchor) { this(inspect, recovery, ride, anchor, null); }
+        Args(String inspect, boolean recovery, String ride, String anchor, String reading) {
+            this.inspect = inspect; this.recovery = recovery; this.ride = ride; this.anchor = anchor; this.reading = reading;
         }
         static Args inspect(String feature) { return new Args(feature, false, null, null); }
         static Args recovery() { return new Args(null, true, null, null); }
         static Args ride(String id) { return new Args(null, false, id, null); }
         static Args anchor(String tag) { return new Args(null, false, null, tag); }
+        static Args reading(String key) { return new Args(null, false, null, null, key); }
     }
 
     private final ArrayList<String> stack = new ArrayList<>();

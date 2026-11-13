@@ -49,6 +49,11 @@ final class HubSearch {
         final CharSequence[] words;
         /** Whether the value is live now (a reading: Live Stats mutes a saved one); null when that does not apply. */
         final Supplier<Boolean> live;
+        /**
+         * A line shown and spoken with the value, read when shown: a saved reading's age as Live Stats writes it beside
+         * the value ("Last seen 2 h ago"); null, or a null or empty line, for none.
+         */
+        final Supplier<CharSequence> note;
 
         Entry(Kind kind, String page, String english, CharSequence shown, String anchor, Target target, Supplier<CharSequence> value) {
             this(kind, page, english, shown, null, anchor, target, value, null);
@@ -56,9 +61,14 @@ final class HubSearch {
 
         Entry(Kind kind, String page, String english, CharSequence shown, CharSequence[] words, String anchor, Target target,
                 Supplier<CharSequence> value, Supplier<Boolean> live) {
+            this(kind, page, english, shown, words, anchor, target, value, live, null);
+        }
+
+        Entry(Kind kind, String page, String english, CharSequence shown, CharSequence[] words, String anchor, Target target,
+                Supplier<CharSequence> value, Supplier<Boolean> live, Supplier<CharSequence> note) {
             this.kind = kind; this.page = page; this.english = normalize(english); this.shown = shown;
             this.words = words == null ? new CharSequence[0] : words;
-            this.anchor = anchor; this.target = target; this.value = value; this.live = live;
+            this.anchor = anchor; this.target = target; this.value = value; this.live = live; this.note = note;
         }
 
         /** A stable id for the result's view tag: its kind and anchor (or page). */
@@ -93,9 +103,18 @@ final class HubSearch {
 
     /**
      * Whether an entry matches the query: its English words, or, in the current language, the name it shows or its
-     * other words (Entry.words).
+     * other words (Entry.words). A query of several words that doesn't match as a whole matches when each of its words
+     * does, so "max speed" finds Maximum speed (#393 emulator check).
      */
     static boolean matches(Entry entry, String query) {
+        if (matchesWhole(entry, query)) return true;
+        String[] parts = query == null ? new String[0] : query.trim().split("\\s+");
+        if (parts.length < 2) return false;
+        for (String part : parts) if (!matchesWhole(entry, part)) return false;
+        return true;
+    }
+
+    private static boolean matchesWhole(Entry entry, String query) {
         String needle = normalize(query);
         if (needle.isEmpty()) return false;
         if (entry.english.contains(needle)) return true;
@@ -128,14 +147,20 @@ final class HubSearch {
         return name.contains(needle) ? 2 : 3;
     }
 
-    /** The matching entries, grouped by kind, ranked inside each group, in the index's order otherwise; at most MAX. */
+    /**
+     * The matching entries, grouped by kind, ranked inside each group, in the index's order otherwise; at most MAX. An
+     * entry that would show as an earlier one does (same group, page, row and name) is left out: the Security link and
+     * the PIN control both open Security under one name (#393 emulator check).
+     */
     static List<Entry> search(List<Entry> index, String query) {
         List<Entry> found = new ArrayList<>();
         if (index == null || normalize(query).isEmpty()) return found;
         final List<int[]> keys = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
         for (int i = 0; i < index.size(); i++) {
             Entry entry = index.get(i);
             if (entry == null || !matches(entry, query)) continue;
+            if (!seen.add(entry.id() + "\n" + entry.page + "\n" + (entry.shown == null ? "" : entry.shown.toString()))) continue;
             keys.add(new int[] {entry.kind.ordinal(), rank(entry, query), i});
         }
         Collections.sort(keys, (a, b) -> a[0] != b[0] ? Integer.compare(a[0], b[0]) : a[1] != b[1] ? Integer.compare(a[1], b[1]) : Integer.compare(a[2], b[2]));
@@ -282,7 +307,7 @@ final class HubSearch {
             Msg title = HubText.settingTitle(tag);
             String page = HubSearchTables.settingPage(tag);
             if (title == null || page == null) continue;
-            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, tag, Target.PAGE, null));
+            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
         }
         return entries;
     }
@@ -292,7 +317,43 @@ final class HubSearch {
      * whether that value is live now (a saved one shows muted, as on Live Stats).
      */
     static Entry reading(String key, String english, CharSequence shown, Supplier<CharSequence> value, Supplier<Boolean> live) {
-        return new Entry(Kind.READING, HubPages.DATA, english + " " + key, shown, null, key, Target.READING, value, live);
+        return reading(key, english, shown, null, value, live, null);
+    }
+
+    /**
+     * reading, with the words it is also found by in the current language (its full name and group, folded as the
+     * shown name is: #393 review, note 8) and its age line (a saved value's "Last seen ...", shown and spoken with it:
+     * #393 review, finding 2).
+     */
+    static Entry reading(String key, String english, CharSequence shown, CharSequence[] words, Supplier<CharSequence> value,
+            Supplier<Boolean> live, Supplier<CharSequence> note) {
+        return new Entry(Kind.READING, HubPages.DATA, english + " " + key, shown, words, key, Target.READING, value, live, note);
+    }
+
+    // ===== The result row's room (HubSearchScreen) =====
+
+    /** The share of a result row's width its value may take beside the name; a wider value goes under the name. */
+    static final float VALUE_SHARE = 0.4f;
+
+    /**
+     * Whether a result's value goes under its name instead of beside it: when its one-line width is more than
+     * VALUE_SHARE of the row's content width, so a long raw value or a ride's date and distance at large text never
+     * squeezes the name (#393 review, finding 1). Both in pixels; a row not measured yet (width 0 or less) keeps it beside.
+     */
+    static boolean valueBelow(float valueWidth, int contentWidth) {
+        return contentWidth > 0 && valueWidth > contentWidth * VALUE_SHARE;
+    }
+
+    /** Below this much room (dp) between the window's top and the keyboard, the page header folds away while typing. */
+    static final int HEADER_FOLD_BELOW_DP = 420;
+
+    /**
+     * Whether the search page folds its pinned header (back link, status line, title) away: while the keyboard is up and
+     * the room left above it is under HEADER_FOLD_BELOW_DP, as in a phone held sideways or a short window, so results
+     * show without closing the keyboard (#393 emulator check). Room 0 or less: not measured yet, nothing folds.
+     */
+    static boolean headerFolds(boolean keyboard, int roomDp) {
+        return keyboard && roomDp > 0 && roomDp < HEADER_FOLD_BELOW_DP;
     }
 
     /** A ride: its id, its name and when it was ridden (both shown), and its date and distance as its value. */

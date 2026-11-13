@@ -42,7 +42,9 @@ final class HubSearchTables {
 
     // Settings rows, by the view tag each already carries: rows of MoreScreen's sections (on Settings and its pages, and
     // Service › Reports for the issue report), and Ride › Riding mode for the riding-mode switches (part 5 moved them
-    // there and removed More's riding group, so that group's tag is not listed).
+    // there and removed More's riding group, so that group's tag is not listed). Record rides automatically is the one
+    // riding switch whose Hub home is Ride › Recording settings (Riding mode leaves it out: withoutAutoRecord), where
+    // MoreScreen.recording() tags it with the same tag (#393 review, finding 3).
     static final String SETTING_HOME_STYLE = "home-style-menu";
     static final String SETTING_UNITS = "preference-units-menu";
     static final String SETTING_DISPLAY = "preference-display-options";
@@ -119,15 +121,35 @@ final class HubSearchTables {
         }
     }
 
-    /** The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode) and the issue report (Service › Reports). */
+    /**
+     * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
+     * automatically (Ride › Recording settings) and the issue report (Service › Reports).
+     */
     static String settingPage(String tag) {
         if (tag == null) return null;
         switch (tag) {
-            case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_AUTO_RECORD: case SETTING_RIDING_HIDE_STATUS_BAR:
+            case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_HIDE_STATUS_BAR:
             case SETTING_RIDING_CLOCK_SECONDS: case SETTING_RIDING_BRIGHTNESS: case SETTING_RIDING_NIGHT:
                 return HubPages.RIDE_RIDING;
+            case SETTING_RIDING_AUTO_RECORD: return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
             default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
+        }
+    }
+
+    /**
+     * The view search brings on screen for a settings row: its tag, except Brightness and Night vision, whose tags sit on
+     * the cards below their selectors (the reset row and note, the schedule), so the selector itself, tagged
+     * "preference-selector-" and its preference key by RidingSettingsMenu.selector (#393 review, note 6). Null for an
+     * unknown tag.
+     */
+    static String settingAnchor(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            // RidingBrightness.MODE_KEY and NightSchedule.MODE_KEY (tests/l10n/HubSearchTest.java checks both).
+            case SETTING_RIDING_BRIGHTNESS: return "preference-selector-riding_brightness";
+            case SETTING_RIDING_NIGHT: return "preference-selector-riding_night_vision";
+            default: return settingPage(tag) == null ? null : tag;
         }
     }
 
@@ -137,10 +159,12 @@ final class HubSearchTables {
         switch (tag) {
             case SETTING_HOME_STYLE: return "home style clean widgets dashboard layout";
             case SETTING_UNITS: return "units miles kilometres kilometers km mi temperature celsius fahrenheit";
-            case SETTING_DISPLAY: return "text size font large display haptic haptics vibration vibrate feedback";
+            // The display card also holds Appearance (#393 review, note 7); Haptic feedback has its own entry.
+            case SETTING_DISPLAY: return "text size font large display appearance theme dark light mode";
+            case SETTING_HAPTICS: return "haptic haptics feedback vibration vibrate vibrations";
             case SETTING_LANGUAGE: return "language translation locale";
             case SETTING_RIDING_AUTO_OPEN: return "riding mode open automatically auto start";
-            case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record";
+            case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record start recording";
             case SETTING_RIDING_HIDE_STATUS_BAR: return "riding mode hide status bar full screen";
             case SETTING_RIDING_CLOCK_SECONDS: return "riding mode clock seconds time";
             case SETTING_RIDING_BRIGHTNESS: return "riding mode brightness screen";
@@ -160,8 +184,10 @@ final class HubSearchTables {
         switch (page) {
             case HubPages.RIDE: return "ride rides riding recent";
             case HubPages.RIDE_RIDES: return "all rides compare history list";
-            case HubPages.RIDE_RECORDING: return "recording record rides automatically gps map sensors keep awake";
-            case HubPages.RIDE_RIDING: return "riding mode display brightness night";
+            // Its rows' names too, so each is found by the name it shows (#393 review, note 7): Keep screen awake, End rides
+            // automatically, Start recording in the background, Map settings, Auto-save rides.
+            case HubPages.RIDE_RECORDING: return "recording record rides automatically gps map sensors keep screen awake end rides automatically auto stop start recording in the background map settings auto save";
+            case HubPages.RIDE_RIDING: return "riding mode display brightness night screen rotation";
             case HubPages.BATTERY: return "battery charging charge limit";
             case HubPages.BATTERY_MODES: return "battery modes low battery mode long range";
             case HubPages.BATTERY_ESTIMATES: return "estimates range charger capacity";
@@ -182,7 +208,7 @@ final class HubSearchTables {
             case HubPages.SERVICE_REPORTS: return "reports report issue";
             case HubPages.DATA: return "data live stats readings charts diagnostics";
             case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable";
-            case HubPages.SETTINGS: return "settings preferences options";
+            case HubPages.SETTINGS: return "settings preferences options appearance theme";
             case HubPages.SETTINGS_HOME: return "home style clean widgets";
             case HubPages.SETTINGS_UNITS: return "units miles kilometres";
             case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect automatically background stay connected telemetry refresh";

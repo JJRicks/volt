@@ -113,6 +113,9 @@ public final class HubNavTest {
         require("cruise_control".equals(inspect.inspect) && !inspect.recovery && inspect.ride == null && inspect.anchor == null, "Inspect argument");
         require(HubNav.Args.recovery().recovery, "Recovery argument");
         require("r1".equals(HubNav.Args.ride("r1").ride) && "row".equals(HubNav.Args.anchor("row").anchor), "Ride and anchor arguments");
+        HubNav.Args reading = HubNav.Args.reading("speed_kmh");
+        require("speed_kmh".equals(reading.reading) && reading.anchor == null && reading.ride == null && reading.inspect == null && !reading.recovery, "A reading argument carries only its key (#393 review, finding 4)");
+        require(HubNav.Args.anchor("row").reading == null && HubNav.Args.ride("r1").reading == null, "Other arguments carry no reading");
     }
 
     private static void retention() {

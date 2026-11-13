@@ -590,7 +590,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(scooterService==null)return new LoadingScreen();
         switch(page){
-            case HubPages.DATA:return new StatsScreen(this);
+            case HubPages.DATA:return new StatsScreen(this,false,args==null?null:args.reading);
             case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
             case HubPages.RIDE_RIDES:{
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);
@@ -703,10 +703,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             case READING:{
                 // As Service's Diagnostics row: a deliberate route wins over Live Stats' expired return state.
                 expireStatsSection(true);markStatsActive();
-                // The reading's key, not its shown name: a stored query stays locale-independent, and Live Stats' filter matches row keys.
-                preferences.edit().putString("stats_section","Readings").putString("stats_query",entry.anchor).apply();
+                // The reading by its key as a one-shot page argument: Readings shows that row alone on this visit, and the
+                // owner's own saved Readings search (stats_query) stays as it was (#393 review, finding 4).
+                preferences.edit().putString("stats_section","Readings").apply();
                 scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
-                open(HubPages.DATA);return;
+                open(HubPages.DATA,HubNav.Args.reading(entry.anchor));return;
             }
             case RIDE:open(entry.page,HubNav.Args.ride(entry.anchor));return;
             case INSPECT:open(entry.page,HubNav.Args.inspect(entry.anchor));return;
