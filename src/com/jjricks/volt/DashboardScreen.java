@@ -40,6 +40,14 @@ public final class DashboardScreen implements AppScreen {
 
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
+
+        /**
+         * The charging bar's dragged charge limit: the Charge limit control's gates, confirmation and write.
+         * accepted(true) once the scooter was sent the change; false when refused or cancelled (said in its words).
+         */
+        default void chargeLimitDrag(int value, java.util.function.Consumer<Boolean> accepted) { accepted.accept(false); }
+        /** The charging bar's words (ChargeBar.Words); null leaves the bar without a mark. */
+        default ChargeBar.Words chargeBarWords() { return null; }
     }
 
     private final ScreenHost host;
@@ -2053,6 +2061,8 @@ public final class DashboardScreen implements AppScreen {
         final InfoTiles tiles;
         final ImageView photo;
         final Stage stage;
+        /** The floor line with the draggable charge limit or charge alert mark. */
+        final ChargeBar bar;
         double level = Double.NaN, limit = 100;
         boolean shown;
         android.animation.ValueAnimator reveal, pulse;
@@ -2089,6 +2099,8 @@ public final class DashboardScreen implements AppScreen {
                     new FrameLayout.LayoutParams(-1, ui.dp(196), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             photoSize.bottomMargin = ui.dp(20);
             stage.addView(photo, photoSize);
+            bar = new ChargeBar(host.activity(), ui, barHost(), .06f, 3, 18);
+            stage.addView(bar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
             addView(stage, new LinearLayout.LayoutParams(-1, -2));
             LinearLayout rows = column();
             tiles = new InfoTiles();
@@ -2102,6 +2114,16 @@ public final class DashboardScreen implements AppScreen {
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        private ChargeBar.Host barHost() {
+            return new ChargeBar.Host() {
+                @Override public ScooterService service() { return service; }
+                @Override public boolean inert() { return editing || closed || reveal != null; }
+                @Override public void chargeLimit(int value, java.util.function.Consumer<Boolean> accepted) { actions.chargeLimitDrag(value, accepted); }
+                @Override public void toast(String text) { host.toast(text); }
+                @Override public ChargeBar.Words words() { return actions.chargeBarWords(); }
+            };
         }
 
         void stopReveal() {
@@ -2180,12 +2202,13 @@ public final class DashboardScreen implements AppScreen {
         void refresh(Map<String, TelemetryHistory.Reading> values) {
             ChargingEstimate.Result estimate = chargingEstimate(values);
             boolean show = estimate.charging && !editing;
-            if (!show) { showAnimated(false); return; }
+            if (!show) { bar.stop(); showAnimated(false); return; }
             TelemetryHistory.Reading charge = values.get("battery_percent");
             level = charge == null || charge.number == null ? Double.NaN
                     : Math.max(0, Math.min(100, charge.number));
             boolean hasLimit = estimate.targetPercent != null && estimate.targetPercent < 100;
             limit = hasLimit ? estimate.targetPercent : 100;
+            bar.update(level, limit, estimate.targetPercent);
             chip.setText(hasLimit
                     ? T.dashboardChargingLimit(Fmt.decimal(Locale.US, estimate.targetPercent, 0))
                     : T.dashboardCharging());
@@ -2269,7 +2292,6 @@ public final class DashboardScreen implements AppScreen {
             @Override
             protected void onDraw(Canvas canvas) {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
-                float left = w * .06f, right = w * .94f;
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
                     // A soft red glow on the floor under the wheels.
                     // While charging it breathes slowly in brightness and width only; its centre,
@@ -2293,17 +2315,7 @@ public final class DashboardScreen implements AppScreen {
                     paint.setAlpha(255);
                     canvas.restore();
                 }
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeCap(Paint.Cap.ROUND);
-                paint.setStrokeWidth(ui.dp(3));
-                float span = right - left;
-                float limitX = left + span * (float) (limit / 100);
-                paint.setColor(ui.raised);
-                canvas.drawLine(left, floor, limitX, floor, paint);
-                if (!Double.isNaN(level) && level > 0) {
-                    paint.setColor(ui.accent);
-                    canvas.drawLine(left, floor, left + span * (float) (level / 100), floor, paint);
-                }
+                // The floor line is the bar's (ChargeBar), drawn with its mark.
             }
         }
     }
