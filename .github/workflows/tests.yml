@@ -57,7 +57,7 @@ jobs:
     # build-tools, and the worker controller only serves core-tests and web-setup. GitHub's runner image
     # has the SDK. No secrets: build.sh signs with a key it makes for this run in an empty NAVEE_KEY_DIR.
     runs-on: ubuntu-latest
-    # Measured about 2 minutes (Nov 13 2026); 10 leaves room for a slow runner or a slow SDK download.
+    # Measured 1.5 to 2 minutes over 6 runs (Nov 13 2026); 10 leaves room for a slow runner or a slow SDK download.
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,8 +85,8 @@ jobs:
   english-proof:
     # Not on the private ARM workers, for the same reasons as android-build.
     runs-on: ubuntu-latest
-    # Measured 5.5 to 6.6 minutes (Nov 13 2026). It runs tests/run.sh, which alone has taken up to 9.8
-    # minutes in core-tests, plus three builds; 25 is about twice that slowest case.
+    # Measured 5.4 to 9.6 minutes over 8 runs (Nov 13 2026). It runs tests/run.sh, which alone has taken
+    # up to 9.8 minutes in core-tests, plus three builds; 25 is about twice that slowest case.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
