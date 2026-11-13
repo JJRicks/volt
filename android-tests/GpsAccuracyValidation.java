@@ -164,11 +164,13 @@ public final class GpsAccuracyValidation extends Instrumentation {
         both("off", off, GpsAccuracy.State.OFF);
         cramped("off", off, GpsAccuracy.State.OFF, 0);
         stopRecording();
+        underTheDash("off", off, GpsAccuracy.State.OFF);
 
         // Waiting, then fixes from the test provider.
         getUiAutomation().grantRuntimePermission(PKG, Manifest.permission.ACCESS_FINE_LOCATION);
         getUiAutomation().grantRuntimePermission(PKG, Manifest.permission.ACCESS_COARSE_LOCATION);
         startTestProvider();
+        underTheDash("waiting", waiting, GpsAccuracy.State.WAITING);
         record();
         PhoneRideRecorder recorder = (PhoneRideRecorder) field(service, "phoneRecorder");
         await(recorder::locationActive, "GPS was not requested for the recording", 5000);
@@ -325,6 +327,77 @@ public final class GpsAccuracyValidation extends Instrumentation {
             size(344, 882);
             prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
         }
+    }
+
+    /**
+     * A ride starting and stopping under Trace's column, at 344 and 412 dp, 1x and 1.4x text, with no rebuild between
+     * the states (the same chip view throughout): Not recording, then the state a recording brings (Off, or Waiting), then
+     * Not recording again. Each state must show what a freshly built screen shows for it, so a chip that stepped down to
+     * the dash for "Not recording" comes back to its words when the new state fits, and goes back to the dash after.
+     * Terra on #428: every GPS state's dash is the same text, so a new state under it measured nothing and kept the dash.
+     */
+    private void underTheDash(String label, String text, GpsAccuracy.State state) throws Exception {
+        String notRecording = str("riding_gps_not_recording"), dash = str("riding_no_value");
+        int[][] sizes = {{344, 882}, {412, 915}};
+        float[] scales = {1f, 1.4f};
+        int exercised = 0;
+        try {
+            for (int[] wh : sizes) {
+                size(wh[0], wh[1]);
+                for (float scale : scales) {
+                    prefs("app_settings").edit().putFloat("text_scale", scale).commit();
+                    String at = label + "-turns-" + wh[0] + "-" + (scale == 1f ? "1x" : "1.4x");
+                    // What a fresh screen shows for the state, for reference.
+                    record();
+                    requireState(at + " fresh", state);
+                    layout(TRACE);
+                    await(() -> Math.abs(activity.getResources().getConfiguration().screenWidthDp - wh[0]) <= 2, at + ": window not resized", 5000);
+                    String fresh = chip(at + "-fresh")[0];
+                    stopRecording();
+                    // Not recording on a fresh screen, then the recording starts and stops under it.
+                    layout(TRACE);
+                    requireState(at + " before", GpsAccuracy.State.NOT_RECORDING);
+                    String before = chip(at + "-before")[0];
+                    require(before.equals(notRecording) || before.equals(dash), at + ": Not recording shows '" + before + "'");
+                    Object view = gpsChip();
+                    record();
+                    requireState(at + " during", state);
+                    redraw();
+                    String during = chip(at + "-during")[0];
+                    require(gpsChip() == view, at + ": the screen was rebuilt, so this look proves nothing");
+                    require(during.equals(fresh), at + ": " + text + " shows '" + during + "' under a screen that showed '" + before + "'; a fresh screen shows '" + fresh + "'");
+                    require(during.equals(text) || during.equals(dash), at + ": " + text + " shows '" + during + "'");
+                    shot(at + "-during");
+                    stopRecording();
+                    requireState(at + " after", GpsAccuracy.State.NOT_RECORDING);
+                    redraw();
+                    String after = chip(at + "-after")[0];
+                    require(gpsChip() == view, at + ": the screen was rebuilt after the recording");
+                    require(after.equals(before), at + ": back to Not recording shows '" + after + "', first it showed '" + before + "'");
+                    shot(at + "-after");
+                    if (before.equals(dash) && during.equals(text)) exercised++;
+                    note(at + ": Not recording '" + before + "', then " + text + " '" + during + "' (fresh '" + fresh + "'), then '" + after + "'");
+                }
+            }
+            // At 344 dp and 1x "Not recording" steps down to the dash and the shorter state fits: the case Terra found.
+            require(exercised > 0, label + ": no size showed the dash for Not recording and the words for " + text);
+        } finally {
+            size(344, 882);
+            prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
+        }
+    }
+
+    private void requireState(String label, GpsAccuracy.State state) {
+        await(() -> activity.service().gpsAccuracy(SystemClock.elapsedRealtime()).state == state, label + ": the reading is not " + state, 5000);
+    }
+
+    /** The GPS accuracy chip's view in the riding screen now (null with none). */
+    private Object gpsChip() {
+        AtomicReference<Object> out = new AtomicReference<>();
+        main(() -> {
+            for (Object c : (List<?>) field(field(activity, "screen"), "chips")) if ("gps_accuracy".equals(field(c, "content"))) out.set(c);
+        });
+        return out.get();
     }
 
     /**
