@@ -55,9 +55,9 @@
     <!-- src:8935eeb43bf670537f732e96d163a18604d9f110 -->
     <string name="dashboard_charge_to_limit">%1$s sınırına</string>
     <!-- src:997683b2c79edb28a301f53ab374059836deb4f7 -->
-    <string name="dashboard_charge_time_to">%1$s sınırına kalan süre</string>
+    <string name="dashboard_charge_time_to">%1$s seviyesine kalan süre</string>
     <!-- src:44910645e353f1bb828d0a6e26f6e2512d92d504 -->
-    <string name="dashboard_charge_time_to_compact">%1$s sınırına</string>
+    <string name="dashboard_charge_time_to_compact">%1$s seviyesine</string>
     <!-- src:27f71196a3f06a816384785f0fb2d2e9cf7b5f00 -->
     <string name="dashboard_charge_time_uncapped" formatted="false">Şarj sınırı olmadan %100’e kalan süre</string>
     <!-- src:9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0 -->
