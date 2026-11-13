@@ -99,7 +99,7 @@ public final class MapPreferences {
         body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
         body.addView(ui.text(T.mapsConsentTitle(), 21, true));
         TextView provider = ui.text(named.displayName(), 15, true);
-        provider.setTextColor(ui.accent); provider.setPadding(0, ui.dp(8), 0, 0); body.addView(provider);
+        provider.setPadding(0, ui.dp(8), 0, 0); body.addView(provider);
         TextView message = ui.text(T.mapsConsentMessage(), 15, false);
         message.setPadding(0, ui.dp(12), 0, 0); body.addView(message);
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
