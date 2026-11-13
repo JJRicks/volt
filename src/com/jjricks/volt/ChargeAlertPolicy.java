@@ -232,6 +232,17 @@ public final class ChargeAlertPolicy {
     }
 
     /**
+     * Why offered(d) is false, in the resolver's words, or null when alerts are offered: no scooter (NOT_CONNECTED), no
+     * model evidence yet (MODEL_NOT_IDENTIFIED), or a model with its own charge limit (MODEL_EXCLUDED: the only case that
+     * says the model lacks them).
+     */
+    public static CapabilityResolver.Reason missing(DeviceDescriptor d) {
+        if (d == null) return CapabilityResolver.Reason.NOT_CONNECTED;
+        if (!d.simulated && d.pidSource() == DeviceDescriptor.PidSource.NONE) return CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED;
+        return offered(d) ? null : CapabilityResolver.Reason.MODEL_EXCLUDED;
+    }
+
+    /**
      * The level the dashboard counts down to while charging: the charge alert's, on a model that offers alerts, until
      * the battery reaches it (rounded as step() rounds). Null when alerts aren't offered, the alert is off or set to
      * Full (the time to full already shows that), it's been reached, or the battery reading isn't usable.

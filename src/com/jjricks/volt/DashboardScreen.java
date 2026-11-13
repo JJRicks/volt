@@ -6062,13 +6062,17 @@ public final class DashboardScreen implements AppScreen {
             @Override public boolean connected() { return ble != null && ble.connected(); }
             @Override public CapabilityResolver.Decision decision(String key) { return ble == null ? null : ble.decision(key); }
             @Override public boolean controlOffered(String key) { return ble != null && ble.controlOffered(key); }
-            @Override public boolean chargeAlertsOffered() { return service != null && service.chargeAlertsOffered(); }
+            @Override public CapabilityResolver.Reason chargeAlertsMissing() {
+                return service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
+            }
+            @Override public CapabilityResolver.Reason chargeScheduleMissing() { return service == null ? null : service.chargeScheduleMissing(); }
         };
-        Map<String, CapabilityResolver.Decision> unavailable = new HashMap<>();
+        // Why each shortcut the scooter can't use can't be used, in the resolver's words (its section's name, its search caption).
+        Map<String, CapabilityResolver.Reason> unavailable = new HashMap<>();
         List<ShortcutPicker.Section> sections = ShortcutPicker.sections(QuickAccessActions.catalog(), entry -> {
-            if (!ShortcutPicker.unavailable(entry, scooter)) return false;
-            unavailable.put(entry.id, entry.feature() == null ? null : scooter.decision(entry.featureKey));
-            return true;
+            CapabilityResolver.Reason reason = ShortcutPicker.missing(entry, scooter);
+            if (reason != null) unavailable.put(entry.id, ShortcutPicker.canonical(reason));
+            return reason;
         });
         Set<String> open = new HashSet<>();
         String first = ShortcutPicker.firstOpen(sections, current, widget.quickActions);
@@ -6084,9 +6088,10 @@ public final class DashboardScreen implements AppScreen {
             if (query.isEmpty()) {
                 for (ShortcutPicker.Section section : sections) {
                     PickerSection view = new PickerSection(section, open, choices);
+                    // A row the scooter can't use keeps its category as a caption; its section's name says why.
                     for (QuickAccessActions.Entry entry : section.entries)
                         view.body.addView(quickChoice(widget, index, current, entry,
-                                section.id.equals(ShortcutPicker.UNAVAILABLE) ? unavailableCaption(entry, unavailable) : null),
+                                ShortcutPicker.unavailableSection(section.id) ? entry.groupLabel() : null, null),
                                 new LinearLayout.LayoutParams(-1, -2));
                     view.place(open.contains(section.id), false);
                     shown.add(view);
@@ -6097,8 +6102,10 @@ public final class DashboardScreen implements AppScreen {
                 for (QuickAccessActions.Entry entry : ShortcutPicker.matches(sections, entry ->
                         SearchFold.holds(entry.label, entry.group, query)
                                 || SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query))) {
-                    CharSequence caption = unavailable.containsKey(entry.id) ? unavailableReason(entry, unavailable) : entry.groupLabel();
-                    choices.addView(quickChoice(widget, index, current, entry, caption), new LinearLayout.LayoutParams(-1, -2));
+                    // Its category always (Experimental controls included), and why the scooter can't use it below that.
+                    CapabilityResolver.Reason reason = unavailable.get(entry.id);
+                    choices.addView(quickChoice(widget, index, current, entry, entry.groupLabel(),
+                            reason == null ? null : CapabilityResolver.message(reason)), new LinearLayout.LayoutParams(-1, -2));
                 }
                 if (choices.getChildCount() == 0) {
                     TextView none = ui.caption(T.dashboardNoMatchingSettings());
@@ -6155,22 +6162,12 @@ public final class DashboardScreen implements AppScreen {
         }
     }
 
-    /** A row in the unavailable section: its category, or why the official app hides it here (Top speed's region rule). */
-    private static CharSequence unavailableCaption(QuickAccessActions.Entry entry, Map<String, CapabilityResolver.Decision> unavailable) {
-        CapabilityResolver.Decision decision = unavailable.get(entry.id);
-        return decision != null && decision.reason == CapabilityResolver.Reason.REGION_RULE
-                ? CapabilityResolver.message(decision.reason) : entry.groupLabel();
-    }
-
-    /** A search match the scooter doesn't offer is captioned with that section's reason instead of its category. */
-    private static CharSequence unavailableReason(QuickAccessActions.Entry entry, Map<String, CapabilityResolver.Decision> unavailable) {
-        CapabilityResolver.Decision decision = unavailable.get(entry.id);
-        return CapabilityResolver.message(decision != null && decision.reason == CapabilityResolver.Reason.REGION_RULE
-                ? decision.reason : CapabilityResolver.Reason.MODEL_EXCLUDED);
-    }
-
-    /** One choice: its icon, name, an optional caption (null inside its own section) and the chosen or toggle marker. */
-    private View quickChoice(DashboardConfig.Widget widget, int index, String current, QuickAccessActions.Entry entry, CharSequence caption) {
+    /**
+     * One choice: its icon, name, an optional caption (null inside its own section), why the scooter can't use it (a
+     * search match only; null otherwise) and the chosen or toggle marker.
+     */
+    private View quickChoice(DashboardConfig.Widget widget, int index, String current, QuickAccessActions.Entry entry,
+            CharSequence caption, CharSequence reason) {
         boolean selected = widget.quickActions.contains(entry.id);
         boolean replacing = entry.id.equals(current);
         CharSequence group = caption == null ? entry.groupLabel() : caption;
@@ -6181,6 +6178,7 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout words = column();
         words.addView(ui.text(entry.label(), 14, false));
         if (caption != null) words.addView(ui.caption(caption.toString()));
+        if (reason != null) { TextView why = ui.caption(reason.toString()); why.setTag("quick-choice-reason"); words.addView(why); }
         LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
         item.addView(words, space);
         // A check marks a chosen shortcut; a switch marks one that toggles directly.
@@ -6192,8 +6190,12 @@ public final class DashboardScreen implements AppScreen {
         }
         item.setTag("quick-choice:" + entry.id);
         item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || replacing);
+        // The reason is spoken as the row's state from Android 11; before that it takes the group's place, as it did.
+        boolean stated = reason != null && android.os.Build.VERSION.SDK_INT >= 30;
+        if (reason != null && !stated) group = reason;
         item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), group)
                 : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), group) : T.dashboardShortcut(entry.label(), group));
+        if (stated) item.setStateDescription(reason);
         item.setAlpha(item.isEnabled() ? 1 : .4f);
         item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
         item.setOnClickListener(v -> {
@@ -6370,11 +6372,13 @@ public final class DashboardScreen implements AppScreen {
 
     /**
      * A section's shown name: its catalog group's (Ride, Battery, Pages, Menus, Experimental), the on/off control's
-     * name for the line and star lights (Line lights, Star lights), and the resolver's "Not on this model" for what this scooter doesn't offer.
+     * name for the line and star lights (Line lights, Star lights), and the resolver's message for a reason the scooter
+     * can't use what a last section holds ("Not on this model", "Not mapped for this model", ...).
      */
     private static CharSequence sectionName(ShortcutPicker.Section section) {
+        CapabilityResolver.Reason reason = ShortcutPicker.reasonOf(section.id);
+        if (reason != null) return CapabilityResolver.message(reason);
         switch (section.id) {
-            case ShortcutPicker.UNAVAILABLE: return CapabilityResolver.message(CapabilityResolver.Reason.MODEL_EXCLUDED);
             case ShortcutPicker.LINE_LIGHTS: return ScooterCommands.find("line_light").label();
             case ShortcutPicker.STAR_LIGHTS: return ScooterCommands.find("star_light").label();
             default: return section.entries.get(0).groupLabel();

@@ -44,7 +44,9 @@ import com.jjricks.volt.*;
  * that shows a low section's first rows, a sheet that never changes height, screen-reader headings with their
  * expanded state, and a turn of the screen mid-animation and mid-search (the picker reopens as it was). Where the
  * catalog has the Charge alerts shortcut: its tile's Off and level, its sheet for the selected scooter only, and a
- * model with a built-in charge limit (UT5 MAX) showing it unavailable. Sends no scooter command.
+ * model with a built-in charge limit (UT5 MAX) showing it unavailable. The last sections are named by the resolver's
+ * reason ("Not on this model" only where the model lacks it, "Not mapped for this model" on a model Volt doesn't map),
+ * and the charge schedule's shortcuts follow the saved model offline. Sends no scooter command.
  *   -e theme dark|light  -e text_scale 1|1.4  -e language <shipped tag> (the picker in that language: sections, a
  *   search by English name, fit)  -e mode look (opens the picker and takes its pictures, no assertions about the
  *   sections: runs on any build, for before/after pictures of the picker).
@@ -57,7 +59,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
     static {
         String[] names = {"ride", "Ride", "battery", "Battery", "lights", "Lights & sound", "line_lights", "Line lights", "star_lights", "Star lights",
                 "security", "Security", "preferences", "Preferences", "pages", "Pages", "menus", "Menus", "experimental", "Experimental controls",
-                "unavailable", "Not on this model"};
+                "unavailable", "Not on this model", "unavailable:model_not_mapped", "Not mapped for this model"};
         for (int i = 0; i < names.length; i += 2) ENGLISH.put(names[i], names[i + 1]);
     }
     private MainActivity activity;
@@ -159,15 +161,25 @@ public final class ShortcutPickerValidation extends Instrumentation {
             require(!ids.isEmpty(), "No sections");
             int last = -1, rows = 0;
             for (String id : ids) {
-                int at = ORDER.indexOf(id); require(at > last, "Sections out of order: " + ids); last = at;
+                int at = ShortcutPicker.unavailableSection(id) ? ORDER.size() : ORDER.indexOf(id);
+                require(at >= 0 && (at > last || at == ORDER.size()), "Sections out of order: " + ids); last = at;
                 ViewGroup body = body(id);
                 int count = Integer.parseInt(text(sheet().findViewWithTag("quick-section-count:" + id)).replaceAll("[^0-9]", ""));
                 require(count > 0 && count == body.getChildCount(), id + ": the count " + count + " is not its " + body.getChildCount() + " rows");
                 rows += count;
-                require(ENGLISH.get(id).equals(text(sheet().findViewWithTag("quick-section-name:" + id))), id + " is named " + text(sheet().findViewWithTag("quick-section-name:" + id)));
+                String english = ENGLISH.containsKey(id) ? ENGLISH.get(id) : CapabilityResolver.message(ShortcutPicker.reasonOf(id)).toString();
+                require(english.equals(text(sheet().findViewWithTag("quick-section-name:" + id))), id + " is named " + text(sheet().findViewWithTag("quick-section-name:" + id)));
                 require(sheet().findViewWithTag("quick-section-header:" + id).getHeight() >= activity.ui().dp(48), id + " header is under 48dp");
             }
-            require(!ids.contains("unavailable"), "Offline, a control is judged unavailable: " + ids);
+            // Offline, no control is judged; only the charge schedule's shortcuts follow the saved model (the GT3 Max can't schedule).
+            boolean schedule = false;
+            for (String id : ids) if (ShortcutPicker.unavailableSection(id)) for (View row : rows(id)) {
+                require(ShortcutPicker.SCHEDULE_IDS.contains(tagId(row)), "Offline, " + tagId(row) + " is judged unavailable: " + ids);
+                schedule = true;
+            }
+            require(schedule == (service.chargeScheduleMissing() != null), "The GT3 Max's schedule shortcuts are not where its Battery page puts them");
+            for (String id : ShortcutPicker.SCHEDULE_IDS) require(service.chargeScheduleMissing() == null ? sectionOf(id).equals("battery")
+                    : sectionOf(id).equals(ShortcutPicker.unavailableSection(service.chargeScheduleMissing())), id + " sits in " + sectionOf(id));
             require(rows == QuickAccessActions.catalog().size(), "Rows " + rows + " for " + QuickAccessActions.catalog().size() + " shortcuts");
             for (QuickAccessActions.Entry entry : QuickAccessActions.catalog())
                 require(sheet().findViewWithTag("quick-choice:" + entry.id) != null, "No row for " + entry.id);
@@ -177,7 +189,8 @@ public final class ShortcutPickerValidation extends Instrumentation {
             fit("sections");
         });
         shot("add-sections");
-        checks.add("Adding opens Ride alone; sections in order, each named, with a count equal to its rows; every shortcut once; chosen ones disabled");
+        checks.add("Adding opens Ride alone; sections in order, each named, with a count equal to its rows; every shortcut once; chosen ones disabled; "
+                + "offline only the charge schedule's shortcuts follow the saved model");
     }
 
     private void verifyOpenClose() throws Exception {
@@ -368,28 +381,61 @@ public final class ShortcutPickerValidation extends Instrumentation {
         checks.add("Turning the screen mid-animation reopens the picker settled with the same sections open; mid-search it keeps the search text and results");
     }
 
-    /** A simulated unknown model: the controls it lacks go last, closed, named Not on this model, still choosable. */
+    /**
+     * A simulated model Volt doesn't map (39991): what it can't use goes last, closed, in a section per reason named in
+     * the resolver's words, never "Not on this model" for a control that is only unmapped; still choosable. A search
+     * keeps an Experimental control's category beside the reason, on screen and spoken.
+     */
     private void verifyUnavailable(boolean alerts) throws Exception {
         main(() -> { require(service.setSimulation(true), "Simulation did not start"); service.ble.setSimulationModel("39991"); service.ble.tickSimulation(); });
         settle(); home();
         openAdding("quick");
+        String notMapped = ShortcutPicker.unavailableSection(CapabilityResolver.Reason.MODEL_NOT_MAPPED);
         main(() -> {
             List<String> ids = sectionIds();
-            require(ids.get(ids.size() - 1).equals("unavailable"), "Simulated 39991 has no last unavailable section: " + ids);
-            require(!expanded().contains("unavailable"), "The unavailable section starts open");
-            for (View row : rows("unavailable")) require(textViews(row).size() >= 2, "An unavailable row has no caption: " + texts(row));
+            require(ShortcutPicker.unavailableSection(ids.get(ids.size() - 1)), "Simulated 39991 has no last unavailable section: " + ids);
+            for (String id : ids) if (ShortcutPicker.unavailableSection(id)) {
+                require(!expanded().contains(id), id + " starts open");
+                for (View row : rows(id)) {
+                    require(textViews(row).size() >= 2, "An unavailable row has no caption: " + texts(row));
+                    QuickAccessActions.Entry entry = QuickAccessActions.find(tagId(row));
+                    if (entry.feature() != null && !entry.featureKey.equals("range_algorithm"))
+                        require(ShortcutPicker.canonical(service.ble.decision(entry.featureKey).reason) == ShortcutPicker.reasonOf(id),
+                                entry.id + " sits under " + id + " but its decision says " + service.ble.decision(entry.featureKey).reason);
+                }
+            }
+            require(sectionOf("feature:cruise_control").equals(notMapped), "39991's Cruise control is not under Not mapped for this model: " + sectionOf("feature:cruise_control"));
+            if (language.isEmpty()) require(text(sheet().findViewWithTag("quick-section-name:" + notMapped)).equals("Not mapped for this model"), "The not-mapped section's name");
             if (alerts) require(sectionOf(ALERTS).equals("battery"), "A model without a charge limit has Charge alerts unavailable");
-            sheet().findViewWithTag("quick-section-header:unavailable").performClick();
+            sheet().findViewWithTag("quick-section-header:" + notMapped).performClick();
         });
         settleMotion();
         main(() -> fit("unavailable"));
         shot("unavailable-open");
+        // Search: an unavailable Experimental control keeps its category and adds the reason (Long range mode on 39991).
+        main(() -> search().setText("Long range"));
+        settle();
+        main(() -> {
+            View row = sheet().findViewWithTag("quick-choice:feature:long_range_mode");
+            require(row != null && row.isShown(), "Searching Long range lost Long range mode");
+            CapabilityResolver.Decision decision = service.ble.decision("long_range_mode");
+            String reason = CapabilityResolver.message(ShortcutPicker.canonical(decision.reason)).toString();
+            String category = QuickAccessActions.find("feature:long_range_mode").groupLabel().toString();
+            require(texts(row).contains(category) && texts(row).contains(reason), "Long range mode's search row lost its category or reason: " + texts(row));
+            String spoken = String.valueOf(row.getContentDescription()) + (Build.VERSION.SDK_INT >= 30 ? " " + row.getStateDescription() : "");
+            require(spoken.contains(reason) && (Build.VERSION.SDK_INT < 30 || spoken.contains(category)), "Long range mode is spoken without its reason or category: " + spoken);
+            nodes.add("search long_range_mode: said=\"" + spoken + "\"");
+            fit("unavailable-search");
+        });
+        shot("unavailable-search");
+        main(() -> search().setText(""));
+        settle();
         main(() -> { service.ble.setSimulationModel(""); service.ble.tickSimulation(); });
         settle(); home();
         openAdding("quick");
         main(() -> {
             List<String> ids = sectionIds();
-            if (alerts) require(sectionOf(ALERTS).equals("unavailable") && ids.get(ids.size() - 1).equals("unavailable"), "The simulated UT5 MAX offers Charge alerts: " + ids);
+            if (alerts) require(sectionOf(ALERTS).equals("unavailable") && ShortcutPicker.unavailableSection(ids.get(ids.size() - 1)), "The simulated UT5 MAX offers Charge alerts: " + ids);
             else require(!ids.contains("unavailable") || !rows("unavailable").isEmpty(), "Empty unavailable section");
         });
         // Close the picker first: stopping simulation rebuilds Home, which reopens a picker left open for the same scooter.
@@ -397,8 +443,9 @@ public final class ShortcutPickerValidation extends Instrumentation {
         settle();
         main(() -> { service.ble.setSimulationModel(""); require(service.setSimulation(false), "Simulation did not stop"); });
         settle(); home();
-        checks.add("Simulating an unknown model puts what it lacks in a last, closed, captioned section; the simulated UT5 MAX "
-                + (alerts ? "puts Charge alerts there" : "has no empty section"));
+        checks.add("Simulating a model Volt doesn't map puts what it can't use in last, closed sections named for the resolver's reason "
+                + "(Cruise control under Not mapped for this model); a search keeps Long range mode's Experimental category beside the reason, "
+                + "on screen and spoken; the simulated UT5 MAX " + (alerts ? "puts Charge alerts under Not on this model" : "has no empty section"));
     }
 
     private void verifyChargeAlerts() throws Exception {

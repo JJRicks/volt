@@ -2440,7 +2440,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
     private void chargeAlertsShortcut(){
-        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(CapabilityResolver.Reason.MODEL_EXCLUDED));return;}
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
         closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;

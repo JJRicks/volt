@@ -6,25 +6,77 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
  * The shortcut picker's sections (Home › Quick access and Setting tiles › Choose shortcut). Pure, so the JVM suite
  * tests it (tests/ShortcutPickerTest.java). Every catalog entry sits in exactly one section; a section's entries keep
  * the catalog's order, and the sections keep ORDER. The catalog's groups decide the sections, except that Lights &
- * sound gives its line-light and star-light controls (four each) sections of their own, and every control the
- * connected scooter doesn't offer goes in UNAVAILABLE, last. Nothing here changes which shortcuts exist or their ids.
+ * sound gives its line-light and star-light controls (four each) sections of their own, and every shortcut the scooter
+ * can't use goes last, in a closed section per reason, named by the resolver's own words for it ("Not on this model"
+ * only where the model really lacks it, "Not mapped for this model" where Volt only lacks a mapping). Nothing here
+ * changes which shortcuts exist or their ids.
  */
 final class ShortcutPicker {
     private ShortcutPicker() {}
 
-    /** Section ids: data, never shown (a section's shown name comes from its entries, see DashboardScreen). */
+    /**
+     * Section ids: data, never shown (a section's shown name comes from its entries, see DashboardScreen). UNAVAILABLE
+     * is the section of what the model lacks (CapabilityResolver.Reason.MODEL_EXCLUDED); every other reason a
+     * shortcut can't be used gets "unavailable:" plus the reason's name in lower case (unavailableSection).
+     */
     static final String RIDE = "ride", BATTERY = "battery", LIGHTS = "lights", LINE_LIGHTS = "line_lights",
             STAR_LIGHTS = "star_lights", SECURITY = "security", PREFERENCES = "preferences", PAGES = "pages",
             MENUS = "menus", EXPERIMENTAL = "experimental", UNAVAILABLE = "unavailable";
-    /** Controls first (what a Setting tile holds), then pages and menus, then the Lab, then what this scooter lacks. */
+    /**
+     * Controls first (what a Setting tile holds), then pages and menus, then the Lab, then what this scooter can't use
+     * (UNAVAILABLE first, then the other reasons in CapabilityResolver.Reason's order).
+     */
     static final List<String> ORDER = Collections.unmodifiableList(java.util.Arrays.asList(
             RIDE, BATTERY, LIGHTS, LINE_LIGHTS, STAR_LIGHTS, SECURITY, PREFERENCES, PAGES, MENUS, EXPERIMENTAL, UNAVAILABLE));
+
+    /** The last section for a reason a shortcut can't be used (see UNAVAILABLE). */
+    static String unavailableSection(CapabilityResolver.Reason reason) {
+        CapabilityResolver.Reason shown = canonical(reason);
+        return shown == CapabilityResolver.Reason.MODEL_EXCLUDED ? UNAVAILABLE
+                : UNAVAILABLE + ":" + shown.name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Whether a section holds shortcuts the scooter can't use. */
+    static boolean unavailableSection(String sectionId) {
+        return sectionId != null && (sectionId.equals(UNAVAILABLE) || sectionId.startsWith(UNAVAILABLE + ":"));
+    }
+
+    /** The reason an unavailable section stands for (its name is CapabilityResolver.message of it), or null. */
+    static CapabilityResolver.Reason reasonOf(String sectionId) {
+        if (!unavailableSection(sectionId)) return null;
+        if (sectionId.equals(UNAVAILABLE)) return CapabilityResolver.Reason.MODEL_EXCLUDED;
+        try {
+            return CapabilityResolver.Reason.valueOf(sectionId.substring(UNAVAILABLE.length() + 1).toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException unknown) {
+            return null;
+        }
+    }
+
+    /**
+     * One reason per message, so two sections never share a name (CapabilityResolver.message words FULL_PID_NEEDED as
+     * MODEL_NOT_IDENTIFIED, TRANSPORT_UNSUPPORTED as PRODUCT_UNSUPPORTED). No reason at all means Volt has no mapping:
+     * never a claim about the scooter.
+     */
+    static CapabilityResolver.Reason canonical(CapabilityResolver.Reason reason) {
+        if (reason == null || reason == CapabilityResolver.Reason.NONE) return CapabilityResolver.Reason.MODEL_NOT_MAPPED;
+        if (reason == CapabilityResolver.Reason.FULL_PID_NEEDED) return CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED;
+        if (reason == CapabilityResolver.Reason.TRANSPORT_UNSUPPORTED) return CapabilityResolver.Reason.PRODUCT_UNSUPPORTED;
+        return reason;
+    }
+
+    /** UNAVAILABLE first, then the other reasons in their enum order. */
+    private static int rank(String sectionId) {
+        CapabilityResolver.Reason reason = reasonOf(sectionId);
+        return reason == null || reason == CapabilityResolver.Reason.MODEL_EXCLUDED ? -1 : reason.ordinal();
+    }
 
     /** One section and its entries, in the catalog's order. */
     static final class Section {
@@ -61,12 +113,24 @@ final class ShortcutPicker {
         return MENUS;
     }
 
-    /** The non-empty sections, in ORDER. {@code unavailable} marks the entries the connected scooter doesn't offer. */
-    static List<Section> sections(Collection<QuickAccessActions.Entry> catalog, Predicate<QuickAccessActions.Entry> unavailable) {
+    /**
+     * The non-empty sections, in ORDER. {@code missing} gives why the scooter can't use an entry (null when it can);
+     * those entries go in the last sections, one per reason (unavailableSection).
+     */
+    static List<Section> sections(Collection<QuickAccessActions.Entry> catalog,
+            Function<QuickAccessActions.Entry, CapabilityResolver.Reason> missing) {
         Map<String, List<QuickAccessActions.Entry>> grouped = new LinkedHashMap<>();
-        for (String id : ORDER) grouped.put(id, new ArrayList<>());
-        for (QuickAccessActions.Entry entry : catalog)
-            grouped.get(unavailable != null && unavailable.test(entry) ? UNAVAILABLE : groupSection(entry)).add(entry);
+        for (String id : ORDER) if (!id.equals(UNAVAILABLE)) grouped.put(id, new ArrayList<>());
+        TreeMap<Integer, String> lastIds = new TreeMap<>();
+        Map<String, List<QuickAccessActions.Entry>> last = new LinkedHashMap<>();
+        for (QuickAccessActions.Entry entry : catalog) {
+            CapabilityResolver.Reason reason = missing == null ? null : missing.apply(entry);
+            if (reason == null) { grouped.get(groupSection(entry)).add(entry); continue; }
+            String id = unavailableSection(reason);
+            lastIds.put(rank(id), id);
+            last.computeIfAbsent(id, key -> new ArrayList<>()).add(entry);
+        }
+        for (String id : lastIds.values()) grouped.put(id, last.get(id));
         List<Section> result = new ArrayList<>();
         for (Map.Entry<String, List<QuickAccessActions.Entry>> group : grouped.entrySet())
             if (!group.getValue().isEmpty()) result.add(new Section(group.getKey(), group.getValue()));
@@ -88,7 +152,7 @@ final class ShortcutPicker {
         Section holding = sectionOf(sections, current);
         if (holding != null) return holding.id;
         for (Section section : sections) {
-            if (section.id.equals(UNAVAILABLE)) continue;
+            if (unavailableSection(section.id)) continue;
             for (QuickAccessActions.Entry entry : section.entries)
                 if (chosen == null || !chosen.contains(entry.id)) return section.id;
         }
@@ -109,21 +173,68 @@ final class ShortcutPicker {
         boolean connected();
         CapabilityResolver.Decision decision(String featureKey);
         boolean controlOffered(String featureKey);
-        /** ScooterService.chargeAlertsOffered: the selected scooter is a model without a built-in charge limit. */
-        boolean chargeAlertsOffered();
+        /** Why the selected scooter has no charge alerts (ScooterService.chargeAlertsMissing), or null when it has them. */
+        CapabilityResolver.Reason chargeAlertsMissing();
+        /**
+         * Why the selected scooter can't schedule charging (ScooterService.chargeScheduleMissing: the Battery page's
+         * Charge done by rule, timed_charging and charge_start both offered), or null when it can.
+         */
+        CapabilityResolver.Reason chargeScheduleMissing();
     }
 
     /**
-     * An entry the scooter doesn't offer. With no scooter connected, every control stays in its own section, as the
-     * flat list showed them before. Charge alerts follow the selected scooter's model whether it is connected or not
-     * (ScooterService.chargeAlertsOffered, which uses the saved model offline), so they never look usable on a model
-     * with a built-in charge limit. Pages, menus and the charge schedule's shortcuts are always offered.
+     * Why the scooter can't use an entry, or null when it can (or nothing says otherwise). With no scooter connected,
+     * every control stays in its own section, as the flat list showed them before. Volt's own Battery shortcuts follow
+     * the selected scooter's model whether it is connected or not (its saved model offline): Charge alerts only where
+     * the model has no built-in charge limit, Charge done by and its time only where it can schedule charging. The
+     * Line lights and Star lights menus follow their controls: a model that can use none of them can't use the menu.
+     * The other pages and menus open on every scooter (each of their rows says what it can't do there).
      */
-    static boolean unavailable(QuickAccessActions.Entry entry, Scooter scooter) {
-        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(entry.id)) return scooter == null || !scooter.chargeAlertsOffered();
+    static CapabilityResolver.Reason missing(QuickAccessActions.Entry entry, Scooter scooter) {
+        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(entry.id))
+            return scooter == null ? CapabilityResolver.Reason.NOT_CONNECTED : scooter.chargeAlertsMissing();
+        if (SCHEDULE_IDS.contains(entry.id)) return scooter == null ? null : scooter.chargeScheduleMissing();
+        if (scooter == null || !scooter.connected()) return null;
+        String lights = LIGHT_MENUS.get(entry.id);
+        if (lights != null) {
+            CapabilityResolver.Reason first = null;
+            for (ScooterCommands.Feature feature : ScooterCommands.catalog()) {
+                if (!feature.key.startsWith(lights)) continue;
+                CapabilityResolver.Decision decision = scooter.decision(feature.key);
+                if (!unmapped(feature.key, decision, scooter.controlOffered(feature.key))) return null;
+                if (first == null) first = canonical(decision.reason);
+            }
+            return first;
+        }
         ScooterCommands.Feature feature = entry.feature();
-        if (feature == null || scooter == null || !scooter.connected()) return false;
-        return unmapped(feature.key, scooter.decision(feature.key), scooter.controlOffered(feature.key));
+        if (feature == null) return null;
+        CapabilityResolver.Decision decision = scooter.decision(feature.key);
+        return unmapped(feature.key, decision, scooter.controlOffered(feature.key)) ? canonical(decision.reason) : null;
+    }
+
+    /** Whether the scooter can't use an entry (missing gives why). */
+    static boolean unavailable(QuickAccessActions.Entry entry, Scooter scooter) { return missing(entry, scooter) != null; }
+
+    /** The charge schedule's own shortcuts (Charge done by, Charge done by time). */
+    static final List<String> SCHEDULE_IDS = Collections.unmodifiableList(java.util.Arrays.asList("charge_done_by", "charge_done_time"));
+    /** The light menus that list only one light's controls, and those controls' key prefix (MainActivity.showQuickSettings). */
+    private static final Map<String, String> LIGHT_MENUS = new LinkedHashMap<>();
+    static { LIGHT_MENUS.put("section:Line lights", "line_"); LIGHT_MENUS.put("section:Star lights", "star_"); }
+
+    /**
+     * The Battery page's Charge done by rule (MainActivity.chargeDoneOffered, HomeQuickDefaults) for a model:
+     * timed_charging and charge_start both offered (BleController.controlOffered's rule). Why not, or null. A profile
+     * with no identity evidence yet shows them, as the Battery page does.
+     */
+    static CapabilityResolver.Reason scheduleMissing(DeviceDescriptor descriptor) {
+        if (descriptor == null) return null;
+        for (String key : new String[]{"timed_charging", "charge_start"}) {
+            CapabilityResolver.Decision decision = CapabilityResolver.decide(key, descriptor, StatusFields.NONE, null);
+            boolean offered = decision.support == CapabilityResolver.Support.KNOWN_ENCODING
+                    || !descriptor.simulated && descriptor.pidSource() == DeviceDescriptor.PidSource.NONE && !ScooterCommands.oemOnly(key);
+            if (!offered) return canonical(decision.reason);
+        }
+        return null;
     }
 
     /**
