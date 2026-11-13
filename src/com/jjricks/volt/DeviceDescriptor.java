@@ -69,12 +69,13 @@ public final class DeviceDescriptor {
      */
     public static DeviceDescriptor simulated(String advertisedPid,int role){return simulated(advertisedPid,role,null);}
     /**
-     * The same with a synthetic serial region (two capital letters, else none) for another simulated model's
-     * region rules. The UT5 MAX simulator never takes a region, so its rules and notes stay as today.
+     * The same with a synthetic serial region (two capital letters, else none) for the simulated model's region rules.
+     * The UT5 MAX simulator takes one too (Developer options' UT5 MAX (US) and (EU)), so it follows the real UT5 MAX's
+     * region rules; without one it keeps the choices verified on a US UT5 MAX, as it always has.
      */
     public static DeviceDescriptor simulated(String advertisedPid,int role,String region){
         String pid=pid(advertisedPid);boolean ut5=advertisedPid==null||advertisedPid.isEmpty();
-        String area=!ut5&&region!=null&&region.matches("[A-Z]{2}")?region:null;
+        String area=region!=null&&region.matches("[A-Z]{2}")?region:null;
         return new DeviceDescriptor(pid,pid.isEmpty()?0:1,ut5?"2538":"",area,Firmware.NONE,false,Transport.STANDARD,role,true);
     }
     public DeviceDescriptor withFirmware(Firmware fw,boolean thisSession){return new DeviceDescriptor(advertisedPid,advertisedWallMs,serialPid,region,fw,thisSession,transport,role,simulated,ownerModel);}

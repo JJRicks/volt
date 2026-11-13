@@ -394,6 +394,9 @@ public final class ScooterService extends Service {
         invalidateCapacityEstimate();
         resetChargeEstimateContext();
         if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        // Range following remembers what it tried per profile. The simulator's attempts have their own key (followRangeMode)
+        // and are forgotten here; the real scooter's are kept, so neither side's attempt carries into the other.
+        rangeFollowPolicy.forgetSimulation();
         ble.setSimulation(enabled);
         cancelBackgroundDeadline();
         applyWorkPolicy(false);
@@ -423,10 +426,15 @@ public final class ScooterService extends Service {
             default:return null;
         }
     }
-    /** Automatic inference for the active scooter's current charge, already checked for age. */
+    /**
+     * Automatic inference for the active scooter's current charge, already checked for age. While simulating, detection
+     * never runs (updateChargerDetection): Automatic finds the charger the Charging scene has plugged in instead, so a
+     * simulated UT5 MAX's Charge done by and estimates don't wait for it. Nothing is written to the saved choice.
+     */
     private ChargeSessionStore.Charger detectedCharger(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        return destroyed||simulating()||profile==null?null:chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
+        if(destroyed||profile==null)return null;
+        return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
     }
     private int qualifiedSessions(ChargeSessionStore.Charger charger){
         ChargeSessionStore.Curve curve=chargeSnapshot==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
@@ -719,11 +727,11 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile profile=profiles.active();
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
-            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(profile==null?null:profile.savedDescriptor()),charger,curve);
+            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
         }
         // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
         long now=SystemClock.elapsedRealtime();
-        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(profile.savedDescriptor()),charger,curve,chargeReferenceGate,
+        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
                 profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
                 chargeTaper.tracking(profile.id)?chargeTaper:null);
     }
@@ -772,7 +780,8 @@ public final class ScooterService extends Service {
     }
     /** Out of sight, a missed start is posted once per intention; in sight, MainActivity shows its dialog instead. */
     private void noticeMissedStart(){
-        if(visible||chargeScheduleController==null)return;
+        // A simulation's schedule is the simulator's (a simulation: scope): never a notice in the shade.
+        if(visible||chargeScheduleController==null||simulating())return;
         ChargeScheduleController.Missed missed=chargeScheduleController.takeUnshownMissed();if(missed==null)return;
         String text=missedStartText(missed,false);
         try{
@@ -1010,6 +1019,11 @@ public final class ScooterService extends Service {
         alertPolicy=id.isEmpty()?null:new ChargeAlertPolicy(ChargeAlertPolicy.Settings.decode(settings.getString("charge_alerts_"+id,null)),
                 ChargeAlertPolicy.State.decode(settings.getString("charge_alert_state_"+id,null)));
     }
+    /**
+     * The model that decides what a screen shows for this profile (drive-mode names, photo, rated energy, maintenance
+     * defaults, charge reference): the simulated model while simulating, else the profile's saved model.
+     */
+    public DeviceDescriptor modelDescriptor(ScooterProfiles.Profile p){return simulating()?ble.descriptor():p==null?null:p.savedDescriptor();}
     /** The live model while connected to this scooter (or simulating), the saved profile's model offline. */
     private DeviceDescriptor alertDescriptor(ScooterProfiles.Profile p){
         ScooterProfiles.Profile bound=ble.profile();
@@ -1701,7 +1715,8 @@ public final class ScooterService extends Service {
             c.estimateMinutes=estimate.planningMinutesToLimit;
             // A raw current-rate estimate remains useful on the dashboard while automatic
             // identification gathers its first frames, but must not freeze a finish plan yet.
-            if(ModelRegistry.chargeReferenceProduct(active.savedDescriptor())==Ut5MaxStockChargeReference.PRODUCT_ID
+            // The model the estimate itself follows (modelDescriptor: the simulated one while simulating).
+            if(ModelRegistry.chargeReferenceProduct(modelDescriptor(active))==Ut5MaxStockChargeReference.PRODUCT_ID
                     &&effectiveChargeCharger()==null)
                 c.estimateUnavailableReason=T.serviceChargerDetection();
         }
@@ -1734,7 +1749,8 @@ public final class ScooterService extends Service {
         if(!liveCharge(frame.state,"charging_state",now))return;
         boolean paired=liveCharge(frame.soc,"battery_percent",now)&&liveCharge(frame.voltage,"voltage_v",now)
                 &&liveCharge(frame.current,"current_a",now)&&frame.voltage.mono==frame.current.mono;
-        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(profile.savedDescriptor()),frame.state.value==1d,paired?frame.soc.value:null,
+        // Never reached while simulating (above); the same model reader as the estimate all the same.
+        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,paired?frame.soc.value:null,
                 paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
@@ -2232,7 +2248,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -2254,8 +2270,9 @@ public final class ScooterService extends Service {
         boolean sameProfile = profile != null && bound != null && profile.id.equals(bound.id);
         boolean fresh = sameProfile && mode != null && mode.numericValue != null && mode.updatedMs > 0
                 && now >= mode.updatedMs && now - mode.updatedMs <= 7000 && ble.statusAge() <= 7000;
-        Integer target = rangeFollowPolicy.next(profile == null ? "" : profile.id,
-                ModelRegistry.rangeFollowProduct(profile == null ? null : profile.savedDescriptor()), mode == null ? null : mode.numericValue,
+        String attempts = profile == null ? "" : simulating() ? RangeFollowPolicy.simulationKey(profile.id) : profile.id;
+        Integer target = rangeFollowPolicy.next(attempts,
+                ModelRegistry.rangeFollowProduct(modelDescriptor(profile)), mode == null ? null : mode.numericValue,
                 ble.featureChoices("range_algorithm"), ble.featureValue("range_algorithm"),
                 ble.connected(), ble.ready() && ble.stationary(), ble.pending() != null, fresh, followsRidingMode());
         if (target != null) {
@@ -2329,7 +2346,8 @@ public final class ScooterService extends Service {
     /** One maintenance check for a scope (MaintenanceNotify): posts what newly became due. */
     private void checkMaintenance(String scope) {
         if (maintenance == null || maintenanceNotices == null) return;
-        MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), false, this::maintenanceLive, maintenanceNotices);
+        // A simulation scope is checked quietly: what the simulated ride made due shows on the Maintenance page, never in the shade.
+        MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), MaintenanceKeeper.simulation(scope), this::maintenanceLive, maintenanceNotices);
     }
 
     private boolean maintenanceLive() { return !destroyed && !dataMaintenance && !DataMaintenance.active(); }
@@ -2597,13 +2615,8 @@ public final class ScooterService extends Service {
         List<TelemetryHistory.Point> points = new ArrayList<>();
         for (int i = 0; i < 120; i++) {
             double fraction = i / 119d;
-            double value = base;
-            if (key.equals("power_w")) value += 5 * Math.sin(fraction * 24);
-            else if (key.equals("voltage_v")) value += .15 * Math.sin(fraction * 18);
-            else if (key.equals("temperature_c")) value += .6 * Math.sin(fraction * 8);
-            else if (key.equals("battery_health_percent")) value = Math.min(100, base + 1 - fraction);
-            else if (key.equals("battery_percent")) value = Math.min(100, base + 8 * (1 - fraction));
-            else if (key.equals("odometer_km")) value = Math.max(0, base - 3 * (1 - fraction));
+            // The scene's shape (ScooterSimulation.historyValue): Parked's gentle wave, the riding loop, or a charge climbing.
+            double value = ble.simulationHistoryValue(key, base, fraction, (to - from) * (1 - fraction) / 1000d);
             points.add(new TelemetryHistory.Point(from + (long) ((to - (double) from) * fraction), value, false));
         }
         return points;

@@ -190,6 +190,9 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# Developer simulator: UT5 MAX, GT3 Max and GT5 Max EU in Parked, Riding and Charging, then every store compared (phone and wide, dark and light).
+STEPS += [inst(f'simulator-scenes-{size.split("x")[0]}-{theme}', T + 'SimulatorScenesValidation', '-e', 'theme', theme, size=size)
+          for size in (PHONE[0], WIDE[0]) for theme in ('dark', 'light')]
 # Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
 # and German and European Portuguese (the longest names) on that tightest case.
 PHONE_LARGE = ('344x882', 'dark', '1.4')

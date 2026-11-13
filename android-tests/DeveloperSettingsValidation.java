@@ -245,27 +245,23 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     }
     private void verifySelectors() throws Exception {
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "App")); settle();
-        String[] keys = {"theme", "stats_density", "units", "temperature_unit", "time_format"};
-        String[][] values = {{"dark", "system", "light"}, {"comfortable", "dense"}, {"mi", "km", "dual"}, {"c", "f"}, {"system", "12h", "24h"}};
+        // Live Stats detail (stats_density) left App preferences for Live Stats › Data & history in the Hub layout (#389);
+        // its selector gets the same checks on that page below, and theme is App preferences' last selector.
+        String[] keys = {"theme", "units", "temperature_unit", "time_format"};
+        String[][] values = {{"dark", "system", "light"}, {"mi", "km", "dual"}, {"c", "f"}, {"system", "12h", "24h"}};
         for (int group = 0; group < keys.length; group++) {
             final String key = keys[group];
             if (key.equals("units")) {
                 main(() -> {
-                    View selector = selector("stats_density"), groupView = root().findViewWithTag("preference-display-options");
+                    View selector = selector("theme"), groupView = root().findViewWithTag("preference-display-options");
                     require(groupView.getTop() - selector.getBottom() >= activity.ui().dp(16), "Display submenu touches final selector");
-                    require(!selector("units").isShown() && !selector("temperature_unit").isShown(), "Unit controls still crowd App preferences");
+                    // Deliberately the built-but-hidden selectors: App preferences must not show them until the Units submenu opens.
+                    require(!builtSelector("units").isShown() && !builtSelector("temperature_unit").isShown(), "Unit controls still crowd App preferences");
                     View units = root().findViewWithTag("preference-units-menu");
                     require(units != null && units.isShown(), "Units submenu is missing"); units.performClick();
                 }); settle();
             }
-            main(() -> assertSelector(key));
-            for (int choice : new int[]{values[group].length - 1, 0}) {
-                final int selected = choice; final String expected = values[group][choice];
-                main(() -> { View previousSelector = selector(key); choices(key).get(selected).performClick();
-                    if (!Ui.motionEnabled()) require(field(field(previousSelector, "track"), "animation") == null,
-                            "Preference selection animated with system animations disabled"); }); settle();
-                main(() -> { require(settings().getString(key, "").equals(expected), "Selector changed the wrong preference key"); assertSelector(key); });
-            }
+            verifySelectorChoices(key, values[group]);
         }
         screenshot("units");
         main(() -> {
@@ -273,8 +269,24 @@ public final class DeveloperSettingsValidation extends Instrumentation {
             require(((MoreScreen)more()).back(), "Back did not leave Units");
             require("App".equals(field(more(), "selectedSection")), "Units back skipped App preferences");
         }); settle();
-        main(() -> require(selector("theme").isShown() && !selector("units").isShown(), "Back did not restore App preferences"));
+        main(() -> require(selector("theme").isShown() && !builtSelector("units").isShown(), "Back did not restore App preferences"));
         screenshot("preferences");
+        HubTestPages.reach(this, activity, "data.storage"); settle();
+        verifySelectorChoices("stats_density", new String[]{"comfortable", "dense"});
+        screenshot("stats-density");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "settings")); settle();
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "App")); settle();
+    }
+    /** A preference selector: readable and targetable, and each end choice saves its own value under the key. */
+    private void verifySelectorChoices(String key, String[] values) {
+        main(() -> assertSelector(key));
+        for (int choice : new int[]{values.length - 1, 0}) {
+            final int selected = choice; final String expected = values[choice];
+            main(() -> { View previousSelector = selector(key); choices(key).get(selected).performClick();
+                if (!Ui.motionEnabled()) require(field(field(previousSelector, "track"), "animation") == null,
+                        "Preference selection animated with system animations disabled"); }); settle();
+            main(() -> { require(settings().getString(key, "").equals(expected), "Selector changed the wrong preference key"); assertSelector(key); });
+        }
     }
     /** Real touch sequences, not performClick: Android commits a thumb drag with setChecked and cancels the click. */
     private void verifyFeedbackSwitches() throws Exception {
@@ -345,7 +357,10 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         finally { event.recycle(); }
     }
     @SuppressWarnings("unchecked") private List<TextView> choices(String key) { return (List<TextView>)field(field(selector(key), "track"), "choices"); }
-    private View selector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
+    /** The selector for key, required shown on the page now shown (every check that reads or taps it). */
+    private View selector(String key) { return HubTestPages.requireShown(activity, builtSelector(key), "the " + key + " selector"); }
+    /** The selector for key as built, shown or not: only for checks that it is hidden. */
+    private View builtSelector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
     private void assertSelector(String key) {
         View selector = selector(key); Object track = field(selector, "track");
         require(selector instanceof HorizontalScrollView && selector.isShown() && selector.getWidth() > 0, "Selector lost its bounded readable track");
@@ -496,16 +511,17 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     }
     /** Display-state injection stays inside the emulator's disconnected simulator; no GATT is made. */
     @SuppressWarnings("unchecked") private void verifyScooterSelectors() throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "lights")); settle();
-        main(() -> {
-            BleController ble=activity.service().ble;
-            Map<String,Integer> values=(Map<String,Integer>)field(field(ble,"simulation"),"features");
-            Map<String,String> results=(Map<String,String>)field(ble,"commandResults");
-            // The row shows a result chip only for this session's results, which carry a time.
-            Map<String,Long> resultTimes=(Map<String,Long>)field(ble,"resultTimes");
-            for(String key:new String[]{"line_pattern","star_pattern"}){
+        // Line and star patterns are on Lights & sound › Line lights and Star lights since the Hub layout (#385).
+        for(String key:new String[]{"line_pattern","star_pattern"}){
+            HubTestPages.reach(this, activity, key.startsWith("line_")?"lights.line":"lights.star"); settle();
+            main(() -> {
+                BleController ble=activity.service().ble;
+                Map<String,Integer> values=(Map<String,Integer>)field(field(ble,"simulation"),"features");
+                Map<String,String> results=(Map<String,String>)field(ble,"commandResults");
+                // The row shows a result chip only for this session's results, which carry a time.
+                Map<String,Long> resultTimes=(Map<String,Long>)field(ble,"resultTimes");
                 SegmentedSelector selector=(SegmentedSelector)root().findViewWithTag("scooter-selector-"+key);
-                require(selector!=null,"Missing lighting selector "+key);Object row=control(key);invoke(row,"refresh");
+                require(selector!=null,"Missing lighting selector "+key);HubTestPages.requireShown(activity,selector,"the "+key+" selector");Object row=control(key);invoke(row,"refresh");
                 int before=values.get(key),next=(before+1)%3;
                 selectorChoices(selector).get(next).performClick();invoke(row,"refresh");
                 require(values.get(key)==next&&selected(selector)==next,"Confirmed simulated pattern not displayed: "+key+" actual="+values.get(key)+" selected="+selected(selector)+" enabled="+selector.isEnabled()+" fresh="+activity.service().featureFresh(key)+" message="+ble.message());
@@ -524,13 +540,13 @@ public final class DeveloperSettingsValidation extends Instrumentation {
                 require(selected(selector)==before&&!selector.isEnabled(),"Failed write left optimistic pattern selected");
                 setField(ble,"state",BleController.State.READY);invoke(row,"refresh");results.remove(key);resultTimes.remove(key);
                 values.put(key,next);invoke(row,"refresh");require(selected(selector)==next,"New readback did not move the highlight");
-            }
-            assertTransportIdle();activity.redraw();
-            View pattern=root().findViewWithTag("scooter-selector-line_pattern");
-            pattern.requestRectangleOnScreen(new Rect(0,0,pattern.getWidth(),pattern.getHeight()),true);
-            android.view.ViewParent parent=pattern.getParent();while(parent!=null&&!(parent instanceof android.widget.ScrollView))parent=parent.getParent();
-            if(parent instanceof android.widget.ScrollView)((android.widget.ScrollView)parent).scrollBy(0,activity.ui().dp(180));
-        });settle();windowScreenshot("light-selectors",activity.getWindow().getDecorView());
+                assertTransportIdle();activity.redraw();
+            });settle();
+            main(() -> {
+                View pattern=root().findViewWithTag("scooter-selector-"+key);
+                pattern.requestRectangleOnScreen(new Rect(0,0,pattern.getWidth(),pattern.getHeight()),true);
+            });settle();windowScreenshot(key.startsWith("line_")?"light-selectors":"star-light-selectors",activity.getWindow().getDecorView());
+        }
         for(String key:new String[]{"energy_recovery","display_units","charge_limit","lock_expiry","prompt_tone"}){
             main(() -> {
                 invoke(activity,"showChoice",new Class<?>[]{ScooterCommands.Feature.class},ScooterCommands.find(key));
@@ -557,7 +573,8 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         main(() -> {((AlertDialog)field(field(activity,"choiceSheet"),"dialog")).dismiss();assertTransportIdle();});
         checks.add("Lighting and short fixed scooter choices use readable tracks, retain confirmed state while pending/rejected, clear unknown values, and close only after confirmed readback");
     }
-    private Object control(String key){for(Object row:(List<?>)field(field(activity,"screen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing control "+key);}
+    /** The control's row on the page now shown, required shown there. */
+    private Object control(String key){return HubTestPages.shownControlRow(activity,key);}
     @SuppressWarnings("unchecked") private List<TextView> selectorChoices(SegmentedSelector selector){return (List<TextView>)field(field(selector,"track"),"choices");}
     private int selected(SegmentedSelector selector){return ((Number)field(field(selector,"track"),"selected")).intValue();}
     private void assertChoiceTargets(SegmentedSelector selector){
