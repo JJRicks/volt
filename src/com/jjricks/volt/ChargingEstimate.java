@@ -295,6 +295,23 @@ public final class ChargingEstimate {
                 :Double.valueOf(Math.min(alert.remainingMinutesToLimit,shown.remainingMinutesToFull));
     }
 
+    /**
+     * Minutes to 100% for the charging tile's reading beside a scooter's own limit, never shorter than the time to that
+     * limit shown with it. One rule for both of the tile's pairs: the two times are never out of order, and the
+     * estimate's own reading (the one the single tile, the live notification and Charge done by use) never changes,
+     * so the added reading gives way. Beside a limit the estimate's own reading is the time to the limit, which past
+     * charges that stop there can make longer than a current-rate or reference time to 100%; reaching 100% takes at
+     * least as long, so that bound is the time shown, with no new estimate. Beside an alert the estimate's own reading
+     * is the time to 100%, so the alert time gives way instead (minutesToAlert). Without a limit below 100%, or with
+     * either time unknown, this is the estimate's own time to 100%.
+     */
+    public static Double minutesToFullBesideLimit(Result shown) {
+        if(shown==null)return null;
+        Double full=shown.remainingMinutesToFull,limit=shown.remainingMinutesToLimit,target=shown.targetPercent;
+        if(full==null||limit==null||target==null||!(target>0&&target<100))return full;
+        return limit>full?limit:full;
+    }
+
     /** planned, or personal where both exist and personal is longer; an unavailable plan stays unavailable. */
     private static Double atLeast(Double planned,Double personal) {
         return planned==null||personal==null?planned:Double.valueOf(Math.max(planned,personal));

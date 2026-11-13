@@ -2684,7 +2684,8 @@ public final class MoreScreen implements AppScreen {
      * showing Volt then (ChargeSend.MAILBOX), so a rotation or recreation while it is written still opens the email,
      * with the model of the scooter chosen at the tap. The export ends ready to attach (over 25 MB, compressed), so the
      * row stays busy and the hand-over waits until the attachment is final (#412 review). A failed export goes the same
-     * way, as its status text, so the page that exists when it ends toasts it once (#412 round-2 review, P3 1).
+     * way, as the service's status message (rendered only when shown, #419 review), so the page that exists when it ends
+     * toasts it once (#412 round-2 review, P3 1).
      */
     private void sendChargeRecordings() {
         ScooterService s = service(); if (s == null) { chooseScooterFirst(); return; }
@@ -2695,7 +2696,7 @@ public final class MoreScreen implements AppScreen {
         // A failure goes through the same hand-over as the file, so the activity showing Volt when the export ends (a
         // recreated one too) says so, once (#412 round-2 review, P3 1).
         if (s.exportChargeRecordings(true, file -> ChargeSend.MAILBOX.deliver(file != null ? new ChargeSend.Export(file, model)
-                : ChargeSend.Export.failed(s.chargeCaptureStatus()), System.currentTimeMillis()))) return;
+                : ChargeSend.Export.failed(s.chargeStatusMessage()), System.currentTimeMillis()))) return;
         // Refused: tell the reasons apart from the service's state.
         ChargeSend.Refusal refusal = ChargeSend.refusal(active() == null, s.isChargeRecording(), s.chargeExporting());
         if (refusal == ChargeSend.Refusal.CHOOSE_SCOOTER) chooseScooterFirst();
