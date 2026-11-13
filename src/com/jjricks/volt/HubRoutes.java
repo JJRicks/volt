@@ -46,6 +46,7 @@ final class HubRoutes {
     static {
         java.util.List<String> actions = new java.util.ArrayList<>(java.util.Arrays.asList(
                 "section:Profile", "charge_done_by", "charge_done_time"));
+        actions.add(QuickAccessActions.CHARGE_ALERTS_ID);
         ACTIONS = Collections.unmodifiableList(actions);
     }
 

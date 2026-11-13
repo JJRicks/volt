@@ -3,6 +3,8 @@
 import contextlib
 import io
 import os
+import re
+import subprocess
 import sys
 import unittest
 
@@ -405,6 +407,203 @@ class CharacterizationFirstTest(unittest.TestCase):
         head = self.repo.git("rev-parse", "HEAD")
         problems, _, found, _ = char_first.run(main_tip, head, cwd=self.repo.root)
         self.assertEqual((problems, found), ([], first))
+
+
+class ListingAdditionsTest(unittest.TestCase):
+    """char_first.py --listing-additions (owner-approved Nov 13 2026): only a first commit that adds rows to
+    existing listings, which a listed characterization test reads, skips the first-commit run."""
+
+    LISTING = "tests/l10n/characterization/rides-english.tsv"
+    READER = "tests/l10n/characterization/RidesEnglishTest.java"
+    HELPER = "tests/l10n/characterization/RidesListingRows.java"
+    ROWS = "entry a\tlabel\tA\nentry b\tlabel\tB\nentry c\tlabel\tC\n"
+
+    def reader(self, name="RidesEnglishTest", main=True):
+        """A characterization test that compares the listing with the code's output when tests/run.sh runs it."""
+        body = '    static final String LISTING = "%s";' % self.LISTING
+        if main:
+            body += "\n    public static void main(String[] args) { /* compares LISTING with the code */ }"
+        return java_class(name, body)
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.addCleanup(self.repo.close)
+        self.repo.write(self.LISTING, self.ROWS)
+        self.repo.write(self.READER, self.reader())
+        self.repo.write("tests/l10n/rides.sources", "# the rides listing\n" + self.READER + "  # reads rides-english.tsv\n")
+        self.base = self.repo.commit("base")
+        self.repo.git("checkout", "-q", "-b", "batch")
+
+    def first_commit(self, rows, path=None):
+        self.repo.write(path or self.LISTING, rows)
+        first = self.repo.commit("characterize")
+        self.repo.write("src/com/jjricks/volt/Rides.java", java_class("Rides", ""))
+        return first, self.repo.commit("the change")
+
+    def additions(self):
+        head = self.repo.git("rev-parse", "HEAD")
+        return char_first.listing_additions(self.base, head, cwd=self.repo.root)
+
+    def test_added_rows_only(self):
+        first, _ = self.first_commit("entry a\tlabel\tA\nentry new\tlabel\tNew\nentry b\tlabel\tB\nentry c\tlabel\tC\n"
+                                     "entry z\tlabel\tZ\n")
+        ok, detail = self.additions()
+        self.assertTrue(ok, detail)
+        self.assertEqual(detail, "the first commit %s only adds rows to %s; existing rows unchanged (3 lines), new rows "
+                                 "(2) are left to the run at head (G6)" % (first[:12], self.LISTING))
+
+    def test_an_added_row_and_a_changed_row(self):
+        self.first_commit("entry a\tlabel\tA\nentry b\tlabel\tB2\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("changes, removes or reorders a line", detail)
+
+    def test_a_removed_row(self):
+        self.first_commit("entry a\tlabel\tA\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        self.assertFalse(self.additions()[0])
+
+    def test_a_reordered_listing(self):
+        self.first_commit("entry b\tlabel\tB\nentry a\tlabel\tA\nentry c\tlabel\tC\nentry new\tlabel\tNew\n")
+        self.assertFalse(self.additions()[0])
+
+    def test_a_changed_line_ending(self):
+        """Byte for byte: the last row gaining or losing its newline is a change."""
+        self.repo.write(self.LISTING, self.ROWS.rstrip("\n"))
+        self.base = self.repo.commit("no final newline")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew")
+        self.assertFalse(self.additions()[0])
+
+    def test_an_addition_to_a_test_file(self):
+        self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\n")
+        self.first_commit(self.reader().replace("{\n", "{\n    int more;\n", 1), path=self.READER)
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("not only listings", detail)
+
+    def test_a_new_listing(self):
+        self.first_commit("entry x\tlabel\tX\n", path="tests/l10n/characterization/other-english.tsv")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("is a new file", detail)
+
+    def test_a_listing_no_listed_test_reads(self):
+        """Then nothing would prove the new rows at head, so the first commit still runs."""
+        self.repo.write("tests/l10n/rides.sources", "# " + self.READER + "\n")
+        self.base = self.repo.commit("the reader commented out")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no characterization test that tests/run.sh runs", detail)
+
+    def test_a_listed_test_without_a_main_method_is_not_a_reader(self):
+        """Review of #446 (finding 1): a class that only holds the listing's name compares nothing."""
+        self.repo.write(self.READER, self.reader(main=False))
+        self.base = self.repo.commit("a reader that holds the name only")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no characterization test that tests/run.sh runs", detail)
+
+    def test_a_listed_helper_is_not_a_reader_when_the_test_is_not_listed(self):
+        """Review of #446 (finding 1): tests/run.sh compiles a listed helper but runs only tests/l10n/*Test.java,
+        so a helper that mentions the listing (even with a main method) proves nothing at head."""
+        self.repo.write(self.HELPER, self.reader("RidesListingRows"))
+        self.repo.write("tests/l10n/rides.sources", self.HELPER + "\n# " + self.READER + "\n")
+        self.base = self.repo.commit("only the helper is listed")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no characterization test that tests/run.sh runs", detail)
+
+    def test_the_test_dropped_from_its_list_in_the_change(self):
+        """Review of #446 (finding 1): the readers are the entries at head, not at the merge base."""
+        self.repo.write(self.HELPER, self.reader("RidesListingRows"))
+        self.repo.write("tests/l10n/rides.sources", self.READER + "\n" + self.HELPER + "\n")
+        self.base = self.repo.commit("the test and a helper listed")
+        self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\n")
+        self.repo.commit("characterize")
+        self.repo.write("tests/l10n/rides.sources", self.HELPER + "\n")
+        self.repo.commit("the change drops the test from its list")
+        self.assertFalse(self.additions()[0])
+
+    def test_a_listing_whose_name_ends_another_s(self):
+        """Review of #446 (minor note): a test of all-rides-english.tsv does not read rides-english.tsv, whose
+        name is the tail of its listing's; the whole file name must be named."""
+        other = "tests/l10n/characterization/all-rides-english.tsv"
+        other_reader = "tests/l10n/characterization/AllRidesEnglishTest.java"
+        self.repo.write(other, self.ROWS)
+        self.repo.write(other_reader, java_class("AllRidesEnglishTest", '    static final String LISTING = "%s";\n'
+                                                 '    public static void main(String[] args) { }' % other))
+        self.repo.write("tests/l10n/rides.sources", other_reader + "\n# " + self.READER + "\n")
+        self.base = self.repo.commit("only the other listing's test is listed")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no characterization test that tests/run.sh runs", detail)
+        self.assertIn(self.LISTING, detail)
+
+    def test_the_other_listing_s_test_still_reads_its_own(self):
+        other = "tests/l10n/characterization/all-rides-english.tsv"
+        other_reader = "tests/l10n/characterization/AllRidesEnglishTest.java"
+        self.repo.write(other, self.ROWS)
+        self.repo.write(other_reader, java_class("AllRidesEnglishTest", '    static final String LISTING = "%s";\n'
+                                                 '    public static void main(String[] args) { }' % other))
+        self.repo.write("tests/l10n/rides.sources", other_reader + "\n# " + self.READER + "\n")
+        self.base = self.repo.commit("only the other listing's test is listed")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n", path=other)
+        ok, detail = self.additions()
+        self.assertTrue(ok, detail)
+
+    def test_names_file(self):
+        """The whole name, after a quote, a slash or the start of the text, and nothing more of a file name after it."""
+        name = "rides-english.tsv"
+        for text in ('"rides-english.tsv"', "'rides-english.tsv'", '"tests/l10n/characterization/rides-english.tsv"',
+                     "rides-english.tsv", 'Paths.get(DIR, "rides-english.tsv")', 'x\n  "a/rides-english.tsv");'):
+            self.assertTrue(char_first.names_file(text, name), text)
+        for text in ('"all-rides-english.tsv"', '"tests/l10n/characterization/all-rides-english.tsv"',
+                     '"rides-english.tsv.bak"', '"rides-english.tsvx"', '"rides-english.tsv-old"', "rides_english.tsv",
+                     " rides-english.tsv", '"rides-englishXtsv"'):
+            self.assertFalse(char_first.names_file(text, name), text)
+
+    def test_a_listing_changed_after_the_first_commit(self):
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\nentry later\tlabel\tLater\n")
+        self.repo.commit("later")
+        self.assertFalse(self.additions()[0])
+
+    def test_no_characterization_change(self):
+        self.repo.write("src/com/jjricks/volt/Rides.java", java_class("Rides", ""))
+        self.repo.commit("code only")
+        self.assertFalse(self.additions()[0])
+
+    def test_the_run_rule_is_tests_run_sh_s(self):
+        """RUN_PATTERN is the pattern tests/run.sh uses to pick the listed entries it runs, with the same meaning.
+        If tests/run.sh's rule changes, this fails, so the two cannot drift apart."""
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "..", "..", "tests", "run.sh"), encoding="utf-8") as handle:
+            script = handle.read()
+        rules = re.findall(r'if \[\[ "\$line" == (\S+) \]\]; then l10n_tests\+=', script)
+        self.assertEqual(rules, [char_first.RUN_PATTERN], "tests/run.sh's rule for the l10n tests it runs changed")
+        self.assertEqual(script.count("l10n_tests+="), 1, "tests/run.sh picks the l10n tests it runs in one place")
+        for entry in ("tests/l10n/characterization/DashboardModelEnglishTest.java", "tests/l10n/LedgerTest.java",
+                      "tests/l10n/characterization/RidesListingRows.java", "tests/l10n/characterization/rides-english.tsv",
+                      "tests/RidesEnglishTest.java", "tests/l10n/characterization/RidesTest.java.bak",
+                      "tests/l10n/Test.java", "tests/l10n/a/b/CTest.java"):
+            bash = subprocess.run(["bash", "-c", '[[ "$1" == %s ]]' % char_first.RUN_PATTERN, "-", entry]).returncode == 0
+            self.assertEqual(char_first.runs_in_run_sh(entry), bash, entry)
+
+    def test_the_command_line(self):
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        cwd = os.getcwd()
+        os.chdir(self.repo.root)
+        try:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = char_first.main(["--base", self.base, "--listing-additions"])
+        finally:
+            os.chdir(cwd)
+        self.assertEqual(code, 0)
+        self.assertIn("existing rows unchanged (3 lines), new rows (1)", out.getvalue())
 
 
 if __name__ == "__main__":

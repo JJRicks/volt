@@ -23,6 +23,7 @@ public final class MapPinTest {
         combinations();
         oldRuleLostThePin();
         restores();
+        switchAnswer();
         System.out.println("MapPinTest: " + checks + " checks");
     }
 
@@ -111,6 +112,37 @@ public final class MapPinTest {
     }
 
     /** The legacy state #421's review found: on, never explained, no provider. Without the write, off and on lost USGS. */
+    /**
+     * MapPreferences.answerUsgsSwitch: an answer is saved only while the person is still on USGS by the old default
+     * (MapDefault.savesSwitchAnswer). A provider chosen while the question was open (the pin written or not, the
+     * answer unsaved) stands; the question only closes.
+     */
+    private static void switchAnswer() {
+        String[] urls = {null, OSM, USGS, CUSTOM};
+        for (String url : urls) for (boolean marked : new boolean[]{false, true}) for (boolean answered : new boolean[]{false, true}) {
+            Map<String, Object> app = new HashMap<>();
+            app.put(MapDefault.ENABLED_KEY, true); app.put(MapDefault.EXPLAINED_KEY, true);
+            if (url != null) app.put(MapDefault.URL_KEY, url);
+            if (marked) app.put(MapDefault.USGS_BY_DEFAULT_KEY, true);
+            if (answered) app.put(MapDefault.SWITCH_ANSWERED_KEY, true);
+            boolean byDefault = byDefault(app);
+            check(byDefault == (url == null || USGS.equals(url) && marked), "on USGS by the old default: url=" + url + " marked=" + marked);
+            check(MapDefault.savesSwitchAnswer(byDefault, answered) == (byDefault && !answered),
+                    "an answer is saved only unanswered and still on USGS by the old default: url=" + url + " marked=" + marked + " answered=" + answered);
+        }
+        // The question open on the written pin; the person picks OpenStreetMap in Maps, then answers Keep USGS.
+        Map<String, Object> app = new HashMap<>();
+        app.put(MapDefault.ENABLED_KEY, true);
+        check(keepPin(app) && offered(app, false), "the pin written down, the question asked");
+        put(app, OSM);
+        check(!MapDefault.savesSwitchAnswer(byDefault(app), on(app, MapDefault.SWITCH_ANSWERED_KEY)), "Keep USGS after choosing OpenStreetMap saves nothing");
+        check(provider(app).equals("osm") && !app.containsKey(MapDefault.SWITCH_ANSWERED_KEY) && !offered(app, false),
+                "the own choice stands and the question is not asked again");
+        // An own USGS choice: a later Switch saves nothing either.
+        put(app, USGS);
+        check(!MapDefault.savesSwitchAnswer(byDefault(app), false) && provider(app).equals("usgs"), "Switch after choosing USGS saves nothing");
+    }
+
     private static void oldRuleLostThePin() {
         Map<String, Object> app = settings(true, null, null, null, null);
         Map<String, Object> unwritten = new LinkedHashMap<>(app);

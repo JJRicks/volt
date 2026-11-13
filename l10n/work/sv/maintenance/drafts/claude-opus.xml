@@ -158,7 +158,7 @@
     <string name="maintenance_notify" volt:src="37cdc480a4aa94342fab06d7f6f17d9ff2efdf2a">Avisera mig</string>
     <string name="maintenance_notify_detail" volt:src="a62173aa99122e968d3a6456c2864202b8576ce0">En avisering, en gång, när det är dags</string>
     <string name="maintenance_channel" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Underhållspåminnelser</string>
-    <string name="maintenance_channel_detail" volt:src="aeef3c56adaeb985a0f9646ea7f0abf4daaaa3e0">Kontroller du har lagt in under Elspark › Underhåll, en gång när det är dags för var och en</string>
+    <string name="maintenance_channel_detail" volt:src="253b821ce1c206197ea1313c4e06e6f5f91387bd">Kontroller som du ställer in under Elsparkcykel › Service › Underhåll, en gång när varje kontroll är dags</string>
     <plurals name="maintenance_notice_title" volt:src="019e234eff3132c9cd55bac2fb8afb8733d192b4">
         <item quantity="one">Dags för %1$d kontroll på %2$s</item>
         <item quantity="other">Dags för %1$d kontroller på %2$s</item>

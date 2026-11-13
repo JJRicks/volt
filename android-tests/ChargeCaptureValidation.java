@@ -59,8 +59,15 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.HIGH_SPEED)&&files().length==0,"Simulation created charge data");
                 require(service.setChargeCharger(null),"Could not return to Automatic");
                 require(service.chargeCharger()==null&&!settings().contains("charge_charger_"+profile),"Automatic did not clear developer override");
-                require(service.effectiveChargeCharger()==null,"Simulation classified an automatic charger");
+                // Since #430 the simulator's Automatic finds the charger its Charging scene plugged in (detection never runs
+                // while simulating; SimulatorScenesValidation covers each model). It must stay a live answer: never saved
+                // as the choice, never used once the simulation ends.
+                ChargeSessionStore.Charger scene=service.ble.simulationDetectedCharger();
+                require(service.effectiveChargeCharger()==scene&&service.chargerBasis()==(scene==null?ScooterService.ChargerBasis.UNKNOWN:ScooterService.ChargerBasis.DETECTED),
+                        "Simulation's Automatic is not the scene's plugged charger: "+service.effectiveChargeCharger()+" ("+service.chargerBasis()+"), scene "+scene);
+                require(service.chargeCharger()==null&&!settings().contains("charge_charger_"+profile),"Simulation's charger was saved as the choice");
                 require(service.setSimulation(false),"Could not exit preview");
+                require(service.effectiveChargeCharger()==null&&service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Simulation's charger outlived the simulation");
                 invoke(field(activity,"screen"),"refresh",new Class<?>[]{});
                 require(service.chargeCharger()==null,"Charge history refresh replaced Automatic with Stock");
                 View curves=root().findViewWithTag("charge-learning-status");
@@ -558,7 +565,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private File[] files(){File[] entries=new File(getTargetContext().getFilesDir(),"charge-recordings").listFiles();return entries==null?new File[0]:entries;}
     private SharedPreferences settings(){return getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE);}
     private View root(){return (View)field(activity,"root");}
-    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed",failure.get());}
+    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed: "+failure.get(),failure.get());}
     private void settle(){waitForIdleSync();SystemClock.sleep(350);waitForIdleSync();}
     private void await(BooleanSupplier test,String message){long until=SystemClock.uptimeMillis()+10000;while(!test.getAsBoolean()&&SystemClock.uptimeMillis()<until)SystemClock.sleep(40);require(test.getAsBoolean(),message);}
     /**

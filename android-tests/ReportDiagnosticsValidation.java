@@ -86,9 +86,11 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             main(() -> require(activity.service().setSimulation(true), "Simulation did not start")); settle();
             await(() -> activity.service().ble.ready(), "Simulated scooter did not connect");
             commandsAndConnections();
+            tallyEnds();
             main(() -> activity.service().ble.setSimulationModel(MODEL)); settle();
             await(() -> activity.service().ble.ready(), "Simulated model did not connect");
             settle();
+            main(() -> require(!modes().contains("code=77,"), "A simulator model change kept the old model's drive modes"));
 
             provider();
             reportIssue();
@@ -120,6 +122,28 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         settle();
     }
 
+    /**
+     * The drive modes and power sign describe the connection only: a simulated disconnect empties them, and so does a
+     * simulator model change (checked after the change above; a mode code no simulator reports stands in for the old
+     * model's). The real link's ends (BleController.close) are wired as DiagnosticsBundleTest checks.
+     */
+    private void tallyEnds() {
+        main(() -> plant(78));
+        main(() -> require(modes().contains("code=78,"), "The planted drive mode did not show"));
+        main(() -> activity.service().ble.disconnect()); settle();
+        main(() -> require(!modes().contains("code=78,") && "no_readings".equals(String.valueOf(((java.util.Map<?, ?>) invoke(tally(), "powerSign", new Class<?>[0])).get("basis"))),
+                "A simulated disconnect kept the drive modes or power sign"));
+        main(() -> activity.service().ble.connectLast()); settle();
+        await(() -> activity.service().ble.ready(), "Simulated scooter did not reconnect");
+        main(() -> plant(77));
+    }
+    private Object tally() { return field(activity.service().ble.telemetry, "tally"); }
+    private void plant(int code) {
+        invoke(tally(), "note", new Class<?>[]{String.class, Double.class, int.class, long.class}, "driving_mode", (double) code, 0x90, SystemClock.elapsedRealtime());
+    }
+    /** The tally's drive modes as their map prints ("{modes=[{code=2, ...}]}"). */
+    private String modes() { return String.valueOf(invoke(tally(), "driveModes", new Class<?>[0])); }
+
     /** Private, read-only, and grantable: the manifest entry the attachment relies on. */
     private void provider() {
         ProviderInfo info = getTargetContext().getPackageManager().resolveContentProvider(getTargetContext().getPackageName() + ".diagnostics", 0);
@@ -142,6 +166,14 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
                 && file.contains("\"key\": \"logo_light\"") && file.contains("\"outcome\": \"refused\"") && file.contains("\"type\": \"session\"")
                 && file.contains("\"simulated\": true") && file.contains("\"reason\": \"CONNECT_TIMEOUT\"") && file.contains("\"readings\": [")
                 && file.contains("\"model\": \"" + Build.MANUFACTURER + " " + Build.MODEL + "\""), "The file lacks the logs, readings or phone");
+        // Part 2, read from this phone: app and phone state, the allow-listed settings, the simulated connection's
+        // power sign and drive modes (marked simulated), recordings, storage, the last crash (none here) and clock changes.
+        for (String section : new String[]{"\"app\": {", "\"install_source\": \"", "\"phone_state\": {", "\"notification_channels\": {", "\"permissions\": {",
+                "\"settings\": {", "\"background_connection\": ", "\"power_sign\": {", "\"drive_modes\": {", "\"recordings\": {", "\"rides\": ",
+                "\"storage\": {", "\"free_space\": \"", "\"last_crash\": ", "\"clock_changes\": {"})
+            require(file.contains(section), "The file lacks " + section);
+        require(file.indexOf("\"power_sign\": {") > file.indexOf("\"readings\": [") && file.substring(file.indexOf("\"power_sign\": {")).contains("\"simulated\": true"),
+                "The simulated connection's power sign is not marked simulated");
         noSecrets(file, "Report an issue's file");
         firstUri = attachedUri; firstFile = file;
         require(!sheetShowing() && settings().getAll().get("report_diagnostics") == null, "Open email did not close the sheet, or stored a choice nobody made");
