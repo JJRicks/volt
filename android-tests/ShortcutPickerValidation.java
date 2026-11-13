@@ -303,6 +303,10 @@ public final class ShortcutPickerValidation extends Instrumentation {
                 if (Build.VERSION.SDK_INT >= 36) require(info.getExpandedState() == (open ? AccessibilityNodeInfo.EXPANDED_STATE_FULL : AccessibilityNodeInfo.EXPANDED_STATE_COLLAPSED),
                         id + " expanded state " + info.getExpandedState());
                 require(texts(head).size() >= 2, id + " header does not say its name and count: " + texts(head));
+                nodes.add("  said=\"" + head.getContentDescription() + "\" state=\"" + (Build.VERSION.SDK_INT >= 30 ? info.getStateDescription() : "") + "\"");
+                require(head.getContentDescription() != null && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-name:" + id)))
+                        && head.getContentDescription().toString().contains(text(head.findViewWithTag("quick-section-count:" + id))), id + " is not spoken with its name and count: " + head.getContentDescription());
+                require(Build.VERSION.SDK_INT < 30 || info.getStateDescription() != null && info.getStateDescription().length() > 0, id + " has no spoken open or closed state");
             }
             View head = sheet().findViewWithTag("quick-section-header:battery");
             require(head.performAccessibilityAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND.getId(), null), "Expand action refused");
