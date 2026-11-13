@@ -47,8 +47,10 @@ import com.jjricks.volt.tests.TextCensus;
  * Its review of 8be6104f, in #416: a guessed charger is marked as guessed ("· charger guessed") in the status line, the
  * notification, the saved list and the recording's detail.
  *
- * Mode "page" (needs the switch row): Battery & charging › Charge history & recordings with the switch, screenshots
- * and a text check for cut or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text.
+ * Mode "page": Battery & charging › Charge history & recordings with the switch, screenshots and a text check for cut
+ * or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text. An app with no switch at
+ * all (no more_charge_auto_record string: a release sweep's base app) gets the same page and screenshot names at the
+ * recording controls and passes; an app that has the string must show the switch.
  */
 public final class ChargeAutoRecordValidation extends Instrumentation {
     private static final long S = 1000L;
@@ -515,9 +517,10 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, HubPages.HOME); for (String step : HubPages.path(HubPages.BATTERY_HISTORY)) if (!step.equals(HubPages.HOME)) activity.open(step); });
         settle();
         View row = onMainView(() -> activity.findViewById(android.R.id.content).getRootView().findViewWithTag(KEY));
+        String size = getTargetContext().getResources().getConfiguration().screenWidthDp + "dp-" + args.getString("theme", "dark") + "-" + args.getString("text_scale", "1");
+        if (row == null && !switchBuilt()) { pageWithoutSwitch(size); return; }
         require(row != null, "No Record charges automatically switch on Battery & charging › Charge history & recordings");
         main(() -> reveal(row)); settle(); SystemClock.sleep(600);
-        String size = getTargetContext().getResources().getConfiguration().screenWidthDp + "dp-" + args.getString("theme", "dark") + "-" + args.getString("text_scale", "1");
         screenshot("charge-auto-record-off-" + size);
         main(() -> textProblems(row));
         main(row::performClick); settle();
@@ -528,6 +531,25 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         require(capture != null, "The recording controls are missing");
         main(() -> require(row.getParent() == capture.getParent(), "The switch is not beside the recording controls"));
         log("page " + size + ": switch shown, on and off, text whole");
+    }
+    /** Whether the app under test has the switch at all: its title string ships with it. */
+    private boolean switchBuilt() {
+        Context app = getTargetContext();
+        return app.getResources().getIdentifier("more_charge_auto_record", "string", app.getPackageName()) != 0;
+    }
+    /**
+     * A release sweep's base app (the head's test APK against a build from before the switch): the same page and the
+     * same two screenshots at the recording controls, so census_diff has base screens for the head's to hold, and the
+     * same text check. The switch's own checks need the head app.
+     */
+    private void pageWithoutSwitch(String size) throws Exception {
+        View capture = onMainView(() -> activity.findViewById(android.R.id.content).getRootView().findViewWithTag("charge-capture-action"));
+        require(capture != null, "The recording controls are missing");
+        main(() -> reveal(capture)); settle(); SystemClock.sleep(600);
+        screenshot("charge-auto-record-off-" + size);
+        main(() -> textProblems(capture));
+        SystemClock.sleep(400); screenshot("charge-auto-record-on-" + size);
+        log("page " + size + ": this app has no Record charges automatically switch (a release sweep's base app); page captured without it");
     }
     /** The status line under the recording controls on Battery & charging › Charge history & recordings, as shown. */
     private String pageStatus() {

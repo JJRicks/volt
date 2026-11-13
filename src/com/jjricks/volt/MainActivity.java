@@ -2156,12 +2156,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; Ride and Record are never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts (Clean's own, in place of Charge done by on models without scheduled charging, owner's answer
-        // 11; the same id as the Quick access Charge alerts shortcut): one action for both homes. A stored or restored
-        // four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        // Battery alerts: one id and one tap for both Homes (Clean's quick action, in place of Charge done by on models
+        // without scheduled charging, owner's answer 11; and the Widgets shortcut, owner's decision of Nov 12 2026 on #383).
+        // A stored or restored four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
         if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
