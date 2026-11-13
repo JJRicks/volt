@@ -20,7 +20,10 @@ public final class RideChartView extends View {
         }
     }
     private static final ValueFormatter DEFAULT_FORMATTER = new ValueFormatter() {
-        @Override public String axis(RideChartData.Series series, double value) { return axisNumber(series, value); }
+        // GPS accuracy's marks are whole numbers, its top one "≥40" when a few worse fixes draw at the top edge.
+        @Override public String axis(RideChartData.Series series, double value) {
+            return GpsAccuracy.KEY.equals(series.key) ? GpsAccuracyText.axis(series, value) : axisNumber(series, value);
+        }
         @Override public String sample(RideChartData.Series series, RideChartData.Value value) { return sampleValue(series, value); }
     };
     private final Ui ui; private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -384,6 +387,8 @@ public final class RideChartView extends View {
     public static String sampleTime(long ms) { return time(ms) + String.format(Locale.US, ".%03d", Math.max(0, ms) % 1000); }
     public static String sampleValue(RideChartData.Series s, RideChartData.Value value) {
         if (value == null || value.value == null || !Double.isFinite(value.value)) return "—";
+        // GPS accuracy reads "±12 ft": whole numbers, lower is better.
+        if (GpsAccuracy.KEY.equals(s.key)) return GpsAccuracyText.sample(s, value.value);
         int places = UnitCode.MPH.matches(s.unit) || UnitCode.KMH.matches(s.unit) ? 1 : 2;
         double raw = Math.abs(value.value) < Math.pow(10, -places) / 2 ? 0 : value.value;
         return T.fmtQuantity(String.format(Fmt.locale(Locale.US), "%." + places + "f", raw), unitSymbol(s.unit));
