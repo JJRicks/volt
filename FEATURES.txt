@@ -716,8 +716,9 @@ the tab bar was: the most-used subjects with short names, and All, or swipe
 up, for every subject with its summary). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
-link. The gear in either Home's header (Clean or Widgets, beside the connection
-line) opens Settings; its search button finds a scooter setting on any page. The former arrange-and-hide editor is gone, and settings hidden with
+link. The gear in Clean Home's header (beside the connection line), or
+Settings at the top of the dock's All list on Widgets, opens Settings; Search,
+beside it in either place, finds a scooter setting on any page. The former arrange-and-hide editor is gone, and settings hidden with
 it show again. Rename the local scooter profile in Settings > My scooters or
 with its widget pencil while editing Home. Maintenance
 (Service > Maintenance, off by default) keeps local reminders by
