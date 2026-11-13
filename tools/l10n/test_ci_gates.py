@@ -604,15 +604,16 @@ cmp -s tests/l10n/characterization/rides-english.tsv src/rides-printed.txt || { 
 echo "RidesListingTest passed"
 """
     FIRST_ROW = r"\| G5 tests pass at the first commit \| ([^|]+) \| ([^|]+) \|"
+    MAIN = "    public static void main(String[] args) { /* the runner above stands in for it */ }"
 
-    def listing_change(self, first_rows, printed_rows, kind="batch", reader=None):
+    def listing_change(self, first_rows, printed_rows, kind="batch", reader=None, sources=None):
         """A base whose code prints ROWS and whose listing pins them; a first commit that writes first_rows to
         the listing (and reader to the listing test); then the change, whose code prints printed_rows."""
         self.repo.write("tests/run.sh", self.LISTING_RUNNER)
         self.repo.write(self.LISTING, self.ROWS)
         self.repo.write(self.PRINTED, self.ROWS)
-        self.repo.write(self.READER, java_class("RidesListingTest", '    String listing = "%s";' % self.LISTING))
-        self.repo.write("tests/l10n/rides.sources", self.READER + "\n")
+        self.repo.write(self.READER, java_class("RidesListingTest", '    String listing = "%s";\n%s' % (self.LISTING, self.MAIN)))
+        self.repo.write("tests/l10n/rides.sources", sources if sources is not None else self.READER + "\n")
         self.base = self.repo.commit("a listing the code prints")
         self.repo.write(self.LISTING, first_rows)
         if reader is not None:
@@ -633,7 +634,7 @@ echo "RidesListingTest passed"
 
     def test_a_batch_that_only_adds_listing_rows_is_not_run_at_the_first_commit(self):
         """Owner-approved Nov 13 2026 (#437): a row for an entry new in the pull request cannot pass on the
-        base code. The report says the run did not happen, never PASS, and G6 proves the rows at head."""
+        base code. The report says the run did not happen, never PASS, and leaves the rows to G6 at head."""
         rows = self.ROWS + "entry new\tNew\n"
         code, _, report, everything = self.listing_change(rows, rows)
         self.assertIn("batch change", report)
@@ -641,15 +642,18 @@ echo "RidesListingTest passed"
         result, detail = self.first_row(report, everything)
         self.assertEqual(result, "not run", everything)
         self.assertRegex(detail, r"^the first commit [0-9a-f]{12} only adds rows to " + re.escape(self.LISTING) +
-                         r"; existing rows unchanged \(3 lines\), new rows \(1\) are proven at head \(G6\)$")
+                         r"; existing rows unchanged \(3 lines\), new rows \(1\) are left to the run at head \(G6\)$")
         self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| PASS \|", everything)
         self.assertNotRegex(report, r"\| G5 tests pass at the first commit \| PASS", everything)
 
     def test_the_new_rows_still_fail_at_head(self):
+        """Review of #446 (finding 2): the G5 row claims nothing G6 then contradicts."""
         rows = self.ROWS + "entry new\tNew\n"
         code, _, report, everything = self.listing_change(rows, self.ROWS)
         self.assertEqual(code, 1, everything)
-        self.assertEqual(self.first_row(report, everything)[0], "not run", everything)
+        result, detail = self.first_row(report, everything)
+        self.assertEqual(result, "not run", everything)
+        self.assertNotIn("proven", detail)
         self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| FAIL \|", everything)
 
     def assert_run_at_the_first_commit(self, first_rows):
@@ -670,10 +674,22 @@ echo "RidesListingTest passed"
 
     def test_an_addition_beside_a_changed_test_file_runs_at_the_first_commit(self):
         rows = self.ROWS + "entry new\tNew\n"
-        reader = java_class("RidesListingTest", '    String listing = "%s";\n    int rows;' % self.LISTING)
+        reader = java_class("RidesListingTest", '    String listing = "%s";\n    int rows;\n%s' % (self.LISTING, self.MAIN))
         code, _, report, everything = self.listing_change(rows, rows, reader=reader)
         self.assertEqual(code, 1, everything)
         self.assertEqual(self.first_row(report, everything)[0], "FAIL", everything)
+
+    def test_a_listed_helper_without_the_listed_test_runs_at_the_first_commit(self):
+        """Review of #446 (finding 1): tests/run.sh runs only listed tests/l10n/*Test.java, so a listed helper
+        that mentions the listing reads nothing at head; the first commit gets the real run."""
+        helper = "tests/l10n/characterization/RidesListingRows.java"
+        self.repo.write(helper, java_class("RidesListingRows", '    String listing = "%s";\n%s' % (self.LISTING, self.MAIN)))
+        rows = self.ROWS + "entry new\tNew\n"
+        code, _, report, everything = self.listing_change(rows, rows, sources=helper + "\n")
+        self.assertEqual(code, 1, everything)
+        result, detail = self.first_row(report, everything)
+        self.assertEqual(result, "FAIL", everything)
+        self.assertIn("tests/run.sh or golden.sh at", detail)
 
     def test_an_english_change_that_adds_listing_rows_is_as_before(self):
         rows = self.ROWS + "entry new\tNew\n"

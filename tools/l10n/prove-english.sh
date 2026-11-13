@@ -13,7 +13,7 @@
 #   --skip-tests  do not run tests/run.sh (G6 then reports "not run")
 #
 # G5's first-commit run is "not run" when that commit only adds rows to existing characterization listings
-# (char_first.py --listing-additions); the new rows are proven at head (G6).
+# (char_first.py --listing-additions); the new rows are left to the run at head (G6).
 #
 # G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census twice
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
@@ -170,7 +170,7 @@ elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]] && \
     # Owner-approved Nov 13 2026: a first commit that only adds rows to existing listings (.tsv data an
     # unchanged characterization test compares line for line) cannot pass there when a row is for an entry
     # new in this pull request, by construction. Its existing rows are byte-for-byte and in order what the
-    # merge base had, and main passes them; the new rows run at head in G6. Nothing ran, so never PASS.
+    # merge base had, and main passes them; the new rows are left to G6 at head. Nothing ran, so never PASS.
     # Any other first commit (a .java test, a new file, a changed, removed or reordered row) runs below.
     record "G5 tests pass at the first commit" "not run" "$additions"
 elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then

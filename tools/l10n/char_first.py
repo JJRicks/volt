@@ -25,14 +25,18 @@ in the same pull request cannot pass at the first commit, where the code does no
 Exit 0 and one line of detail when every characterization file the range changes is such a listing,
 present at the merge base, at the first commit and at head, and every line it had at the merge base is
 still there byte for byte and in order, with at least one line added, the same at the first commit and at
-head, and an active entry of a tests/l10n/*.sources list (as tests/run.sh reads them) names a test that
-reads it at head. Exit 1 and the reason otherwise: a .java test (code, which decides what is checked), a
-new file, a changed, removed or reordered row, or a listing no listed test reads still gets the first-commit
-run.
+head, and a test tests/run.sh runs at head reads it: an active entry of a tests/l10n/*.sources list (read
+as tests/run.sh reads them) under tests/l10n/characterization/ that matches tests/run.sh's own rule for what
+it runs (RUN_PATTERN, pinned to tests/run.sh by test_frozen_and_first.py), declares a main method and names
+the listing's file. Exit 1 and the reason otherwise: a .java test (code, which decides what is checked), a
+new file, a changed, removed or reordered row, or a listing no test that runs reads still gets the
+first-commit run.
 """
 
 import argparse
+import fnmatch
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -81,7 +85,10 @@ def run(base, head, require=False, cwd=None):
 
 
 LISTING_SUFFIX = ".tsv"
-SOURCES_GLOB = "tests/l10n/*.sources"
+# tests/run.sh runs a listed entry only when it matches this bash pattern ([[ "$line" == tests/l10n/*Test.java ]],
+# where * also matches "/"); compiled-only helpers never run. test_frozen_and_first.py fails if run.sh's rule changes.
+RUN_PATTERN = "tests/l10n/*Test.java"
+MAIN = re.compile(r"\bstatic\s+void\s+main\s*\(")
 
 
 def _lines(text):
@@ -112,6 +119,11 @@ def _active_entries(rev, cwd=None):
     return entries
 
 
+def runs_in_run_sh(entry):
+    """Whether tests/run.sh runs this active .sources entry (fnmatch's * matches "/", as bash's does here)."""
+    return fnmatch.fnmatchcase(entry, RUN_PATTERN)
+
+
 def listing_additions(base, head, cwd=None):
     """(True, detail) when the range only adds rows to existing characterization listings, else (False, reason)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -129,7 +141,7 @@ def listing_additions(base, head, cwd=None):
     at_first = l10nlib.read_files(first, paths, cwd)
     at_head = l10nlib.read_files(head, paths, cwd)
     entries = _active_entries(head, cwd)
-    readers = l10nlib.read_files(head, [e for e in entries if e.startswith(CHAR_DIR) and e.endswith(".java")], cwd)
+    readers = l10nlib.read_files(head, [e for e in entries if e.startswith(CHAR_DIR) and runs_in_run_sh(e)], cwd)
     kept = added = 0
     for path in paths:
         if at_base[path] is None:
@@ -142,12 +154,13 @@ def listing_additions(base, head, cwd=None):
         if len(new) <= len(old) or not _kept_in_order(old, new):
             return False, "%s changes, removes or reorders a line it had at the merge base" % path
         name = os.path.basename(path)
-        if not any(text and name in text for text in readers.values()):
-            return False, "no active characterization test in a tests/l10n/*.sources list reads %s" % path
+        if not any(text and name in text and MAIN.search(text) for text in readers.values()):
+            return False, "no characterization test that tests/run.sh runs (%s, listed, with a main method) reads %s" % (
+                RUN_PATTERN, path)
         kept += len(old)
         added += len(new) - len(old)
     return True, ("the first commit %s only adds rows to %s; existing rows unchanged (%d lines), new rows (%d) "
-                  "are proven at head (G6)" % (l10nlib.short(first), ", ".join(paths), kept, added))
+                  "are left to the run at head (G6)" % (l10nlib.short(first), ", ".join(paths), kept, added))
 
 
 def main(argv=None):

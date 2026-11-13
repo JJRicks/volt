@@ -854,9 +854,10 @@ runs them there.
 A batch whose first commit only adds rows to existing listings (the `.tsv` data files that an unchanged,
 listed characterization test compares with the code's output line for line) skips that run, since a row
 for an entry new in the same pull request cannot pass on the base code: `char_first.py --listing-additions`
-checks that every line the listing had at the merge base is still there byte for byte and in order, and the
-report reads `not run` with the counts (owner-approved Nov 13 2026); a changed, removed or reordered row, a
-new listing or any `.java` change still runs at the first commit.
+checks that every line the listing had at the merge base is still there byte for byte and in order and that a
+test `tests/run.sh` runs reads it, and the report reads `not run` with the counts, leaving the new rows to the
+run at head (G6) (owner-approved Nov 13 2026); a changed, removed or reordered row, a new listing or any
+`.java` change still runs at the first commit.
 
 **G8** is a Python tool run in CI, instead of the plan's `tests/l10n/HardcodedTextLint.java`, so it
 shares the Java lexer with the other gates. It flags any literal with letters inside a platform UI
