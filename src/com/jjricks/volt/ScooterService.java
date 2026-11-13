@@ -605,10 +605,12 @@ public final class ScooterService extends Service {
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
             return T.serviceChargeReconnecting(Fmt.integer(Math.max(1,(chargeRecovery.remainingMs(SystemClock.elapsedRealtime())+999)/1000)));
-        return (chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
+        String status=(chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
                         :chargeStore.paused()?T.serviceChargeStockSchedulePaused():T.serviceChargeStockSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount())))
                 :(chargeStore.chargerPaused()?T.serviceChargeFastChargerPaused()
                         :chargeStore.paused()?T.serviceChargeFastSchedulePaused():T.serviceChargeFastSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount()))));
+        // A guessed label names a charger nobody chose and detection has not settled: say so.
+        return chargeStore.labelSource()==ChargeSessionStore.LabelSource.GUESS?T.serviceChargeChargerGuessed(status):status;
     }
     /** Qualified sessions behind the curve estimates actually use; 0 while the charger is unknown, -1 while loading. */
     public int qualifiedChargeCurves(){

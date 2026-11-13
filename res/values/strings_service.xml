@@ -132,6 +132,8 @@
     <string name="service_charge_saved" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording saved</string>
     <!-- A recording Volt started by itself ended too short to keep (under 10 minutes or under 5 battery percentage points), so it was deleted. -->
     <string name="service_charge_not_kept" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording not kept · under 10 min or 5%%</string>
+    <!-- %1$s is the recording status, which starts with the charger ("Stock charger · 12 local samples"): that charger is Volt's guess, neither chosen nor detected yet. -->
+    <string name="service_charge_charger_guessed" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">%1$s · charger guessed</string>
     <string name="service_charge_storage_error" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped after a storage error</string>
     <!-- %1$s says why, one of the service_charge_stop_* labels below (lower case, as English shows them). -->
     <string name="service_charge_stopped_reason" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped · %1$s</string>
