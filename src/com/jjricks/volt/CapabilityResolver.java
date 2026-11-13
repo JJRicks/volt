@@ -301,7 +301,7 @@ public final class CapabilityResolver {
     }
 
     /** Short UI copy, deferred: "" for NONE, else a Msg (its english() is what logs keep). */
-    static CharSequence message(Reason reason){
+    public static CharSequence message(Reason reason){
         switch(reason){
             case NONE: return "";
             case NOT_CONNECTED: return M.controlsReasonNotConnected();

@@ -19,7 +19,7 @@ import java.util.function.Predicate;
  * only where the model really lacks it, "Not mapped for this model" where Volt only lacks a mapping). Nothing here
  * changes which shortcuts exist or their ids.
  */
-final class ShortcutPicker {
+public final class ShortcutPicker {
     private ShortcutPicker() {}
 
     /**
@@ -38,19 +38,19 @@ final class ShortcutPicker {
             RIDE, BATTERY, LIGHTS, LINE_LIGHTS, STAR_LIGHTS, SECURITY, PREFERENCES, PAGES, MENUS, EXPERIMENTAL, UNAVAILABLE));
 
     /** The last section for a reason a shortcut can't be used (see UNAVAILABLE). */
-    static String unavailableSection(CapabilityResolver.Reason reason) {
+    public static String unavailableSection(CapabilityResolver.Reason reason) {
         CapabilityResolver.Reason shown = canonical(reason);
         return shown == CapabilityResolver.Reason.MODEL_EXCLUDED ? UNAVAILABLE
                 : UNAVAILABLE + ":" + shown.name().toLowerCase(java.util.Locale.ROOT);
     }
 
     /** Whether a section holds shortcuts the scooter can't use. */
-    static boolean unavailableSection(String sectionId) {
+    public static boolean unavailableSection(String sectionId) {
         return sectionId != null && (sectionId.equals(UNAVAILABLE) || sectionId.startsWith(UNAVAILABLE + ":"));
     }
 
     /** The reason an unavailable section stands for (its name is CapabilityResolver.message of it), or null. */
-    static CapabilityResolver.Reason reasonOf(String sectionId) {
+    public static CapabilityResolver.Reason reasonOf(String sectionId) {
         if (!unavailableSection(sectionId)) return null;
         if (sectionId.equals(UNAVAILABLE)) return CapabilityResolver.Reason.MODEL_EXCLUDED;
         try {
@@ -65,7 +65,7 @@ final class ShortcutPicker {
      * MODEL_NOT_IDENTIFIED, TRANSPORT_UNSUPPORTED as PRODUCT_UNSUPPORTED). No reason at all means Volt has no mapping:
      * never a claim about the scooter.
      */
-    static CapabilityResolver.Reason canonical(CapabilityResolver.Reason reason) {
+    public static CapabilityResolver.Reason canonical(CapabilityResolver.Reason reason) {
         if (reason == null || reason == CapabilityResolver.Reason.NONE) return CapabilityResolver.Reason.MODEL_NOT_MAPPED;
         if (reason == CapabilityResolver.Reason.FULL_PID_NEEDED) return CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED;
         if (reason == CapabilityResolver.Reason.TRANSPORT_UNSUPPORTED) return CapabilityResolver.Reason.PRODUCT_UNSUPPORTED;
@@ -216,7 +216,7 @@ final class ShortcutPicker {
     static boolean unavailable(QuickAccessActions.Entry entry, Scooter scooter) { return missing(entry, scooter) != null; }
 
     /** The charge schedule's own shortcuts (Charge done by, Charge done by time). */
-    static final List<String> SCHEDULE_IDS = Collections.unmodifiableList(java.util.Arrays.asList("charge_done_by", "charge_done_time"));
+    public static final List<String> SCHEDULE_IDS = Collections.unmodifiableList(java.util.Arrays.asList("charge_done_by", "charge_done_time"));
     /** The light menus that list only one light's controls, and those controls' key prefix (MainActivity.showQuickSettings). */
     private static final Map<String, String> LIGHT_MENUS = new LinkedHashMap<>();
     static { LIGHT_MENUS.put("section:Line lights", "line_"); LIGHT_MENUS.put("section:Star lights", "star_"); }
