@@ -43,6 +43,9 @@ public final class ChargeAutoRecordPolicyTest {
         storeUnreadableNeverCostsAnother();
         storeJustSavedNeverTrimmed();
         testHolds();
+        choiceAllowed();
+        storeChoiceRelabels();
+        storeChoiceCutShort();
         System.out.println("ChargeAutoRecordPolicyTest: " + checks + " checks");
     }
 
@@ -478,6 +481,49 @@ public final class ChargeAutoRecordPolicyTest {
         String id = active(f).getName().substring(0, 36);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "The kept recording is reported saved");
         check(saved(f).contains(id + ".csv") && saved(f).size() == max && automaticCount(f) == 2, "It is still there; one older-dated automatic one made room");
+    }
+
+    /** Terra (bd671732): the lock on the charger choice is only for a label the owner chose. */
+    static void choiceAllowed() {
+        check(ChargeAutoRecordPolicy.choiceAllowed(false, null), "No recording: the choice is open");
+        check(!ChargeAutoRecordPolicy.choiceAllowed(true, null), "A manual recording: locked");
+        check(!ChargeAutoRecordPolicy.choiceAllowed(true, CHOSEN), "An automatic recording with the chosen charger: locked");
+        check(ChargeAutoRecordPolicy.choiceAllowed(true, GUESS), "An automatic recording with a guess: open");
+        check(ChargeAutoRecordPolicy.choiceAllowed(true, DETECTED), "An automatic recording with a detected label: open (the owner overrides detection)");
+    }
+
+    /** The owner's choice relabels a guess or a detected label CHOSEN, it learns that charger, and detection never changes it again. */
+    static void storeChoiceRelabels() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        store.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(store, 30, 15);
+        check(ChargeAutoRecordPolicy.choiceAllowed(true, store.labelSource()) && store.relabel(FAST, CHOSEN), "The owner's choice relabels a guess");
+        check(store.labelSource() == CHOSEN && store.charger() == FAST && id(f).charAt(14) == 'a', "Chosen high-speed: " + id(f));
+        check(!ChargeAutoRecordPolicy.choiceAllowed(true, store.labelSource()), "Once chosen, the choice is locked again");
+        check(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), STOCK) == null, "Detection never overrides the owner's choice");
+        charge(store, 30, 15);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "Kept");
+        ChargeSessionStore.Curve learned = store.snapshot().curves.get(ChargeSessionStore.key("one", FAST));
+        check(learned != null && learned.qualifiedSessions == 1, "The chosen recording teaches the high-speed curve");
+        check(store.snapshot().curves.get(ChargeSessionStore.key("one", STOCK)) == null, "and not the guessed stock one");
+        File g = folder(); ChargeSessionStore detected = store(g);
+        detected.startAutomatic("one", STOCK, DETECTED, WALL, MONO); charge(detected, 30, 15);
+        check(detected.relabel(STOCK, CHOSEN) && detected.labelSource() == CHOSEN && detected.charger() == STOCK && id(g).charAt(14) == 'a',
+                "The owner confirming a detected family makes it chosen: " + id(g));
+    }
+
+    /** A process end between the header rewrite and the rename: one readable recording naming the owner's charger under its old source, which teaches nothing for a guess. */
+    static void storeChoiceCutShort() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        store.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(store, 30, 15);
+        File before = active(f);
+        check(store.relabel(FAST, CHOSEN), "Relabelled");
+        // The header is rewritten; put the old name back, as if the process ended before the rename.
+        check(active(f).renameTo(before), "Name put back");
+        ChargeSessionStore recovered = store(f);
+        List<ChargeSessionStore.HistorySession> list = recovered.recordings("one");
+        check(names(f).size() == 1 && list.size() == 1, "One recording: " + names(f));
+        check(list.get(0).charger == FAST && list.get(0).labelSource == GUESS, "The owner's charger under the guess's name: " + list.get(0).charger + " " + list.get(0).labelSource);
+        check(!ChargeSessionStore.learnsCurve(list.get(0).id) && recovered.snapshot().curves.get(ChargeSessionStore.key("one", FAST)) == null, "A recording still named a guess teaches nothing");
     }
 
     /** Terra (8be6104f) #4: any unfinished test that may still write back holds an automatic start. */

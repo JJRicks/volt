@@ -178,7 +178,7 @@ public final class PhoneRideValidation extends Instrumentation {
             finally { finished.countDown(); }
         });
         require(finished.await(5, TimeUnit.SECONDS), "Synthetic location callbacks did not finish");
-        if (failure.get() != null) throw new IllegalStateException("Synthetic GPS callback failed", failure.get());
+        if (failure.get() != null) throw new IllegalStateException("Synthetic GPS callback failed: " + failure.get(), failure.get());
     }
 
     private void immediateStopLifecycle() {

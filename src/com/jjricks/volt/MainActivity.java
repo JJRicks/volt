@@ -549,10 +549,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(maintenancePending&&!ridingRestore&&HubPages.tabOf(selectedPage).equals(HubPages.SCOOTER)){pendMaintenance(false);showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         HubNav.Args args=pageArgs;pageArgs=null;
         screen=createScreen(selectedPage,args);
-        if(horizontalHinge()&&screen instanceof DashboardScreen){
-            // Tabletop posture: Home's header sits in the upper pane, the widgets below the hinge.
+        if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
+            // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
-            header.addView(((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
+            header.addView(screen instanceof CleanHomeScreen?((CleanHomeScreen)screen).takeHeader():((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
         }
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
@@ -575,14 +575,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         showUpdateCheck();
     }
     /**
-     * The screen for a page. Home's pages show the dashboard; the Scooter tab's subject pages, the Ride pages (ride.rides,
-     * ride.recording, ride.riding), data.storage and Settings' sub-pages (settings.scooters/units/about/developer) have
-     * screens of their own; any other page, one with no screen yet such as settings.home, shows its tab's screen
-     * (HubPages.tabOf). args are the page's one-shot arguments (ScreenHost.open), or null.
+     * The screen for a page. Home's pages show Clean Home or the widget dashboard (home_style); the Scooter tab's subject
+     * pages, the Ride pages (ride.rides, ride.recording, ride.riding), data.storage and Settings' sub-pages
+     * (settings.home/scooters/units/about/developer) have screens of their own; any other page, one with no screen yet,
+     * shows its tab's screen (HubPages.tabOf). args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
+        // Settings › Home style; while the tab bar remains it opens on the Settings tab.
+        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this);
         switch(HubPages.tabOf(page)){
-            case HubPages.HOME:return new DashboardScreen(this,new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}});
+            // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
+            case HubPages.HOME:return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
             case HubPages.SCOOTER:return scooterPage(page,args);
             default:break;
         }
@@ -614,6 +617,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(moreHosted&&scooterService==null)return new LoadingScreen();
         switch(page){
             case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
+            // Usable ride energy (Experimental) below the page's rows: Clean Home has no widgets to hold it (part 8).
+            case HubPages.BATTERY_ESTIMATES:return new HubPageScreen(this,new ControlsScreen(spec),new UsableEnergyPanel(this,homeActions()));
             case HubPages.SECURITY:return new HubPageScreen(this,securityLock(),new ControlsScreen(spec),new MoreScreen(this,"Security",true));
             case HubPages.BATTERY_HISTORY:return new MoreScreen(this,MoreScreen.CHARGING_SECTION,true);
             case HubPages.SERVICE_REPORTS:return new MoreScreen(this,MoreScreen.REPORTS_SECTION,true);
@@ -668,6 +673,28 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences.edit().putString("stats_section","Diagnostics").apply();
         scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
         open(HubPages.DATA);
+    }
+    /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
+    private DashboardScreen.Actions homeActions(){
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+            // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
+            public void openSearch(){open(HubPages.SCOOTER);focusPageSearch();}
+            public void openSettings(){open(HubPages.SETTINGS);}
+            // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
+            public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
+    }
+    /** Puts the cursor in the page's first search field and shows the keyboard (Home's search button). */
+    private void focusPageSearch(){
+        View page=screen==null?null:screen.view();
+        EditText field=page==null?null:firstEditText(page);
+        if(field==null)return;
+        field.requestFocus();
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+    }
+    private static EditText firstEditText(View view){
+        if(view instanceof EditText)return (EditText)view;
+        if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){EditText found=firstEditText(group.getChildAt(i));if(found!=null)return found;}}
+        return null;
     }
     private void styleSystemBars(){
         // Samsung's Window getter can dereference a missing decor during onCreate.
@@ -2103,17 +2130,20 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockLine.value.setTextColor(chip!=null&&!accepted?design.danger:design.muted);
             clockLine.line.setContentDescription(clockPending?T.mainRowClockSending():accepted?T.mainRowClockSent(DisplayTime.clock(MainActivity.this,preferences,sent)):chip!=null?T.mainRowClockChip(chip):T.mainRowClock());
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();nameValue.setText(profile==null?T.mainRowNameNotSet():profile.name);
-            boolean chargerEditable=profile!=null&&!scooterService.isChargeRecording();
+            boolean chargerEditable=profile!=null&&scooterService.chargerChoosable();
             if(profile!=null)nameValue.setText(profile.shownName());
             chargerLine.line.setEnabled(chargerEditable);chargerLine.name.setTextColor(chargerEditable?design.text:design.muted);
             // Name the family estimates actually use, and why when it is not the saved choice.
             ScooterService.ChargerBasis basis=scooterService==null?ScooterService.ChargerBasis.UNKNOWN:scooterService.chargerBasis();
             ChargeSessionStore.Charger effective=scooterService==null?null:scooterService.effectiveChargeCharger();
             String family=effective==ChargeSessionStore.Charger.HIGH_SPEED?T.mainRowHighSpeed():T.mainRowStock();
-            chargerLine.value.setText(effective==null?T.mainRowAutomatic():basis==ScooterService.ChargerBasis.DETECTED?T.mainRowAutoFamily(family):family);
-            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING?T.mainRowRecordingLabel()
-                    :basis==ScooterService.ChargerBasis.DETECTED?T.mainRowDetected()
-                    :scooterService!=null&&scooterService.isChargeRecording()?T.mainRowStopRecording():null);
+            // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+            boolean chargerLocked=scooterService!=null&&!scooterService.chargerChoosable();
+            boolean detectedFamily=basis==ScooterService.ChargerBasis.DETECTED||basis==ScooterService.ChargerBasis.RECORDING&&!chargerLocked;
+            chargerLine.value.setText(effective==null?T.mainRowAutomatic():detectedFamily?T.mainRowAutoFamily(family):family);
+            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING&&chargerLocked?T.mainRowRecordingLabel()
+                    :detectedFamily?T.mainRowDetected()
+                    :chargerLocked?T.mainRowStopRecording():null);
             if(choiceSheet!=null)choiceSheet.refresh();
         }
     }
@@ -2129,19 +2159,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
-            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
-            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
-            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
-            showChargeAlerts(); return;
-        }
+        // Battery alerts (Clean's own, in place of Charge done by on models without scheduled charging, owner's answer
+        // 11; the same id as the Quick access Charge alerts shortcut): one action for both homes. A stored or restored
+        // four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
         if (id.equals("charge_done_by")) { toggleChargeDoneBy(); return; }
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
-        if (id.equals(QuickAccessActions.CHARGE_ALERTS_ID)) { chargeAlertsShortcut(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
         if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
@@ -3723,7 +3749,7 @@ public final class MainActivity extends Activity implements ScreenHost {
 
     /** Local per-scooter estimate preference: never sends a charger command or starts capture. */
     private void showChargerEstimateChoice(){
-        if(scooterService==null||scooterService.profiles.active()==null||scooterService.isChargeRecording())return;
+        if(scooterService==null||scooterService.profiles.active()==null||!scooterService.chargerChoosable())return;
         String profile=scooterService.profiles.active().id;
         final AlertDialog[] sheet=new AlertDialog[1];
         LinearLayout content=sheetContent(T.mainRowCharger(),

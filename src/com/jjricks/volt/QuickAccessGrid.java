@@ -34,13 +34,26 @@ final class QuickAccessGrid extends ViewGroup {
 
     /** {@code tiles} selects the Setting tiles presentation; callers normalize its one-to-four ids. */
     QuickAccessGrid(ScreenHost host, List<String> ids, boolean editing, Consumer<String> action, boolean tiles) {
+        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find);
+    }
+
+    /**
+     * Clean Home's four (HomeQuickActions): ids already normalized by the caller, resolved by entries that may lie
+     * outside the catalog (its own Ride and Record), as round buttons.
+     */
+    QuickAccessGrid(ScreenHost host, List<String> ids, Consumer<String> action, java.util.function.Function<String, QuickAccessActions.Entry> entries) {
+        this(host, ids, false, action, false, entries);
+    }
+
+    private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
+                            java.util.function.Function<String, QuickAccessActions.Entry> entries) {
         super(host.activity());
         this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles;
         setTag(tiles ? "setting-tiles" : "quick-access-grid");
-        List<String> shown = tiles ? ids : QuickAccessActions.normalize(ids);
         for (String id : shown) {
-            if (QuickAccessActions.find(id) == null) continue;
-            Cell cell = new Cell(QuickAccessActions.find(id));
+            QuickAccessActions.Entry entry = entries.apply(id);
+            if (entry == null) continue;
+            Cell cell = new Cell(entry);
             cell.setOnClickListener(v -> { if (!editing) action.accept(id); });
             cells.add(cell); addView(cell);
         }
@@ -121,6 +134,8 @@ final class QuickAccessGrid extends ViewGroup {
                 } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
+            // Clean Home's Record action says so while a ride is being recorded.
+            if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             if (alerts) {
@@ -182,6 +197,16 @@ final class QuickAccessGrid extends ViewGroup {
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
+            // The RIDE action is spoken as the RIDE pill is ("Open riding mode"), not as a shortcut that opens a menu.
+            Msg spoken = tiles ? null : HubText.quickActionDescription(cell.entry.id);
+            // Clean's Record while a ride records ends and saves it, and says so as riding mode's record control does.
+            if (HomeQuickActions.endsRide(cell.entry.id, service != null && service.isRecording())) description = RidingScreen.endRideSpoken();
+            // Idle, it starts one, and says so in the recorder disc's words, as riding mode's Record does: "Start
+            // recording", or why it can't yet (the last ride still saving, no scooter connected).
+            else if (HomeQuickActions.startsRide(cell.entry.id, service != null && service.isRecording()))
+                description = DashboardScreen.recordIdleSpoken(service != null && service.phoneSaving(),
+                        service != null && service.ble.ready(), false);
+            else if (spoken != null) description = spoken.render();
             cell.setContentDescription(description);
             if (android.os.Build.VERSION.SDK_INT >= 30) cell.setStateDescription(state);
         }
@@ -233,14 +258,22 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
+        /**
+         * Clean Home's way into riding mode (owner's answer 6 on #383): it reads as entering another mode, not as a
+         * shortcut to a settings menu, so it takes the Widgets header's RIDE pill look: accent fill, a pill shape,
+         * the speedometer and the word in onAccent, letter-spaced. Only Clean holds this id; Widgets' pill is untouched.
+         */
+        final boolean ride;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
+            ride = !tiles && HomeQuickActions.RIDING.equals(entry.id);
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
             // Narrow rows must not depend on a device-specific RippleDrawable outline
             // when their pressed/selected state or dimensions change.
             setOutlineProvider(new ViewOutlineProvider() {
                 @Override public void getOutline(View view, android.graphics.Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), ui.dp(cornerRadius()));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(),
+                            Math.min(ui.dp(cornerRadius()), Math.min(view.getWidth(), view.getHeight()) / 2f));
                 }
             });
             setClipToOutline(true);
@@ -276,10 +309,14 @@ final class QuickAccessGrid extends ViewGroup {
             setTag("quick-action:" + entry.id);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setMinimumHeight(ui.dp(48));
-            icon = ui.icon(entry.icon, 20, ui.accent);
+            icon = ui.icon(entry.icon, 20, ride ? ui.onAccent : ui.accent);
             addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
             label = ui.text(entry.label(), 12, false);
             label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
+            if (ride) {
+                label.setTypeface(label.getTypeface(), android.graphics.Typeface.BOLD);
+                label.setTextColor(ui.onAccent); label.setLetterSpacing(.06f);
+            }
             label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
             addView(label, new LinearLayout.LayoutParams(-1, -2));
             value = ui.text("", 11, false); value.setTypeface(ui.medium());
@@ -307,12 +344,18 @@ final class QuickAccessGrid extends ViewGroup {
                         ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
+            if (ride) {
+                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.onAccent, 40)),
+                        ui.shape(ui.accent, radius, 0), ui.shape(android.graphics.Color.WHITE, radius, 0)));
+                return;
+            }
             setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
                     ui.shape(isSelected() ? Ui.withAlpha(ui.accent, 35) : ui.raised, radius,
                             isSelected() ? Ui.withAlpha(ui.accent, 100) : 0),
                     ui.shape(android.graphics.Color.WHITE, radius, 0)));
         }
-        private float cornerRadius() { return tiles ? 20 : 12; }
+        /** The RIDE action is a pill: its radius is clamped to half the shorter side by the drawable and the outline. */
+        private float cornerRadius() { return tiles ? 20 : ride ? 100 : 12; }
         int blendAccent() {
             float a = ui.dark ? .14f : .08f;
             int from = ui.surface, to = ui.accent;

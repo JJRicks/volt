@@ -213,6 +213,11 @@ public final class MoreScreen implements AppScreen {
         onboarding();
         sectionMenu = group();
         if (wide) sectionMenu.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
+        // Settings › Home style (hub layout plan, PR 8): its own page; the line under it names the current style.
+        Row homeStyle = row(sectionMenu, "home", HubText.title(HubPages.SETTINGS_HOME),
+                HubText.homeStyleName(HomeStyle.CLEAN.equals(HomeStylePrefs.of(settings()))), () -> host.open(HubPages.SETTINGS_HOME));
+        homeStyle.view.setTag("home-style-menu");
+        if (wide) homeStyle.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
         Row backup = row(sectionMenu, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
         backup.view.setTag("data-backup");
         // The wide menu pads every row alike, so this one lines up with the section rows below it.
@@ -2851,10 +2856,12 @@ public final class MoreScreen implements AppScreen {
     private void refreshChargerLink(ScooterService s) {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
-        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+        boolean locked = s != null && !s.chargerChoosable();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED || basis == ScooterService.ChargerBasis.RECORDING && !locked;
         chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
-        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING && locked, detected, locked);
         chargerDetail.setText(detail == null ? "" : detail.render());
         chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }

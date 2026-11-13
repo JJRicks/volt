@@ -28,9 +28,9 @@ final class HomeQuickActions {
     /** Starts or stops recording a ride (RideRecordingApp's one toggle). Clean only. */
     static final String RECORD = "record";
     /** Opens the Battery alerts sheet (MainActivity.showChargeAlerts). Clean only, and only where alerts are offered. */
-    static final String CHARGE_ALERTS = "charge_alerts";
-    /** Ui icon keys for the Clean-only actions. */
-    static final String ICON_RIDING = "scooter", ICON_RECORD = "record", ICON_CHARGE_ALERTS = "bolt";
+    static final String CHARGE_ALERTS = QuickAccessActions.CHARGE_ALERTS_ID;
+    /** Ui icon keys for the Clean-only actions; RIDE shows the Widgets header RIDE pill's speedometer. */
+    static final String ICON_RIDING = "speed", ICON_RECORD = "record", ICON_CHARGE_ALERTS = "bolt";
     /** Per-scooter key prefix; the profile id follows. */
     static final String KEY_PREFIX = "home_quick_v1_";
     static final int COUNT = 4;
@@ -52,10 +52,46 @@ final class HomeQuickActions {
     /** The stored key for a scooter profile. */
     static String key(String profileId) { return KEY_PREFIX + profileId; }
 
+    /**
+     * The Quick access entry Clean shows for an id: the catalog's, or for Clean's own an entry outside the catalog
+     * (QuickAccessActions.local) named by HubText, grouped under Ride (Charge alerts under Battery & charging).
+     * Null for an id Clean can't show.
+     */
+    static QuickAccessActions.Entry entry(String id) {
+        QuickAccessActions.Entry entry = QuickAccessActions.find(id);
+        if (entry != null || !cleanOnly(id)) return entry;
+        if (CHARGE_ALERTS.equals(id)) return QuickAccessActions.local(id, HubText.quickActionLabel(id),
+                HubText.quickActionShortLabel(id), ICON_CHARGE_ALERTS, HubText.title(HubPages.BATTERY));
+        return QuickAccessActions.local(id, HubText.quickActionLabel(id), HubText.quickActionShortLabel(id),
+                RIDING.equals(id) ? ICON_RIDING : ICON_RECORD, HubText.title(HubPages.RIDE));
+    }
+
+    /** Clean's own, as entries for the shortcut picker (listed before the catalog); Charge alerts only where offered. */
+    static List<QuickAccessActions.Entry> ownEntries(boolean chargeAlertsOffered) {
+        ArrayList<QuickAccessActions.Entry> entries = new ArrayList<>();
+        entries.add(entry(RIDING));
+        entries.add(entry(RECORD));
+        if (chargeAlertsOffered) entries.add(entry(CHARGE_ALERTS));
+        return Collections.unmodifiableList(entries);
+    }
+
     /** Whether Clean can show this id: one of its own, or any Quick access catalog id. */
     static boolean known(String id) {
         return id != null && (cleanOnly(id) || QuickAccessActions.find(id) != null);
     }
+
+    /**
+     * Whether activating this action now ends and saves a ride: Record while a ride is recording. Its spoken
+     * description then says so, in riding mode's own words for its record control (council review 5885572395).
+     */
+    static boolean endsRide(String id, boolean recording) { return recording && RECORD.equals(id); }
+
+    /**
+     * Whether activating this action now starts a recording: Record with no ride recording. Its spoken description
+     * then says so in the widget dashboard's recorder words ("Start recording"), not as a shortcut that opens
+     * something (council review 5886249378).
+     */
+    static boolean startsRide(String id, boolean recording) { return !recording && RECORD.equals(id); }
 
     /** Whether an id is one of Clean's own, which Widgets never stores. */
     static boolean cleanOnly(String id) { return RIDING.equals(id) || RECORD.equals(id) || CHARGE_ALERTS.equals(id); }
