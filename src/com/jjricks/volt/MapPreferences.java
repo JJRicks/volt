@@ -9,6 +9,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+import java.lang.ref.WeakReference;
+import java.util.List;
 import java.util.function.Consumer;
 
 /** Map privacy/provider preferences shared by App preferences and ride rendering. */
@@ -218,6 +220,50 @@ public final class MapPreferences {
         SharedPreferences.Editor answer = settings.edit().putBoolean(MapDefault.SWITCH_ANSWERED_KEY, true);
         (switchToOsm ? MapSource.OSM : MapSource.USGS).put(answer);
         answer.apply();
+    }
+
+    /** The offer showing now, so two maps of one ride (inline and expanded) never ask at once. */
+    private static WeakReference<AlertDialog> shownSwitch = new WeakReference<>(null);
+
+    /**
+     * Asks once whether someone kept on USGS (MapDefault.keepsUsgs) wants OpenStreetMap, when the basemap
+     * shows a ride lying wholly outside USGS coverage (MapDefault.offersSwitch). Every answer, Back
+     * included, is saved as their own choice, so it never shows again; open maps follow the change through
+     * RidesScreen.mapPanel's provider listener. Checked again when it would show, after the map is built.
+     */
+    static void offerOsmSwitch(ScreenHost host, List<PhoneRideStore.Point> points) {
+        SharedPreferences settings = host.service().settings;
+        double[] latitudes = new double[points.size()], longitudes = new double[points.size()];
+        for (int i = 0; i < points.size(); i++) { latitudes[i] = points.get(i).latitude; longitudes[i] = points.get(i).longitude; }
+        host.activity().getWindow().getDecorView().post(() -> {
+            if (host.activity().isFinishing() || host.activity().isDestroyed()) return;
+            AlertDialog showing = shownSwitch.get();
+            if (showing != null && showing.isShowing() && showing.getOwnerActivity() == host.activity()) return;
+            if (!MapDefault.offersSwitch(settings.contains(MapDefault.URL_KEY), enabled(settings),
+                    settings.getBoolean(MapDefault.EXPLAINED_KEY, false), settings.getBoolean(MapDefault.SWITCH_ANSWERED_KEY, false),
+                    MapDefault.anyInUsgsArea(latitudes, longitudes))) return;
+            Ui ui = host.ui();
+            LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
+            body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
+            body.addView(ui.text(T.mapsSwitchOsmTitle(), 21, true));
+            TextView message = ui.text(T.mapsSwitchOsmMessage(), 15, false);
+            message.setPadding(0, ui.dp(12), 0, 0); body.addView(message);
+            ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll)
+                    .setNegativeButton(T.mapsSwitchOsmKeep(), (d, which) -> answerUsgsSwitch(settings, false))
+                    .setPositiveButton(T.mapsSwitchOsmSwitch(), (d, which) -> answerUsgsSwitch(settings, true)).create();
+            // Back answers Keep USGS; a stray tap beside the dialog answers nothing.
+            dialog.setOnCancelListener(d -> answerUsgsSwitch(settings, false));
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.setOnDismissListener(d -> { if (shownSwitch.get() == dialog) shownSwitch.clear(); });
+            dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline));
+            shownSwitch = new WeakReference<>(dialog);
+            Motion.present(dialog, Motion.DIALOG); dialog.show();
+            for (int which : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE}) {
+                dialog.getButton(which).setTextColor(ui.accent);
+                dialog.getButton(which).setTypeface(ui.semibold());
+            }
+        });
     }
 
     public static AlertDialog show(ScreenHost host) {
