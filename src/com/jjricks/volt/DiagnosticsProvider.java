@@ -150,8 +150,13 @@ public final class DiagnosticsProvider extends ContentProvider {
      * The snapshot for exactly content://<authority>/<id>/<name>, where name is volt-diagnostics.json or the charge
      * recordings' name; it exists only if that snapshot was made under that name. Else null.
      */
-    private File file(Uri uri) {
-        Context context = getContext();
+    private File file(Uri uri) { return file(getContext(), uri); }
+
+    /**
+     * As file(Uri), for a caller that holds a URI adopt() returned: the snapshot behind it (Email to Volt deletes it when
+     * the mailbox drops an attachment it never emailed; #419 review).
+     */
+    static File file(Context context, Uri uri) {
         if (context == null || uri == null || !"content".equals(uri.getScheme()) || !authority(context).equals(uri.getAuthority())) return null;
         List<String> path = uri.getPathSegments();
         if (path.size() != 2 || !ID.matcher(path.get(0)).matches() || suffix(path.get(1)) == null || uri.getQuery() != null) return null;
