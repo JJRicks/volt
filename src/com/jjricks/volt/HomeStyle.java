@@ -11,7 +11,8 @@ package com.jjricks.volt;
  * or while its first-run setup is under way (setup's end records it: its last step's pick, or
  * origin install and Clean when first-run setup is skipped); it records Widgets and {@link #ORIGIN_UPDATE} when it finds an
  * earlier owner, re-derives a missing style from a stored origin, and adds a missing origin next to a stored
- * style (a restore). A restore of a backup without a style keeps this phone's style and choice (BackupArchive).
+ * style (a restore). A restore of a backup without a style keeps this phone's style and choice (BackupArchive), and
+ * stores an unchosen Widgets on a phone with neither a style nor an origin yet ({@link #preHubRestoreStoresWidgets}).
  * Switching style only writes {@link #KEY}; nothing in either Home's storage is touched.
  */
 final class HomeStyle {
@@ -118,6 +119,21 @@ final class HomeStyle {
     }
 
     /**
+     * Whether restoring App preferences from a backup made before Home styles (no home_style) stores Widgets, unchosen:
+     * only on a phone with neither a style nor an origin yet, which is a fresh installation restoring from the welcome
+     * screen while first-run setup is under way (the seed waits for setup to end). Those preferences are an earlier
+     * owner's, whose Home was Widgets; a style stored without an origin is how setup's end recognises a restored
+     * earlier owner ({@link #pickedOrigin(String, boolean)}, {@link #afterSkippedSetup}), so that owner gets origin
+     * update and still sees the What's new sheet once, with the background-recording notice when the restored Record
+     * rides automatically is on (council early review of part 9, note 1). Absent already reads as Widgets, so Home
+     * looks the same. A stored style or origin is left to the rules around it; the restore never writes the origin
+     * itself (a device key: no restore changes those).
+     */
+    static boolean preHubRestoreStoresWidgets(boolean styleStored, Object storedOrigin) {
+        return !styleStored && !ORIGIN_INSTALL.equals(storedOrigin) && !ORIGIN_UPDATE.equals(storedOrigin);
+    }
+
+    /**
      * The style setup's last step shows selected: the one already picked there (pending), else the stored style on a
      * rerun of setup or on an installation that has one (absent reads as Widgets), else Clean, the preselected choice of
      * a new install (Joel 6).
@@ -186,6 +202,22 @@ final class HomeStyle {
      */
     static boolean whatsNewHasContent(boolean offer, boolean backgroundNotice, boolean hasNotes) {
         return offer || backgroundNotice || hasNotes;
+    }
+
+    /** The What's new sheet's sections, by {@link #whatsNewSections}. */
+    static final String SECTION_NOTICE = "notice", SECTION_OFFER = "offer", SECTION_NOTES = "notes";
+
+    /**
+     * The What's new sheet's sections in order, of those it holds: the background-recording notice first, then the
+     * offer to switch, then this version's notes. Either offer button closes the sheet, so the notice goes above the
+     * offer, where it is read before a choice closes it (council early review of part 9, note 4).
+     */
+    static java.util.List<String> whatsNewSections(boolean offer, boolean backgroundNotice, boolean hasNotes) {
+        java.util.List<String> sections = new java.util.ArrayList<>();
+        if (backgroundNotice) sections.add(SECTION_NOTICE);
+        if (offer) sections.add(SECTION_OFFER);
+        if (hasNotes) sections.add(SECTION_NOTES);
+        return sections;
     }
 
     /**
