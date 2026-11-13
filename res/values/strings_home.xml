@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Text that main keeps in its Home file, for the 1.13 release branch, which has no Hub. Only the keys
+  this branch uses are here, with main's key names, English and attributes, so main's translations
+  carry over by key. Here they make a one-time What's new dialog, shown once after an update to owners
+  who had Record rides automatically on.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== One-time What's new dialog, after an update ===== -->
+    <!-- The dialog's title. %1$s is the version the owner just updated to ("1.13.2"). Keep "Volt" as is. -->
+    <string name="home_whats_new_changes" volt:screen="One-time What's new sheet after an update" volt:purpose="heading" volt:dnt="Volt">What\'s new in Volt %1$s</string>
+    <!-- The dialog's message, shown only to owners who already had Record rides automatically on when they
+         updated: an automatic start now waits until Volt is on screen unless they turn on
+         hub_recording_auto_background ("Start recording in the background", shown right below as a switch).
+         A locked or dark screen counts as the background. Android does not let Volt turn on location from
+         the background, so such a ride has no map. Keep "Volt" and "GPS" as is. -->
+    <string name="home_whats_new_background" volt:screen="One-time What's new sheet after an update" volt:purpose="message" volt:safety="ride" volt:dnt="Volt|GPS">Volt now starts recording in the background only if you turn it on. A ride started in the background or with the screen locked has no GPS route.</string>
+</resources>

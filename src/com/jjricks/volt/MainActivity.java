@@ -146,6 +146,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
+    /** The open What's new note about background recording, if any (maybeShowBackgroundNotice). */
+    private AlertDialog backgroundNotice;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
     private AlertDialog quickMenuDialog;
@@ -429,7 +431,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
         if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         if(riding!=null&&scooterService!=null)riding.observeLink(scooterService.ble.connected());
-        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowBackgroundNotice();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -597,6 +599,52 @@ public final class MainActivity extends Activity implements ScreenHost {
         boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
         else if(!autoRecordLocationCancelled&&scooterService.offersAutoRecordLocation(clear))requestAutoRecordLocation(null);
+    }
+    /**
+     * The one-time What's new note for an owner who updated with Record rides automatically on (decided at process start,
+     * AutoStartPolicy.backgroundNoticeSeed): automatic starts now wait until Volt is in front unless Start recording in the
+     * background is on, and the dialog carries that switch. Only on a clear screen, as auto ride mode, one copy at a time.
+     * It stays due until the person closes it (OK, back, a tap outside) or changes the switch in it
+     * (AutoStartPolicy.backgroundNoticeClosed); Volt taking it down (a rebuild, the activity going away) leaves it due, so
+     * it comes back on the next clear screen.
+     */
+    private void maybeShowBackgroundNotice(){
+        if(startupRedirect||enteringMaintenance||rebuilding||preferences==null)return;
+        if(backgroundNotice!=null&&backgroundNotice.isShowing())return;
+        Object raw=preferences.getAll().get(AutoStartPolicy.BACKGROUND_NOTICE_KEY);
+        String stored=raw instanceof String?(String)raw:null;
+        if(!AutoStartPolicy.NOTICE_DUE.equals(stored))return;
+        boolean autoRecord=Boolean.TRUE.equals(preferences.getAll().get(AutoStartPolicy.AUTO_RECORD_KEY));
+        boolean background=Boolean.TRUE.equals(preferences.getAll().get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY));
+        String now=AutoStartPolicy.backgroundNoticeNow(stored,autoRecord,background);
+        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
+        boolean shows=AutoStartPolicy.showsBackgroundNotice(now,clear);
+        if(!now.equals(stored))preferences.edit().putString(AutoStartPolicy.BACKGROUND_NOTICE_KEY,now).apply();
+        if(!shows)return;
+        final View[] holder=new View[1];
+        View row=design.toggleRow(T.hubRecordingAutoBackground(),Ui.NO_ICON,null,false,true,on->{
+            preferences.edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY,on).apply();
+            closeBackgroundNotice(false,true);
+            // TalkBack hears the new state: Ui.toggleRow describes it only once.
+            ViewGroup parent=(ViewGroup)holder[0];View last=parent.getChildAt(parent.getChildCount()-1);
+            if(Build.VERSION.SDK_INT>=30&&last instanceof Switch)((Switch)last).setStateDescription(on?T.commonOn():T.commonOff());
+            redraw();
+        });
+        holder[0]=row;
+        row.setTag(AutoStartPolicy.BACKGROUND_NOTICE_ROW_TAG);
+        LinearLayout body=column();body.setPadding(design.dp(16),design.dp(4),design.dp(16),0);body.addView(row,new LinearLayout.LayoutParams(-1,-2));
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.homeWhatsNewChanges(AppVersion.name(this))))
+                .setMessage(T.homeWhatsNewBackground()).setView(body).setPositiveButton(T.commonOk(),(d,which)->closeBackgroundNotice(true,false)).create();
+        dialog.setOnCancelListener(d->closeBackgroundNotice(true,false));
+        dialog.setOnDismissListener(d->{if(backgroundNotice==dialog)backgroundNotice=null;});
+        backgroundNotice=dialog;controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    /** The note's state after the person closed it (byPerson) or changed its switch; a dismissal by Volt calls neither. */
+    private void closeBackgroundNotice(boolean byPerson,boolean switchChanged){
+        Object raw=preferences.getAll().get(AutoStartPolicy.BACKGROUND_NOTICE_KEY);
+        String stored=raw instanceof String?(String)raw:null;
+        String next=AutoStartPolicy.backgroundNoticeClosed(stored,byPerson,switchChanged);
+        if(next!=null&&!next.equals(stored))preferences.edit().putString(AutoStartPolicy.BACKGROUND_NOTICE_KEY,next).apply();
     }
     /** More holds Volt's setup flows, tests and text fields; Home and Scooter have editors. */
     private boolean inSetupOrEditor(){

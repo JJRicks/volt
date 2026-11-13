@@ -36,6 +36,9 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         try {
             Context context = getTargetContext();
             check(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish"), "Refusing physical phone");
+            // onStart runs on its own thread, possibly before VoltApp.onCreate has run on the main thread; a write here
+            // first would make that start see settings and seed the note. Wait until the app has started.
+            waitForIdleSync();
             check(prefs().getAll().isEmpty(), "Requires empty preferences: a fresh install's first start writes no note state");
             BluetoothAdapter adapter = context.getSystemService(BluetoothManager.class).getAdapter(); check(adapter == null || !adapter.isEnabled(), "Bluetooth must be off");
             prefs().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("map_basemap_enabled", false)
@@ -100,8 +103,12 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         prefs().edit().putBoolean(AUTO_RECORD, true).putString(NOTICE, "due").commit();
         main(() -> invoke(activity, "select", new Class[]{String.class}, "home")); settle();
         await(() -> showing() != null, "The What's new dialog shows on Home");
+        takenDownByVolt();
+        closedWithOkOnly();
+        prefs().edit().putString(NOTICE, "due").commit();
+        await(() -> showing() != null, "Due again: the note shows for the switch-then-OK case");
         AlertDialog dialog = showing(); View window = dialog.getWindow().getDecorView();
-        check("done".equals(prefs().getString(NOTICE, null)), "Marked done as it shows");
+        check("due".equals(prefs().getString(NOTICE, null)), "Still due while open: only the person closing it ends it");
         String version = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName;
         TextView title = text(window, "What's new in Volt " + version), message = text(window, MESSAGE);
         View row = window.findViewWithTag("whats-new-auto-record-background");
@@ -113,6 +120,7 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         screenshot("whats-new");
         main(row::performClick); settle();
         check(toggle.isChecked() && prefs().getBoolean(BACKGROUND, false), "The dialog's switch stores Start recording in the background");
+        check("done".equals(prefs().getString(NOTICE, null)), "Changing the switch in it ends the note");
         screenshot("whats-new-on");
         main(ok::performClick); settle();
         await(() -> showing() == null, "OK closes it");
@@ -122,6 +130,68 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         Switch more = find(activity.getWindow().getDecorView().findViewWithTag("preference-auto-record-background"), Switch.class);
         check(more.isChecked() && more.isEnabled(), "App preferences shows the switch as the dialog left it");
     }
+    /**
+     * The order a review named: the note is open on Home when the service binds again (its listener runs, then rebuild()) or
+     * a rebuild runs. Volt takes the dialog down; the note stays due and comes back on the next clear screen, one copy.
+     */
+    private void takenDownByVolt() throws Exception {
+        oneCopy("when it first opens");
+        main(() -> { IBinder binder = activity.service().onBind(new Intent(getTargetContext(), ScooterService.class));
+            ((ServiceConnection) field(activity, "serviceConnection")).onServiceConnected(new ComponentName(getTargetContext(), ScooterService.class), binder); });
+        settle();
+        check("due".equals(prefs().getString(NOTICE, null)), "Service bound again while the note was open: still due");
+        await(() -> showing() != null, "The note is still there or back after the service bound again");
+        oneCopy("after the bind");
+        main(() -> invoke(activity, "rebuild", new Class[0]));
+        settle();
+        check("due".equals(prefs().getString(NOTICE, null)), "A rebuild took it down: still due");
+        await(() -> showing() != null, "The note comes back on the next clear screen after a rebuild");
+        oneCopy("after the rebuild");
+        screenshot("whats-new-back");
+    }
+    /**
+     * The path most owners take: the note due, the switch untouched, OK. The note is done and gone, the switch stays off, and
+     * neither a rebuild nor the activity's once-a-second refresh brings it back.
+     */
+    private void closedWithOkOnly() throws Exception {
+        AlertDialog note = showing();
+        check(note != null && "due".equals(prefs().getString(NOTICE, null)), "OK-only case: the note open and due");
+        Switch untouched = find(note.getWindow().getDecorView().findViewWithTag("whats-new-auto-record-background"), Switch.class);
+        check(untouched != null && !untouched.isChecked(), "OK-only case: the switch untouched");
+        Button ok = note.getButton(AlertDialog.BUTTON_POSITIVE);
+        main(ok::performClick); settle();
+        await(() -> showing() == null && !note.isShowing(), "OK closes the note");
+        check("done".equals(prefs().getString(NOTICE, null)), "OK on a due note, switch untouched: done");
+        check(!prefs().getBoolean(BACKGROUND, false), "OK alone leaves Start recording in the background off");
+        main(() -> invoke(activity, "rebuild", new Class[0]));
+        settle();
+        main(() -> invoke(activity, "automaticRefresh", new Class[0]));
+        settle();
+        SystemClock.sleep(2500); waitForIdleSync();
+        check(showing() == null && copies() == 0, "Closed with OK: not back after a rebuild and the refresh");
+        check("done".equals(prefs().getString(NOTICE, null)), "Closed with OK: still done");
+    }
+    /** Exactly one note window on screen, counted over every window (not just the latest controlDialog), and still one a few refreshes later. */
+    private void oneCopy(String when) {
+        await(() -> copies() == 1, "One note on screen " + when);
+        SystemClock.sleep(2500); waitForIdleSync();
+        check(copies() == 1, "Still exactly one note on screen " + when + ", after a few refreshes");
+    }
+    /** Note dialogs on screen: windows whose content has the note's title. */
+    private int copies() {
+        if (!windowsRetrieved) {
+            android.accessibilityservice.AccessibilityServiceInfo info = getUiAutomation().getServiceInfo();
+            info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+            getUiAutomation().setServiceInfo(info); windowsRetrieved = true; SystemClock.sleep(300);
+        }
+        int count = 0;
+        for (android.view.accessibility.AccessibilityWindowInfo window : getUiAutomation().getWindows()) {
+            android.view.accessibility.AccessibilityNodeInfo root = window.getRoot();
+            if (root != null && !root.findAccessibilityNodeInfosByText("What's new in Volt").isEmpty()) count++;
+        }
+        return count;
+    }
+    private boolean windowsRetrieved;
     private AlertDialog showing() {
         AtomicReference<AlertDialog> found = new AtomicReference<>();
         main(() -> { Object d = field(activity, "controlDialog"); if (d instanceof AlertDialog && ((AlertDialog) d).isShowing()) found.set((AlertDialog) d); });
