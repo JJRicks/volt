@@ -396,6 +396,9 @@ public final class ShortcutPickerValidation extends Instrumentation {
             if (alerts) require(sectionOf(ALERTS).equals("unavailable") && ids.get(ids.size() - 1).equals("unavailable"), "The simulated UT5 MAX offers Charge alerts: " + ids);
             else require(!ids.contains("unavailable") || !rows("unavailable").isEmpty(), "Empty unavailable section");
         });
+        // Close the picker first: stopping simulation rebuilds Home, which reopens a picker left open for the same scooter.
+        main(() -> invoke(dashboard(), "dismiss"));
+        settle();
         main(() -> { service.ble.setSimulationModel(""); require(service.setSimulation(false), "Simulation did not stop"); });
         settle(); home();
         checks.add("Simulating an unknown model puts what it lacks in a last, closed, captioned section; the simulated UT5 MAX "
@@ -404,6 +407,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
 
     private void verifyChargeAlerts() throws Exception {
         choose(gt3);
+        main(() -> require(!dialogShowing(), "The shortcut picker still covers Home before the Charge alerts checks"));
         main(() -> require(service.chargeAlertsOffered(), "The GT3 Max offline does not offer alerts"));
         main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF), "Could not clear alerts"));
         // Home's body refresh is paced to once a second (MainActivity.BODY_REFRESH_MS): wait for it, not a fixed pause.
