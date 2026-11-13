@@ -109,9 +109,10 @@ public final class DashboardModelTileTest {
         Matcher hm = Pattern.compile("<string name=\"(home_qa_[a-z_]+)\"([^>]*volt:max=\"([^\"]+)\"[^>]*)>").matcher(home);
         int homeNames = 0;
         while (hm.find()) {
-            if (!hm.group(3).contains("@12sp*2")) continue;
-            homeNames++;
-            check(hm.group(3).equals((72 - 4 - 4) + "dp@12sp*2"), hm.group(1) + " keeps Clean Home's 64dp@12sp*2 budget");
+            if (hm.group(3).contains("@12sp*2")) {
+                homeNames++;
+                check(hm.group(3).equals((72 - 4 - 4) + "dp@12sp*2"), hm.group(1) + " keeps Clean Home's 64dp@12sp*2 budget");
+            }
         }
         check(homeNames > 0, "Clean Home quick action names carry a two-line budget");
         check(grid.contains("label = ui.text(entry.label(), 12, false);"), "Quick access label is the full name at 12 sp");
