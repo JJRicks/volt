@@ -279,14 +279,17 @@ public final class HubValidation extends Instrumentation {
             justBack = placeWhile(clean, 2, 1500);
         }
         require(justBack != null, "Clean Home's refresh replaced the Just back card before it could be measured, " + JUST_BACK_TRIES + " times");
-        // Its picture, taken the same way: kept only when Just back was still shown after it was taken.
-        for (int attempt = 0; attempt < JUST_BACK_TRIES; attempt++) {
+        // Its picture, taken the same way: kept only when Just back was still shown after it was taken; a discarded
+        // try's picture and census are deleted, and the step fails if no picture holds.
+        boolean pictured = false;
+        for (int attempt = 0; attempt < JUST_BACK_TRIES && !pictured; attempt++) {
             main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 2));
             if (placeWhile(clean, 2, 1500) == null) continue;
             screenshot("moment-just-back");
-            if (onMain(() -> ((Integer) field(clean, "moment")) == 2)) break;
-            screenshots.remove(screenshots.size() - 1);
+            if (onMain(() -> ((Integer) field(clean, "moment")) == 2)) { pictured = true; continue; }
+            discardScreenshot(screenshots.remove(screenshots.size() - 1));
         }
+        require(pictured, "No Just back picture while the card was still shown, " + JUST_BACK_TRIES + " times");
         main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 0)); settle();
         require(Arrays.equals(parked, justBack), "The Lock bar moved for the Just back card: " + Arrays.toString(parked) + " -> " + Arrays.toString(justBack));
         checks.add("Moments: the Lock bar and the top area keep their place and size for the battery card, charging and Just back");
@@ -497,7 +500,7 @@ public final class HubValidation extends Instrumentation {
 
     /** The page shown is page, the stack is exactly stack, and a non-Home page has its back link. */
     private void arrived(String page, String... stack) {
-        await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
+        await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), () -> "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
         settle();
         requireStack(stack);
         if (!HubPages.HOME.equals(page)) main(() -> {
@@ -647,6 +650,12 @@ public final class HubValidation extends Instrumentation {
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
+    /** Deletes a screenshot that was not kept, with the census files written next to it. */
+    private static void discardScreenshot(String path) {
+        File file = new File(path), folder = file.getParentFile();
+        String base = file.getName().replaceFirst("\\.png$", "");
+        file.delete(); new File(folder, base + ".census.tsv").delete(); new File(folder, base + ".census-error.txt").delete();
+    }
 
     // ===== Plumbing =====
 
@@ -670,10 +679,13 @@ public final class HubValidation extends Instrumentation {
         main(() -> value.set(task.get()));
         return value.get();
     }
-    private void await(BooleanSupplier condition, String message) {
+    private void await(BooleanSupplier condition, String message) { await(condition, () -> message); }
+    /** As await, with the message built only on failure, so it can describe the state at the timeout. */
+    private void await(BooleanSupplier condition, Supplier<String> message) {
         long end = SystemClock.uptimeMillis() + 10000;
         while (!condition.getAsBoolean() && SystemClock.uptimeMillis() < end) SystemClock.sleep(50);
-        require(condition.getAsBoolean(), message);
+        boolean met = condition.getAsBoolean();
+        require(met, met ? "" : message.get());
     }
     private void require(boolean condition, String message) { assertions++; if (!condition) throw new IllegalStateException(message); }
     private Object field(Object target, String name) {

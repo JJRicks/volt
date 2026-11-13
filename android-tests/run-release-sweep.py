@@ -210,8 +210,10 @@ STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden
           inst('riding-disconnected-narrow', T + 'RidingDisconnectedValidation', '-e', 'label', 'narrow', size='344x882', hidden_api=True)]
 # The Hub walk (part 11b): both Homes, every subject page and sub-page, the page stack, the dock and its All sheet, Settings
 # and search on the simulator, phone (four dock items) and wide (all seven); the walk also opens Search and Settings from
-# Widgets Home's All sheet. hub-widgets-pages checks those two rows on their own, starting on Widgets Home.
+# Widgets Home's All sheet. hub-widgets-pages checks those two rows on their own, starting on Widgets Home. hub-344-large
+# walks the phone again at large text, where the dock holds fewer items.
 STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
+          inst('hub-344-large', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', size='344x882'),
           inst('hub-725', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
