@@ -217,6 +217,8 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         reconnect();
         SystemClock.sleep(6_000);
         scheduleOff();
+        // Charging again, ready for the schedule test.
+        main(() -> link.charging(1, 3_000));
         SystemClock.sleep(6_000);
     }
 
@@ -417,8 +419,10 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         // 7. Second by second after the start.
         JSONArray windows = e.getJSONArray("dense_windows"); int after = 0, flips = 0; long reach = 0;
         for (int w = 0; w < windows.length(); w++) {
+            // The second start (passed offline) has a window of its own.
             JSONObject window = windows.getJSONObject(w); if (!"start".equals(window.getString("kind"))) continue;
-            require(base + window.getLong("anchor_ms") == start, "The start window is anchored elsewhere");
+            long anchor = base + window.getLong("anchor_ms"); require(anchor == start || anchor == start2, "A start window is anchored elsewhere");
+            if (anchor != start) continue;
             Table rows = new Table(window); long last = -1, previous = Long.MIN_VALUE;
             for (int i = 0; i < rows.size(); i++) {
                 long wall = base + rows.num(i, "wall_ms"); require(wall >= previous, "Dense rows out of order"); previous = wall;
