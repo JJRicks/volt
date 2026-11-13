@@ -133,11 +133,13 @@ public final class ModelRegistryTest {
         check(tcsSibling.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcsSibling.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&tcsSibling.variant==tcs.variant,
             "A sibling ID has the same OEM-mapped row, not verified");
         check(ModelRegistry.reported(st3)&&ReportInvite.model(st3).isEmpty(),"A US owner's report confirmed the ST3 Pro: it is reported and no longer offered");
-        // Its owner answered the drive modes (Walk 11, Drive 2, Sport 3): the GT5 Max's names, on the exact ID only.
+        // Its owner answered the drive modes (Walk 11, Drive 2, Sport 3): a table of its own, on the exact ID only, without
+        // the GT5 Max owner's Sport 5 (5 is also this model's Turbo acceleration value).
         int st3Modes=ModelRegistry.driveModeLabelProduct(st3);
-        check(st3Modes==25462&&"WALK".equals(Telemetry.drivingModeLabel(st3Modes,11.0))&&"DRIVE".equals(Telemetry.drivingModeLabel(st3Modes,2.0))
-            &&"SPORT".equals(Telemetry.drivingModeLabel(st3Modes,3.0))&&"4 (raw)".equals(Telemetry.drivingModeLabel(st3Modes,4.0)),
-            "ST3 Pro drive modes read WALK, DRIVE and SPORT from its owner's answer; other codes stay raw");
+        check(st3Modes==23452&&"WALK".equals(Telemetry.drivingModeLabel(st3Modes,11.0))&&"DRIVE".equals(Telemetry.drivingModeLabel(st3Modes,2.0))
+            &&"SPORT".equals(Telemetry.drivingModeLabel(st3Modes,3.0))&&"4 (raw)".equals(Telemetry.drivingModeLabel(st3Modes,4.0))
+            &&"5 (raw)".equals(Telemetry.drivingModeLabel(st3Modes,5.0)),
+            "ST3 Pro drive modes read WALK, DRIVE and SPORT from its owner's answer; 4, 5 and other codes stay raw");
         check(ModelRegistry.driveModeLabelProduct(sibling)==0&&ModelRegistry.driveModeLabelProduct(sibling.withOwnerModel("ST3 Pro"))==0
             &&"11 (raw)".equals(Telemetry.drivingModeLabel(ModelRegistry.driveModeLabelProduct(sibling),11.0)),
             "An ST3 Pro sibling ID keeps raw drive-mode codes, even with an owner's ST3 Pro answer");
