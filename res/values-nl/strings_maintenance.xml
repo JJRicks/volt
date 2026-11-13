@@ -274,6 +274,8 @@
     <string name="maintenance_notify_detail">Eén melding zodra het te doen is</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Onderhoudsherinneringen</string>
+    <!-- src:253b821ce1c206197ea1313c4e06e6f5f91387bd -->
+    <string name="maintenance_channel_detail">Controles die je instelt in Step › Service › Onderhoud, één keer wanneer elke controle te doen is</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%1$d controle te doen: %2$s</item>

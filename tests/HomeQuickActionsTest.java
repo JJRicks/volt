@@ -122,7 +122,11 @@ public final class HomeQuickActionsTest {
                 "An owner's stored four are kept as stored, Maximum speed included");
     }
 
-    /** Clean's own as entries outside the catalog (PR 8): shown by Clean's grid and picker, never findable. */
+    /**
+     * Clean's own as entries outside the catalog (PR 8): shown by Clean's grid and picker. Ride and Record are never
+     * findable; Battery alerts keeps Clean's own entry and names whether or not the catalog lists it (a Widgets
+     * shortcut with the same id, owner's decision of Nov 12 2026 on #383).
+     */
     private static void entries() {
         for (String id : Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD, HomeQuickActions.CHARGE_ALERTS)) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
@@ -132,6 +136,9 @@ public final class HomeQuickActionsTest {
             require(entry.icon.equals(id.equals(HomeQuickActions.RIDING) ? HomeQuickActions.ICON_RIDING
                     : id.equals(HomeQuickActions.RECORD) ? HomeQuickActions.ICON_RECORD : HomeQuickActions.ICON_CHARGE_ALERTS), "Its icon: " + id);
             require(!entry.directToggle(), "Not a direct toggle: " + id);
+            require(entry != QuickAccessActions.find(id), "Clean's own entry, not the catalog's: " + id);
+        }
+        for (String id : Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD)) {
             require(QuickAccessActions.find(id) == null, "Still not in the catalog: " + id);
             for (QuickAccessActions.Entry listed : QuickAccessActions.catalog()) require(!listed.id.equals(id), "Not listed in the catalog: " + id);
         }
