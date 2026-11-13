@@ -1395,7 +1395,16 @@ public final class DashboardScreen implements AppScreen {
 
     /** The same names for a cutoff alone (null: unknown, so "100% if uncapped"). */
     private String[] chargeTimeLabels(Double targetPercent, boolean widget) {
-        if (targetPercent != null && targetPercent < 100) {
+        return chargeTimeLabels(targetPercent, widget, false);
+    }
+
+    /**
+     * plainHundred names a 100% cutoff as a plain percentage ("Time to 100%", "To 100%"): the charging time tile's
+     * second reading beside a limit or an alert, where the charging view already says what it charges to (owner,
+     * Nov 12 2026: "if uncapped" is redundant there).
+     */
+    private String[] chargeTimeLabels(Double targetPercent, boolean widget, boolean plainHundred) {
+        if (targetPercent != null && (targetPercent < 100 || plainHundred)) {
             String target = T.fmtPercent(Fmt.decimal(Locale.US, targetPercent, 0));
             String name = widget ? T.dashboardChargeToLimit(target) : T.dashboardChargeTimeTo(target);
             return new String[] {name, name, T.dashboardChargeTimeToCompact(target)};
@@ -1673,6 +1682,9 @@ public final class DashboardScreen implements AppScreen {
         float downX, downY, dragFromX;
         /** dragging: a sideways drag owns the gesture; passing: it moved up or down first, so it is no tap. */
         boolean dragging, passing;
+        /** owning: this gesture began while switchable, so the tile takes it whatever child is under the finger;
+         *  holding: the parents (Home's scroller) are held off until the gesture's direction is known. */
+        boolean owning, holding;
         /** The switch under way began as a drag: its faces keep following the finger's scale to the end. */
         boolean fromDrag;
 
@@ -1715,16 +1727,17 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /**
-         * Fresh values for both faces, also mid-switch. Beside the scooter's own limit the 100% face is the
-         * uncapped time; otherwise it is the estimate's own time, exactly as the single tile showed it. The alert
-         * face shares the estimate's state (pill, or its words where no time is known) and speaks no status, as
-         * the alert tile did.
+         * Fresh values for both faces, also mid-switch. With two readings the 100% face is the plain time to 100%
+         * (beside the scooter's own limit, the uncapped time; owner, Nov 12 2026: no "if uncapped", the charging
+         * view already says what it charges to); with one it is the estimate's own time, exactly as the single
+         * tile showed it. The alert face shares the estimate's state (pill, or its words where no time is known)
+         * and speaks no status, as the alert tile did.
          */
         void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
             int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
-            fill(FULL, chargeTimeLabels(scooterLimit ? null : estimate.targetPercent, false), estimate,
-                    estimate.remainingMinutesToFull, estimate.status);
+            fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
+                    estimate, estimate.remainingMinutesToFull, estimate.status);
             if (scooterLimit)
                 fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
             else if (alert != null)
@@ -1900,18 +1913,41 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /**
-         * A tap is the click (TalkBack's double-tap too). A sideways move past the touch slop that is more sideways
-         * than up or down becomes a drag: it keeps the gesture from the scroll, and the outgoing face follows the
-         * finger. Up or down first, the scroll takes it and the tile only sees a cancel; where nothing scrolls, the
+         * With two readings the tile is one control: every touch inside it is the tile's, whichever child is under
+         * the finger (a caption sets a tooltip, and a view with a tooltip takes the touches that start on it). The
+         * choice is made as the gesture starts and kept to its end. With one reading, or while editing, nothing is
+         * intercepted: the captions keep their own tooltips and long-press, as the single tile had.
+         */
+        @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) owning = switchable();
+            return owning || super.onInterceptTouchEvent(event);
+        }
+
+        /** Lets the parents (Home's scroller) take the gesture again, once it is known to go up or down. */
+        private void release() {
+            if (!holding) return;
+            holding = false;
+            if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+        }
+
+        /**
+         * A tap is the click (TalkBack's double-tap too); a long press shows the shown reading's tooltip and never
+         * switches. From the first touch the parents are held off, so a sideways swipe that drifts up or down at
+         * the start is still the tile's. A sideways move past the touch slop that is more sideways than up or down
+         * becomes a drag, and the outgoing face follows the finger. Up or down first, the parents are let go and
+         * Home's scroller takes it from the next move (the tile only sees a cancel); where nothing scrolls, the
          * press is dropped all the same, so moving past the tile is never a tap.
          */
         @Override public boolean onTouchEvent(MotionEvent event) {
-            if (!switchable()) { if (dragging) settle(); passing = false; return super.onTouchEvent(event); }
+            if (!switchable()) { if (dragging) settle(); passing = false; release(); return super.onTouchEvent(event); }
             int action = event.getActionMasked();
             if (action == MotionEvent.ACTION_DOWN) {
                 if (velocity == null) velocity = VelocityTracker.obtain(); else velocity.clear();
                 downX = event.getX(); downY = event.getY(); dragging = false; passing = false;
+                holding = true;
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
             }
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) holding = false;
             if (passing) {
                 if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) { passing = false; endDrag(); }
                 return true;
@@ -1925,9 +1961,8 @@ public final class DashboardScreen implements AppScreen {
                     cancel.setAction(MotionEvent.ACTION_CANCEL);
                     super.onTouchEvent(cancel);
                     cancel.recycle();
-                    if (!sideways) { passing = true; return true; }
+                    if (!sideways) { passing = true; release(); return true; }
                     dragging = true;
-                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                     stopMotion();
                     state.startDrag();
                     fromDrag = true;

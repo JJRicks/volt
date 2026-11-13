@@ -21,6 +21,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -41,7 +42,11 @@ import com.jjricks.volt.*;
  * scooter command.
  *
  * Default mode: one reading without an alert (no dots, no switching); an alert's two readings with the alert first;
- * real taps and swipes switch; an abandoned swipe and a vertical move do not; rapid taps, hiding mid-switch, a
+ * real taps and swipes switch; an abandoned swipe and a vertical move do not; touches that start on the label (which has
+ * a tooltip), the value, the state pill and beside the dots all switch; a sideways swipe drifting up or down at the start
+ * still switches and Home does not scroll; a scroll that starts on the tile scrolls Home and never switches; a long press
+ * shows the tile's tooltip with two readings and the label's own with one; editing takes no touch; the second reading is
+ * the plain time to 100%. Argument "cases" (comma list, e.g. touch-label,diagonal) runs only those cases; rapid taps, hiding mid-switch, a
  * re-parent (fold) mid-switch and a rotation mid-switch all end at rest on the last choice; the choice survives
  * hiding the view and an activity restart, per scooter; a scooter with a charge limit; reduced motion; TalkBack's
  * node and one announcement; slowed frames of one tap and one held drag saved as crops.
@@ -65,7 +70,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         Bundle result = new Bundle();
         String mode = args.getString("mode", "all");
         try {
-            if (mode.equals("restart")) restartCheck();
+            if (mode.equals("restart")) { admitEmulator(); restartCheck(); }
             else {
                 admit(); admitted = true;
                 seed(args.getString("theme", "dark"), args.getString("text_scale", "1"));
@@ -83,14 +88,20 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 else {
                     verifyOneReading();
                     verifyAlertReadings();
-                    verifyGestures();
-                    verifyInterruptions();
-                    verifyPerScooterAndRestart();
-                    verifyLimitScooter();
-                    verifyReducedMotion();
-                    verifyAccessibility();
-                    verifyFrames();
-                    verifyRotation();
+                    if (wanted("gestures")) verifyGestures();
+                    if (wanted("touch")) verifyTouchEverywhere();
+                    if (wanted("diagonal")) verifyDiagonalSwipe();
+                    if (wanted("scroll")) verifyScrollFromTile();
+                    if (wanted("longpress")) verifyLongPress();
+                    if (wanted("edit")) verifyEditMode();
+                    if (wanted("label")) verifyHundredLabel();
+                    if (wanted("interruptions")) verifyInterruptions();
+                    if (wanted("scooters")) verifyPerScooterAndRestart();
+                    if (wanted("limit")) verifyLimitScooter();
+                    if (wanted("motion")) verifyReducedMotion();
+                    if (wanted("accessibility")) verifyAccessibility();
+                    if (wanted("frames")) verifyFrames();
+                    if (wanted("rotation")) verifyRotation();
                 }
                 assertNoRadio();
             }
@@ -101,8 +112,8 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             result.putString("trace", trace.toString());
             if (activity != null) try { screenshot("failure"); } catch (Throwable ignored) {}
         } finally {
-            try { scale("1"); } catch (Throwable ignored) {}
-            try { getUiAutomation().setRotation(UiAutomation.ROTATION_UNFREEZE); } catch (Throwable ignored) {}
+            // Only what this run changed goes back, to the value it found: a refused device is left as it was.
+            restoreFound();
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             if (activity != null) try { main(() -> { activity.finish(); ScooterService.setUiVisible(false);
@@ -163,6 +174,187 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         tap(); awaitRest();
         main(() -> require(shownReading() == LIMIT, "Tap back failed"));
         checks.add("A tap and a swipe either way switch and save; a swipe let go short, and an up-down move over the tile, do not");
+    }
+
+    /** The optional "cases" argument (comma list) runs only those default-mode cases after the two set-up ones. */
+    private boolean wanted(String name) {
+        String cases = args.getString("cases", "");
+        if (cases.isEmpty()) return true;
+        for (String c : cases.split(",")) { c = c.trim(); if (c.equals(name) || name.startsWith(c + "-") || c.startsWith(name + "-")) return true; }
+        return false;
+    }
+
+    /**
+     * Real touches that start on every child of the tile (the label, which has a tooltip, the value, the state pill and
+     * beside the dots): a tap and a sideways drag switch, a drag let go short does not.
+     */
+    private void verifyTouchEverywhere() throws Exception {
+        for (String point : new String[] {"label", "value", "pill", "dots"}) {
+            if (!wanted("touch-" + point)) continue;
+            boolean low = point.equals("pill");
+            hero(50, null, low ? 0.03 : 2);  // under ChargingEstimate.MINIMUM_ETA_CURRENT_A: the Low current pill on both faces
+            if (low) main(() -> require(tags(LIMIT).isShown() || tags(FULL).isShown(), "No state pill to touch at low current"));
+            int start = readingNow();
+            tapAt(point(point));
+            awaitRest();
+            main(() -> require(shownReading() == other(start) && ChargeTimeReadingsPref(pref(a)) == other(start),
+                    "A tap that starts on the " + point + " did not switch: shown " + shownReading() + ", saved " + pref(a)));
+            float[] p = point(point); int width = tileWidth();
+            drag(p, readingNow() == FULL ? .8f * width : -.8f * width, 0, false);
+            awaitRest();
+            main(() -> require(shownReading() == start, "A sideways drag that starts on the " + point + " did not switch back"));
+            p = point(point);
+            drag(p, -.14f * width, 0, true);
+            awaitRest();
+            main(() -> require(shownReading() == start && ChargeTimeReadingsPref(pref(a)) == start, "An abandoned drag that starts on the " + point + " switched"));
+            checks.add("Touches that start on the " + point + ": a tap and a drag switch, a drag let go short does not");
+        }
+        hero(50, null, 2);
+    }
+
+    /** A mostly sideways swipe that drifts up or down in its first move is the tile's, not Home's scroller's. */
+    private void verifyDiagonalSwipe() throws Exception {
+        hero(50, null, 2);
+        int start = readingNow();
+        float[] p = point("value");
+        int sign = scrollRoom();
+        int before = scrollY();
+        float s = slop(), width = tileWidth();
+        float dx = (start == LIMIT ? -1 : 1) * .8f * width;
+        long down = SystemClock.uptimeMillis();
+        send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(16);
+        // First move: past the scroller's slop up or down, but more sideways than that.
+        send(MotionEvent.ACTION_MOVE, down, p[0] + Math.signum(dx) * 2.2f * s, p[1] + sign * 1.4f * s); SystemClock.sleep(16);
+        for (int i = 1; i <= 8; i++) { send(MotionEvent.ACTION_MOVE, down, p[0] + dx * i / 8f, p[1] + sign * (1.4f + .1f * i) * s); SystemClock.sleep(16); }
+        send(MotionEvent.ACTION_UP, down, p[0] + dx, p[1] + sign * 2.2f * s);
+        settle(); awaitRest();
+        int after = scrollY();
+        main(() -> require(shownReading() == other(start), "A sideways swipe with a drift up or down at the start did not switch (Home scrolled "
+                + (after - before) + " px)"));
+        require(Math.abs(after - before) <= 1, "A sideways swipe on the tile scrolled Home by " + (after - before) + " px");
+        checks.add("A sideways swipe with vertical drift past the slop in its first move switches, and Home does not scroll");
+    }
+
+    /** An up or down scroll that starts on the tile (on its label, then its value) scrolls Home and never switches. */
+    private void verifyScrollFromTile() throws Exception {
+        hero(50, null, 2);
+        for (String point : new String[] {"label", "value"}) {
+            int start = readingNow(); String saved = callString(() -> pref(a));
+            float[] p = point(point);
+            int sign = scrollRoom(), before = scrollY();
+            float s = slop();
+            long down = SystemClock.uptimeMillis();
+            send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(16);
+            for (int i = 1; i <= 10; i++) { send(MotionEvent.ACTION_MOVE, down, p[0] + .1f * s * i, p[1] + sign * 1.2f * s * i); SystemClock.sleep(16); }
+            SystemClock.sleep(120);  // held still before lifting: no fling
+            send(MotionEvent.ACTION_UP, down, p[0] + s, p[1] + sign * 12f * s);
+            settle(); SystemClock.sleep(300); settle();
+            int after = scrollY();
+            require(Math.abs(after - before) >= 3 * s, "A scroll that starts on the tile's " + point + " did not scroll Home: " + before + " -> " + after);
+            main(() -> require(shownReading() == start && cleanRest() && Objects.equals(saved, pref(a)), "A scroll that starts on the tile's " + point + " switched or saved"));
+            checks.add("A scroll that starts on the tile's " + point + " scrolls Home (" + (after - before) + " px) and does not switch");
+        }
+    }
+
+    /**
+     * A long press: with two readings anywhere on the tile (the label too) it shows the tile's tooltip, the shown reading, and
+     * never switches; with one reading the label keeps its own tooltip, as the single tile had.
+     */
+    private void verifyLongPress() throws Exception {
+        hero(50, null, 2);
+        int start = readingNow();
+        String tile = callString(() -> String.valueOf(tile().getTooltipText()));
+        String heard = longPress(point("label"));
+        main(() -> require(shownReading() == start && cleanRest(), "A long press on the label switched"));
+        require(tile.equals(heard), "A long press on the label with two readings did not show the tile's tooltip '" + tile + "': " + heard);
+        checks.add("Two readings: a long press on the label shows the shown reading's tooltip and does not switch");
+        main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+        hero(50, null, 2);
+        String label = callString(() -> String.valueOf(caption(FULL).getTooltipText()));
+        heard = longPress(point("label"));
+        require(label.equals(heard), "A long press on the label with one reading did not show the label's tooltip '" + label + "': " + heard);
+        main(() -> require(!two() && cleanRest(), "One reading: the long press left the tile changed"));
+        checks.add("One reading: a long press on the label shows the label's own tooltip");
+        main(() -> require(service.setChargeAlerts(alert70), "Could not restore the alert"));
+        hero(50, null, 2);
+    }
+
+    /**
+     * Edit mode: the charging view hides, and the tile takes no touch. The moment edit mode begins (the flag set while the
+     * view is still up) real touches on the label go to the label as with one reading: no switch, no drag, the label's
+     * own tooltip on a long press. In edit mode itself, touches handed straight to the hidden tile switch nothing.
+     */
+    private void verifyEditMode() throws Exception {
+        hero(50, null, 2);
+        int start = readingNow(); String saved = callString(() -> pref(a));
+        main(() -> setField(screen(), "editing", true));
+        try {
+            tapAt(point("label"));
+            drag(point("value"), -.8f * tileWidth(), 0, false);
+            String label = callString(() -> String.valueOf(caption(start).getTooltipText()));
+            String heard = longPress(point("label"));
+            main(() -> require(shownReading() == start && cleanRest() && Objects.equals(saved, pref(a)), "Touches switched the tile while editing"));
+            require(label.equals(heard), "While editing a long press on the label did not show the label's own tooltip '" + label + "': " + heard);
+        } finally { main(() -> setField(screen(), "editing", false)); }
+        checks.add("Editing begun with the view up: a tap, a drag and a long press go to the label as with one reading; nothing switches");
+        main(() -> invoke(screen(), "toggleEditing")); SystemClock.sleep(700); settle();
+        try {
+            hero(50, null, 2, false);
+            main(() -> {
+                require(!hero().isShown(), "The charging view shows in edit mode");
+                View t = tile(); TextView c = caption(start);
+                Rect r = TextFit.relativeBounds(c, t);
+                float x = r.exactCenterX(), y = r.exactCenterY(); long down = SystemClock.uptimeMillis();
+                for (int action : new int[] {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP}) {
+                    MotionEvent e = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, action == MotionEvent.ACTION_MOVE ? x - 200 : x, y, 0);
+                    t.dispatchTouchEvent(e); e.recycle();
+                }
+                down = SystemClock.uptimeMillis();
+                for (int action : new int[] {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP}) {
+                    MotionEvent e = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0); t.dispatchTouchEvent(e); e.recycle();
+                }
+                require(shownReading() == start && Objects.equals(saved, pref(a)), "A touch handed to the tile in edit mode switched it");
+            });
+        } finally { main(() -> invoke(screen(), "toggleEditing")); SystemClock.sleep(700); settle(); freeze(); }
+        hero(50, null, 2);
+        main(() -> require(two() && shownReading() == start && cleanRest(), "Leaving edit mode lost the reading"));
+        checks.add("Edit mode hides the charging view; a tap or drag handed to the tile switches nothing");
+    }
+
+    /** The second reading reads as the plain time to 100% (owner, Nov 12 2026: no "if uncapped" beside a limit), spoken the same. */
+    private void verifyHundredLabel() throws Exception {
+        String[] uncapped = new String[3];
+        main(() -> { uncapped[0] = string("dashboard_charge_time_uncapped"); uncapped[1] = string("dashboard_charge_time_uncapped_short"); uncapped[2] = string("dashboard_charge_time_uncapped_compact"); });
+        hero(50, null, 2);
+        assertHundred("alert", uncapped);
+        choose(ut5);
+        hero(50, 80d, 2);
+        assertHundred("limit 80%", uncapped);
+        choose(a);
+        main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+        hero(50, null, 2);
+        main(() -> require(!two() && uncapped[0].equals(String.valueOf(caption(FULL).getContentDescription())),
+                "One reading with no known cutoff no longer reads as before: " + caption(FULL).getContentDescription()));
+        main(() -> require(service.setChargeAlerts(alert70), "Could not restore the alert"));
+        hero(50, null, 2);
+        checks.add("Two readings: the second is the plain time to 100% (label, every rung and speech), beside an alert and a limit; one reading unchanged");
+    }
+    private void assertHundred(String what, String[] uncapped) {
+        main(() -> {
+            require(two(), what + ": not two readings");
+            String name = String.valueOf(caption(FULL).getContentDescription()), shown = String.valueOf(caption(FULL).getText());
+            String plain = string("dashboard_charge_time_to", percent100()), compact = string("dashboard_charge_time_to_compact", percent100());
+            require(name.equals(plain), what + ": the second reading is not named '" + plain + "': " + name);
+            require(shown.isEmpty() || shown.equals(plain) || shown.equals(compact), what + ": the second reading's label is '" + shown + "'");
+            for (String u : uncapped) require(!name.equals(u) && !shown.equals(u), what + ": the second reading still says " + u);
+            require(String.valueOf(value(FULL).getContentDescription()).startsWith(plain + ","), what + ": the spoken second reading does not match: " + value(FULL).getContentDescription());
+        });
+    }
+    private String percent100() { return string("fmt_percent", "100"); }
+    private String string(String name, Object... format) {
+        Context c = getTargetContext(); int id = c.getResources().getIdentifier(name, "string", c.getPackageName());
+        require(id != 0, "No string " + name);
+        return format.length == 0 ? c.getString(id) : c.getString(id, format);
     }
 
     private void verifyInterruptions() throws Exception {
@@ -364,13 +556,13 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         int before = readingNow();
         scale("6");
         tapQuick(); SystemClock.sleep(150);
-        getUiAutomation().setRotation(UiAutomation.ROTATION_FREEZE_90);
+        rotate(UiAutomation.ROTATION_FREEZE_90);
         SystemClock.sleep(2500); settle();
         scale("1");
         freeze(); hero(50, null, 2);
         main(() -> require(cleanRest() && shownReading() == other(before) && ChargeTimeReadingsPref(pref(a)) == other(before), "A rotation mid-switch did not end on the choice"));
         shot("rotated");
-        getUiAutomation().setRotation(UiAutomation.ROTATION_FREEZE_0);
+        rotate(UiAutomation.ROTATION_FREEZE_0);
         SystemClock.sleep(1500); settle(); freeze(); hero(50, null, 2);
         main(() -> require(cleanRest() && shownReading() == other(before), "Rotating back lost the choice"));
         checks.add("A rotation mid-switch rebuilds the screen at rest on the choice");
@@ -483,6 +675,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     }
     private void setLocale(String tag) throws Exception {
         if (Build.VERSION.SDK_INT < 33) { require(tag.isEmpty(), "Languages need API 33"); return; }
+        if (foundLocales == null) main(() -> foundLocales = getTargetContext().getSystemService(LocaleManager.class).getApplicationLocales());
         main(() -> getTargetContext().getSystemService(LocaleManager.class)
                 .setApplicationLocales(tag.isEmpty() ? LocaleList.getEmptyLocaleList() : LocaleList.forLanguageTags(tag)));
         SystemClock.sleep(1200); settle();
@@ -523,7 +716,9 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         main(() -> require(id.equals(field(screen(), "profileId")), "The dashboard did not follow the scooter"));
     }
     /** Fresh synthetic charging readings; amps 0 means not charging (the hero hides). */
-    private void hero(double percent, Double limit, double amps) throws Exception {
+    private void hero(double percent, Double limit, double amps) throws Exception { hero(percent, limit, amps, true); }
+    /** expectShown false: edit mode, where charging readings leave the view hidden. */
+    private void hero(double percent, Double limit, double amps, boolean expectShown) throws Exception {
         long wall = System.currentTimeMillis();
         Map<String, TelemetryHistory.Reading> values = new LinkedHashMap<>();
         for (Object[] r : new Object[][]{{"charging_state", amps > 0 ? 1d : 0d}, {"voltage_v", 52d}, {"current_a", -amps}, {"battery_percent", percent}, {"rated_capacity_ah", 14.5d}})
@@ -532,13 +727,13 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
         settle(); SystemClock.sleep(amps > 0 ? 420 : 320); settle();
         boolean[] stray = new boolean[1];
-        main(() -> stray[0] = amps > 0 && !Boolean.TRUE.equals(field(hero(), "shown")));
+        main(() -> stray[0] = expectShown && amps > 0 && !Boolean.TRUE.equals(field(hero(), "shown")));
         if (stray[0]) {  // a refresh of the app's own (empty) readings landed after the fixture's: once more, and say so
             Log.w("ChargeTimeTileValidation", "a stray refresh hid the fixture; refreshing again");
             main(() -> invoke(hero(), "refresh", new Class<?>[]{Map.class}, values));
             settle(); SystemClock.sleep(420); settle();
         }
-        if (amps > 0) main(() -> {
+        if (expectShown && amps > 0) main(() -> {
             View h = hero(); StringBuilder chain = new StringBuilder();
             for (View v = h; v != null; v = v.getParent() instanceof View ? (View) v.getParent() : null) chain.append(v.getClass().getSimpleName()).append(':').append(v.getVisibility()).append(' ');
             require(h.isShown() && tile().isShown(), "The charging view did not show for the fixture readings: shown=" + field(h, "shown")
@@ -579,6 +774,104 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         send(MotionEvent.ACTION_UP, down, c[0] + 6 * density, c[1] + 14 * density);
         settle();
     }
+    /** Where a touch starts, on screen: the shown reading's label or value text, its state pill, or the first dot. */
+    private float[] point(String what) throws Exception {
+        reveal();
+        float[] p = new float[2];
+        main(() -> {
+            View tile = tile(); int[] at = new int[2]; tile.getLocationOnScreen(at);
+            int shown = shownReading();
+            if (what.equals("dots")) {
+                float r = activity.ui().dp(6) / 2f; int gap = activity.ui().dp(9); int width = Math.round(r * 2) + gap;
+                boolean rtl = tile.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+                TextView caption = caption(shown); Rect cap = TextFit.relativeBounds(caption, tile);
+                android.text.Layout layout = caption.getLayout();
+                float y = cap.top + caption.getTotalPaddingTop() + layout.getLineBaseline(0)
+                        + (caption.getPaint().getFontMetrics().ascent + caption.getPaint().getFontMetrics().descent) / 2f;
+                p[0] = at[0] + (rtl ? tile.getPaddingLeft() + width - r : tile.getWidth() - tile.getPaddingRight() - width + r);
+                p[1] = at[1] + y;
+                return;
+            }
+            TextView t = what.equals("label") ? caption(shown) : what.equals("value") ? value(shown) : tags(shown);
+            require(t.isShown() && t.getLayout() != null && t.length() > 0, "Nothing to touch: the " + what + " is not shown");
+            int[] v = new int[2]; t.getLocationOnScreen(v);
+            android.text.Layout layout = t.getLayout();
+            p[0] = v[0] + t.getTotalPaddingLeft() + (layout.getLineLeft(0) + layout.getLineRight(0)) / 2f;
+            p[1] = v[1] + t.getTotalPaddingTop() + (layout.getLineTop(0) + layout.getLineBottom(0)) / 2f;
+            require(p[0] >= at[0] && p[0] < at[0] + tile.getWidth() && p[1] >= at[1] && p[1] < at[1] + tile.getHeight(), "The " + what + " is outside the tile");
+        });
+        return p;
+    }
+    private void tapAt(float[] p) {
+        long down = SystemClock.uptimeMillis();
+        send(MotionEvent.ACTION_DOWN, down, p[0], p[1]); SystemClock.sleep(40); send(MotionEvent.ACTION_UP, down, p[0], p[1]);
+        waitForIdleSync(); settle();
+    }
+    /** A drag of (dx, dy) px from p in ten moves; abandoned: it holds still, then lifts. */
+    private void drag(float[] p, float dx, float dy, boolean abandoned) {
+        long down = SystemClock.uptimeMillis();
+        send(MotionEvent.ACTION_DOWN, down, p[0], p[1]);
+        for (int i = 1; i <= 10; i++) { send(MotionEvent.ACTION_MOVE, down, p[0] + dx * i / 10f, p[1] + dy * i / 10f); SystemClock.sleep(12); }
+        if (abandoned) for (int i = 0; i < 12; i++) { send(MotionEvent.ACTION_MOVE, down, p[0] + dx, p[1] + dy); SystemClock.sleep(25); }
+        send(MotionEvent.ACTION_UP, down, p[0] + dx, p[1] + dy);
+        settle();
+    }
+    /** Holds a finger still at p past the long-press time; returns the tooltip shown then (or what windows there were). */
+    private String longPress(float[] p) {
+        long down = SystemClock.uptimeMillis();
+        send(MotionEvent.ACTION_DOWN, down, p[0], p[1]);
+        SystemClock.sleep(ViewConfiguration.getLongPressTimeout() + 700);
+        String shown = tooltip();
+        send(MotionEvent.ACTION_UP, down, p[0], p[1]);
+        settle();
+        long end = SystemClock.uptimeMillis() + 6000;  // a touch tooltip hides 1.5 s after the lift
+        while (SystemClock.uptimeMillis() < end && !tooltip().startsWith("none")) SystemClock.sleep(150);
+        return shown;
+    }
+    /**
+     * The text of a tooltip on screen: another window of the app's (not the activity's) holding a single shown text.
+     * A tooltip window takes no touch, so accessibility does not list it; WindowInspector (API 29) lists every window.
+     */
+    private String tooltip() {
+        AtomicReference<String> out = new AtomicReference<>();
+        main(() -> {
+            StringBuilder seen = new StringBuilder("none:");
+            View decor = activity.getWindow().getDecorView();
+            for (View root : android.view.inspector.WindowInspector.getGlobalWindowViews()) {
+                if (root == decor || !root.isAttachedToWindow() || !root.isShown()) continue;
+                ArrayList<String> texts = new ArrayList<>(); texts(root, texts);
+                seen.append(' ').append(root.getClass().getSimpleName()).append(texts.size() > 3 ? "[" + texts.size() + " texts]" : texts.toString());
+                if (texts.size() == 1 && out.get() == null) out.set(texts.get(0));
+            }
+            if (out.get() == null) out.set(seen.toString());
+        });
+        return out.get();
+    }
+    private void texts(View view, List<String> out) {
+        if (!view.isShown()) return;
+        if (view instanceof TextView && ((TextView) view).length() > 0) out.add(((TextView) view).getText().toString());
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) texts(((ViewGroup) view).getChildAt(i), out);
+    }
+    private android.widget.ScrollView scroller() {
+        View v = tile();
+        while (v != null && !(v instanceof android.widget.ScrollView)) v = v.getParent() instanceof View ? (View) v.getParent() : null;
+        require(v != null, "No scroller above the tile");
+        return (android.widget.ScrollView) v;
+    }
+    private int scrollY() { int[] y = new int[1]; main(() -> y[0] = scroller().getScrollY()); return y[0]; }
+    /** Which way a finger can move to scroll Home from here (1 down, -1 up), with room for the checks. */
+    private int scrollRoom() {
+        int[] out = new int[1];
+        main(() -> {
+            android.widget.ScrollView s = scroller(); View child = s.getChildAt(0);
+            int up = s.getScrollY(), downRoom = child.getHeight() - (s.getHeight() - s.getPaddingTop() - s.getPaddingBottom()) - s.getScrollY();
+            require(Math.max(up, downRoom) >= 6 * slop(), "Home cannot scroll far enough here for the check: up " + up + ", down " + downRoom);
+            out[0] = up >= downRoom ? 1 : -1;
+        });
+        return out[0];
+    }
+    private float slop() { return ViewConfiguration.get(getTargetContext()).getScaledTouchSlop(); }
+    private int tileWidth() { int[] w = new int[1]; main(() -> w[0] = tile().getWidth()); return w[0]; }
     private void send(int action, long down, float x, float y) {
         MotionEvent e = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, x, y, 0);
         try { sendPointerSync(e); } finally { e.recycle(); }
@@ -633,7 +926,33 @@ public final class ChargeTimeTileValidation extends Instrumentation {
 
     // ---- Plumbing ---------------------------------------------------------------------------------------------
 
+    /** The device settings as this run found them, read just before its first change of each; null: never changed. */
+    private String foundScale, foundAutoRotate, foundUserRotation;
+    private LocaleList foundLocales;
+    private void restoreFound() {
+        if (foundScale != null) try {
+            shell(foundScale.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + foundScale);
+        } catch (Throwable ignored) {}
+        if (foundAutoRotate != null) try {
+            int user = foundUserRotation.matches("[0-3]") ? Integer.parseInt(foundUserRotation) : 0;
+            getUiAutomation().setRotation("1".equals(foundAutoRotate) ? UiAutomation.ROTATION_UNFREEZE : user);  // ROTATION_FREEZE_n == n
+            if (foundUserRotation.matches("[0-3]")) shell("settings put system user_rotation " + foundUserRotation);
+            if (foundAutoRotate.matches("[01]")) shell("settings put system accelerometer_rotation " + foundAutoRotate);
+        } catch (Throwable ignored) {}
+        if (foundLocales != null) try {
+            LocaleList back = foundLocales;
+            main(() -> getTargetContext().getSystemService(LocaleManager.class).setApplicationLocales(back));
+        } catch (Throwable ignored) {}
+    }
+    private void rotate(int rotation) throws Exception {
+        if (foundAutoRotate == null) {
+            foundUserRotation = shell("settings get system user_rotation").trim();
+            foundAutoRotate = shell("settings get system accelerometer_rotation").trim();
+        }
+        getUiAutomation().setRotation(rotation);
+    }
     private void scale(String value) throws Exception {
+        if (foundScale == null) foundScale = shell("settings get global animator_duration_scale").trim();
         shell("settings put global animator_duration_scale " + value);
         float target = Float.parseFloat(value);
         await(() -> android.animation.ValueAnimator.getDurationScale() == target, "Animator scale did not reach " + value);
@@ -670,9 +989,12 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
-    private void admit() {
+    private void admitEmulator() {
         String hw = Build.HARDWARE.toLowerCase(Locale.ROOT);
         require(hw.contains("ranchu") || hw.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Refusing physical phone");
+    }
+    private void admit() {
+        admitEmulator();
         for (String name : new String[]{"app_settings", "profiles", "scooter", "pending_documents", "control_evidence"}) require(prefs(name).getAll().isEmpty(), "Refusing existing preferences");
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Refusing existing app data");
@@ -707,6 +1029,10 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     private void require(boolean ok, String message) { assertions++; if (!ok) throw new IllegalStateException(message); }
     private Object field(Object target, String name) {
         try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); }
+        catch (Exception error) { throw new IllegalStateException("Field " + name, error); }
+    }
+    private void setField(Object target, String name, Object value) {
+        try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); f.set(target, value); return; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); }
         catch (Exception error) { throw new IllegalStateException("Field " + name, error); }
     }
     private Object invoke(Object target, String name) { return invoke(target, name, new Class<?>[0]); }
