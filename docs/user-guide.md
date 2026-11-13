@@ -39,7 +39,7 @@ Home comes in two styles. **Widgets** is the dashboard you arrange yourself, des
 
 **Edit Home** (the pencil on Clean) lets you pick the style and change any of the four quick actions: tap one and choose from RIDE, Record ride, Battery alerts (on scooters that have them) and the same list Quick access uses. Each scooter keeps its own four.
 
-Switch style in **More › Home style**, from Edit Home on Clean, or from the **Home style** row at the top of **Layout** while editing Widgets. Switching never deletes or changes a widget layout or a saved layout slot; switching back shows them as you left them. Home style also holds Clean's two moments, **Show charging while plugged in** and **Show the last ride after riding**; with the first one off, Clean keeps the battery card while charging. (The last ride on Clean arrives in a later update; its switch is already there.)
+Switch style in **More › Home style**, from Edit Home on Clean, or from the **Home style** row at the top of **Layout** while editing Widgets. Switching never deletes or changes a widget layout or a saved layout slot; switching back shows them as you left them. Home style also holds Clean's two moments, **Show charging automatically** and **Show the last ride after riding**; with the first one off, Clean keeps the battery card while charging. (The last ride on Clean arrives in a later update; its switch is already there.)
 
 ## Make Home your own
 
