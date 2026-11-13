@@ -288,6 +288,8 @@
     <string name="maintenance_notify_detail">Uma única notificação quando estiver pendente</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Lembretes de manutenção</string>
+    <!-- src:253b821ce1c206197ea1313c4e06e6f5f91387bd -->
+    <string name="maintenance_channel_detail">Verificações que você define em “Patinete › Serviço › Manutenção”, avisadas uma vez quando cada uma vencer</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%1$d verificação pendente em %2$s</item>

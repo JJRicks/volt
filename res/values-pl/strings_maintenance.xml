@@ -302,6 +302,8 @@
     <string name="maintenance_notify_detail">Jedno powiadomienie, gdy przegląd będzie wymagany</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Przypomnienia o konserwacji</string>
+    <!-- src:253b821ce1c206197ea1313c4e06e6f5f91387bd -->
+    <string name="maintenance_channel_detail">Przeglądy ustawione na stronie Hulajnoga › Serwis › Konserwacja: jedno powiadomienie, gdy dany przegląd stanie się wymagany</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%1$d przegląd wymagany · %2$s</item>
