@@ -244,7 +244,9 @@ public final class MoreScreen implements AppScreen {
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
-            if (section.equals("Scooters")) scootersIndexRow = row;
+            // Each row has a tag, as Home style's and Developer options' have, so a validation taps the row an owner would.
+            if (section.equals("Scooters")) { scootersIndexRow = row; row.view.setTag("my-scooters-menu"); }
+            else if (section.equals("About")) row.view.setTag("about-menu");
             else if (section.equals("Lab")) badge(row.value, T.moreLabBadge());
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
