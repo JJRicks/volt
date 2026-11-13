@@ -120,6 +120,16 @@
     <string name="riding_label_odometer">km-Zähler</string>
     <!-- src:31adf29d5b21915924c4aa05d92e9631f043c10e -->
     <string name="riding_label_odometer_short">km-Zähler</string>
+    <!-- src:c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601 -->
+    <string name="riding_label_gps_accuracy">GPS-Genauigkeit</string>
+    <!-- src:e75ff01c86d268fbda4fc6b26cbae87fd3f02aec -->
+    <string name="riding_label_gps_accuracy_short">GPS</string>
+    <!-- src:1fb222cbc3bda1c0b4d26fea2e13a42696c1d768 -->
+    <string name="riding_gps_not_recording">Keine Aufzeichnung</string>
+    <!-- src:4409bbb1386ef72e4c2145cc33396977580cb2c8 -->
+    <string name="riding_gps_waiting">Warten</string>
+    <!-- src:d7d67a1aae77c6e440cadf5f021780e48f58b9cb -->
+    <string name="riding_gps_no_fix">Keine Position</string>
     <!-- src:2f0265913cb02528d0a25d25b2eb57febffbadac -->
     <string name="riding_speed_last">Zuletzt: %1$s</string>
     <!-- src:0579aa52f3ff283354e835d1d3b21d9baa7ce6c8 -->
