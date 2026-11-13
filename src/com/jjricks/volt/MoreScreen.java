@@ -2719,6 +2719,16 @@ public final class MoreScreen implements AppScreen {
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
     }
 
+    /** Developer options' Scene and Drive mode rows' view tags (the rows and their text arrive with the catalog PR). */
+    static final String SIMULATION_SCENE_TAG = "developer-simulation-scene", SIMULATION_DRIVE_MODE_TAG = "developer-simulation-drive-mode";
+
+    /** One more simulator row under Simulated model: the scooter icon, a title, no value yet, and its view tag. */
+    private Row simulatorRow(LinearLayout group, String title, String tag, Runnable open) {
+        Row row = row(group, "scooter", title, null, open);
+        row.view.setTag(tag);
+        return row;
+    }
+
     /** Developer options' simulation rows and the simulating note on More's menu. */
     private void refreshSimulation() {
         ScooterService s = service();
