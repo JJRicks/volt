@@ -36,6 +36,9 @@ public final class BackgroundRecordingValidation extends Instrumentation {
         try {
             Context context = getTargetContext();
             check(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish"), "Refusing physical phone");
+            // onStart runs on its own thread, possibly before VoltApp.onCreate has run on the main thread; a write here
+            // first would make that start see settings and seed the note. Wait until the app has started.
+            waitForIdleSync();
             check(prefs().getAll().isEmpty(), "Requires empty preferences: a fresh install's first start writes no note state");
             BluetoothAdapter adapter = context.getSystemService(BluetoothManager.class).getAdapter(); check(adapter == null || !adapter.isEnabled(), "Bluetooth must be off");
             prefs().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("map_basemap_enabled", false)
