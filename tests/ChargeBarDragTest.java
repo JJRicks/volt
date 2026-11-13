@@ -27,6 +27,7 @@ public final class ChargeBarDragTest {
         notLiveSaysWhy();
         limitGates();
         writesAndReadback();
+        labelAndSpokenState();
         if (args.length > 0) storesNothing(args[0]);
         System.out.println("ChargeBarDrag: " + checks + " checks passed");
     }
@@ -210,6 +211,20 @@ public final class ChargeBarDragTest {
     }
 
     /** Rule 4: pending until the scooter answers, then its readback decides, as the choice sheet does. */
+    /** Rules 4 and 8 with a keyboard: focus shows the value and note before a key writes; pending keeps the note spoken. */
+    private static void labelAndSpokenState() {
+        require(ChargeBarDrag.labelShown(0, false, false) == 0, "at rest, unfocused: no label");
+        require(ChargeBarDrag.labelShown(0, false, true) == 1, "keyboard focus shows the label (and its note) before any key writes");
+        require(ChargeBarDrag.labelShown(0, true, false) == 1, "a pending write shows the label");
+        require(ChargeBarDrag.labelShown(.4f, false, false) == .4f, "a lifting bar shows the label as far as it is lifted");
+        require(ChargeBarDrag.labelShown(.4f, false, true) == 1, "focused while lifting: whole");
+        require(ChargeBarDrag.spokenState(false, ", confirming", null).isEmpty(), "nothing to add at rest without a note");
+        require(ChargeBarDrag.spokenState(false, ", confirming", ", untested here").equals(", untested here"), "the note is spoken at rest");
+        require(ChargeBarDrag.spokenState(true, ", confirming", null).equals(", confirming"), "pending without a note: confirming");
+        require(ChargeBarDrag.spokenState(true, ", confirming", ", untested here").equals(", confirming, untested here"),
+                "pending keeps the note the label still shows");
+    }
+
     private static void writesAndReadback() {
         ChargeBarDrag.Commit c = new ChargeBarDrag.Commit();
         c.report(85);

@@ -279,7 +279,7 @@ final class ChargeBar extends View {
         } else paint.setStyle(Paint.Style.FILL);
         markBox.set(x - mw / 2, floor - mh / 2, x + mw / 2, floor + mh / 2);
         canvas.drawRoundRect(box, mw / 2, mw / 2, paint);
-        float shown = Math.max(lift, pending ? 1 : 0);
+        float shown = ChargeBarDrag.labelShown(lift, pending, isFocused());
         if (shown > 0) drawLabel(canvas, x, floor, mh, shown);
     }
 
@@ -559,8 +559,8 @@ final class ChargeBar extends View {
         if (!mark || words == null) { if (getContentDescription() != null) setContentDescription(null); return; }
         int at = current();
         String value = valueText(at);
-        String state = commit.pending() || otherPending ? words.confirming()
-                : kind == ChargeBarDrag.LIMIT && note != null ? words.stateNote(note) : "";
+        String state = ChargeBarDrag.spokenState(commit.pending() || otherPending, words.confirming(),
+                kind == ChargeBarDrag.LIMIT && note != null ? words.stateNote(note) : null);
         if (Build.VERSION.SDK_INT >= 30) {
             String described = value + state;
             if (!described.contentEquals(String.valueOf(getStateDescription()))) setStateDescription(described);
@@ -570,6 +570,12 @@ final class ChargeBar extends View {
             String spoken = words.spoken(name(), value, state);
             if (!spoken.contentEquals(String.valueOf(getContentDescription()))) setContentDescription(spoken);
         }
+    }
+
+    /** Keyboard focus shows the value and the row's note (ChargeBarDrag.labelShown); losing it hides them again. */
+    @Override protected void onFocusChanged(boolean focused, int direction, android.graphics.Rect previous) {
+        super.onFocusChanged(focused, direction, previous);
+        invalidate();
     }
 
     @Override public CharSequence getAccessibilityClassName() { return android.widget.SeekBar.class.getName(); }

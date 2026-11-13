@@ -108,6 +108,25 @@ final class ChargeBarDrag {
         return value;
     }
 
+    // ---- What the label shows and the screen reader says ----------------------------------------------------------
+
+    /**
+     * How much of the value label shows: as much as the bar is lifted under a finger, and wholly while a write is
+     * pending or while the bar has keyboard focus (so an arrow key's user sees the value and the row's note, such as
+     * "Untested here", before a key writes anything).
+     */
+    static float labelShown(float lift, boolean pending, boolean focused) {
+        return Math.max(lift, pending || focused ? 1 : 0);
+    }
+
+    /**
+     * The spoken state after the value: the row's "confirming" while a write is pending, then the row's note when it
+     * has one, so what is said matches the label (which keeps the note while pending). Null parts are left out.
+     */
+    static String spokenState(boolean pending, String confirming, String note) {
+        return (pending && confirming != null ? confirming : "") + (note != null ? note : "");
+    }
+
     // ---- The charge limit's gates ---------------------------------------------------------------------------------
 
     /** Why a limit can't be dragged or written now; OK when it can. ChargeBar words each one as its control does. */
