@@ -28,6 +28,15 @@ final class ChargeTimeReadings {
         return alertCountdown ? ALERT_LEVEL : NO_LIMIT;
     }
 
+    /**
+     * The same, with the model's evidence: a model that offers charge alerts has no native charge limit
+     * (ChargeAlertPolicy.offered), so a limit-like reading from it is not one and never replaces the alert's
+     * countdown. The rule ScooterService.chargeLiveFacts uses for the same reading.
+     */
+    static int limitSource(Double scooterTarget, boolean alertsOffered, boolean alertCountdown) {
+        return limitSource(alertsOffered ? null : scooterTarget, alertCountdown);
+    }
+
     static boolean two(int limitSource) { return limitSource == SCOOTER_LIMIT || limitSource == ALERT_LEVEL; }
 
     /** A missing, old or damaged value is the default: the limit reading. */

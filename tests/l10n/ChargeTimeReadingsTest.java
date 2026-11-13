@@ -27,6 +27,10 @@ public final class ChargeTimeReadingsTest {
         check(limitSource(0d, false) == NO_LIMIT && limitSource(-5d, false) == NO_LIMIT && limitSource(Double.NaN, false) == NO_LIMIT,
                 "a zero, negative or unknown limit is no limit");
         check(limitSource(150d, true) == ALERT_LEVEL, "an out-of-range limit never counts");
+        check(limitSource(80d, true, true) == ALERT_LEVEL && limitSource(80d, true, false) == NO_LIMIT,
+                "a model that offers charge alerts has no native limit: its limit-like reading never replaces the alert");
+        check(limitSource(80d, false, true) == SCOOTER_LIMIT && limitSource(80d, false, false) == SCOOTER_LIMIT,
+                "a model without charge alerts: its limit below 100% is the scooter's own");
     }
 
     private static void choice() {

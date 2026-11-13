@@ -1749,7 +1749,8 @@ public final class DashboardScreen implements AppScreen {
          * and speaks no status, as the alert tile did.
          */
         void update(ChargingEstimate.Result estimate, ChargingEstimate.Result alert) {
-            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, alert != null);
+            ScooterService service = host.service();
+            int source = ChargeTimeReadings.limitSource(estimate.targetPercent, service != null && service.chargeAlertsOffered(), alert != null);
             boolean scooterLimit = source == ChargeTimeReadings.SCOOTER_LIMIT;
             fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(estimate.targetPercent, false),
                     estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate) : estimate.remainingMinutesToFull,
