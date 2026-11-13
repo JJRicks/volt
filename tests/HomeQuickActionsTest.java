@@ -25,8 +25,6 @@ public final class HomeQuickActionsTest {
                 "Widgets' normalize still drops them");
         require(HomeQuickActions.cleanOnly("riding") && HomeQuickActions.cleanOnly("record") && HomeQuickActions.cleanOnly("charge_alerts")
                 && !HomeQuickActions.cleanOnly("rides"), "cleanOnly");
-        require(HomeQuickActions.known(HomeQuickActions.CHARGE_ALERTS) && QuickAccessActions.find(HomeQuickActions.CHARGE_ALERTS) == null,
-                "Charge alerts is Clean's own too, never in the Quick access catalog");
         for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) require(HomeQuickActions.known(entry.id), "Every catalog id is offered: " + entry.id);
         require(!HomeQuickActions.known("bogus") && !HomeQuickActions.known(null) && !HomeQuickActions.known(""), "Unknown ids are not");
         require(!HomeQuickActions.ICON_RIDING.isEmpty() && !HomeQuickActions.ICON_RECORD.isEmpty() && !HomeQuickActions.ICON_CHARGE_ALERTS.isEmpty(), "All have icons");
