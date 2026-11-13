@@ -616,8 +616,6 @@
     <string name="main_report_email_next">Votre application d’e-mail s’ouvrira ensuite pour que vous puissiez le lire avant l’envoi.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Choisissez votre trottinette ou « Je ne sais pas », puis appuyez sur « Envoyer ».</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Un fichier de diagnostic sera ajouté : détails de l’application et de la trottinette, et événements récents de connexion et de commande. Il ne contient jamais votre clé de propriétaire, votre code PIN, votre numéro de série, votre position ni vos noms.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Envoyer un e-mail à Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

@@ -614,8 +614,6 @@
     <string name="main_report_email_next">Je e-mailapp opent hierna, zodat je het eerst kunt lezen.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Kies je step of ‘Weet ik niet’ en tik daarna op ‘Versturen’.</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Dit voegt een diagnosebestand toe: gegevens van de app en step en recente gebeurtenissen bij verbinding en bediening. Nooit je eigenaarssleutel, PIN, serienummer, locatie of namen.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">E-mail naar Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

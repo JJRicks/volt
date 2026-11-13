@@ -118,6 +118,12 @@ public final class ScooterService extends Service {
     private final ChargeLiveDial chargeLiveDial=new ChargeLiveDial();
     /** The live card the last notification() built (null: none); what a connection notice post then carries. */
     private ChargeLiveState chargeLiveBuilt;
+    /** What the connection notice last posted (NoticeRepeat), and what the last notification() set that the notice can't report back. */
+    private final NoticeRepeat noticeRepeat=new NoticeRepeat();private Object noticeBuiltExtra;
+    /** The connection notice's tap and its action, made once each: every rebuild used to ask Android for them again. */
+    private PendingIntent noticeOpen;private final Map<String,PendingIntent> noticeActions=new HashMap<>();
+    /** The labels each channel was last created with in this process: Android keeps a channel, so it's created again only when its language changes. */
+    private static String scooterChannelLabel,alertChannelLabel;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
     /** The card's Disconnect (Stop before 2026-11-06): ends Volt's own hold and card, and never sends the scooter anything. */
     static final String STOP_CHARGE_LIVE="stop_charge_live";
@@ -1156,6 +1162,22 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
         return !destroyed&&p!=null&&ble!=null&&ChargeAlertPolicy.offered(alertDescriptor(p));
     }
+    /** Why chargeAlertsOffered() is false (ChargeAlertPolicy.missing), or null when it is true. */
+    public CapabilityResolver.Reason chargeAlertsMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return CapabilityResolver.Reason.NOT_CONNECTED;
+        return ChargeAlertPolicy.missing(alertDescriptor(p));
+    }
+    /**
+     * The Battery page's Charge done by rule (timed_charging and charge_start offered) for the selected scooter, judged
+     * like chargeAlertsOffered (the live model while connected to it, its saved model offline): why it can't schedule
+     * charging, or null when it can or no scooter is selected (ShortcutPicker.scheduleMissing).
+     */
+    public CapabilityResolver.Reason chargeScheduleMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return null;
+        return ShortcutPicker.scheduleMissing(alertDescriptor(p));
+    }
     public ChargeAlertPolicy.Settings chargeAlerts(){
         if(destroyed||settings==null)return ChargeAlertPolicy.Settings.OFF;
         ensureAlertPolicy();return alertPolicy==null?ChargeAlertPolicy.Settings.OFF:alertPolicy.settings();
@@ -1651,9 +1673,11 @@ public final class ScooterService extends Service {
     private String alertTitle(AlertShown shown){return shown==null?alertTitle:shown.title();}
     private String alertText(AlertShown shown){return shown==null?alertText:shown.text();}
     private void alertChannel(NotificationManager manager){
-        NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,T.serviceChannelAlerts(),NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription(T.serviceChannelAlertsDescription());
-        manager.createNotificationChannel(channel);
+        String name=T.serviceChannelAlerts(),description=T.serviceChannelAlertsDescription(),label=name+"\n"+description;
+        if(label.equals(alertChannelLabel))return;
+        NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,name,NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription(description);
+        manager.createNotificationChannel(channel);alertChannelLabel=label;
     }
     /**
      * High importance, on its own channel. While Volt's alarm sounds the notice is silent, so the two never
@@ -2027,7 +2051,7 @@ public final class ScooterService extends Service {
                 @Override
                 public void run() {
                     if (destroyed) return;
-                    if (reasons().keepsServiceUp(visible, backgroundConnection())) {
+                    if (reasons().keepsServiceUp(visible, backgroundConnection(), simulating())) {
                         cancelBackgroundDeadline();
                         return;
                     }
@@ -2049,7 +2073,13 @@ public final class ScooterService extends Service {
     private void applyWorkPolicy(boolean connect){
         if(destroyed)return;
         if (simulating()) {
-            cancelBackgroundDeadline();
+            // Out of sight a simulation has no work, so the service stops as an idle one does: the usual ten seconds
+            // (an activity recreation unbinds and binds again well inside them), then backgroundStop's stopSelf. While
+            // the activity lives its binding keeps the service, and the simulation, until Volt is back.
+            if (visible) cancelBackgroundDeadline();
+            else if (backgroundDeadlineMs == 0) {
+                backgroundDeadlineMs = SystemClock.elapsedRealtime() + 10000; handler.removeCallbacks(backgroundStop); handler.postDelayed(backgroundStop, 10000);
+            }
             ble.watchBattery(0);
             ble.visibility(visible, false, 0);
             handler.removeCallbacks(tick);
@@ -3015,6 +3045,7 @@ public final class ScooterService extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
         chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
+        noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
         notices.posted(71, SystemClock.elapsedRealtime());
@@ -3022,20 +3053,16 @@ public final class ScooterService extends Service {
 
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
-        NotificationChannel channel =
-                new NotificationChannel(
-                        "scooter",
-                        T.serviceChannelScooter(),
-                        NotificationManager.IMPORTANCE_LOW);
-        channel.setShowBadge(false);
-        manager.createNotificationChannel(channel);
-        Intent open = new Intent(this, MainActivity.class);
-        PendingIntent content =
-                PendingIntent.getActivity(
-                        this,
-                        0,
-                        open,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String label = T.serviceChannelScooter();
+        if (!label.equals(scooterChannelLabel)) {
+            NotificationChannel channel = new NotificationChannel("scooter", label, NotificationManager.IMPORTANCE_LOW);
+            channel.setShowBadge(false);
+            manager.createNotificationChannel(channel);
+            scooterChannelLabel = label;
+        }
+        if (noticeOpen == null)
+            noticeOpen = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent content = noticeOpen;
         boolean measuring = chargeMeasure.active() && !isChargeRecording() && !isRecording() && !phoneSaving();
         // A schedule test ranks above a charge recording (its Cancel matters more; Stop charge recording stays in the app).
         String testStatus = measuring || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
@@ -3096,12 +3123,16 @@ public final class ScooterService extends Service {
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
         if (live != null) chargeLiveCard(builder, live, isChargeRecording() ? chargeCaptureStatus() : null);
-        if(Build.VERSION.SDK_INT>=31&&keepsWorking())
+        boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
+        if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         boolean testEnding = testing && chargeSchedule().testPhase == ChargeScheduleTest.Phase.ENDING;
         String action = alarming ? "STOP_CHARGE_ALARM" : watching ? "STOP_ALERT_WATCH" : measuring ? "SCHEDULE_CHARGE_NOW" : testing ? "CANCEL_SCHEDULE_TEST" : isChargeRecording() ? "STOP_CHARGE_RECORDING" : isRecording() ? "STOP_RECORDING" : "DISCONNECT";
         if (liveStop) action = STOP_CHARGE_LIVE;
-        PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,ScooterService.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent stop=noticeActions.get(action);
+        if(stop==null){stop=PendingIntent.getService(this,1,new Intent(this,ScooterService.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);noticeActions.put(action,stop);}
+        // Neither can be read back from the notice: how soon Android shows it, and which action its intent sends.
+        noticeBuiltExtra = Arrays.asList(immediate, action);
         if (!phoneSaving() && !(measuring && chargeMeasure.arming()) && !testEnding)
             builder.addAction(
                     new Notification.Action.Builder(
@@ -3154,9 +3185,63 @@ public final class ScooterService extends Service {
         if(liveUpdateLast.asked()&&!destroyed)handler.postDelayed(liveUpdateProbe,1500);
     }
     private void notifyNow(int id,java.util.function.Supplier<Notification> build){
-        try{Notification notice=build.get();if(notice!=null){getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());}}
+        boolean sent=true;
+        try{Notification notice=build.get();if(notice!=null){
+            // The connection notice is rebuilt on every tick and change; it posts only when it differs from what shows (NoticeRepeat).
+            Object key=id==71?noticeKey(notice):null;
+            long now=SystemClock.elapsedRealtime();
+            sent=key==null||noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing);
+            // A skipped notice is the one showing, so the live card's baseline is what it carries either way.
+            if(sent)getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());
+            if(sent&&key!=null)noticeRepeat.posted(key,now);}}
         catch(RuntimeException unavailable){}
-        if(id==71)liveUpdatePosted();
+        if(id==71&&sent)liveUpdatePosted();
+    }
+    /** Android still shows the connection notice: not swiped away (Android 14 and later allow that) or removed. */
+    private boolean connectionNoticeShowing(){
+        try{
+            for(android.service.notification.StatusBarNotification n:getSystemService(NotificationManager.class).getActiveNotifications())
+                if(n.getId()==71&&n.getTag()==null)return true;
+        }catch(RuntimeException unknown){}
+        return false;
+    }
+    /** Everything the connection notice carries, for NoticeRepeat; noticeBuiltExtra is from the notification() that built it. */
+    private Object noticeKey(Notification notice){return NoticeRepeat.key(Arrays.asList(noticeBuiltExtra,noticeParts(notice)));}
+    /** The header shows when the notice was posted ("now"), not a running clock: the builder stamps that time on every rebuild. */
+    private static boolean showsPostTime(Notification n){
+        Bundle extras=n.extras;
+        return extras!=null&&extras.getBoolean(Notification.EXTRA_SHOW_WHEN)&&!extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER);
+    }
+    /** A notice's parts, its time only for a running clock (a post time is stamped on every rebuild; see NoticeRepeat), its lock screen version too. */
+    private static List<Object> noticeParts(Notification n){
+        if(n==null)return null;
+        Bundle extras=n.extras;
+        boolean timed=extras!=null&&extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER);
+        List<Object> actions=new ArrayList<>();
+        if(n.actions!=null)for(Notification.Action a:n.actions)
+            actions.add(Arrays.asList(noticePart(a.title),noticePart(a.actionIntent),noticePart(a.getIcon()),noticePart(a.getExtras()),noticePart(a.getRemoteInputs()),a.getAllowGeneratedReplies()));
+        return Arrays.asList(n.getChannelId(),noticePart(n.getSmallIcon()),noticePart(n.getLargeIcon()),n.flags,n.category,n.visibility,n.color,n.number,
+                timed?n.when:null,noticePart(n.contentIntent),noticePart(n.deleteIntent),noticePart(n.fullScreenIntent),n.getGroup(),n.getSortKey(),
+                n.getGroupAlertBehavior(),n.getTimeoutAfter(),n.getBadgeIconType(),n.getShortcutId(),noticePart(n.getSettingsText()),actions,
+                noticePart(extras),noticeParts(n.publicVersion));
+    }
+    /** Bundles as maps, resource icons by resource, styled text never equal, the app's own info by package; anything else as it is. */
+    private static Object noticePart(Object value){
+        if(value instanceof Bundle){
+            Bundle bundle=(Bundle)value;Map<String,Object> parts=new HashMap<>();
+            for(String key:bundle.keySet())parts.put(key,noticePart(bundle.get(key)));
+            return parts;
+        }
+        if(value instanceof android.text.Spanned&&((android.text.Spanned)value).getSpans(0,((android.text.Spanned)value).length(),Object.class).length>0)return new Object();
+        if(value instanceof android.graphics.drawable.Icon&&((android.graphics.drawable.Icon)value).getType()==android.graphics.drawable.Icon.TYPE_RESOURCE){
+            android.graphics.drawable.Icon icon=(android.graphics.drawable.Icon)value;
+            return Arrays.asList("icon",icon.getResPackage(),icon.getResId());
+        }
+        if(value instanceof Notification)return noticeParts((Notification)value);
+        if(value instanceof android.content.pm.ApplicationInfo)return Arrays.asList("app",((android.content.pm.ApplicationInfo)value).packageName);
+        if(value instanceof Object[]){List<Object> parts=new ArrayList<>();for(Object item:(Object[])value)parts.add(noticePart(item));return parts;}
+        if(value instanceof List){List<Object> parts=new ArrayList<>();for(Object item:(List<?>)value)parts.add(noticePart(item));return parts;}
+        return value;
     }
     /**
      * The volt-diagnostics-v1 file a report email may carry (DiagnosticsBundle), or null when it would contain a saved
