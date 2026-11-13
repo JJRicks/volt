@@ -619,11 +619,22 @@ final class QuickAccessGrid extends ViewGroup {
         return false;
     }
     /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
-    /** A round action's one short name (HubText.quickActionRoundName), else its short rung. */
+    /**
+     * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): Clean's
+     * own (HubText.quickActionRoundName); for cruise control, traction control and energy recovery, the one-word name
+     * Live Stats already gives them (StatsLabels.row: "Cruise", "Traction", "Recovery") until part 10 adds Clean's own;
+     * else the control's short rung.
+     */
     private static String roundName(QuickAccessActions.Entry entry) {
-        Msg name = HubText.quickActionRoundName(entry.id, entry.featureKey);
-        return name != null ? name.render() : tileLabel(entry);
+        Msg own = HubText.quickActionRoundName(entry.id);
+        if (own != null) return own.render();
+        if (ROUND_STATS_NAMES.contains(entry.featureKey)) return StatsLabels.row(entry.featureKey);
+        return tileLabel(entry);
     }
+
+    /** Controls whose Live Stats row name is their one-word short name (feature keys, data). */
+    private static final java.util.Set<String> ROUND_STATS_NAMES =
+            new java.util.HashSet<>(java.util.Arrays.asList("cruise_control", "traction_control", "energy_recovery"));
 
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
