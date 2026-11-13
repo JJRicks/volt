@@ -1235,7 +1235,12 @@ assist, energy recovery, hill descent control, overspeed control. On a scooter
 with neither scheduled charging nor battery alerts, a second offered control
 takes the third place; any place still empty goes to Rides and then Settings.
 There is no drive mode action. Edit Home changes any of the four per scooter.
-What each model offers: see OTHER NAVEE MODELS above. Setup's last step offers
+What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
+charging view shows the charging power beside the same switching time tile as
+Widgets: the time to the charge limit, or to the battery alert's level on a
+scooter without a limit, then the time to 100%. Where the view is too small,
+the photo goes before the readings. The Ride row shows a running recording and
+its time while a ride records, else the last ride. Setup's last step offers
 the choice (Clean selected on a new install), each style drawn in detail with
 the scooter's photo and sample readings. Owners updating from a Volt without
 Clean keep Widgets and see a one-time What's new sheet: Switch to Clean or Keep
