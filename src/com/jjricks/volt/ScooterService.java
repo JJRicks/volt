@@ -568,8 +568,10 @@ public final class ScooterService extends Service {
                 // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
                 if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
                 ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detectedCharger());
+                // A guess that detection confirms becomes DETECTED too (same family: the store renames only).
                 if(relabel!=null)try{
-                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){chargeReferenceGate.reset();updateNotification();}
+                    boolean familyChanges=relabel!=chargeStore.charger();
+                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){if(familyChanges)chargeReferenceGate.reset();updateNotification();}
                 }catch(IOException keepFirstLabel){/* the recording keeps its first label */}
                 return;
             }

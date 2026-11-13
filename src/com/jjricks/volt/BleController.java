@@ -920,13 +920,13 @@ public final class BleController {
         return out;
     }
     /**
-     * An unfinished test of the active scooter is waiting to write its original value back (RESTORE_NEEDED, or
-     * CHANGED_OUTSIDE where a restore is offered). A charge recording would refuse that write (CapabilityResolver, RECORDING),
-     * so Record charges automatically waits for it. Never writes.
+     * An unfinished test of the active scooter whose write may have been sent still has its original value to write back,
+     * or may have once reviewed (ChargeAutoRecordPolicy.testHolds: every review but ALREADY_RESTORED). A charge recording
+     * would refuse that write (CapabilityResolver, RECORDING), so Record charges automatically waits for it. Never writes.
      */
     public boolean restoreOutstanding(){
         for(TestJournal.Entry e:unresolvedTests()){GuidedTest.Review r=reviewTest(e.testId);
-            if(r!=null&&(r.state==GuidedTest.ReviewState.RESTORE_NEEDED||r.state==GuidedTest.ReviewState.CHANGED_OUTSIDE))return true;}
+            if(r!=null&&ChargeAutoRecordPolicy.testHolds(r.state))return true;}
         return false;
     }
     public int unresolvedTestsElsewhere(){ScooterProfiles.Profile p=profile();Set<String> kept=profileIds();int n=0;for(TestJournal.Entry e:testJournal.unresolved())if((p==null||!e.profileId.equals(p.id))&&kept.contains(e.profileId))n++;return n;}

@@ -337,15 +337,18 @@ already charging starts then; the recording is partial.
 - **Label.** The charger chosen in Estimates & charger; otherwise Volt's
   detection for this charge; otherwise a best guess: the charger with more
   qualified recordings for this scooter, or the stock charger on a tie or with
-  none. A detected or guessed label follows detection when it settles on the
-  other charger; a chosen one never changes. Only a chosen or detected label is
+  none. A detected label follows detection when it settles on the other
+  charger; a guess becomes detected as soon as detection settles, on either
+  charger, so a recording stays a guess only when detection never settled; a
+  chosen one never changes. Only a chosen or detected label is
   the charger in effect: a guess labels the file and nothing else, so estimates,
   Charge done by and the charging view keep waiting for your choice or for
   detection, and a recording that ends with a guessed label is kept in the list
   (marked as a guess) but teaches no charger curve. Its gauge readings still count
   toward the battery capacity estimate, which does not depend on the charger.
-- **Waits.** It never starts during a guided setting test, while one still has a
-  setting to write back, or during a compatibility check (a running recording
+- **Waits.** It never starts during a guided setting test, while an unfinished
+  one may still have a setting to write back (anything but already back to its
+  original value; dismissing the test ends the wait), or during a compatibility check (a running recording
   would block or cut those short). It starts by itself once they are over, if the
   scooter is still charging.
 - **End.** Every rule that ends a recording today, and also: at once when a live
@@ -363,7 +366,9 @@ already charging starts then; the recording is partial.
   20-recording limit a kept one replaces the oldest automatic recording, never a
   manual one, and only once it is kept: nothing saved is deleted for one that is
   discarded, and a process end between saving it and making room is finished at
-  the next start. With 20 manual recordings it does not start.
+  the next start. The recording just saved is never the one removed, and an
+  automatic file Volt cannot read goes before any readable one. A stop that a
+  process end cut short after writing its end is recovered with that one end. With 20 manual recordings it does not start.
 - **Hold.** Stopping a recording by hand (Stop on the page or in the
   notification, or a ride started by hand) holds that scooter until a fresh
   reading says it stopped charging while Volt is not holding the current off
