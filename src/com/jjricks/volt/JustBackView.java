@@ -25,8 +25,9 @@ import java.util.Locale;
 
 /**
  * Clean Home's "Just back" moment (hub layout plan 1.5 and 1.7, PR 9): for about an hour after a ride ends, the top
- * area shows it. A muted "Ride saved 12 minutes ago" with a round X, the distance large, the route drawn on a plain
- * dark panel (from the phone journal's own GPS fixes; never a map tile), then Ride time, Avg speed and Battery used.
+ * area shows it. A muted "Ride ended 12 minutes ago" with a round X, the distance large, the route drawn on a plain
+ * dark panel (from the phone journal's own GPS fixes; never a map tile), then Ride time, Avg speed and Battery drop
+ * (Battery gain for a ride that ended with more charge, as the Rides page says).
  * Tapping it opens that ride; the X closes it until the next ride.
  *
  * <p>It fills the top area's fixed height: the route panel takes what the words and tiles leave and draws nothing when
@@ -94,7 +95,7 @@ final class JustBackView extends LinearLayout {
         if (android.os.Build.VERSION.SDK_INT >= 28) tiles.setScreenReaderFocusable(true);
         time = new Cell(host, HubText.justBackRideTime());
         speed = new Cell(host, HubText.justBackAvgSpeed());
-        battery = new Cell(host, HubText.justBackBatteryUsed());
+        battery = new Cell(host, HubText.justBackBattery(null));
         Cell[] cells = {time, speed, battery};
         for (int i = 0; i < cells.length; i++) {
             LinearLayout.LayoutParams cellSize = new LinearLayout.LayoutParams(0, -1, 1);
@@ -115,7 +116,7 @@ final class JustBackView extends LinearLayout {
      * minutes line changes between rides, and the rest is set again only when the ride or the units change.
      */
     void bind(RideStore.Summary s, String units, long now) {
-        saved.setText(HubText.justBackSaved(HomeMoment.minutesAgo(s.shownEndWallMs, now)).render());
+        saved.setText(HubText.justBackEnded(HomeMoment.minutesAgo(s.shownEndWallMs, now)).render());
         String key = s.id + ":" + units;
         if (key.equals(shownKey)) return;
         boolean otherRide = !s.id.equals(rideId);
@@ -128,9 +129,10 @@ final class JustBackView extends LinearLayout {
         time.set(s.shownElapsedMs > 0 ? RidingFocus.clockText(s.shownElapsedMs) : null);
         speed.set(s.averageSpeedKmh == null || !Double.isFinite(s.averageSpeedKmh) ? null : RideText.speed(s.averageSpeedKmh, units).toString());
         Double drop = s.batteryDropPercent;
-        // A ride that gained charge (regeneration downhill) used none.
+        // A ride that gained charge (regeneration downhill) says Battery gain with the size of the gain, as Rides does.
+        battery.setLabel(HubText.justBackBattery(drop == null || !Double.isFinite(drop) ? null : drop));
         battery.set(drop == null || !Double.isFinite(drop) ? null
-                : Fmt.percent(Fmt.decimalNumber(Locale.US, Math.max(0, drop), 0)).toString());
+                : Fmt.percent(Fmt.decimalNumber(Locale.US, Math.abs(drop), 0)).toString());
     }
 
     /** The route of ride id, from RidesScreen.readThumb; empty when the ride has no usable GPS fixes. */
@@ -172,7 +174,7 @@ final class JustBackView extends LinearLayout {
 
     /** One of the three small tiles: its label above a value that fits its width. */
     private static final class Cell extends LinearLayout {
-        private final TextView value;
+        private final TextView name, value;
 
         Cell(ScreenHost host, Msg label) {
             super(host.activity());
@@ -181,7 +183,7 @@ final class JustBackView extends LinearLayout {
             setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8));
             setBackground(ui.shape(ui.raised, 14, 0));
-            TextView name = ui.caption(label.render());
+            name = ui.caption(label.render());
             name.setMaxLines(2);
             name.setEllipsize(TextUtils.TruncateAt.END);
             addView(name, new LinearLayout.LayoutParams(-1, -2));
@@ -192,6 +194,11 @@ final class JustBackView extends LinearLayout {
             LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-1, Math.round(ui.sp(17) * 1.35f));
             valueSize.topMargin = ui.dp(3);
             addView(value, valueSize);
+        }
+
+        /** The tile's name, set again when the ride changes (the battery tile names a drop or a gain). */
+        void setLabel(Msg label) {
+            name.setText(label.render());
         }
 
         /** A measured value, or null for one the ride did not measure (a dash, muted). */

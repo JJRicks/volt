@@ -204,6 +204,12 @@ IP address and viewed area, then wait for Enable basemap or Cancel before loadin
 Cancel leaves tiles off; acknowledgement persists only after approval. Full app
 backup/restore includes the choice and acknowledgement. Changing provider alone
 must not enable tiles, and refreshing a view must not count as consent.
+OpenStreetMap is the default provider. The explanation names the provider, and
+approval saves it with the acknowledgement, so a later default change never moves
+an approved basemap. Settings with no provider saved but the basemap on or
+explained were approved under the old USGS default and keep USGS (`MapDefault`);
+explicit choices never change. A ride map follows a provider change while open,
+tiles and attribution together.
 
 `PhoneRideValidation` and `UiOrganizationValidation` are fresh-emulator-only. They
 refuse owner phones and existing app data; synthetic routes are test fixtures, not
