@@ -60,6 +60,16 @@ final class MapDefault {
     }
 
     /**
+     * True when an answer to the offer is saved: the first one, given while the person is still on USGS by the old
+     * default (usgsByDefault). Once the provider is their own choice (picked in Maps meanwhile, in another window, or
+     * restored from a backup), the offer no longer applies: the answer closes it and saves nothing, so it never
+     * overwrites that choice.
+     */
+    static boolean savesSwitchAnswer(boolean usgsByDefault, boolean answered) {
+        return usgsByDefault && !answered;
+    }
+
+    /**
      * Generous boxes around the United States and its territories (south, west, north, east in degrees).
      * They also take in parts of Canada and Mexico: a doubtful place counts as covered, so Volt errs
      * toward not asking. Alaska's Aleutians cross 180°, so they have a box on each side.

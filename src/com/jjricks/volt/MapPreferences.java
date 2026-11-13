@@ -11,6 +11,7 @@ import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -223,10 +224,11 @@ public final class MapPreferences {
      * Saves the answer to the one-time offer to leave USGS (MapDefault.offersSwitch) as the person's own
      * choice, in one commit with the mark that it was answered, so it is never asked again, also after a
      * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS. An answer
-     * already saved stays: a later one changes nothing.
+     * already saved stays: a later one changes nothing. Nor does an answer once the provider is no longer USGS by
+     * the old default (MapDefault.savesSwitchAnswer): the person's own choice stands.
      */
     static void answerUsgsSwitch(SharedPreferences settings, boolean switchToOsm) {
-        if (settings.getBoolean(MapDefault.SWITCH_ANSWERED_KEY, false)) return;
+        if (!MapDefault.savesSwitchAnswer(MapSource.usgsByDefault(settings), settings.getBoolean(MapDefault.SWITCH_ANSWERED_KEY, false))) return;
         SharedPreferences.Editor answer = settings.edit().putBoolean(MapDefault.SWITCH_ANSWERED_KEY, true);
         (switchToOsm ? MapSource.OSM : MapSource.USGS).put(answer);
         answer.apply();
@@ -236,6 +238,11 @@ public final class MapPreferences {
     private static final OneQuestion<AlertDialog> SWITCH_QUESTION = new OneQuestion<>();
     /** Each asking map's watch on its window, so the offer closes quietly once every asking map has left. */
     private static final Map<View, View.OnAttachStateChangeListener> SWITCH_ASKERS = new WeakHashMap<>();
+    /**
+     * Each open offer's watch on the provider, so the offer closes quietly once the provider is no longer USGS by the
+     * old default. Held here because SharedPreferences keeps its listeners weakly; removed when the offer closes.
+     */
+    private static final Map<AlertDialog, Runnable> SWITCH_PROVIDER_WATCH = new HashMap<>();
 
     /**
      * Asks once whether someone on USGS by the old default (MapSource.usgsByDefault) wants OpenStreetMap, when
@@ -244,6 +251,8 @@ public final class MapPreferences {
      * long as some asking map stays there. Switch or Keep USGS, or Back on the offer itself, is saved as the
      * person's own choice, and only the first answer counts (OneQuestion, answerUsgsSwitch); open maps follow
      * through RidesScreen.mapPanel's provider listener. Closed with its screen, it records nothing and asks again.
+     * A provider change while it is open (Maps in another window, a restore) closes it quietly the same way once
+     * the provider is no longer USGS by the old default; writing the old-default pin down (keepPin) does not.
      */
     static void offerOsmSwitch(ScreenHost host, View map, List<PhoneRideStore.Point> points) {
         SharedPreferences settings = host.service().settings;
@@ -276,6 +285,7 @@ public final class MapPreferences {
             dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline));
             closeSwitchQuestion(SWITCH_QUESTION.opened(activity, map, dialog));
             watchSwitchAsker(map);
+            watchSwitchProvider(dialog, settings);
             Motion.present(dialog, Motion.DIALOG); dialog.show();
             for (int which : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE}) {
                 dialog.getButton(which).setTextColor(ui.accent);
@@ -291,14 +301,29 @@ public final class MapPreferences {
         for (AlertDialog other : others) closeSwitchQuestion(other);
     }
 
-    private static void switchQuestionClosed(AlertDialog question) { SWITCH_QUESTION.closed(question); }
+    private static void switchQuestionClosed(AlertDialog question) { SWITCH_QUESTION.closed(question); unwatchSwitchProvider(question); }
 
     /** Closes the offer without an answer (dismiss, never cancel), so it is asked again the next time it applies. */
     private static void closeSwitchQuestion(AlertDialog question) {
         if (question == null) return;
         SWITCH_QUESTION.closed(question);
+        unwatchSwitchProvider(question);
         // The window may already be gone with a destroyed activity; then there is nothing left to close.
         try { if (question.isShowing()) question.dismiss(); } catch (RuntimeException gone) { }
+    }
+
+    /** Closes question quietly once a change leaves the provider no longer USGS by the old default. */
+    private static void watchSwitchProvider(AlertDialog question, SharedPreferences settings) {
+        SharedPreferences.OnSharedPreferenceChangeListener watch = (changed, key) -> {
+            if (!MapSource.usgsByDefault(changed)) closeSwitchQuestion(question);
+        };
+        SWITCH_PROVIDER_WATCH.put(question, () -> settings.unregisterOnSharedPreferenceChangeListener(watch));
+        settings.registerOnSharedPreferenceChangeListener(watch);
+    }
+
+    private static void unwatchSwitchProvider(AlertDialog question) {
+        Runnable stop = SWITCH_PROVIDER_WATCH.remove(question);
+        if (stop != null) stop.run();
     }
 
     /** Once map leaves its window, it no longer asks; the offer closes quietly when no asking map is left. */

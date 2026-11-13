@@ -39,7 +39,8 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
 | `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. Absent: OpenStreetMap, or USGS Topo when the basemap is on or explained (approved under the old USGS default; MapDefault). Approving the explanation saves the provider it named. |
-| `map_usgs_switch_answered` | Boolean | global | Durable | The one-time offer to leave USGS was answered (either way). MapDefault. |
+| `map_usgs_switch_answered` | Boolean | global | Durable | The one-time offer to leave USGS was answered (either way). Saved only while the provider is still USGS by the old default (MapDefault.savesSwitchAnswer). MapDefault. |
+| `map_usgs_by_default` | Boolean | global | Durable | Set with USGS when Volt writes the old-default USGS pin down as the saved provider (MapSource.keepPin): USGS by the old default, not the person's own choice. Any other save of a provider removes it (MapSource.put). Travels in backups with the provider. MapDefault. |
 | `stats_favourites`, `stats_chart_favourites` | String set | global | Durable | Favourite readings/charts. |
 | `stats_favourite_order` | String | global | Durable | Favourite order. StatsFavouriteOrder. |
 | `stats_chart_window` | Integer | global | Durable | Chart time window. |
