@@ -248,12 +248,11 @@ public final class RidesScreen implements AppScreen {
 
         LinearLayout comparison = ui.card(); comparison.setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4));
         if (mode == SUMMARY) {
-            // The Ride page links to all rides and to its two settings pages, above the backups.
-            String[] links = {HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING};
-            String[] glyphs = {"compare", "record", "settings"};
-            for (int i = 0; i < links.length; i++) {
-                final String link = links[i];
-                Row row = navRow(glyphs[i], HubText.title(link), "", "", () -> host.open(link));
+            // The Ride page links to its two settings pages, above the backups; All rides & compare closes the recent
+            // rides' card (allRidesLink). No icon tiles on the Ride page's rows (the owner's Layout Plan).
+            String[] links = {HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING};
+            for (String link : links) {
+                Row row = navRow(null, HubText.title(link), "", "", () -> host.open(link));
                 row.view.setTag(HubListScreen.tag(link)); comparison.addView(row.view);
                 ui.divider(comparison);
             }
@@ -264,7 +263,7 @@ public final class RidesScreen implements AppScreen {
         // Ride backups has one home, the Ride page (as the owner's "one home" answer for the charger); All rides & compare
         // keeps Compare two rides only.
         if (mode == SUMMARY) {
-            Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
+            Row backups = navRow(null, M.ridesBackups(), "", "", this::rideBackups);
             backups.view.setTag("ride-backups-menu"); comparison.addView(backups.view);
         }
 
@@ -350,7 +349,9 @@ public final class RidesScreen implements AppScreen {
             // Spoken by its full name, even while the short rung is drawn, so the spoken name holds the visible one.
             recordTile.setContentDescription(HubText.quickActionLabel(HomeQuickActions.RECORD).render());
         } else {
-            if (!startLabel.contentEquals(recordName.getText())) recordName.setText(startLabel);
+            // "Simulating · Exit" wraps before the dot where it must, never leaving the dot at a line's end.
+            String drawn = RideRecordTile.dotsLead(startLabel);
+            if (!drawn.contentEquals(recordName.getText())) recordName.setText(drawn);
             recordTile.setContentDescription(startSpoken);
         }
     }
@@ -359,22 +360,22 @@ public final class RidesScreen implements AppScreen {
         if (recordLook == RideRecordTile.Look.START || recordLook == RideRecordTile.Look.SIMULATING) toggleRecording();
     }
     /**
-     * The narrow-label ladder on the Record ride tile's name: "Record ride" while it fits the tile, else its short
-     * rung "Record" (wrapping only if even that does not fit); the text is never shrunk or broken.
+     * The narrow-label ladder on the Record ride tile's name (RideRecordTile.nameRung): "Record ride" while it fits the
+     * tile, else its short rung "Record" (wrapping only if even that does not fit); the text is never shrunk or broken.
      */
     private void fitRecordName() {
         if (recordName == null || recordLook != RideRecordTile.Look.START) return;
         String full = HubText.quickActionLabel(HomeQuickActions.RECORD).render(), brief = HubText.quickActionShortLabel(HomeQuickActions.RECORD).render();
         float room = recordName.getWidth() - recordName.getPaddingLeft() - recordName.getPaddingRight();
         // Before the first layout there is no room yet: the full name, until the layout listener measures it.
-        CharSequence pick = room <= 0 ? full
-                : TileRung.first(new float[]{recordName.getPaint().measureText(full), recordName.getPaint().measureText(brief)}, room) == 0 ? full : brief;
+        CharSequence pick = RideRecordTile.nameRung(recordName.getPaint().measureText(full), room) == 0 ? full : brief;
         if (TileRung.needsSet(pick, recordName.getText())) recordName.post(() -> { if (recordLook == RideRecordTile.Look.START) recordName.setText(pick); });
     }
     /** One of the Ride page's two tiles: an icon over its name, on a rounded fill, the whole tile one button. */
     private LinearLayout rideTile(GlyphView glyph, TextView name, int fill, int ripple, Runnable action) {
-        LinearLayout tile = vertical(); tile.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
-        tile.setMinimumHeight(ui.dp(88));
+        int pad = ui.dp(RideRecordTile.PAD_DP);
+        LinearLayout tile = vertical(); tile.setPadding(pad, ui.dp(14), pad, ui.dp(14));
+        tile.setMinimumHeight(ui.dp(80));
         tile.setBackground(new RippleDrawable(ColorStateList.valueOf(ripple), ui.shape(fill, 18, 0), null));
         tile.addView(glyph, new LinearLayout.LayoutParams(ui.dp(24), ui.dp(24)));
         LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, -2); nameParams.topMargin = ui.dp(10);
@@ -607,11 +608,13 @@ public final class RidesScreen implements AppScreen {
                     if (i > 0) ui.divider(group);
                     group.addView(historyRow(stopped.get(i), stopped.get(i).id.equals(chosen))); shown.add(stopped.get(i).id);
                 }
+                allRidesLink(group);
                 history.addView(group);
                 if (mode == ALL && stopped.size() > visibleHistory) history.addView(ui.secondaryButton(T.ridesShowMore(), () -> { visibleHistory += 20; refreshHistory(); }));
             } else {
                 LinearLayout empty = ui.card(); empty.addView(ui.icon("route", 30, ui.muted), new LinearLayout.LayoutParams(ui.dp(30), ui.dp(30)));
                 TextView copy = ui.text(T.ridesNoRidesYet(), 18, true); copy.setPadding(0, ui.dp(10), 0, ui.dp(2)); empty.addView(copy);
+                allRidesLink(empty);
                 history.addView(empty);
             }
             updateHistoryCount(); loadThumbnails(shown); measureStorage();
@@ -688,6 +691,8 @@ public final class RidesScreen implements AppScreen {
         }
         group.setFocusable(true); group.setContentDescription(T.ridesHistoryLoading());
         history.addView(group);
+        // The link stays reachable while the rides load, under the loading card.
+        if (mode == SUMMARY) { LinearLayout link = ui.groupCard(); allRidesLink(link); history.addView(link); }
         if (wide) detailSkeleton();
     }
     private View skeletonBlock(float radius) {
@@ -699,6 +704,18 @@ public final class RidesScreen implements AppScreen {
         String count = savedCount == 0 ? T.ridesHistoryNone() : T.ridesHistoryCount(savedCount, savedCount);
         String storageText = storageSize(storedBytes);
         historyCount.setText(storageText.isEmpty() ? count : count + " · " + storageText);
+    }
+    /**
+     * The Ride page (SUMMARY): All rides & compare as the last row of the recent rides' card, in accent text with a
+     * chevron and no icon (the owner's Layout Plan). Its tag is the link's as before (hub-row-ride.rides).
+     */
+    private void allRidesLink(LinearLayout card) {
+        if (mode != SUMMARY) return;
+        if (card.getChildCount() > 0) ui.divider(card);
+        Row row = navRow(null, HubText.title(HubPages.RIDE_RIDES), "", "", () -> host.open(HubPages.RIDE_RIDES));
+        row.title.setTextColor(ui.accent); row.title.setTypeface(ui.medium());
+        row.view.setMinimumHeight(ui.dp(48));
+        row.view.setTag(HubListScreen.tag(HubPages.RIDE_RIDES)); card.addView(row.view);
     }
     /** History row: route thumbnail, name and start time, then distance and duration. */
     private View historyRow(RideStore.Summary s, boolean chosen) {
@@ -2135,7 +2152,7 @@ public final class RidesScreen implements AppScreen {
             view.setContentDescription(spoken);
         }
         void setEnabled(boolean enabled) {
-            view.setEnabled(enabled); title.setTextColor(enabled ? ui.text : ui.muted); glyph.setColor(enabled ? ui.accent : ui.dim);
+            view.setEnabled(enabled); title.setTextColor(enabled ? ui.text : ui.muted); if (glyph != null) glyph.setColor(enabled ? ui.accent : ui.dim);
         }
         void addChevron() {
             if (chevron) return; chevron = true;
@@ -2146,7 +2163,8 @@ public final class RidesScreen implements AppScreen {
     /** Navigation row: icon square, title with muted sub-text, an optional short value and a chevron. */
     private Row navRow(String glyphKey, CharSequence title, String sub, String value, Runnable action) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));
-        FrameLayout square = glyphSquare(glyphKey, ui.accent); row.addView(square, squareParams());
+        // No icon square when glyphKey is null (the Ride page's rows): the title starts at the card's padding.
+        FrameLayout square = glyphKey == null ? null : glyphSquare(glyphKey, ui.accent); if (square != null) row.addView(square, squareParams());
         LinearLayout words = vertical();
         TextView heading = ui.text(title, 15, false); words.addView(heading);
         TextView detail = ui.caption(""); detail.setPadding(0, ui.dp(3), 0, 0); words.addView(detail);
@@ -2154,7 +2172,7 @@ public final class RidesScreen implements AppScreen {
         TextView amount = ui.text("", 14, false); amount.setTextColor(ui.muted); amount.setGravity(Gravity.END); amount.setMaxLines(2); amount.setMaxWidth(ui.dp(140));
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(10);
         row.addView(amount, valueParams);
-        Row result = new Row(row, heading, detail, amount, (GlyphView) square.getChildAt(0));
+        Row result = new Row(row, heading, detail, amount, square == null ? null : (GlyphView) square.getChildAt(0));
         result.update(sub == null ? "" : sub, value == null ? "" : value);
         if (action != null) { rowTouch(row, action); result.addChevron(); }
         return result;
