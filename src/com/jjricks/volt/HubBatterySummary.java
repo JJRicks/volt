@@ -46,10 +46,11 @@ final class HubBatterySummary implements AppScreen {
         level.setText(range == null ? percent : HubText.batteryLevelRange(percent, range));
         level.setTextColor(soc.live ? ui.text : ui.muted);
         // A last-seen level is drawn muted; while connected nothing else on the page says it is old, so it is spoken in
-        // Home's battery card's words: "Battery 62 percent, 40 mi of range left, last seen 14:05".
+        // Home's battery card's words: "Battery 62 percent, about 40 mi of range left, last seen 14:05". The range goes in
+        // as Home's card passes it, an estimate wrapped in "about" (DashboardScreen.aboutRange), as the drawn line says it.
         double clamped = Math.max(0, Math.min(100, soc.number));
         level.setContentDescription(soc.live ? null : DashboardScreen.overviewSpoken(clamped, Long.toString(Math.round(clamped)),
-                range == null ? "" : BatteryOverviewSpeech.line(false, range.toString()),
+                range == null ? "" : BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)),
                 DisplayTime.recent(host.activity(), service.settings, soc.capturedWallMs, System.currentTimeMillis())).render());
         // Charging or not only from a live reading (as the Scooter tab's Battery summary), and only beside a live level:
         // a last-seen or missing state, or a last-seen level above it, hides the line (HubSummaries.card).
