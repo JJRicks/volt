@@ -140,15 +140,18 @@ public final class LearnedRangeValidation extends Instrumentation {
             invoke(activity,"select",new Class<?>[]{String.class},"more");
             invoke(field(activity,"screen"),"selectSection",new Class<?>[]{String.class},"App");
             require(((View)field(activity,"root")).findViewWithTag("preference-range-estimate")==null,"Duplicate range setting remains in App preferences");
-            invoke(activity,"select",new Class<?>[]{String.class},"controls");
         });
+        waitForIdleSync();
+        // The range setting's page: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385), reached
+        // by tapping the Scooter tab, Battery & charging and Estimates & charger.
+        HubTestPages.reach(this,activity,"battery.estimates");
         waitForIdleSync();
         java.util.concurrent.CountDownLatch release=holdWorker();
         try {
             main(()->{
                 service.invalidateCapacityEstimate();
                 View row=((View)field(activity,"root")).findViewWithTag("scooter-range-estimate");
-                require(row!=null&&row.isEnabled(),"Disconnected Scooter range setting missing or disabled");row.performClick();
+                require(row!=null&&row.isEnabled(),"Disconnected Scooter range setting missing or disabled");HubTestPages.requireShown(activity,row,"the range estimate row");row.performClick();
                 Object sheet=picker();View root=pickerRoot();
                 @SuppressWarnings("unchecked") List<View> options=(List<View>)field(sheet,"options");
                 require(options.size()==2,"Range menu must have exactly two choices");

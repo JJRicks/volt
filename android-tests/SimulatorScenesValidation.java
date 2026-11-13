@@ -42,8 +42,9 @@ import com.jjricks.volt.TelemetryHistory;
  * Fresh disposable emulator only. The developer simulator's three models (UT5 MAX, GT3 Max with no charge limit and an
  * unsigned current, GT5 Max EU whose controls differ by region) in each scene (Parked, Riding, Charging): Home, the
  * Scooter index, the Battery page and its estimates, Live Stats and riding mode (opened by hand) each captured, with
- * auto-record and auto riding mode on to show a simulated ride starts neither. The real side holds a history point, a
- * recorded ride and a charge recording beforehand. Then simulation ends and every private
+ * auto-record and auto riding mode on to show a simulated ride starts neither. In the Riding scene riding mode's Max and
+ * Avg must move, and a UT5 MAX high-speed charge seen in riding mode must grow its scale on screen only. The real side holds
+ * a history point, a recorded ride, a charge recording and a saved riding power scale beforehand. Then simulation ends and every private
  * store is compared with its state before: databases, files and no_backup byte for byte, preferences key by key, the
  * command log's new records (simulated sessions only), and no notification raised meanwhile.
  */
@@ -58,6 +59,8 @@ public final class SimulatorScenesValidation extends Instrumentation {
     /** model id, region, name: the three picker entries this validation simulates. */
     private static final String[][] MODELS = {{"", null, "UT5 MAX"}, {"24182", "US", "GT3 Max"}, {"25462", "EU", "GT5 Max"}};
     /** Preference keys that only record where the app was (the page and scroll last shown); everything else must stay. */
+    /** RidingConfig's per-scooter scale key and the scale saved before simulation. */
+    private static final String SCALE_PREFIX = "riding_power_scale_v1_", SAVED_SCALE = "{\"draw\":1000,\"regen\":500}";
     private static final String[] NAVIGATION_KEYS = {"last_page", "hub_last_page", "hub_nav_stack", "dashboard_scroll"};
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
@@ -83,6 +86,8 @@ public final class SimulatorScenesValidation extends Instrumentation {
                 id[0] = saved.id;
                 OnboardingScreen.markDone(getTargetContext());
             });
+            // The real scooter's saved riding power scale (the starting scale, saved): a simulated charge must never grow it (#431 review).
+            require(settings().edit().putString(SCALE_PREFIX + id[0], SAVED_SCALE).commit(), "Fixture power scale");
             // A real recorded ride and charge recording, so both stores hold content the simulator must leave byte for byte.
             seedRide(id[0], System.currentTimeMillis() - 2 * 86400000L);
             seedCharge(id[0], System.currentTimeMillis() - 86400000L);
@@ -177,6 +182,13 @@ public final class SimulatorScenesValidation extends Instrumentation {
                     main(() -> activity.openRiding());
                     await(() -> field(activity, "riding") != null, label + ": riding mode did not open", 8000); settle();
                     capture(label + "-riding");
+                    if (scene == ScooterSimulation.Scene.RIDING) {
+                        // Riding mode's Max and Avg follow the scene's speed (#431 review: a fixed 0 sent first hid it from them).
+                        Object followed = call(field(activity, "riding"), "speed", new Class<?>[0]);
+                        await(() -> { Double max = (Double)call(followed, "maxKmh", new Class<?>[0]), avg = (Double)call(followed, "averageKmh", new Class<?>[0]);
+                            return max != null && max > 5 && avg != null && avg > 1; }, label + ": riding mode's Max and Avg did not move", 20000);
+                        note(label + ": riding mode's Max " + call(followed, "maxKmh", new Class<?>[0]) + " km/h, Avg " + call(followed, "averageKmh", new Class<?>[0]) + " km/h");
+                    }
                     main(() -> activity.onBackPressed());
                     await(() -> field(activity, "riding") == null, label + ": Back did not close riding mode", 8000); settle();
                     List<String> notices = notices(); notices.removeAll(noticesBefore);
@@ -184,6 +196,25 @@ public final class SimulatorScenesValidation extends Instrumentation {
                     require(!service.isRecording() && !service.isChargeRecording(), label + ": nothing recording");
                 }
             }
+            // A simulated high-speed charge seen in riding mode never changes the real scooter's saved power scale (#431 review):
+            // the UT5 MAX's Charging scene with the high-speed charger, at 50 % (before the taper), draws more than the saved
+            // 500 W regen scale. Riding mode's scale grows on screen; the saved one stays.
+            main(() -> service.ble.setSimulationModel("", null)); settle();
+            main(() -> service.ble.setSimulationScene(ScooterSimulation.Scene.CHARGING)); settle();
+            main(() -> require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED), "High-speed charger")); settle();
+            main(() -> { setField(field(service.ble, "simulation"), "battery", 50.0); service.ble.tickSimulation(); }); settle();
+            Double chargeWatts = number(service, "power_w");
+            require(chargeWatts != null && chargeWatts < -500, "A high-speed charge at 50 % reads more than 500 W: " + chargeWatts);
+            main(() -> activity.openRiding());
+            await(() -> field(activity, "riding") != null, "fast charge: riding mode did not open", 8000); settle();
+            await(() -> regenScale() >= 750, "fast charge: riding mode's regen scale did not grow from " + regenScale(), 8000);
+            capture("ut5max-charging-fast-riding");
+            double shownRegen = regenScale();
+            main(() -> activity.onBackPressed());
+            await(() -> field(activity, "riding") == null, "fast charge: Back did not close riding mode", 8000); settle();
+            require(SAVED_SCALE.equals(settings().getString(SCALE_PREFIX + id[0], null)), "A simulated charge changed the saved power scale: " + settings().getString(SCALE_PREFIX + id[0], null));
+            note("fast charge in riding mode: " + chargeWatts + " W; riding mode's regen scale " + shownRegen + " W; saved scale " + settings().getString(SCALE_PREFIX + id[0], null));
+            main(() -> require(service.setChargeCharger(null), "Charger back to Automatic")); settle();
             // UT5 MAX (EU): the real EU UT5 MAX's controls (no Top speed, kick-start 3-5 km/h); the header still names the UT5 MAX.
             main(() -> service.ble.setSimulationModel("", "EU")); settle();
             main(() -> {
@@ -355,5 +386,8 @@ public final class SimulatorScenesValidation extends Instrumentation {
         return out.toString("UTF-8");
     }
     private static Object field(Object target, String name) { try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch (NoSuchFieldException e) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); } catch (Exception e) { throw new IllegalStateException("Field " + name, e); } }
+    /** The open riding mode's regen scale, W. */
+    private double regenScale() { Object[] scale = new Object[1]; main(() -> scale[0] = call(field(field(activity, "riding"), "values"), "scale", new Class<?>[0])); return (Double)field(scale[0], "regenW"); }
+    private static void setField(Object target, String name, Object value) { try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); f.set(target, value); return; } catch (NoSuchFieldException e) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); } catch (Exception e) { throw new IllegalStateException("Field " + name, e); } }
     private static Object call(Object target, String name, Class<?>[] types, Object... args) { try { Class<?> type = target.getClass(); while (type != null) { try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); } catch (NoSuchMethodException e) { type = type.getSuperclass(); } } throw new NoSuchMethodException(name); } catch (Exception e) { throw new IllegalStateException("Method " + name, e); } }
 }
