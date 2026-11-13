@@ -306,6 +306,25 @@ public final class BackupPlanTest {
         installOnly.restore(preHub, BackupTestStore.all(), true, null);
         check(HomeStyle.WIDGETS.equals(installOnly.preferences().get("app_settings").get(HomeStyle.KEY)),
                 "an install origin with no style (which the seed would turn Clean) also gets Widgets from a pre-Hub backup");
+        // Part 9's early review, note 1: a fresh phone (no style, no origin: setup still under way) restoring a pre-Hub
+        // backup's App preferences stores the earlier owner's Widgets, unchosen, so setup's end records origin update and
+        // What's new with its recording notice still shows. The restore writes no device key (no origin).
+        BackupTestStore welcome = new BackupTestStore(new File(root, "home-style-welcome-prehub"));
+        welcome.restore(preHub, set(BackupRegistry.PREFERENCES), false, null);
+        Map<String, Object> welcomed = welcome.preferences().get("app_settings");
+        check(HomeStyle.WIDGETS.equals(welcomed.get(HomeStyle.KEY)) && !welcomed.containsKey(HomeStyle.CHOSEN_KEY) && !welcomed.containsKey(HomeStyle.ORIGIN_KEY),
+                "App preferences from a pre-Hub backup on a fresh phone store Widgets, unchosen, and no origin: " + welcomed);
+        check(HomeStyle.pickedOrigin(null, welcomed.containsKey(HomeStyle.KEY)).equals(HomeStyle.ORIGIN_UPDATE), "so setup's end records update");
+        welcome.restore(preHub, set(BackupRegistry.PREFERENCES), false, null);
+        check(welcome.preferences().get("app_settings").equals(welcomed), "restoring it again changes nothing");
+        BackupTestStore withOrigin = new BackupTestStore(new File(root, "home-style-origin-prehub"));
+        withOrigin.put("app_settings", HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL);
+        withOrigin.restore(preHub, set(BackupRegistry.PREFERENCES), false, null);
+        check(!HomeStyle.CLEAN.equals(withOrigin.preferences().get("app_settings").get(HomeStyle.KEY))
+                && HomeStyle.ORIGIN_INSTALL.equals(withOrigin.preferences().get("app_settings").get(HomeStyle.ORIGIN_KEY)), "a stored origin is left to the rules around it");
+        BackupTestStore freshDashboards = new BackupTestStore(new File(root, "home-style-welcome-dashboards"));
+        freshDashboards.restore(preHub, set(BackupRegistry.DASHBOARDS), false, BackupArchive.SKIP);
+        check(!freshDashboards.preferences().get("app_settings").containsKey(HomeStyle.KEY), "Dashboards alone bring no preferences and store no style");
         BackupTestStore chosenWidgets = BackupArchiveTest.phone(new File(root, "home-style-chosen-dashboards"));
         chosenWidgets.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN); chosenWidgets.put("app_settings", HomeStyle.CHOSEN_KEY, true);
         chosenWidgets.restore(preHub, set(BackupRegistry.DASHBOARDS), false, C);

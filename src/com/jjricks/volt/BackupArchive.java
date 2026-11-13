@@ -617,6 +617,13 @@ final class BackupArchive {
                 Object mine = mineNow.get(key);
                 if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
             }
+        // A pre-Hub backup's App preferences are an earlier owner's: on a phone with neither a style nor an origin yet (a
+        // fresh installation restoring from the welcome screen) they store that owner's Widgets, unchosen, so setup's end
+        // records origin update and What's new with its background-recording notice still shows. Not on Replace
+        // everything: that brings the backup's finished setup back, which the seed already reads as an earlier owner.
+        if (!replace && categories.contains(BackupRegistry.PREFERENCES) && preHub
+                && HomeStyle.preHubRestoreStoresWidgets(mineNow.containsKey(HomeStyle.KEY), mineNow.get(HomeStyle.ORIGIN_KEY)))
+            result.get("app_settings").put(HomeStyle.KEY, HomeStyle.WIDGETS);
         // ...except a style this phone's owner never chose (the new install's Clean after setup was skipped, or a seeded
         // style): the backup owner's dashboards and preferences come back, and so does their Home, Widgets.
         if ((replace || categories.contains(BackupRegistry.PREFERENCES) || categories.contains(BackupRegistry.DASHBOARDS)) && preHub
