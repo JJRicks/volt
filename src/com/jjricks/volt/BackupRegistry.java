@@ -54,6 +54,8 @@ final class BackupRegistry {
         // developer_options is retired (Developer options are always visible; no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained map_usgs_switch_answered developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
+        // USGS saved by the old default rather than chosen (MapDefault.USGS_BY_DEFAULT_KEY) travels with map_tile_url.
+        add(app, "map_usgs_by_default", Boolean.class, PREFERENCES);
         // Automatic ride copies (RideAutoExport): the switch (ride_auto_export_json, the old ride JSON switch's key) and
         // the retired Route CSV switch travel, so an older backup with either on restores auto-save on, and an older Volt
         // restores a newer backup's switch as its ride JSON copy. The folder grant, the waiting rides and the last
@@ -114,6 +116,19 @@ final class BackupRegistry {
         add(app, NightSchedule.START_KEY, Integer.class, PREFERENCES);
         add(app, NightSchedule.END_KEY, Integer.class, PREFERENCES);
         exclude(app, NightSchedule.AREA_KEY, String.class, DEVICE);
+        // Home style (HomeStyle): the style and whether the owner chose it travel together; the installation's origin and the
+        // one-time What's new sheet describe this installation's history, so a restored phone keeps its own.
+        add(app, HomeStyle.KEY, String.class, PREFERENCES);
+        add(app, HomeStyle.CHOSEN_KEY, Boolean.class, PREFERENCES);
+        exclude(app, HomeStyle.ORIGIN_KEY, String.class, DEVICE);
+        exclude(app, HomeStyle.WHATS_NEW_SHOWN_KEY, Boolean.class, DEVICE);
+        // Clean Home's moments (HomeMoment): the two switches are app preferences; a closed Just back card names a
+        // ride on this phone.
+        add(app, HomeMoment.CHARGING_KEY, Boolean.class, PREFERENCES);
+        add(app, HomeMoment.RIDE_KEY, Boolean.class, PREFERENCES);
+        exclude(app, HomeMoment.DISMISSED_KEY, String.class, DEVICE);
+        // Clean Home's four quick actions (HomeQuickActions) travel with the scooter, like its Scooter tab menu.
+        prefix(app, HomeQuickActions.KEY_PREFIX, String.class, SCOOTER_PREFERENCES, true);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);
