@@ -244,21 +244,27 @@ public final class ChargeEvidenceValidation extends Instrumentation {
     /** Findings 5 and 4 after the process end: the test reads interrupted (process_ended); a scooter selected offline shows its file. */
     private void afterKill() throws Exception {
         require(profileB != null, "The second fixture scooter is missing");
-        select(profileB);
-        JSONObject b = new JSONObject(report("after-kill-b")).getJSONObject("charge_evidence");
-        require(b.getBoolean("loaded"), "A scooter selected while offline was never loaded");
-        Table timeline = new Table(b.getJSONObject("charging_timeline")); boolean marked = false;
-        for (int i = 0; i < timeline.size(); i++) marked |= "first".equals(timeline.str(i, "kind")) && timeline.num(i, "soc") == B_SOC;
-        require(marked, "The second scooter's own evidence is missing: " + b.getJSONObject("charging_timeline"));
-        answers.add("4 selected offline: charge_evidence.loaded=true with the second scooter's own first reading (soc " + B_SOC + ")");
+        // Both halves run, so one finding never hides the other.
+        List<String> failures = new ArrayList<>();
+        try {
+            JSONObject a = new JSONObject(report("after-kill-a")).getJSONObject("charge_evidence");
+            Table tests = new Table(a.getJSONObject("schedule_tests")); int found = -1;
+            for (int i = 0; i < tests.size(); i++) require(!"running".equals(tests.str(i, "outcome")), "A test cut off by the process end still reads running: " + tests.row(i));
+            for (int i = 0; i < tests.size(); i++) if ("interrupted".equals(tests.str(i, "outcome")) && "process_ended".equals(tests.str(i, "interrupted_by"))) found = i;
+            require(found >= 0, "The killed test is not interrupted by process_ended: " + a.getJSONObject("schedule_tests"));
+            answers.add("5b process ended mid-test: charge_evidence.schedule_tests outcome=interrupted interrupted_by=process_ended");
+        } catch (AssertionError failure) { failures.add(failure.getMessage()); }
         main(() -> { Dialog d = (Dialog) field(activity, "reportDialog"); if (d != null) d.cancel(); }); settle();
-        select(profileId);
-        JSONObject a = new JSONObject(report("after-kill-a")).getJSONObject("charge_evidence");
-        Table tests = new Table(a.getJSONObject("schedule_tests")); int found = -1;
-        for (int i = 0; i < tests.size(); i++) require(!"running".equals(tests.str(i, "outcome")), "A test cut off by the process end still reads running: " + tests.row(i));
-        for (int i = 0; i < tests.size(); i++) if ("interrupted".equals(tests.str(i, "outcome")) && "process_ended".equals(tests.str(i, "interrupted_by"))) found = i;
-        require(found >= 0, "The killed test is not interrupted by process_ended: " + a.getJSONObject("schedule_tests"));
-        answers.add("5b process ended mid-test: charge_evidence.schedule_tests outcome=interrupted interrupted_by=process_ended");
+        try {
+            select(profileB);
+            JSONObject b = new JSONObject(report("after-kill-b")).getJSONObject("charge_evidence");
+            require(b.getBoolean("loaded"), "A scooter selected while offline was never loaded");
+            Table timeline = new Table(b.getJSONObject("charging_timeline")); boolean marked = false;
+            for (int i = 0; i < timeline.size(); i++) marked |= "first".equals(timeline.str(i, "kind")) && timeline.num(i, "soc") == B_SOC;
+            require(marked, "The second scooter's own evidence is missing: " + b.getJSONObject("charging_timeline"));
+            answers.add("4 selected offline: charge_evidence.loaded=true with the second scooter's own first reading (soc " + B_SOC + ")");
+        } catch (AssertionError failure) { failures.add(failure.getMessage()); }
+        require(failures.isEmpty(), String.join(" | ", failures));
     }
     /** As More does: end the transport, select, tell the controller. Offline, no Connect. */
     private void select(String id) {
@@ -363,6 +369,9 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         long base = e.getLong("base_wall_ms");
         Table timeline = new Table(e.getJSONObject("charging_timeline")), intentions = new Table(e.getJSONObject("intentions")), tests = new Table(e.getJSONObject("schedule_tests")),
                 ops = new Table(e.getJSONObject("schedule_operations")), changes = new Table(e.getJSONObject("changes_not_by_volt"));
+        // Each question is checked on its own, so a build that misses several shows every one.
+        List<String> failures = new ArrayList<>();
+        try {
         // 1. Charging start and stop times.
         int stops = 0, starts = 0;
         for (int i = 0; i < timeline.size(); i++) if ("change".equals(timeline.str(i, "kind")) && base + timeline.num(i, "wall_ms") >= start) {
@@ -372,9 +381,11 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         require(starts >= 3 && stops >= 3 && timeline.size() < 300, "The timeline lacks the flapping after the start: " + starts + " starts, " + stops + " stops");
         require(timeline.indexOf("kind", "first") >= 0, "The timeline lacks the connection's first reading");
         answers.add("1 charging start/stop: charge_evidence.charging_timeline rows kind=change (charging 1/0, base_wall_ms + wall_ms), " + starts + " starts and " + stops + " stops after the start");
+        } catch (Throwable failure) { failures.add("1: " + failure); }
         // 2 and 3. The plan, how it ended, and the lock at arming and at the start.
         int plan = -1; for (int i = 0; i < intentions.size(); i++) if (intentions.has(i, "start_ms") && base + intentions.num(i, "start_ms") == start) plan = i;
-        require(plan >= 0, "No intention for the start");
+        require(plan >= 0, "No intention for the start: " + e.getJSONObject("intentions"));
+        try {
         require("manual".equals(intentions.str(plan, "mode")) && intentions.num(plan, "soc_at_arming") == 50 && "missed".equals(intentions.str(plan, "end")) && intentions.has(plan, "end_ms"),
                 "The intention lacks its plan or end: " + intentions.row(plan));
         answers.add("2 plan: charge_evidence.intentions row mode=manual start_ms=" + intentions.num(plan, "start_ms") + " soc_at_arming=50 end=" + intentions.str(plan, "end"));
@@ -386,22 +397,30 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         require(intentions.num(plan, "locked_at_arming") == 1 && intentions.has(plan, "locked_at_start") && intentions.num(plan, "locked_at_start") == 1, "Lock at arming/start missing: " + intentions.row(plan));
         answers.add("3 lock: charge_evidence.intentions locked_at_arming=1 (" + intentions.num(plan, "arming_sample_after_ms") + " ms after arming) locked_at_start=1 ("
                 + intentions.num(plan, "start_sample_after_ms") + " ms after the start) locked_at_end=" + intentions.opt(plan, "locked_at_end"));
+        } catch (Throwable failure) { failures.add("2-3: " + failure); }
+        try {
         // A start that passed while the link was down: the next connection's lock is no reading of the lock at the start.
         int late = -1; for (int i = 0; i < intentions.size(); i++) if (intentions.has(i, "start_ms") && base + intentions.num(i, "start_ms") == start2) late = i;
         require(late >= 0 && intentions.num(late, "locked_at_arming") == 1, "No intention for the second start: " + e.getJSONObject("intentions"));
         require(!intentions.has(late, "locked_at_start") && !intentions.has(late, "start_sample_after_ms"), "A start passed offline shows a lock at the start: " + intentions.row(late));
         answers.add("3b start passed while disconnected: locked_at_start and start_sample_after_ms null (unknown); locked_at_arming=1");
+        } catch (Throwable failure) { failures.add("3b: " + failure); }
+        try {
         // 4. The switch going off by itself.
         int off = -1; for (int i = 0; i < changes.size(); i++) if ("timed_charging".equals(changes.str(i, "reading")) && changes.num(i, "from") == 1 && changes.num(i, "to") == 0) off = i;
         require(off >= 0 && base + changes.num(off, "wall_ms") > start, "The switch going off is not in changes_not_by_volt: " + e.getJSONObject("changes_not_by_volt"));
         for (int i = 0; i < changes.size(); i++) require(!"charge_start".equals(changes.str(i, "reading")) || base + changes.num(i, "wall_ms") > start, "Volt's own start write was blamed on the scooter");
         answers.add("4 switch off: charge_evidence.changes_not_by_volt reading=timed_charging from 1 to 0 at wall_ms=" + changes.num(off, "wall_ms"));
+        } catch (Throwable failure) { failures.add("4: " + failure); }
+        try {
         // 5. Why the test was cut off.
         int test = -1; for (int i = 0; i < tests.size(); i++) if ("interrupted".equals(tests.str(i, "outcome"))) test = i;
         require(test >= 0 && "readings_stale".equals(tests.str(test, "interrupted_by")), "The test's interruption reason is missing: " + e.getJSONObject("schedule_tests"));
         boolean traced = false; for (int i = 0; i < ops.size(); i++) traced |= "test_end".equals(ops.str(i, "op")) && "interrupted".equals(ops.str(i, "result")) && "readings_stale".equals(ops.str(i, "interrupted_by"));
         require(traced, "The operation trace lacks the test's end");
         answers.add("5 test cut off: charge_evidence.schedule_tests interrupted_by=readings_stale, schedule_operations op=test_end result=interrupted; no connection event during the test");
+        } catch (Throwable failure) { failures.add("5: " + failure); }
+        try {
         // 6. What Volt sent.
         JSONArray events = root.getJSONObject("command_log").getJSONArray("events");
         boolean startSent = false, clockSent = false; long wire = intentions.num(plan, "wire_start"), offset = intentions.num(plan, "clock_offset_s");
@@ -416,6 +435,8 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         }
         require(startSent && clockSent, "The command log lacks what was sent: " + events.toString().substring(0, Math.min(2_000, events.toString().length())));
         answers.add("6 sent: command_log.events key=charge_start wire_time_s=" + wire + " utc_s=" + (wire - offset) + "; key=clock_sync wire_time_s (local seconds) and utc_s (its instant), differing by the offset " + offset);
+        } catch (Throwable failure) { failures.add("6: " + failure); }
+        try {
         // 7. Second by second after the start.
         JSONArray windows = e.getJSONArray("dense_windows"); int after = 0, flips = 0; long reach = 0;
         for (int w = 0; w < windows.length(); w++) {
@@ -435,6 +456,8 @@ public final class ChargeEvidenceValidation extends Instrumentation {
         answers.add("7 after the start: charge_evidence.dense_windows kind=start, " + after + " samples after the start reaching " + reach / 1000 + " s, " + flips + " charging flips");
         boolean testWindow = false; for (int w = 0; w < windows.length(); w++) testWindow |= "test_end".equals(windows.getJSONObject(w).getString("kind"));
         require(testWindow, "No window after the test ended");
+        } catch (Throwable failure) { failures.add("7: " + failure); }
+        require(failures.isEmpty(), String.join(" | ", failures));
     }
 
     /** Fills the command log, the connection log and this scooter's evidence to their caps, then Preview on that file at this size. */
