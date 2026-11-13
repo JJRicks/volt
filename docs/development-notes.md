@@ -86,7 +86,7 @@ The widget dashboard stays, and an alternative goes beside it, not in its place.
 
 ### Tests that navigate the UI, and the order CI forces
 
-CI runs the JVM and Python suites only, not the Android validations under `android-tests/`. Those validations walk the real screens: about thirty find views by tag and more by visible text or content description. A move can break them without failing CI. The maintainers run the affected ones on every UI pull request, and update validations that fail only because something moved. [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) has the contributor's side.
+CI runs the JVM and Python suites and builds the app and the validation APK, but does not run the Android validations under `android-tests/` (they need an emulator). Those validations walk the real screens: about thirty find views by tag and more by visible text or content description. A move can break them without failing CI. The maintainers run the affected ones on every UI pull request, and update validations that fail only because something moved. [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) has the contributor's side.
 
 The localization gates decide what one pull request can hold. Its kind comes from what it changes ([Pull request kinds](localization-for-contributors.md#pull-request-kinds)):
 
