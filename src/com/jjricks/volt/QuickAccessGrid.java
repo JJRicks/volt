@@ -85,6 +85,10 @@ final class QuickAccessGrid extends ViewGroup {
             // model with a built-in charge limit has none (the tile stays, muted, as an unmapped control's does).
             boolean alerts = QuickAccessActions.CHARGE_ALERTS_ID.equals(cell.entry.id);
             boolean alertsMissing = alerts && (service == null || !service.chargeAlertsOffered());
+            // Why, as the tap says it (ChargeAlertPolicy.missing): "Identify model first" on a scooter not yet identified,
+            // "not on this model" only for a model with its own charge limit.
+            CapabilityResolver.Reason alertsReason = !alertsMissing ? null
+                    : service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
             boolean featureLive = feature != null && live && (feature.type == ScooterCommands.Type.TIME
                     ? service.readingFresh("scheduled_charge_time_raw") : service.featureFresh(feature.key));
             Integer value = feature == null || feature.sensitive ? null : values.get(feature.key);
@@ -140,10 +144,18 @@ final class QuickAccessGrid extends ViewGroup {
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
+            String shortValue = null;
             if (alerts) {
-                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, service == null ? null : service.chargeAlerts());
-                state = level == null ? NO_VALUE : level == 0 ? off : ChargeAlertPolicy.levelText(level);
+                ChargeAlertPolicy.Settings alertSettings = service == null ? null : service.chargeAlerts();
+                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
+                // The tile reflects both alerts: the charge alert's level while it is on, else the low alert's ("Low 20%").
+                Integer low = ChargeAlertPolicy.shortcutLow(!alertsMissing, alertSettings);
+                state = level == null ? NO_VALUE : low != null ? T.dashboardModelTileLowAt(T.fmtPercent(Fmt.integer(low)))
+                        : level == 0 ? off : ChargeAlertPolicy.levelText(level);
                 featureLive = level != null;
+                // A Setting tile too narrow for "Low 20%" at the smallest size shows the shorter whole value "On", never
+                // an ellipsis (measureTile); the description keeps the full value.
+                if (level != null && low != null) shortValue = T.commonOn();
             }
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
@@ -152,11 +164,15 @@ final class QuickAccessGrid extends ViewGroup {
             if (tiles) {
                 // A page or menu shortcut has no value; its name takes the value line instead.
                 String shownValue = state.isEmpty() ? tileLabel(cell.entry) : state;
-                if (!shownValue.contentEquals(cell.value.getText())) {
+                // Compared with the full value, not the view's text, which measureTile may have set to the short value.
+                if (!shownValue.equals(cell.fullValue) || !java.util.Objects.equals(shortValue, cell.shortValue)) {
+                    cell.fullValue = shownValue; cell.shortValue = shortValue;
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
                     // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
                     if (wasLockState || cell.lockState) cell.requestLayout();
+                    // So are the value's size and a short value: any other change of the value is measured again too.
+                    else cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
@@ -195,7 +211,9 @@ final class QuickAccessGrid extends ViewGroup {
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
-                    + (unmapped || alertsMissing ? (unmapped && decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                            : alertsMissing ? (alertsReason == null || alertsReason == CapabilityResolver.Reason.MODEL_EXCLUDED ? T.dashboardModelTileDescModel()
+                                    : T.dashboardModelTileDescPart(CapabilityResolver.message(alertsReason)))
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
@@ -266,6 +284,8 @@ final class QuickAccessGrid extends ViewGroup {
          * the speedometer and the word in onAccent, letter-spaced. Only Clean holds this id; Widgets' pill is untouched.
          */
         final boolean ride;
+        /** Setting tiles only: the value the tile states, and a shorter whole value for a tile too narrow for it (or null). */
+        String fullValue, shortValue;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
             ride = !tiles && HomeQuickActions.RIDING.equals(entry.id);
@@ -392,11 +412,25 @@ final class QuickAccessGrid extends ViewGroup {
                 icon.setVisibility(GONE);
                 text += icon.getLayoutParams().width + ui.dp(6);
             }
+            // Fit the full value first; a short value shown at the last fit is put back.
+            if (fullValue != null && !fullValue.contentEquals(value.getText())) value.setText(fullValue);
             value.setTextSize(size);
             while (size > floor && (value.getPaint().measureText(value.getText().toString()) > text
                     || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
                 size -= .5f;
                 value.setTextSize(size);
+            }
+            // Still too wide at the smallest size: the shorter whole value ("On" for "Low 20%"), never an ellipsis.
+            if (shortValue != null && value.getPaint().measureText(value.getText().toString()) > text) {
+                value.setText(shortValue);
+                // Sized on its own, as large as it fits, like any other short value (not left at the long one's floor).
+                size = 18 * ui.textScale;
+                value.setTextSize(size);
+                while (size > floor && (value.getPaint().measureText(shortValue) > text
+                        || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
+                    size -= .5f;
+                    value.setTextSize(size);
+                }
             }
             // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
             if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
