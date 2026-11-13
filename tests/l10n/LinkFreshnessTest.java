@@ -93,7 +93,7 @@ public final class LinkFreshnessTest {
         check(!ble.contains("StatusCadence.pollMs(visible||recording)") && !ble.contains("StatusCadence.silenceMs(visible||recording)"),
                 "no poll or silence rule reads the flags at scheduling time any more");
         String svc = read("src/com/jjricks/volt/ScooterService.java");
-        check(svc.contains("c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&"), "a schedule change in flight is judged by linked()");
+        check(svc.contains("c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();"), "a schedule change in flight is judged by linked() (the context's linked; its ready is the write gate's)");
     }
     private static String read(String path) throws Exception {
         return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
@@ -252,6 +252,23 @@ public final class LinkFreshnessTest {
         final List<Long> requests = new ArrayList<>();
         /** Runs on every status reply (a step's readback). */
         final List<Runnable> onStatus = new ArrayList<>();
+        /**
+         * Battery reads, when batteryPolicy is set: BleController.pollTick's and refresh(false)'s periodicBattery, through
+         * ReadPolicy on the awake clock (sourceAudit4 pins the lines). batteryOutOfSight false is fde6403f's rule (in sight
+         * or recording only); batteryAnswers false is a scooter that ignores the read.
+         */
+        ReadPolicy batteryPolicy;
+        boolean batteryOutOfSight = true, batteryAnswers = true;
+        long batteryMs, lastBatteryPoll;
+        final List<Long> batteryReads = new ArrayList<>();
+        void readBattery() {
+            for (int cmd : batteryPolicy.periodicBattery()) {
+                batteryPolicy.requested(cmd, clock.up);batteryReads.add(now());int gen = generation;
+                if (answering && batteryAnswers) clock.post(() -> { if (gen == generation && up && answering && batteryAnswers) { batteryPolicy.responded(cmd, 0, 36, clock.up);batteryMs = now(); } }, reply);
+            }
+        }
+        /** The connected notice's level: linked, and the battery reading live by its own rule (BleController.liveNumber, 15 s). */
+        boolean levelShown() { return linkUp() && StatusCadence.live(batteryMs, now(), StatusCadence.readingFreshMs(15 * S, chain.fast(), chain.fastSinceMs(), now())); }
         Rig(boolean old) { this(old ? MAIN : NEW); }
         Rig(int mode) { old = mode == MAIN;head = mode == HEAD; }
         long now() { return clock.now; }
@@ -281,7 +298,7 @@ public final class LinkFreshnessTest {
             int gen = ++generation;chain.stop();up = false;statusMs = lastFrameMs = 0;statusSlept = frameSlept = chain.slept();log.add("CONNECT_ATTEMPT");
             if (authenticates) clock.post(() -> {
                 if (gen != generation) return;
-                up = true;frame();requestStatus();
+                up = true;frame();requestStatus();if (batteryPolicy != null) readBattery();
                 if (old) oldPoll(gen); else chain.start(() -> tick(gen));
             }, 2500);
             clock.post(() -> {
@@ -297,7 +314,10 @@ public final class LinkFreshnessTest {
         void tick(int gen) {
             if (gen != generation || !up) return;
             if (silentNow()) { fail("READ_TIMEOUT"); return; }
-            requestStatus();chain.next();
+            if (batteryPolicy != null) batteryPolicy.tick(clock.up);
+            requestStatus();
+            if (batteryPolicy != null && (batteryOutOfSight || fast()) && now() - lastBatteryPoll >= 2000) { readBattery();lastBatteryPoll = now(); }
+            chain.next();
         }
         /** The old poll(): the flags read when each poll is scheduled, the silence limit when it runs. */
         void oldPoll(int gen) {
@@ -313,7 +333,7 @@ public final class LinkFreshnessTest {
             boolean resumed = v && !visible;visible = v;recording = r;
             boolean switched = chain.cadence(v || r);
             if (switched && !old && !head && up && silentNow()) { fail("READ_TIMEOUT"); return; }
-            if (resumed && up) requestStatus();
+            if (resumed && up) { requestStatus();if (batteryPolicy != null) readBattery(); }
             if (switched && !old) chain.retime();
         }
         void sleep(long ms) { clock.sleep(ms); }
@@ -406,9 +426,17 @@ public final class LinkFreshnessTest {
 
     // ---- The schedule on top ------------------------------------------------------------------------------------
 
-    /** ChargeScheduleController with ScooterService's context (ready = linked()) and BleController's gate (ready()). */
+    /**
+     * ChargeScheduleController with ScooterService's context and BleController's gate (ready()). The context has two
+     * answers: linked = linked(), ready = linked() && ready(); the switch and the readings come from the last status, each
+     * only while live (readingFreshMs(10 s)). oneAnswer is fde6403f's context: ready = linked(), and the switch read with no
+     * age check.
+     */
     static final class Schedule implements ChargeScheduleController.Store, ChargeScheduleController.Driver {
         final Rig rig;
+        boolean oneAnswer, chargingReadings;
+        /** With chargingReadings: the start the scooter holds, as last written. */
+        Long wireSent;
         final Map<String, String> saved = new HashMap<>();
         final List<String> sent = new ArrayList<>(), refused = new ArrayList<>(), results = new ArrayList<>();
         final ChargeScheduleController controller = new ChargeScheduleController(this, this);
@@ -426,9 +454,14 @@ public final class LinkFreshnessTest {
         public ChargeScheduleController.Context context() {
             ChargeScheduleController.Context c = new ChargeScheduleController.Context();
             long t = rig.now();c.now = WALL0 + (t - T0);c.mono = t;c.zone = zone;c.scope = "owner-A";c.generation = rig.generation;
-            c.ready = rig.linkUp();
+            boolean linked = rig.linkUp(), live = rig.readingLive(rig.statusMs, 10 * S);
+            c.linked = !oneAnswer && linked;c.ready = oneAnswer ? linked : linked && rig.ready();
             boolean gate = rig.ready();c.toggleReason = gate ? null : "Connect your scooter first";c.timeReason = c.toggleReason;
-            if (c.ready) { c.enabled = switchRead;c.wireStart = (WALL0 + 3 * 3600 * S) / 1000 + zone.getOffset(WALL0) / 1000; }
+            if (!linked) return c;
+            c.enabled = oneAnswer || live ? switchRead : null;
+            if (live) c.wireStart = chargingReadings && wireSent != null ? wireSent : (WALL0 + 3 * 3600 * S) / 1000 + zone.getOffset(WALL0) / 1000;
+            // Native scheduled charging pauses the current: charging until the switch is on.
+            if (live && chargingReadings) { c.charging = switchRead == 1 ? 0 : 1;c.soc = 79d;c.target = 100d;c.estimateMinutes = 90d;c.sampleMs = rig.statusMs; }
             return c;
         }
         public String read(String key) { return saved.get(key); }
@@ -440,7 +473,7 @@ public final class LinkFreshnessTest {
             rig.clock.post(() -> done.accept(gen == rig.generation), ack);
         }
         public void clock(Consumer<Boolean> done) { send("clock", clockAck, done); }
-        public void time(long wall, int offset, Consumer<Boolean> done) { send("time", timeAck, done); }
+        public void time(long wall, int offset, Consumer<Boolean> done) { send("time", timeAck, ok -> { if (ok) wireSent = wall / 1000 + offset;done.accept(ok); }); }
         public void enabled(boolean enabled, Consumer<Boolean> done) { send(enabled ? "on" : "off", enableAck, ok -> { if (ok) switchRead = enabled ? 1 : 0;done.accept(ok); }); }
         /** Runs the rig, observing on every step as the service does on each change. */
         void run(long until) { for (long t = rig.now(); t < until; ) { t = Math.min(until, t + STEP);rig.clock.runUntil(t);controller.observe(); } }
@@ -795,7 +828,8 @@ public final class LinkFreshnessTest {
     // saved the calculated-start marker before a time write the gate could still refuse. Run one part with its name as
     // an argument; sourceAudit pins the BleController and ScooterService lines the parts mirror.
 
-    static final String[] AUDIT = {"sourceAudit", "readsAcrossSleep", "checkAcrossSleep", "noticeBattery", "scheduleMarker"};
+    static final String[] AUDIT = {"sourceAudit", "readsAcrossSleep", "checkAcrossSleep", "noticeBattery", "scheduleMarker",
+            "sourceAudit4", "doneTimeAfterWake", "switchAfterWake", "noticeKeepsLevel", "noticeDropsLevel", "batteryReadsOnlyOutOfSight"};
 
     private static void audit(String name) throws Exception {
         switch (name) {
@@ -804,6 +838,12 @@ public final class LinkFreshnessTest {
             case "checkAcrossSleep": checkAcrossSleep();break;
             case "noticeBattery": noticeBattery();break;
             case "scheduleMarker": scheduleMarker();break;
+            case "sourceAudit4": sourceAudit4();break;
+            case "doneTimeAfterWake": doneTimeAfterWake();break;
+            case "switchAfterWake": switchAfterWake();break;
+            case "noticeKeepsLevel": noticeKeepsLevel();break;
+            case "noticeDropsLevel": noticeDropsLevel();break;
+            case "batteryReadsOnlyOutOfSight": batteryReadsOnlyOutOfSight();break;
             default: throw new IllegalArgumentException(name);
         }
     }
@@ -927,8 +967,8 @@ public final class LinkFreshnessTest {
     }
 
     /**
-     * Finding 2. The connected notice, "UT5 MAX · 82%": the battery is read with every in-sight poll and not out of sight
-     * (no recording, no watch). The link outlives a ten-minute sleep; on the wake the notice names the scooter alone until
+     * Finding 2. The connected notice, "UT5 MAX · 82%", with the battery read only in sight (fde6403f's rule; since the
+     * owner's 2026-11-12 decision it is read out of sight too, noticeKeepsLevel, and this is the case of a read that stopped). The link outlives a ten-minute sleep; on the wake the notice names the scooter alone until
      * a fresh reading, by the reading's own rule (20 s out of sight, BleController.liveNumber). Before, the level from
      * before the sleep was shown as current. Back in sight, the resume refresh's reading brings it back.
      */
@@ -1000,5 +1040,166 @@ public final class LinkFreshnessTest {
         check(lost.sent.equals(Arrays.asList("clock", "time")) && lost.marker() > 0, "a sent time write is marked " + lost.sent);
         long marked = lost.marker();lost.reply(false);
         check(lost.marker() == marked && lost.results.size() == 1 && lost.results.get(0) != null, "and keeps its marker when its confirmation is lost");
+    }
+
+    // ---- Round 4 (#418): the context's two answers, and the notice's battery out of sight ---------------------------
+
+    private static void sourceAudit4() throws Exception {
+        String svc = read("src/com/jjricks/volt/ScooterService.java");
+        check(svc.contains("c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();"), "the schedule context has two answers: the same live connection, and can write now");
+        check(svc.contains("c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue(\"timed_charging\"):null;"), "the switch is read only from a live status");
+        check(svc.contains("chargeMeasure.evaluate(mono,activeProfileId(),c.linked,c.ready,c.charging,known)"), "the measuring window is given both answers");
+        String ctl = read("src/com/jjricks/volt/ChargeScheduleController.java");
+        check(ctl.contains("private static boolean alive(Context c){return c.ready||c.linked;}") && ctl.contains("if(c.ready&&view.doneByEnabled){enableDone("),
+                "the controller carries on with alive and reprograms a Done by edit only when ready");
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        check(ble.contains("if(!discovering&&!testing()&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}"),
+                "the poll reads the battery through ReadPolicy at its interval, out of sight too");
+        check(!ble.contains("(visible||recording||batteryWatch())&&now()-lastBatteryPollMs"), "no longer only in sight, recording or watching");
+        check(ble.contains("send(Protocol.frame(0x70,null));for(int cmd:policy.periodicBattery())send(Protocol.frame(cmd,null));}"), "the resume refresh reads it as before");
+        int tick = ble.indexOf("private void pollTick(int session){");
+        String body = ble.substring(tick, ble.indexOf("\n", tick));
+        check(body.startsWith("private void pollTick(int session){if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;") && !body.contains("acquire") && !body.contains("WakeLock"),
+                "only on a link that is up, with no wake lock of its own");
+    }
+
+    /** Out of sight, Done by on; the phone sleeps ten minutes right after a status; s.run to `until`. */
+    private static Schedule doneByThenSleep(boolean oneAnswer) {
+        Rig r = new Rig(NEW);Schedule s = new Schedule(r);s.oneAnswer = oneAnswer;s.chargingReadings = true;r.connect();
+        s.run(T0 + 18 * S);// the status from the 17.5 s poll is 0.2 s old
+        s.controller.setDoneEnabled(true, s.results::add);
+        s.run(T0 + 33 * S);// and the next one, at 32.8 s
+        check(s.results.size() == 1 && s.results.get(0) == null && s.sent.equals(Arrays.asList("clock", "time", "on")) && s.controller.view().doneByEnabled,
+                "Done by went on out of sight " + s.results + " " + s.sent + " " + s.refused);
+        r.sleep(10 * 60 * S);s.run(r.now() + 500);
+        check(r.linkUp() && !r.ready() && !r.failed(), "just after the wake: linked, not ready");
+        return s;
+    }
+
+    /**
+     * Round 4 finding. A Done by time is edited just after a wake: the link is up (linked()) but the status is from before
+     * the sleep, so the write gate refuses. fde6403f's context gave ready = linked(), so setDoneTime chose to reprogram,
+     * the gate refused, and the new time was lost. Now ready is the gate's own answer: the time is saved for the next
+     * plan, nothing is sent or refused, and an edit on the next fresh status reprograms the scooter.
+     */
+    private static void doneTimeAfterWake() {
+        for (boolean one : new boolean[]{false, true}) {
+            Schedule s = doneByThenSleep(one);
+            int was = s.controller.view().doneByMinuteOfDay, sent = s.sent.size();
+            int minute = was == 570 ? 600 : 570;
+            s.controller.setDoneTime(minute / 60, minute % 60, s.results::add);
+            if (one) {
+                check(s.results.size() == 2 && s.results.get(1) != null && s.controller.view().doneByMinuteOfDay == was && s.sent.size() == sent,
+                        "fde6403f chose a write the gate refused, and the time was lost " + s.results + " " + s.refused);
+                continue;
+            }
+            check(s.results.size() == 2 && s.results.get(1) == null && s.controller.view().doneByMinuteOfDay == minute, "the edit is saved " + s.results);
+            check(s.sent.size() == sent && s.refused.isEmpty() && s.controller.view().doneByEnabled && !s.controller.busy(), "nothing sent or refused, the plan stays on " + s.sent + " " + s.refused);
+            s.run(s.rig.now() + 15 * S);
+            check(s.rig.ready(), "the next poll's status is fresh");
+            s.controller.setDoneTime(minute / 60, minute % 60 + 15, s.results::add);
+            check(s.sent.size() == sent + 1 && s.sent.get(sent).equals("clock"), "and an edit then reprograms the scooter " + s.sent);
+        }
+    }
+
+    /**
+     * Audit. The Scheduled charging switch shown just after a wake: fde6403f read it from the status before the sleep with no
+     * age check, so a switch changed on the scooter meanwhile showed as current (and Charging hold took it as scheduled).
+     * Now it is unknown until a live status, as every other reading.
+     */
+    private static void switchAfterWake() {
+        for (boolean one : new boolean[]{false, true}) {
+            Rig r = new Rig(NEW);Schedule s = new Schedule(r);s.oneAnswer = one;s.switchRead = 1;r.connect();
+            s.run(T0 + 33 * S);
+            check(s.context().enabled == 1 && s.controller.diagnostics().readEnabled == 1, "a live status shows the switch");
+            r.sleep(10 * 60 * S);s.run(r.now() + 500);
+            check(r.linkUp() && !r.ready(), "linked, not ready");
+            if (one) { check(s.controller.diagnostics().readEnabled == 1, "fde6403f showed the switch from before the sleep");continue; }
+            check(s.context().enabled == null && s.controller.diagnostics().readEnabled == null, "after the sleep the switch is unknown");
+            s.run(r.now() + 15 * S);
+            check(s.controller.diagnostics().readEnabled == 1, "and shown again from the next status");
+        }
+    }
+
+    private static Rig batteryRig(ModelRegistry.Layer layer) {
+        Rig r = new Rig(NEW);r.batteryPolicy = layer == null ? ReadPolicy.legacy() : ReadPolicy.forLayer(layer);return r;
+    }
+
+    /**
+     * Owner, 2026-11-12: keep the notice's battery level current. Connected out of sight (from the start, or after leaving
+     * at any phase), the battery is read with each 15 s poll, so the level never lapses while the link is up, on a model
+     * that answers through ReadPolicy (OEM_GROUP) and on the UT5 MAX (legacy, never suppressed). fde6403f read it only in
+     * sight, so the level dropped 20 s after leaving. After a sleep it is back with the first poll after waking.
+     */
+    private static void noticeKeepsLevel() {
+        for (ModelRegistry.Layer layer : new ModelRegistry.Layer[]{ModelRegistry.Layer.OEM_GROUP, null})
+            for (long leave = -1; leave < StatusCadence.POLL_SLOW_MS; leave += leave < 0 ? 1 : 750)
+                for (boolean before : new boolean[]{false, true}) {
+                    Rig r = batteryRig(layer);r.batteryOutOfSight = !before;
+                    if (leave >= 0) r.visibility(true, false);
+                    r.connect();
+                    long out = T0 + 30 * S + Math.max(0, leave);
+                    if (leave >= 0) { r.run(out);r.visibility(false, false); } else r.run(T0 + 3 * S);
+                    int gaps = 0;
+                    for (long t = r.now() + STEP; t <= T0 + 5 * 60 * S; t += STEP) { r.run(t);if (r.linkUp() && !r.levelShown()) gaps++; }
+                    String what = (layer == null ? "legacy" : "OEM_GROUP") + ", left at " + leave;
+                    if (before) { check(gaps > 1000, "fde6403f dropped the level out of sight: " + what);continue; }
+                    check(gaps == 0 && !r.failed() && r.batteryPolicy.suppressed().isEmpty(), "the level stays current out of sight: " + what + " (" + gaps + " gaps)");
+                    // A ten-minute sleep: name alone on the wake, the level back with the first poll after it.
+                    r.sleep(10 * 60 * S);long wake = r.now();r.run(wake + STEP);
+                    check(r.linkUp() && !r.levelShown(), "just after the sleep: the name alone (" + what + ")");
+                    long back = -1;
+                    for (long t = wake + STEP; t <= wake + 20 * S && back < 0; t += STEP) { r.run(t);if (r.levelShown()) back = t - wake; }
+                    check(back > 0 && back <= StatusCadence.POLL_SLOW_MS + REPLY, "and the level is back by the first poll after waking: " + back + " (" + what + ")");
+                }
+    }
+
+    /**
+     * The level is still dropped when it isn't current: a model that ignores the battery read has it suppressed by
+     * ReadPolicy (two 2.5 s silences awake) and the notice names the scooter alone, with no more battery reads that
+     * session; a scooter that stops answering loses the level 20 s after its last answer, before the link ends at 35 s.
+     */
+    private static void noticeDropsLevel() {
+        Rig ignored = batteryRig(ModelRegistry.Layer.OEM_GROUP);ignored.batteryAnswers = false;ignored.connect();ignored.run(T0 + 60 * S);
+        int reads = ignored.batteryReads.size();
+        check(!ignored.batteryPolicy.allowed(0x72) && ignored.batteryPolicy.suppressed().contains(0x72), "an ignored battery read is suppressed out of sight too");
+        ignored.run(T0 + 5 * 60 * S);
+        check(ignored.batteryReads.size() == reads && reads <= 3 && !ignored.levelShown() && ignored.linkUp() && !ignored.failed(), "then no more reads and the name alone, on a healthy link " + reads);
+        Rig silent = batteryRig(ModelRegistry.Layer.OEM_GROUP);silent.connect();silent.run(T0 + 60 * S);
+        check(silent.levelShown(), "answering: the level shown");
+        silent.answering = false;long last = silent.batteryMs;
+        for (long t = silent.now() + STEP; t <= T0 + 3 * 60 * S; t += STEP) {
+            silent.run(t);
+            if (silent.levelShown()) check(silent.now() - last <= 20 * S, "never shown more than 20 s after its last answer");
+        }
+        check(silent.failed() && !silent.levelShown(), "the scooter went silent: the link ended and the level is gone " + silent.log);
+    }
+
+    /**
+     * The read joins only the out-of-sight polls: in sight and recording the battery reads are exactly fde6403f's; out of
+     * sight one per 15 s poll (0x72, plus 0x79 once it has answered); none once the link is lost.
+     */
+    private static void batteryReadsOnlyOutOfSight() {
+        for (int how = 0; how < 2; how++) {
+            List<List<Long>> both = new ArrayList<>();
+            for (boolean before : new boolean[]{false, true}) {
+                Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.batteryOutOfSight = !before;
+                if (how == 0) r.visibility(true, false); else r.visibility(false, true);
+                r.connect();r.run(T0 + 2 * 60 * S);both.add(r.batteryReads);
+            }
+            check(both.get(0).equals(both.get(1)) && both.get(0).size() > 50, (how == 0 ? "in sight" : "recording") + ": the same battery reads as before " + both.get(0).size());
+        }
+        List<Long> newReads = null;int oldReads = -1;
+        for (boolean before : new boolean[]{false, true}) {
+            Rig r = batteryRig(ModelRegistry.Layer.OEM_GROUP);r.batteryOutOfSight = !before;r.connect();r.run(T0 + 60 * S);
+            int at = r.batteryReads.size();r.run(T0 + 5 * 60 * S);
+            if (before) { oldReads = r.batteryReads.size() - at;continue; }
+            newReads = r.batteryReads.subList(at, r.batteryReads.size());
+            // Polls at 2.5 + 15k s: 0x72 at each (0x79 joins only once it has answered, which this rig's scooter never asked).
+            check(newReads.size() == 16 && newReads.stream().allMatch(t -> (t - T0 - 2500) % StatusCadence.POLL_SLOW_MS == 0), "out of sight: one battery read per 15 s poll " + newReads);
+            r.fail("NATIVE_DISCONNECT");int lost = r.batteryReads.size();r.run(T0 + 10 * 60 * S);
+            check(r.batteryReads.size() == lost, "nothing once the link is lost");
+        }
+        check(oldReads == 0, "fde6403f read no battery out of sight: " + oldReads);
     }
 }

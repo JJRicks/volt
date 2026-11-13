@@ -37,7 +37,7 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();doneByConfirmation();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();linkedNotReady();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
     }
     /** The start-sent listener hears only a start the scooter confirmed. */
@@ -621,6 +621,92 @@ public final class ChargeScheduleControllerTest {
         String[] alert=active.split("\\|",-1);alert[21]="3";check(ChargeScheduleController.decode(String.join("|",alert)).mode==0,"unknown alert state rejected");
         String[] outcome=active.split("\\|",-1);outcome[14]=Integer.toString(ChargeScheduleController.Outcome.values().length);check(ChargeScheduleController.decode(String.join("|",outcome)).mode==0,"unknown outcome rejected");
         Rig empty=new Rig();empty.c.scope="";check(empty.controller.diagnostics()==null,"no scooter, no schedule record");
+    }
+
+    /**
+     * The gate's answer while the status is stale: the service fills toggleReason and timeReason from BleController's
+     * decisions, which refuse every write then (CapabilityResolver NOT_CONNECTED).
+     */
+    private static final String GATE="Connect your scooter to change this";
+    /**
+     * Just after a wake (or the first seconds back in sight): the same live connection (linked), a status not fresh enough
+     * to write (not ready), the gate refusing, and readings from before the sleep no longer live. #418's service context.
+     */
+    private static void woken(Rig r){r.c.ready=false;r.c.linked=true;r.c.toggleReason=GATE;r.c.timeReason=GATE;r.c.charging=null;r.c.soc=null;r.c.target=null;r.c.enabled=null;r.c.wireStart=null;r.c.estimateMinutes=null;}
+    /** The fresh status after it: ready again, readings live. */
+    private static void fresh(Rig r,Integer enabled,Long wire){r.c.ready=true;r.c.toggleReason=null;r.c.timeReason=null;r.c.charging=1;r.c.soc=79d;r.c.target=100d;r.c.estimateMinutes=90d;r.c.enabled=enabled;r.c.wireStart=wire;}
+
+    /**
+     * #418 round 4: every use of the context's connection answer, with linked (the same live connection) and ready (can
+     * write now) apart, as just after a wake. Each decision to send, each blocked reason and the send-or-save choice asks
+     * ready; whether work in flight carries on, and whether readings are looked at, asks linked (readings carry their
+     * own freshness). "One answer" is fde6403f's service, which gave ready = linked(): the gate then refused.
+     */
+    private static void linkedNotReady(){
+        // setDoneTime (the finding): with an active plan, a stale status saves the time for the next plan, as offline.
+        Rig active=new Rig();active.arm();long start=active.controller.view().startWallMs,deadline=active.controller.view().doneByWallMs;long wire=active.c.wireStart;int commands=active.writes.size();
+        woken(active);
+        check(active.controller.view().timeBlockedReason==null,"the picker stays available just after a wake");
+        active.controller.setDoneTime(9,30,active.results::add);
+        check(active.results.get(1)==null&&active.controller.view().doneByMinuteOfDay==570&&active.writes.size()==commands,"just after a wake an edit to an active Done by is saved, nothing sent "+active.results);
+        check(active.controller.view().doneByEnabled&&active.controller.view().startWallMs==start&&active.controller.view().doneByWallMs==deadline,"and the plan on the scooter is left as it is");
+        fresh(active,1,wire);active.c.charging=1;
+        active.controller.setDoneTime(10,0,active.results::add);
+        check(active.writes.size()==commands+1&&active.writes.get(commands).equals("clock"),"on a fresh status the next edit reprograms the scooter");
+        Rig one=new Rig();one.arm();int sent=one.writes.size();
+        woken(one);one.c.ready=true;// fde6403f: ready = linked(), the gate still refuses
+        one.controller.setDoneTime(9,30,one.results::add);
+        check(GATE.equals(one.results.get(1))&&one.controller.view().doneByMinuteOfDay==480&&one.writes.size()==sent,"one answer chose a write the gate refused, and the time was lost "+one.results);
+
+        // Blocked reasons and every other send: ready. Nothing is attempted while the status is stale, even with a fresh charging reading.
+        Rig blocked=new Rig();woken(blocked);blocked.c.charging=1;blocked.c.soc=79d;blocked.c.target=100d;blocked.c.estimateMinutes=90d;blocked.c.enabled=0;
+        ChargeScheduleController.View v=blocked.controller.view();
+        check("Connect the scooter first".equals(v.manualBlockedReason)&&"Connect the scooter first".equals(v.manualTimeBlockedReason)
+                &&"Connect the scooter first".equals(v.doneByBlockedReason)&&"Connect the scooter first".equals(v.testBlockedReason),"every blocked reason asks ready "+v.manualBlockedReason+" "+v.doneByBlockedReason+" "+v.testBlockedReason);
+        check(v.chargerConnected,"while a fresh charging reading on the live connection still shows the charger");
+        blocked.controller.setDoneEnabled(true,blocked.results::add);
+        blocked.controller.setManualEnabled(true,blocked.results::add);
+        blocked.controller.setManualStart(blocked.c.now+3_600_000L,blocked.results::add);
+        check(blocked.controller.startTest(tested::add)!=null,"a schedule test does not start");
+        check(blocked.writes.isEmpty()&&blocked.results.size()==3&&!blocked.results.contains(null)&&!blocked.controller.busy(),"Done by, Scheduled charging and Charge start send nothing "+blocked.results);
+        Rig off=new Rig();off.arm();int before=off.writes.size();woken(off);off.controller.setDoneEnabled(false,off.results::add);
+        check(off.writes.size()==before&&"Connect the scooter first".equals(off.results.get(1))&&off.controller.view().doneByEnabled,"turning a plan off sends nothing either, and keeps it");
+        Rig missed=manualAt41();pastStart(missed,41d);int was=missed.writes.size();woken(missed);missed.controller.turnOffMissed(missed.results::add);
+        check(missed.writes.size()==was&&missed.results.get(missed.results.size()-1)!=null,"a missed start's Turn off sends nothing");
+
+        // Work in flight: linked. A merely stale status neither interrupts it nor stops its next step.
+        Rig flight=new Rig();flight.enable();check(flight.writes.equals(java.util.Arrays.asList("clock")),"in flight");
+        woken(flight);flight.controller.observe();
+        check(flight.controller.busy()&&flight.results.isEmpty(),"a stale status does not interrupt a change in flight");
+        fresh(flight,0,null);flight.reply(true);
+        check(flight.writes.equals(java.util.Arrays.asList("clock","time")),"its next step goes out on the fresh status");
+        flight.c.wireStart=flight.sentTime/1000+flight.sentOffset;flight.reply(true);
+        check(flight.writes.size()==3&&flight.writes.get(2).equals("on"),"and the next");
+        fresh(flight,1,flight.sentTime/1000+flight.sentOffset);flight.c.charging=0;flight.reply(true);
+        check(flight.results.size()==1&&flight.results.get(0)==null&&flight.controller.view().doneByEnabled,"completed across the stale spell");
+        // A step confirmed while the readings are stale never arms on them: it stops, with nothing more sent (as before #418).
+        Rig blind=new Rig();blind.enable();blind.reply(true);check(blind.writes.equals(java.util.Arrays.asList("clock","time")),"time in flight");
+        woken(blind);blind.reply(true);
+        check(blind.writes.size()==2&&blind.results.size()==1&&blind.results.get(0)!=null&&!blind.controller.busy(),"a time confirmed on stale readings does not switch on blind "+blind.results);
+        Rig lost=new Rig();lost.enable();lost.c.ready=false;lost.c.linked=false;lost.controller.observe();
+        check(lost.results.size()==1&&lost.results.get(0)!=null&&!lost.controller.busy(),"a lost connection still interrupts");
+        Rig running=testing();long testStart=running.sentTime;woken(running);at(running,testStart-100_000,null);
+        check(running.controller.testing()&&tested.isEmpty()&&running.writes.isEmpty(),"a running schedule test is not interrupted by a stale status");
+
+        // Looking at readings: linked, each reading by its own freshness.
+        Rig target=new Rig();target.arm();woken(target);target.c.soc=100d;target.c.target=100d;target.controller.observe();
+        check(!target.controller.view().doneByEnabled&&"Charge target reached".equals(target.controller.view().status),"a fresh reading on the live connection still retires a plan");
+        Rig still=new Rig();still.arm();long planned=still.controller.view().startWallMs;long stillWire=still.c.wireStart;woken(still);
+        check(still.controller.startStillPlanned("owner-A",planned),"stale readings: the claim stands");
+        still.c.enabled=0;still.c.wireStart=stillWire;
+        check(!still.controller.startStillPlanned("owner-A",planned),"a fresh OFF beside the plan's time retires the claim");
+        ChargeScheduleController.Diagnostics d=still.controller.diagnostics();
+        check(d.readEnabled!=null&&d.readEnabled==0&&d.readWireStart!=null&&d.readWireStart==stillWire,"diagnostics report the fresh readings");
+        woken(still);d=still.controller.diagnostics();
+        check(d.readEnabled==null&&d.readWireStart==null,"and none from before the wake");
+        // ready implies linked: a driver that sets only ready (every older driver) means both.
+        Rig old=new Rig();check(!old.c.linked&&old.c.ready,"fixture: an older driver");old.enable();old.controller.observe();
+        check(old.controller.busy()&&old.writes.equals(java.util.Arrays.asList("clock")),"ready alone keeps work in flight");
     }
 
     /** A test armed on a scooter with a manual Charge start preference (11:00Z), ON confirmed and still charging. */

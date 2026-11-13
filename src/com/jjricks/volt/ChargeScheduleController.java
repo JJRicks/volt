@@ -46,10 +46,17 @@ public final class ChargeScheduleController {
             TURN_OFF_SCHEDULED="Turn off Scheduled charging first",WAIT_READINGS="Wait for fresh charging readings",AT_LIMIT="Battery is already at its charge limit";
     /** A blocked reason as a person reads it, in the current language; null stays null, and text with no id here shows as it is. Display only. */
     public static String reasonText(String reason){return ChargeScheduleText.shown(reason);}
-    /** All readings must come from the current authenticated transport, never a display cache. */
+    /**
+     * All readings must come from the current authenticated transport, never a display cache, and each is null unless
+     * live by its own rule. Two answers about the connection (#418): ready, the scooter can take a write now (the write
+     * gate's own rule, BleController.ready()), for every decision to send, every blocked reason and the choice between
+     * sending and saving; linked, the same live connection (BleController.linked(), which outlives a stale status: a
+     * sleep, the first seconds back in sight), only for whether work in flight continues and whether readings are looked
+     * at. ready implies linked: a driver that sets only ready means both (alive()).
+     */
     public static final class Context {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;
-        public boolean ready, wholeHours;
+        public boolean ready, linked, wholeHours;
         public int generation;
         public long now, sampleMs;
         /** Elapsed realtime when now was read; 0 when unknown. */
@@ -87,7 +94,7 @@ public final class ChargeScheduleController {
             outcome=Outcome.values()[s.outcome];outcomeWallMs=s.outcomeMs;outcomeStartWallMs=s.outcomeStart;outcomeSoc=s.outcomeSoc<0?null:(int)Math.round(s.outcomeSoc);outcomeArmedSoc=s.outcomeArmedSoc<0?null:(int)Math.round(s.outcomeArmedSoc);
             outcomeEnabled=s.outcomeEnabled<0?null:s.outcomeEnabled;outcomeWireStart=s.outcomeWire<0?null:s.outcomeWire;
             testOutcome=ChargeScheduleTest.Outcome.values()[s.testOutcome];testWallMs=s.testWall;testStartWallMs=s.testStart;testOffsetSeconds=testOffset(s);testPaused=s.testPaused;testScheduleOff=s.testOff<0?null:s.testOff;
-            boolean live=c.ready&&!c.scope.isEmpty();readEnabled=live&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:null;readWireStart=live?c.wireStart:null;readWallMs=live?c.now:null;
+            boolean live=alive(c)&&!c.scope.isEmpty();readEnabled=live&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:null;readWireStart=live?c.wireStart:null;readWallMs=live?c.now:null;
         }
     }
     public static final class View {
@@ -104,7 +111,7 @@ public final class ChargeScheduleController {
         private View(State state, Context c, boolean busy, ChargeScheduleTest test) {
             this.busy=busy;doneByEnabled=state.mode==2;
             manualEnabled=state.mode==1 || state.mode==0&&!state.retired&&Integer.valueOf(1).equals(c.enabled);
-            chargerConnected=c.ready&&Integer.valueOf(1).equals(c.charging);
+            chargerConnected=alive(c)&&Integer.valueOf(1).equals(c.charging);
             doneByMinuteOfDay=state.minute;startWallMs=state.start;manualStartWallMs=state.manualStart;
             doneByWallMs=state.mode==2?state.deadline:0;
             status=state.status;missed=state.alert!=ALERT_NONE&&state.outcome==Outcome.MISSED.ordinal()?new Missed(state):null;
@@ -175,11 +182,13 @@ public final class ChargeScheduleController {
     public ChargeScheduleController(Store store,Driver driver){this.store=store;this.driver=driver;}
     private Context context(){
         Context raw=driver.context(),c=new Context();
-        c.scope=raw.scope;c.ready=raw.ready;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
+        c.scope=raw.scope;c.ready=raw.ready;c.linked=raw.linked;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
         c.charging=raw.charging;c.enabled=raw.enabled;c.wireStart=raw.wireStart;c.soc=raw.soc;c.target=raw.target;c.estimateMinutes=raw.estimateMinutes;
         c.timeReason=raw.timeReason;c.toggleReason=raw.toggleReason;c.estimateUnavailableReason=raw.estimateUnavailableReason;c.zone=(TimeZone)raw.zone.clone();return c;
     }
     private State state(Context c){return states.computeIfAbsent(c.scope,k->decode(store.read(k)));}
+    /** The same live connection: linked, or ready, which implies it. Never a reason to send. */
+    private static boolean alive(Context c){return c.ready||c.linked;}
     public boolean busy(){return busy;}
     public View view(){Context c=context();reconcile(c);State s=state(c);State shown=s;
         if(s.start==0&&c.wireStart!=null&&c.wireStart>0){shown=s.copy();shown.start=fromWire(c.wireStart,c.zone.getOffset(c.now));
@@ -196,7 +205,8 @@ public final class ChargeScheduleController {
         observeTest(c);reconcile(c);
     }
     private void reconcile(Context c){
-        State s=state(c);if(busy||!c.ready||c.scope.isEmpty())return;
+        // Readings carry their own freshness, so reconciling needs only the live connection, not a status fresh enough to write.
+        State s=state(c);if(busy||!alive(c)||c.scope.isEmpty())return;
         // A running test judges its own intention; an interrupted one is left to the checks below.
         if(test!=null&&c.scope.equals(testContext.scope))return;
         // Positive changed readback is useful evidence; absent/zero after reboot is ambiguous.
@@ -277,6 +287,7 @@ public final class ChargeScheduleController {
     /** The selected scooter's schedule record, or null without one. */
     public Diagnostics diagnostics(){Context c=context();return c.scope.isEmpty()?null:new Diagnostics(state(c),c);}
     private void save(Context c,State s){if(!c.scope.isEmpty())store.write(c.scope,encode(s));}
+    /** Why a write is blocked now: ready, the write gate's rule, never linked alone (a stale status would be refused). */
     private static String baseReason(Context c,boolean needsTime){
         if(c.scope.isEmpty()||!c.ready)return CONNECT_SCOOTER;
         if(c.toggleReason!=null)return c.toggleReason;
@@ -288,6 +299,8 @@ public final class ChargeScheduleController {
         Context c=context();View view=view();
         if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
         if(view.timeBlockedReason!=null){completion.accept(reasonText(view.timeBlockedReason));return;}
+        // Reprogram only when the scooter can take the write now (ready); otherwise the time is kept for the next plan, as
+        // offline. linked() alone (a status from before a sleep) would choose a write the gate then refuses (#418).
         if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion,confirmed);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
     }
@@ -379,7 +392,7 @@ public final class ChargeScheduleController {
      * nothing can be known, so an earlier claim stands; a reliable OFF (readsOff) ends it even while the plan stays tracked.
      */
     public boolean startStillPlanned(String scope,long start){
-        Context c=context();if(!c.ready||!c.scope.equals(scope))return true;
+        Context c=context();if(!alive(c)||!c.scope.equals(scope))return true;
         reconcile(c);State s=state(c);return s.mode!=0&&s.start==start&&!readsOff(c,s);
     }
     private void armManual(Context c,long start,int offset){State s=state(c);s.mode=1;s.start=start;s.wire=start/1000+offset;s.armed=context().now;
@@ -486,7 +499,7 @@ public final class ChargeScheduleController {
         return true;
     }
     private static boolean sameContext(Context original,Context current){
-        return current.ready&&original.scope.equals(current.scope)&&original.generation==current.generation
+        return alive(current)&&original.scope.equals(current.scope)&&original.generation==current.generation
                 &&original.zone.getID().equals(current.zone.getID())
                 &&original.zone.getOffset(original.now)==current.zone.getOffset(current.now);
     }

@@ -693,8 +693,14 @@ public final class BleController {
     private boolean lostToSilence(){if(!silentLink())return false;failed(M.bleFailedSignalLost(),true,ConnectionEventLog.Reason.READ_TIMEOUT,-1);return true;}
     /** Starts this session's poll chain (StatusCadence.Chain), replacing any other. */
     private void poll(int session){if(simulating())return;cadence.start(()->pollTick(session));}
-    /** One status poll; silence is judged on the cadence the link has been on, in awake time (StatusCadence.Chain.silent). */
-    private void pollTick(int session){if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;if(lostToSilence())return;if(readPolicy!=null)readPolicy.tick(awake());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&(visible||recording||batteryWatch())&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();cadence.next();}
+    /**
+     * One status poll; silence is judged on the cadence the link has been on, in awake time (StatusCadence.Chain.silent).
+     * The battery read (ReadPolicy.periodicBattery, so a read the model ignores is suppressed as always) joins the poll at
+     * the poll interval in sight, every 2 s recording, and out of sight with every 15 s poll, as a battery watch always
+     * has, so the connected notice's level stays current (owner, 2026-11-12). Only on a link that is up, never with a
+     * wake lock of its own: a phone asleep reads again at the first poll after waking.
+     */
+    private void pollTick(int session){if(simulating()||!workAllowed()||session!=generation||!authenticated||gatt==null)return;if(lostToSilence())return;if(readPolicy!=null)readPolicy.tick(awake());if(testing())stepTest();send(Protocol.frame(0x70,null));int interval=context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).getInt("poll_interval_ms",2000);interval=Math.max(2000,Math.min(10000,interval));if(!discovering&&!testing()&&now()-lastBatteryPollMs>=(recording?2000:interval)){for(int cmd:policy().periodicBattery())send(Protocol.frame(cmd,null));lastBatteryPollMs=now();}changed();cadence.next();}
     /** Every write's admission: the resolver decision for this request, on this session's fresh state. */
     private CapabilityResolver.Decision check(MutationGate.Request r){return duringDiscovery(MutationGate.check(r,descriptor(),status(),runtime(r.feature)));}
     private boolean gate(MutationGate.Request r){CapabilityResolver.Decision d=check(r);if(d.available())return true;refused(r,d);return false;}

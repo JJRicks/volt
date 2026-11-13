@@ -795,7 +795,8 @@ public final class ScooterService extends Service {
     /** Start of today's buffered plan; null when it would charge now or has no estimate. */
     private Long bufferedChargeStart(int minute){
         ChargeScheduleController.Context c=chargeScheduleContext();
-        if(!c.ready||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
+        // A plan computed from live readings (the estimate is fresh-only): the live connection is enough; arming asks ready.
+        if(!c.linked||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
         try{ChargeScheduleController.Plan plan=ChargeScheduleController.plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);return plan.startNow?null:plan.startWallMs;}
         catch(IllegalArgumentException outside){return null;}
     }
@@ -826,7 +827,7 @@ public final class ScooterService extends Service {
         ChargeScheduleController.Context c=chargeScheduleContext();
         ChargeProgressTracker.Progress progress=chargeProgress.progress(chargeMeasure.profile(),mono);
         boolean known=progress!=null&&(progress.startObserved||progress.ageInferred)&&chargeSchedule().doneByBlockedReason==null;
-        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.ready,c.charging,known);
+        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.linked,c.ready,c.charging,known);
         if(decision.step==ChargeMeasureWindow.Step.ARM)armMeasured(decision.measured);
         else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);
     }
@@ -1632,9 +1633,11 @@ public final class ScooterService extends Service {
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
     /**
-     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
-     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
-     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     * Two answers (#418). linked: the same live connection, BleController.linked(), which outlives a stale status (out of
+     * sight between 15 s polls, after a sleep, the first seconds back in sight); the controller uses it only to keep work
+     * in flight going and to look at readings, each of which carries its own freshness. ready: the scooter can take a write
+     * now, BleController.ready(), the write gate's own rule (CapabilityResolver, which also fills toggleReason and
+     * timeReason below); the controller uses it for every choice to send and every blocked reason.
      */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
@@ -1642,15 +1645,17 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        boolean same=!destroyed&&!dataMaintenance&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
+        c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
         // English ids, whatever the shown language: the controller keeps them in its saved status and its other text is English too (plan R2).
         c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
-        if(!c.ready)return c;
-        c.enabled=ble.featureValue("timed_charging");
+        if(!c.linked)return c;
+        // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
+        c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
         for(Telemetry.Metric metric:ble.telemetry.metrics())readings.put(metric.key,metric);
@@ -2869,8 +2874,9 @@ public final class ScooterService extends Service {
     }
     /**
      * "UT5 MAX · 82%": the connected notification names the scooter and its charge, the charge only while that reading is
-     * live by its own rule (BleController.liveNumber). Out of sight the battery is read only for a recording or a watch, and
-     * the link can outlive a sleep, so an older level would read as current: then the notice names the scooter alone.
+     * live by its own rule (BleController.liveNumber). Out of sight the battery is read with every 15 s status poll, so
+     * the level stays current (owner, 2026-11-12); the link can outlive a sleep, and a read the scooter ignores is
+     * suppressed (ReadPolicy), so an older level would read as current: then the notice names the scooter alone.
      */
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
