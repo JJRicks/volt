@@ -2130,17 +2130,20 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockLine.value.setTextColor(chip!=null&&!accepted?design.danger:design.muted);
             clockLine.line.setContentDescription(clockPending?T.mainRowClockSending():accepted?T.mainRowClockSent(DisplayTime.clock(MainActivity.this,preferences,sent)):chip!=null?T.mainRowClockChip(chip):T.mainRowClock());
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();nameValue.setText(profile==null?T.mainRowNameNotSet():profile.name);
-            boolean chargerEditable=profile!=null&&!scooterService.isChargeRecording();
+            boolean chargerEditable=profile!=null&&scooterService.chargerChoosable();
             if(profile!=null)nameValue.setText(profile.shownName());
             chargerLine.line.setEnabled(chargerEditable);chargerLine.name.setTextColor(chargerEditable?design.text:design.muted);
             // Name the family estimates actually use, and why when it is not the saved choice.
             ScooterService.ChargerBasis basis=scooterService==null?ScooterService.ChargerBasis.UNKNOWN:scooterService.chargerBasis();
             ChargeSessionStore.Charger effective=scooterService==null?null:scooterService.effectiveChargeCharger();
             String family=effective==ChargeSessionStore.Charger.HIGH_SPEED?T.mainRowHighSpeed():T.mainRowStock();
-            chargerLine.value.setText(effective==null?T.mainRowAutomatic():basis==ScooterService.ChargerBasis.DETECTED?T.mainRowAutoFamily(family):family);
-            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING?T.mainRowRecordingLabel()
-                    :basis==ScooterService.ChargerBasis.DETECTED?T.mainRowDetected()
-                    :scooterService!=null&&scooterService.isChargeRecording()?T.mainRowStopRecording():null);
+            // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+            boolean chargerLocked=scooterService!=null&&!scooterService.chargerChoosable();
+            boolean detectedFamily=basis==ScooterService.ChargerBasis.DETECTED||basis==ScooterService.ChargerBasis.RECORDING&&!chargerLocked;
+            chargerLine.value.setText(effective==null?T.mainRowAutomatic():detectedFamily?T.mainRowAutoFamily(family):family);
+            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING&&chargerLocked?T.mainRowRecordingLabel()
+                    :detectedFamily?T.mainRowDetected()
+                    :chargerLocked?T.mainRowStopRecording():null);
             if(choiceSheet!=null)choiceSheet.refresh();
         }
     }
@@ -2153,12 +2156,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; Ride and Record are never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts (Clean's own, in place of Charge done by on models without scheduled charging, owner's answer
-        // 11; the same id as the Quick access Charge alerts shortcut): one action for both homes. A stored or restored
-        // four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        // Battery alerts: one id and one tap for both Homes (Clean's quick action, in place of Charge done by on models
+        // without scheduled charging, owner's answer 11; and the Widgets shortcut, owner's decision of Nov 12 2026 on #383).
+        // A stored or restored four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
         if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
@@ -3746,7 +3749,7 @@ public final class MainActivity extends Activity implements ScreenHost {
 
     /** Local per-scooter estimate preference: never sends a charger command or starts capture. */
     private void showChargerEstimateChoice(){
-        if(scooterService==null||scooterService.profiles.active()==null||scooterService.isChargeRecording())return;
+        if(scooterService==null||scooterService.profiles.active()==null||!scooterService.chargerChoosable())return;
         String profile=scooterService.profiles.active().id;
         final AlertDialog[] sheet=new AlertDialog[1];
         LinearLayout content=sheetContent(T.mainRowCharger(),

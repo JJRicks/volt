@@ -163,7 +163,7 @@ public final class BleController {
         if(simulation!=null&&!Objects.equals(DeviceDescriptor.simulated(model,0,next).region,DeviceDescriptor.simulated(model,0,simulationRegion).region)&&model.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();}
         simulationRegion=next;setSimulationModel(model);
     }
-    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);applySimulationModel();tickSimulation();}changed();}
+    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();telemetry.tally.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);applySimulationModel();tickSimulation();}changed();}
     /**
      * Riding-mode screenshot scripts (ScooterSimulation ids; "" for none). Memory only; no command exists.
      * The dropout script holds the link in Connecting, so readings go stale as on a real dropout.
@@ -475,7 +475,7 @@ public final class BleController {
         intentionalDisconnectSequence++;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);
         wanted=true;retries=0;scan(p.mac);if(scanning)identifying=true;
     }
-    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
+    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;telemetry.tally.clear();notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
     /** True only inside suspend()'s close: this link is ending because Volt paused it, not because the scooter went away. */
     private boolean ownPause;public boolean ownPause(){return ownPause;}
     /** Stop every pending connection operation; saved profiles and diagnostic history survive. */
@@ -525,6 +525,8 @@ public final class BleController {
         int session=generation;handler.postDelayed(()->{if(session==generation&&gatt!=null&&!linkUp())failed(M.bleFailedTimedOut(),true,ConnectionEventLog.Reason.CONNECT_TIMEOUT,-1);},18000);
     }
     private void close(State next){
+        // Every end of a link (failed, suspend, disconnect, a new connect): the report's drive modes and power sign describe the connection only.
+        telemetry.tally.clear();
         if(discovering){discovery.onDisconnect(awake());finishDiscovery();event("Compatibility check interrupted");}
         // Disconnect, Bluetooth off, background pause or service end: the test stays outstanding and is never resumed automatically.
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
@@ -924,6 +926,16 @@ public final class BleController {
         List<TestJournal.Entry> out=testJournal.unresolved(p.id);
         for(int i=out.size()-1;i>=0;i--)if(liveTest(out.get(i).testId))out.remove(i);
         return out;
+    }
+    /**
+     * An unfinished test of the active scooter whose write may have been sent still has its original value to write back,
+     * or may have once reviewed (ChargeAutoRecordPolicy.testHolds: every review but ALREADY_RESTORED). A charge recording
+     * would refuse that write (CapabilityResolver, RECORDING), so Record charges automatically waits for it. Never writes.
+     */
+    public boolean restoreOutstanding(){
+        for(TestJournal.Entry e:unresolvedTests()){GuidedTest.Review r=reviewTest(e.testId);
+            if(r!=null&&ChargeAutoRecordPolicy.testHolds(r.state))return true;}
+        return false;
     }
     public int unresolvedTestsElsewhere(){ScooterProfiles.Profile p=profile();Set<String> kept=profileIds();int n=0;for(TestJournal.Entry e:testJournal.unresolved())if((p==null||!e.profileId.equals(p.id))&&kept.contains(e.profileId))n++;return n;}
     /** Unresolved tests whose scooter profile was removed: they can only be dismissed. */

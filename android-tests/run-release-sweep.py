@@ -154,6 +154,9 @@ for case in SIZES:
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
                    '-e', 'layout', LAYOUT[case], size=size)]
+    # The Record charges automatically switch beside the recording controls, off and on.
+    STEPS += [inst(f'charge-auto-record-page-{w}', PKG + '.ChargeAutoRecordValidation', '-e', 'mode', 'page', '-e', 'theme', theme,
+                   '-e', 'text_scale', text, size=size, hidden_api=True)]
     if case is not WIDE_LARGE:
         STEPS += [inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
                   inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
@@ -168,6 +171,8 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
+    inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),

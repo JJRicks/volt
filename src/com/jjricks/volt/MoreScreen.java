@@ -2629,6 +2629,9 @@ public final class MoreScreen implements AppScreen {
             String unavailable=s.chargeCaptureUnavailable();if(unavailable!=null){host.toast(unavailable);return;}
             recordChargeDialog(s);
         });chargeCaptureRow.view.setTag("charge-capture-action");
+        // Record charges automatically (off by default): beside the recording controls, its only place.
+        preferenceToggle(capture,"recording",T.moreChargeAutoRecord(),T.moreChargeAutoRecordSub(),ChargeAutoRecordPolicy.KEY,false)
+                .view.setTag(ChargeAutoRecordPolicy.KEY);
         chargeCaptureStatus=footnote("");chargeCaptureStatus.setTag("charge-capture-status");
         LinearLayout chargeData=group();
         chargeHistoryRow=row(chargeData,"chart",T.moreDevRecordings(), T.moreDevRecordingsSub(),()->{
@@ -2841,6 +2844,9 @@ public final class MoreScreen implements AppScreen {
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
             chargeCaptureRow.enabled(s!=null&&(capturing||unavailable==null));
             chargeCaptureStatus.setText(capturing||unavailable==null?s.chargeCaptureStatus():unavailable);
+            // The recording that just ended (not kept, saved, stopped) stays shown over the reason a new one can't start,
+            // until a newer status replaces it: an unplug ends it and makes that reason at once (Terra's review of #416, 2).
+            if(!capturing&&unavailable!=null&&s!=null&&s.chargeStatusIsOutcome())chargeCaptureStatus.setText(s.chargeCaptureStatus());
             refreshChargeCurve(s);
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
@@ -2853,10 +2859,12 @@ public final class MoreScreen implements AppScreen {
     private void refreshChargerLink(ScooterService s) {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
-        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+        boolean locked = s != null && !s.chargerChoosable();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED || basis == ScooterService.ChargerBasis.RECORDING && !locked;
         chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
-        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING && locked, detected, locked);
         chargerDetail.setText(detail == null ? "" : detail.render());
         chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }

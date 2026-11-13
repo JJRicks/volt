@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +19,8 @@ import java.util.regex.Pattern;
  * The diagnostics file a report email can carry (volt-diagnostics-v1): Volt's and Android's versions, the
  * phone model, the sanitized compatibility report, the connection and command logs, the charging schedule record and
  * the current readings, without identities or payload bytes. Built only from typed or sanitized sources; json() then refuses to
- * return a file that contains any saved scooter's serial, MAC, owner key or chosen name. Pure and Android-free.
+ * return a file that contains any saved scooter's serial, MAC or owner key, or a chosen name in a value (never in a key or
+ * in Volt's own words; see json). Pure and Android-free.
  */
 final class DiagnosticsBundle {
     static final String FORMAT = "volt-diagnostics-v1";
@@ -31,6 +33,11 @@ final class DiagnosticsBundle {
     static final int MIN_SECRET = 6;
 
     private final Map<String, Object> tree = new LinkedHashMap<>();
+    /**
+     * Values that carry text from outside Volt's code: readings, settings values and what the scooter reports about itself
+     * (model ID, region, SKU, firmware). They never count as Volt's own words when json() looks for a chosen name.
+     */
+    private final Set<String> outside = new HashSet<>();
 
     DiagnosticsBundle(String appVersion, long createdWallMs, boolean simulated) {
         tree.put("format", FORMAT);
@@ -51,7 +58,11 @@ final class DiagnosticsBundle {
 
     /** The current compatibility report, already sanitized by its own whitelist; null when there is none. */
     DiagnosticsBundle report(CompatibilityReport report) {
-        tree.put("compatibility_report", report == null ? null : report.tree());
+        Map<String, Object> t = report == null ? null : report.tree();
+        // What the scooter says about itself; the rest of the report is Volt's own tokens.
+        if (t != null && t.get("device") instanceof Map) for (String k : new String[]{"pid", "pid_prefix", "region", "sku", "firmware"})
+            strings(((Map<?, ?>) t.get("device")).get(k), outside);
+        tree.put("compatibility_report", t);
         return this;
     }
 
@@ -87,8 +98,9 @@ final class DiagnosticsBundle {
                 CommandLog.Session s = (CommandLog.Session) r;
                 e.put("type", "session"); e.put("app_version", s.appVersion);
                 e.put("model_id", s.modelId.isEmpty() ? "unknown" : s.modelId); e.put("layer", lower(s.layer));
-                if (!s.meter.isEmpty()) e.put("meter_firmware", s.meter);
-                if (!s.controller.isEmpty()) e.put("controller_firmware", s.controller);
+                if (!s.meter.isEmpty()) { e.put("meter_firmware", s.meter); outside.add(s.meter); }
+                if (!s.controller.isEmpty()) { e.put("controller_firmware", s.controller); outside.add(s.controller); }
+                outside.add(s.modelId);
                 e.put("simulated", s.simulated);
             } else {
                 CommandLog.Command c = (CommandLog.Command) r;
@@ -273,7 +285,7 @@ final class DiagnosticsBundle {
         if (metrics != null) for (Telemetry.Metric metric : metrics) {
             if (metric.value == null || WITHHELD.contains(metric.key) || !reading(metric.key, metric.value)) continue;
             Map<String, Object> r = new LinkedHashMap<>();
-            r.put("group", metric.group); r.put("key", metric.key); r.put("value", metric.value);
+            r.put("group", metric.group); r.put("key", metric.key); r.put("value", metric.value); outside.add(metric.value);
             if (metric.updatedMs >= 0) r.put("age_ms", Math.max(0, nowElapsedMs - metric.updatedMs));
             if (metric.sourceCmd >= 0) r.put("source", CompatibilityReport.hex(metric.sourceCmd));
             out.add(r);
@@ -370,7 +382,7 @@ final class DiagnosticsBundle {
 
     /** The allow-listed settings (DiagnosticsSettings); the selected scooter's under their own names, never its id. */
     DiagnosticsBundle settings(Map<String, ?> stored, String profileId) {
-        guard("settings", () -> DiagnosticsSettings.section(stored, profileId));
+        guard("settings", () -> { Map<String, Object> m = DiagnosticsSettings.section(stored, profileId); strings(m, outside); return m; });
         return this;
     }
 
@@ -389,14 +401,22 @@ final class DiagnosticsBundle {
 
     /**
      * Counts, sizes and ages of the ride and charge recordings, and the newest ride's and charge's length, samples and
-     * end. Never a route, a coordinate, a label, a note, a scooter id or a file name.
+     * end. Never a route, a coordinate, a label, a note, a scooter id or a file name. Ages come from the times each
+     * recording holds (a ride's summary, a charge's first line), never from file times: a restore writes every file anew.
      */
     DiagnosticsBundle recordings(Recordings r) {
         guard("recordings", () -> {
             if (r == null) return null;
             Map<String, Object> m = new LinkedHashMap<>();
-            Map<String, Object> rides = folder(r.rideFolder, f -> RIDE_JOURNAL.matcher(f.getName()).matches(), r.nowWallMs);
+            // A ride's start and end by id, from the summaries in memory (none are read to get them).
+            Map<String, long[]> rideTimes = new HashMap<>();
+            if (r.rides != null) for (RideStore.Summary s : r.rides)
+                if (s != null && s.id != null && s.startWallMs > 0) rideTimes.put(s.id, new long[]{s.startWallMs, Math.max(s.startWallMs, s.endWallMs)});
+            Map<String, Object> rides = folder(r.rideFolder, f -> RIDE_JOURNAL.matcher(f.getName()).matches());
             if (rides != null) {
+                List<long[]> times = new ArrayList<>();
+                if (r.rides != null) for (RideStore.Summary s : r.rides) if (s != null && s.id != null && rideTimes.containsKey(s.id)) times.add(rideTimes.get(s.id));
+                ages(rides, r.rides == null ? null : times, r.nowWallMs);
                 rides.put("recording_now", r.rideActive);
                 rides.put("summaries_in_memory", r.rides != null);
                 RideStore.Summary last = null;
@@ -404,9 +424,32 @@ final class DiagnosticsBundle {
                 rides.put("last", last == null ? null : lastRide(last));
             }
             m.put("rides", rides);
-            m.put("phone_rides", folder(r.phoneRideFolder, f -> f.getName().endsWith("-phone.csv"), r.nowWallMs));
-            Map<String, Object> charges = folder(r.chargeFolder, f -> f.getName().endsWith(".csv") || f.getName().endsWith(".active"), r.nowWallMs);
+            Map<String, Object> phone = folder(r.phoneRideFolder, f -> f.getName().endsWith(PHONE_RIDE));
+            if (phone != null) {
+                // A phone ride belongs to the ride with its id: its age is that ride's.
+                List<long[]> times = null;
+                File[] files = r.rides == null ? null : r.phoneRideFolder.listFiles();
+                if (files != null) {
+                    times = new ArrayList<>();
+                    for (File f : files) {
+                        String name = f.getName();
+                        long[] t = f.isFile() && name.endsWith(PHONE_RIDE) ? rideTimes.get(name.substring(0, name.length() - PHONE_RIDE.length())) : null;
+                        if (t != null) times.add(t);
+                    }
+                }
+                ages(phone, times, r.nowWallMs);
+            }
+            m.put("phone_rides", phone);
+            Map<String, Object> charges = folder(r.chargeFolder, f -> f.getName().endsWith(".csv") || f.getName().endsWith(".active"));
             if (charges != null) {
+                List<long[]> times = new ArrayList<>();
+                File[] files = r.chargeFolder.listFiles();
+                if (files != null) for (File f : files) {
+                    if (!f.isFile() || !(f.getName().endsWith(".csv") || f.getName().endsWith(".active"))) continue;
+                    long start = chargeStart(f);
+                    if (start > 0) times.add(new long[]{start, start});
+                }
+                ages(charges, times, r.nowWallMs);
                 charges.put("recording_now", r.chargeActive);
                 if (r.chargeActive && r.chargeActiveSamples >= 0) charges.put("recording_samples", r.chargeActiveSamples);
                 charges.put("last", lastCharge(r.chargeFolder));
@@ -416,25 +459,29 @@ final class DiagnosticsBundle {
         });
         return this;
     }
-    /** A folder's matching files: count, bytes, and the newest and oldest file's age; null when it can't be listed. */
-    private static Map<String, Object> folder(File dir, java.util.function.Predicate<File> counted, long now) {
+    private static final String PHONE_RIDE = "-phone.csv";
+    /** A folder's matching files: count and bytes; null when it can't be listed. */
+    private static Map<String, Object> folder(File dir, java.util.function.Predicate<File> counted) {
         if (dir == null) return null;
         File[] files = dir.listFiles();
         if (files == null) return null;
-        long count = 0, bytes = 0, all = 0, newest = Long.MIN_VALUE, oldest = Long.MAX_VALUE;
+        long count = 0, bytes = 0, all = 0;
         for (File f : files) {
             if (!f.isFile()) continue;
             long length = Math.max(0, f.length()); all += length;
             if (!counted.test(f)) continue;
             count++; bytes += length;
-            long modified = f.lastModified();
-            if (modified > 0) { newest = Math.max(newest, modified); oldest = Math.min(oldest, modified); }
         }
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("count", count); m.put("bytes", bytes); m.put("folder_bytes", all);
+        return m;
+    }
+    /** The newest recording's age (from its end) and the oldest's (from its start), from {start, end} wall times; null when unknown. */
+    private static void ages(Map<String, Object> m, List<long[]> times, long now) {
+        long newest = Long.MIN_VALUE, oldest = Long.MAX_VALUE;
+        if (times != null) for (long[] t : times) { newest = Math.max(newest, t[1]); oldest = Math.min(oldest, t[0]); }
         m.put("newest_age_s", newest == Long.MIN_VALUE ? null : Math.max(0, now - newest) / 1000);
         m.put("oldest_age_s", oldest == Long.MAX_VALUE ? null : Math.max(0, now - oldest) / 1000);
-        return m;
     }
     private static Map<String, Object> lastRide(RideStore.Summary s) {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -456,29 +503,45 @@ final class DiagnosticsBundle {
         if (reason.equals(RideStore.STOP_AUTO_QUIET) || reason.startsWith(RideStore.STOP_AUTO_QUIET + ";")) return "auto_quiet_disconnect";
         return "other";
     }
-    /** The newest finished charge recording's length and end, from its first line and its last few kilobytes only. */
+    /** A charge recording's start (its first line's wall time), from its first CHARGE_HEAD_BYTES only; -1 when unreadable. */
+    static long chargeStart(File f) {
+        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(f, "r")) {
+            byte[] head = new byte[(int) Math.min(CHARGE_HEAD_BYTES, in.length())];
+            in.readFully(head);
+            String[] start = new String(head, java.nio.charset.StandardCharsets.UTF_8).split("\n", -1)[0].split(",", -1);
+            return start.length == 5 && start[3].matches("[0-9]{1,15}") ? Long.parseLong(start[3]) : -1;
+        } catch (IOException | RuntimeException unreadable) { return -1; }
+    }
+    /**
+     * The newest finished charge recording (by the start it holds) and its length and end, from its first line and its
+     * last few kilobytes only. The length runs to its last sample or pause line, whichever is later: a recording that
+     * ends while paused closes the pause at its end.
+     */
     static Map<String, Object> lastCharge(File dir) {
         File[] files = dir == null ? null : dir.listFiles();
         if (files == null) return null;
-        File newest = null;
-        for (File f : files) if (f.isFile() && f.getName().endsWith(".csv") && (newest == null || f.lastModified() > newest.lastModified())) newest = f;
+        File newest = null; long newestStart = Long.MIN_VALUE;
+        for (File f : files) {
+            if (!f.isFile() || !f.getName().endsWith(".csv")) continue;
+            long start = chargeStart(f);
+            if (newest == null || start > newestStart) { newest = f; newestStart = start; }
+        }
         if (newest == null) return null;
         try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(newest, "r")) {
             long length = in.length();
-            byte[] head = new byte[(int) Math.min(CHARGE_HEAD_BYTES, length)];
-            in.readFully(head);
-            String first = new String(head, java.nio.charset.StandardCharsets.UTF_8).split("\n", -1)[0];
-            String[] start = first.split(",", -1);
-            long startWall = start.length == 5 && start[3].matches("[0-9]{1,15}") ? Long.parseLong(start[3]) : -1;
+            long startWall = newestStart;
             int tail = (int) Math.min(CHARGE_TAIL_BYTES, length);
             byte[] end = new byte[tail];
             in.seek(length - tail); in.readFully(end);
             String[] lines = new String(end, java.nio.charset.StandardCharsets.UTF_8).split("\n");
             String stop = null; long lastWall = -1;
-            for (int i = lines.length - 1; i >= 0 && (stop == null || lastWall < 0); i--) {
+            for (int i = lines.length - 1; i >= 0; i--) {
                 String[] p = lines[i].split(",", -1);
                 if (stop == null && p.length == 2 && p[0].equals("end")) stop = chargeStop(p[1]);
-                else if (lastWall < 0 && p.length > 2 && p[0].equals("s") && p[1].matches("[0-9]{1,15}")) lastWall = Long.parseLong(p[1]);
+                else if (p.length > 2 && (p[0].equals("s") || p[0].equals("p") && p.length == 4) && p[1].matches("[0-9]{1,15}")) {
+                    lastWall = Math.max(lastWall, Long.parseLong(p[1]));
+                    if (p[0].equals("s")) break; // nothing before the last sample ends later
+                }
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("duration_s", startWall > 0 && lastWall >= startWall ? (lastWall - startWall) / 1000 : null);
@@ -536,7 +599,9 @@ final class DiagnosticsBundle {
     /**
      * Clock changes seen in the connection log: between consecutive events, how far the wall clock moved beyond the
      * monotonic clock (a time zone change does not move it; setting the clock or a network time fix does), and phone
-     * restarts (the monotonic clock going back). Explains timestamps that look out of order.
+     * restarts. A restart is the monotonic clock (time since the phone started) going back, or reading less than the
+     * wall time since the event before: the phone has started since then. (A clock set forward by more than the earlier
+     * uptime reads as a restart too; a restart is far the likelier.) Explains timestamps that look out of order.
      */
     DiagnosticsBundle clockChanges(List<ConnectionEventLog.Record> records) {
         guard("clock_changes", () -> {
@@ -549,7 +614,7 @@ final class DiagnosticsBundle {
                 if (r == null) continue;
                 if (previous != null) {
                     compared++;
-                    if (r.elapsedMs < previous.elapsedMs) restarts++;
+                    if (r.elapsedMs < previous.elapsedMs || r.elapsedMs < r.wallMs - previous.wallMs) restarts++;
                     else {
                         long jump = (r.wallMs - previous.wallMs) - (r.elapsedMs - previous.elapsedMs);
                         if (Math.abs(jump) > CLOCK_JUMP_MS) {
@@ -597,22 +662,87 @@ final class DiagnosticsBundle {
         return !HEX_RUN.matcher(value).find() && !SERIAL.matcher(value).find();
     }
 
+    /** The file with only the identities check (no chosen names): see json(identities, names). */
+    String json(Collection<String> identities) { return json(identities, null); }
+
     /**
-     * The file, or null when it would contain any of these private values (saved serials, MACs with and without
-     * separators, owner keys, chosen names) or any private shape (PRIVATE_SHAPES). A null means the email goes without it.
+     * The file, or null when it would carry a private value: a private shape anywhere (PRIVATE_SHAPES); any of the
+     * identities (saved ids, serials, owner keys, MACs with and without separators) anywhere in the file; or one of the
+     * chosen scooter names in a value. A name is never looked for in the keys, and a name that is one of Volt's own
+     * words (vocabulary: a key, a fixed value, a word of either, a fixed reading text, a model name) is not looked for
+     * at all: finding "Scooter" says nothing about anyone. Any other name in any value withholds the file. Values and
+     * names are compared ignoring case. A null means the email goes without the file.
      */
-    String json(Collection<String> secrets) {
+    String json(Collection<String> identities, Collection<String> names) {
         String json = capped();
         if (privateShape(json)) return null;
-        if (secrets != null) {
-            String upper = json.toUpperCase(Locale.ROOT);
-            for (String secret : secrets) {
-                if (secret == null) continue;
-                String s = secret.trim().toUpperCase(Locale.ROOT);
-                if (s.length() >= MIN_SECRET && upper.contains(s)) return null;
-            }
+        String upper = json.toUpperCase(Locale.ROOT);
+        if (identities != null) for (String secret : identities) {
+            if (secret == null) continue;
+            String s = secret.trim().toUpperCase(Locale.ROOT);
+            if (s.length() >= MIN_SECRET && upper.contains(s)) return null;
+        }
+        if (names != null && !names.isEmpty()) {
+            Set<String> keys = new HashSet<>();
+            List<String> values = new ArrayList<>();
+            walk(tree, keys, values);
+            Set<String> vocabulary = vocabulary(keys, values);
+            for (String name : names) if (named(name, values, vocabulary)) return null;
         }
         return json;
+    }
+
+    /** Whether this chosen name is in one of the file's values; never when it is short or one of Volt's own words. */
+    static boolean named(String name, List<String> values, Set<String> vocabulary) {
+        if (name == null) return false;
+        String n = name.trim();
+        if (n.length() < MIN_SECRET || vocabulary.contains(normal(n))) return false;
+        String upper = n.toUpperCase(Locale.ROOT);
+        for (String v : values) if (v.toUpperCase(Locale.ROOT).contains(upper)) return true;
+        return false;
+    }
+
+    /** A Volt token as the file writes it: an enum name, lowercased or not, or a snake_case id. */
+    private static final Pattern TOKEN = Pattern.compile("[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}");
+    /** Words Volt writes outside this class's tokens: the readings' fixed texts and the simulator's mark. */
+    private static final List<String> FIXED_WORDS = Collections.unmodifiableList(Arrays.asList("simulation", "simulated"));
+
+    /**
+     * Volt's own words in this file: every key, every value that is a Volt token and came from Volt's code (never one of
+     * the outside values), each whole and split into words; Telemetry's fixed reading texts; the known model names. A
+     * leaked name cannot make itself vocabulary: outside values are left out, and Volt's tokens do not hold free text.
+     */
+    private Set<String> vocabulary(Set<String> keys, List<String> values) {
+        Set<String> v = new HashSet<>();
+        for (String k : keys) words(k, v);
+        for (String s : values) if (!outside.contains(s) && TOKEN.matcher(s).matches()) words(s, v);
+        for (String s : Telemetry.FIXED_TEXT) words(s, v);
+        for (String s : FIXED_WORDS) words(s, v);
+        for (String s : ModelRegistry.knownNames()) words(s, v);
+        return v;
+    }
+    private static void words(String s, Set<String> into) {
+        String n = normal(s);
+        if (n.isEmpty()) return;
+        into.add(n);
+        for (String w : n.split("_")) if (!w.isEmpty()) into.add(w);
+    }
+    /** Lower case, every run of other characters as one underscore: "Selected Scooter" and "selected_scooter" are one word. */
+    static String normal(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
+    }
+    /** Every key and every string value in a section, maps and lists alike. */
+    @SuppressWarnings("unchecked")
+    private static void walk(Object node, Set<String> keys, List<String> values) {
+        if (node instanceof Map) for (Map.Entry<String, Object> e : ((Map<String, Object>) node).entrySet()) { keys.add(e.getKey()); walk(e.getValue(), keys, values); }
+        else if (node instanceof List) for (Object o : (List<Object>) node) walk(o, keys, values);
+        else if (node instanceof String) values.add((String) node);
+    }
+    /** The string values in a section (the outside values). */
+    private static void strings(Object node, Set<String> into) {
+        List<String> values = new ArrayList<>();
+        walk(node, new HashSet<>(), values);
+        into.addAll(values);
     }
 
     /**
