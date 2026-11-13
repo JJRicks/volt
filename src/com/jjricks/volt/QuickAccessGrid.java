@@ -187,7 +187,10 @@ final class QuickAccessGrid extends ViewGroup {
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
             // The RIDE action is spoken as the RIDE pill is ("Open riding mode"), not as a shortcut that opens a menu.
             Msg spoken = tiles ? null : HubText.quickActionDescription(cell.entry.id);
-            cell.setContentDescription(spoken == null ? description : spoken.render());
+            // Clean's Record while a ride records ends and saves it, and says so as riding mode's record control does.
+            if (HomeQuickActions.endsRide(cell.entry.id, service != null && service.isRecording())) description = RidingScreen.endRideSpoken();
+            else if (spoken != null) description = spoken.render();
+            cell.setContentDescription(description);
             if (android.os.Build.VERSION.SDK_INT >= 30) cell.setStateDescription(state);
         }
     }
