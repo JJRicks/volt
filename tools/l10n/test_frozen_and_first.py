@@ -526,6 +526,45 @@ class ListingAdditionsTest(unittest.TestCase):
         self.repo.commit("the change drops the test from its list")
         self.assertFalse(self.additions()[0])
 
+    def test_a_listing_whose_name_ends_another_s(self):
+        """Review of #446 (minor note): a test of all-rides-english.tsv does not read rides-english.tsv, whose
+        name is the tail of its listing's; the whole file name must be named."""
+        other = "tests/l10n/characterization/all-rides-english.tsv"
+        other_reader = "tests/l10n/characterization/AllRidesEnglishTest.java"
+        self.repo.write(other, self.ROWS)
+        self.repo.write(other_reader, java_class("AllRidesEnglishTest", '    static final String LISTING = "%s";\n'
+                                                 '    public static void main(String[] args) { }' % other))
+        self.repo.write("tests/l10n/rides.sources", other_reader + "\n# " + self.READER + "\n")
+        self.base = self.repo.commit("only the other listing's test is listed")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
+        ok, detail = self.additions()
+        self.assertFalse(ok)
+        self.assertIn("no characterization test that tests/run.sh runs", detail)
+        self.assertIn(self.LISTING, detail)
+
+    def test_the_other_listing_s_test_still_reads_its_own(self):
+        other = "tests/l10n/characterization/all-rides-english.tsv"
+        other_reader = "tests/l10n/characterization/AllRidesEnglishTest.java"
+        self.repo.write(other, self.ROWS)
+        self.repo.write(other_reader, java_class("AllRidesEnglishTest", '    static final String LISTING = "%s";\n'
+                                                 '    public static void main(String[] args) { }' % other))
+        self.repo.write("tests/l10n/rides.sources", other_reader + "\n# " + self.READER + "\n")
+        self.base = self.repo.commit("only the other listing's test is listed")
+        self.first_commit(self.ROWS + "entry new\tlabel\tNew\n", path=other)
+        ok, detail = self.additions()
+        self.assertTrue(ok, detail)
+
+    def test_names_file(self):
+        """The whole name, after a quote, a slash or the start of the text, and nothing more of a file name after it."""
+        name = "rides-english.tsv"
+        for text in ('"rides-english.tsv"', "'rides-english.tsv'", '"tests/l10n/characterization/rides-english.tsv"',
+                     "rides-english.tsv", 'Paths.get(DIR, "rides-english.tsv")', 'x\n  "a/rides-english.tsv");'):
+            self.assertTrue(char_first.names_file(text, name), text)
+        for text in ('"all-rides-english.tsv"', '"tests/l10n/characterization/all-rides-english.tsv"',
+                     '"rides-english.tsv.bak"', '"rides-english.tsvx"', '"rides-english.tsv-old"', "rides_english.tsv",
+                     " rides-english.tsv", '"rides-englishXtsv"'):
+            self.assertFalse(char_first.names_file(text, name), text)
+
     def test_a_listing_changed_after_the_first_commit(self):
         self.first_commit(self.ROWS + "entry new\tlabel\tNew\n")
         self.repo.write(self.LISTING, self.ROWS + "entry new\tlabel\tNew\nentry later\tlabel\tLater\n")
