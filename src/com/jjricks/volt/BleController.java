@@ -133,6 +133,8 @@ public final class BleController {
     public long readingFreshMs(long baseMs){return StatusCadence.readingFreshMs(baseMs,simulating()||visible||recording);}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
+    /** The value the write in flight asks for: a charge start's wire seconds, else its target; null with none. Report diagnostics only. */
+    public Long pendingValue(){return mutation==null?null:mutation.time!=null?mutation.time:Long.valueOf(mutation.target);}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
     public boolean confirmingProximity(){return recheck!=null;}
     /** This phone's last pairing attempt with the connected scooter ended without a bond while proximity read on. */
@@ -729,8 +731,8 @@ public final class BleController {
     static final String WHOLE_HOUR="Choose a whole hour within 48 hours";
     public void syncClock(){syncClock(null);}
     public void syncClock(Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CLOCK,"clock_sync",0,MutationGate.Origin.USER);
-        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}long now=System.currentTimeMillis();logCommand(commandKind(request),request.origin,request.feature,request.value,CommandLog.Outcome.ACK,-1,null,null,0,now/1000,TimeZone.getDefault().getOffset(now)/1000);quiet();completed(completion,true);return;}
-        if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();int offset=TimeZone.getDefault().getOffset(wall)/1000;nextLogTime=wall/1000;nextLogOffset=offset;begin(request,null,0,ScooterCommands.setClock(wall/1000,offset),null,completion);}
+        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}long now=System.currentTimeMillis();int nowOffset=TimeZone.getDefault().getOffset(now)/1000;logCommand(commandKind(request),request.origin,request.feature,request.value,CommandLog.Outcome.ACK,-1,null,null,0,now/1000+nowOffset,nowOffset);quiet();completed(completion,true);return;}
+        if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();int offset=TimeZone.getDefault().getOffset(wall)/1000;nextLogTime=wall/1000+offset;nextLogOffset=offset;begin(request,null,0,ScooterCommands.setClock(wall/1000,offset),null,completion);}
     public void readPin(){if(simulating()){simulationUnavailable("Handlebar PIN access");return;}
         CapabilityResolver.Decision d=check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER));
         if(!d.available()){if(d.reason==CapabilityResolver.Reason.NOT_CONNECTED||d.reason==CapabilityResolver.Reason.OWNER_ONLY)notice(M.blePinConnectOwner());else if(d.reason!=CapabilityResolver.Reason.BUSY)notice(d.reasonMessage());return;}

@@ -58,6 +58,8 @@ public final class ScooterService extends Service {
     private ChargeEvidence evidence;
     /** The saved scooter whose authenticated link fed the last evidence sample, or null. */
     private String evidenceScope;
+    /** The selected scooter whose evidence file was last asked to load. */
+    private String evidenceSelected;
     private ChargeScheduleController.TestResult pendingScheduleTest;
     /** The start this measured arm's scooter confirmed in time, 0 until then. */
     private long measuredStartSent;
@@ -1654,7 +1656,7 @@ public final class ScooterService extends Service {
         c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
         if(!c.ready)return c;
-        c.enabled=ble.featureValue("timed_charging");
+        c.enabled=ble.featureValue("timed_charging");c.statusStale=ble.statusAge()>ble.readingFreshMs(10_000);
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
         for(Telemetry.Metric metric:ble.telemetry.metrics())readings.put(metric.key,metric);
@@ -1690,8 +1692,11 @@ public final class ScooterService extends Service {
         try{
             evidence=new ChargeEvidence(new File(getNoBackupFilesDir(),"charge-evidence"),ble::commandEvents,System::currentTimeMillis,SystemClock::elapsedRealtime);
             List<String> saved=new ArrayList<>();for(ScooterProfiles.Profile p:profiles.all())saved.add(p.id);
-            // Files of scooters forgotten while the service was not running go now; the selected scooter's loads ahead of a report.
-            evidence.prune(saved);evidence.prefetch(activeProfileId());
+            // Files of scooters forgotten while the service was not running go now. Every saved scooter's file loads on the
+            // worker, so a report shows whichever is selected; each one's schedule record (as saved, possibly by an older
+            // Volt) is handed over too, so a plan armed before this file existed has its intention and start window.
+            final SharedPreferences records=settings;
+            evidence.open(saved,id->records.getString("charge_schedule_owned_"+id,null));
         }catch(RuntimeException unavailable){evidence=null;}
     }
     /** The controller's journal, for saved scooters only: a simulated scope never reaches the evidence files. */
@@ -1717,6 +1722,9 @@ public final class ScooterService extends Service {
         boolean live=!destroyed&&!dataMaintenance&&!simulating()&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&active.serial.equals(ble.currentTransportSerial());
         String scope=live?active.id:null;
+        // A scooter chosen while offline (or added since the start) loads ahead of a report.
+        String selected=active==null?null:active.id;
+        if(selected!=null&&!selected.equals(evidenceSelected)){evidenceSelected=selected;evidence.prefetch(selected);}
         if(evidenceScope!=null&&!evidenceScope.equals(scope))evidence.unlinked(evidenceScope);
         evidenceScope=scope;
         if(scope==null)return;
@@ -1745,7 +1753,7 @@ public final class ScooterService extends Service {
             if(lock!=null)s[ChargeEvidence.S_LOCK]=lock!=0?1:0;
         }
         s[ChargeEvidence.S_VISIBLE]=visible?1:0;
-        evidence.offer(scope,s,ble.pending());
+        evidence.offer(scope,s,ble.pending(),ble.pendingValue());
     }
     /** Forgetting a scooter removes its evidence (MoreScreen's forget flow). */
     void forgetEvidence(String profileId){if(profileId!=null&&profileId.equals(evidenceScope))evidenceScope=null;if(evidence!=null)evidence.forget(profileId);}

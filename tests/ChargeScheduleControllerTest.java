@@ -528,6 +528,15 @@ public final class ChargeScheduleControllerTest {
         check(d.mode==0&&d.outcome==ChargeScheduleController.Outcome.MISSED&&d.outcomeMode==1&&d.outcomeSoc==41&&d.armedSoc==41&&d.outcomeEnabled==1
                 &&missed.c.wireStart.equals(d.outcomeWireStart)&&d.clockOffsetSeconds==-6*3600&&d.target==100&&d.readEnabled==1&&d.alert==0,"diagnostics keep the missed intention's numbers");
 
+        // Council review of 4e7c8802 (finding 1, neighbouring fields): a schedule switch from a status frame older than the
+        // readings' freshness rule is unknown in the diagnostics, at the outcome and in the readback; behaviour is unchanged.
+        Rig stale=manualAt41();stale.c.statusStale=true;int staleCommands=stale.writes.size();pastStart(stale,41d);
+        ChargeScheduleController.Diagnostics sd=stale.controller.diagnostics();
+        check(stale.controller.view().missed!=null&&stale.writes.size()==staleCommands&&sd.outcome==ChargeScheduleController.Outcome.MISSED,"a stale status frame finds the same miss, sending nothing");
+        check(sd.outcomeEnabled==null&&sd.readEnabled==null,"a stale status frame leaves the switch unknown at the outcome and in the readback: "+sd.outcomeEnabled+" "+sd.readEnabled);
+        check(sd.outcomeSoc==41&&sd.generation==1,"the rest of the outcome is kept, on generation 1: "+sd.outcomeSoc+" "+sd.generation);
+        check(ChargeScheduleController.diagnostics(stale.saved.get("owner-A")).generation==-1,"a decoded record was taken on no connection");
+
         Rig drift=manualAt41();pastStart(drift,42d);check(drift.controller.view().missed!=null,"one point of reading noise is still a missed start");
         Rig drained=manualAt41();pastStart(drained,40d);check(drained.controller.view().missed!=null&&drained.controller.view().missed.soc==40,"standby drain is still a missed start");
         Rig charged=manualAt41();pastStart(charged,60d);

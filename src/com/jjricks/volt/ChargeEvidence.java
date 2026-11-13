@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
@@ -16,6 +17,10 @@ import java.util.zip.CRC32;
  * start and after a test, the schedule operations with their result ids, and readbacks that changed with no Volt write
  * to explain them. Every value is a number or an enum ordinal: there is no field a name, serial, address, key, PIN,
  * place or path could go in. It never sends anything and never changes what the schedule does.
+ * <p>
+ * Values "at" a moment (arming, the start, an end) obey one rule: they come from the first sample taken within MOMENT_MS
+ * after the moment, on the connection that was up at the moment; each sample value was at most READING_MAX_AGE_MS old
+ * when sampled. The row keeps how long after the moment that sample was taken. With no such sample they stay unknown.
  * <p>
  * Threading: callers (the main thread) only hand over typed values; loading, the rules and writing run on one worker.
  * Durability: at most one write every 5 s per scooter; an event is on disk within about 5 s, a dense sample within
@@ -29,11 +34,14 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
     static final long BEFORE_START_MS = 30_000, AFTER_START_MS = 5 * 60_000, AFTER_TEST_MS = 5 * 60_000, DENSE_GAP_MS = 2_000;
     /** Writes per scooter are at least SPACING_MS apart; within that, an event goes at once, a dense sample within 15 s, the last-seen reading within 5 min. */
     static final long SPACING_MS = 5_000, EVENT_WRITE_MS = 0, DENSE_WRITE_MS = 15_000, LAST_SEEN_WRITE_MS = 5 * 60_000;
-    /** A lock reading this old no longer describes the moment of arming or of an outcome. */
-    static final long LOCK_FRESH_MS = 30_000;
+    /** A value "at" a moment comes from a sample taken at most this long after it, on the connection that was up at the moment. */
+    static final long MOMENT_MS = 30_000;
+    /** How old a sample's values may be when sampled: the service's freshness rule (StatusCadence: 10 s on screen, 20 s out of sight). */
+    static final long READING_MAX_AGE_MS = 20_000;
     static final int MAX_FILE_BYTES = 256 * 1024;
     static final long NONE = Long.MIN_VALUE;
-    private static final int MAGIC = 0x56434556, VERSION = 1, CRC_BYTES = 8;
+    /** Version 1 (development builds) had no moment provenance or own writes: its at-moment values read as unknown. */
+    private static final int MAGIC = 0x56434556, VERSION = 2, VERSION_1 = 1, CRC_BYTES = 8;
     private static final long MAX_WALL = 0xffffffffL * 1000L, MAX_ELAPSED = 1L << 50;
 
     // A sample, as the service captured it: only fresh readings from the current authenticated link; NONE is unknown.
@@ -59,9 +67,13 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
     static final long END_OPEN = -1, END_REPLACED = 1000;
     static final int I_ARMED = 0, I_MODE = 1, I_START = 2, I_DEADLINE = 3, I_WIRE = 4, I_OFFSET = 5, I_ARMED_SOC = 6, I_TARGET = 7, I_STARTED = 8,
             I_END = 9, I_END_WALL = 10, I_END_MODE = 11, I_END_SOC = 12, I_END_ENABLED = 13, I_END_WIRE = 14, I_LOCK_ARMED = 15, I_LOCK_START = 16,
-            I_LOCK_END = 17, I_START_SEEN = 18, I_COLUMNS = 19;
+            I_LOCK_END = 17, I_START_SEEN = 18, I_ARMED_READ = 19, I_START_READ = 20, I_END_READ = 21, I_COLUMNS = 22, I_COLUMNS_V1 = 19;
     static final int X_WALL = 0, X_START = 1, X_OUTCOME = 2, X_OFFSET = 3, X_PAUSED = 4, X_OFF = 5, X_WHY = 6, X_COLUMNS = 7;
     static final int F_VALUE = 0, F_WALL = 1, F_ELAPSED = 2, F_COLUMNS = 3;
+    /** Volt's own writes seen in flight on this scooter's link (a Watched ordinal and the value asked for), which alone may explain a change. */
+    static final int OWN_WRITES = 20, OW_KEY = 0, OW_VALUE = 1, OW_WALL = 2, OW_COLUMNS = 3;
+    /** A command-log entry belongs to an own write when it is logged this close to it. */
+    static final long OWN_LOG_BEFORE_MS = 2_000, OWN_LOG_AFTER_MS = 120_000;
 
     private static final long[][] SAMPLE_RANGE = {{0, MAX_WALL}, {0, MAX_ELAPSED}, {0, Integer.MAX_VALUE}, {0, 1}, {0, 100}, {0, 250_000}, {-1_000_000, 1_000_000},
             {-100_000, 100_000}, {-80, 200}, {0, 1}, {0, 0xffffffffL}, {0, 1}, {0, 100}, {0, 1}};
@@ -74,10 +86,27 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             {0, MAX_WALL}, {0, ChargeScheduleTest.Outcome.values().length - 1}};
     private static final long[][] CHANGE_RANGE = {{0, MAX_WALL}, {0, MAX_ELAPSED}, {0, Watched.values().length - 1}, {0, 0xffffffffL}, {0, 0xffffffffL}, {0, MAX_WALL}, {0, 1}};
     private static final long[][] INTENTION_RANGE = {{0, MAX_WALL}, {0, 2}, {0, MAX_WALL}, {0, MAX_WALL}, {0, 0xffffffffL}, {-18 * 3600, 18 * 3600}, {0, 100}, {0, 100}, {0, 1},
-            {END_OPEN, END_REPLACED}, {0, MAX_WALL}, {0, 2}, {0, 100}, {0, 1}, {0, 0xffffffffL}, {0, 1}, {0, 1}, {0, 1}, {0, 1}};
+            {END_OPEN, END_REPLACED}, {0, MAX_WALL}, {0, 2}, {0, 100}, {0, 1}, {0, 0xffffffffL}, {0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, MOMENT_MS}, {0, MOMENT_MS}, {0, MOMENT_MS}};
     private static final long[][] TEST_RANGE = {{0, MAX_WALL}, {0, MAX_WALL}, {0, ChargeScheduleTest.Outcome.values().length - 1}, {-86_400, 86_400}, {0, 1}, {0, 1},
             {0, ChargeScheduleController.Interruption.values().length - 1}};
     private static final long[][] FRESH_RANGE = {{0, 0xffffffffL}, {0, MAX_WALL}, {0, MAX_ELAPSED}};
+    private static final long[][] OWN_RANGE = {{0, Watched.values().length - 1}, {0, 0xffffffffL}, {0, MAX_WALL}};
+    /** The values a moment records from its sample. */
+    enum Moment {
+        ARMING(I_ARMED_READ, new int[]{I_ARMED_SOC, I_LOCK_ARMED}, new int[]{S_SOC, S_LOCK}),
+        START(I_START_READ, new int[]{I_LOCK_START}, new int[]{S_LOCK}),
+        END(I_END_READ, new int[]{I_END_SOC, I_END_ENABLED, I_END_WIRE, I_LOCK_END}, new int[]{S_SOC, S_ENABLED, S_WIRE, S_LOCK});
+        final int read; final int[] columns, from;
+        Moment(int read, int[] columns, int[] from) { this.read = read; this.columns = columns; this.from = from; }
+        void clear(long[] row) { row[read] = NONE; for (int c : columns) row[c] = NONE; }
+        boolean any(long[] s) { for (int f : from) if (s[f] != NONE) return true; return false; }
+        void fill(long[] row, long[] s, long afterMs) { row[read] = afterMs; for (int i = 0; i < columns.length; i++) row[columns[i]] = s[from[i]]; }
+    }
+    /** A moment still waiting for its sample (memory only: after a restart it stays unknown). */
+    static final class Waiting {
+        final long[] row; final Moment moment; final long at; final int generation;
+        Waiting(long[] row, Moment moment, long at, int generation) { this.row = row; this.moment = moment; this.at = at; this.generation = generation; }
+    }
 
     /** One scooter's evidence. Guarded by the ChargeEvidence monitor; changed only on the worker. */
     static final class Book {
@@ -87,8 +116,13 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         long[] open, lastSeen;
         boolean lastSeenPending;
         final long[][] fresh = new long[Watched.values().length][];
-        // Memory only: the live connection, the last charging state, recent change times, a test's end.
+        final List<long[]> own = new ArrayList<>();
+        // Memory only: the live connection and its first sample's time, the last charging state, recent change times, a
+        // test's end, moments waiting for a sample, and the write in flight last seen.
         int liveGeneration = -1; boolean firstPending;
+        long liveSinceWall = NONE;
+        final List<Waiting> waiting = new ArrayList<>();
+        String lastPendingKey; long lastPendingValue = NONE;
         final int[] freshGeneration = {-1, -1, -1, -1};
         long lastCharging = NONE, skipped, testEndWall = NONE, testEndElapsed = NONE;
         final ArrayDeque<Long> recentChanges = new ArrayDeque<>();
@@ -101,6 +135,7 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             for (List<long[]> w : windowSamples) { List<long[]> c = new ArrayList<>(); for (long[] r : w) c.add(r.clone()); b.windowSamples.add(c); }
             b.open = open == null ? null : open.clone(); b.lastSeen = lastSeen == null ? null : lastSeen.clone(); b.lastSeenPending = lastSeenPending;
             for (int i = 0; i < fresh.length; i++) b.fresh[i] = fresh[i] == null ? null : fresh[i].clone();
+            for (long[] r : own) b.own.add(r.clone());
             b.healthy = healthy; return b;
         }
     }
@@ -133,9 +168,10 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
 
     /**
      * One reading from the current authenticated link (S_* columns, NONE for unknown); pending is the write in flight
-     * (BleController.pending()), or null. Never called for a simulated link. Out-of-range values become unknown.
+     * (BleController.pending()) and pendingValue the value it asks for (BleController.pendingValue()), or null. Never
+     * called for a simulated link. Out-of-range values become unknown.
      */
-    void offer(String scope, long[] sample, String pending) {
+    void offer(String scope, long[] sample, String pending, Long pendingValue) {
         if (!scope(scope) || sample == null || sample.length != S_COLUMNS) return;
         long[] s = sample.clone();
         for (int i = 0; i < S_COLUMNS; i++) if (s[i] != NONE && (s[i] < SAMPLE_RANGE[i][0] || s[i] > SAMPLE_RANGE[i][1])) s[i] = NONE;
@@ -145,20 +181,42 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
                 && s[S_ELAPSED] >= offered[S_ELAPSED] && s[S_ELAPSED] - offered[S_ELAPSED] < 1000 && same(s, offered)) return;
         offeredScope = scope; offered = s;
         final String key = pending != null && pending.matches("[a-z_]{1,40}") ? pending : null;
-        run(() -> sample(book(scope), scope, s, key));
+        final long value = key == null || pendingValue == null || pendingValue < 0 || pendingValue > 0xffffffffL ? NONE : pendingValue;
+        run(() -> sample(book(scope), scope, s, key, value));
     }
     /** The link to this scooter ended (or stopped being authenticated): its last reading closes the connection on the timeline. */
     void unlinked(String scope) {
         if (!scope(scope)) return;
         offered = null;
-        run(() -> { Book b = book(scope); synchronized (this) { if (b.liveGeneration < 0) return; closeLink(b, Kind.LAST); b.liveGeneration = -1; } dirty(scope, EVENT_WRITE_MS); });
+        run(() -> { Book b = book(scope); synchronized (this) { b.waiting.clear(); b.lastPendingKey = null; if (b.liveGeneration < 0) return; closeLink(b, Kind.LAST); b.liveGeneration = -1; b.liveSinceWall = NONE; } dirty(scope, EVENT_WRITE_MS); });
     }
     /** Loads a scooter's file ahead of a report, so the file can show it. */
     void prefetch(String scope) { if (scope(scope)) run(() -> book(scope)); }
+    /**
+     * Service start: drops the files of scooters no longer saved, then on the worker loads every saved scooter's file (so
+     * a report shows whichever is selected, connected or not) and hands over its schedule record as the controller stored
+     * it (records: profile id to ChargeScheduleController's encoding, or null; read on the worker). A plan armed before
+     * this file existed, or before an update, is then known; its arming had no sample here, so its at-arming values stay unknown.
+     */
+    void open(Collection<String> saved, Function<String, String> records) {
+        prune(saved);
+        for (String scope : saved) handover(scope, records);
+    }
+    private void handover(String scope, Function<String, String> records) {
+        if (!scope(scope)) return;
+        long now = wall.getAsLong();
+        run(() -> {
+            Book b = book(scope);
+            String record = records == null ? null : records.apply(scope);
+            if (record == null) return;
+            ChargeScheduleController.Diagnostics d = ChargeScheduleController.diagnostics(record);
+            boolean changed; synchronized (this) { changed = record(b, d, now); } if (changed) dirty(scope, EVENT_WRITE_MS);
+        });
+    }
     @Override public void saved(String scope, ChargeScheduleController.Diagnostics d) {
         if (!scope(scope) || d == null) return;
-        long now = wall.getAsLong(), mono = elapsed.getAsLong();
-        run(() -> { Book b = book(scope); boolean changed; synchronized (this) { changed = record(b, d, now, mono); } if (changed) dirty(scope, EVENT_WRITE_MS); });
+        long now = wall.getAsLong();
+        run(() -> { Book b = book(scope); boolean changed; synchronized (this) { changed = record(b, d, now); } if (changed) dirty(scope, EVENT_WRITE_MS); });
     }
     @Override public void operation(String scope, ChargeScheduleController.Op op, ChargeScheduleController.Result result, ChargeScheduleController.Interruption why,
             long durationMs, long testWallMs, ChargeScheduleTest.Outcome testOutcome) {
@@ -227,19 +285,29 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         synchronized (this) {
             Book b = books.get(scope); if (b != null) return b;
             // A last reading saved before the process ended joins the timeline now.
-            if (loaded.lastSeenPending && loaded.lastSeen != null) { add(loaded.timeline, row(Kind.LAST_SAVED, loaded.lastSeen, 0), TIMELINE); loaded.lastSeenPending = false; }
-            books.put(scope, loaded); return loaded;
+            boolean reconciled = false;
+            if (loaded.lastSeenPending && loaded.lastSeen != null) { add(loaded.timeline, row(Kind.LAST_SAVED, loaded.lastSeen, 0), TIMELINE); loaded.lastSeenPending = false; reconciled = true; }
+            // A test still running in the file was cut off when that process ended: no test survives one.
+            for (long[] t : loaded.tests) if (t[X_OUTCOME] == ChargeScheduleTest.Outcome.RUNNING.ordinal()) {
+                t[X_OUTCOME] = ChargeScheduleTest.Outcome.INTERRUPTED.ordinal();
+                if (t[X_WHY] == NONE) t[X_WHY] = ChargeScheduleController.Interruption.PROCESS_ENDED.ordinal();
+                reconciled = true;
+            }
+            books.put(scope, loaded);
+            if (reconciled && loaded.healthy) dirty(scope, EVENT_WRITE_MS);
+            return loaded;
         }
     }
 
-    private void sample(Book b, String scope, long[] s, String pending) {
+    private void sample(Book b, String scope, long[] s, String pending, long pendingValue) {
         long delay = LAST_SEEN_WRITE_MS;
         synchronized (this) {
             int generation = (int) s[S_GENERATION];
             if (b.liveGeneration != generation) {
                 if (b.liveGeneration >= 0) closeLink(b, Kind.LAST);
-                b.liveGeneration = generation; b.recentChanges.clear(); b.firstPending = true;
+                b.liveGeneration = generation; b.liveSinceWall = s[S_WALL]; b.recentChanges.clear(); b.firstPending = true; b.lastPendingKey = null;
             }
+            if (ownWrite(b, s, pending, pendingValue)) delay = EVENT_WRITE_MS;
             // The connection's first reading that says whether it is charging (the link is often up before the battery read).
             if (b.firstPending) {
                 if (s[S_CHARGING] != NONE) { add(b.timeline, row(Kind.FIRST, s, takeSkipped(b)), TIMELINE); b.lastCharging = s[S_CHARGING]; b.firstPending = false; delay = EVENT_WRITE_MS; }
@@ -251,13 +319,50 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
                 else b.skipped++;
             }
             b.lastSeen = s; b.lastSeenPending = true;
-            // The lock as the Volt-armed start passed.
-            if (b.open != null && b.open[I_START_SEEN] == 0 && s[S_WALL] >= b.open[I_START]) { b.open[I_START_SEEN] = 1; b.open[I_LOCK_START] = s[S_LOCK]; delay = Math.min(delay, EVENT_WRITE_MS); }
+            if (moments(b, s)) delay = Math.min(delay, EVENT_WRITE_MS);
             if (dense(b, s)) delay = Math.min(delay, DENSE_WRITE_MS);
         }
-        if (changes(b, s, pending)) delay = EVENT_WRITE_MS;
+        if (changes(b, s, pending, pendingValue)) delay = EVENT_WRITE_MS;
         dirty(scope, delay);
     }
+    /**
+     * Fills the moments this sample answers (see the class comment); a moment whose window passed, or whose connection
+     * ended, stays unknown. The start has no event of its own: the connection must have been up (its first sample at or
+     * before the start) when it passed. True when a row changed.
+     */
+    private static boolean moments(Book b, long[] s) {
+        boolean changed = false;
+        for (Iterator<Waiting> i = b.waiting.iterator(); i.hasNext(); ) {
+            Waiting w = i.next();
+            if (s[S_GENERATION] != w.generation || s[S_WALL] - w.at > MOMENT_MS) { i.remove(); continue; }
+            if (s[S_WALL] < w.at || !w.moment.any(s)) continue;
+            w.moment.fill(w.row, s, s[S_WALL] - w.at); i.remove(); changed = true;
+        }
+        long[] o = b.open;
+        if (o != null && o[I_START_SEEN] == 0 && o[I_START] != NONE && s[S_WALL] >= o[I_START]) {
+            boolean upAcross = b.liveSinceWall != NONE && b.liveSinceWall <= o[I_START];
+            if (!upAcross || s[S_WALL] - o[I_START] > MOMENT_MS) { o[I_START_SEEN] = 1; changed = true; }
+            else if (Moment.START.any(s)) { Moment.START.fill(o, s, s[S_WALL] - o[I_START]); o[I_START_SEEN] = 1; changed = true; }
+        }
+        return changed;
+    }
+    /** Waits for a moment's sample on the connection that was up at it (generation &lt; 0: none was), after clearing its values. */
+    private static void await(Book b, long[] row, Moment moment, long at, int generation) {
+        moment.clear(row);
+        for (Iterator<Waiting> i = b.waiting.iterator(); i.hasNext(); ) { Waiting w = i.next(); if (w.row == row && w.moment == moment) i.remove(); }
+        if (generation >= 0 && at > 0 && at != NONE) b.waiting.add(new Waiting(row, moment, at, generation));
+    }
+    /** Records a watched write in flight on this scooter's link, once per write; true when one was added. */
+    private static boolean ownWrite(Book b, long[] s, String pending, long pendingValue) {
+        Watched w = watched(pending);
+        if (w == null || pendingValue == NONE) { b.lastPendingKey = null; return false; }
+        long value = w == Watched.LOCK ? (pendingValue != 0 ? 1 : 0) : pendingValue;
+        if (pending.equals(b.lastPendingKey) && value == b.lastPendingValue) return false;
+        b.lastPendingKey = pending; b.lastPendingValue = value;
+        add(b.own, new long[]{w.ordinal(), value, s[S_WALL]}, OWN_WRITES);
+        return true;
+    }
+    private static Watched watched(String key) { if (key != null) for (Watched w : Watched.values()) if (w.key.equals(key)) return w; return null; }
     private static long takeSkipped(Book b) { long n = b.skipped; b.skipped = 0; return n; }
     /** The last reading of a connection that ended, once. */
     private static void closeLink(Book b, Kind kind) {
@@ -272,6 +377,12 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         boolean added = false;
         if (b.open != null && b.open[I_MODE] != 0 && b.open[I_START] > 0 && s[S_WALL] >= b.open[I_START] - BEFORE_START_MS && s[S_WALL] <= b.open[I_START] + AFTER_START_MS)
             added |= denseInto(b, Window.START, b.open[I_START], NONE, s);
+        // A start window runs its own five minutes even after its intention ended (a missed start settles at two).
+        for (int i = 0; i < b.windows.size(); i++) {
+            long[] w = b.windows.get(i);
+            if (w[W_KIND] == Window.START.ordinal() && s[S_WALL] >= w[W_ANCHOR_WALL] - BEFORE_START_MS && s[S_WALL] <= w[W_ANCHOR_WALL] + AFTER_START_MS)
+                added |= denseInto(b, Window.START, w[W_ANCHOR_WALL], NONE, s);
+        }
         if (b.testEndElapsed != NONE && s[S_ELAPSED] >= b.testEndElapsed && s[S_ELAPSED] - b.testEndElapsed <= AFTER_TEST_MS)
             added |= denseInto(b, Window.TEST_END, b.testEndWall, b.testEndElapsed, s);
         return added;
@@ -290,15 +401,19 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         samples.add(new long[]{s[S_WALL], s[S_ELAPSED], s[S_CHARGING], s[S_SOC], s[S_MV], s[S_MA], s[S_W], s[S_ENABLED], s[S_LOCK]});
         return true;
     }
-    /** Changes Volt did not make: each watched fresh readback against the last fresh one. */
-    private boolean changes(Book b, long[] s, String pending) {
+    /**
+     * Changes Volt did not make: each watched fresh readback against the last fresh one. Only a change to the value a
+     * write in flight asks for is that write's; any other change, including one the other way, is weighed like the rest.
+     */
+    private boolean changes(Book b, long[] s, String pending, long pendingValue) {
         List<long[]> found = new ArrayList<>();
         List<CommandLog.Record> log = null;
         synchronized (this) {
             for (Watched w : Watched.values()) {
                 long value = s[w.column]; if (value == NONE) continue;
                 long[] last = b.fresh[w.ordinal()];
-                if (last != null && last[F_VALUE] != value && !w.key.equals(pending)) {
+                boolean writing = w.key.equals(pending) && pendingValue != NONE && (w == Watched.LOCK ? (pendingValue != 0 ? 1 : 0) : pendingValue) == value;
+                if (last != null && last[F_VALUE] != value && !writing) {
                     boolean across = b.freshGeneration[w.ordinal()] != (int) s[S_GENERATION];
                     // A phone clock change between the two readings moves the command log's wall times; widen the search by it.
                     long drift = !across && s[S_ELAPSED] >= last[F_ELAPSED] ? Math.abs((s[S_WALL] - last[F_WALL]) - (s[S_ELAPSED] - last[F_ELAPSED])) : 0;
@@ -309,46 +424,69 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         }
         if (found.isEmpty()) return false;
         boolean any = false;
+        List<long[]> own; synchronized (this) { own = new ArrayList<>(b.own); }
         for (long[] f : found) {
             if (log == null) { try { log = commands.get(); } catch (RuntimeException unavailable) { log = Collections.emptyList(); } if (log == null) log = Collections.emptyList(); }
             Watched w = Watched.values()[(int) f[C_KEY]];
-            if (voltWrote(log, w, f[C_NEW], f[7])) continue;
+            if (voltWrote(log, own, w, f[C_NEW], f[7])) continue;
             synchronized (this) { add(b.changes, Arrays.copyOf(f, C_COLUMNS), CHANGES); }
             any = true;
         }
         return any;
     }
     /**
-     * Whether the command log holds a Volt write of this control and value at or after sinceWallMs that the scooter may
-     * have applied: sent (not refused, rejected or cancelled before sending), from a real connection. A write whose
-     * confirmation was lost (timeout, unconfirmed, interrupted) counts: it can read back later.
+     * Whether Volt wrote this control and value to this scooter at or after sinceWallMs, in a way it may have applied.
+     * The command log is shared by every scooter and has no identity, so only a write this book saw in flight on this
+     * scooter's own link (own) can explain a change; the log then only rules it out when every entry logged for that write
+     * says it never applied (refused, rejected or cancelled). A write whose confirmation was lost (timeout, unconfirmed,
+     * interrupted) counts: it can read back later. A write with no log entry left (trimmed) counts too.
      */
-    static boolean voltWrote(List<CommandLog.Record> log, Watched w, long value, long sinceWallMs) {
-        boolean simulated = false;
-        if (log == null) return false;
-        for (CommandLog.Record r : log) {
-            if (r instanceof CommandLog.Session) { simulated = ((CommandLog.Session) r).simulated; continue; }
-            CommandLog.Command c = (CommandLog.Command) r;
-            if (simulated || c.wallMs < sinceWallMs || !c.key.equals(w.key) || c.kind == CommandLog.Kind.READ) continue;
-            if (c.outcome == CommandLog.Outcome.REFUSED || c.outcome == CommandLog.Outcome.REJECTED || c.outcome == CommandLog.Outcome.CANCELLED) continue;
-            if (w == Watched.CHARGE_START) { if (c.time == null || c.time == value) return true; }
-            else if (c.value == null) return true;
-            else if (w == Watched.LOCK ? (c.value != 0 ? 1 : 0) == value : c.value == value) return true;
+    static boolean voltWrote(List<CommandLog.Record> log, List<long[]> own, Watched w, long value, long sinceWallMs) {
+        if (own == null) return false;
+        for (long[] o : own) {
+            if (o[OW_KEY] != w.ordinal() || o[OW_VALUE] != value || o[OW_WALL] < sinceWallMs) continue;
+            if (!loggedNotApplied(log, w, value, o[OW_WALL])) return true;
         }
         return false;
     }
-    /** Intentions and tests from a saved schedule record; true when anything changed. */
-    private boolean record(Book b, ChargeScheduleController.Diagnostics d, long now, long mono) {
+    /** The log entries of this write (same control and value, real connection, near its time) all say it never applied; false with none. */
+    private static boolean loggedNotApplied(List<CommandLog.Record> log, Watched w, long value, long ownWallMs) {
+        if (log == null) return false;
+        boolean simulated = false, any = false;
+        for (CommandLog.Record r : log) {
+            if (r instanceof CommandLog.Session) { simulated = ((CommandLog.Session) r).simulated; continue; }
+            CommandLog.Command c = (CommandLog.Command) r;
+            if (simulated || c.kind == CommandLog.Kind.READ || !c.key.equals(w.key) || c.wallMs < ownWallMs - OWN_LOG_BEFORE_MS || c.wallMs > ownWallMs + OWN_LOG_AFTER_MS) continue;
+            boolean same = w == Watched.CHARGE_START ? c.time == null || c.time == value : c.value == null || (w == Watched.LOCK ? (c.value != 0 ? 1 : 0) == value : c.value == value);
+            if (!same) continue;
+            any = true;
+            if (c.outcome != CommandLog.Outcome.REFUSED && c.outcome != CommandLog.Outcome.REJECTED && c.outcome != CommandLog.Outcome.CANCELLED) return false;
+        }
+        return any;
+    }
+    /**
+     * Intentions and tests from a saved schedule record; true when anything changed. The values at arming and at an end
+     * come from this book's own samples (moments), never from the record: d.generation is the connection the record was
+     * saved on (or -1), and a moment waits for a sample of that connection only.
+     */
+    private boolean record(Book b, ChargeScheduleController.Diagnostics d, long now) {
         boolean changed = false;
         if (d.mode != 0 && d.startWallMs > 0) {
-            if (b.open != null && b.open[I_START] != d.startWallMs) { b.open[I_END] = END_REPLACED; b.open[I_END_WALL] = now; b.open[I_LOCK_END] = lock(b, mono); add(b.intentions, b.open, INTENTIONS); b.open = null; }
+            if (b.open != null && b.open[I_START] != d.startWallMs) {
+                b.open[I_END] = END_REPLACED; b.open[I_END_WALL] = now; await(b, b.open, Moment.END, now, d.generation);
+                add(b.intentions, b.open, INTENTIONS); b.open = null; changed = true;
+            }
+            long armed = d.armedWallMs > 0 ? d.armedWallMs : NONE;
             if (b.open == null) {
                 b.open = new long[I_COLUMNS]; Arrays.fill(b.open, NONE); b.open[I_END] = END_OPEN; b.open[I_START_SEEN] = 0;
-                b.open[I_ARMED] = d.armedWallMs > 0 ? d.armedWallMs : now; b.open[I_LOCK_ARMED] = lock(b, mono);
+                b.open[I_ARMED] = armed; await(b, b.open, Moment.ARMING, armed, d.generation);
+            } else if (b.open[I_ARMED] != armed) {
+                // Armed again for the same start: a new arming moment.
+                b.open[I_ARMED] = armed; await(b, b.open, Moment.ARMING, armed, d.generation);
             }
             long[] o = b.open, before = o.clone();
             o[I_MODE] = d.mode; o[I_START] = d.startWallMs; o[I_DEADLINE] = d.deadlineWallMs > 0 ? d.deadlineWallMs : NONE; o[I_WIRE] = d.wireStart > 0 ? d.wireStart : NONE;
-            o[I_OFFSET] = d.clockOffsetSeconds == null ? NONE : d.clockOffsetSeconds; o[I_ARMED_SOC] = d.armedSoc == null ? NONE : d.armedSoc; o[I_TARGET] = d.target;
+            o[I_OFFSET] = d.clockOffsetSeconds == null ? NONE : d.clockOffsetSeconds; o[I_TARGET] = d.target;
             o[I_STARTED] = d.started ? 1 : 0;
             changed = !Arrays.equals(before, o) || changed;
             if (!valid(o, INTENTION_RANGE)) { b.open = null; return changed; }
@@ -358,10 +496,9 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             for (long[] r : b.intentions) seen |= r[I_END] != END_REPLACED && r[I_END_WALL] == d.outcomeWallMs;
             if (!seen) {
                 long[] o = b.open != null && b.open[I_START] == d.outcomeStartWallMs ? b.open : null;
-                if (o == null) { o = new long[I_COLUMNS]; Arrays.fill(o, NONE); o[I_START] = d.outcomeStartWallMs > 0 ? d.outcomeStartWallMs : NONE; o[I_START_SEEN] = 0; o[I_TARGET] = d.target;
-                    o[I_ARMED_SOC] = d.outcomeArmedSoc == null ? NONE : d.outcomeArmedSoc; }
-                o[I_END] = d.outcome.ordinal(); o[I_END_WALL] = d.outcomeWallMs; o[I_END_MODE] = d.outcomeMode; o[I_END_SOC] = d.outcomeSoc == null ? NONE : d.outcomeSoc;
-                o[I_END_ENABLED] = d.outcomeEnabled == null ? NONE : d.outcomeEnabled; o[I_END_WIRE] = d.outcomeWireStart == null ? NONE : d.outcomeWireStart; o[I_LOCK_END] = lock(b, mono);
+                if (o == null) { o = new long[I_COLUMNS]; Arrays.fill(o, NONE); o[I_START] = d.outcomeStartWallMs > 0 ? d.outcomeStartWallMs : NONE; o[I_START_SEEN] = 0; o[I_TARGET] = d.target; }
+                o[I_END] = d.outcome.ordinal(); o[I_END_WALL] = d.outcomeWallMs; o[I_END_MODE] = d.outcomeMode;
+                await(b, o, Moment.END, d.outcomeWallMs, d.generation);
                 if (o == b.open) b.open = null;
                 if (valid(o, INTENTION_RANGE)) add(b.intentions, o, INTENTIONS);
                 changed = true;
@@ -378,10 +515,6 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             }
         }
         return changed;
-    }
-    /** The lock from the latest reading of the live connection, if recent; else unknown. */
-    private static long lock(Book b, long mono) {
-        return b.liveGeneration >= 0 && b.lastSeen != null && mono >= b.lastSeen[S_ELAPSED] && mono - b.lastSeen[S_ELAPSED] <= LOCK_FRESH_MS ? b.lastSeen[S_LOCK] : NONE;
     }
     private static void add(List<long[]> list, long[] row, int cap) { list.add(row); while (list.size() > cap) list.remove(0); }
 
@@ -421,6 +554,7 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             rows(out, fresh, F_COLUMNS);
             rows(out, b.lastSeen == null ? Collections.<long[]>emptyList() : Collections.singletonList(b.lastSeen), S_COLUMNS);
             out.writeBoolean(b.lastSeenPending);
+            rows(out, b.own, OW_COLUMNS);
         } catch (IOException impossible) { throw new IllegalStateException(impossible); }
         byte[] body = buffer.toByteArray();
         CRC32 crc = new CRC32(); crc.update(body);
@@ -448,8 +582,19 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
         if (v != crc.getValue()) throw new IOException("Corrupt charge evidence");
         Book b = new Book();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(all, 0, all.length - CRC_BYTES))) {
-            if (in.readInt() != MAGIC || in.readInt() != VERSION) throw new IOException("Unknown charge evidence");
-            List<long[]> intentions = rows(in, I_COLUMNS, INTENTIONS + 1, INTENTION_RANGE);
+            if (in.readInt() != MAGIC) throw new IOException("Unknown charge evidence");
+            int version = in.readInt();
+            if (version != VERSION && version != VERSION_1) throw new IOException("Unknown charge evidence");
+            List<long[]> intentions;
+            if (version == VERSION_1) {
+                // No record of when its at-moment values were read: they become unknown rather than a guess.
+                intentions = new ArrayList<>();
+                for (long[] r : rows(in, I_COLUMNS_V1, INTENTIONS + 1, Arrays.copyOf(INTENTION_RANGE, I_COLUMNS_V1))) {
+                    long[] wide = Arrays.copyOf(r, I_COLUMNS);
+                    for (Moment m : Moment.values()) m.clear(wide);
+                    intentions.add(wide);
+                }
+            } else intentions = rows(in, I_COLUMNS, INTENTIONS + 1, INTENTION_RANGE);
             for (long[] r : intentions) { if (r[I_END] == END_OPEN) { if (b.open != null) throw new IOException("Two open intentions"); b.open = r; } else b.intentions.add(r); }
             if (b.intentions.size() > INTENTIONS) throw new IOException("Too many intentions");
             b.tests.addAll(rows(in, X_COLUMNS, TESTS, TEST_RANGE)); b.timeline.addAll(rows(in, T_COLUMNS, TIMELINE, TIMELINE_RANGE));
@@ -461,6 +606,7 @@ final class ChargeEvidence implements ChargeScheduleController.Journal {
             for (int i = 0; i < fresh.size(); i++) b.fresh[i] = fresh.get(i)[F_VALUE] == NONE ? null : fresh.get(i);
             List<long[]> last = rows(in, S_COLUMNS, 1, SAMPLE_RANGE);
             b.lastSeen = last.isEmpty() ? null : last.get(0); b.lastSeenPending = in.readBoolean() && b.lastSeen != null;
+            if (version != VERSION_1) b.own.addAll(rows(in, OW_COLUMNS, OWN_WRITES, OWN_RANGE));
             if (in.read() != -1) throw new IOException("Unexpected charge evidence data");
         }
         return b;

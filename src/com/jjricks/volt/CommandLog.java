@@ -17,9 +17,13 @@ import java.util.zip.CRC32;
 final class CommandLog {
     static final int MAX_RECORDS = 1000;
     static final int MAX_FILE_BYTES = 256 * 1024;
-    private static final int MAGIC = 0x56434d44, VERSION = 2, HEADER_BYTES = 12, CRC_BYTES = 8;
-    /** Version 1 (Volt 1.13.1 and earlier) had no time or offset; it still reads. Older Volt drops a version 2 log whole (no crash). */
-    private static final int VERSION_1 = 1;
+    private static final int MAGIC = 0x56434d44, VERSION = 3, HEADER_BYTES = 12, CRC_BYTES = 8;
+    /**
+     * Version 1 (Volt 1.13.1 and earlier) had no time or offset; it still reads. Version 2 (development builds only) logged
+     * a clock sync's UTC seconds where version 3 logs the wire value; its clock-sync times read as unknown, its charge-start
+     * times (already the wire value) are kept. Older Volt drops a version 2 or 3 log whole (no crash).
+     */
+    private static final int VERSION_1 = 1, VERSION_2 = 2;
     /** Volt's version name: numbers and dots with up to three short suffix parts ("1.7.0", build.sh's "1.7.0-dev+abc1234-dirty"), each too short for a key or serial; or "unknown". */
     static final String APP_VERSION = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,12}){0,3}";
     /** The pattern Volt 1.11.1 and earlier check when they read this journal; a session they reject makes them drop the whole log. */
@@ -89,9 +93,9 @@ final class CommandLog {
     }
 
     /**
-     * One step of one control change. Sensitive controls (PIN) never carry values. charge_start may carry the wire start
-     * sent (the scooter's local seconds) and clock_sync the phone's wall seconds sent, each with the UTC offset sent in
-     * seconds; nothing else carries a time or an offset.
+     * One step of one control change. Sensitive controls (PIN) never carry values. charge_start and clock_sync may carry
+     * the time exactly as it went on the wire (the scooter's local seconds: UTC seconds plus the offset) with the UTC
+     * offset sent in seconds, so the UTC instant is time minus offset; nothing else carries a time or an offset.
      */
     static final class Command extends Record {
         final Kind kind;
@@ -110,7 +114,7 @@ final class CommandLog {
         final Integer read;
         /** Milliseconds since the write was sent, or -1. */
         final long elapsedMs;
-        /** charge_start: the wire start sent; clock_sync: the wall seconds sent; else null. */
+        /** charge_start and clock_sync: the local seconds sent on the wire (UTC seconds + offset); else null. */
         final Long time;
         /** The UTC offset sent with time, in seconds; else null. */
         final Integer offset;
@@ -323,7 +327,7 @@ final class CommandLog {
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(bytes, 0, bytes.length - CRC_BYTES))) {
             if (input.readInt() != MAGIC) throw new IOException("Unknown command journal");
             int version = input.readInt();
-            if (version != VERSION && version != VERSION_1) throw new IOException("Unknown command journal");
+            if (version != VERSION && version != VERSION_2 && version != VERSION_1) throw new IOException("Unknown command journal");
             int count = input.readInt();
             if (count < 0 || count > maxRecords) throw new IOException("Invalid command record count");
             for (int i = 0; i < count; i++) {
@@ -336,6 +340,8 @@ final class CommandLog {
                     int value = input.readInt(); Outcome outcome = Outcome.valueOf(input.readUTF()); int code = input.readInt();
                     String reason = input.readUTF(); int read = input.readInt(); long elapsed = input.readLong();
                     long time = version == VERSION_1 ? -1 : input.readLong(); int offset = version == VERSION_1 ? Integer.MIN_VALUE : input.readInt();
+                    // Version 2 logged a clock sync's UTC seconds, not the wire value: unknown rather than a second meaning.
+                    if (version == VERSION_2 && "clock_sync".equals(key)) { time = -1; offset = Integer.MIN_VALUE; }
                     records.add(new Command(wall, kind, origin.isEmpty() ? null : MutationGate.Origin.valueOf(origin), key,
                             value < 0 ? null : value, outcome, code, reason.isEmpty() ? null : CapabilityResolver.Reason.valueOf(reason),
                             read < 0 ? null : read, elapsed, time < 0 ? null : time, offset == Integer.MIN_VALUE ? null : offset));
