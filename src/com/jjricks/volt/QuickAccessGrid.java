@@ -481,6 +481,7 @@ final class QuickAccessGrid extends ViewGroup {
                 label.setMaxLines(name.lines);
                 label.setTextSize(QuickActionLayout.NAME_SP * ui.textScale * name.scale);
                 if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
+                keepLineBox(label, QuickActionLayout.NAME_SP, name);
             }
             String state = shownValue.toString();
             QuickActionLayout.Words line = QuickActionLayout.value(state, lockState, room,
@@ -488,8 +489,21 @@ final class QuickAccessGrid extends ViewGroup {
             value.setVisibility(line.lines == 0 ? GONE : VISIBLE);
             if (line.lines > 0) value.setMaxLines(line.lines);
             value.setTextSize(QuickActionLayout.VALUE_SP * ui.textScale * line.scale);
+            if (line.lines > 0) keepLineBox(value, QuickActionLayout.VALUE_SP, line);
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        }
+        /**
+         * Words drawn smaller keep the height of their lines at full size, centred in it, so the lines under them start
+         * at the same height as their neighbours' in the row (the plan's four columns share their lines).
+         */
+        private void keepLineBox(TextView text, float sp, QuickActionLayout.Words words) {
+            int box = 0;
+            if (words.scale < 1) {
+                android.graphics.Paint.FontMetricsInt metrics = fullSize(text, sp).getFontMetricsInt();
+                box = words.lines * (metrics.descent - metrics.ascent);
+            }
+            if (text.getMinHeight() != box) text.setMinHeight(box);
         }
         /** A copy of a text's paint at {@code sp} times the app's text scale (and the system's, as sp is). */
         private android.text.TextPaint fullSize(TextView text, float sp) {
