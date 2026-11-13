@@ -1282,6 +1282,20 @@ final class RidingScreen implements AppScreen {
                 }
                 break;
             }
+            case RidingLayout.GPS_ACCURACY: {
+                s.rungs = new String[]{T.ridingLabelGpsAccuracy(), T.ridingLabelGpsAccuracyShort()};
+                // Read only: asking never starts GPS or keeps it awake. A fix older than 10 s reads as no fix.
+                GpsAccuracy.Reading r = service == null ? GpsAccuracy.reading(false, null, null, now) : service.gpsAccuracy(now);
+                if (r.state == GpsAccuracy.State.FIX) {
+                    boolean feet = GpsAccuracy.feet(units);
+                    split(s, GpsAccuracyText.value(GpsAccuracy.shown(r.metres, feet), GpsAccuracy.unit(feet)));
+                } else {
+                    s.main = GpsAccuracyText.state(r.state);
+                    s.spoken = s.main.toString();
+                    dim(s);
+                }
+                break;
+            }
             default: none(s); break;
         }
         return s;
