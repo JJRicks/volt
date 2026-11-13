@@ -209,6 +209,8 @@ for theme in ('dark', 'light'):
               inst(f'report-diagnostics-{theme}', T + 'ReportDiagnosticsValidation', '-e', 'theme', theme),
               inst(f'owner-model-{theme}', T + 'OwnerModelValidation', '-e', 'theme', theme),
               inst(f'model-home-{theme}', T + 'ModelHomeValidation', '-e', 'theme', theme)]
+# The report sheet's diagnostics consent line is the longest privacy text there: check it on the narrowest phone too.
+STEPS += [inst('report-diagnostics-344', T + 'ReportDiagnosticsValidation', '-e', 'theme', PHONE[1], size=PHONE[0])]
 # Home's Choose shortcut picker (sections, search, the Charge alerts shortcut): every size, the Fold5 cover at 1.4x text too,
 # and German and European Portuguese (the longest names) on that tightest case.
 PHONE_LARGE = ('344x882', 'dark', '1.4')
