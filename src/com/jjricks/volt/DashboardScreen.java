@@ -1023,6 +1023,21 @@ public final class DashboardScreen implements AppScreen {
         return DisplayTime.recent(host.activity(), preferences, time, System.currentTimeMillis());
     }
 
+    /**
+     * The battery overview card's description: the level (or "not reported"), then the spoken line (charging or the
+     * range left) when there is one, then "last seen" with its time when {@code seen} is given (the level is not live).
+     * Scooter › Battery & charging speaks a last-seen level the same way (HubBatterySummary).
+     */
+    static Msg overviewSpoken(Double level, String amount, String said, String seen) {
+        return level == null
+                ? (said.isEmpty()
+                        ? (seen != null ? M.dashboardOverviewNotReportedSeen(seen) : M.dashboardOverviewNotReported())
+                        : (seen != null ? M.dashboardOverviewNotReportedLineSeen(said, seen) : M.dashboardOverviewNotReportedLine(said)))
+                : (said.isEmpty()
+                        ? (seen != null ? M.dashboardOverviewPercentSeenCount(Math.round(level), amount, seen) : M.dashboardOverviewPercentCount(Math.round(level), amount))
+                        : (seen != null ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, said, seen) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, said)));
+    }
+
     /** A card's compact age beside its clock glyph: now, 5 min, 3 h or 2 d. */
     private static String shortAge(long time) {
         long minutes = Math.max(0, System.currentTimeMillis() - time) / 60000;
@@ -1064,12 +1079,18 @@ public final class DashboardScreen implements AppScreen {
     /** "about 31 mi": the range reading rounded, in the rider's distance units. */
     private String rangeText(TelemetryHistory.Reading r) {
         if (r == null || r.value == null) return "";
-        if (r.number == null) return T.dashboardAbout(format(r));
+        if (r.number == null) return aboutRange(format(r));
         String km = T.fmtQuantity(Fmt.decimal(Locale.US, r.number, 0), T.unitsKm());
         String miles = T.fmtQuantity(Fmt.decimal(Locale.US, r.number / 1.609344, 0), T.unitsMi());
         String units = units();
-        return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
+        return aboutRange((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
+
+    /**
+     * A range figure as the battery cards give it, an estimate: "about 31 mi". Battery & charging's summary
+     * (HubBatterySummary) speaks its range in this form too, so its spoken and drawn lines agree with Home's card.
+     */
+    static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }
 
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
@@ -3331,13 +3352,8 @@ public final class DashboardScreen implements AppScreen {
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
                 bar.set(level, live, charging);
                 String said = BatteryOverviewSpeech.line(charging, distance);
-                spoken = level == null
-                        ? (said.isEmpty()
-                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : M.dashboardOverviewNotReported())
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(said, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(said)))
-                        : (said.isEmpty()
-                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeenCount(Math.round(level), amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercentCount(Math.round(level), amount))
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, said, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, said)));
+                spoken = overviewSpoken(level, amount, said,
+                        charge != null && charge.value != null && !live ? when(charge.capturedWallMs) : null);
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }

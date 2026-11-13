@@ -13,6 +13,7 @@ public final class AutoStartPolicyTest {
         backgroundPrerequisite();
         backgroundCadence();
         backgroundSwitch();
+        backgroundSwitchDrawn();
         locationPrompt();
         System.out.println("AutoStartPolicyTest: " + checks + " checks");
     }
@@ -158,6 +159,12 @@ public final class AutoStartPolicyTest {
         check(!p.shouldRecord(AutoStartPolicy.recordsNow(true, false, false), true, false, false, false, false, true), "held back in the background");
         check(!p.recordHeld() && p.shouldRecord(AutoStartPolicy.recordsNow(true, false, true), true, false, false, false, false, true),
                 "held back is not a hold: on screen it starts");
+    }
+
+    /** The switch is drawn off while Record rides automatically is off; its stored value is not touched. */
+    private static void backgroundSwitchDrawn() {
+        check(!AutoStartPolicy.backgroundSwitchDrawnOn(false, true), "parent off, stored on: drawn off");
+        check(AutoStartPolicy.backgroundSwitchDrawnOn(true, true) && !AutoStartPolicy.backgroundSwitchDrawnOn(true, false) && !AutoStartPolicy.backgroundSwitchDrawnOn(false, false), "otherwise drawn as stored");
     }
 
     private static void locationPrompt() {

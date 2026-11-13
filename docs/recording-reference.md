@@ -292,10 +292,13 @@ Disconnect, revoked permissions or a profile change keep recording as before.
 Rides > Recording settings > End rides automatically turns this off. Exact rules:
 [ride auto-end](validation/ride-auto-stop.md).
 Rides > Recording settings > Record rides automatically starts a ride when the
-connected scooter moves while Volt is on screen; it starts one while Volt is in
-the background only with Start recording in the background, also off by
-default. Android doesn't let Volt turn on location from the background, so
-such a ride has no GPS route. An explicitly
+connected scooter moves while Volt is in front (its activity resumed); it
+starts one while Volt is in the background only with Start recording in the
+background, also off by default. Anything that pauses Volt counts as
+background: a window over it, a locked or dark screen, Home or another app.
+Known limit: on Android 8 and 9 a Volt in split screen without focus is paused,
+so it counts as background too. Android doesn't let Volt turn on location from
+the background, so such a ride has no GPS route. An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from
