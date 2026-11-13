@@ -77,7 +77,7 @@ public final class BleController {
      */
     private long statusSleptMs=cadence.slept(),frameSleptMs=statusSleptMs,pendingStatusSleptMs=statusSleptMs;
     private long savedProfileMs,lastBatteryPollMs,scanSequence,backgroundDeadlineMs,batteryWatchUntilMs;private ScanCallback scanCallback;private Runnable scanTimeout;
-    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;
+    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time,logTime;Integer logOffset;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;
         /** Until the frame goes out, the condition the caller accepted it under (holdUnsent); null for every other change. */
         LatchedCondition sendCondition;Runnable conditionClosed;
         /** Runs once when this change's frame is handed to Bluetooth (sent becomes true for good); null for none. */
@@ -127,7 +127,7 @@ public final class BleController {
         if(simulation!=null&&!Objects.equals(DeviceDescriptor.simulated(simulation.model(),0,next).region,DeviceDescriptor.simulated(simulation.model(),0,simulationRegion).region)){if(discovering)stopDiscovery();clearDiscovery();}
         simulationRegion=next;tickSimulation();changed();
     }
-    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
+    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();telemetry.tally.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
     /**
      * Riding-mode screenshot scripts (ScooterSimulation ids; "" for none). Memory only; no command exists.
      * The dropout script holds the link in Connecting, so readings go stale as on a real dropout.
@@ -159,6 +159,8 @@ public final class BleController {
     public Double liveNumber(String key){for(Telemetry.Metric m:telemetry.metrics())if(m.key.equals(key))return StatusCadence.live(m.updatedMs,now(),readingFreshMs(TelemetryHistory.freshnessMs(key)))?m.numericValue:null;return null;}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
+    /** The value the write in flight asks for: a charge start's wire seconds, else its target; null with none. Report diagnostics only. */
+    public Long pendingValue(){return mutation==null?null:mutation.time!=null?mutation.time:Long.valueOf(mutation.target);}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
     public boolean confirmingProximity(){return recheck!=null;}
     /** This phone's last pairing attempt with the connected scooter ended without a bond while proximity read on. */
@@ -179,8 +181,12 @@ public final class BleController {
      * then the event. Values pass CommandLog.loggable, so the PIN, times and the clock never carry one.
      */
     private void logCommand(CommandLog.Kind kind,MutationGate.Origin origin,String key,int value,CommandLog.Outcome outcome,int code,CapabilityResolver.Reason reason,Integer read,long elapsed){
-        try{noteSession();commands.record(new CommandLog.Command(System.currentTimeMillis(),kind,origin,key,CommandLog.loggable(key,value),outcome,code,reason,
-                read==null?null:CommandLog.loggable(key,read),elapsed));}
+        logCommand(kind,origin,key,value,outcome,code,reason,read,elapsed,null,null);
+    }
+    /** time and offset: what a charge start (wire start) or a clock sync (wall seconds) sent, with the UTC offset sent; else null. */
+    private void logCommand(CommandLog.Kind kind,MutationGate.Origin origin,String key,int value,CommandLog.Outcome outcome,int code,CapabilityResolver.Reason reason,Integer read,long elapsed,Long time,Integer offset){
+        try{noteSession();boolean timed=CommandLog.timed(key);commands.record(new CommandLog.Command(System.currentTimeMillis(),kind,origin,key,CommandLog.loggable(key,value),outcome,code,reason,
+                read==null?null:CommandLog.loggable(key,read),elapsed,timed?time:null,timed?offset:null));}
         catch(IllegalArgumentException unloggable){/* a key outside the catalogue is never logged */}
     }
     private void logCommand(MutationGate.Request r,CommandLog.Outcome outcome,int code,CapabilityResolver.Reason reason,Integer read,long elapsed){
@@ -189,7 +195,7 @@ public final class BleController {
     /** The pending mutation's own step; its value is the target it was admitted with. */
     private void logMutation(Mutation m,CommandLog.Outcome outcome,int code,Integer read){
         if(m.request==null)return;
-        logCommand(commandKind(m.request),m.request.origin,m.key,m.target,outcome,code,null,read,m.sent?Math.max(0,now()-m.sentMs):-1);
+        logCommand(commandKind(m.request),m.request.origin,m.key,m.target,outcome,code,null,read,m.sent?Math.max(0,now()-m.sentMs):-1,CommandLog.sentTime(m.sent,m.logTime),CommandLog.sentOffset(m.sent,m.logOffset));
     }
     private static CommandLog.Kind commandKind(MutationGate.Request r){
         return r.origin==MutationGate.Origin.GUIDED_TEST?CommandLog.Kind.TRY:r.origin==MutationGate.Origin.GUIDED_RESTORE?CommandLog.Kind.RESTORE
@@ -433,7 +439,7 @@ public final class BleController {
         intentionalDisconnectSequence++;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);
         wanted=true;retries=0;scan(p.mac);if(scanning)identifying=true;
     }
-    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
+    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;telemetry.tally.clear();notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
     /** True only inside suspend()'s close: this link is ending because Volt paused it, not because the scooter went away. */
     private boolean ownPause;public boolean ownPause(){return ownPause;}
     /** Stop every pending connection operation; saved profiles and diagnostic history survive. */
@@ -483,6 +489,8 @@ public final class BleController {
         int session=generation;handler.postDelayed(()->{if(session==generation&&gatt!=null&&!linkUp())failed(M.bleFailedTimedOut(),true,ConnectionEventLog.Reason.CONNECT_TIMEOUT,-1);},18000);
     }
     private void close(State next){
+        // Every end of a link (failed, suspend, disconnect, a new connect): the report's drive modes and power sign describe the connection only.
+        telemetry.tally.clear();
         if(discovering){discovery.onDisconnect(awake());finishDiscovery();event("Compatibility check interrupted");}
         // Disconnect, Bluetooth off, background pause or service end: the test stays outstanding and is never resumed automatically.
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
@@ -780,17 +788,17 @@ public final class BleController {
             if(simulation==null||!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}
             CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}
             if(!ModelRegistry.chargeStartAllowed(d.layer,seconds,offset,System.currentTimeMillis()/1000)){notice(WHOLE_HOUR);completed(completion,false);return;}
-            try{simulation.setChargeStart(seconds,offset);if(sent!=null)sent.run();updateSimulation();logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,null,0);quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(refusal(invalid));completed(completion,false);}return;
+            try{simulation.setChargeStart(seconds,offset);if(sent!=null)sent.run();updateSimulation();logCommand(commandKind(request),request.origin,request.feature,request.value,CommandLog.Outcome.READBACK_SAME,-1,null,null,0,seconds+offset,offset);quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(refusal(invalid));completed(completion,false);}return;
         }
         CapabilityResolver.Decision d=check(request);if(!d.available()){refused(request,d);completed(completion,false);return;}
         // Off the UT5 MAX, a whole local hour within 48 hours (the official app's picker); the UT5 MAX keeps any minute.
         if(!ModelRegistry.chargeStartAllowed(d.layer,seconds,offset,System.currentTimeMillis()/1000)){notice(WHOLE_HOUR);completed(completion,false);return;}
-        try{begin(request,null,0,ScooterCommands.setChargeStart(seconds,offset),seconds+offset,completion,sent);}catch(IllegalArgumentException e){notice(refusal(e));completed(completion,false);}}
+        try{nextLogTime=seconds+offset;nextLogOffset=offset;begin(request,null,0,ScooterCommands.setChargeStart(seconds,offset),seconds+offset,completion,sent);}catch(IllegalArgumentException e){nextLogTime=null;nextLogOffset=null;notice(refusal(e));completed(completion,false);}}
     static final String WHOLE_HOUR="Choose a whole hour within 48 hours";
     public void syncClock(){syncClock(null);}
     public void syncClock(Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CLOCK,"clock_sync",0,MutationGate.Origin.USER);
-        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}logCommand(request,CommandLog.Outcome.ACK,-1,null,null,0);quiet();completed(completion,true);return;}
-        if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();begin(request,null,0,ScooterCommands.setClock(wall/1000,TimeZone.getDefault().getOffset(wall)/1000),null,completion);}
+        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}long now=System.currentTimeMillis();int nowOffset=TimeZone.getDefault().getOffset(now)/1000;logCommand(commandKind(request),request.origin,request.feature,request.value,CommandLog.Outcome.ACK,-1,null,null,0,now/1000+nowOffset,nowOffset);quiet();completed(completion,true);return;}
+        if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();int offset=TimeZone.getDefault().getOffset(wall)/1000;nextLogTime=wall/1000+offset;nextLogOffset=offset;begin(request,null,0,ScooterCommands.setClock(wall/1000,offset),null,completion);}
     public void readPin(){if(simulating()){simulationUnavailable("Handlebar PIN access");return;}
         CapabilityResolver.Decision d=check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER));
         if(!d.available()){if(d.reason==CapabilityResolver.Reason.NOT_CONNECTED||d.reason==CapabilityResolver.Reason.OWNER_ONLY)notice(M.blePinConnectOwner());else if(d.reason!=CapabilityResolver.Reason.BUSY)notice(d.reasonMessage());return;}
@@ -1023,13 +1031,16 @@ public final class BleController {
      * before transmission; a request that became unsafe while queued is cancelled.
      */
     private boolean begin(MutationGate.Request request,FeatureVariant variant,int target,byte[] bytes,Long time){return begin(request,variant,target,bytes,time,null);}
+    /** What the next begin() sends for the command log (a charge start's wire start, a clock sync's wall seconds) and its offset; taken once. */
+    private Long nextLogTime;private Integer nextLogOffset;
     private boolean begin(MutationGate.Request request,FeatureVariant variant,int target,byte[] bytes,Long time,Consumer<Boolean> completion){return begin(request,variant,target,bytes,time,completion,null);}
     private boolean begin(MutationGate.Request request,FeatureVariant variant,int target,byte[] bytes,Long time,Consumer<Boolean> completion,Runnable sent){
+        Long logTime=nextLogTime;Integer logOffset=nextLogOffset;nextLogTime=null;nextLogOffset=null;
         if(simulating())return completed(completion,false);
         CapabilityResolver.Decision again=check(request);
         if(!again.available()){if(request.feature.equals("pin"))Arrays.fill(bytes,(byte)0);refused(request,again);return completed(completion,false);}
         String key=request.feature;
-        mutation=new Mutation(key,bytes[3]&255,target,++mutationSequence);Mutation pending=mutation;mutation.time=time;mutation.bytes=bytes;mutation.request=request;mutation.variant=variant;mutation.completion=completion;mutation.sentHook=sent;
+        mutation=new Mutation(key,bytes[3]&255,target,++mutationSequence);Mutation pending=mutation;mutation.time=time;mutation.logTime=logTime;mutation.logOffset=logOffset;mutation.bytes=bytes;mutation.request=request;mutation.variant=variant;mutation.completion=completion;mutation.sentHook=sent;
         message=key.equals("clock_sync")?M.bleStatusSettingClock():M.bleApplying(ScooterCommands.find(key).label.toLowerCase(Locale.ROOT));changed();send(bytes);
         return mutation==pending;
     }

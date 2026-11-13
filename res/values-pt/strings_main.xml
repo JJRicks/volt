@@ -616,8 +616,6 @@
     <string name="main_report_email_next">A tua app de email abre a seguir, para que o possas ler primeiro.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Escolhe a tua trotinete ou «Não tenho a certeza» e depois toca em «Enviar».</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Isto vai adicionar um ficheiro de diagnóstico: detalhes da app e da trotinete e eventos recentes de ligação e controlo. Nunca inclui a tua chave de proprietário, PIN, número de série, localização ou nomes.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Enviar email à Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->
