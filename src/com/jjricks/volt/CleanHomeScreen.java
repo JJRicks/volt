@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
- * bottom: the header (status line, search and Settings; the scooter's name, which switches scooter, and Edit), a top
+ * bottom: the header (the status line; the scooter's name, which switches scooter, with Edit, search and Settings), a top
  * area of fixed height whose content follows the moment (the battery card, or the charging view while charging), the
  * Lock bar, four quick actions and the seven subjects.
  *
@@ -37,6 +37,8 @@ final class CleanHomeScreen implements AppScreen {
     /** One column at most this wide on a wide window, until the wide two-pane Home arrives (plan 1.11). */
     private static final int MAX_WIDTH_DP = 560;
     private static final int CROSSFADE_MS = 180;
+    /** Clean's status line padding (Widgets' line has 15 dp above and below), and a header button's visible disc. */
+    static final int STATUS_TOP_DP = 6, STATUS_BOTTOM_DP = 2, DISC_DP = 40;
 
     private final ScreenHost host;
     private final DashboardScreen.Actions actions;
@@ -70,15 +72,14 @@ final class CleanHomeScreen implements AppScreen {
         page = column();
         view.addView(page, new LinearLayout.LayoutParams(-1, -2));
 
+        // The plan's header: the status line, then the scooter's name with Edit, search and Settings beside it, level
+        // with the name. Clean trims the status line's tall padding (Widgets keeps it), so the header is about the
+        // mock-up's two lines; each button keeps its 48 dp target around a smaller disc.
         header = column();
-        header.setPadding(0, ui.dp(4), 0, ui.dp(10));
-        LinearLayout first = row();
-        first.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(0, 0, 0, ui.dp(6));
         TextView status = parts.status();
-        first.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-        first.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        first.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        header.addView(first, new LinearLayout.LayoutParams(-1, -2));
+        status.setPadding(0, ui.dp(STATUS_TOP_DP), 0, ui.dp(STATUS_BOTTOM_DP));
+        header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout second = row();
         second.setGravity(Gravity.CENTER_VERTICAL);
         TextView name = parts.name();
@@ -91,8 +92,10 @@ final class CleanHomeScreen implements AppScreen {
         name.setOnClickListener(v -> actions.switchScooter());
         second.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
-        editSize.setMarginStart(ui.dp(8));
+        editSize.setMarginStart(ui.dp(4));
         second.addView(round("pencil", HubText.editTitle(), TAG_EDIT, this::showEdit), editSize);
+        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
@@ -302,13 +305,13 @@ final class CleanHomeScreen implements AppScreen {
         try { return preferences.getAll().get(key); } catch (RuntimeException e) { return null; }
     }
 
-    /** A round icon button: a disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
+    /** A round icon button: a 40 dp disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
     private View round(String icon, Msg label, String tag, Runnable action) {
         FrameLayout target = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
         disc.setColor(ui.dark ? ui.surface : ui.raised);
-        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp(6)), null));
+        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp((48 - DISC_DP) / 2)), null));
         target.addView(ui.icon(icon, 18, ui.text), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
         String spoken = label.render();
         target.setContentDescription(spoken);
