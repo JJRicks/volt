@@ -114,6 +114,15 @@
     <string name="riding_label_clock" volt:screen="Riding mode" volt:purpose="reading name" volt:max="80dp@15sp">Clock</string>
     <string name="riding_label_odometer" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp">Odometer</string>
     <string name="riding_label_odometer_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp">Odo.</string>
+    <!-- How far off the phone's GPS position may be, from its latest fix (an optional reading). -->
+    <string name="riding_label_gps_accuracy" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="full" volt:max="80dp@15sp" volt:dnt="GPS">GPS accuracy</string>
+    <string name="riding_label_gps_accuracy_short" volt:screen="Riding mode" volt:purpose="reading name" volt:ladder="short" volt:max="80dp@15sp" volt:dnt="GPS">GPS</string>
+    <!-- GPS accuracy's value while Volt isn't recording a ride (the phone's GPS runs only while a ride records). -->
+    <string name="riding_gps_not_recording" volt:screen="Riding mode" volt:purpose="value">Not recording</string>
+    <!-- GPS accuracy's value while a ride records and the GPS is starting or waiting for its first position. -->
+    <string name="riding_gps_waiting" volt:screen="Riding mode" volt:purpose="value">Waiting</string>
+    <!-- GPS accuracy's value when the GPS has given no position for over 10 seconds, or its signal is unavailable. -->
+    <string name="riding_gps_no_fix" volt:screen="Riding mode" volt:purpose="value">No fix</string>
 
     <!-- Under the big speed when the speed is older than 6 seconds and shows as a dash: %1$s is the last speed with its unit, "18.4 mph". -->
     <string name="riding_speed_last" volt:screen="Riding mode" volt:purpose="caption" volt:max="200dp@15sp">last %1$s</string>

@@ -256,6 +256,10 @@ public final class SimulatorScenesTest {
     private static void riding(SimulatorModels.Entry e) {
         ScooterSimulation s = simulation(e); Telemetry t = new Telemetry();
         boolean signed = SimulatorModels.facts(e.descriptor())[1];
+        // Riding mode's Max and Avg take each speed as Telemetry receives it (#431 review: a fixed 0 sent first at the
+        // same time hid the scene's speed from them).
+        RidingSpeed followed = new RidingSpeed(0);
+        t.followSpeed(followed);
         s.tick(t, 1000);
         double trip0 = n(t, "trip_km"), odo0 = n(t, "odometer_km"), minutes0 = n(t, "trip_minutes"), battery0 = n(t, "battery_percent");
         s.setScene(ScooterSimulation.Scene.RIDING);
@@ -289,6 +293,8 @@ public final class SimulatorScenesTest {
         check(n(t, "battery_percent") <= battery0 && n(t, "battery_percent") >= battery0 - 2, e + ": the battery falls slowly");
         check(n(t, "maximum_speed_kmh") >= top - .05, e + ": the trip's top speed has seen the ride");
         check(n(t, "average_speed_kmh") > 0 && n(t, "average_speed_kmh") <= n(t, "maximum_speed_kmh"), e + ": an average under the top");
+        check(followed.maxKmh() != null && Math.abs(followed.maxKmh() - top) < 1e-9, e + ": riding mode's Max is the scene's top speed: " + followed.maxKmh() + " vs " + top);
+        check(followed.averageKmh() != null && followed.averageKmh() > 10 && followed.averageKmh() < top, e + ": and its Avg moves: " + followed.averageKmh());
         // Locking stops the ride: the lock keeps working, and a locked scooter stands.
         s.set("lock", 1); s.tick(t, 200000); s.tick(t, 205000);
         check(n(t, "speed_kmh") == 0 && n(t, "driving_status") == 0 && n(t, "lock_status") == 1, e + ": a locked scooter stands");
