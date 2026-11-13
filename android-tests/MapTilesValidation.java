@@ -84,7 +84,18 @@ public final class MapTilesValidation extends Instrumentation {
         MapPreferences.answerUsgsSwitch(preferences, false); preferences.edit().commit();
         require(MapSource.load(preferences).url.equals(MapSource.USGS_URL) && preferences.contains("map_tile_url")
                 && preferences.getBoolean("map_usgs_switch_answered", false), "Keep answer not saved as a USGS choice");
+        MapPreferences.answerUsgsSwitch(preferences, true);
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL), "A later answer overwrote the saved one");
         preferences.edit().remove("map_basemap_enabled").remove("map_basemap_explained").remove("map_usgs_switch_answered").commit();
+        // The old-default pin written down once (MapSource.keepPin): on, never explained, no provider.
+        preferences.edit().remove("map_tile_url").putBoolean("map_basemap_enabled", true).commit();
+        require(MapSource.usgsByDefault(preferences) && MapSource.keepPin(preferences) && MapSource.USGS_URL.equals(preferences.getString("map_tile_url", ""))
+                && preferences.getBoolean("map_usgs_by_default", false) && !MapSource.keepPin(preferences), "Pin not written down once");
+        preferences.edit().putBoolean("map_basemap_enabled", false).commit();
+        require(MapSource.load(preferences).url.equals(MapSource.USGS_URL) && MapSource.usgsByDefault(preferences), "Turning a written pin off lost USGS");
+        MapSource.USGS.save(preferences);
+        require(!preferences.contains("map_usgs_by_default") && !MapSource.usgsByDefault(preferences), "An own USGS choice kept the old-default mark");
+        preferences.edit().remove("map_basemap_enabled").commit();
         preferences.edit().putString("map_tile_url", MapSource.OSM_URL).commit();
         require(MapSource.load(preferences).url.equals(MapSource.OSM_URL), "Explicit OSM choice lost");
         String custom = "https://maps.example.test/{z}/{x}/{y}.png";

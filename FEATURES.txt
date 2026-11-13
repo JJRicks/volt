@@ -1191,8 +1191,9 @@ preview shows "Online map: on" when it will be on. Provider changes
 alone do not enable tiles. Local routes and recording work with Basemap off.
 OpenStreetMap is the default provider (worldwide), with caching and attribution;
 the first-enable explanation names it. A Basemap turned on under the old USGS
-Topo default with no provider saved keeps USGS (U.S. streets/terrain); explicit
-choices never change. OSM, USGS and custom
+Topo default with no provider saved keeps USGS (U.S. streets/terrain); a map of a
+ride outside USGS coverage asks once to switch to OpenStreetMap (Switch or Keep USGS,
+saved as their choice); explicit choices never change. OSM, USGS and custom
 HTTPS providers remain selectable. Unsupported closer USGS
 zooms enlarge available level-16 tiles. HTTP errors and X-Blocked images show a
 status while local routes remain visible. Provider denial pauses further requests;

@@ -92,6 +92,10 @@ HTTPS provider if selected. The first-enable explanation names the provider.
 If you turned Basemap on before OpenStreetMap became the default (Volt 1.13 and
 earlier used USGS Topo) and never chose a provider, Volt keeps using USGS Topo
 for you rather than sending your map area to a provider you did not approve.
+If such a map shows a ride outside USGS coverage, Volt asks once whether to
+switch to OpenStreetMap, saying its servers would then receive your map area.
+**Switch** saves OpenStreetMap as your choice; **Keep USGS** (or Back) saves USGS,
+and Volt does not ask again.
 Requests reveal your network address, the requested map area and zoom, and an
 app/version User-Agent to that provider. A visible area can reveal where you
 rode even though Volt does not upload a route file. Tiles are cached locally;
