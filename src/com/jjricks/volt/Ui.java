@@ -51,8 +51,11 @@ public final class Ui {
     public final boolean dark;
     /** Page background, card surface, raised control fill, text, secondary text and the red accent. */
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
-    /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
-    public final int accentDeep, onAccent, ok, dim;
+    /**
+     * Deeper red for gradients and pressed states, red for text and links (4.5:1 on cards, where the fill red is not),
+     * white text on red, confirmed-good green, faint last-seen grey.
+     */
+    public final int accentDeep, accentText, onAccent, ok, dim;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -70,6 +73,7 @@ public final class Ui {
         dim = Color.parseColor(dark ? "#878982" : "#7A7C76");
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
+        accentText = Color.parseColor(dark ? "#FF8A8C" : "#D3252A");
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");
@@ -274,6 +278,16 @@ public final class Ui {
         view.setPadding(dp(4), dp(14), dp(4), dp(6));
         if (Build.VERSION.SDK_INT >= 28) view.setAccessibilityHeading(true);
         return view;
+    }
+    /**
+     * The Layout Plan's EXPERIMENTAL tag: 11 sp semibold capitals, orange on an 18% orange fill, 6 dp corners. In the light
+     * theme the text is a deeper orange, so the small capitals keep 4.5:1 on the fill over a white card.
+     */
+    public void experimentalTag(TextView view) {
+        view.setAllCaps(true); view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11 * textScale); view.setTypeface(SEMIBOLD);
+        view.setTextColor(dark ? orange : Color.parseColor("#8A5000")); view.setLetterSpacing(0.04f);
+        view.setBackground(shape(withAlpha(orange, 46), 6, 0));
+        view.setPaddingRelative(dp(7), dp(2), dp(7), dp(2));
     }
     /** A card that holds divided rows: tight vertical padding so rows sit edge to edge. */
     public LinearLayout groupCard() {

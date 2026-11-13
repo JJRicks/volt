@@ -2063,7 +2063,7 @@ public final class MainActivity extends Activity implements ScreenHost {
          */
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
-            // The badge sits under the name on every entry (beside a short name it moved to the row's end).
+            // The badge follows the name on its line where both fit, and sits under the name otherwise (SettingLine.tag).
             entry.tag(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
@@ -2422,9 +2422,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         design.pressFeedback(pill);
         return pill;
     }
-    /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
     /** Each SettingLine by its card, so a page can restyle the rows it places (ControlsScreen: icon tiles). */
     private final java.util.WeakHashMap<View,SettingLine> settingLines=new java.util.WeakHashMap<>();
+    /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
     private final class SettingLine {
         final LinearLayout card=column(),line=row(),words=column();
         final TextView name,sub,value;
@@ -2437,6 +2437,22 @@ public final class MainActivity extends Activity implements ScreenHost {
             LinearLayout heading=new LinearLayout(MainActivity.this){
                 @Override protected void onMeasure(int widthSpec,int heightSpec){
                     int available=Math.max(0,MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight());
+                    if(sub.getParent()==this){
+                        // The EXPERIMENTAL tag (tag()): after the name on its line when both fit, else under the name.
+                        float titleWidth=android.text.Layout.getDesiredWidth(name.getText(),name.getPaint())+name.getCompoundPaddingLeft()+name.getCompoundPaddingRight();
+                        CharSequence shown=sub.getTransformationMethod()==null?sub.getText():sub.getTransformationMethod().getTransformation(sub.getText(),sub);
+                        float tagWidth=android.text.Layout.getDesiredWidth(shown,sub.getPaint())+sub.getCompoundPaddingLeft()+sub.getCompoundPaddingRight();
+                        boolean inline=MeasureSpec.getMode(widthSpec)==MeasureSpec.UNSPECIFIED
+                                ||Math.ceil(titleWidth)+design.dp(8)+Math.ceil(tagWidth)<=available;
+                        setOrientation(inline?HORIZONTAL:VERTICAL);
+                        LinearLayout.LayoutParams np=(LinearLayout.LayoutParams)name.getLayoutParams();
+                        np.width=inline?-2:-1;np.weight=0;
+                        LinearLayout.LayoutParams tp=(LinearLayout.LayoutParams)sub.getLayoutParams();
+                        tp.setMarginStart(inline?design.dp(8):name.getCompoundPaddingStart());tp.topMargin=inline?0:design.dp(4);
+                        tp.gravity=inline?Gravity.CENTER_VERTICAL:Gravity.START;tp.resolveLayoutDirection(getLayoutDirection());
+                        super.onMeasure(widthSpec,heightSpec);
+                        return;
+                    }
                     boolean hasValue=value.getVisibility()!=View.GONE&&value.length()>0;
                     float titleWidth=android.text.Layout.getDesiredWidth(name.getText(),name.getPaint())+name.getCompoundPaddingLeft()+name.getCompoundPaddingRight();
                     float valueWidth=android.text.Layout.getDesiredWidth(value.getText(),value.getPaint())+value.getCompoundPaddingLeft()+value.getCompoundPaddingRight();
@@ -2472,19 +2488,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         void bare(){
             android.graphics.drawable.Drawable[] old=name.getCompoundDrawablesRelative();
             name.setCompoundDrawablesRelative(null,old[1],old[2],old[3]);name.setCompoundDrawablePadding(0);
-            sub.setPaddingRelative(0,sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
+            // The EXPERIMENTAL tag keeps its pill's inner padding; its indent follows the name (the heading's onMeasure).
+            if(sub.getBackground()==null)sub.setPaddingRelative(0,sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
             ViewGroup.LayoutParams p=sub.getLayoutParams();if(p instanceof ViewGroup.MarginLayoutParams)((ViewGroup.MarginLayoutParams)p).setMarginStart(0);
         }
         /**
-         * The sub-line as the Layout Plan's EXPERIMENTAL tag: small semibold capitals, orange on a light orange fill, under
-         * the name where the icon tile's indent ends.
+         * The sub-line as the Layout Plan's EXPERIMENTAL tag (Ui.experimentalTag): after the name on the same line when
+         * both fit, otherwise under the name where the icon tile's indent ends. Rows with a tag show no value.
          */
         void tag(CharSequence text){
-            setSub(text);
-            sub.setAllCaps(true);sub.setTextSize(11*design.textScale);sub.setTypeface(design.medium());sub.setTextColor(design.orange);
-            sub.setLetterSpacing(.04f);sub.setBackground(design.shape(Ui.withAlpha(design.orange,46),6,0));
-            int start=sub.getPaddingStart();sub.setPaddingRelative(design.dp(7),design.dp(2),design.dp(7),design.dp(2));
-            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.setMarginStart(start);p.topMargin=design.dp(4);sub.setLayoutParams(p);
+            setSub(text);design.experimentalTag(sub);
+            value.setVisibility(View.GONE);words.removeView(sub);
+            ((LinearLayout)name.getParent()).addView(sub,1,new LinearLayout.LayoutParams(-2,-2));
         }
     }
     private boolean chargeAlertsOffered(){return scooterService!=null&&scooterService.chargeAlertsOffered();}

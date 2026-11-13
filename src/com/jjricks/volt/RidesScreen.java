@@ -583,7 +583,7 @@ public final class RidesScreen implements AppScreen {
         view.setContentDescription((spoken == null ? "" : spoken + ", ") + reason);
     }
     private void refreshHistory() {
-        if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); return; }
+        if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); lonelyAllRidesLink(); return; }
         try {
             List<RideStore.Summary> summaries = historySummaries();
             if (summaries == null) return;
@@ -619,7 +619,7 @@ public final class RidesScreen implements AppScreen {
             }
             updateHistoryCount(); loadThumbnails(shown); measureStorage();
             if (wide) refreshDetail(chosen, stopped);
-        } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); }
+        } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); lonelyAllRidesLink(); }
     }
     /**
      * The list from the ride cache when every journal is in it, so a warm open draws at once. Otherwise null: skeleton
@@ -713,9 +713,17 @@ public final class RidesScreen implements AppScreen {
         if (mode != SUMMARY) return;
         if (card.getChildCount() > 0) ui.divider(card);
         Row row = navRow(null, HubText.title(HubPages.RIDE_RIDES), "", "", () -> host.open(HubPages.RIDE_RIDES));
-        row.title.setTextColor(ui.accent); row.title.setTypeface(ui.medium());
+        row.title.setTextColor(ui.accentText); row.title.setTypeface(ui.medium());
         row.view.setMinimumHeight(ui.dp(48));
         row.view.setTag(HubListScreen.tag(HubPages.RIDE_RIDES)); card.addView(row.view);
+    }
+    /**
+     * The Ride page when no history card is drawn (no ride storage, or the list could not be read): All rides & compare
+     * still gets a card of its own, so Compare two rides and the full history stay reachable.
+     */
+    private void lonelyAllRidesLink() {
+        if (mode != SUMMARY || history.getChildCount() > 0) return;
+        LinearLayout link = ui.groupCard(); allRidesLink(link); history.addView(link);
     }
     /** History row: route thumbnail, name and start time, then distance and duration. */
     private View historyRow(RideStore.Summary s, boolean chosen) {
