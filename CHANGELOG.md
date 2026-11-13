@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Fuller report diagnostics for overnight charging.** A report with **Include diagnostics** now also shows, for the selected scooter, the last 10 Scheduled charging and Charge done by plans (start, deadline, battery when set, how each ended, and whether the scooter was locked when it was set, at its start and at its end), the last 5 schedule tests and why one was cut short, when charging started and stopped with the battery readings at those moments, a few minutes of readings around a start Volt set, how each schedule change ended, and changes to the schedule switch, start time, lock or charge limit that Volt didn't send. The control log now keeps the start time and clock Volt sent. It is all numbers and times kept on your phone, never backed up, and removed when you forget the scooter; **Preview** still shows the exact file. Downgrading to an earlier version clears the control log.
+- **OpenStreetMap is now the default basemap**, instead of USGS Topo, which covers only the United States and left ride maps elsewhere empty with **Map tiles unavailable (HTTP 404)**. The basemap still starts off, and the one-time explanation before the first map tiles now names the provider you'll get. If you already turned the basemap on with USGS Topo as the default, you keep USGS Topo, and a provider you chose yourself never changes, also after restoring a backup. In **Map settings**, OpenStreetMap now comes first.
 
 ## 1.13.1 — 2026-11-11
 

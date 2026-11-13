@@ -102,7 +102,11 @@ provider receives your IP address and viewed map area; choose **Enable basemap**
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
 
 When enabled, the app requests visible map tiles from
-USGS Topo by default, OpenStreetMap if selected, or your chosen HTTPS provider.
+OpenStreetMap by default, or from USGS Topo (United States only) or your chosen
+HTTPS provider if selected. The first-enable explanation names the provider.
+If you turned Basemap on before OpenStreetMap became the default (Volt 1.13 and
+earlier used USGS Topo) and never chose a provider, Volt keeps using USGS Topo
+for you rather than sending your map area to a provider you did not approve.
 Requests reveal your network address, the requested map area and zoom, and an
 app/version User-Agent to that provider. A visible area can reveal where you
 rode even though Volt does not upload a route file. Tiles are cached locally;

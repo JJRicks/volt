@@ -545,6 +545,8 @@ public final class ScooterService extends Service {
             try{
                 File directory=new File(getCacheDir(),"charge-exports");
                 if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException();
+                // No export runs but this one: what an interrupted compression left goes now; finished ones keep their day.
+                ChargeSend.clearLeftovers(directory);
                 File[] old=directory.listFiles();long cutoff=System.currentTimeMillis()-24*60*60*1000L;
                 if(old!=null)for(File entry:old)if(entry.lastModified()<cutoff)entry.delete();
                 output=File.createTempFile("charges-",".json",directory);
