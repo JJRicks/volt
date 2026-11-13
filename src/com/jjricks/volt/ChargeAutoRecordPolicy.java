@@ -25,8 +25,10 @@ import java.util.Set;
  * percentage points is discarded ({@link #keep}). At the 20-recording limit an automatic recording may replace only
  * older automatic ones; it never deletes a manual one ({@link #automaticToRemove}).
  *
- * Hold: stopping an automatic recording by hand (Stop on the page or in the notification, or starting a ride by
- * hand) holds that scooter until a fresh "not charging" reading is seen, across reconnects and restarts: the service
+ * Hold: stopping a recording by hand (Stop on the page or in the notification, or starting a ride by hand) holds that
+ * scooter until a fresh "not charging" reading is seen, across reconnects and restarts: an automatic recording always,
+ * and one the owner started while the switch is on, so Volt never starts recording the charge the owner just stopped
+ * recording (owner's answer 4: a manual stop holds until the next plug-in). The service
  * stores the held scooters ({@link #HOLD_KEY}). A recording that ended by itself sets no hold. A start that failed
  * (storage, or no room because every saved recording is manual) latches that scooter in memory by the same rule, so
  * it is not retried on every reading.
@@ -125,11 +127,26 @@ public final class ChargeAutoRecordPolicy {
         return automatic >= need ? need : -1;
     }
 
-    /** Whether a hand stop of this recording (Stop, or a ride started by hand) holds its scooter. */
-    public static boolean holdsAfterHandStop(boolean automatic) { return automatic; }
+    /**
+     * Whether a hand stop of this recording (Stop, or a ride started by hand) holds its scooter: an automatic one always;
+     * one the owner started, while the switch is on (else nothing would start again anyway, and nothing is stored).
+     */
+    public static boolean holdsAfterHandStop(boolean enabled, boolean automatic) { return automatic || enabled; }
 
     /** Whether starting a ride by hand ends this charge recording instead of being refused. Manual ones still refuse. */
     public static boolean rideEndsRecording(boolean automatic) { return automatic; }
+
+    /**
+     * The charging reading as a start or a hold may use it: TRUE (charging) or FALSE (not charging) only while it is live
+     * by a charge recording's own frame rule (ChargeSessionStore.fresh: at most MAX_FRAME_AGE_MS, 5 s, old on the elapsed
+     * clock, never from the future), else null. Stricter than the reading's display rule (TelemetryHistory.freshnessMs
+     * through BleController.readingFreshMs, 15 s or more), so a reading from before a sleep or a gap is never used, however
+     * long the link itself is kept (#418). Any other raw value is null too.
+     */
+    public static Boolean liveCharging(ChargeSessionStore.Value state, long nowMono) {
+        if (!ChargeSessionStore.fresh(state, nowMono)) return null;
+        return state.value == 1 ? Boolean.TRUE : state.value == 0 ? Boolean.FALSE : null;
+    }
 
     /** Whether a reading clears holds and latches: only a fresh "not charging" reading does. */
     public static boolean clearsHold(boolean fresh, double chargingState) { return fresh && chargingState == 0; }

@@ -21,6 +21,7 @@ public final class ChargeAutoRecordPolicyTest {
         label();
         relabel();
         speed();
+        liveReadings();
         chargeOff();
         keep();
         limit();
@@ -86,6 +87,34 @@ public final class ChargeAutoRecordPolicyTest {
         check(!ChargeAutoRecordPolicy.movedAway(true, 200, now + 1, now), "A reading from the future is not trusted");
     }
 
+    /** #418's rule: the link being kept decides nothing; only a reading live by its own rule starts or clears anything. */
+    static void liveReadings() {
+        long now = 500_000;
+        long age = ChargeSessionStore.MAX_FRAME_AGE_MS;
+        check(age == 5000, "The charge recording's frame rule is 5 s");
+        check(Boolean.TRUE.equals(ChargeAutoRecordPolicy.liveCharging(value(1, now), now)), "A charging reading taken now is live");
+        check(Boolean.TRUE.equals(ChargeAutoRecordPolicy.liveCharging(value(1, now - age), now)), "Exactly 5 s old is live");
+        check(ChargeAutoRecordPolicy.liveCharging(value(1, now - age - 1), now) == null, "Older than 5 s: no answer, so no start");
+        check(ChargeAutoRecordPolicy.liveCharging(value(1, now - 15_000), now) == null, "The last 15 s background read, once the next is due, starts nothing");
+        check(ChargeAutoRecordPolicy.liveCharging(value(1, now - 3_600_000), now) == null, "A reading from before an hour's sleep starts nothing");
+        check(Boolean.FALSE.equals(ChargeAutoRecordPolicy.liveCharging(value(0, now - 1000), now)), "A live not-charging reading");
+        check(ChargeAutoRecordPolicy.liveCharging(value(0, now - age - 1), now) == null, "A stale not-charging reading clears nothing");
+        check(ChargeAutoRecordPolicy.liveCharging(value(1, now + 1), now) == null, "A reading from the future is not trusted");
+        check(ChargeAutoRecordPolicy.liveCharging(value(2, now), now) == null, "An unknown raw state is neither");
+        check(ChargeAutoRecordPolicy.liveCharging(null, now) == null, "No reading");
+        check(ChargeAutoRecordPolicy.liveCharging(new ChargeSessionStore.Value(null, now, 0x72), now) == null, "No value");
+        check(ChargeAutoRecordPolicy.liveCharging(new ChargeSessionStore.Value(1d, now, -1), now) == null, "A value with no source read");
+        check(ChargeAutoRecordPolicy.liveCharging(new ChargeSessionStore.Value(Double.NaN, now, 0x72), now) == null, "Not a number");
+        check(ChargeAutoRecordPolicy.liveCharging(value(1, 0), now) == null, "Never read");
+        // What the service does with the answer: start only on TRUE, clear a hold only on FALSE.
+        for (Boolean live : new Boolean[]{null, Boolean.TRUE, Boolean.FALSE}) {
+            boolean start = ChargeAutoRecordPolicy.shouldStart(true, true, Boolean.TRUE.equals(live), false, false, false, false, false);
+            boolean clears = ChargeAutoRecordPolicy.clearsHold(live != null, live == null ? -1 : live ? 1 : 0);
+            check(start == Boolean.TRUE.equals(live), "Starts only on a live charging reading: " + live);
+            check(clears == Boolean.FALSE.equals(live), "Clears only on a live not-charging reading: " + live);
+        }
+    }
+
     static void chargeOff() {
         check(ChargeAutoRecordPolicy.chargerOffWaitMs(true) == 2 * MINUTE, "Automatic recordings end two minutes after charging stops");
         check(ChargeAutoRecordPolicy.chargerOffWaitMs(false) == ChargeSessionStore.CHARGER_PAUSE_MAX_MS
@@ -113,7 +142,9 @@ public final class ChargeAutoRecordPolicyTest {
     }
 
     static void hold() {
-        check(ChargeAutoRecordPolicy.holdsAfterHandStop(true) && !ChargeAutoRecordPolicy.holdsAfterHandStop(false), "Only a hand stop of an automatic recording holds");
+        check(ChargeAutoRecordPolicy.holdsAfterHandStop(true, true) && ChargeAutoRecordPolicy.holdsAfterHandStop(false, true), "A hand stop of an automatic recording holds, the switch on or since turned off");
+        check(ChargeAutoRecordPolicy.holdsAfterHandStop(true, false), "A hand stop of a recording the owner started holds while the switch is on: Volt doesn't record the charge he just stopped");
+        check(!ChargeAutoRecordPolicy.holdsAfterHandStop(false, false), "Switch off, a manual recording: nothing stored, as before");
         check(ChargeAutoRecordPolicy.rideEndsRecording(true) && !ChargeAutoRecordPolicy.rideEndsRecording(false), "A ride ends an automatic recording; a manual one still refuses");
         check(ChargeAutoRecordPolicy.clearsHold(true, 0), "A fresh not-charging reading clears the hold");
         check(!ChargeAutoRecordPolicy.clearsHold(true, 1), "Still charging keeps the hold");
