@@ -302,8 +302,8 @@ limits; no service can collect scooter readings without a connection.
 
 ### Automatic charge recordings
 
-**Record charges automatically** (Scooter → Battery & charging → Charge history
-& recordings, off by default; ChargeAutoRecordPolicy) starts a charge recording
+**Record charges automatically** (More → Developer options, right after Record
+this charge, off by default; ChargeAutoRecordPolicy) starts a charge recording
 without asking whenever Volt is connected to the selected scooter, on screen or
 not, and a fresh reading says it is charging, if Start charge recording would be
 allowed then (never in simulation). It never connects, keeps a connection or
@@ -326,10 +326,10 @@ already charging starts then; the recording is partial.
   fresh readings. A reading from before a gap or a phone sleep never starts,
   ends, clears or discards anything.
 
-- **Label.** The charger chosen in Estimates & charger; otherwise Volt's
-  detection for this charge; otherwise a best guess: the charger with more
-  qualified recordings for this scooter, or the stock charger on a tie or with
-  none. A detected label follows detection when it settles on the other
+- **Label.** The charger chosen in Scooter → Battery → Charger for estimates;
+  otherwise Volt's detection for this charge; otherwise a best guess: the
+  charger with more qualified recordings for this scooter, or the stock charger
+  on a tie or with none. A detected label follows detection when it settles on the other
   charger; a guess becomes detected as soon as detection settles, on either
   charger, so a recording stays a guess only when detection never settled; a
   chosen one never changes. Only a chosen or detected label is
@@ -380,9 +380,9 @@ already charging starts then; the recording is partial.
 
 An automatic recording's file name records that Volt started it and how its label
 was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
-reads it as an ordinary recording. **Export charge recordings** and **Email to
-Volt** add `started_automatically` (true or false) and `label_source`
-(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge;
+reads it as an ordinary recording. **Export charge recordings** adds
+`started_automatically` (true or false) and `label_source` (`chosen`,
+`detected`, `guess`, or null for a manual recording) to each charge;
 `qualified_for_learning` is false for a guess.
 
 The interface adapts to compact/expanded windows. Folding a foldable halfway
