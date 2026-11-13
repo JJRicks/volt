@@ -425,7 +425,8 @@ public final class OnboardingScreen implements AppScreen {
         // install), which also records a new install's origin. Skipping first-run setup chooses nothing and only
         // records the new install (HomeStylePrefs.recordNewInstall, with Clean when no style is stored): the seed
         // waits while first-run setup is under way, so setup's end must record it (no What's new for it). Skipping
-        // a rerun changes nothing: that installation's history is the seed's.
+        // a rerun changes nothing: that installation's history is the seed's. A style a restore stored during setup
+        // (with no origin) is an earlier owner's: both record origin update for it, not install (HomeStyle.pickedOrigin).
         SharedPreferences app = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         if (!skipped) HomeStylePrefs.markChosen(app, style);
         else if (!rerun) HomeStylePrefs.setupSkipped(app);
