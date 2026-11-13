@@ -11,9 +11,11 @@ package com.jjricks.volt;
  * way in this order:
  * <ol>
  *   <li>the photo (it needs {@link #PHOTO_MIN_DP} under the percentage);</li>
- *   <li>the percentage gets smaller, down to {@link #PERCENT_MIN_SCALE} of its size;</li>
+ *   <li>the percentage gets smaller, down to {@link #HALF_SCALE} of its size;</li>
  *   <li>the "Charging" line;</li>
- *   <li>the track;</li>
+ *   <li>the percentage gets smaller still, down to {@link #PERCENT_MIN_SCALE} of its size, with the track kept under
+ *       it, so it stays in view where the readings stack under large text (344x882 dp at 1.4x, part 8's review);</li>
+ *   <li>the track (the percentage, back at half its size or more, takes its room);</li>
  *   <li>the percentage (the track comes back if it then fits);</li>
  *   <li>only then the readings, when the slot is shorter than the readings alone.</li>
  * </ol>
@@ -29,8 +31,12 @@ final class ChargingFit {
     static final int READINGS_GAP_DP = 12;
     /** The stage under the percentage needs this much before the photo shows (it then reaches up behind the percentage). */
     static final int PHOTO_MIN_DP = 72, OVERLAP_DP = 40;
-    /** The percentage never gets smaller than this share of its size (72 sp becomes 36 sp). */
-    static final float PERCENT_MIN_SCALE = .5f;
+    /**
+     * The line stays only while the percentage can keep half its size (72 sp becomes 36 sp), and without the track the
+     * percentage keeps at least half its size too; with the track under it and no line, it may get as small as
+     * {@link #PERCENT_MIN_SCALE} (72 sp becomes about 22 sp, still above the readings' labels).
+     */
+    static final float HALF_SCALE = .5f, PERCENT_MIN_SCALE = .3f;
 
     private ChargingFit() {}
 
@@ -75,7 +81,9 @@ final class ChargingFit {
         int gap = dp(READINGS_GAP_DP, density);
         int photoMin = dp(PHOTO_MIN_DP, density), overlap = dp(OVERLAP_DP, density);
         int readings = gap + readingsHeight;
-        int minPercent = Math.max(1, scaled(percentHeight, PERCENT_MIN_SCALE));
+        // Rounded up, so the scale a room gives is never below the smallest share.
+        int minPercent = Math.max(1, (int) Math.ceil(percentHeight * PERCENT_MIN_SCALE));
+        int halfPercent = Math.max(1, (int) Math.ceil(percentHeight * HALF_SCALE));
         inner = Math.max(0, inner);
 
         if (readingsHeight <= inner) {
@@ -83,15 +91,15 @@ final class ChargingFit {
             int below = inner - lineHeight - percentHeight - readings;
             if (below >= photoMin) return new Plan(true, true, 1, true, true, below + overlap, -overlap, true, gap);
             if (below >= track) return new Plan(true, true, 1, false, true, below, 0, true, gap);
-            // 2. The percentage gets smaller to keep the line and the track.
+            // 2. The percentage gets smaller (to half its size) to keep the line and the track.
             int room = inner - lineHeight - track - readings;
-            if (room >= minPercent) return shrunk(true, room, percentHeight, track, inner - lineHeight - readings, gap);
-            // 3. Without the line.
+            if (room >= halfPercent) return shrunk(true, room, percentHeight, track, inner - lineHeight - readings, gap);
+            // 3. Without the line: the percentage as large as fits, down to its smallest.
             room = inner - track - readings;
             if (room >= minPercent) return shrunk(false, room, percentHeight, track, inner - readings, gap);
-            // 4. Without the track: the percentage, then the readings.
+            // 4. Without the track: the percentage at half its size or more, then the readings.
             room = inner - readings;
-            if (room >= minPercent) return shrunk(false, room, percentHeight, 0, inner - readings, gap);
+            if (room >= halfPercent) return shrunk(false, room, percentHeight, 0, inner - readings, gap);
             // 5. The readings alone, with the track above them when it fits.
             if (inner - readings >= track) return new Plan(false, false, 1, false, true, inner - readings, 0, true, gap);
             return new Plan(false, false, 1, false, false, 0, 0, true, inner - readingsHeight);

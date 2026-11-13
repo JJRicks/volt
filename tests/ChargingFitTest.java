@@ -44,6 +44,22 @@ public final class ChargingFitTest {
                 + (taller > 1 ? ", taller" : ""), inner, line, percent, readings);
     }
 
+    /**
+     * A window as the emulator measured it: the readings pair up only from 280 dp times the text scale (InfoTiles, so
+     * at 344 dp and 1.4x they stack), and the line and the percentage are 1.33 times their text size (font padding).
+     */
+    private static Case stacked(int width, int height, float text, int bars, boolean pill) {
+        boolean wide = WideLayout.wide(width, text);
+        int inner = TopArea.heightDp(height - bars, wide, text) - 24;
+        int across = Math.min(width - 36, 560) - 28;
+        int line = Math.round(12.5f * text * 1.33f);
+        int percent = Math.round(72 * text * 1.33f);
+        float tile = 20 + 12 * text * 1.33f + 2 + Math.max(48, 26 * text * 1.33f) + (pill ? 11 * text * 1.33f + 6 + 4 : 0);
+        int readings = Math.round(across >= 280 * text ? tile : 2 * tile + 8);
+        return new Case(width + "x" + height + " at " + text + "x, as measured" + (bars > 0 ? ", bars" : "") + (pill ? ", pill" : ""),
+                inner, line, percent, readings);
+    }
+
     /** What must hold for every plan: it fills the slot exactly and nothing sits on anything else. */
     private static void sound(Case c) {
         ChargingFit.Plan p = c.plan;
@@ -94,6 +110,38 @@ public final class ChargingFitTest {
                         sound(taller);
                         require(taller.plan.readings, taller.name + ": the readings still show: " + taller.plan);
                     }
+
+        // 344x882 dp at 1.4x as the emulator measured it in part 8's review (5887950282): InfoTiles pairs the readings
+        // only from 280 dp times the text scale, so at 1.4x they stack, and the percentage's height includes its font
+        // padding. The percentage must stay in view there, smaller (owner); the "Charging" line may go.
+        for (int bars : new int[]{0, 72})
+            for (boolean pill : new boolean[]{false, true}) {
+                Case m = stacked(344, 882, 1.4f, bars, pill);
+                sound(m);
+                System.out.println("  " + m.name + ": " + m.plan);
+                require(m.plan.readings && !m.plan.photo, m.name + ": the readings show, the photo gave way first");
+                // With a wrapped pill as well, the stacked readings leave less than the track and the smallest
+                // percentage need: the readings come first there.
+                if (pill) continue;
+                require(m.plan.percent && m.plan.percentScale < 1 && m.plan.percentScale >= ChargingFit.PERCENT_MIN_SCALE,
+                        m.name + ": the percentage stays, smaller: " + m.plan);
+            }
+        // The band the emulator saw above the stacked readings (about 60 dp, of a 311 or 284 dp slot): the percentage
+        // shows in it, smaller, with the track under it, never the line. Its smallest size with the track needs 57 dp.
+        int big = Math.round(72 * 1.4f * 1.33f), smallest = (int) Math.ceil(big * ChargingFit.PERCENT_MIN_SCALE);
+        for (int inner : new int[]{311, 284})
+            for (int band = ChargingFit.TRACK_DP + ChargingFit.TRACK_GAP_DP + smallest; band <= 75; band++) {
+                Case m = new Case("emulator band " + band + " of " + inner, inner, Math.round(12.5f * 1.4f * 1.33f), big,
+                        inner - ChargingFit.READINGS_GAP_DP - band);
+                sound(m);
+                require(m.plan.readings && m.plan.percent && m.plan.track && !m.plan.line && !m.plan.photo
+                        && m.plan.percentScale < ChargingFit.HALF_SCALE, m.name + ": the percentage stays, smaller, over the track: " + m.plan);
+            }
+        // The line goes only once the percentage would be smaller than half its size.
+        c = new Case("line kept at half", 286, 20, 100, 200 - 12);
+        require(c.plan.line && c.plan.percentScale == ChargingFit.HALF_SCALE, "the line stays while the percentage can be half its size: " + c.plan);
+        c = new Case("line gone below half", 285, 20, 100, 200 - 12);
+        require(!c.plan.line && c.plan.percentScale > ChargingFit.HALF_SCALE, "below half, the line goes and the percentage takes its room: " + c.plan);
 
         // 320x640 dp at 1x (narrower than the maintainers test): the readings stack, so they and the track stay and
         // the percentage gives way after the line.
