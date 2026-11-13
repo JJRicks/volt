@@ -58,8 +58,10 @@ The tag is on a later docs-only merge.
     with a throwaway-key build, on the Mac (the pool's machine was busy),
     in 14 minutes.
 - run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
-  synthetic data, Bluetooth off), split over four emulators at once, one
-  step per --only run. All 197 listed steps were invoked exactly once,
+  synthetic data, Bluetooth off except in the automatic charge recording
+  step, which turns the emulator's adapter on for its run and off again),
+  split over four emulators at once, one step per --only run. All 197
+  listed steps were invoked exactly once,
   including this release's 32 new steps (the charging bar, the time tile,
   background recording, automatic charge recording, charge evidence,
   report diagnostics at 344 dp, the shortcut picker and GPS accuracy). 9
@@ -124,10 +126,12 @@ The tag is on a later docs-only merge.
     snapshot, navigation, background (with the live charging hold), clock,
     settings, charge-time and schedule-test (Test scheduled charging end
     to end, 162 s). Settings: 23 changed, read back and restored (the
-    charge limit 100 to 80 and back among them); 5 excluded by the plan
-    and never written (speed limit, maximum speed, dual drive, drive
-    speed limit, timed charging). The opt-in lock and PIN-state steps
-    were not run. The runner was removed afterwards.
+    charge limit 100 to 80 and back among them). 5 are left out of the
+    settings step by the plan: speed limit, maximum speed, dual drive and
+    drive speed limit, which the sweep never writes, and timed charging,
+    which only the schedule test turned on and off again (read back off
+    at its end). The opt-in lock and PIN-state steps were not run. The
+    runner was removed afterwards.
   - Home while charging showed the charging bar under the scooter picture
     with the limit mark at 100%, and Charging power beside one time tile.
     A drag of the mark from 100% to 80%, injected over adb: the bar
