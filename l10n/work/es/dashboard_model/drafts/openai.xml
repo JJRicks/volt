@@ -37,6 +37,8 @@
     <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Fin de carga</string>
     <string name="dashboard_model_qa_charge_done_time" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Hora de fin de carga</string>
     <string name="dashboard_model_qa_charge_done_time_short" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Hora de fin de carga</string>
+    <string name="dashboard_model_qa_charge_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertas de batería</string>
+    <string name="dashboard_model_qa_charge_alerts_short" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Alertas</string>
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menús</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Páginas</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Controles experimentales</string>
@@ -48,6 +50,7 @@
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Patinete</string>
     <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Midiendo</string>
     <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">Activado • %1$s</string>
+    <string name="dashboard_model_tile_low_at" volt:src="f637829749c4d22dca0d794dd65b041832a8c9d1">Batería baja: %1$s</string>
     <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Sin programar</string>
     <string name="dashboard_model_tile_at_time" volt:src="bf2c1d9211787ac67f4d9a7a67895abba193869e">" • %1$s"</string>
     <string name="dashboard_model_tile_select_scooter" volt:src="0bdc879ede74c25ac4b6035f02786961ef730f91">Selecciona un patinete primero</string>

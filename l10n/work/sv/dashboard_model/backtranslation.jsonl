@@ -19,3 +19,6 @@
 {"back":"Max. speed","key":"dashboard_model_tile_top_speed","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"d1cb36b44b04e38c459d67d7da24a13492e5c327","target":"Maxhast."}
 {"back":"Not scheduled","key":"dashboard_model_tile_not_scheduled","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0","target":"Inte schemalagd"}
 {"back":"Charging schedule","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Laddschema"}
+{"back":"Battery notifications","key":"dashboard_model_qa_charge_alerts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a3e5ebbd7d27387561d5b73e97446892da8aee4e","target":"Batteriaviseringar"}
+{"back":"Notifications","key":"dashboard_model_qa_charge_alerts_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7463b09504a12e15a09561e3e0add16f6cbf5c02","target":"Aviseringar"}
+{"back":"Low %1$s","key":"dashboard_model_tile_low_at","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"f637829749c4d22dca0d794dd65b041832a8c9d1","target":"Låg %1$s"}

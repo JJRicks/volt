@@ -95,7 +95,7 @@ Real ladders, widths at the given size:
 | Charge done by | *Bitiş hedefi* (63.3 at 12sp) | *Şarj bitiş hedefi* (90.7, so wrap at a space) or *Bitiş hedefi* (65.9) | |
 | App preferences | *Tercihler* (47.5 at 12sp) | *Tercihler* (49.5); *Uygulama tercihleri* (113.6) only wrapped | |
 
-Measured words that fit as they are: *Kilit* 23.0, *Ayarlar* 43.0, *Pil* 14.7, *Sürüşler* 48.7 (all under the 62dp tab budget at 12.5sp). At the 64dp shortcut budget (12sp): *Işıklar* 33.4, *Pil ayarları* 60.0, *Scooter adı* 62.3, *Scooterlar* 57.0, *Canlı veri* 50.8, *Çizgi ışığı* 51.8, *Yıldız ışığı* 55.2, *Ekran, ses* 56.7. Over it: *Canlı veriler* 65.2, *Çizgi ışıkları* 65.5, *Sürüş ayarları* 78.2, *Scooterlarım* 70.6.
+Measured words that fit as they are: *Kilit* 23.0, *Ayarlar* 43.0, *Pil* 14.7, *Sürüşler* 48.7 (all under the 62dp tab budget at 12.5sp). At the 66dp shortcut budget (12sp): *Işıklar* 33.4, *Pil ayarları* 60.0, *Scooter adı* 62.3, *Scooterlar* 57.0, *Canlı veri* 50.8, *Çizgi ışığı* 51.8, *Yıldız ışığı* 55.2, *Ekran, ses* 56.7. Fitting since the room became 66dp: *Canlı veriler* 65.2, *Çizgi ışıkları* 65.5. Over it: *Sürüş ayarları* 78.2, *Scooterlarım* 70.6.
 
 An abbreviation ends in a period, and the period counts toward the width. A two-word label may wrap at a space where the English also wraps.
 

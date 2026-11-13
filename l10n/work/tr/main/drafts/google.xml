@@ -310,7 +310,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Gönder</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Önce okuyabilmeniz için bir sonraki adımda e-posta uygulamanız açılacak.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Scooter’ınızı veya “Emin değilim” seçeneğini seçin, ardından “Gönder” düğmesine dokunun.</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Bir tanılama dosyası ekler: uygulama ve scooter ayrıntıları ile son bağlantı ve denetim olayları. Sahip anahtarınız, PIN, seri numarası, konum veya adlar asla dahil edilmez.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff">Bir tanılama dosyası eklenecek: uygulama, telefon ve scooter ayrıntıları, Volt’un ayarları ve son çökmesi, kayıt sayıları, son bağlantı ve kontrol olayları ile seçilen scooter’ın zaman bilgileriyle birlikte şarj ve zamanlama geçmişi. Sahip anahtarınız, PIN, seri numarası, konum veya adlar asla dahil edilmez.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Volt’a e-posta gönder</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Önizle</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Tanılama dosyasını önizle</string>

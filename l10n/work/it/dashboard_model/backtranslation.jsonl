@@ -19,3 +19,6 @@
 {"back":"Scheduled charging","key":"dashboard_model_tile_charge_schedule","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"be989e0ff6f15c4ace058c5c42d78af73188cd49","target":"Ricarica programmata"}
 {"back":"Lock bar","key":"dashboard_model_type_lockbar","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"02d2f80d03759b90639b3d316a491d5d2d53477a","target":"Barra del blocco"}
 {"back":"Sched. charging","key":"dashboard_model_tile_charge_schedule_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"699259da8d38c2a1d8a69c8ac841763d53ab11da","target":"Ricarica progr."}
+{"back":"Battery alerts","key":"dashboard_model_qa_charge_alerts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"a3e5ebbd7d27387561d5b73e97446892da8aee4e","target":"Avvisi batteria"}
+{"back":"Alerts","key":"dashboard_model_qa_charge_alerts_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7463b09504a12e15a09561e3e0add16f6cbf5c02","target":"Avvisi"}
+{"back":"Low %1$s","key":"dashboard_model_tile_low_at","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"f637829749c4d22dca0d794dd65b041832a8c9d1","target":"Bassa %1$s"}

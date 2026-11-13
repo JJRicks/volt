@@ -310,7 +310,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Senden</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Als Nächstes öffnet sich deine E-Mail-App, damit du den Bericht zuerst lesen kannst.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Wähle deinen Scooter oder „Nicht sicher“ und dann „Senden“.</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Eine Diagnosedatei wird hinzugefügt: Details zur App und zum Scooter sowie letzte Verbindungs- und Steuerungsereignisse. Nie enthalten: dein Besitzerschlüssel, deine PIN, deine Seriennummer, dein Standort oder Namen.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff">Eine Diagnosedatei wird hinzugefügt: Details zu App, Telefon und Scooter, Einstellungen von Volt und letzter Absturz, Anzahl der Aufzeichnungen, Verbindungs- und Steuerungsereignisse der letzten Zeit sowie Lade- und Zeitplanverlauf des ausgewählten Scooters mit Zeitangaben. Niemals enthalten sind dein Besitzerschlüssel, deine PIN, deine Seriennummer, dein Standort oder Namen.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">E-Mail an Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Vorschau</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Vorschau der Diagnosedatei öffnen</string>

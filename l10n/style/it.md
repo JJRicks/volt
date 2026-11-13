@@ -78,24 +78,24 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Autonomia | **Auton.** | 64 | Only with another word: *Auton. stimata* (85) |
 | stimato, stimata | **stim.** | 28 | Prefer *(stima)* after a value or name; it costs only 4dp. *(stim.)* only where you measured that *(stima)* doesn't fit |
 | Impostazioni | **Impost.** | 75 → 43 | See below |
-| Sperimentale | **Sperim.** | 77 → 44 | Only under 64dp |
+| Sperimentale | **Sperim.** | 77 → 44 | Only under 66dp |
 | Limite di velocità | **Limite vel.** | 97 → 59 | |
 | Numero | **N.** | | |
-| informazioni | **info** | | *Info e autorizzazioni* (118) on full-width rows. *autorizzazioni* (78.7 at 12sp) doesn't fit a 64dp Quick access line, so those two rungs alone say *Info e permessi* (89) |
+| informazioni | **info** | | *Info e autorizzazioni* (118) on full-width rows. *autorizzazioni* (78.7 at 12sp) doesn't fit a 66dp Quick access line, so those two rungs alone say *Info e permessi* (89) |
 | massimo, minimo | **max**, **min** | | |
 
 **Narrow budgets, measured:**
 
-- **A Quick access name has 64dp per line at 12sp, and a single word wider than that breaks mid-word.** These words don't fit, so these rungs avoid them: *Impostazioni* 71.6, *Sperimentale* 74.3, *monopattino* 71.7, *monopattini* 67.7.
-- *Settings* on a 62dp tab or 64dp button: **Impost.** On a full-width title: *Impostazioni*. **Debate item:** the full rung is also TalkBack's name, so it speaks an abbreviation here; *Opzioni* (44) is the alternative, but it isn't Android's word.
+- **A Quick access name has 66dp per line at 12sp, and a single word wider than that breaks mid-word.** These words don't fit, so these rungs avoid them: *Impostazioni* 71.6, *Sperimentale* 74.3, *monopattino* 71.7, *monopattini* 67.7.
+- *Settings* on a 62dp tab or 66dp button: **Impost.** On a full-width title: *Impostazioni*. **Debate item:** the full rung is also TalkBack's name, so it speaks an abbreviation here; *Opzioni* (44) is the alternative, but it isn't Android's word.
 - *My scooters*: **I miei mezzi** (68; wraps at a space). *Scooter name*: **Nome mezzo** (75). *Mezzo* is NAVEE's manual's own word (*il mezzo*), allowed only on these two keys, `dashboard_model_qa_my_scooters` and `dashboard_model_qa_scooter_name`. The check accepts it everywhere and can't tell, so a judge rejects it on any other key.
 - *Battery settings*: full *Impost. batteria* (wraps), short *Batteria* (47). *Ride settings*: full and short *Impost. guida* (79).
-- *Experimental controls*: full **Sperim.** (42.4 at 12sp), short *Sperimentale* (77). *sperimentali* (69.3) doesn't fit a 64dp line, so *Comandi sperimentali* (126) can't go on these two rungs. The glossary row accepts both.
+- *Experimental controls*: full **Sperim.** (42.4 at 12sp), short *Sperimentale* (77). *sperimentali* (69.3) doesn't fit a 66dp line, so *Comandi sperimentali* (126) can't go on these two rungs. The glossary row accepts both.
 - *Display & sound*: full *Display e suono* (wraps), short **Display/suono** (84). *Display e suono* is 91.8, over the 90dp tile.
 - *PIN & proximity*: full *PIN e prossimità* (wraps), short **PIN/prossimità** (86.5).
 - *Star lights*: *Luci a stella* wraps at a space, but as one line it is 65.1 against 64, and the check measures one line, so it stays a known check error. No correct shorter name exists.
 - *Charge schedule* tile: *Ricarica programmata* is 127.7 against 90 (the English is 95.2 and overflows too). No approved abbreviation; on the owner's list, with *Ricarica progr.* (83) as the candidate.
-- *Charge done by*, the on/off: **Ricarica entro** (79.5) on every rung. *Charge done by time*, the time picker beside it in the same list: **Orario limite** on both rungs (71 on the one-line tile; wraps as *Orario / limite* at 64dp). Never *ora* in this name: *Ricarica ora* reads as "charge now".
+- *Charge done by*, the on/off: **Ricarica entro** (79.5) on every rung. *Charge done by time*, the time picker beside it in the same list: **Orario limite** on both rungs (71 on the one-line tile; wraps as *Orario / limite* at 66dp). Never *ora* in this name: *Ricarica ora* reads as "charge now".
 
 **Never abbreviate:** *Blocca, Sblocca, Bloccato, Sbloccato, Blocco, Sblocco, Non verificato, Sconosciuto, Mai, Sempre, Allarme, PIN*. *Blocc.*, *Sbl.* and *Sbloc.* are not allowed. All of these fit: *Bloccato* 49, *Sbloccato* 56, *Sblocca* 44. If one doesn't fit, write it in full anyway and report it in your notes.
 
@@ -223,7 +223,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | cancelled vs interrupted | a state difference: cancelled means nothing was applied; interrupted means it stopped partway | Cancelled is **annullato**: *modifica annullata*, *Annullato prima dell'invio*. Stopped or cut off is **interrotto**. Never swap them on a lock or PIN key |
 | applying (a change) | a change in progress; *applicazione* is the software word | **modifica in corso**: *%1$s: modifica in corso…*. Check that a bare verbal noun doesn't collide with another noun |
 | whole hour | a time on the hour, not a duration | **orario a ora intera**: *Scegli un orario a ora intera entro 48 ore*. Never *un'ora intera*, which is sixty minutes |
-| permissions | what Android grants an app | **autorizzazioni**, as Android's Italian says: *Autorizzazione di accesso alla posizione*. *permessi* only on the two 64dp Quick access rungs |
+| permissions | what Android grants an app | **autorizzazioni**, as Android's Italian says: *Autorizzazione di accesso alla posizione*. *permessi* only on the two 66dp Quick access rungs |
 | keep it private, stored privately | an instruction about a secret file; storage on the phone | **Mantienilo riservato**; *salvata in modo riservato*. *Non condividerlo* is more natural, but a safety key can't add a negation the English lacks |
 
 ## 8. Sources consulted

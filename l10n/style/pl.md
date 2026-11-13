@@ -125,15 +125,15 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | Electronic lock / Lock | Blokada elektroniczna / Blokada | 45 dp at 12 sp |
 | Unverified here / Unverified | Niezweryf. tutaj / Niezweryf. | 61 dp at 12 sp |
 | Untested here / Untested | Nieprzetest. tutaj / Nieprzetest. | 68 dp at 12 sp |
-| Ride settings, 64 dp tile | Jazda | 31 of 64 dp at 12 sp |
-| Battery settings, 64 dp tile | Bateria | 41 of 64 dp at 12 sp |
-| Charge done by / tile | Termin końca ładowania / Koniec ład. | 141 of 90 dp at 12.5 sp, which wraps as the English does / 60.5 of 64 dp at 12 sp |
-| Charge done by time | Koniec ład.: godz. | two lines; `Koniec ład.:` 63.5 of 64 dp at 12 sp, 66 of 90 dp at 12.5 sp |
-| Live Stats, 64 dp tile | Na żywo | 49 of 64 dp at 12 sp |
-| My scooters, 64 dp tile | Hulajnogi | 53 of 64 dp at 12 sp |
-| Experimental controls, 64 dp tile / 90 dp tile | Eksperym. / Funkcje eksperym. | 59 of 64 dp at 12 sp / two lines, 45 and 61 of 90 dp at 12.5 sp |
-| PIN & proximity, 64 dp tile | PIN i zbliż. | 58 of 64 dp at 12 sp |
-| Line lights, 64 dp tile | Liniowe | fits |
+| Ride settings, 66 dp tile | Jazda | 31 of 66 dp at 12 sp |
+| Battery settings, 66 dp tile | Bateria | 41 of 66 dp at 12 sp |
+| Charge done by / tile | Termin końca ładowania / Koniec ład. | 141 of 90 dp at 12.5 sp, which wraps as the English does / 60.5 of 66 dp at 12 sp |
+| Charge done by time | Koniec ład.: godz. | two lines; `Koniec ład.:` 63.5 of 66 dp at 12 sp, 66 of 90 dp at 12.5 sp |
+| Live Stats, 66 dp tile | Na żywo | 49 of 66 dp at 12 sp |
+| My scooters, 66 dp tile | Hulajnogi | 53 of 66 dp at 12 sp |
+| Experimental controls, 66 dp tile / 90 dp tile | Eksperym. / Funkcje eksperym. | 59 of 66 dp at 12 sp / two lines, 45 and 61 of 90 dp at 12.5 sp |
+| PIN & proximity, 66 dp tile | PIN i zbliż. | 58 of 66 dp at 12 sp |
+| Line lights, 66 dp tile | Liniowe | fits |
 
 These are examples of the method, not approved strings. `Zbliż.` is allowed only in this one label. Bare `zbliżenie` is never allowed: it means a close-up or intimacy. The 90 dp rung is `PIN i klucz zbliżeniowy`; a title with room says `PIN i odblokowanie zbliżeniowe`. A narrower rung must never hold a longer text than a wider one, and check the longest single word against the budget before keeping a rung.
 

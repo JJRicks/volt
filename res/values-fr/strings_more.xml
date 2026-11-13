@@ -126,6 +126,8 @@
     <string name="more_prefs_auto_connect">Connexion automatique</string>
     <!-- src:25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a -->
     <string name="more_prefs_background">Maintenir la connexion en arrière-plan</string>
+    <!-- src:72a034c2acd35f0fa065e73cba4010accf1ba188 -->
+    <string name="more_prefs_background_sub">Les enregistrements de trajet et de recharge maintiennent la connexion, tout comme la recharge en direct et les alertes de recharge pendant une recharge</string>
     <!-- src:83881e36841edbacf388110c732b3b73770b8f36 -->
     <string name="more_prefs_awake">Maintenir l’écran allumé</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->
@@ -714,6 +716,10 @@
     <string name="more_dev_record">Enregistrer cette recharge</string>
     <!-- src:31df228a56f613c6d800947252ccfbeb21adfe15 -->
     <string name="more_dev_stop_record">Arrêter l’enregistrement de recharge</string>
+    <!-- src:af720dda0e5960fc4c7937dd842634095edc5998 -->
+    <string name="more_charge_auto_record">Enregistrer les recharges automatiquement</string>
+    <!-- src:b5ae1ac382c33caeae1accd5788315882d14d6a3 -->
+    <string name="more_charge_auto_record_sub">L’enregistrement démarre lorsque la trottinette connectée commence à se recharger. Une recharge qui commence alors que Volt n’est pas connectée ou que ses notifications sont désactivées ne sera pas enregistrée.</string>
     <!-- src:96960bb4f69e6584734e68c56d1c7c2a5af9f3e4 -->
     <string name="more_dev_recordings">Enregistrements de recharge</string>
     <!-- src:74f12c275268df7067294652b52ba23190fcd1a8 -->

@@ -74,6 +74,10 @@
     <string name="dashboard_model_qa_charge_done_time">Klaar vóór: tijd</string>
     <!-- src:5e8ef4566f297b6db0e662bca61dc57c4f3c167b -->
     <string name="dashboard_model_qa_charge_done_time_short">Klaar vóór: tijd</string>
+    <!-- src:a3e5ebbd7d27387561d5b73e97446892da8aee4e -->
+    <string name="dashboard_model_qa_charge_alerts">Accuwaarschuwingen</string>
+    <!-- src:7463b09504a12e15a09561e3e0add16f6cbf5c02 -->
+    <string name="dashboard_model_qa_charge_alerts_short">Meldingen</string>
     <!-- src:9d025559fab6ea97c5d3dbe9946bea4df41d449d -->
     <string name="dashboard_model_qa_group_menus">Menu’s</string>
     <!-- src:1846969941ff2b0d71f50a727e056ac63712e621 -->
@@ -96,6 +100,8 @@
     <string name="dashboard_model_tile_measuring">Bezig met meten</string>
     <!-- src:36bb83c10ec32db86dc71f331a909921f5587794 -->
     <string name="dashboard_model_tile_on_at">Aan • %1$s</string>
+    <!-- src:f637829749c4d22dca0d794dd65b041832a8c9d1 -->
+    <string name="dashboard_model_tile_low_at">Laag %1$s</string>
     <!-- src:762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0 -->
     <string name="dashboard_model_tile_not_scheduled">Niet gepland</string>
     <!-- src:bf2c1d9211787ac67f4d9a7a67895abba193869e -->

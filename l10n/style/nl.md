@@ -65,7 +65,7 @@ Every ladder runs full, `_short`, `_compact`, then icon. Measure in Saira (`tool
 | Capaciteit | **Cap.** | Gesch. cap. 64.2 at 12.5sp | Capac. |
 | Geschat(te), before cap. only | **Gesch.** | Gesch. cap. | Gesch. alone, which reads as geschiedenis |
 | Instellingen, in a hyphenated compound | **-inst.** | Accu-inst. 54.5 at 12sp | Inst. alone, Instell., Instel. |
-| Experimentele functies | **Exp. funct.** | 58.8 at 12sp, the 64dp shortcut only | Exp. alone, Experim., Exp. fn. |
+| Experimentele functies | **Exp. funct.** | 58.8 at 12sp, the 66dp shortcut only | Exp. alone, Experim., Exp. fn. |
 | Installeren | **Install.** | 43.3 at 14sp, `owner_shizuku_install` only | Inst. |
 | ongeveer | **ca.**, before a number | ca. 25 km | ong., +/- |
 | Firmware, on `*_version_compact` rungs only | **FW** | FW meter, FW accu; the English has FW too | Firmw. |
@@ -87,7 +87,7 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 | Est. range / Range | Geschatte actieradius (124.9) | Geschat bereik (85.6) | Bereik (37.3) |
 | Energy recovery | Energieterugwinning (122.0) | Terugwinning (79.4) | icon |
 | Compatibility check | Compatibiliteitscontrole (137.9) | Compatibiliteit (84.4) | Controle (48.6) |
-| Experimental controls, 90dp and 64dp | Experimentele functies (133.8) | Experimenteel (84.1) | Exp. funct. (58.8 at 12sp) |
+| Experimental controls, 90dp and 66dp | Experimentele functies (133.8) | Experimenteel (84.1) | Exp. funct. (58.8 at 12sp) |
 | Unverified here / Unverified | Hier niet geverifieerd | Niet geverifieerd (97.1), wraps at the space | Same; report it if it doesn't fit |
 | Worked here / Worked | Werkte hier (67.2) | Werkte hier | |
 | Owner key | Eigenaarssleutel (96.6) | Same; fall to the icon if it doesn't fit | |
@@ -95,7 +95,7 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: **Slot** 22.9 (*Vergrendelen* is 78.1 and *Vergrendel* 63.6, so neither fits), **Opties** 37.4 (*Instellingen* is 68.0), Accu 27.5, Ritten 35.5.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: Licht 26.8, Opties 35.9 (*Instellingen* is 65.3), Livedata 47.6, Ritten 34.1, Rijden 35.4, Accu-inst. 54.5, Lijnlicht 43.5, Sterlicht 46.6, App-opties 60.9, Stepnaam 56.8, Mijn steps 57.3, Data 26.1, Display 41.5, Info 22.2, PIN & nabij 62.0, Klaar vóór 56.9, Exp. funct. 58.8. `dashboard_model_qa_charge_done_time` has no fitting rung: *Klaar vóór: tijd* is 80.7 at 12sp and bare *Klaar vóór* duplicates its sibling, so the width check warns and the judge decides (candidate: *Eindtijd* 42.5).
+- `dashboard_model_qa_*`, 66dp at 12sp, one line: Licht 26.8, Opties 35.9 (*Instellingen* is 65.3, which fits since the room became 66dp), Livedata 47.6, Ritten 34.1, Rijden 35.4, Accu-inst. 54.5, Lijnlicht 43.5, Sterlicht 46.6, App-opties 60.9, Stepnaam 56.8, Mijn steps 57.3, Data 26.1, Display 41.5, Info 22.2, PIN & nabij 62.0, Klaar vóór 56.9, Exp. funct. 58.8. `dashboard_model_qa_charge_done_time` has no fitting rung: *Klaar vóór: tijd* is 80.7 at 12sp and bare *Klaar vóór* duplicates its sibling, so the width check warns and the judge decides (candidate: *Eindtijd* 42.5).
 - The same keys' `_short`, 90dp at 12.5sp: Instellingen 68.0, Verlichting, Rijinstellingen 82.7, Livegegevens 79.4, Accu-inst. (*Accu-instellingen* is 99.7), Lijnverlichting 81.6, Sterverlichting 84.9, App-opties 63.5 (*App-voorkeuren* is 93.2), Data & historie 86.2, Display/geluid 83.7 (*Display & geluid* is 94.2), Info & rechten 82.3, PIN & nabijheid 89.7, Klaar vóór 59.3, Klaar vóór: tijd 84.0, Experimenteel 84.1.
 - `dashboard_model_tile_charge_schedule`, 90dp: Laadschema 72.7. `dashboard_model_tile_top_speed`, 90dp: Max. snelheid.
 - `owner_shizuku_install`, 48dp at 14sp: Install. 43.3. `owner_shizuku_open`, same budget: **Open** (*Openen* is 50.5). `stats_health_chip`, 40dp at 9sp: *geschat* 32.7. `stats_raw_chip`, 40dp at 10sp: *RUW* 23.7. `stats_charge_fit`, 72dp at 14sp: *Passend* 55.3. `more_lab_badge`: LAB 20.0.

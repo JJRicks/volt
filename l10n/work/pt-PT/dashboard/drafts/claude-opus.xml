@@ -290,6 +290,17 @@
     <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Sem definições correspondentes</string>
     <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Escolher atalho</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Fechar «Escolher atalho»</string>
+    <plurals name="dashboard_picker_section" volt:src="143345d8abdf3fe8a744ade57520d8b9a48f1100">
+        <item quantity="one">%2$s, %1$d atalho</item>
+        <item quantity="many">%2$s, %1$d de atalhos</item>
+        <item quantity="other">%2$s, %1$d atalhos</item>
+    </plurals>
+    <plurals name="dashboard_picker_section_state" volt:src="f7864d693de33d8067bd3787984fe52dbd48e0b7">
+        <item quantity="one">%2$s, %1$d atalho, %3$s</item>
+        <item quantity="many">%2$s, %1$d de atalhos, %3$s</item>
+        <item quantity="other">%2$s, %1$d atalhos, %3$s</item>
+    </plurals>
+    <string name="dashboard_picker_category_reason" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Guardar</string>
     <string name="dashboard_save_checked" volt:src="07ed5aac0e459c8e497b5b10fa5863ebc480dbef">✓ Guardar</string>
     <string name="dashboard_window_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>

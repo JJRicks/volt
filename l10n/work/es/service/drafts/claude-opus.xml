@@ -81,6 +81,9 @@
     <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">La grabación de carga alcanzó su límite de almacenamiento o de tiempo</string>
     <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Grabación de carga guardada · la batería llegó al 100 %%</string>
     <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Grabación de carga guardada</string>
+    <string name="service_charge_not_kept" volt:src="31f872ceeb975374bc8e8f1ea8331a295f49bb5a">Grabación de carga no guardada · menos de 10 min o 5 %%</string>
+    <string name="service_charge_auto_no_room" volt:src="8c8a5ff695247603854db647ac54d85eaede73c5">Esta carga no se está grabando: las 20 grabaciones de carga guardadas, compartidas por todos tus patinetes, son todas grabaciones que iniciaste tú. Elimina las grabaciones de carga de un patinete para liberar espacio.</string>
+    <string name="service_charge_charger_guessed" volt:src="50ad0009a5426ee1508e0b0681adbddceaf41638">%1$s · cargador supuesto</string>
     <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">La grabación de carga se detuvo tras un error de almacenamiento</string>
     <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">Grabación de carga detenida · %1$s</string>
     <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">carga terminada</string>

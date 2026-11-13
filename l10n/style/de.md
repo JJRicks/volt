@@ -132,24 +132,24 @@ against the real word "Labor" (31.8dp at 12sp); D3 lets a language use its own s
 | Est. range / Range | Geschätzte Reichweite | Geschätzte Reichw.; "Geschätzt" (57.7) or "Schätzung" (61.4) only where the screen already says range | Reichweite (64.2) |
 | Energy recovery | Energierückgewinnung (133.6) | Rückgewinnung (93.0) | Rekup. is not approved; fall to the icon |
 | Compatibility check | Kompatibilitätsprüfung (134.8) | Kompatibilität (81.9) | Prüfung |
-| Experimental controls, 90dp and 64dp | Experimentelle Funktionen | Experimentell (80.4) | Exp. Funkt. (61.6 at 12sp) |
+| Experimental controls, 90dp and 66dp | Experimentelle Funktionen | Experimentell (80.4) | Exp. Funkt. (61.6 at 12sp) |
 | Unverified here / Unverified | Hier nicht verifiziert | Nicht verifiziert (89.3) | Nicht verifiziert wherever it fits; Ungeprüft (59.6) only where it does not |
 | Worked here / Worked | Hat hier funktioniert | Hat funktioniert (92.8) | |
-| Charge done by, 64dp and 90dp | Fertig geladen bis (99.3 at 12sp) | Fertig bis (54.0) | |
-| Charge done by time, 64dp and 90dp | Fertig bis (51.9 at 12sp). This matches the switch's label, so note it for the judge | Fertig bis: Zeit (82.7) | |
+| Charge done by, 66dp and 90dp | Fertig geladen bis (99.3 at 12sp) | Fertig bis (54.0) | |
+| Charge done by time, 66dp and 90dp | Fertig bis (51.9 at 12sp). This matches the switch's label, so note it for the judge | Fertig bis: Zeit (82.7) | |
 | Owner key | Besitzerschlüssel (100.7) | Same word; fall to the icon if it does not fit | |
 
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: Sperren 46.0, **Optionen 53.2** (Einstellungen is 79.3 and does
   not fit), Akku 29.3, Fahrten 45.3.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: Licht 26.8, Optionen 51.1, Live-Daten 60.2, Fahrten 43.5, Fahr-Einst.
+- `dashboard_model_qa_*`, 66dp at 12sp, one line: Licht 26.8, Optionen 51.1, Live-Daten 60.2, Fahrten 43.5, Fahr-Einst.
   60.6, Akku-Einst. 63.5, Lichtleiste 56.9 (Lichtleisten is 64.03, just over), Sternlicht 53.7, App-Einst. 57.6, Fertig bis 51.9
   (`charge_done_by` and `charge_done_time`; "Fertig geladen bis" is 99.3). English overflows on
   several of these already, where the check only warns; "Einstellungen" alone would turn the Settings key
   into an error.
 - `dashboard_model_tile_top_speed`, 90dp at 12.5sp: Max. Tempo. `dashboard_model_tile_charge_schedule`, 90dp: Ladezeitplan 74.7 (Geplantes Laden is 97.0).
-- In `dashboard_model_qa_*` the rung names run against the widths: the plain key is 64dp and `_short` is 90dp. So the plain key gets the **narrower** text. Narrow forms: Meine Scooter → Scooter 42.6, Scooter-Name → Name 32.7, Display & Ton → Display 41.5, Daten & Verlauf → Daten 33.4, Info & Rechte → Info 22.3. The 90dp rung keeps the longer text; "Daten, Verlauf" stays because "Daten & Verlauf" is 92.7 at 12.5sp. "Rechte" alone reads as legal rights, so Info & Rechte goes to the judge.
+- In `dashboard_model_qa_*` the rung names run against the widths: the plain key is 66dp and `_short` is 90dp. So the plain key gets the **narrower** text. Narrow forms: Meine Scooter → Scooter 42.6, Scooter-Name → Name 32.7, Display & Ton → Display 41.5, Daten & Verlauf → Daten 33.4, Info & Rechte → Info 22.3. The 90dp rung keeps the longer text; "Daten, Verlauf" stays because "Daten & Verlauf" is 92.7 at 12.5sp. "Rechte" alone reads as legal rights, so Info & Rechte goes to the judge.
 - `owner_shizuku_install`, 48dp at 14sp: "Installieren" is 72.7. Use "Install.".
 
 **Compounds.** Line breaking follows only spaces and real hyphens. German compounds never get an invented

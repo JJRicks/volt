@@ -261,6 +261,9 @@
     <string name="readings_chart_elevation" volt:src="43284f542b28a9aa8621fcbd297b8c18910c1602">Altitude</string>
     <string name="readings_chart_gps_acceleration" volt:src="c415bb6299c3269b5bed4e1c1a4c3ba44b429d95">Aceleração do GPS</string>
     <string name="readings_chart_energy_distance" volt:src="5e03198574edc59e86a254a341205f8e62a6aa92">Energia / distância</string>
+    <string name="readings_chart_gps_accuracy" volt:src="c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601">Precisão do GPS</string>
+    <string name="readings_accuracy_value" volt:src="b1b01669302e998e619e58732cf9a7febe96ec96">±%1$s</string>
+    <string name="readings_chart_axis_at_least" volt:src="c19948a14a0e989b0ca349d0fe8f7ad0c2a71486">≥%1$s</string>
     <string name="readings_chart_est_finish" volt:src="025a56ff0a8058a86a507ab29885d9d88f2141f1">Término estim.</string>
     <string name="readings_chart_est_countdown" volt:src="14031bfeb3be34cbf79c3c63ca28dd159ab444da">Tempo restante estim.</string>
     <string name="readings_chart_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Corrente</string>

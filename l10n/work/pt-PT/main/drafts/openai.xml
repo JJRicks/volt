@@ -312,7 +312,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Enviar</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">A tua app de email abre a seguir, para que o possas ler primeiro.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Escolhe a tua trotinete ou «Não tenho a certeza» e depois toca em «Enviar».</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Isto vai adicionar um ficheiro de diagnóstico: detalhes da app e da trotinete e eventos recentes de ligação e controlo. Nunca inclui a tua chave de proprietário, PIN, número de série, localização ou nomes.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff">Isto vai adicionar um ficheiro de diagnóstico: detalhes da app, do telemóvel e da trotinete, definições da Volt e última falha, número de gravações, eventos recentes de ligação e controlo e histórico de carregamento e programação da trotinete selecionada, com as horas. Nunca inclui a tua chave de proprietário, PIN, número de série, localização ou nomes.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Enviar email à Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Pré-visualizar</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Pré-visualizar o ficheiro de diagnóstico</string>

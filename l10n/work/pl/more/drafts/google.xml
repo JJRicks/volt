@@ -63,7 +63,7 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Połącz automatycznie</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Utrzymuj połączenie w tle</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Nagrywanie zawsze utrzymuje połączenie</string>
+    <string name="more_prefs_background_sub" volt:src="72a034c2acd35f0fa065e73cba4010accf1ba188">Nagrywanie utrzymuje połączenie, a podczas ładowania także funkcja „Ładowanie na żywo” i alerty ładowania</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Nie wygaszaj ekranu</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Podczas nagrywania</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Automatycznie kończ przejazdy</string>
@@ -370,6 +370,8 @@
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Zapisane krzywe ładowania</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Zapisuj to ładowanie</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Zatrzymaj zapis ładowania</string>
+    <string name="more_charge_auto_record" volt:src="af720dda0e5960fc4c7937dd842634095edc5998">Zapisuj ładowania automatycznie</string>
+    <string name="more_charge_auto_record_sub" volt:src="b5ae1ac382c33caeae1accd5788315882d14d6a3">Rozpoczyna się, gdy połączona hulajnoga zaczyna się ładować. Pominięte zostanie ładowanie, które rozpocznie się, gdy aplikacja Volt nie jest połączona lub jej powiadomienia są wyłączone.</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Zapisy ładowania</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Zapisane oszacowania i czasy zakończenia</string>
     <string name="more_dev_export" volt:src="b0060df221c4dc4a3e20f885ced9326da40f3c81">Eksportuj zapisy ładowania</string>
