@@ -402,12 +402,11 @@ public final class ShortcutPickerValidation extends Instrumentation {
         choose(gt3);
         main(() -> require(service.chargeAlertsOffered(), "The GT3 Max offline does not offer alerts"));
         main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF), "Could not clear alerts"));
-        settle();
-        main(() -> require(texts(tile(ALERTS)).contains("Off") && tile(ALERTS).getAlpha() == 1f, "The tile does not read Off: " + texts(tile(ALERTS))));
+        // Home's body refresh is paced to once a second (MainActivity.BODY_REFRESH_MS): wait for it, not a fixed pause.
+        await(() -> texts(tile(ALERTS)).contains("Off") && tile(ALERTS).getAlpha() == 1f, "The tile does not read Off");
         shot("alerts-tile-off");
         main(() -> require(service.setChargeAlerts(ChargeAlertPolicy.Settings.OFF.charge(true, 70)), "Could not save 70%"));
-        settle();
-        main(() -> require(texts(tile(ALERTS)).contains("70%"), "The tile did not update to 70%: " + texts(tile(ALERTS))));
+        await(() -> texts(tile(ALERTS)).contains("70%"), "The tile did not update to 70% within 10 s of saving");
         shot("alerts-tile-70");
         tap(tile(ALERTS));
         main(() -> require(alertSheet() != null, "The tile did not open the Charge alerts sheet"));
@@ -434,7 +433,7 @@ public final class ShortcutPickerValidation extends Instrumentation {
         shot("alerts-picker-ut5");
         main(() -> { require(service.setSimulation(true), "Simulation did not start"); service.ble.setSimulationModel("39991"); service.ble.tickSimulation(); });
         settle(); home();
-        main(() -> require(service.chargeAlertsOffered() && texts(tile(ALERTS)).contains("Off"), "Simulating 39991 on the UT5 MAX's profile: " + texts(tile(ALERTS))));
+        await(() -> service.chargeAlertsOffered() && texts(tile(ALERTS)).contains("Off"), "Simulating 39991 on the UT5 MAX's profile does not offer the alerts tile");
         main(() -> { service.ble.setSimulationModel(""); require(service.setSimulation(false), "Simulation did not stop"); });
         choose(gt3);
         checks.add("Charge alerts: Off, then 70% as saved; the tile opens the sheet; another scooter closes it; on the UT5 MAX the tile is muted with — and "
