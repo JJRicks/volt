@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
 /**
  * Hub layout plan, PR 10: the text of search, the Widgets dock and the wide Home's right pane through HubText,
  * and the names search gives the scooter's hand-built rows and the settings rows (HubSearchTables), each the
- * name the row already shows. In English and under a key-echo text source (each line is one whole catalog
- * string, never glued from pieces).
+ * name the row already shows; and the What's new sheet's line under notes cut short. In English and under a
+ * key-echo text source (each line is one whole catalog string, never glued from pieces).
  */
 public final class HubSearchTextTest {
     private static int checks;
@@ -27,7 +27,7 @@ public final class HubSearchTextTest {
     private static final Set<String> PR10_KEYS = new HashSet<>(Arrays.asList("hub_page_search", "hub_search_hint",
             "hub_search_none", "hub_search_count", "hub_search_group_pages", "hub_search_group_settings",
             "hub_search_group_readings", "hub_search_group_rides", "hub_search_in", "hub_dock_all", "hub_all",
-            "hub_service_card_title", "hub_service_card_none", "hub_search_battery_history"));
+            "hub_service_card_title", "hub_service_card_none", "hub_search_battery_history", "hub_whats_new_cut"));
 
     private static final T.Source ECHO = new T.Source() {
         @Override public String string(int id) { return "⟦" + T.key(id) + "⟧"; }
@@ -66,6 +66,7 @@ public final class HubSearchTextTest {
                 dockAndPane();
                 rowNames();
                 settingNames();
+                whatsNewCut();
             }
             Locale.setDefault(Locale.US);
             T.install(ECHO);
@@ -76,7 +77,7 @@ public final class HubSearchTextTest {
         }
         ids();
         System.out.println("HubSearchTextTest: " + checks + " checks passed (search, dock, wide pane, row and setting "
-                + "names, in English and under the key-echo source)");
+                + "names, What's new's cut notes line, in English and under the key-echo source)");
     }
 
     private static void search() {
@@ -146,6 +147,7 @@ public final class HubSearchTextTest {
         equal("Home style", HubText.settingTitle(HubSearchTables.SETTING_HOME_STYLE), "home style");
         equal("Units", HubText.settingTitle(HubSearchTables.SETTING_UNITS), "units");
         equal("Text size", HubText.settingTitle(HubSearchTables.SETTING_DISPLAY), "display card");
+        equal("Haptic feedback", HubText.settingTitle(HubSearchTables.SETTING_HAPTICS), "haptic feedback");
         equal("Language", HubText.settingTitle(HubSearchTables.SETTING_LANGUAGE), "language");
         equal("Open automatically", HubText.settingTitle(HubSearchTables.SETTING_RIDING_AUTO_OPEN), "auto open");
         equal("Record rides automatically", HubText.settingTitle(HubSearchTables.SETTING_RIDING_AUTO_RECORD), "auto record");
@@ -171,13 +173,21 @@ public final class HubSearchTextTest {
         check(HubText.settingTitle(null) == null && HubText.settingTitle("nowhere") == null, "no name for an unknown tag");
     }
 
+    /** The What's new sheet's line under notes that were cut short (WhatsNewNotes.Notes#cut). */
+    private static void whatsNewCut() {
+        equal("These are the first notes. The release page has them all.", HubText.whatsNewCut(), "the cut notes line");
+        check(!HubText.whatsNewCut().isPlural(), "the cut notes line is not a count");
+        equal("hub_whats_new_cut", T.key(HubText.whatsNewCut().id()), "the cut notes line's key");
+    }
+
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
     private static void echo() {
         List<Msg> all = new ArrayList<>(Arrays.asList(HubText.title(HubPages.SEARCH), HubText.searchHint(),
                 HubText.searchNone(), HubText.searchCount(1), HubText.searchCount(5), HubText.searchGroupPages(),
                 HubText.searchGroupSettings(), HubText.searchGroupReadings(), HubText.searchGroupRides(),
                 HubText.searchIn("x"), HubText.dockAll(), HubText.all(), HubText.serviceCardTitle(),
-                HubText.serviceCardNone(), HubText.batteryHistorySearchWords(), HubText.lightZonesSearchWords()));
+                HubText.serviceCardNone(), HubText.batteryHistorySearchWords(), HubText.lightZonesSearchWords(),
+                HubText.whatsNewCut()));
         for (String row : HubSearchTables.ROWS) all.add(HubText.controlRowTitle(row));
         for (String tag : HubSearchTables.SETTINGS) all.add(HubText.settingTitle(tag));
         Set<String> reached = new HashSet<>();
@@ -206,5 +216,9 @@ public final class HubSearchTextTest {
         check(rows.size() == HubSearchTables.ROWS.length, "no row listed twice");
         Set<String> settings = new HashSet<>(Arrays.asList(HubSearchTables.SETTINGS));
         check(settings.size() == HubSearchTables.SETTINGS.length, "no setting listed twice");
+        // Haptic feedback is listed under a tag of its own, apart from the display card (whose tag stands for Text
+        // size). Part 11 sets that tag on the switch in MoreScreen.
+        check(settings.contains(HubSearchTables.SETTING_HAPTICS), "Haptic feedback is listed");
+        check(!HubSearchTables.SETTING_HAPTICS.equals(HubSearchTables.SETTING_DISPLAY), "Haptic feedback has a tag apart from the display card");
     }
 }

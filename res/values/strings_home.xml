@@ -42,9 +42,9 @@
          charging). The line under it says when. -->
     <string name="home_moment_charging" volt:screen="Home style settings" volt:purpose="switch" volt:safety="charge">Show charging automatically</string>
     <string name="home_moment_charging_sub" volt:screen="Home style settings" volt:purpose="description" volt:safety="charge">Home shows the charge by itself when charging starts.</string>
-    <!-- Switch: after a ride ends, Clean Home's top area shows that ride. -->
+    <!-- Switch: after a recorded ride ends, Clean Home's top area shows that ride. Only a ride Volt recorded counts (automatic recording is off by default). -->
     <string name="home_moment_ride" volt:screen="Home style settings" volt:purpose="switch">Show the last ride after riding</string>
-    <string name="home_moment_ride_sub" volt:screen="Home style settings" volt:purpose="description">For about an hour after a ride, until you close it.</string>
+    <string name="home_moment_ride_sub" volt:screen="Home style settings" volt:purpose="description">For about an hour after a recorded ride, until you close it.</string>
 
     <!-- ===== Clean Home: the charging view ===== -->
     <!-- Muted line above the big percent while charging. %1$s is the charge limit as a percent ("90%"). Without a limit Home shows "Charging" instead. -->

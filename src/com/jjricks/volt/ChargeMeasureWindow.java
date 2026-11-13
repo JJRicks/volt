@@ -53,15 +53,28 @@ public final class ChargeMeasureWindow {
      * start or inferred the age. A disconnect may recover before the deadline; a late one cannot.
      */
     public Decision evaluate(long nowMono, String selectedProfile, boolean ready, Integer charging, boolean ageKnown) {
+        return evaluate(nowMono, selectedProfile, ready, ready, charging, ageKnown);
+    }
+
+    /**
+     * linked: the same live connection (BleController.linked(), which outlives a stale status); ready: the scooter can
+     * take a write now (BleController.ready()); ready implies linked. The fresh charging reading decides whether it
+     * charges; arming sends the plan, so it waits for ready: a status that is only stale (just after a wake, a slow
+     * answer) neither arms into the write gate's refusal nor ends the window as a disconnect (#418). The wait is bounded
+     * by the charging reading's own freshness and the link's silence limit.
+     */
+    public Decision evaluate(long nowMono, String selectedProfile, boolean linked, boolean ready, Integer charging, boolean ageKnown) {
         if (!active || arming) return WAIT;
+        boolean alive = linked || ready;
         if (!profile.equals(selectedProfile)) return new Decision(Step.NOT_SET, false, M.chargingMeasureScooterChanged());
         if (nowMono < startedMono) return new Decision(Step.NOT_SET, false, M.chargingMeasureClockChanged());
-        if (ready && Integer.valueOf(0).equals(charging)) return new Decision(Step.NOT_SET, false, M.chargingMeasureChargingStopped());
-        boolean charge = ready && Integer.valueOf(1).equals(charging);
+        if (alive && Integer.valueOf(0).equals(charging)) return new Decision(Step.NOT_SET, false, M.chargingMeasureChargingStopped());
+        boolean charge = alive && Integer.valueOf(1).equals(charging);
+        if (charge && !ready) return WAIT;
         if (charge && ageKnown) return new Decision(Step.ARM, true, null);
         if (nowMono < deadlineMono) return WAIT;
         return charge ? new Decision(Step.ARM, false, null)
-                : new Decision(Step.NOT_SET, false, ready ? M.chargingMeasureReadingsStopped() : M.chargingMeasureDisconnected());
+                : new Decision(Step.NOT_SET, false, alive ? M.chargingMeasureReadingsStopped() : M.chargingMeasureDisconnected());
     }
 
     /** A new finish time: keep the bound, and end no later than the new cautious start. */

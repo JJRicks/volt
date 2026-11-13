@@ -182,4 +182,9 @@
     <string name="hub_service_card_title" volt:screen="Wide Home, Service card" volt:purpose="title">Next checks</string>
     <!-- Shown in that card when no maintenance reminder is set. -->
     <string name="hub_service_card_none" volt:screen="Wide Home, Service card" volt:purpose="status">No checks set</string>
+
+    <!-- ===== One-time What's new sheet (its other text is in strings_home.xml, home_whats_new_*) ===== -->
+    <!-- Line under this release's notes when the sheet shows only the first of them (a long release); the button
+         below it, more_update_open "Open release page", opens the full notes. -->
+    <string name="hub_whats_new_cut" volt:screen="One-time What's new sheet after an update" volt:purpose="note">These are the first notes. The release page has them all.</string>
 </resources>

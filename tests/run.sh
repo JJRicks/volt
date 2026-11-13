@@ -58,6 +58,10 @@ sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6),
 # and the What's new sheet's bundled release notes (part 9).
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# Clean Home's charging view: what shows in its slot, the readings last to give way (council review 5886927849).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
+# Just back's tiles: names and values take the first rung that fits whole (part 9, council early review).
+sources+=("$APP_DIR/src/com/jjricks/volt/TileFit.java" "$TEST_DIR/TileFitTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -66,6 +70,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/Scoo
 sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/ControlsPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubSummaries.java" "$TEST_DIR/HubSummariesTest.java")
 # Hub routes: where each saved Quick access id leads once the quick-access sheets are gone (hub layout plan, PR 4).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
+# The shortcut picker's sections, first open section, search and availability; the Charge alerts shortcut's value.
+sources+=("$APP_DIR/src/com/jjricks/volt/ShortcutPicker.java" "$TEST_DIR/ShortcutPickerTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
 sources+=("$TEST_DIR/HubRideDataTest.java")
 # Email to Volt: which refusal of the charge export is worth a toast (council review of #396).
@@ -161,11 +167,14 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest

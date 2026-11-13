@@ -50,6 +50,8 @@ final class HomeStylePreview extends View {
     private final TextPaint words = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint photoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final RectF box = new RectF();
+    /** The phone's own bounds, kept apart from box, which the drawing reuses for its parts (council early review, note 6). */
+    private final RectF frame = new RectF();
     private final Bitmap photo;
     /** The scooter's name, or "" (a bar is drawn). */
     private final String name;
@@ -146,11 +148,11 @@ final class HomeStylePreview extends View {
         // The phone: the page's background inside a rounded frame.
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(ui.bg);
-        box.set(left, top, left + w, top + VIRTUAL_HEIGHT * s);
+        frame.set(left, top, left + w, top + VIRTUAL_HEIGHT * s);
         float corner = ui.dp(12);
-        canvas.drawRoundRect(box, corner, corner, paint);
+        canvas.drawRoundRect(frame, corner, corner, paint);
         canvas.save();
-        canvas.clipRect(box);
+        canvas.clipRect(frame);
         canvas.translate(left, top);
         canvas.scale(s, s);
         if (clean) drawClean(canvas);
@@ -159,7 +161,7 @@ final class HomeStylePreview extends View {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(ui.dp(1.5f));
         paint.setColor(ui.outline);
-        canvas.drawRoundRect(box, corner, corner, paint);
+        canvas.drawRoundRect(frame, corner, corner, paint);
         paint.setStyle(Paint.Style.FILL);
     }
 
