@@ -1750,6 +1750,15 @@ public final class ScooterService extends Service {
         if(phoneFinalStatus!=null&&phoneFinalFlags!=null)return EnumSet.copyOf(phoneFinalFlags);
         return EnumSet.of(phoneRides==null?PhoneRideRecorder.StatusFlag.STORAGE_ERROR:PhoneRideRecorder.StatusFlag.IDLE);
     }
+    /**
+     * Riding mode's GPS accuracy reading now (nowMono: SystemClock.elapsedRealtime). It only reads the phone recorder,
+     * so it never starts GPS or keeps GPS or the screen awake; with no phone recorder (no recording, simulation, phone
+     * sensors unavailable) GPS reads as off.
+     */
+    public GpsAccuracy.Reading gpsAccuracy(long nowMono){
+        PhoneRideRecorder recorder=phoneRecorder;
+        return GpsAccuracy.reading(isRecording(),recorder==null?GpsAccuracy.Phase.OFF:recorder.gpsAccuracyPhase(),recorder==null?null:recorder.latestFix(),nowMono);
+    }
     public String phoneLiveReadings(){return phoneRecorder==null?"":phoneRecorder.liveMotion();}
     public boolean isVisible(){return visible;}
     public long backgroundDeadlineMs(){return backgroundDeadlineMs;}

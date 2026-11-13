@@ -1033,7 +1033,7 @@ public final class RidesScreen implements AppScreen {
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
+            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
@@ -1084,7 +1084,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true, inferRegen);
+                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;
