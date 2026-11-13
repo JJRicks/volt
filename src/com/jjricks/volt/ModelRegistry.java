@@ -128,6 +128,8 @@ public final class ModelRegistry {
         Known(String name,String photo,String... features){this.name=name;this.photo=photo;this.features=new HashSet<>(java.util.Arrays.asList(features));}
     }
     private static final Map<String,Known> KNOWN=new LinkedHashMap<>();
+    /** The known models' names (UT5 MAX and each KNOWN line), for the report diagnostics file's name check: a scooter named after its model is not a leak. */
+    static java.util.List<String> knownNames(){java.util.List<String> names=new java.util.ArrayList<>();names.add("UT5 MAX");for(Known k:KNOWN.values())names.add(k.name);return names;}
     static{
         KNOWN.put("22131",new Known("N65i","n65i","lock","display_units","headlight","auto_sensor"));
         KNOWN.put("23452",new Known("ST3 Pro","st3pro","display_units","turn_sound","range_algorithm","traction_control"));
