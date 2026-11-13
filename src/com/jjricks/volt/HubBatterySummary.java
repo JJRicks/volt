@@ -97,6 +97,8 @@ final class HubBatterySummary implements AppScreen {
                 range == null ? "" : BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)),
                 DisplayTime.recent(host.activity(), service.settings, soc.capturedWallMs, System.currentTimeMillis())).render());
         rangeLine.setImportantForAccessibility(soc.live ? View.IMPORTANT_FOR_ACCESSIBILITY_AUTO : View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        // Read live as Home's battery card speaks it, "about 40 mi of range left": some languages draw the value alone.
+        rangeLine.setContentDescription(soc.live && range != null ? BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)) : null);
         // The right column: health and pack temperature where the model reports them live.
         TelemetryHistory.Reading healthReading = readings.get("battery_health_percent");
         Integer health = healthReading == null ? null : HubSummaries.health(healthReading.number, healthReading.live);
@@ -104,6 +106,8 @@ final class HubBatterySummary implements AppScreen {
         if (health != null) {
             healthName.setText(ScooterReadingLabels.compact(healthReading.key, ""));
             healthValue.setText(Fmt.percent(Fmt.integerNumber(health)));
+            // Drawn by its compact name; spoken by its full one with the value, as one item.
+            healthRow.setContentDescription(DashboardScreen.readingSpoken(ScooterReadingLabels.full(healthReading.key, ""), healthValue.getText()));
         }
         TelemetryHistory.Reading packReading = readings.get("temperature_c");
         Double pack = packReading == null ? null : HubSummaries.packTemperature(packReading.number, packReading.live);
@@ -112,6 +116,7 @@ final class HubBatterySummary implements AppScreen {
         if (packShown != null) {
             packName.setText(ScooterReadingLabels.compact(packReading.key, ""));
             packValue.setText(packShown);
+            packRow.setContentDescription(DashboardScreen.readingSpoken(ScooterReadingLabels.full(packReading.key, ""), packValue.getText()));
         }
         // Charging or not only from a live reading (as the Scooter tab's Battery summary), and only beside a live level:
         // a last-seen or missing state, or a last-seen level above it, hides the line (HubSummaries.card).

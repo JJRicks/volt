@@ -1112,6 +1112,12 @@ public final class DashboardScreen implements AppScreen {
      */
     static String rangeLeft(CharSequence distance) { return T.dashboardRangeLeft(distance); }
 
+    /**
+     * A reading spoken by its full name with its value, "Battery temperature, 23 °C", as Home's charging cards speak
+     * theirs. Battery & charging's summary card speaks its right column's compact-named rows with it.
+     */
+    static String readingSpoken(CharSequence name, CharSequence value) { return T.dashboardChargingDescription(name, value); }
+
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
             return DisplayTemperature.fromCelsius(value, temperatureUnit());
@@ -4355,7 +4361,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = detail.isEmpty() ? T.dashboardChargingDescription(label, value.getText())
+            String description = detail.isEmpty() ? readingSpoken(label, value.getText())
                     : T.dashboardChargingDescriptionDetail(label, value.getText(), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.

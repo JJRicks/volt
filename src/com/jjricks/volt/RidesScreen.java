@@ -347,7 +347,8 @@ public final class RidesScreen implements AppScreen {
             recordTile.setContentDescription(now);
         } else if (recordLook == RideRecordTile.Look.START) {
             fitRecordName();
-            recordTile.setContentDescription(startSpoken);
+            // Spoken by its full name, even while the short rung is drawn, so the spoken name holds the visible one.
+            recordTile.setContentDescription(HubText.quickActionLabel(HomeQuickActions.RECORD).render());
         } else {
             if (!startLabel.contentEquals(recordName.getText())) recordName.setText(startLabel);
             recordTile.setContentDescription(startSpoken);
@@ -381,7 +382,9 @@ public final class RidesScreen implements AppScreen {
         tile.setClickable(true); tile.setFocusable(true); tile.setOnClickListener(v -> action.run());
         tile.setAccessibilityDelegate(new View.AccessibilityDelegate() {
             @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
-                super.onInitializeAccessibilityNodeInfo(host, info); info.setClassName(android.widget.Button.class.getName());
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                // A button while a tap does something (or is held back); while a ride records the tile is a status.
+                info.setClassName((host.isClickable() || !host.isEnabled() ? android.widget.Button.class : android.widget.TextView.class).getName());
             }
         });
         ui.pressFeedback(tile);
