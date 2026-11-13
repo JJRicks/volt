@@ -72,15 +72,15 @@ final class CleanHomeScreen implements AppScreen {
 
         // The plan's header: the status line, then the scooter's name with Edit, search and Settings beside it, level
         // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
-        // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
-        // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
+        // the header's top down to the name row, its text centred in it (at its foot, the band's empty top read as a
+        // blank band of about 44 dp under the window's top); the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
         // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the three
         // buttons.
         header = column();
         header.setPadding(0, 0, 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
         TextView status = parts.status();
-        status.setGravity(Gravity.BOTTOM | Gravity.START);
-        status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
+        status.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP / 2), 0, ui.dp(CleanHeaderFit.TOP_DP / 2));
         status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
         header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();

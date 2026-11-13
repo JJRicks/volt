@@ -7,8 +7,8 @@ package com.jjricks.volt;
  *
  * <p>Both lines are tap targets (the status line opens the connection details, the name switches scooter), and the
  * three buttons keep 48 dp targets around a {@link #DISC_DP} dp disc. The name row is a full {@link #TARGET_DP} dp
- * band, and so is the status line: a band of its own from the header's top to the name row, its text at the band's
- * foot (at least {@link #TOP_DP} dp under the header's top), so no other view covers any of it. (Margins taken back
+ * band, and so is the status line: a band of its own from the header's top to the name row, its text centred in it
+ * (with at least {@link #TOP_DP} dp of padding around a tall line), so no other view covers any of it. (Margins taken back
  * from padding, as the widget dashboard's header does, would put half of it under the name row, which takes every
  * touch there: Clean's name fills its row.) The header is two 48 dp bands, about 100 dp at 1x.
  *
@@ -22,7 +22,7 @@ final class CleanHeaderFit {
     static final int TARGET_DP = 48, DISC_DP = 40;
     /** Three buttons beside the name (Edit, search, Settings), and the space before the first. */
     static final int BUTTONS = 3, BUTTON_GAP_DP = 4;
-    /** The least space above the status line's text (inside its band) and under the header (above the top area). */
+    /** The least padding around the status line's text (inside its band, half above, half under) and under the header. */
     static final int TOP_DP = 8, BOTTOM_DP = 4;
     /** The name's text size and the smallest it gets before it wraps (sp, before the text scale). */
     static final float NAME_SP = 23, MIN_NAME_SP = 16;
