@@ -558,7 +558,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private File[] files(){File[] entries=new File(getTargetContext().getFilesDir(),"charge-recordings").listFiles();return entries==null?new File[0]:entries;}
     private SharedPreferences settings(){return getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE);}
     private View root(){return (View)field(activity,"root");}
-    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed",failure.get());}
+    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed: "+failure.get(),failure.get());}
     private void settle(){waitForIdleSync();SystemClock.sleep(350);waitForIdleSync();}
     private void await(BooleanSupplier test,String message){long until=SystemClock.uptimeMillis()+10000;while(!test.getAsBoolean()&&SystemClock.uptimeMillis()<until)SystemClock.sleep(40);require(test.getAsBoolean(),message);}
     /**
