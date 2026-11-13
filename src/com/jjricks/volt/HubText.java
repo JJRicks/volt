@@ -285,6 +285,11 @@ public final class HubText {
     public static Msg setupStyleTitle() { return M.homeSetupStyleTitle(); }
     public static Msg setupStyleBody() { return M.homeSetupStyleBody(); }
 
+    /*
+     * The offer to switch to Clean: title, body, the two buttons and the note under them. The sheet shows these only
+     * while HomeStyle.offerSwitch holds (no style chosen yet and Home not already Clean); an owner who chose a style
+     * still gets the sheet once (HomeStyle.showWhatsNew), with the release notes and one-time notices below only.
+     */
     public static Msg whatsNewTitle() { return M.homeWhatsNewTitle(); }
     public static Msg whatsNewBody() { return M.homeWhatsNewBody(); }
     /** The sheet's main button: switch to Clean. */
@@ -292,7 +297,10 @@ public final class HubText {
     /** The sheet's second button: keep Widgets. */
     public static Msg whatsNewKeep() { return M.homeWhatsNewKeep(); }
     public static Msg whatsNewLater() { return M.homeWhatsNewLater(); }
-    /** The heading above this release's notes (owner's answers 9, 10 and 12); version as Volt shows it ("1.14.0"). */
+    /**
+     * The heading above this release's notes (owner's answers 9, 10 and 12); version as Volt shows it ("1.14.0").
+     * Without the switch offer (HomeStyle.offerSwitch false) it is the first line of the sheet.
+     */
     public static Msg whatsNewChanges(CharSequence version) { return M.homeWhatsNewChanges(version); }
     /** The line above the notes while Volt is not in English: the notes come in English (the update check's line). */
     public static Msg whatsNewNotesInEnglish() { return M.compatUpdateNotesInEnglish(); }

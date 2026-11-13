@@ -51,8 +51,9 @@ final class ReleaseNotesView {
         ReleaseNotes.Kind previous = null;
         ReleaseNotes.Block previousBlock = null;
         // Where the text of the last list item at each depth starts, for the item's further paragraphs and code; kept
-        // apart for each quote depth, so a list inside a quote doesn't move the blocks under an item outside it.
-        int[][] itemText = new int[ReleaseNotes.MAX_BARS + 1][ReleaseNotes.MAX_DEPTH + 1];
+        // apart for each quote depth (not only those with a bar of their own), so a list inside a quote doesn't move
+        // the blocks under an item outside it.
+        int[][] itemText = new int[ReleaseNotes.MAX_QUOTES + 1][ReleaseNotes.MAX_DEPTH + 1];
         for (ReleaseNotes.Block block : blocks) {
             if (block.kind == ReleaseNotes.Kind.RULE) { ruled = true; continue; }
             // An empty heading or fence holds only markup; Android refuses an empty exclusive span anyway.
@@ -67,17 +68,20 @@ final class ReleaseNotesView {
             // A quote's blocks (its paragraphs, lists, headings and code) all sit behind its bar, in the muted colour;
             // a quote inside a quote adds a bar beside the outer one, up to MAX_BARS. Between two blocks of one quote
             // its bar runs through the gap too; two quotes get a bar each.
-            int q = Math.min(block.quotes, ReleaseNotes.MAX_BARS);
+            int q = Math.min(block.quotes, ReleaseNotes.MAX_QUOTES);
             if (quoted) {
-                // A quote indented under a list item sits under the item's text, bar and all: that margin goes first,
-                // through the gap the outer bar runs through too.
-                int outside = block.quoteItem <= 0 ? 0 : itemText[0][Math.min(block.quoteItem, ReleaseNotes.MAX_DEPTH + 1) - 1];
-                if (outside > 0) hang(out, !ruled && block.sameQuote(previousBlock, 0) ? gapLine : start, end, outside, outside);
+                // A quote indented under a list item sits under the item's text, bar and all: that margin goes before
+                // the quote's bar (inside the bars of the quotes around the item), through the gap the bar runs
+                // through too.
                 int bars = Math.max(1, Math.min(block.quotes, ReleaseNotes.MAX_BARS));
-                for (int depth = 0; depth < bars; depth++) {
-                    int bar = !ruled && block.sameQuote(previousBlock, depth) ? gapLine : start;
-                    out.setSpan(Build.VERSION.SDK_INT >= 28 ? new QuoteSpan(ui.outline, ui.dp(3), ui.dp(10)) : new QuoteSpan(ui.outline),
-                            bar, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                for (int depth = 0; depth < Math.max(1, q); depth++) {
+                    int from = !ruled && block.sameQuote(previousBlock, depth) ? gapLine : start;
+                    int under = block.quoteItem(depth);
+                    int outside = under <= 0 ? 0 : itemText[depth][Math.min(under, ReleaseNotes.MAX_DEPTH + 1) - 1];
+                    if (outside > 0) hang(out, from, end, outside, outside);
+                    if (depth < bars)
+                        out.setSpan(Build.VERSION.SDK_INT >= 28 ? new QuoteSpan(ui.outline, ui.dp(3), ui.dp(10)) : new QuoteSpan(ui.outline),
+                                from, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
                 out.setSpan(new ForegroundColorSpan(ui.muted), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
