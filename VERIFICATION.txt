@@ -1,5 +1,6 @@
 VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGNOSTICS, BATTERY ALERTS SHORTCUT, FIXES (versionCode 59)
-[PHASE 2: date of the release commit]
+Built and swept at commit 517e8e46 on release/1.13, November 13, 2026.
+The tag is on a later docs-only merge.
 
 - Cut from the release/1.13 branch, not from main: release/1.13 starts at
   v1.13.1 and carries the main pull requests below that don't depend on
@@ -9,40 +10,148 @@ VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGN
   in this release. Picked from main: #379, #380, #395, #397, #398, #399,
   #400, #401, #402, #405, #406, #407, #408, #409, #418, #421, #422, #423,
   #425, #426, #427, #428, #429, #435, #442, #446 and #451. Ported as their
-  own pull requests into release/1.13: [PHASE 2: final list as merged,
-  from #458 to the language top-up and this release's own PR].
-- [PHASE 2: if it holds at the release, "Every one merged on a head the
-  independent review came back clean on, with CI passing on that head";
-  review rounds worth noting.]
-- Each PR's own checks cover its change. [PHASE 2: the main suites and
-  validations per feature: ChargeBarDragTest and ChargeBarValidation,
-  AutoStartPolicyTest and BackgroundRecordingValidation, ShortcutPickerTest,
-  the diagnostics tests and report-diagnostics-344, the charge recording
-  engine's tests, ChargeTimeReadingsTest, MapPinTest, TelemetryTest.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and
-  the per-language counts, from the release commit.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 1.13.1's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests, the full
-  suite.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed, each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.]
-- Screen text census against 1.13.1: [PHASE 2: how it was taken and
-  census_diff.py's summary.]
-- Not run for this release: the owner-present parked hardware sweep, and
-  any install or check on a real phone. [PHASE 2: confirm; everything is
-  tested on emulators and in JVM suites only unless the owner checks the
-  candidate on his phone.]
+  own pull requests into release/1.13: #458 to #463 and #465 to #477
+  (19 in all), ending with this release's own changelog and docs (#475),
+  2 dp more label room on Quick access buttons (#476) and the language
+  top-up (#477).
+- Every one merged with CI passing on its merged head (4 checks each).
+  The independent review's last pass was on the merged head for 12 of the
+  19. For the other 7, what came after that pass was merges of
+  release/1.13 into the branch (#458, #466, #468, #472, and #469 with a
+  docs/recording-reference.md update), the new
+  BackgroundRecordingValidation and its sweep entry, test code only
+  (#463), and one docs-only commit the coordinator read itself (#475).
+  The review asked for changes on #465 (three follow-ups), #472, #474 and
+  #475 (eight wording fixes; its second look asked for two more), and the
+  next pass on each came back with no changes requested.
+- Each PR's own checks cover its change. On the release commit:
+  ChargeBarDrag (780) and the charge-bar steps for the draggable mark;
+  ChargeTimeReadingsTest (86) and the charge-time-tile steps for the time
+  tile; AutoStartPolicyTest (130), BackgroundRecordingTextTest (26) and
+  the background-recording and auto-start steps for background recording;
+  ChargeAutoRecordPolicyTest (189), ChargeEvidenceTest (107) and the
+  charge-auto-record and charge-evidence steps for automatic charge
+  recording; DiagnosticsBundle (1721) and CrashRecord (47) tests and the
+  report-diagnostics steps for the diagnostics; QuickAccessActionsTest
+  (292), ShortcutPickerTest (530) and the shortcut-picker steps for the
+  Battery alerts shortcut and the picker; GpsAccuracyTextTest (125) and
+  the gps-accuracy steps; MapPinTest (3748) for the map popup; the
+  Telemetry tests (9734) for the drive mode fixes.
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 3856 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly.
+- Release candidate checks on commit 517e8e46, release/1.13's head after
+  the last merge. Later commits change only VERIFICATION.txt and one
+  sentence of docs/user-guide.md, neither of which is in the APK.
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (182
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 1.13.2 (no -dev), versionCode 59, signed with 1.13.1's
+    certificate. APK SHA-256
+    42db18e1f8d8af0142fd27e93c6a1ea5a2e4c49ec1f3c02ced2b229d9b41fa33.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 1.13.2 (59). The validation runner was
+    built with the same key.
+  - The full suite (all 15 steps of verify-all) passed on the same commit
+    with a throwaway-key build, on the Mac (the pool's machine was busy),
+    in 14 minutes.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off except in the automatic charge recording
+  step, which turns the emulator's adapter on for its run and off again),
+  split over four emulators at once, one step per --only run. All 197
+  listed steps were invoked exactly once,
+  including this release's 32 new steps (the charging bar, the time tile,
+  background recording, automatic charge recording, charge evidence,
+  report diagnostics at 344 dp, the shortcut picker and GPS accuracy). 9
+  pseudo-locale steps returned skipped, because no pseudo-locale APK was
+  supplied. The sweep took 61 minutes, including rides-timing and the ride
+  auto-save check. Closing numbers, as printed:
+  - Gating steps: 122 passed, 0 failed.
+  - Report-only steps (never counted as passes): 65 ran, 1 did not
+    finish, 9 skipped.
+  - The one that did not finish, gps-accuracy-riding-de, stopped at its
+    own check: in German, Halo's GPS accuracy chip shows the no-reading
+    dash instead of "Keine Aufzeichnung" while nothing records. That is
+    the designed fallback for a state too long for its spot (TalkBack
+    still says the whole state), but the check wants the words. The
+    German text came with this release's top-up (before it, the English
+    "Not recording" showed). It was not rerun: the result follows from
+    the text's width. The release keeps the dash; a shorter German text
+    is a follow-up. The Portuguese steps ran to their end.
+  - rides-timing passed. It ran last, alone on the one emulator of ours
+    still up. Best of two cold starts per case, slowest case: first frame
+    131 ms and service start command 115 ms (budgets 1.5 s). Rides first
+    row 55 ms, and the longest main-thread message on Rides was 45 ms cold
+    and 36 ms warm (budget 1 s). The longest main-thread message at launch
+    was 131 ms in any single run.
+  - The ride auto-save check passed.
+  - Locale reports (report only), 60 steps: ten languages at 344 dp,
+    725 dp and 725 dp with large font, app and scooter screens. Compared
+    with 1.13.1's sweep finding by finding, no Text fit or cut-off Setting
+    tile finding names any of this release's new texts. 26 text-fit and 47
+    cut-off findings are 1.13.1's own; at 344 dp the scooter walk's cut-off
+    tiles are Spanish 10, French, Portuguese (Brazil) and Portuguese
+    (Portugal) 7, German, Italian and Polish 4, and Swedish 3, as in 1.13.1
+    except French and Polish, which each lost one (Handlebar PIN). New in
+    this sweep are only words breaking at a different place in tiles that
+    moved (the Battery alerts tile shifts the scooter walk's tiles) and 4
+    "no text layout" lines for the scooter name, which 1.13.1 had once.
+- Screen text census against 1.13.1 (report only): census_diff.py
+  compared this sweep's screens with 1.13.1's kept release sweep, file by
+  file. That is a single base run, so races and reordered lists show as
+  differences too. 3719 screens, 10579 text differences, most of them dates
+  and times (the fixtures are dated by the day of the run) and the tree
+  paths of moved views. 580 screens are only in 1.13.2, from the new steps.
+  With numbers and positions set aside, the differences are this release's
+  changes: the battery card's TalkBack text ("about N mi of range left"),
+  the Battery alerts tile (with "—, not on this model" where the model
+  doesn't offer it), the GPS accuracy chip in ride graphs, the background
+  recording switch and note, Record charges automatically, the Stay
+  connected caption, the longer report diagnostics line and file, the
+  charging time tile's labels and the update dialog's new layout.
+- On the owner's phone and scooter, November 13, with the owner present
+  (a phone on Android 17; the UT5 MAX parked and charging). Everything
+  above this entry is tested on emulators and in JVM suites only.
+  - The candidate (the APK above) was installed with adb install -r over
+    the 1.13.0 (versionCode 57) the phone had. It updated in place: the
+    first-install date did not change, Volt started and reconnected, and
+    there were no crash entries.
+  - The one-time What's new note about background recording showed on
+    that real update (Record rides automatically was on before it), with
+    its switch off. The owner closed it.
+  - run-hardware-sweep.py --parked, default plan, with the same-key
+    runner: 7 passed, 0 failed, 0 skipped, in a little over 4 minutes.
+    snapshot, navigation, background (with the live charging hold), clock,
+    settings, charge-time and schedule-test (Test scheduled charging end
+    to end, 162 s). Settings: 23 changed, read back and restored (the
+    charge limit 100 to 80 and back among them). 5 are left out of the
+    settings step by the plan: speed limit, maximum speed, dual drive and
+    drive speed limit, which the sweep never writes, and timed charging,
+    which only the schedule test turned on and off again (read back off
+    at its end). The opt-in lock and PIN-state steps were not run. The
+    runner was removed afterwards.
+  - Home while charging showed the charging bar under the scooter picture
+    with the limit mark at 100%, and Charging power beside one time tile.
+    A drag of the mark from 100% to 80%, injected over adb: the bar
+    thickened and showed its steps and the value; about a second after
+    letting go the scooter reported the 80% limit, the status read
+    "Charging · limit 80%" and the time tile showed Time to 80% with its
+    two dots. The UT5 MAX has no caution for the charge limit, so nothing
+    was asked. Dragged back to 100% and confirmed the same way.
+  - More › Developer options › Charge recording has Record charges
+    automatically under Record this charge, off.
+  - Report an issue › Preview built volt-diagnostics.json (303 KB) from
+    the phone's real data; the file was not withheld. Nothing was sent.
 - ModelRegistry.REPORTED was left as it was in 1.13.1. Adding any
   compatibility reports received since then is the owner's step.
 - Real-phone checks only the owner can do, not yet done:
-  - the feel of dragging the charge mark (the ticks, the thicker bar) on a
-    real phone, with a real charge limit write and a charge alert level;
-  - Start recording in the background on a real phone with the screen off,
-    and the one-time What's new note after updating from 1.13.1;
+  - the feel of dragging the charge mark (the ticks) under a finger, and
+    a charge alert level on a model without a charge limit;
+  - Start recording in the background on a real ride with the screen off;
   - Record charges automatically through a real overnight charge;
-  - the time tile's switch and the learned 100% time on a real charge;
+  - the learned 100% time on a real charge;
   - a Volt notification tap bringing the open Volt to the front.
 
 VOLT 1.13.1 — DOWNLOAD FROM THE UPDATE CHECK, OFFLINE MAINTENANCE REMINDERS, CLOCK SECONDS, MORE CHIP CHOICES, PT-PT WORDING (versionCode 58)
