@@ -1,0 +1,89 @@
+package com.jjricks.volt;
+
+/**
+ * Clean Home's Just back moment, as the Layout Plan's mock-up draws it (the contributor's decisions on #383): the
+ * pure rules behind JustBackView. Pure Java.
+ *
+ * <ul>
+ *   <li>{@link #averageSpeedKmh}: the Avg speed tile's value, from the saved average or, when the ride stored none,
+ *       from its distance and time, so a ride with a distance and a time never shows a dash.</li>
+ *   <li>{@link #signedChange}: the Battery tile's signed change ("−18" for a ride that used 18%, "+2" for a gain).</li>
+ *   <li>{@link #distanceSp}: the distance's size, about 60 sp as the mock-up renders it, growing only a little with
+ *       large text so the route panel and the tiles keep their room in the fixed top area.</li>
+ *   <li>{@link #valueSize}: a tile value (number large, unit small) at the largest size that fits its tile on one
+ *       line, down to the readable floor; under it the value takes its short rung.</li>
+ * </ul>
+ */
+final class JustBackFit {
+    /** The distance's size at 1x (sp), as the mock-up renders "6.2 mi"; its unit is {@link #DISTANCE_UNIT_RATIO} of it. */
+    static final float DISTANCE_SP = 60, DISTANCE_UNIT_RATIO = .4f;
+    /** How much large text may grow the distance (it is already large; the route and the tiles need the height). */
+    static final float DISTANCE_MAX_GROWTH = 1.15f;
+    /** A tile value's size at 1x (sp, the mock-up's 21 sp) and its unit's share of it. */
+    static final float VALUE_SP = 21, VALUE_UNIT_RATIO = .62f;
+
+    private JustBackFit() {}
+
+    /**
+     * The Avg speed tile's value in km/h, or null when the ride has nothing to derive it from. The saved average
+     * (RideStore's, over the time speed was reported) comes first, then the saved moving average; a ride that stored
+     * neither (no speed readings, as a ride recorded from GPS alone or the simulator's seeded ride) is derived from its
+     * distance over its moving time, else over its shown time. A ride without a positive distance and time has none.
+     */
+    static Double averageSpeedKmh(Double stored, Double movingStored, Double distanceKm, long movingMs, long elapsedMs) {
+        if (usable(stored)) return stored;
+        if (usable(movingStored)) return movingStored;
+        if (distanceKm == null || !Double.isFinite(distanceKm) || distanceKm <= 0) return null;
+        long time = movingMs > 0 ? movingMs : elapsedMs;
+        if (time <= 0) return null;
+        return distanceKm * 3_600_000d / time;
+    }
+
+    private static boolean usable(Double value) {
+        return value != null && Double.isFinite(value) && value >= 0;
+    }
+
+    /**
+     * The Battery tile's change in whole percent with its sign, from the saved drop (start minus end): a drop reads
+     * "−18" (a true minus sign), a gain "+2", no change "0"; null for an unknown change. Latin digits, as every
+     * reading in Volt.
+     */
+    static String signedChange(Double dropPercent) {
+        if (dropPercent == null || !Double.isFinite(dropPercent)) return null;
+        // The size rounds half up, as the Rides page rounds it; the sign follows the change (U+2212, a true minus).
+        long size = Math.round(Math.abs(dropPercent));
+        if (size == 0) return Long.toString(0);
+        return (dropPercent > 0 ? "\u2212" : "+") + Long.toString(size);
+    }
+
+    /** The distance's size in sp at the app's text scale (Ui.sp then multiplies by the scale itself). */
+    static float distanceSp(float textScale) {
+        float scale = Float.isNaN(textScale) || textScale <= 0 ? 1f : textScale;
+        return DISTANCE_SP * Math.min(scale, DISTANCE_MAX_GROWTH) / scale;
+    }
+
+    /**
+     * How the height left between the ended line and the tiles is shared (any unit, px in JustBackView): the distance
+     * keeps its full box first and the route panel takes the rest; when that rest is under minRoute the panel goes
+     * (0, with its gap) and the distance alone takes the room, down to distanceFloor. Returns {distance box, route
+     * panel, route gap}. So the fixed top area never overflows: on a short window with large text the route goes
+     * first, then the distance gets smaller; the ended line, the X and the three tiles stay.
+     */
+    static int[] split(int room, int distanceFull, int distanceFloor, int minRoute, int routeGap) {
+        int left = Math.max(0, room);
+        if (left - distanceFull - routeGap >= minRoute) return new int[] {distanceFull, left - distanceFull - routeGap, routeGap};
+        return new int[] {Math.max(Math.min(distanceFull, distanceFloor), Math.min(distanceFull, left)), 0, 0};
+    }
+
+    /**
+     * The size (px) a tile value takes: {@code top} when it fits {@code room}, else the size its width shrinks to
+     * (widths grow with size), no smaller than {@code floor}; -1 when even the floor is too wide, so the caller shows
+     * the value's short rung. widthAtTop is the value's width at {@code top}.
+     */
+    static float valueSize(float top, float floor, float widthAtTop, float room) {
+        if (widthAtTop <= room) return top;
+        if (widthAtTop <= 0 || room <= 0) return -1;
+        float size = (float) Math.floor(top * room / widthAtTop * 100) / 100;
+        return size >= floor ? size : -1;
+    }
+}

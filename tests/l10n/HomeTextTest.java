@@ -118,6 +118,10 @@ public final class HomeTextTest {
         equal("Battery drop", HubText.justBackBattery(Double.NaN), "NaN is not a gain");
         check(T.key(HubText.justBackBattery(18.0).id()).equals("rides_tile_battery_drop"), "the Rides page's drop key");
         check(T.key(HubText.justBackBattery(-2.0).id()).equals("rides_tile_battery_gain"), "the Rides page's gain key");
+        // The contributor's decisions on #383: Just back's tile reads "Battery" as the mock-up has it, its value signed.
+        equal("Battery", HubText.justBackBatteryTile(), "battery tile as the mock-up");
+        check(T.key(HubText.justBackBatteryTile().id()).equals("riding_label_battery"), "riding mode's reading name until part 10");
+        equal(", ", HubText.quickActionsSeparator(), "the quick actions row's separator");
     }
 
     private static void quickActions() {
@@ -196,7 +200,7 @@ public final class HomeTextTest {
                 HubText.momentRide(), HubText.momentRideDescription(), HubText.chargingToLimit("x"), HubText.charging(),
                 HubText.chargingPower(), HubText.justBackEnded(0), HubText.justBackEnded(5), HubText.justBackClose(),
                 HubText.justBackDescription("x"), HubText.justBackRideTime(), HubText.justBackAvgSpeed(),
-                HubText.justBackBattery(1.0), HubText.justBackBattery(-1.0), HubText.editTitle(), HubText.editQuickActions(), HubText.editQuickSlot(1, "x"),
+                HubText.justBackBattery(1.0), HubText.justBackBattery(-1.0), HubText.justBackBatteryTile(), HubText.quickActionsSeparator(), HubText.editTitle(), HubText.editQuickActions(), HubText.editQuickSlot(1, "x"),
                 HubText.quickActionLabel(HomeQuickActions.RIDING), HubText.quickActionLabel(HomeQuickActions.RECORD),
                 HubText.quickActionShortLabel(HomeQuickActions.RIDING), HubText.quickActionShortLabel(HomeQuickActions.RECORD),
                 HubText.quickActionLabel(HomeQuickActions.CHARGE_ALERTS), HubText.quickActionShortLabel(HomeQuickActions.CHARGE_ALERTS),

@@ -70,6 +70,9 @@ sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHe
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
 # Just back's tiles: names and values take the first rung that fits whole (part 9, council early review).
 sources+=("$APP_DIR/src/com/jjricks/volt/TileFit.java" "$TEST_DIR/TileFitTest.java")
+# Just back as the Layout Plan draws it: average speed from distance and time, the signed battery change, the
+# distance's size and the route giving way first (the contributor's decisions on #383, part 9).
+sources+=("$APP_DIR/src/com/jjricks/volt/JustBackFit.java" "$TEST_DIR/JustBackFitTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -183,6 +186,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
