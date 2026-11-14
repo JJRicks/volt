@@ -2235,8 +2235,12 @@ final class RidingScreen implements AppScreen {
     /**
      * Trace's column: the chips keep the size they always had and their own widths; a column too short for them all
      * shows the first ones that fit (RidingChipFit.column with a limit), always the same ones for the same column.
+     *
+     * With followValues (Trace), a chip whose widest value can't fit the column's room even alone at the tightest rung
+     * (Max speed's 888.8 mph beside the speed on a 344 dp cover screen) is fitted to the value on show, as every chip was
+     * before, rather than never showing: it can still step aside when its value grows. The others stay steady.
      */
-    private void fitColumn(ChipColumn group, int room, int limit) {
+    private void fitColumn(ChipColumn group, int room, int limit, boolean followValues) {
         List<Chip> wanted = wanted(group);
         int n = wanted.size();
         String[][] marks = new String[n][];
@@ -2244,9 +2248,18 @@ final class RidingScreen implements AppScreen {
         boolean[] canStep = new boolean[n];
         for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).canStep; }
         int normal = RidingChipFit.SIZE_NORMAL;
+        boolean[] follows = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            Chip chip = wanted.get(i);
+            follows[i] = followValues && room != Integer.MAX_VALUE
+                    && chip.widthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > room;
+            chip.followsValue = follows[i];
+        }
         RidingChipFit fit = RidingChipFit.steppingColumn(marks, contents,
-                (chip, rung, step) -> wanted.get(chip).widthAt(normal, rung, step, false),
-                (chip, rung, step) -> wanted.get(chip).widthAt(normal, rung, step, true), canStep, room, limit);
+                (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, false)
+                        : wanted.get(chip).widthAt(normal, rung, step, false),
+                (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, true)
+                        : wanted.get(chip).widthAt(normal, rung, step, true), canStep, room, limit);
         int gap = ui.dp(CHIP_GAP_DP), shown = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -2324,7 +2337,7 @@ final class RidingScreen implements AppScreen {
                 // split-screen half): only a chip past them steps aside for a short column.
                 limit = Math.max(limit, Math.min(2, getChildCount()));
             }
-            fitColumn(this, room, limit);
+            fitColumn(this, room, limit, true);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
@@ -2372,6 +2385,8 @@ final class RidingScreen implements AppScreen {
          * place in the row never changes with the state; only its text does.
          */
         private boolean compactPlanned;
+        /** True while a column fits this chip to the value on show, its widest being too wide for it (fitColumn). */
+        boolean followsValue;
         private int rung = RidingChipFit.FULL, size = RidingChipFit.SIZE_NORMAL;
         /** The widest values, every figure the widest: in full, on the tightest rung, and in compact form. */
         private String[] fullSamples = new String[0], tightSamples = new String[0], compactSamples = new String[0];
@@ -2505,6 +2520,11 @@ final class RidingScreen implements AppScreen {
         }
         private int measureWidth(int size, int rung, int step, boolean compactForm) {
             return measureWidth(size, rung, step, compactForm && canStep ? compactSamples : rung == RidingChipFit.TIGHT ? tightSamples : fullSamples);
+        }
+        /** The chip's width at a size, rung and name step with the value on show (fitColumn's followValues). */
+        int nowWidthAt(int size, int rung, int step, boolean compactForm) {
+            String value = compactForm && canStep && compact != null ? compact : rung == RidingChipFit.TIGHT && tight != null ? tight : full;
+            return value == null ? widthAt(size, rung, step, compactForm) : measureWidth(size, rung, step, new String[]{value});
         }
         /** The chip's width at a size, rung and name step with the widest of these values. */
         private int measureWidth(int size, int rung, int step, String[] values) {
@@ -2685,7 +2705,7 @@ final class RidingScreen implements AppScreen {
             String was = full;
             full = value;
             // A planned compact form shows a state's words where they fit: a new state works that out again.
-            if (RidingChipFit.refitsCompact(compactPlanned, was, full)) requestLayout();
+            if (RidingChipFit.refitsCompact(compactPlanned, was, full) || followsValue && !TextUtils.equals(was, full)) requestLayout();
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
             // The dash in place of a state's words, where the fit asked for it; a reading in figures shows as it is.
             compact = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
