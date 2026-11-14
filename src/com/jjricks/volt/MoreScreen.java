@@ -1177,8 +1177,12 @@ public final class MoreScreen implements AppScreen {
             });
         } else {
             note(box, T.moreScootersForgetBackupNeeded());
-            dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersSaveBackup(),
-                    () -> { dialog.dismiss(); host.dataBackup(false, BackupRegistry.SCOOTERS); });
+            // Stacked full width, like the edit dialog's buttons: side by side, "Save backup first" broke onto three
+            // lines at 344 dp with large text.
+            box.addView(ui.button(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, BackupRegistry.SCOOTERS); }));
+            TextView cancel = ui.secondaryButton(T.commonCancel(), dialog::dismiss);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(10); lp.bottomMargin = ui.dp(12);
+            box.addView(cancel, lp);
         }
         show(dialog);
     }
