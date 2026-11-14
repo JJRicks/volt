@@ -28,7 +28,12 @@ final class RidingFrames {
     /** Halo's strip of small readings, in order. */
     static final List<String> HALO_STRIP = Collections.unmodifiableList(Arrays.asList("strip_1", "strip_2"));
     static final List<String> HALO_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
+    /** Trace's first two chips, as they always were; its whole column, a third included, is TRACE_COLUMN. */
     static final List<String> TRACE_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2"));
+    /** Trace's whole column of chips, stacked beside the speed: its two, then a third (a tester, Nov 14), None by default. */
+    static final List<String> TRACE_COLUMN = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
+    /** Focus's chips under the speed (RidingChipPlace); every one None until the rider picks a reading. */
+    static final List<String> FOCUS_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
     static final List<String> TILES = Collections.unmodifiableList(Arrays.asList("tile_1", "tile_2"));
     /** Below this speed (km/h) the rider counts as stopped for the picker, with the scooter's own stationary state. */
     static final double STOPPED_KMH = 1;
