@@ -409,6 +409,11 @@ final class RidingScreen implements AppScreen {
      * largest size in its spot and the widest unit its reading shows, never the value on show.
      *
      * Which of the two is chosen once per layout (RidingChipPlace.Latch), so the chips never jump between them while riding.
+     *
+     * A row of weights can measure this head at another width first (the Fold sideways measures it across the whole
+     * window), and a later measure at a size seen before is answered from the view's cache without running onMeasure. So
+     * the head fits its children again at the size it's laid out at whenever that isn't the size it last fitted, and the
+     * rows are always measured afresh: what's drawn is always worked out for the room it's drawn in.
      */
     private final class ChipsHead extends ViewGroup {
         private final ChipRows rows;
@@ -416,6 +421,8 @@ final class RidingScreen implements AppScreen {
         private int numberHeight;
         /** The unit-line row's top, px, or -1 with the chips in rows. */
         private int lineTop = -1;
+        /** The size the children were last fitted to. */
+        private int fitWidth = -1, fitHeight = -1;
         ChipsHead(ChipRows rows) {
             super(host.activity());
             this.rows = rows;
@@ -424,6 +431,15 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+            fit(width, height);
+            setMeasuredDimension(width, height);
+        }
+        /** Chooses the unit line or rows for this size and measures the number and the chips for it. */
+        private void fit(int width, int height) {
+            fitWidth = width;
+            fitHeight = height;
+            // The rows keep the split of their last onMeasure for their layout: never let the cache skip it.
+            rows.forceLayout();
             RidingUnitLine.Place place = null;
             boolean onLine = false;
             if (wideChips) {
@@ -448,7 +464,6 @@ final class RidingScreen implements AppScreen {
                 numberHeight = Math.max(0, height - taken);
                 big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(numberHeight, MeasureSpec.EXACTLY));
             }
-            setMeasuredDimension(width, height);
         }
         /**
          * Where the unit-line row would go with the number measured at its full size, or null where there's no unit line:
@@ -465,6 +480,7 @@ final class RidingScreen implements AppScreen {
         }
         @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
             int width = r - l, height = b - t;
+            if (width != fitWidth || height != fitHeight) fit(width, height);
             big.layout(0, 0, width, numberHeight);
             if (lineTop >= 0) rows.layout(width - rows.getMeasuredWidth(), lineTop, width, lineTop + rows.getMeasuredHeight());
             else rows.layout(0, height - rows.getMeasuredHeight(), width, height);
