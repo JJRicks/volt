@@ -2269,7 +2269,7 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Trace's column: the chips keep the size they always had and their own widths; a column too short for them all
+     * Trace's column: the chips keep the size they always had, each as wide as its widest value; a column too short for them all
      * shows the first ones that fit (RidingChipFit.column with a limit), always the same ones for the same column.
      *
      * With followValues (Trace), a chip whose widest value can't fit the column's room even alone at the tightest rung
@@ -2305,6 +2305,12 @@ final class RidingScreen implements AppScreen {
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
                 chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], room == Integer.MAX_VALUE ? -1 : room);
+                // Each chip as wide as its widest value, so its edge never moves with the value (a GPS chip whose words
+                // or dash come and go, and a chip following its value, take their text's width, as before).
+                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+                int width = follows[at] || fit.compact[at] || room == Integer.MAX_VALUE ? -2
+                        : Math.min(room, chip.widthAt(normal, fit.rung, fit.steps[at], false));
+                if (p.width != width) p.width = width;
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, true);
                 shown++;
             }
