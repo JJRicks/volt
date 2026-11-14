@@ -3,8 +3,8 @@ entry lights icon	lights
 entry lights group	Menus
 entry lights featureKey	null
 entry lights directToggle	false
-entry controls label	Settings
-entry controls icon	settings
+entry controls label	Search settings
+entry controls icon	search
 entry controls group	Menus
 entry controls featureKey	null
 entry controls directToggle	false
@@ -88,6 +88,11 @@ entry charge_done_time icon	clock
 entry charge_done_time group	Battery
 entry charge_done_time featureKey	null
 entry charge_done_time directToggle	false
+entry charge_alerts label	Battery alerts
+entry charge_alerts icon	bolt
+entry charge_alerts group	Battery
+entry charge_alerts featureKey	null
+entry charge_alerts directToggle	false
 entry feature:lock label	Electronic lock
 entry feature:lock icon	lock
 entry feature:lock group	Security

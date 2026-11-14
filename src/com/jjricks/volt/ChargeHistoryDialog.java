@@ -91,6 +91,7 @@ final class ChargeHistoryDialog {
                     ui.shape(ui.surface, 18, 0), null));
             row.addView(ui.text(dateTime(session.startedWall), 16, true));
             TextView details = ui.caption(charger(session.charger) + " · " + batterySpan(session));
+            if (session.labelSource == ChargeSessionStore.LabelSource.GUESS) details.setText(T.serviceChargeChargerGuessed(details.getText()));
             details.setPadding(0, ui.dp(5), 0, 0); row.addView(details);
             TextView state = ui.caption((session.observedCompleteMono == null ? T.statsChargeFinishNotObserved() : T.statsChargeFullObserved()) + paused(session));
             state.setPadding(0, ui.dp(4), 0, 0); row.addView(state);
@@ -110,6 +111,7 @@ final class ChargeHistoryDialog {
         LinearLayout contents = padded(); contents.setTag("charge-history-detail");
         contents.addView(ui.text(dateTime(session.startedWall), 20, true));
         TextView sub = ui.caption(charger(session.charger) + " · " + batterySpan(session));
+        if (session.labelSource == ChargeSessionStore.LabelSource.GUESS) sub.setText(T.serviceChargeChargerGuessed(sub.getText()));
         sub.setPadding(0, ui.dp(6), 0, ui.dp(12)); contents.addView(sub);
         Panel panel = new Panel(session, false);
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));

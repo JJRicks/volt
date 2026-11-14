@@ -101,6 +101,8 @@ public final class MoreScreen implements AppScreen {
      * against SECTION_TITLES, which stays as that reference, as SECTION_LABELS does for the menu rows). */
     private static final int[] SECTION_TITLE_IDS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY_TITLE,
             T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
+    /** A section's menu name in the current language (SECTION_LABEL_IDS), by index. */
+    private static String sectionLabel(int index) { return T.render(SECTION_LABEL_IDS[index]); }
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
     /**
@@ -120,7 +122,6 @@ public final class MoreScreen implements AppScreen {
     private static boolean subjectSection(String section) {
         return "Security".equals(section) || "Lab".equals(section) || "Data".equals(section);
     }
-    private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
     /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
     private boolean compatibilityRecovery;
@@ -144,10 +145,8 @@ public final class MoreScreen implements AppScreen {
     private Row onboardingImport, onboardingNearby, onboardingConnect;
     private final List<Row> lockedProfileRows = new ArrayList<>();
     private Row nearbyRow, locationRow, notificationRow;
-    private Row developerIndexRow, simulationRow, simulationModelRow, liveUpdateRow;
+    private Row developerIndexRow, simulationRow, simulationModelRow, simulationSceneRow, simulationDriveModeRow, liveUpdateRow;
     /** Developer simulator models: "" is the UT5 MAX simulator; the others are synthetic advertised IDs. */
-    private static final String[] SIMULATION_MODELS = {"", "24431", "39991"};
-    private static final String[] SIMULATION_MODEL_NAMES = {"UT5 MAX", "Mapped model (synthetic 24431)", "Unknown model (synthetic 39991)"};
     private TextView simulationStatus, chargeCaptureStatus, chargeCurveValue, chargeCurveScope;
     private LinearLayout chargeCurve;
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
@@ -157,10 +156,13 @@ public final class MoreScreen implements AppScreen {
     /** The Charger row's detail line, under the charger's name (its sub-line). */
     private TextView chargerDetail;
     private TextView securityNotice;
-    private LinearLayout indexProfileCard;
-    private ImageView indexPhoto;
-    private View indexPhotoFallback;
-    private TextView indexProfileName, indexProfileState;
+    /** Settings › Updates' switch and manual check (updates()), shown over the index by its row (updatesSheet). */
+    private LinearLayout updatesBox;
+    /** Updates' section label (its title) and its automatic switch's row (its short name is the row's fallback rung). */
+    private TextView updatesTitle;
+    private Row updatesAuto;
+    /** Appearance's three-way selector, shown over the index by its row (appearanceSheet). */
+    private LinearLayout appearanceBox;
     private TextView labConnect, labTitle, labIntro, labFoot, labNotice, historyUsage, historyStatus;
     private LinearLayout labList;
     private String labSignature = "", labModelKey = "";
@@ -216,47 +218,45 @@ public final class MoreScreen implements AppScreen {
         }
         indexView = column(); menuParent.addView(indexView, new LinearLayout.LayoutParams(-1, -2));
         cardDestination = indexView;
-        indexProfile();
+        // Settings as the Layout Plan draws it (settings-page mock-up; the contributor's decisions on #383): no scooter
+        // card on top (My scooters' row names the scooter), the setup checklist only until a scooter is set up, then
+        // one card of app-wide choices (Home style, Appearance, Units, Text size, Language, Haptic feedback), a labelled
+        // card for the scooters and the data (My scooters, Back up & restore) and one for Volt itself (Updates, About &
+        // permissions, Developer options). Rows have no icon tiles; each row's tag is unchanged.
         onboarding();
-        // Settings in the Hub's order (hub layout plan 1.10, PR 11), three groups with no headings: Home style, Appearance
-        // and the display card (App preferences' rows, shown here rather than behind a row of their own); then My scooters
-        // and Back up & restore; then Updates, About & permissions and Developer options. Each row's tag is unchanged.
-        sectionMenu = group();
-        if (wide) sectionMenu.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-        // Settings › Home style (hub layout plan, PR 8): its own page; the line under it names the current style.
-        Row homeStyle = row(sectionMenu, "home", HubText.title(HubPages.SETTINGS_HOME),
-                HubText.homeStyleName(HomeStyle.CLEAN.equals(HomeStylePrefs.of(settings()))), () -> host.open(HubPages.SETTINGS_HOME));
-        homeStyle.view.setTag("home-style-menu");
-        if (wide) homeStyle.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
-        LinearLayout appPreferences = column();
-        indexView.addView(appPreferences, new LinearLayout.LayoutParams(-1, -2));
-        cardDestination = appPreferences;
         preferences();
+        // The plan's headings ("Scooters & data", "About") have no text yet (listed for part 10's follow-up): until then
+        // the nearest existing names, My scooters' and About & permissions' (SECTION_LABEL_IDS).
+        label(sectionLabel(1));
+        LinearLayout scooterGroup = group();
+        label(sectionLabel(5));
+        LinearLayout laterGroup = group();
+        // Updates: one row with its automatic check's state; the switch and the manual check open over it (updatesSheet).
+        updatesBox = column();
+        cardDestination = updatesBox;
+        updates();
         cardDestination = indexView;
-        LinearLayout scooterGroup = group(), laterGroup = ui.groupCard();
-        if (wide) for (LinearLayout box : new LinearLayout[]{scooterGroup, laterGroup}) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
+        Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
+        updatesRow.view.setTag("settings-updates");
+        valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? ((RowLine) updatesAuto.view).fallback : null));
+        indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
             // App preferences' rows are on the index itself.
             if (!knownSection(section) || subjectSection(section) || "App".equals(section)) continue;
-            // My scooters, the first row this loop builds (SECTIONS' order), leads the second group; About and Developer follow Updates.
-            Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, SECTION_ICONS[i], T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
-            // Room for the selected row's red tint to frame its icon in the wide menu.
-            if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
+            // My scooters, the first row this loop builds (SECTIONS' order), leads the second card; About and Developer follow Updates.
+            Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, null, sectionLabel(i), null, () -> selectSection(section));
+            indexRow(row);
             menuRows[i] = row;
             if (section.equals("Scooters")) scootersIndexRow = row;
-            else if (section.equals("Lab")) badge(row.value, T.moreLabBadge());
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
                 row.view.setTag("developer-options-menu");
             }
         }
-        Row backup = row(scooterGroup, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
+        Row backup = row(scooterGroup, null, T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
         backup.view.setTag("data-backup");
-        // The wide menu pads every row alike, so this one lines up with the section rows above it.
-        if (wide) backup.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
-        updates();
-        indexView.addView(laterGroup);
+        indexRow(backup);
         TextView footer = ui.text(T.moreFooter(AppVersion.name(host.activity())), 11.5f, false);
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
@@ -581,14 +581,6 @@ public final class MoreScreen implements AppScreen {
         TextView text = ui.caption(value); text.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(12));
         cardDestination.addView(text); return text;
     }
-    private void badge(TextView value, String text) {
-        value.setText(text); value.setVisibility(View.VISIBLE);
-        value.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10.5f * ui.textScale);
-        value.setTypeface(ui.bold()); value.setLetterSpacing(0.08f); value.setTextColor(ui.orange);
-        value.setPadding(ui.dp(7), ui.dp(2), ui.dp(7), ui.dp(2)); value.setMaxLines(1);
-        value.setBackground(ui.shape(Color.TRANSPARENT, 6, Ui.withAlpha(ui.orange, 120)));
-        value.setContentDescription(T.moreLabBadgeDescription());
-    }
 
     /**
      * Boxed row glyph: red when actionable, danger-red for destructive rows, grey with its disabled row.
@@ -743,8 +735,8 @@ public final class MoreScreen implements AppScreen {
         words.addView(r.sub); r.sub(sub);
         r.view.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
         r.value = ui.text("", 13.5f, false); r.value.setTextColor(ui.muted); r.value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        r.value.setMaxLines(2); r.value.setMaxWidth(ui.dp(140));
-        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(-2, -2); vp.leftMargin = ui.dp(10);
+        r.value.setMaxLines(2); r.value.setMaxWidth(ui.dp(SettingsRows.VALUE_MAX_DP));
+        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(-2, -2); vp.leftMargin = ui.dp(SettingsRows.VALUE_GAP_DP);
         r.view.addView(r.value, vp); r.value(null);
         if (action != null) {
             r.chevron = ui.icon("chevron", 15, ui.muted);
@@ -847,28 +839,6 @@ public final class MoreScreen implements AppScreen {
     }
 
     // ---- Index --------------------------------------------------------------------------
-
-    private void indexProfile() {
-        LinearLayout c = ui.card(); c.setOrientation(LinearLayout.HORIZONTAL); c.setGravity(Gravity.CENTER_VERTICAL);
-        c.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12)); c.setMinimumHeight(ui.dp(80));
-        indexPhoto = photo();
-        LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(ui.dp(58), ui.dp(64)); pp.rightMargin = ui.dp(12);
-        c.addView(indexPhoto, pp);
-        indexPhotoFallback = new RowIcon("scooter");
-        LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)); fp.rightMargin = ui.dp(14);
-        c.addView(indexPhotoFallback, fp);
-        LinearLayout words = column();
-        indexProfileName = ui.text("", 19, true); indexProfileName.setMaxLines(2); words.addView(indexProfileName);
-        indexProfileState = ui.text("", 13, false); indexProfileState.setTextColor(ui.muted);
-        indexProfileState.setPadding(0, ui.dp(3), 0, 0); words.addView(indexProfileState);
-        c.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-        View chevron = ui.icon("chevron", 16, ui.text);
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ui.dp(16), ui.dp(16)); cp.leftMargin = ui.dp(10);
-        c.addView(chevron, cp);
-        c.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), ui.shape(ui.surface, 20, 0), null));
-        c.setFocusable(true); c.setOnClickListener(v -> selectSection("Scooters"));
-        indexProfileCard = c; cardDestination.addView(c);
-    }
 
     private void onboarding() {
         LinearLayout c = ui.card();
@@ -1163,6 +1133,7 @@ public final class MoreScreen implements AppScreen {
             if (current) s.ble.disconnect();
             s.profiles.remove(id);
             if (s.maintenance != null) s.maintenance.forget(id);
+            s.forgetEvidence(id);
             if (current) s.ble.profileSelected();
             dialog.dismiss(); host.redraw();
         });
@@ -1180,49 +1151,119 @@ public final class MoreScreen implements AppScreen {
      */
     private void languageRow(LinearLayout display) {
         LinearLayout holder = column();
-        Row row = row(holder, "globe", T.moreLanguageTitle(), null,
+        Row row = row(holder, null, T.moreLanguageTitle(), null,
                 () -> LanguageSheet.show(host, this::refresh));
+        indexRow(row);
         View language = row.view;
         language.setTag("preference_language");
         holder.removeView(language);
         View divider = new View(host.activity());
         divider.setBackgroundColor(ui.raised);
+        // The plan's value beside the title ("English ›") when the language fits there on one line in the room the row
+        // really has (SettingsRows.valueRoom: the row less its padding, the title, the gap and the chevron); a longer
+        // one (for example "System default (English)" at large text on a 344 dp phone) goes under the title instead of
+        // being cut. Until the row has a width, the value column's 140 dp stands in; a new width places it again.
+        Runnable placeValue = () -> {
+            if (!LanguageSheet.offered(host.activity())) return;
+            String value = LanguageSheet.value(host.activity());
+            int inner = language.getWidth() - language.getPaddingLeft() - language.getPaddingRight();
+            float room = inner > 0 ? SettingsRows.valueRoom(inner, row.title.getPaint().measureText(row.title.getText().toString()),
+                    ui.dp(SettingsRows.VALUE_GAP_DP), ui.dp(SettingsRows.CHEVRON_DP)) : ui.dp(SettingsRows.VALUE_MAX_DP);
+            boolean beside = SettingsRows.valueBeside(row.value.getPaint().measureText(value), room);
+            if (beside) { row.value.setMaxLines(1); row.value.setMaxWidth((int) Math.ceil(room)); }
+            row.value(beside ? value : null);
+            row.sub(beside ? null : value);
+        };
+        language.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft && !closed) v.post(placeValue);
+        });
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity());
-            // The current language goes under the title, as Android's own language setting shows it: the
-            // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
-            // at large text sizes.
-            if (offered) row.sub(LanguageSheet.value(host.activity()));
-            placeLanguageRow(display, language, divider, offered, ui.dp(1));
+            placeValue.run();
+            placeLanguageRow(display, language, divider, offered, ui.dp(1), hapticsRow);
         });
     }
 
     /**
-     * Attaches the Language row, then a divider, at the top of the display card once, and detaches both
-     * when not offered. The divider matches Ui.divider: the card's raised colour, 1 dp tall.
+     * Attaches the Language row, then a divider, once, right above the Haptic feedback row (after Text size, the plan's
+     * order; SettingsRows.languageIndex), and detaches both when not offered. The divider matches Ui.divider: the card's raised colour, 1 dp tall.
      */
-    private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line) {
+    private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line, View before) {
         boolean attached = language.getParent() == display;
         if (!offered) { if (attached) { display.removeView(divider); display.removeView(language); } return; }
         if (attached) return;
-        display.addView(language, 0, new LinearLayout.LayoutParams(-1, -2));
-        display.addView(divider, 1, new LinearLayout.LayoutParams(-1, line));
+        int at = SettingsRows.languageIndex(display.indexOfChild(before), display.getChildCount());
+        display.addView(language, at, new LinearLayout.LayoutParams(-1, -2));
+        display.addView(divider, at + 1, new LinearLayout.LayoutParams(-1, line));
     }
 
     private void preferences() {
-        segmentedField(T.morePrefsAppearance(), "theme", new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()},
-                new String[]{"dark", "system", "light"}, "dark");
-        View spacer = new View(host.activity());
-        cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout display = group();
         display.setTag("preference-display-options");
         languageRow(display);
-        Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
+        // Settings › Home style (hub layout plan, PR 8): its own page; the value names the current style.
+        Row homeStyle = row(display, null, HubText.title(HubPages.SETTINGS_HOME), null, () -> host.open(HubPages.SETTINGS_HOME));
+        homeStyle.view.setTag("home-style-menu");
+        valueRefreshers.add(() -> homeStyle.value(HubText.homeStyleName(HomeStyle.CLEAN.equals(HomeStylePrefs.of(settings()))).render()));
+        indexRow(homeStyle);
+        // Appearance as the plan's row with its value ("Dark ›"), opening the three-way choice (the contributor's pick on #383).
+        appearanceBox = column();
+        cardDestination = appearanceBox;
+        String appearanceTitle = T.morePrefsAppearance();
+        String[] themeNames = {T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()};
+        segmentedField(appearanceTitle, "theme", themeNames, THEMES, "dark");
+        cardDestination = indexView;
+        Row appearance = row(display, null, appearanceTitle, null, () -> appearanceSheet(appearanceTitle));
+        appearance.view.setTag("preference-appearance");
+        valueRefreshers.add(() -> appearance.value(themeNames[themeIndex(settings().getString("theme", "dark"))]));
+        indexRow(appearance);
+        Row units = row(display, null, T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
         units.view.setTag("preference-units-menu");
         valueRefreshers.add(() -> units.value(unitsSummary()));
-        Row text = row(display, "text", T.morePrefsTextSize(), null, this::textSize);
+        indexRow(units);
+        Row text = row(display, null, T.morePrefsTextSize(), null, this::textSize);
         valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
-        preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        indexRow(text);
+        // Its own tag, so search (HubSearchTables.SETTING_HAPTICS, PR 12) finds the switch apart from the card.
+        Row haptics = preferenceToggle(display, null, T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        haptics.view.setTag(HubSearchTables.SETTING_HAPTICS);
+        indexRow(haptics);
+        hapticsRow = haptics.view;
+    }
+    /** The Haptic feedback row: the Language row goes right above it (placeLanguageRow), after Text size, as the plan orders them. */
+    private View hapticsRow;
+    /** The themes Appearance offers (stored values), in its selector's order. */
+    private static final String[] THEMES = {"dark", "system", "light"};
+    /** Appearance's value: the chosen theme's place in THEMES (Dark for an unknown value, as the selector). */
+    private static int themeIndex(String theme) {
+        for (int i = 0; i < THEMES.length; i++) if (THEMES[i].equals(theme)) return i;
+        return 0;
+    }
+    /** A row of Settings' index: the plan's single-line height (a 48 dp touch target), no icon tile. */
+    private void indexRow(Row row) {
+        row.view.setMinimumHeight(ui.dp(SettingsRows.MIN_HEIGHT_DP));
+        row.view.setPadding(0, ui.dp(SettingsRows.PAD_DP), 0, ui.dp(SettingsRows.PAD_DP));
+    }
+    /** Appearance's choice over Settings: Dark, Follow system or Light; a pick applies at once (MainActivity redraws). */
+    private void appearanceSheet(String appearanceTitle) {
+        if (closed) return;
+        LinearLayout box = dialogBox(appearanceTitle, null);
+        if (appearanceBox.getParent() instanceof ViewGroup) ((ViewGroup) appearanceBox.getParent()).removeView(appearanceBox);
+        // The selector's own caption repeats the title the dialog already shows.
+        if (appearanceBox.getChildCount() > 0) appearanceBox.getChildAt(0).setVisibility(View.GONE);
+        box.addView(appearanceBox, new LinearLayout.LayoutParams(-1, -2));
+        // show() owns the dialog's dismiss listener (it forgets the dialog there), so the clean-up goes through it.
+        show(doneDialog(box), () -> box.removeView(appearanceBox));
+    }
+    /** Updates over Settings: the automatic check's switch and Check for updates (updates()), as the index had them. */
+    private void updatesSheet() {
+        if (closed) return;
+        LinearLayout box = dialogBox(updatesTitle.getText().toString(), null);
+        if (updatesBox.getParent() instanceof ViewGroup) ((ViewGroup) updatesBox.getParent()).removeView(updatesBox);
+        // updates() opens with its section label, which the dialog's title replaces.
+        if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
+        box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
+        show(doneDialog(box), () -> { box.removeView(updatesBox); if (!closed) refresh(); });
     }
     private boolean batteryUnrestricted() {
         try {
@@ -1323,6 +1364,8 @@ public final class MoreScreen implements AppScreen {
             if (selected < 0) for (int i = 0; i < values.length; i++) if (fallback.equals(values[i])) selected = i;
             selector.select(Math.max(0, selected), false);
         };
+        // Fit or wrap: every choice stays visible at full text size (a scrolling track looks like cut text at 1.4x).
+        selector.setWrapChoices(true);
         cardDestination.addView(selector, new LinearLayout.LayoutParams(-1, -2));
         preferenceSelectors.add(selector);
         restyle.run(); valueRefreshers.add(restyle);
@@ -1527,8 +1570,11 @@ public final class MoreScreen implements AppScreen {
                     refresh();
                 });
         selector.select(selected, false); box.addView(selector, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box)
-                .setPositiveButton(T.commonDone(), null).create(); show(dialog);
+        show(doneDialog(box));
+    }
+    /** A dialog over the page with box as its content and one Done button that closes it. */
+    private AlertDialog doneDialog(LinearLayout box) {
+        return new AlertDialog.Builder(host.activity()).setView(box).setPositiveButton(T.commonDone(), null).create();
     }
 
     // ---- PIN & proximity ----------------------------------------------------------------
@@ -2394,7 +2440,7 @@ public final class MoreScreen implements AppScreen {
      * at most once a day in the background (UpdateCheckJob), and the manual check.
      */
     private void updates() {
-        label(T.moreUpdatesTitle());
+        updatesTitle = label(T.moreUpdatesTitle());
         LinearLayout box = group();
         if (wide) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
         Row[] auto = new Row[1];
@@ -2406,6 +2452,7 @@ public final class MoreScreen implements AppScreen {
         auto[0].title.addOnLayoutChangeListener(ladder);
         CharSequence[] rungs = {T.moreUpdatesAuto(), T.moreUpdatesAutoShort()};
         ladder.show(rungs);
+        updatesAuto = auto[0];
         // The menu makes room for the last rung's longest word, so the ladder always has a whole-word rung.
         ((RowLine) auto[0].view).fallback = rungs[rungs.length - 1];
         valueRefreshers.add(() -> {
@@ -2599,6 +2646,8 @@ public final class MoreScreen implements AppScreen {
         simulationRow.toggle.setTag("developer-simulation-toggle");
         simulationModelRow = row(controls, "scooter", M.moreDevSimulatedModel(), null, this::chooseSimulationModel);
         simulationModelRow.view.setTag("developer-simulation-model");
+        simulationSceneRow = simulatorRow(controls, M.moreDevSimulationScene(), SIMULATION_SCENE_TAG, this::chooseSimulationScene);
+        simulationDriveModeRow = simulatorRow(controls, M.moreDevSimulationDriveMode(), SIMULATION_DRIVE_MODE_TAG, this::chooseSimulationDriveMode);
         simulationStatus = footnote(T.moreDevSimulationActive());
         simulationStatus.setTag("developer-simulation-status");
         simulationStatus.setTextColor(ui.orange);
@@ -2647,6 +2696,9 @@ public final class MoreScreen implements AppScreen {
             String unavailable=s.chargeCaptureUnavailable();if(unavailable!=null){host.toast(unavailable);return;}
             recordChargeDialog(s);
         });chargeCaptureRow.view.setTag("charge-capture-action");
+        // Record charges automatically (off by default): beside the recording controls, its only place.
+        preferenceToggle(capture,"recording",T.moreChargeAutoRecord(),T.moreChargeAutoRecordSub(),ChargeAutoRecordPolicy.KEY,false)
+                .view.setTag(ChargeAutoRecordPolicy.KEY);
         chargeCaptureStatus=footnote("");chargeCaptureStatus.setTag("charge-capture-status");
         LinearLayout chargeData=group();
         chargeHistoryRow=row(chargeData,"chart",T.moreDevRecordings(), T.moreDevRecordingsSub(),()->{
@@ -2731,14 +2783,93 @@ public final class MoreScreen implements AppScreen {
     private void chooseSimulationModel() {
         ScooterService s = service();
         if (closed || s == null) return;
-        int selected = Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
+        // Every model Volt names (SimulatorModels: the registry's list, a region where its controls differ by region).
+        java.util.List<SimulatorModels.Entry> models = SimulatorModels.entries();
+        int selected = Math.max(0, models.indexOf(SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
+        String[] names = new String[models.size()];
+        for (int i = 0; i < names.length; i++) names[i] = models.get(i).label();
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulatedModel())
-                .setSingleChoiceItems(SIMULATION_MODEL_NAMES, selected, (d, which) -> {
+                .setSingleChoiceItems(names, selected, (d, which) -> {
                     ScooterService current = service();
                     if (closed || current == null) return;
-                    current.ble.setSimulationModel(SIMULATION_MODELS[which]); d.dismiss();
+                    SimulatorModels.Entry chosen = models.get(which);
+                    current.ble.setSimulationModel(chosen.pid, chosen.region); d.dismiss();
                     refreshSimulation(); host.redraw();
                 }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
+    }
+
+    /** The simulator's scenes in picker order. */
+    private static final ScooterSimulation.Scene[] SIMULATION_SCENES =
+            {ScooterSimulation.Scene.PARKED, ScooterSimulation.Scene.RIDING, ScooterSimulation.Scene.CHARGING};
+
+    private static String sceneName(ScooterSimulation.Scene scene) {
+        return scene == ScooterSimulation.Scene.RIDING ? T.moreDevSimulationSceneRiding()
+                : scene == ScooterSimulation.Scene.CHARGING ? T.moreDevSimulationSceneCharging() : T.moreDevSimulationSceneParked();
+    }
+
+    /**
+     * A drive mode as the simulated model names it; where the model gives two codes one name (the GT5 Max family's Sport,
+     * 3 and 5), the code too, so the choices differ.
+     */
+    private static String driveModeName(DeviceDescriptor model, int code) {
+        int product = ModelRegistry.driveModeLabelProduct(model);
+        String name = Telemetry.drivingModeLabel(product, (double) code);
+        for (int other : SimulatorModels.driveModes(model))
+            if (other != code && name.equals(Telemetry.drivingModeLabel(product, (double) other)))
+                return T.moreDevSimulationDriveModeCode(name, Fmt.integer(code));
+        return name;
+    }
+
+    /** Developer options › Scene: Parked, Riding or Charging, at once and only while simulating (nothing is saved). */
+    private void chooseSimulationScene() {
+        ScooterService s = service();
+        if (closed || s == null || !s.simulating()) return;
+        String[] names = new String[SIMULATION_SCENES.length];
+        for (int i = 0; i < names.length; i++) names[i] = sceneName(SIMULATION_SCENES[i]);
+        int selected = Math.max(0, java.util.Arrays.asList(SIMULATION_SCENES).indexOf(s.ble.simulationScene()));
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulationScene())
+                .setSingleChoiceItems(names, selected, (d, which) -> {
+                    ScooterService current = service();
+                    if (closed || current == null || !current.simulating()) return;
+                    current.ble.setSimulationScene(SIMULATION_SCENES[which]); d.dismiss();
+                    refreshSimulation(); host.redraw();
+                }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
+    }
+
+    /** Developer options › Drive mode: the simulated scooter's mode, named as the simulated model names it. */
+    private void chooseSimulationDriveMode() {
+        ScooterService s = service();
+        if (closed || s == null || !s.simulating()) return;
+        // The simulated model's own named codes (SimulatorModels.driveModes): exactly 11, 2 and 3 on an ST3 Pro, 5 too on a GT5 Max.
+        DeviceDescriptor model = s.ble.descriptor();
+        int[] modes = s.ble.simulationDriveModes();
+        String[] names = new String[modes.length];
+        int selected = 0;
+        for (int i = 0; i < names.length; i++) {
+            names[i] = driveModeName(model, modes[i]);
+            if (modes[i] == s.ble.simulationDriveMode()) selected = i;
+        }
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.moreDevSimulationDriveMode())
+                .setSingleChoiceItems(names, selected, (d, which) -> {
+                    ScooterService current = service();
+                    if (closed || current == null || !current.simulating()) return;
+                    // The model can't have changed under an open dialog (its picker is a dialog too); refuse a code it no longer offers all the same.
+                    boolean offered = false;
+                    for (int mode : current.ble.simulationDriveModes()) offered |= mode == modes[which];
+                    if (offered) current.ble.setSimulationDriveMode(modes[which]);
+                    d.dismiss();
+                    refreshSimulation(); host.redraw();
+                }).setNegativeButton(T.commonClose(), null).create(); show(dialog);
+    }
+
+    /** Developer options' Scene and Drive mode rows' view tags (the rows and their text arrive with the catalog PR). */
+    static final String SIMULATION_SCENE_TAG = "developer-simulation-scene", SIMULATION_DRIVE_MODE_TAG = "developer-simulation-drive-mode";
+
+    /** One more simulator row under Simulated model: the scooter icon, a catalog title (R2: the field keeps the Row, not the text), no value yet, and its view tag. */
+    private Row simulatorRow(LinearLayout group, Msg title, String tag, Runnable open) {
+        Row row = row(group, "scooter", title, null, open);
+        row.view.setTag(tag);
+        return row;
     }
 
     /** Developer options' simulation rows and the simulating note on More's menu. */
@@ -2752,9 +2883,16 @@ public final class MoreScreen implements AppScreen {
         if (simulationRow != null) {
             refreshSwitch(simulationRow, simulating, s != null);
             simulationStatus.setVisibility(simulating ? View.VISIBLE : View.GONE);
-            int model = s == null ? 0 : Math.max(0, java.util.Arrays.asList(SIMULATION_MODELS).indexOf(s.ble.simulationModel()));
-            simulationModelRow.value(model == 0 ? "UT5 MAX" : model == 1 ? "Mapped" : "Unknown");
+            simulationModelRow.value(SimulatorModels.shortLabel(s == null ? SimulatorModels.entries().get(0)
+                    : SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
             simulationModelRow.enabled(s != null);
+            // Scene and drive mode only mean something while simulating; each simulation starts Parked in Sport.
+            simulationSceneRow.value(sceneName(simulating ? s.ble.simulationScene() : ScooterSimulation.Scene.PARKED));
+            simulationSceneRow.enabled(simulating);
+            simulationDriveModeRow.value(driveModeName(simulating ? s.ble.descriptor() : SimulatorModels.find(
+                    s == null ? null : s.ble.simulationModel(), s == null ? null : s.ble.simulationRegion()).descriptor(),
+                    simulating ? s.ble.simulationDriveMode() : ScooterSimulation.SPORT));
+            simulationDriveModeRow.enabled(simulating);
         }
     }
 
@@ -2773,6 +2911,9 @@ public final class MoreScreen implements AppScreen {
             chargeCaptureRow.title.setText(capturing?T.moreDevStopRecord():T.moreDevRecord());
             chargeCaptureRow.enabled(s!=null&&(capturing||unavailable==null));
             chargeCaptureStatus.setText(capturing||unavailable==null?s.chargeCaptureStatus():unavailable);
+            // The recording that just ended (not kept, saved, stopped) stays shown over a reason that follows from the charge
+            // ending (an unplug makes one at once), until a newer status replaces it; never over others, such as a ride.
+            if(!capturing&&unavailable!=null&&s!=null&&s.chargeOutcomeOverReason())chargeCaptureStatus.setText(s.chargeCaptureStatus());
             refreshChargeCurve(s);
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
@@ -2785,10 +2926,12 @@ public final class MoreScreen implements AppScreen {
     private void refreshChargerLink(ScooterService s) {
         ScooterService.ChargerBasis basis = s == null ? ScooterService.ChargerBasis.UNKNOWN : s.chargerBasis();
         ChargeSessionStore.Charger effective = s == null ? null : s.effectiveChargeCharger();
-        boolean detected = basis == ScooterService.ChargerBasis.DETECTED;
+        // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+        boolean locked = s != null && !s.chargerChoosable();
+        boolean detected = basis == ScooterService.ChargerBasis.DETECTED || basis == ScooterService.ChargerBasis.RECORDING && !locked;
         chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
                 : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
-        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING, detected, s != null && s.isChargeRecording());
+        Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING && locked, detected, locked);
         chargerDetail.setText(detail == null ? "" : detail.render());
         chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);
     }
@@ -2903,20 +3046,17 @@ public final class MoreScreen implements AppScreen {
     // ---- Refresh ------------------------------------------------------------------------
 
     private void refreshProfiles(ScooterService s, ScooterProfiles.Profile p) {
-        DeviceDescriptor saved = p == null ? null : p.savedDescriptor();
-        boolean photo = ScooterPhotos.show(indexPhoto, saved, 4);
-        indexPhoto.setVisibility(photo ? View.VISIBLE : View.GONE);
-        indexPhotoFallback.setVisibility(photo ? View.GONE : View.VISIBLE);
-        String role = p == null ? "" : p.role == 0 ? T.moreRoleOwner() : T.moreRoleShared();
         BleController.State state = s.ble.state();
         String link = s.ble.ready() ? T.moreLinkConnected()
                 : state == BleController.State.DISCONNECTED ? T.moreLinkDisconnected() : T.moreLinkConnecting();
         String name = p == null ? T.moreIndexNoScooter() : p.displayName();
-        String status = p == null ? T.moreIndexAdd() : T.moreIndexStatus(role, link);
-        indexProfileName.setText(name); indexProfileState.setText(status);
-        indexProfileCard.setContentDescription(T.moreIndexDescription(name, status));
+        // While simulating, the simulated model's name, beside its photo (display only; the stored name is untouched).
+        String simulated = s.ble.simulationName();
+        if (simulated != null) name = simulated;
+        // My scooters' line, as the plan's Settings shows it: the scooter's name and its connection ("Midnight Runner ·
+        // connected"), or how to begin with none.
+        scootersIndexRow.sub(p == null ? T.moreIndexAdd() : T.moreIndexStatus(name, link));
         List<ScooterProfiles.Profile> all = s.profiles.all();
-        scootersIndexRow.value(all.isEmpty() ? "" : String.valueOf(all.size()));
         String unavailable = s.scooterChangeUnavailable();
         scooterListNotice.setText(unavailable != null ? unavailable : all.isEmpty() ? T.moreScootersEmpty() : "");
         scooterListNotice.setVisibility(scooterListNotice.getText().length() == 0 ? View.GONE : View.VISIBLE);
@@ -3176,7 +3316,12 @@ public final class MoreScreen implements AppScreen {
                     }
                     showStored.run();
                 };
-                if (enabled && beforeOn != null) RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored); else save.run();
+                if (enabled && beforeOn != null) {
+                    // Ui.toggleRow already said On for the tap; until the answer lands, TalkBack hears what's stored.
+                    ViewGroup parent = (ViewGroup) row[0];
+                    describeSwitch((Switch) parent.getChildAt(parent.getChildCount() - 1), stored(key));
+                    RidingFrames.askBeforeSave(this::may, beforeOn, save, showStored);
+                } else save.run();
             });
             row[0].setTag(tag);
             return row[0];

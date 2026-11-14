@@ -85,7 +85,7 @@ for the evidence threshold, fallback and limitations.
    on the screen layout remaining visible. It is designed to continue while
    folded, rotated, outside the app or with the screen off. The connection
    notification provides Stop. Active ride/charge work uses immediate foreground
-   notification and a renewed bounded CPU wake lock. Rides > Recording settings >
+   notification and a renewed bounded CPU wake lock. Ride > Recording settings >
    Battery use opens Android's battery setting for Volt. Keep-screen-awake
    is optional. Real manufacturer battery policy remains a testing limit.
 4. Stop to save the session. New sessions preserve previous sessions. With
@@ -117,7 +117,7 @@ data while it sleeps or is outside Bluetooth range.
 
 Basemap tiles are separate from GPS, the local route and recording. They start
 off when no preference is saved; existing explicit choices remain. Use Basemap
-below either map view or in Rides > Recording settings > Map settings. The first new enable
+below either map view or in Ride > Recording settings > Map settings. The first new enable
 explains provider access to your IP address and viewed area, with Enable basemap/Cancel
 choices. The switch and acknowledgement are remembered across views and included
 in a full app backup. Recording does not enable or request map tiles.
@@ -289,7 +289,7 @@ no-motion rule):
 
 Any authenticated reconnect inside the wait keeps the same ride. An explicit
 Disconnect, revoked permissions or a profile change keep recording as before.
-Rides > Recording settings > End rides automatically turns this off. Exact rules:
+Ride > Recording settings > End rides automatically turns this off. Exact rules:
 [ride auto-end](validation/ride-auto-stop.md).
 Ride > Recording settings > Record rides automatically starts a ride when the
 connected scooter moves while Volt is in front (its activity resumed); it
@@ -307,6 +307,91 @@ revoked permissions, fatal connection failures and recording limits end recovery
 A process restart does not silently resume a charge capture. Android 14+ may allow dismissing an ongoing notification
 while unlocked. Force stop, real signal loss and vendor battery policy remain
 limits; no service can collect scooter readings without a connection.
+
+### Automatic charge recordings
+
+**Record charges automatically** (Battery & charging → Charge history
+& recordings, off by default; ChargeAutoRecordPolicy) starts a charge recording
+without asking whenever Volt is connected to the selected scooter, on screen or
+not, and a fresh reading says it is charging, if Start charge recording would be
+allowed then (never in simulation). It never connects, keeps a connection or
+turns on any other setting, and it sends nothing of its own: Volt must already be
+connected when charging starts, and notifications must be allowed. Out of sight,
+something else must be keeping the connection then (Stay connected in background,
+say), and the battery read Volt makes with every 15-second status check there
+shows the charge within about 15 seconds. Once a recording runs, it keeps its
+connection out of sight as any charge recording does, whatever Stay connected in
+background says, and lets it go when it ends. Connecting to a scooter that is
+already charging starts then; the recording is partial.
+
+- **Live readings only.** Being connected decides nothing by itself. A start
+  (or joining mid-charge) needs a "charging" reading at most 5 seconds old and
+  then everything Start charge recording needs (a status at most 7 seconds old
+  and fresh level, voltage and current); a hold clears only on a "not charging"
+  reading at most 5 seconds old; moving off counts only on a speed reading at most
+  3 seconds old; the two-minute end counts from a fresh "not charging" reading
+  to a later one; and keep or discard is judged on the saved samples, which are
+  fresh readings. A reading from before a gap or a phone sleep never starts,
+  ends, clears or discards anything.
+
+- **Label.** The charger chosen in Estimates & charger; otherwise Volt's
+  detection for this charge; otherwise a best guess: the charger with more
+  qualified recordings for this scooter, or the stock charger on a tie or with
+  none. A detected label follows detection when it settles on the other
+  charger; a guess becomes detected as soon as detection settles, on either
+  charger, so a recording stays a guess only when detection never settled; a
+  chosen one never changes. Only a chosen or detected label is
+  the charger in effect: a guess labels the file and nothing else, so estimates,
+  Charge done by and the charging view keep waiting for your choice or for
+  detection, and a recording that ends with a guessed label is kept in the list
+  (marked as a guess) but teaches no charger curve. Its gauge readings still count
+  toward the battery capacity estimate, which does not depend on the charger.
+- **Choosing during one.** The charger choice stays open during an automatic
+  recording whose label you did not choose (a guess or a detected label): your
+  choice is saved as usual and relabels the recording as chosen, so it is the
+  charger in effect at once and detection no longer changes it. It is locked, as
+  before, during a recording you started yourself and during an automatic one
+  that already has your chosen charger. If Volt is closed between rewriting the
+  file's charger and renaming it, the recording keeps its old guess or detected
+  name with your charger inside; a guess then teaches nothing.
+- **Waits.** It never starts during a guided setting test, while an unfinished
+  one may still have a setting to write back (anything but already back to its
+  original value; dismissing the test ends the wait), or during a compatibility check (a running recording
+  would block or cut those short). It starts by itself once they are over, if the
+  scooter is still charging.
+- **End.** Every rule that ends a recording today, and also: at once when a live
+  speed reading (at most 3 seconds old) is above 4.8 km/h (about 3 mph), so
+  Record rides automatically can start the ride in the same moment; and two
+  minutes after charging stops instead of 30, unless Volt's own charging
+  schedule is holding the current off. Riding away out of sight with Stay
+  connected in background off, the ride's automatic start gets its turn before
+  the connection is let go. Starting a ride by hand ends an automatic
+  recording instead of being refused, when the ride can start then (connected and
+  ready, no ride or phone save running). Manual recordings end as before, and a
+  ride by hand still waits for one.
+- **Kept.** An automatic recording under 10 minutes or 5 percentage points is
+  deleted when it ends, including one recovered after a process restart. At the
+  20-recording limit a kept one replaces the oldest automatic recording, never a
+  manual one, and only once it is kept: nothing saved is deleted for one that is
+  discarded, and a process end between saving it and making room is finished at
+  the next start. The recording just saved is never the one removed, and an
+  automatic file Volt cannot read goes before any readable one. A stop that a
+  process end cut short after writing its end is recovered with that one end. With 20 manual recordings it does not start.
+- **Hold.** Stopping a recording by hand (Stop on the page or in the
+  notification, or a ride started by hand) holds that scooter until a fresh
+  reading says it stopped charging while Volt is not holding the current off
+  itself (a charging schedule, Charge done by or a schedule test pausing the
+  charge is not an unplug), across reconnects and restarts: an automatic
+  recording always, and one you started yourself while the switch is on, so Volt
+  never starts recording the charge you just stopped recording. A recording that
+  ended by itself sets no hold.
+
+An automatic recording's file name records that Volt started it and how its label
+was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
+reads it as an ordinary recording. **Export charge recordings** and **Email to
+Volt** add `started_automatically` (true or false) and `label_source`
+(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge;
+`qualified_for_learning` is false for a guess.
 
 The interface adapts to compact/expanded windows. Folding a foldable halfway
 (book or tabletop posture) leaves the screen exactly as it is: a crease never

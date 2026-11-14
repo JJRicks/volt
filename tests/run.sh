@@ -49,6 +49,8 @@ for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign Ridin
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
 # Riding mode's chip row: which chips fit, and at which compact rung.
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingChipFit.java" "$TEST_DIR/RidingChipFitTest.java")
+# GPS accuracy (owner, Nov 12): the ride graph's line and riding mode's reading.
+sources+=("$APP_DIR/src/com/jjricks/volt/GpsAccuracy.java" "$TEST_DIR/GpsAccuracyTest.java")
 # Riding mode's reading names in a group: icons for all or names for all, by one rule (Halo's strip and readings).
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
@@ -56,8 +58,23 @@ sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutT
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6),
-# and the What's new sheet's bundled release notes (part 9).
-for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# the What's new sheet's bundled release notes (part 9) and Settings' rows (part 11).
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# Clean Home's charging view: what shows in its slot as the Layout Plan draws it, nothing dropped (decisions on #383).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeTimeReadings.java")
+# Clean Home's round quick actions: columns, circle and one short name on one line (decisions on #383, part 8b).
+sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/QuickActionLayoutTest.java")
+# Clean Home's header: 48 dp targets at about the mock-up's height, the name smaller before it wraps (part 8b).
+sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
+# Just back's tiles: names and values take the first rung that fits whole (part 9, council early review).
+sources+=("$APP_DIR/src/com/jjricks/volt/TileFit.java" "$TEST_DIR/TileFitTest.java")
+# Just back as the Layout Plan draws it: average speed from distance and time, the signed battery change, the
+# distance's size and the route giving way first (the contributor's decisions on #383, part 9).
+sources+=("$APP_DIR/src/com/jjricks/volt/JustBackFit.java" "$TEST_DIR/JustBackFitTest.java")
+# A finished ride's average speed, one rule for Just back and the ride's page and compare sheet on Rides (RideStore above).
+sources+=("$APP_DIR/src/com/jjricks/volt/RideAverages.java" "$TEST_DIR/RideAveragesTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
 # Scooter tab menu layout: order, hiding and its backup rule (scooter-menu-edit plan, PR 1).
@@ -66,6 +83,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/Scoo
 sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/ControlsPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubSummaries.java" "$TEST_DIR/HubSummariesTest.java")
 # Hub routes: where each saved Quick access id leads once the quick-access sheets are gone (hub layout plan, PR 4).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
+# The shortcut picker's sections, first open section, search and availability; the Charge alerts shortcut's value.
+sources+=("$APP_DIR/src/com/jjricks/volt/ShortcutPicker.java" "$TEST_DIR/ShortcutPickerTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
 sources+=("$TEST_DIR/HubRideDataTest.java")
 # Email to Volt: which refusal of the charge export is worth a toast (council review of #396).
@@ -88,8 +107,13 @@ sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimi
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
 for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransaction; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java"); done
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
+# Report diagnostics' charging evidence (fuller diagnostics, part 1); uses the compat suites' CommandLog.
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeEvidenceTest.java")
+# Report diagnostics, part 2: the settings allow-list, this connection's drive modes and power sign (Telemetry above
+# feeds them) and the last crash's record (CrashRecord runs with the compat suites).
+sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src/com/jjricks/volt/DiagnosticsTally.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
-COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle ProximityFollowUp)
+COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/FeatureVariant.java" "$APP_DIR/src/com/jjricks/volt/KickStartTry.java" "$TEST_DIR/OemControlsTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerNotes.java" "$TEST_DIR/ExperimentalControlsTest.java")
 # Standard-charger pack model (ut5-stock-pack-v6), its generated parity table and charge-age tracking.
@@ -158,14 +182,23 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
-for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAveragesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
@@ -202,6 +235,7 @@ for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; 
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done
 
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.DualChargerEstimateTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeEvidenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxFastChargeReferenceTest "$TEST_DIR/fixtures/ut5-max-fast-charge-calibration.csv"
 
 for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done

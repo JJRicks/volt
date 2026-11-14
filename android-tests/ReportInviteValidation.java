@@ -465,12 +465,9 @@ public final class ReportInviteValidation extends Instrumentation {
         main(() -> {
             try {
                 Object simulation = field(activity.service().ble, "simulation");
-                java.util.Map<String, Object> fixed = (java.util.Map<String, Object>) field(simulation, "fixed");
-                Class<?> sample = Class.forName("com.jjricks.volt.ScooterSimulation$Sample", true, simulation.getClass().getClassLoader());
-                java.lang.reflect.Constructor<?> make = sample.getDeclaredConstructor(String.class, Double.class); make.setAccessible(true);
-                fixed.put("driving_mode", make.newInstance("Mode " + code + " (simulation)", (double) code));
-                // The simulator derives driving_mode from the acceleration control's readback, so move that too.
+                // The acceleration control's readback moves with the mode, as on a scooter.
                 ((java.util.Map<String, Integer>) field(simulation, "features")).put("acceleration", code);
+                activity.service().ble.setSimulationDriveMode(code);
                 activity.service().ble.refresh(false);
             } catch (Exception error) { throw new IllegalStateException(error); }
         });

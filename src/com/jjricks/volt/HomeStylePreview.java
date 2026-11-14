@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -22,11 +23,11 @@ import java.util.Locale;
  * as a stand-in before a model is known), the scooter's name,
  * and sample readings formatted in the owner's units. Clean shows its header with the search and Settings buttons,
  * the battery card (charge, range, photo, bar, odometer), the Lock bar, the owner's four quick actions (this scooter's
- * defaults until they change them; the red RIDE pill first, with their real names and icons), the subject rows with
+ * defaults until they change them; round buttons with the short names Clean shows under them), the subject rows with
  * their names (Clean has no dock: its subjects are on the page). Widgets follows the default phone Home: its header with
- * the status row's search and Settings buttons (PR 11) and the RIDE pill, the overview card, the Lock bar, reading
- * tiles (power, temperature, battery health), this model's Setting tiles, the Ride recorder and the dock (HubDock,
- * PR 11) with the subjects it shows on this phone and "All".
+ * the RIDE pill (as on main: Widgets' search and Settings are in the dock's All sheet), the overview card, the Lock
+ * bar, reading tiles (power, temperature, battery health), this model's Setting tiles, the Ride recorder and the dock
+ * (HubDock, PR 11) with the subjects it shows on this phone at this text size and "All".
  * Words with no sample value (status, labels) are drawn as soft bars, as at a thumbnail's size.
  *
  * <p>Everything is drawn on a phone-shaped canvas of {@link #VIRTUAL_WIDTH} by {@link #VIRTUAL_HEIGHT} dp, scaled to
@@ -50,6 +51,10 @@ final class HomeStylePreview extends View {
     private final TextPaint words = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint photoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final RectF box = new RectF();
+    /** The phone's own bounds, kept apart from box, which the drawing reuses for its parts (council early review, note 6). */
+    private final RectF frame = new RectF();
+    /** The frame's rounded shape, which the screen's content is clipped to so it never shows past the corners. */
+    private final Path clip = new Path();
     private final Bitmap photo;
     /** The scooter's name, or "" (a bar is drawn). */
     private final String name;
@@ -74,7 +79,9 @@ final class HomeStylePreview extends View {
         DeviceDescriptor model = profile == null ? null : profile.savedDescriptor();
         // The stand-in only before a model is known: a known model with no bundled photo shows none, as on Home.
         photo = model == null ? fallback(context) : ScooterPhotos.get(context.getResources(), model, 4);
-        name = profile == null ? "" : profile.displayName();
+        // The name Clean's header shows (DashboardScreen.headerName: the simulated model's while simulating).
+        String header = DashboardScreen.headerName(service, profile);
+        name = header != null ? header : profile == null ? "" : profile.displayName();
         SharedPreferences settings = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         boolean metric = "km".equals(settings.getString("units", "mi"));
         charge = Fmt.percent(Fmt.integerNumber(82)).toString();
@@ -87,7 +94,7 @@ final class HomeStylePreview extends View {
         String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
         for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-            if (entry != null) quick.add(new String[] {entry.icon, entry.label().render(), id});
+            if (entry != null) quick.add(new String[] {entry.icon, QuickAccessGrid.roundName(entry), id});
         }
         for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
@@ -98,7 +105,9 @@ final class HomeStylePreview extends View {
             subjectIcons.add(HubPages.icon(subject));
         }
         // A phone's dock at this window's width (a wide window's preview is still a phone, so no wider than a large one).
-        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(host.contentWidthDp(), 412)), 1f)) {
+        // At the dock's own text scale (HubDock: Volt's text size times Android's font size, at least 1).
+        float dockScale = Math.max(1f, ui.textScale * host.activity().getResources().getConfiguration().fontScale);
+        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(host.contentWidthDp(), 412)), dockScale)) {
             Msg shortName = HubText.shortTitle(subject);
             dockIcons.add(HubPages.icon(subject));
             dockLabels.add((shortName == null ? HubText.title(subject) : shortName).render());
@@ -146,11 +155,13 @@ final class HomeStylePreview extends View {
         // The phone: the page's background inside a rounded frame.
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(ui.bg);
-        box.set(left, top, left + w, top + VIRTUAL_HEIGHT * s);
+        frame.set(left, top, left + w, top + VIRTUAL_HEIGHT * s);
         float corner = ui.dp(12);
-        canvas.drawRoundRect(box, corner, corner, paint);
+        canvas.drawRoundRect(frame, corner, corner, paint);
         canvas.save();
-        canvas.clipRect(box);
+        clip.reset();
+        clip.addRoundRect(frame, corner, corner, Path.Direction.CW);
+        canvas.clipPath(clip);
         canvas.translate(left, top);
         canvas.scale(s, s);
         if (clean) drawClean(canvas);
@@ -159,21 +170,21 @@ final class HomeStylePreview extends View {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(ui.dp(1.5f));
         paint.setColor(ui.outline);
-        canvas.drawRoundRect(box, corner, corner, paint);
+        canvas.drawRoundRect(frame, corner, corner, paint);
         paint.setStyle(Paint.Style.FILL);
     }
 
     // ===== Clean =====
 
     private void drawClean(Canvas c) {
-        // Header: the connection line, search and Settings; the scooter's name and Edit.
+        // Header as Clean draws it (part 8b): the connection line, then the scooter's name with search and Settings (no
+        // Edit button: a long-press on the quick actions edits them).
         paint.setColor(ui.ok);
         c.drawCircle(20, 24, 4, paint);
         bar(c, 30, 21, 128, 6);
-        roundButton(c, 252, 24, "search");
-        roundButton(c, 288, 24, "gear");
-        title(c, 16, 70, 220, 22);
-        roundButton(c, 288, 62, "pencil");
+        title(c, 16, 70, 196, 22);
+        roundButton(c, 252, 62, "search");
+        roundButton(c, 288, 62, "gear");
         // The top area: the battery card.
         card(c, 16, 90, 304, 262, 20, ui.surface);
         text(c, charge, 30, 140, 140, 40, ui.text, true);
@@ -186,17 +197,15 @@ final class HomeStylePreview extends View {
         bar(c, 164, 243, 64, 8, ui.text);
         // The Lock bar.
         lockBar(c, 16, 274, 304, 326);
-        // The four quick actions: the red RIDE pill into riding mode, then the round grey ones.
+        // The four quick actions as Clean's round buttons (part 8b): a grey circle, one short name under it.
         float cell = (288 - 24) / 4f;
         for (int i = 0; i < Math.min(4, quick.size()); i++) {
             String[] action = quick.get(i);
             float x = 16 + i * (cell + 8);
-            boolean ride = HomeQuickActions.RIDING.equals(action[2]);
-            card(c, x, 338, x + cell, 404, ride ? 33 : 12, ride ? ui.accent : ui.raised);
-            ui.drawIcon(c, action[0], ride ? ui.onAccent : ui.accent, x + cell / 2, 360, 20);
-            words.setLetterSpacing(ride ? .06f : 0);
-            centred(c, action[1], x + cell / 2, 392, cell - 8, 11, ride ? ui.onAccent : ui.text, ride);
-            words.setLetterSpacing(0);
+            paint.setColor(ui.raised);
+            c.drawCircle(x + cell / 2, 362, 22, paint);
+            ui.drawIcon(c, action[0], ui.text, x + cell / 2, 362, 20);
+            centred(c, action[1], x + cell / 2, 401, cell + 4, 11, ui.muted, false);
         }
         // The subjects: icon, name, a summary line and the chevron.
         card(c, 16, 418, 304, VIRTUAL_HEIGHT + 20, 18, ui.surface);
@@ -218,59 +227,53 @@ final class HomeStylePreview extends View {
     // ===== Widgets =====
 
     private void drawWidgets(Canvas c) {
-        // Header: the status row (the connection line, search and Settings, as on Clean, PR 11), then the scooter's
-        // name, the RIDE pill and the pencil.
-        paint.setColor(ui.ok);
-        c.drawCircle(20, 24, 4, paint);
-        bar(c, 30, 21, 128, 6);
-        roundButton(c, 252, 24, "search");
-        roundButton(c, 288, 24, "gear");
-        title(c, 16, 70, 166, 22);
-        card(c, 192, 48, 268, 76, 14, ui.accent);
-        ui.drawIcon(c, "speed", ui.onAccent, 208, 62, 14);
+        // Header: the scooter's name, the RIDE pill and the pencil.
+        title(c, 16, 42, 166, 22);
+        card(c, 192, 20, 268, 48, 14, ui.accent);
+        ui.drawIcon(c, "speed", ui.onAccent, 208, 34, 14);
         String ride = quickName(HomeQuickActions.RIDING);
         words.setLetterSpacing(.06f);
-        text(c, ride, 220, 66, 44, 11, ui.onAccent, true);
+        text(c, ride, 220, 38, 44, 11, ui.onAccent, true);
         words.setLetterSpacing(0);
-        roundButton(c, 288, 62, "pencil");
+        roundButton(c, 288, 34, "pencil");
         // The battery widget, two columns wide.
-        card(c, 16, 90, 304, 206, 20, ui.surface);
-        text(c, charge, 30, 134, 140, 36, ui.text, true);
-        text(c, range, 31, 155, 130, 13, ui.muted, false);
-        photo(c, 156, 98, 296, 182);
-        meter(c, 30, 192, 290, .82f);
+        card(c, 16, 62, 304, 192, 20, ui.surface);
+        text(c, charge, 30, 108, 140, 36, ui.text, true);
+        text(c, range, 31, 130, 130, 13, ui.muted, false);
+        photo(c, 156, 70, 296, 166);
+        meter(c, 30, 176, 290, .82f);
         // The Lock bar.
-        lockBar(c, 16, 216, 304, 262);
+        lockBar(c, 16, 202, 304, 250);
         // Reading tiles: power, temperature and battery health, as on the default Home.
         String[] values = {power, temperature, health};
         String[] icons = {"bolt", "temperature", "heart"};
         float third = (288 - 16) / 3f;
         for (int i = 0; i < values.length; i++) {
             float x = 16 + i * (third + 8);
-            card(c, x, 272, x + third, 340, 18, ui.surface);
-            ui.drawIcon(c, icons[i], ui.muted, x + 18, 290, 14);
-            bar(c, x + 30, 287, third - 44, 6);
-            text(c, values[i], x + 12, 327, third - 20, 17, ui.text, true);
+            card(c, x, 260, x + third, 330, 18, ui.surface);
+            ui.drawIcon(c, icons[i], ui.muted, x + 18, 278, 14);
+            bar(c, x + 30, 275, third - 44, 6);
+            text(c, values[i], x + 12, 316, third - 20, 17, ui.text, true);
         }
         // Setting tiles: this model's (maximum speed and charge timing by default).
         int count = Math.max(1, settingTiles.size());
         float tile = (288 - 8 * (count - 1)) / (float) count;
         for (int i = 0; i < settingTiles.size(); i++) {
             float x = 16 + i * (tile + 8);
-            card(c, x, 350, x + tile, 398, 16, ui.surface);
+            card(c, x, 340, x + tile, 388, 16, ui.surface);
             paint.setColor(ui.raised);
-            c.drawCircle(x + 26, 374, 14, paint);
-            ui.drawIcon(c, settingTiles.get(i), ui.accent, x + 26, 374, 16);
-            bar(c, x + 48, 366, Math.min(80, tile - 64), 6, ui.text);
-            bar(c, x + 48, 377, Math.min(52, tile - 64), 5);
+            c.drawCircle(x + 26, 364, 14, paint);
+            ui.drawIcon(c, settingTiles.get(i), ui.accent, x + 26, 364, 16);
+            bar(c, x + 48, 356, Math.min(80, tile - 64), 6, ui.text);
+            bar(c, x + 48, 367, Math.min(52, tile - 64), 5);
         }
         // The Ride recorder: the record button and its words.
-        card(c, 16, 408, 304, 460, 18, ui.surface);
+        card(c, 16, 398, 304, 452, 18, ui.surface);
         paint.setColor(ui.accent);
-        c.drawCircle(43, 434, 15, paint);
-        ui.drawIcon(c, "record", ui.onAccent, 43, 434, 16);
-        bar(c, 68, 425, 96, 7, ui.text);
-        bar(c, 68, 438, 128, 5);
+        c.drawCircle(43, 425, 15, paint);
+        ui.drawIcon(c, "record", ui.onAccent, 43, 425, 16);
+        bar(c, 68, 416, 96, 7, ui.text);
+        bar(c, 68, 429, 128, 5);
         dock(c);
     }
 

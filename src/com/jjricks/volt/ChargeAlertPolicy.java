@@ -232,6 +232,17 @@ public final class ChargeAlertPolicy {
     }
 
     /**
+     * Why offered(d) is false, in the resolver's words, or null when alerts are offered: no scooter (NOT_CONNECTED), no
+     * model evidence yet (MODEL_NOT_IDENTIFIED), or a model with its own charge limit (MODEL_EXCLUDED: the only case that
+     * says the model lacks them).
+     */
+    public static CapabilityResolver.Reason missing(DeviceDescriptor d) {
+        if (d == null) return CapabilityResolver.Reason.NOT_CONNECTED;
+        if (!d.simulated && d.pidSource() == DeviceDescriptor.PidSource.NONE) return CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED;
+        return offered(d) ? null : CapabilityResolver.Reason.MODEL_EXCLUDED;
+    }
+
+    /**
      * The level the dashboard counts down to while charging: the charge alert's, on a model that offers alerts, until
      * the battery reaches it (rounded as step() rounds). Null when alerts aren't offered, the alert is off or set to
      * Full (the time to full already shows that), it's been reached, or the battery reading isn't usable.
@@ -240,6 +251,25 @@ public final class ChargeAlertPolicy {
         if (!offered || settings == null || !settings.charge || settings.chargeAt >= 100) return null;
         if (percent == null || !Double.isFinite(percent) || percent < 0 || percent > 100) return null;
         return Math.round(percent) >= settings.chargeAt ? null : Integer.valueOf(settings.chargeAt);
+    }
+
+    /**
+     * What Home's Charge alerts shortcut shows: null when this scooter has no charge alerts (a model with a built-in
+     * charge limit, or none selected), 0 when the charge alert is off, else its level (100 is Full; levelText words it).
+     */
+    public static Integer shortcutLevel(boolean offered, Settings settings) {
+        if (!offered) return null;
+        return settings == null || !settings.charge ? Integer.valueOf(0) : Integer.valueOf(settings.chargeAt);
+    }
+
+    /**
+     * The low-battery alert's level for Home's Battery alerts shortcut while it is the only alert on, so the tile reads
+     * "Low 20%" rather than Off; null when alerts aren't offered, no settings were read, the charge alert is on (its level
+     * shows, shortcutLevel) or the low alert is off.
+     */
+    public static Integer shortcutLow(boolean offered, Settings settings) {
+        if (!offered || settings == null || settings.charge || !settings.low) return null;
+        return Integer.valueOf(settings.lowBelow);
     }
 
     // Notification wording, kept here so the formatting is unit-tested.

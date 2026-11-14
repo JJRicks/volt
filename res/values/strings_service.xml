@@ -130,6 +130,12 @@
     <string name="service_charge_limit_reached" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording reached its storage or time limit</string>
     <string name="service_charge_saved_full" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording saved · battery reached 100%%</string>
     <string name="service_charge_saved" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording saved</string>
+    <!-- A recording Volt started by itself ended too short to keep (under 10 minutes or under 5 battery percentage points), so it was deleted. -->
+    <string name="service_charge_not_kept" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording not kept · under 10 min or 5%%</string>
+    <!-- Record charges automatically could not start a recording for this charge: Volt keeps at most 20 charge recordings in all, shared by every scooter, and all 20 are ones the owner started; Volt never deletes those to make room. Clearing any scooter's charge recordings that holds some makes room. -->
+    <string name="service_charge_auto_no_room" volt:screen="Charge history &amp; recordings" volt:purpose="status">Not recording this charge: the 20 saved charge recordings, shared by all your scooters, are all ones you started. Clear a scooter\'s charge recordings to make room.</string>
+    <!-- %1$s is a recording's status or summary, which starts with its charger ("Stock charger · 12 local samples", "Stock charger · 52% → 80%"): that charger is Volt's guess for a recording that started by itself, neither chosen nor detected. -->
+    <string name="service_charge_charger_guessed" volt:screen="More › Developer › Charge recording; connection notice; More › Charge recordings" volt:purpose="status">%1$s · charger guessed</string>
     <string name="service_charge_storage_error" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped after a storage error</string>
     <!-- %1$s says why, one of the service_charge_stop_* labels below (lower case, as English shows them). -->
     <string name="service_charge_stopped_reason" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped · %1$s</string>

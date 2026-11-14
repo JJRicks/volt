@@ -22,6 +22,8 @@ public final class RideChartData {
         public final ChartScale.Range scale;
         public final long endTime;
         public final long typicalIntervalMs; private final boolean hasData, ordered;
+        /** The largest finite value, NaN with none: above scale.max when the scale leaves outliers at its top edge. */
+        private final double observedHigh;
         /** The catalog id of the legend name, or -1 for a series whose label is already display text. */
         private final int labelId;
         private double drawnFrom = Double.NaN, drawnTo; private int drawnColumns; private int[] drawn;
@@ -54,6 +56,7 @@ public final class RideChartData {
             long end = 0;
             for (Value p : values) { checkCanceled(); end = Math.max(end, p.time); if (p.value != null && Double.isFinite(p.value)) { low = Math.min(low, p.value); high = Math.max(high, p.value); } }
             endTime = end;
+            observedHigh = Double.isFinite(high) ? high : Double.NaN;
             hasData=Double.isFinite(low);boolean sorted=true;List<Long> intervals=new ArrayList<>();
             for(int i=1;i<values.size();i++){checkCanceled();if(fullDetail)RideStore.checkDetailMemory();long delta=values.get(i).time-values.get(i-1).time;if(delta<0)sorted=false;if(delta>0)intervals.add(delta);}
             ordered=sorted;Collections.sort(intervals);typicalIntervalMs=intervals.isEmpty()?1000:intervals.get(intervals.size()/2);
@@ -78,6 +81,8 @@ public final class RideChartData {
         /** The label to read out and name the series with: the legend name, plus directionNote when inferred regen is plotted. */
         public String notedLabel() { return directionNote == null ? displayLabel() : displayLabel() + " · " + directionNote; }
         public boolean available() { return hasData; }
+        /** True when a value lies above the scale's top, so it draws at the top edge (GPS accuracy's outliers). */
+        public boolean clipsAbove() { return hasData && observedHigh > scale.max; }
         public boolean connects(Value left, Value right) {
             return left != null && right != null && left.value != null && right.value != null
                     && Double.isFinite(left.value) && Double.isFinite(right.value)
@@ -188,20 +193,21 @@ public final class RideChartData {
     private static final class ClockIndex {
         final List<RideStore.Point> points;
         ClockIndex(List<RideStore.Point> source) { points = new ArrayList<>(source); points.sort(Comparator.comparingLong(p -> p.monotonicMs)); }
-        Long align(PhoneRideStore.Point phone) {
-            if (points.isEmpty()) return phone.elapsedMs;
+        Long align(PhoneRideStore.Point phone) { return align(phone.monoMs, phone.wallMs, phone.elapsedMs); }
+        Long align(long monoMs, long wallMs, long elapsedMs) {
+            if (points.isEmpty()) return elapsedMs;
             int low = 0, high = points.size();
-            while (low < high) { int mid = (low + high) >>> 1; if (points.get(mid).monotonicMs < phone.monoMs) low = mid + 1; else high = mid; }
+            while (low < high) { int mid = (low + high) >>> 1; if (points.get(mid).monotonicMs < monoMs) low = mid + 1; else high = mid; }
             int left = low - 1, right = low;
             while (left >= 0 || right < points.size()) {
                 checkCanceled();
-                long ld = left < 0 ? Long.MAX_VALUE : Math.abs(phone.monoMs - points.get(left).monotonicMs);
-                long rd = right >= points.size() ? Long.MAX_VALUE : Math.abs(phone.monoMs - points.get(right).monotonicMs);
+                long ld = left < 0 ? Long.MAX_VALUE : Math.abs(monoMs - points.get(left).monotonicMs);
+                long rd = right >= points.size() ? Long.MAX_VALUE : Math.abs(monoMs - points.get(right).monotonicMs);
                 if (Math.min(ld, rd) > 120000) break;
                 RideStore.Point p = ld <= rd ? points.get(left--) : points.get(right++);
-                long monoDelta = phone.monoMs - p.monotonicMs;
+                long monoDelta = monoMs - p.monotonicMs;
                 // Matching wall/source deltas identify the same boot, including recovered recordings.
-                if (Math.abs((phone.wallMs - p.wallMs) - monoDelta) <= 3000)
+                if (Math.abs((wallMs - p.wallMs) - monoDelta) <= 3000)
                     return Math.max(0, p.elapsedMs + monoDelta);
             }
             return null;
@@ -248,6 +254,33 @@ public final class RideChartData {
             result.add(series);
         }
         return Collections.unmodifiableList(result);
+    }
+    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy (off unless chosen). */
+    public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
+        List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
+        lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
+        return Collections.unmodifiableList(lines);
+    }
+    /**
+     * The GPS accuracy line: each fix's reported accuracy (metres, or feet for miles), on the scooter's timeline like
+     * the other phone lines, with GpsAccuracy.scale. A recorded GAP or a pause longer than the line's own rhythm
+     * (connects) is a break, never a zero; a ride without GPS has no values, so the line shows as "no data".
+     * labelId is its legend name's catalog id.
+     */
+    static Series gpsAccuracy(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, int labelId) {
+        List<PhoneRideStore.AccuracySample> samples = phone == null ? Collections.<PhoneRideStore.AccuracySample>emptyList()
+                : fullDetail ? phone.fullAccuracy() : phone.accuracy;
+        ClockIndex clocks = new ClockIndex(scooter);
+        List<Value> values = new ArrayList<>(samples.size()); List<Double> shown = new ArrayList<>(samples.size());
+        for (PhoneRideStore.AccuracySample sample : samples) {
+            checkCanceled(); if (fullDetail) RideStore.checkDetailMemory();
+            Long aligned = clocks.align(sample.monoMs, sample.wallMs, sample.elapsedMs);
+            if (aligned == null) continue;
+            double value = GpsAccuracy.shown(sample.metres, miles);
+            values.add(new Value(aligned, value, sample.segment)); shown.add(value);
+        }
+        return new Series(GpsAccuracy.KEY, GpsAccuracy.KEY, labelId, GpsAccuracy.unit(miles), GpsAccuracy.COLOR, GpsAccuracy.CHART_INDEX,
+                values, GpsAccuracy.scale(shown, miles));
     }
     /** True when a stored power reading was labelled inferred regen, so the plot's sign isn't measured. */
     private static boolean plotsInferredRegen(List<RideStore.Point> scooter, RegenInference.Label[] regen) {

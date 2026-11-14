@@ -12,6 +12,37 @@ public final class ChargeMeasureWindowTest {
     private static ChargeMeasureWindow.Decision at(ChargeMeasureWindow w, long offset, boolean ready, Integer charging, boolean known) {
         return w.evaluate(MONO + offset, "one", ready, charging, known);
     }
+    private static ChargeMeasureWindow.Decision at(ChargeMeasureWindow w, long offset, boolean linked, boolean ready, Integer charging, boolean known) {
+        return w.evaluate(MONO + offset, "one", linked, ready, charging, known);
+    }
+
+    /**
+     * #418: the link is up but its status is not fresh enough to write (just after a wake, or a slow answer). Arming sends
+     * the plan, so it waits for a fresh status instead of meeting the write gate's refusal; the window doesn't end as a
+     * disconnect; a fresh "not charging" reading still ends it. The one-answer form (ready for both) is unchanged.
+     */
+    private static void linkedNotReady() {
+        ChargeMeasureWindow w = started(6 * 60 * MIN);
+        check(at(w, MIN, true, false, 1, true).step == ChargeMeasureWindow.Step.WAIT, "known age, charging, stale status: waits for a fresh status instead of arming");
+        ChargeMeasureWindow.Decision fresh = at(w, MIN + 300, true, true, 1, true);
+        check(fresh.step == ChargeMeasureWindow.Step.ARM && fresh.measured, "and arms on the fresh status");
+        w = started(6 * 60 * MIN);
+        check(at(w, ChargeMeasureWindow.MAX_MS, true, false, 1, false).step == ChargeMeasureWindow.Step.WAIT, "at the deadline, charging and linked but stale: waits, neither arms blind nor ends");
+        ChargeMeasureWindow.Decision late = at(w, ChargeMeasureWindow.MAX_MS + 300, true, true, 1, false);
+        check(late.step == ChargeMeasureWindow.Step.ARM && !late.measured, "then arms the cautious plan on the fresh status");
+        w = started(6 * 60 * MIN);
+        ChargeMeasureWindow.Decision readings = at(w, ChargeMeasureWindow.MAX_MS, true, false, null, false);
+        check(readings.step == ChargeMeasureWindow.Step.NOT_SET && readings.reason.contains("readings"), "linked with no fresh charging reading at the deadline: readings stopped, not disconnected");
+        w = started(6 * 60 * MIN);
+        ChargeMeasureWindow.Decision unplugged = at(w, 2 * MIN, true, false, 0, false);
+        check(unplugged.step == ChargeMeasureWindow.Step.NOT_SET && unplugged.reason.startsWith("Charging stopped"), "a fresh not-charging reading ends it while linked");
+        // The one-answer form keeps its meaning: ready for both.
+        for (long t : new long[]{MIN, ChargeMeasureWindow.MAX_MS}) for (boolean r : new boolean[]{false, true}) for (Integer ch : new Integer[]{null, 0, 1}) for (boolean k : new boolean[]{false, true}) {
+            ChargeMeasureWindow.Decision one = at(started(6 * 60 * MIN), t, r, ch, k), two = at(started(6 * 60 * MIN), t, r, r, ch, k);
+            check(one.step == two.step && one.measured == two.measured && java.util.Objects.equals(one.reason, two.reason), "one answer = both the same at " + t + " " + r + " " + ch + " " + k);
+        }
+    }
+
     public static void main(String[] args) {
         check(!ChargeMeasureWindow.useful(WALL, WALL + 3 * MIN - 1) && ChargeMeasureWindow.useful(WALL, WALL + 3 * MIN),
                 "Measuring is offered only with at least three minutes before the cautious start");
@@ -68,6 +99,7 @@ public final class ChargeMeasureWindowTest {
         w = started(6 * 60 * MIN); w.arm(); long before = w.remainingMs(MONO);
         w.retarget(7 * 60, MONO, WALL, WALL + MIN);
         check(w.remainingMs(MONO) == before && w.minute() == 7 * 60, "Arming in flight is never retargeted");
+        linkedNotReady();
         System.out.println("ChargeMeasureWindow: " + checks + " checks passed");
     }
 }

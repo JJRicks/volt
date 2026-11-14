@@ -856,11 +856,14 @@ public final class RidesScreen implements AppScreen {
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
+        // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
+        // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
+        Double average = RideAverages.speedKmh(ride);
         if (ride.distanceKm != null) tileReadings(distanceParts(ride.distanceKm));
-        if (ride.averageSpeedKmh != null) tileReadings(speedParts(ride.averageSpeedKmh));
+        if (average != null) tileReadings(speedParts(average));
         if (ride.maximumSpeedKmh != null) tileReadings(speedParts(ride.maximumSpeedKmh));
         List<View> journey = tiles(body, new String[]{"route", T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), "clock", T.ridesTileDuration(), duration(ride.shownElapsedMs),
-                "speed", T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
+                "speed", T.ridesTileAvgSpeed(), speed(average), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
         if (ride.odometerReset) reasonOnTap(journey.get(0), T.ridesReasonOdometerReset());
         body.addView(ui.sectionLabel(T.ridesBatteryEnergy()));
         boolean batteryGain = ride.batteryDropPercent != null && ride.batteryDropPercent < 0;
@@ -1033,7 +1036,7 @@ public final class RidesScreen implements AppScreen {
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.build(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
+            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
@@ -1084,7 +1087,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.build(all, track, miles, true, inferRegen);
+                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;
@@ -1902,7 +1905,7 @@ public final class RidesScreen implements AppScreen {
             LinearLayout group = ui.groupCard(); content.addView(group);
             compareLine(group, T.ridesTileDistance(), distance(a.distanceKm), distance(b.distanceKm));
             compareLine(group, T.ridesTileDuration(), duration(a.shownElapsedMs), duration(b.shownElapsedMs));
-            compareLine(group, T.ridesTileAvgSpeed(), speed(a.averageSpeedKmh), speed(b.averageSpeedKmh));
+            compareLine(group, T.ridesTileAvgSpeed(), speed(RideAverages.speedKmh(a)), speed(RideAverages.speedKmh(b)));
             compareLine(group, T.ridesCompareBatteryChange(), change(a.batteryDropPercent), change(b.batteryDropPercent));
             compareLine(group, T.ridesCompareMeasuredThroughput(), quantity(a.measuredThroughputWh, "Wh", 2), quantity(b.measuredThroughputWh, "Wh", 2));
             compareLine(group, T.ridesNetEnergy(), quantity(a.netConsumptionWh, "Wh", 2), quantity(b.netConsumptionWh, "Wh", 2));
@@ -2558,7 +2561,8 @@ public final class RidesScreen implements AppScreen {
         return letters.toString();
     }
     private static String percent(double coverage) { return T.fmtPercent(Fmt.decimal(Locale.US, coverage * 100, 0)); }
-    private static String duration(long millis) {
+    /** A ride's duration as its Duration tile shows it ("20m 00s", "1h 02m"); also Clean's Just back Ride time tile. */
+    static String duration(long millis) {
         long seconds = Math.max(0, millis) / 1000;
         return seconds >= 3600 ? String.format(Locale.US, "%dh %02dm", seconds / 3600, seconds % 3600 / 60)
                 : seconds >= 60 ? String.format(Locale.US, "%dm %02ds", seconds / 60, seconds % 60) : seconds + "s";

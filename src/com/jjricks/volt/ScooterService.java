@@ -54,6 +54,12 @@ public final class ScooterService extends Service {
         CapacityCache(long mono, BatteryCapacityEstimate.Result result) { this.mono = mono; this.result = result; }
     }
     private ChargeScheduleController chargeScheduleController;
+    /** Report diagnostics' charge evidence (no_backup/charge-evidence), per saved scooter; null until onCreate. */
+    private ChargeEvidence evidence;
+    /** The saved scooter whose authenticated link fed the last evidence sample, or null. */
+    private String evidenceScope;
+    /** The selected scooter whose evidence file was last asked to load. */
+    private String evidenceSelected;
     private ChargeScheduleController.TestResult pendingScheduleTest;
     /** The start this measured arm's scooter confirmed in time, 0 until then. */
     private long measuredStartSent;
@@ -69,6 +75,8 @@ public final class ScooterService extends Service {
     private long chargeEndingMono;
     private ChargeRecoveryPolicy chargeRecovery;
     private CharSequence chargeStatus = M.serviceChargeNone();
+    /** The status finishChargeCapture last set; chargeStatusIsOutcome compares by identity, so any newer status ends it. */
+    private CharSequence chargeOutcome;
     private final ExecutorService chargeWorker = Executors.newSingleThreadExecutor(r -> new Thread(r,"charge-curve-analysis"));
     private PhoneRideRecorder phoneRecorder;private boolean phoneLocationForeground;private int phoneSavingCount;private String phoneFinalStatus;
     /** The finished recorder's statusFlags(), beside phoneFinalStatus (its English status). */
@@ -110,6 +118,12 @@ public final class ScooterService extends Service {
     private final ChargeLiveDial chargeLiveDial=new ChargeLiveDial();
     /** The live card the last notification() built (null: none); what a connection notice post then carries. */
     private ChargeLiveState chargeLiveBuilt;
+    /** What the connection notice last posted (NoticeRepeat), and what the last notification() set that the notice can't report back. */
+    private final NoticeRepeat noticeRepeat=new NoticeRepeat();private Object noticeBuiltExtra;
+    /** The connection notice's tap and its action, made once each: every rebuild used to ask Android for them again. */
+    private PendingIntent noticeOpen;private final Map<String,PendingIntent> noticeActions=new HashMap<>();
+    /** The labels each channel was last created with in this process: Android keeps a channel, so it's created again only when its language changes. */
+    private static String scooterChannelLabel,alertChannelLabel;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
     /** The card's Disconnect (Stop before 2026-11-06): ends Volt's own hold and card, and never sends the scooter anything. */
     static final String STOP_CHARGE_LIVE="stop_charge_live";
@@ -141,6 +155,14 @@ public final class ScooterService extends Service {
                     return;
                 }
                 if (key == null) return;
+                if (key.equals(ChargeAutoRecordPolicy.KEY)) {
+                    // Record charges automatically: turning it on looks at once (observeAutoCharge), so a charge already under way starts.
+                    // Turning it on also releases a refusal for lack of room (Terra's review of #416, finding 1): it tries again.
+                    Runnable look = () -> { if (destroyed) return; if (autoChargeEnabled()) releaseAutoChargeNoRoom(null); changed(); };
+                    if (Looper.myLooper() == Looper.getMainLooper()) look.run();
+                    else handler.post(look);
+                    return;
+                }
                 if (!key.equals(BACKGROUND_CONNECTION) && !key.equals("auto_connect")) return;
                 Runnable apply =
                         () -> {
@@ -168,6 +190,7 @@ public final class ScooterService extends Service {
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
+        startEvidence();
         maintenanceNotices = new MaintenanceNotices(this, profiles);
         maintenance.listen(this::maintenanceChanged);
         MaintenanceNotices.plan(this, maintenance, profiles, System.currentTimeMillis(), this::maintenanceLive);
@@ -178,7 +201,7 @@ public final class ScooterService extends Service {
             autoEnds.reconcile(rides.automaticStopsAtLoad());
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
-        try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"));refreshChargeCurves(); }
+        try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"),ChargeAutoRecordPolicy.RULES);refreshChargeCurves(); }
         catch(IOException unavailable){chargeStatus=M.serviceChargeStorageUnavailable();}
 
         try{
@@ -328,7 +351,7 @@ public final class ScooterService extends Service {
         DataMaintenance.enter();
         dataMaintenance = true;
         stopChargeAlarm();
-        if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        if(chargeScheduleController!=null)chargeScheduleController.cancel(ChargeScheduleController.Interruption.DATA_MAINTENANCE);
         resetChargeEstimateContext();
         destroyed = true;
         workActive = false;
@@ -393,7 +416,10 @@ public final class ScooterService extends Service {
         power.clear(); voltage.clear(); speed.clear();
         invalidateCapacityEstimate();
         resetChargeEstimateContext();
-        if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        if(chargeScheduleController!=null)chargeScheduleController.cancel(ChargeScheduleController.Interruption.SIMULATION);
+        // Range following remembers what it tried per profile. The simulator's attempts have their own key (followRangeMode)
+        // and are forgotten here; the real scooter's are kept, so neither side's attempt carries into the other.
+        rangeFollowPolicy.forgetSimulation();
         ble.setSimulation(enabled);
         cancelBackgroundDeadline();
         applyWorkPolicy(false);
@@ -409,9 +435,15 @@ public final class ScooterService extends Service {
     }
     /** Why a charger family drives estimates, in precedence order. */
     public enum ChargerBasis{RECORDING,MANUAL,DETECTED,UNKNOWN}
-    /** A recording's manually confirmed label is temporary and never changes the preference. */
+    /**
+     * A recording's manually confirmed label is temporary and never changes the preference. An automatic recording's label
+     * is the charger in effect only when it was chosen or detected (ChargeAutoRecordPolicy.countsAsCharger): a guess
+     * labels the file, and estimates, Charge done by and the charging view keep waiting for the choice or for detection.
+     * The owner may choose during an automatic recording they did not label (chargerChoosable): the choice is saved as
+     * the preference, as any choice, and relabels the recording CHOSEN, so it is the charger in effect from then on.
+     */
     public ChargerBasis chargerBasis(){
-        if(isChargeRecording()&&activeProfileId().equals(chargeStore.profile()))return ChargerBasis.RECORDING;
+        if(isChargeRecording()&&activeProfileId().equals(chargeStore.profile())&&ChargeAutoRecordPolicy.countsAsCharger(chargeStore.labelSource()))return ChargerBasis.RECORDING;
         if(chargeCharger()!=null)return ChargerBasis.MANUAL;
         return detectedCharger()!=null?ChargerBasis.DETECTED:ChargerBasis.UNKNOWN;
     }
@@ -423,21 +455,35 @@ public final class ScooterService extends Service {
             default:return null;
         }
     }
-    /** Automatic inference for the active scooter's current charge, already checked for age. */
+    /**
+     * Automatic inference for the active scooter's current charge, already checked for age. While simulating, detection
+     * never runs (updateChargerDetection): Automatic finds the charger the Charging scene has plugged in instead, so a
+     * simulated UT5 MAX's Charge done by and estimates don't wait for it. Nothing is written to the saved choice.
+     */
     private ChargeSessionStore.Charger detectedCharger(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        return destroyed||simulating()||profile==null?null:chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
+        if(destroyed||profile==null)return null;
+        return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
     }
     private int qualifiedSessions(ChargeSessionStore.Charger charger){
         ChargeSessionStore.Curve curve=chargeSnapshot==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         return curve==null?0:curve.qualifiedSessions;
     }
     public boolean setChargeCharger(ChargeSessionStore.Charger charger){
-        if(destroyed||isChargeRecording()||activeProfileId().isEmpty())return false;
+        if(destroyed||activeProfileId().isEmpty()||!chargerChoosable())return false;
+        // An automatic recording the owner did not label takes the choice as its label (CHOSEN; the header first, then the
+        // name, so a process end between them leaves a guess or detected label that names the owner's charger).
+        boolean relabels=isChargeRecording()&&charger!=null;
+        if(relabels)try{if(!chargeStore.relabel(charger,ChargeSessionStore.LabelSource.CHOSEN))return false;}catch(IOException unchanged){return false;}
         chargeReferenceGate.reset();
         SharedPreferences.Editor edit=settings.edit();
         if(charger==null)edit.remove(chargerKey());else edit.putString(chargerKey(),charger.name());
-        edit.apply();changed();return true;
+        edit.apply();if(relabels)updateNotification();changed();return true;
+    }
+    /** Whether the charger choice is open now: no recording, or an automatic one on this scooter whose label the owner did not choose. */
+    public boolean chargerChoosable(){
+        if(!isChargeRecording())return true;
+        return activeProfileId().equals(chargeStore.profile())&&ChargeAutoRecordPolicy.choiceAllowed(true,chargeStore.labelSource());
     }
     /** Why a charge recording can't start now, in the current language, or null when it can. */
     public String chargeCaptureUnavailable(){CharSequence why=chargeCaptureBlocked();return why==null?null:why.toString();}
@@ -460,13 +506,22 @@ public final class ScooterService extends Service {
             return M.serviceChargeAllowNotifications();
         return null;
     }
-    public boolean startChargeRecording(ChargeSessionStore.Charger charger){
+    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null);}
+    /**
+     * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start. An
+     * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
+     * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
+     */
+    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source){
         if(isChargeRecording())return false;
         CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
-            chargeStore.start(activeProfileId(),charger,wall,mono);chargeEndingMono=0;
+            if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
+            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,wall,mono)){
+                autoChargeNoRoom.add(activeProfileId());chargeStatus=M.serviceChargeAutoNoRoom();changed();return false;}
+            chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
             ble.recordDiagnostic(ConnectionEventLog.Reason.CHARGE_STARTED,-1);
             chargeReferenceGate.reset();
@@ -474,21 +529,125 @@ public final class ScooterService extends Service {
             cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return isChargeRecording();
         }catch(IOException|IllegalStateException failure){chargeStatus=M.serviceChargeStartFailed();finishChargeCapture(ChargeSessionStore.Stop.ERROR);changed();return false;}
     }
-    public void stopChargeRecording(){finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
+    /** The owner's Stop, on the page or in the notification. It holds the scooter (holdAutoChargeAfterHandStop). */
+    public void stopChargeRecording(){holdAutoChargeAfterHandStop();finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
+    /** Record charges automatically: the switch, off by default. */
+    private boolean autoChargeEnabled(){return settings!=null&&settings.getBoolean(ChargeAutoRecordPolicy.KEY,false);}
+    /** Scooters whose automatic start failed (storage, or no room beside manual recordings), until they stop charging. */
+    private final Set<String> autoChargeLatched=new HashSet<>();
+    /** The latched scooters whose refusal was for lack of room: released when room appears or the switch is turned on. */
+    private final Set<String> autoChargeNoRoom=new HashSet<>();
+    /** Releases a lack-of-room latch, for one scooter or (null) all, so the next look tries again. */
+    private void releaseAutoChargeNoRoom(String profile){
+        for(String id:new ArrayList<>(autoChargeNoRoom))if(profile==null||profile.equals(id)){autoChargeNoRoom.remove(id);autoChargeLatched.remove(id);}
+    }
+    private boolean autoChargeBusy;
+    /**
+     * A hand stop holds its scooter until it stops charging (ChargeAutoRecordPolicy.holdsAfterHandStop: an automatic
+     * recording, or any while the switch is on); stored, so a reconnect or restart keeps it.
+     */
+    private void holdAutoChargeAfterHandStop(){
+        if(!isChargeRecording()||!ChargeAutoRecordPolicy.holdsAfterHandStop(autoChargeEnabled(),chargeStore.automatic()))return;
+        String profile=chargeStore.profile();
+        Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
+        // commit(): the hold must outlive a process death right after the stop.
+        if(profile!=null&&holds.add(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).commit();
+    }
+    private void clearAutoChargeHold(String profile){
+        autoChargeLatched.remove(profile);autoChargeNoRoom.remove(profile);
+        Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
+        if(holds.remove(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).apply();
+    }
+    /**
+     * Record charges automatically (ChargeAutoRecordPolicy), on every Bluetooth change and service tick, on screen or
+     * not: it acts whenever a connection exists and never keeps or opens one. Starts silently when the connected,
+     * selected scooter reports charging and a manual start would be allowed; ends an automatic recording at once
+     * when the scooter moves off, before auto-record rides looks in the same change; follows charger detection for a
+     * detected or guessed label. A fresh "not charging" reading ends the scooter's hold and latch.
+     *
+     * Out of sight it sees the battery through the reads #418 makes with every 15 s status poll; it asks for nothing
+     * itself. The link's state (linked(), connected()) only says the connection is kept: every decision here rests on
+     * a reading that is live by its own rule, so a reading from before a sleep or a gap never starts, ends, clears a
+     * hold or discards anything.
+     * - Start and join mid-charge: a "charging" reading at most ChargeSessionStore.MAX_FRAME_AGE_MS (5 s) old, then the
+     *   manual start's own checks (chargeCaptureBlocked: ready(), the 7 s status, and a usable frame, every value 5 s).
+     * - Clear a hold or latch: a "not charging" reading at most 5 s old.
+     * - End on moving off: a speed reading at most AutoStartPolicy.SPEED_FRESH_MS (3 s) old, the rule auto-record rides
+     *   starts on, so the two agree in one change.
+     * - End after charging stops, and keep or discard: updateChargeCapture and ChargeSessionStore, on 5 s fresh frames
+     *   and saved samples only.
+     */
+    private void observeAutoCharge(long mono){
+        if(destroyed||chargeStore==null||dataMaintenance)return;
+        boolean enabled=autoChargeEnabled();
+        if(autoChargeBusy)return;autoChargeBusy=true;
+        try{
+            ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
+            boolean connected=ble.connected()&&!simulating();
+            // linked() (#418): the connection is kept and answering on its cadence, judged in awake time. It decides nothing alone.
+            boolean selected=connected&&ble.linked()&&active!=null&&bound!=null&&active.id.equals(bound.id);
+            // Live by the recording's own 5 s frame rule, else null: a stale reading neither starts nor clears anything.
+            Boolean live=selected?ChargeAutoRecordPolicy.liveCharging(chargeFrame(mono,System.currentTimeMillis()).state,mono):null;
+            // A pause Volt holds itself (schedule, Charge done by, a schedule test) reads like an unplug but is not one.
+            if(selected&&ChargeAutoRecordPolicy.clearsHold(live!=null,live==null?-1:live?1:0,scheduledChargePause()))clearAutoChargeHold(active.id);
+            boolean movedAway=ChargeAutoRecordPolicy.movedAway(connected,ble.speedRaw(),ble.motionSampleMs(),mono);
+            if(isChargeRecording()){
+                if(!chargeStore.automatic())return;
+                // Ended by itself: no hold, and auto-record rides may start a ride in this same change. The work policy waits
+                // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
+                if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
+                ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detectedCharger());
+                // A guess that detection confirms becomes DETECTED too (same family: the store renames only).
+                if(relabel!=null)try{
+                    boolean familyChanges=relabel!=chargeStore.charger();
+                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){if(familyChanges)chargeReferenceGate.reset();updateNotification();}
+                }catch(IOException keepFirstLabel){/* the recording keeps its first label */}
+                return;
+            }
+            boolean held=active!=null&&(autoChargeLatched.contains(active.id)
+                    ||ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,"")).contains(active.id));
+            boolean charging=Boolean.TRUE.equals(live);
+            // The manual start's own checks last: they cost the most.
+            if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),false,isChargeRecording(),held,movedAway))return;
+            // Never in the middle of a guided test (or its write-back) or a compatibility check; no latch, so it starts after.
+            if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
+            if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
+            ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
+                    qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
+            if(!startChargeRecording(label.charger,label.source)&&!isChargeRecording())autoChargeLatched.add(active.id);
+        }finally{autoChargeBusy=false;}
+    }
     /**
      * The last charge status as its message (a Msg), not rendered: what a finished export just set when it failed ("Charge
      * recordings could not be exported", or "No saved charge recordings for this scooter"). Email to Volt holds it in
      * ChargeSend.MAILBOX until a screen shows it, so it renders then, in the language current then (#419 review, P3 1).
      */
     public CharSequence chargeStatusMessage(){return chargeStatus;}
+    /**
+     * The status is still the outcome of the recording that just ended (saved, not kept, stopped): the page shows it in
+     * place of the reason a new one can't start, until any newer status replaces it (Terra's review of #416, finding 2).
+     */
+    public boolean chargeStatusIsOutcome(){return chargeOutcome!=null&&chargeOutcome==chargeStatus;}
+    /**
+     * The page shows that outcome in place of why a new recording can't start only when the reason follows from the charge
+     * having ended (waiting for charging readings, battery full); any other reason, such as a ride, is shown (Terra's
+     * review of #416 at 39f813dd).
+     */
+    public boolean chargeOutcomeOverReason(){
+        if(!chargeStatusIsOutcome())return false;
+        CharSequence why=chargeCaptureBlocked();
+        return why==null||M.serviceChargeWaitReadings().equals(why)||M.serviceChargeBatteryFull().equals(why);
+    }
     public String chargeCaptureStatus(){
         if(!isChargeRecording())return chargeStatus.toString();
         if(chargeRecovery!=null&&chargeRecovery.recovering())
             return T.serviceChargeReconnecting(Fmt.integer(Math.max(1,(chargeRecovery.remainingMs(SystemClock.elapsedRealtime())+999)/1000)));
-        return (chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
+        String status=(chargeStore.charger()==ChargeSessionStore.Charger.STOCK?(chargeStore.chargerPaused()?T.serviceChargeStockChargerPaused()
                         :chargeStore.paused()?T.serviceChargeStockSchedulePaused():T.serviceChargeStockSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount())))
                 :(chargeStore.chargerPaused()?T.serviceChargeFastChargerPaused()
                         :chargeStore.paused()?T.serviceChargeFastSchedulePaused():T.serviceChargeFastSamplesCount(chargeStore.sampleCount(),Fmt.integer(chargeStore.sampleCount()))));
+        // A guessed label names a charger nobody chose and detection has not settled: say so.
+        return chargeStore.labelSource()==ChargeSessionStore.LabelSource.GUESS?T.serviceChargeChargerGuessed(status):status;
     }
     /** Qualified sessions behind the curve estimates actually use; 0 while the charger is unknown, -1 while loading. */
     public int qualifiedChargeCurves(){
@@ -511,6 +670,9 @@ public final class ScooterService extends Service {
             try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=M.serviceChargeClearFailed();}
             final CharSequence message=error;final ChargeSessionStore.Snapshot result=snapshot;
             handler.post(()->{if(destroyed)return;chargeModelLoading=false;if(result!=null)chargeSnapshot=result;
+                // Room now: a charge refused for lack of it records after all (Terra's review of #416, finding 1). The
+                // twenty are shared by every scooter, so every scooter's refusal goes (its review at 39f813dd).
+                if(message==null)releaseAutoChargeNoRoom(null);
                 chargeStatus=message==null?M.serviceChargeCleared():message;changed();if(completion!=null)completion.run();});});return true;
     }
     public boolean chargeExporting(){return chargeExporting;}
@@ -616,7 +778,8 @@ public final class ScooterService extends Service {
                         // The charger stopped short of full with no schedule holding it: an overheating charger
                         // often cuts out and comes back. Wait, marked as a charger pause, before ending.
                         chargeEndingMono=0;
-                        ChargeSessionStore.ChargerOff off=chargeStore.chargerStopped(wall,mono);
+                        // An automatic recording waits two minutes, a manual one 30 (ChargeAutoRecordPolicy); a schedule hold is handled above.
+                        ChargeSessionStore.ChargerOff off=chargeStore.chargerStopped(wall,mono,ChargeAutoRecordPolicy.chargerOffWaitMs(chargeStore.automatic()));
                         if(!isChargeRecording()){chargeStatus=M.serviceChargeLimitReached();refreshChargeCurves();applyWorkPolicy(false);return;}
                         if(off==ChargeSessionStore.ChargerOff.PAUSED)updateNotification();
                         else if(off==ChargeSessionStore.ChargerOff.ENDED)stop=ChargeSessionStore.Stop.CHARGING_ENDED;
@@ -656,16 +819,20 @@ public final class ScooterService extends Service {
         ble.recordDiagnostic(reason==ChargeSessionStore.Stop.RECOVERY_TIMEOUT?ConnectionEventLog.Reason.CHARGE_RECOVERY_TIMEOUT
                 :reason==ChargeSessionStore.Stop.IDENTITY_CHANGED||reason==ChargeSessionStore.Stop.PROFILE_CHANGED?ConnectionEventLog.Reason.CHARGE_WRONG_SCOOTER
                 :recovering?ConnectionEventLog.Reason.CHARGE_RECOVERY_CANCELLED:ConnectionEventLog.Reason.CHARGE_STOPPED,-1);
-        try{chargeStore.stop(reason);chargeStatus=reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
+        // An automatic recording too short to keep is deleted (ChargeAutoRecordPolicy.keep): "not kept", never "saved".
+        try{boolean kept=chargeStore.stop(reason);chargeStatus=!kept?M.serviceChargeNotKept():reason==ChargeSessionStore.Stop.COMPLETE?M.serviceChargeSavedFull()
                 :reason==ChargeSessionStore.Stop.STOPPED?M.serviceChargeSaved():reason==ChargeSessionStore.Stop.ERROR?M.serviceChargeStorageError()
                 :M.serviceChargeStoppedReason(stopLabel(reason,reason.name().toLowerCase(Locale.ROOT).replace('_',' ')));}
         catch(IOException failure){chargeStatus=M.serviceChargeNotFinalized();}
+        chargeOutcome=chargeStatus;
         // Recovery owns the reconnect attempt. Stop/timeout cancels it even when the UI or
         // ordinary background connection preference would otherwise keep retrying.
         if(recovering)ble.suspend();
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!phoneSaving())wakeLock.release();
-        if(!destroyed){refreshChargeCurves();applyWorkPolicy(false);updateNotification();}
+        if(!destroyed){refreshChargeCurves();if(!workPolicyAfterAutoStart)applyWorkPolicy(false);updateNotification();}
     }
+    /** Set while an automatic recording ends on moving off: changed() applies the work policy after auto-record rides looked. */
+    private boolean workPolicyAfterAutoStart;
     /**
      * Why a charge recording stopped, as the status line shows it: a label for each stop code, whose English is the
      * code's name in lower case with spaces (what the line always printed). The code itself stays the journal's id.
@@ -719,25 +886,27 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile profile=profiles.active();
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
-            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(profile==null?null:profile.savedDescriptor()),charger,curve);
+            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
         }
         // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
         long now=SystemClock.elapsedRealtime();
-        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(profile.savedDescriptor()),charger,curve,chargeReferenceGate,
+        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
                 profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
                 chargeTaper.tracking(profile.id)?chargeTaper:null);
     }
 
     private ChargeScheduleController schedules(){
-        if(chargeScheduleController==null)chargeScheduleController=new ChargeScheduleController(new ChargeScheduleController.Store(){
+        if(chargeScheduleController==null)attachEvidence(chargeScheduleController=new ChargeScheduleController(new ChargeScheduleController.Store(){
             public String read(String scope){return scope.startsWith("simulation:")?null:settings.getString("charge_schedule_owned_"+scope,null);}
             public void write(String scope,String value){if(!scope.startsWith("simulation:"))settings.edit().putString("charge_schedule_owned_"+scope,value).apply();}
         },new ChargeScheduleController.Driver(){
             public ChargeScheduleController.Context context(){return chargeScheduleContext();}
             public void clock(Consumer<Boolean> completion){ble.syncClock(completion);}
             public void time(long wallMs,int offsetSeconds,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion);}
+            // sent runs when the frame really goes out: a time write refused at the gate (a status from before a sleep, say) leaves no marker.
+            @Override public void time(long wallMs,int offsetSeconds,Runnable sent,Consumer<Boolean> completion){ble.setChargeStart(wallMs/1000,offsetSeconds,completion,sent);}
             public void enabled(boolean enabled,Consumer<Boolean> completion){ble.setChargeSchedule(enabled,completion);}
-        });
+        }));
         return chargeScheduleController;
     }
     /** Remembered intentions are displayed separately from raw firmware readings. */
@@ -770,12 +939,13 @@ public final class ScooterService extends Service {
     }
     /** Out of sight, a missed start is posted once per intention; in sight, MainActivity shows its dialog instead. */
     private void noticeMissedStart(){
-        if(visible||chargeScheduleController==null)return;
+        // A simulation's schedule is the simulator's (a simulation: scope): never a notice in the shade.
+        if(visible||chargeScheduleController==null||simulating())return;
         ChargeScheduleController.Missed missed=chargeScheduleController.takeUnshownMissed();if(missed==null)return;
         String text=missedStartText(missed,false);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,4,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,4,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(MISSED_START_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(missedStartTitle(missed)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -799,7 +969,8 @@ public final class ScooterService extends Service {
     /** Start of today's buffered plan; null when it would charge now or has no estimate. */
     private Long bufferedChargeStart(int minute){
         ChargeScheduleController.Context c=chargeScheduleContext();
-        if(!c.ready||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
+        // A plan computed from live readings (the estimate is fresh-only): the live connection is enough; arming asks ready.
+        if(!c.linked||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
         try{ChargeScheduleController.Plan plan=ChargeScheduleController.plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);return plan.startNow?null:plan.startWallMs;}
         catch(IllegalArgumentException outside){return null;}
     }
@@ -815,10 +986,11 @@ public final class ScooterService extends Service {
     private boolean beginChargeMeasure(int minute,long cautiousStartWall){
         if(destroyed||chargeMeasure.active()||activeProfileId().isEmpty()||!ChargeMeasureWindow.useful(System.currentTimeMillis(),cautiousStartWall))return false;
         chargeMeasure.start(activeProfileId(),minute,SystemClock.elapsedRealtime(),System.currentTimeMillis(),cautiousStartWall);
+        measureOp(ChargeScheduleController.Op.MEASURE_START);
         cancelChargeDoneNotice();cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return true;
     }
     /** The owner's Stop measuring: an explicit choice, so nothing is armed and no notice is posted. */
-    public void cancelChargeMeasure(){if(!chargeMeasure.active()||chargeMeasure.arming())return;chargeMeasure.finish();endChargeMeasureWork();}
+    public void cancelChargeMeasure(){if(!chargeMeasure.active()||chargeMeasure.arming())return;measureOp(ChargeScheduleController.Op.MEASURE_CANCEL);chargeMeasure.finish();endChargeMeasureWork();}
     /** The owner's Schedule now: arm with what is known, the cautious fresh-charge plan if age is not. */
     public void scheduleChargeNow(){
         if(!chargeMeasure.active()||chargeMeasure.arming())return;
@@ -830,7 +1002,7 @@ public final class ScooterService extends Service {
         ChargeScheduleController.Context c=chargeScheduleContext();
         ChargeProgressTracker.Progress progress=chargeProgress.progress(chargeMeasure.profile(),mono);
         boolean known=progress!=null&&(progress.startObserved||progress.ageInferred)&&chargeSchedule().doneByBlockedReason==null;
-        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.ready,c.charging,known);
+        ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.linked,c.ready,c.charging,known);
         if(decision.step==ChargeMeasureWindow.Step.ARM)armMeasured(decision.measured);
         else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);
     }
@@ -847,7 +1019,7 @@ public final class ScooterService extends Service {
     }
     /** Keeps the bounded connection until the one-shot arming has finished its scooter writes. */
     private void armMeasured(boolean measured){
-        chargeMeasure.arm();updateNotification();changed();measuredStartSent=0;
+        chargeMeasure.arm();measureOp(ChargeScheduleController.Op.MEASURE_ARM);updateNotification();changed();measuredStartSent=0;
         schedules().setDoneEnabled(true,result->{
             if(!chargeMeasure.active())return;
             ChargeScheduleController.View plan=chargeSchedule();boolean armed=result==null&&plan.doneByEnabled;
@@ -870,7 +1042,7 @@ public final class ScooterService extends Service {
         // Off screen, the same one notice a measured arm posts, with the short line. Kept beside chargeDoneNotice: that one's text statements are frozen in a catalog change.
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,3,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             noteStartSentNotice(startWallMs);
             // Manual Scheduled charging has no title of its own; the line says what happened either way.
             post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
@@ -881,7 +1053,7 @@ public final class ScooterService extends Service {
     /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
     private void endChargeMeasure(CharSequence reason){
         if(!chargeMeasure.active())return;
-        chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureNotSet(reason));
+        measureOp(ChargeScheduleController.Op.MEASURE_NOT_SET);chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureNotSet(reason));
         if(!destroyed)endChargeMeasureWork();
     }
     /** Charge done by's measuring window or a Scheduled charging test keeps the connection, each for a bounded few minutes. */
@@ -958,7 +1130,7 @@ public final class ScooterService extends Service {
         String text=scheduleTestText(result);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,5,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,5,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(SCHEDULE_TEST_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(scheduleTestTitle(result)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -980,7 +1152,7 @@ public final class ScooterService extends Service {
         if(visible){android.widget.Toast.makeText(this,set?T.serviceDoneToastSet(text):T.serviceDoneToastNotSet(text),android.widget.Toast.LENGTH_LONG).show();return;}
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,3,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             noteStartSentNotice(safeStart);
             post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(set?T.serviceDoneTitleSet():T.serviceDoneTitleNotSet()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
@@ -1007,6 +1179,11 @@ public final class ScooterService extends Service {
         alertPolicy=id.isEmpty()?null:new ChargeAlertPolicy(ChargeAlertPolicy.Settings.decode(settings.getString("charge_alerts_"+id,null)),
                 ChargeAlertPolicy.State.decode(settings.getString("charge_alert_state_"+id,null)));
     }
+    /**
+     * The model that decides what a screen shows for this profile (drive-mode names, photo, rated energy, maintenance
+     * defaults, charge reference): the simulated model while simulating, else the profile's saved model.
+     */
+    public DeviceDescriptor modelDescriptor(ScooterProfiles.Profile p){return simulating()?ble.descriptor():p==null?null:p.savedDescriptor();}
     /** The live model while connected to this scooter (or simulating), the saved profile's model offline. */
     private DeviceDescriptor alertDescriptor(ScooterProfiles.Profile p){
         ScooterProfiles.Profile bound=ble.profile();
@@ -1016,6 +1193,22 @@ public final class ScooterService extends Service {
     public boolean chargeAlertsOffered(){
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
         return !destroyed&&p!=null&&ble!=null&&ChargeAlertPolicy.offered(alertDescriptor(p));
+    }
+    /** Why chargeAlertsOffered() is false (ChargeAlertPolicy.missing), or null when it is true. */
+    public CapabilityResolver.Reason chargeAlertsMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return CapabilityResolver.Reason.NOT_CONNECTED;
+        return ChargeAlertPolicy.missing(alertDescriptor(p));
+    }
+    /**
+     * The Battery page's Charge done by rule (timed_charging and charge_start offered) for the selected scooter, judged
+     * like chargeAlertsOffered (the live model while connected to it, its saved model offline): why it can't schedule
+     * charging, or null when it can or no scooter is selected (ShortcutPicker.scheduleMissing).
+     */
+    public CapabilityResolver.Reason chargeScheduleMissing(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        if(destroyed||p==null||ble==null)return null;
+        return ShortcutPicker.scheduleMissing(alertDescriptor(p));
     }
     public ChargeAlertPolicy.Settings chargeAlerts(){
         if(destroyed||settings==null)return ChargeAlertPolicy.Settings.OFF;
@@ -1095,9 +1288,10 @@ public final class ScooterService extends Service {
             else if(m.key.equals("charge_limit_percent"))limit=m;
         }
         long now=SystemClock.elapsedRealtime();
-        Double charging=liveReading(state,now),percent=liveReading(soc,now);
-        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one.
-        Double target=limit==null||limit.numericValue==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limit.numericValue;
+        Double charging=liveReading(state,now),percent=liveReading(soc,now),limitNow=liveReading(limit,now);
+        // A model without a native charge limit charges to full; its charge limit reading, if any, isn't one. The limit is
+        // taken only while live, as the other two (#418): the link outlives a sleep, and the limit may have changed in it.
+        Double target=limitNow==null||ChargeAlertPolicy.offered(alertDescriptor(profile))?null:limitNow;
         Boolean on=charging==null||charging!=0&&charging!=1?null:charging==1;
         Integer pct=percent==null||percent<0||percent>100?null:(int)Math.round(percent);
         Integer cap=target==null||target<1||target>100?null:(int)Math.round(target);
@@ -1222,7 +1416,8 @@ public final class ScooterService extends Service {
      */
     private boolean chargeLiveShown(){
         if(destroyed||simulating())return false;
-        if(isChargeRecording())return true;
+        // A schedule test's status and Cancel come first, even over a charge recording (now often an automatic one).
+        if(isChargeRecording())return scheduleTestStatus()==null||isRecording()||phoneSaving();
         if(isRecording()||phoneSaving()||chargeMeasure.active()||scheduleTestStatus()!=null||alarmPlaying()||alertWatchShown())return false;
         return chargeLiveHold();
     }
@@ -1408,7 +1603,7 @@ public final class ScooterService extends Service {
         String text=profile==null?T.serviceNoticeScooter():profile.displayName();
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,11,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,11,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(CHARGE_LIVE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(title).setContentText(text).setContentIntent(open).setAutoCancel(true)
                     .setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -1510,9 +1705,11 @@ public final class ScooterService extends Service {
     private String alertTitle(AlertShown shown){return shown==null?alertTitle:shown.title();}
     private String alertText(AlertShown shown){return shown==null?alertText:shown.text();}
     private void alertChannel(NotificationManager manager){
-        NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,T.serviceChannelAlerts(),NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription(T.serviceChannelAlertsDescription());
-        manager.createNotificationChannel(channel);
+        String name=T.serviceChannelAlerts(),description=T.serviceChannelAlertsDescription(),label=name+"\n"+description;
+        if(label.equals(alertChannelLabel))return;
+        NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,name,NotificationManager.IMPORTANCE_HIGH);
+        channel.setDescription(description);
+        manager.createNotificationChannel(channel);alertChannelLabel=label;
     }
     /**
      * High importance, on its own channel. While Volt's alarm sounds the notice is silent, so the two never
@@ -1530,7 +1727,7 @@ public final class ScooterService extends Service {
      */
     private Notification alertNoticeContent(AlertShown shown,boolean sounding,long when){
         NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
-        PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent open=PendingIntent.getActivity(this,7,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
                 .setContentTitle(alertTitle(shown)).setContentText(alertText(shown)).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                 .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
@@ -1590,7 +1787,7 @@ public final class ScooterService extends Service {
         String text=ChargeAlertPolicy.alertText(event,scooter,0);
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,8,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,8,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             post(ALERT_PAUSED_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(ChargeAlertPolicy.alertTitle(event,0)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
@@ -1636,9 +1833,11 @@ public final class ScooterService extends Service {
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
     /**
-     * linked(), not ready(): out of sight status comes every 15 s, and the schedule's readings, view and missed-start checks
-     * must not read the gaps as no scooter. Scooter writes stay on ready()'s window: every one goes through BleController's
-     * own gate (CapabilityResolver, which also fills toggleReason and timeReason below), and that gate is unchanged.
+     * Two answers (#418). linked: the same live connection, BleController.linked(), which outlives a stale status (out of
+     * sight between 15 s polls, after a sleep, the first seconds back in sight); the controller uses it only to keep work
+     * in flight going and to look at readings, each of which carries its own freshness. ready: the scooter can take a write
+     * now, BleController.ready(), the write gate's own rule (CapabilityResolver, which also fills toggleReason and
+     * timeReason below); the controller uses it for every choice to send and every blocked reason.
      */
     private ChargeScheduleController.Context chargeScheduleContext(){
         ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
@@ -1646,15 +1845,17 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();
         c.scope=active==null?"":simulation?"simulation:"+active.id+":"+ble.simulationModel()+":"+ble.simulationRegion():active.id;
-        c.ready=!destroyed&&!dataMaintenance&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+        boolean same=!destroyed&&!dataMaintenance&&active!=null&&transport!=null&&active.id.equals(transport.id)
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
+        c.linked=same&&ble.linked();c.ready=c.linked&&ble.ready();
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
         // English ids, whatever the shown language: the controller keeps them in its saved status and its other text is English too (plan R2).
         c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
-        if(!c.ready)return c;
-        c.enabled=ble.featureValue("timed_charging");
+        if(!c.linked)return c;
+        // The switch is read with the status: only while that status is live by the readings' rule, never from before a sleep.
+        c.enabled=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)?ble.featureValue("timed_charging"):null;c.statusStale=!simulation&&ble.statusAge()>ble.readingFreshMs(10_000);
         long mono=SystemClock.elapsedRealtime();
         Map<String,Telemetry.Metric> readings=new HashMap<>();
         for(Telemetry.Metric metric:ble.telemetry.metrics())readings.put(metric.key,metric);
@@ -1664,6 +1865,10 @@ public final class ScooterService extends Service {
         c.sampleMs=charging==null?0:charging.updatedMs;
         c.soc=freshScheduleNumber(readings.get("battery_percent"),mono);
         c.target=freshScheduleNumber(readings.get("charge_limit_percent"),mono);
+        // Settings live (#418): the status, and the limit reading itself, unless this connection has reported no limit (the
+        // readings are cleared at each connect). A recent status that did not carry the limit never vouches for it.
+        Telemetry.Metric limit=readings.get("charge_limit_percent");
+        c.settingsLive=simulation||ble.statusAge()<=ble.readingFreshMs(10_000)&&(c.target!=null||limit==null||limit.updatedMs<=0);
         Double raw=freshScheduleNumber(readings.get("scheduled_charge_time_raw"),mono);
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){
@@ -1673,7 +1878,8 @@ public final class ScooterService extends Service {
             c.estimateMinutes=estimate.planningMinutesToLimit;
             // A raw current-rate estimate remains useful on the dashboard while automatic
             // identification gathers its first frames, but must not freeze a finish plan yet.
-            if(ModelRegistry.chargeReferenceProduct(active.savedDescriptor())==Ut5MaxStockChargeReference.PRODUCT_ID
+            // The model the estimate itself follows (modelDescriptor: the simulated one while simulating).
+            if(ModelRegistry.chargeReferenceProduct(modelDescriptor(active))==Ut5MaxStockChargeReference.PRODUCT_ID
                     &&effectiveChargeCharger()==null)
                 c.estimateUnavailableReason=T.serviceChargerDetection();
         }
@@ -1682,6 +1888,84 @@ public final class ScooterService extends Service {
     private Double freshScheduleNumber(Telemetry.Metric metric,long now){
         return metric!=null&&metric.numericValue!=null&&Double.isFinite(metric.numericValue)
                 &&metric.updatedMs>0&&now>=metric.updatedMs&&now-metric.updatedMs<=ble.readingFreshMs(10_000)?metric.numericValue:null;
+    }
+
+    // ---- Report diagnostics: charge evidence (ChargeEvidence). Typed values only; it never sends or changes anything. ----
+
+    private void startEvidence(){
+        try{
+            evidence=new ChargeEvidence(new File(getNoBackupFilesDir(),"charge-evidence"),ble::commandEvents,System::currentTimeMillis,SystemClock::elapsedRealtime);
+            List<String> saved=new ArrayList<>();for(ScooterProfiles.Profile p:profiles.all())saved.add(p.id);
+            // Files of scooters forgotten while the service was not running go now. Every saved scooter's file loads on the
+            // worker, so a report shows whichever is selected; each one's schedule record (as saved, possibly by an older
+            // Volt) is handed over too, so a plan armed before this file existed has its intention and start window.
+            final SharedPreferences records=settings;
+            evidence.open(saved,id->records.getString("charge_schedule_owned_"+id,null));
+        }catch(RuntimeException unavailable){evidence=null;}
+    }
+    /** The controller's journal, for saved scooters only: a simulated scope never reaches the evidence files. */
+    private void attachEvidence(ChargeScheduleController controller){
+        final ChargeEvidence e=evidence;if(e==null)return;
+        controller.journal(new ChargeScheduleController.Journal(){
+            public void saved(String scope,ChargeScheduleController.Diagnostics record){if(ChargeEvidence.scope(scope))e.saved(scope,record);}
+            public void operation(String scope,ChargeScheduleController.Op op,ChargeScheduleController.Result result,ChargeScheduleController.Interruption why,
+                    long durationMs,long testWallMs,ChargeScheduleTest.Outcome testOutcome){if(ChargeEvidence.scope(scope))e.operation(scope,op,result,why,durationMs,testWallMs,testOutcome);}
+        });
+    }
+    private void measureOp(ChargeScheduleController.Op op){
+        String scope=chargeMeasure.active()?chargeMeasure.profile():activeProfileId();
+        if(evidence!=null&&!simulating()&&ChargeEvidence.scope(scope))evidence.operation(scope,op,ChargeScheduleController.Result.OK,null,0,0,null);
+    }
+    /**
+     * One typed sample per Bluetooth change, from the real authenticated link to the selected scooter only. Each value is a
+     * fresh reading of this connection (newer than its start and within the freshness the schedule uses), else unknown.
+     */
+    private void observeEvidence(){
+        if(evidence==null||profiles==null||ble==null)return;
+        ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
+        boolean live=!destroyed&&!dataMaintenance&&!simulating()&&ble.linked()&&active!=null&&transport!=null&&active.id.equals(transport.id)
+                &&active.serial.equals(ble.currentTransportSerial());
+        String scope=live?active.id:null;
+        // A scooter chosen while offline (or added since the start) loads ahead of a report.
+        String selected=active==null?null:active.id;
+        if(selected!=null&&!selected.equals(evidenceSelected)){evidenceSelected=selected;evidence.prefetch(selected);}
+        if(evidenceScope!=null&&!evidenceScope.equals(scope))evidence.unlinked(evidenceScope);
+        evidenceScope=scope;
+        if(scope==null)return;
+        long mono=SystemClock.elapsedRealtime(),since=ble.connectionStartMs(),fresh=ble.readingFreshMs(10_000);
+        long[] s=new long[ChargeEvidence.S_COLUMNS];Arrays.fill(s,ChargeEvidence.NONE);
+        s[ChargeEvidence.S_WALL]=System.currentTimeMillis();s[ChargeEvidence.S_ELAPSED]=mono;s[ChargeEvidence.S_GENERATION]=ble.connectionGeneration();
+        for(Telemetry.Metric m:ble.telemetry.metrics()){
+            if(m.numericValue==null||!Double.isFinite(m.numericValue)||m.updatedMs<=0||m.updatedMs<since||mono<m.updatedMs||mono-m.updatedMs>fresh)continue;
+            double v=m.numericValue;
+            switch(m.key){
+                case "charging_state":if(v==0||v==1)s[ChargeEvidence.S_CHARGING]=(long)v;break;
+                case "battery_percent":s[ChargeEvidence.S_SOC]=Math.round(v);break;
+                case "voltage_v":s[ChargeEvidence.S_MV]=Math.round(v*1000);break;
+                case "current_a":s[ChargeEvidence.S_MA]=Math.round(v*1000);break;
+                case "power_w":s[ChargeEvidence.S_W]=Math.round(v);break;
+                case "temperature_c":s[ChargeEvidence.S_TEMP]=Math.round(v);break;
+                case "charge_limit_percent":s[ChargeEvidence.S_LIMIT]=Math.round(v);break;
+                case "scheduled_charge_time_raw":if(v>=0&&v<=0xffffffffL&&v==Math.rint(v))s[ChargeEvidence.S_WIRE]=(long)v;break;
+                default:break;
+            }
+        }
+        // The schedule switch and the lock come from the status frame: only while it is fresh on this connection.
+        if(ble.statusAge()<=fresh){
+            Integer on=ble.featureValue("timed_charging"),lock=ble.featureValue("lock");
+            if(on!=null&&(on==0||on==1))s[ChargeEvidence.S_ENABLED]=on;
+            if(lock!=null)s[ChargeEvidence.S_LOCK]=lock!=0?1:0;
+        }
+        s[ChargeEvidence.S_VISIBLE]=visible?1:0;
+        evidence.offer(scope,s,ble.pending(),ble.pendingValue());
+    }
+    /** Forgetting a scooter removes its evidence (MoreScreen's forget flow). */
+    void forgetEvidence(String profileId){if(profileId!=null&&profileId.equals(evidenceScope))evidenceScope=null;if(evidence!=null)evidence.forget(profileId);}
+    /** At service end: the last reading closes the connection, and pending writes go to disk on the worker, without waiting here. */
+    private void closeEvidence(){
+        if(evidence==null)return;
+        if(evidenceScope!=null){evidence.unlinked(evidenceScope);evidenceScope=null;}
+        evidence.close();
     }
 
     private void resetChargeEstimateContext(){
@@ -1706,7 +1990,8 @@ public final class ScooterService extends Service {
         if(!liveCharge(frame.state,"charging_state",now))return;
         boolean paired=liveCharge(frame.soc,"battery_percent",now)&&liveCharge(frame.voltage,"voltage_v",now)
                 &&liveCharge(frame.current,"current_a",now)&&frame.voltage.mono==frame.current.mono;
-        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(profile.savedDescriptor()),frame.state.value==1d,paired?frame.soc.value:null,
+        // Never reached while simulating (above); the same model reader as the estimate all the same.
+        chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,paired?frame.soc.value:null,
                 paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
@@ -1756,6 +2041,15 @@ public final class ScooterService extends Service {
         if(phoneFinalStatus!=null&&phoneFinalFlags!=null)return EnumSet.copyOf(phoneFinalFlags);
         return EnumSet.of(phoneRides==null?PhoneRideRecorder.StatusFlag.STORAGE_ERROR:PhoneRideRecorder.StatusFlag.IDLE);
     }
+    /**
+     * Riding mode's GPS accuracy reading now (nowMono: SystemClock.elapsedRealtime). It only reads the phone recorder,
+     * so it never starts GPS or keeps GPS or the screen awake; with no phone recorder (no recording, simulation, phone
+     * sensors unavailable) GPS reads as off.
+     */
+    public GpsAccuracy.Reading gpsAccuracy(long nowMono){
+        PhoneRideRecorder recorder=phoneRecorder;
+        return GpsAccuracy.reading(isRecording(),recorder==null?GpsAccuracy.Phase.OFF:recorder.gpsAccuracyPhase(),recorder==null?null:recorder.latestFix(),nowMono);
+    }
     public String phoneLiveReadings(){return phoneRecorder==null?"":phoneRecorder.liveMotion();}
     public boolean isVisible(){return visible;}
     public long backgroundDeadlineMs(){return backgroundDeadlineMs;}
@@ -1791,7 +2085,7 @@ public final class ScooterService extends Service {
                 @Override
                 public void run() {
                     if (destroyed) return;
-                    if (reasons().keepsServiceUp(visible, backgroundConnection())) {
+                    if (reasons().keepsServiceUp(visible, backgroundConnection(), simulating())) {
                         cancelBackgroundDeadline();
                         return;
                     }
@@ -1813,7 +2107,13 @@ public final class ScooterService extends Service {
     private void applyWorkPolicy(boolean connect){
         if(destroyed)return;
         if (simulating()) {
-            cancelBackgroundDeadline();
+            // Out of sight a simulation has no work, so the service stops as an idle one does: the usual ten seconds
+            // (an activity recreation unbinds and binds again well inside them), then backgroundStop's stopSelf. While
+            // the activity lives its binding keeps the service, and the simulation, until Volt is back.
+            if (visible) cancelBackgroundDeadline();
+            else if (backgroundDeadlineMs == 0) {
+                backgroundDeadlineMs = SystemClock.elapsedRealtime() + 10000; handler.removeCallbacks(backgroundStop); handler.postDelayed(backgroundStop, 10000);
+            }
             ble.watchBattery(0);
             ble.visibility(visible, false, 0);
             handler.removeCallbacks(tick);
@@ -1843,7 +2143,12 @@ public final class ScooterService extends Service {
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
         notices.cancel(71);stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
-    public void startRide(String label){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
+    public void startRide(String label){if(destroyed)return;
+        // A ride started by hand ends an automatic charge recording (and holds it, as a Stop would), but only when the ride
+        // can then start: otherwise the charge keeps recording and nothing changes. A manual one still refuses.
+        if(isChargeRecording()&&ChargeAutoRecordPolicy.rideEndsRecording(chargeStore.automatic())
+                &&!simulating()&&!phoneSaving()&&rides!=null&&ble.ready()&&!isRecording())stopChargeRecording();
+        if(isChargeRecording()){android.widget.Toast.makeText(this,T.serviceRideChargeRecording(),android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
             android.widget.Toast.makeText(this, T.serviceRideExitSimulation(), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }if(phoneSaving()){
@@ -2003,7 +2308,7 @@ public final class ScooterService extends Service {
     private void showAutoStopNotice(String id,String reason){
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,2,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,2,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             RideStore.Summary ride=null;try{ride=rides.get(id);}catch(IOException ignored){}
             String text=RideAutoStopText.notice(reason,ride,ride==null?null:DisplayTime.clock(this,settings,ride.shownEndWallMs));
             post(AUTO_STOP_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
@@ -2049,7 +2354,7 @@ public final class ScooterService extends Service {
     private void showAutoExportNotice(RideAutoExport.Problem problem){
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
-            PendingIntent open=PendingIntent.getActivity(this,10,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            PendingIntent open=PendingIntent.getActivity(this,10,openVolt(),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             String text=problem==RideAutoExport.Problem.FOLDER?T.serviceAutoSaveFolder():T.serviceAutoSaveWrite();
             post(AUTO_EXPORT_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(T.serviceAutoSaveFailed()).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
@@ -2195,7 +2500,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}observeEvidence();updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());if(workPolicyAfterAutoStart){workPolicyAfterAutoStart=false;applyWorkPolicy(false);}observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -2217,8 +2522,9 @@ public final class ScooterService extends Service {
         boolean sameProfile = profile != null && bound != null && profile.id.equals(bound.id);
         boolean fresh = sameProfile && mode != null && mode.numericValue != null && mode.updatedMs > 0
                 && now >= mode.updatedMs && now - mode.updatedMs <= 7000 && ble.statusAge() <= 7000;
-        Integer target = rangeFollowPolicy.next(profile == null ? "" : profile.id,
-                ModelRegistry.rangeFollowProduct(profile == null ? null : profile.savedDescriptor()), mode == null ? null : mode.numericValue,
+        String attempts = profile == null ? "" : simulating() ? RangeFollowPolicy.simulationKey(profile.id) : profile.id;
+        Integer target = rangeFollowPolicy.next(attempts,
+                ModelRegistry.rangeFollowProduct(modelDescriptor(profile)), mode == null ? null : mode.numericValue,
                 ble.featureChoices("range_algorithm"), ble.featureValue("range_algorithm"),
                 ble.connected(), ble.ready() && ble.stationary(), ble.pending() != null, fresh, followsRidingMode());
         if (target != null) {
@@ -2292,7 +2598,8 @@ public final class ScooterService extends Service {
     /** One maintenance check for a scope (MaintenanceNotify): posts what newly became due. */
     private void checkMaintenance(String scope) {
         if (maintenance == null || maintenanceNotices == null) return;
-        MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), false, this::maintenanceLive, maintenanceNotices);
+        // A simulation scope is checked quietly: what the simulated ride made due shows on the Maintenance page, never in the shade.
+        MaintenanceNotify.check(maintenance, scope, System.currentTimeMillis(), java.time.ZoneId.systemDefault(), MaintenanceKeeper.simulation(scope), this::maintenanceLive, maintenanceNotices);
     }
 
     private boolean maintenanceLive() { return !destroyed && !dataMaintenance && !DataMaintenance.active(); }
@@ -2560,13 +2867,8 @@ public final class ScooterService extends Service {
         List<TelemetryHistory.Point> points = new ArrayList<>();
         for (int i = 0; i < 120; i++) {
             double fraction = i / 119d;
-            double value = base;
-            if (key.equals("power_w")) value += 5 * Math.sin(fraction * 24);
-            else if (key.equals("voltage_v")) value += .15 * Math.sin(fraction * 18);
-            else if (key.equals("temperature_c")) value += .6 * Math.sin(fraction * 8);
-            else if (key.equals("battery_health_percent")) value = Math.min(100, base + 1 - fraction);
-            else if (key.equals("battery_percent")) value = Math.min(100, base + 8 * (1 - fraction));
-            else if (key.equals("odometer_km")) value = Math.max(0, base - 3 * (1 - fraction));
+            // The scene's shape (ScooterSimulation.historyValue): Parked's gentle wave, the riding loop, or a charge climbing.
+            double value = ble.simulationHistoryValue(key, base, fraction, (to - from) * (1 - fraction) / 1000d);
             points.add(new TelemetryHistory.Point(from + (long) ((to - (double) from) * fraction), value, false));
         }
         return points;
@@ -2776,29 +3078,37 @@ public final class ScooterService extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
         chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
+        noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
         notices.posted(71, SystemClock.elapsedRealtime());
     }
 
+
+    /**
+     * A tap on any of Volt's notifications: back to the Volt already open, never a second one stacked on it. Started
+     * from the launcher, the task's root intent is the launcher's, so a plain intent here started another MainActivity
+     * on top; CLEAR_TOP with SINGLE_TOP hands the tap to the open one (MainActivity.onNewIntent, where a plain intent
+     * changes no page), as the maintenance notice's tap already does (MaintenanceNotices).
+     */
+    private Intent openVolt(){
+        return new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    }
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
-        NotificationChannel channel =
-                new NotificationChannel(
-                        "scooter",
-                        T.serviceChannelScooter(),
-                        NotificationManager.IMPORTANCE_LOW);
-        channel.setShowBadge(false);
-        manager.createNotificationChannel(channel);
-        Intent open = new Intent(this, MainActivity.class);
-        PendingIntent content =
-                PendingIntent.getActivity(
-                        this,
-                        0,
-                        open,
-                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String label = T.serviceChannelScooter();
+        if (!label.equals(scooterChannelLabel)) {
+            NotificationChannel channel = new NotificationChannel("scooter", label, NotificationManager.IMPORTANCE_LOW);
+            channel.setShowBadge(false);
+            manager.createNotificationChannel(channel);
+            scooterChannelLabel = label;
+        }
+        if (noticeOpen == null)
+            noticeOpen = PendingIntent.getActivity(this, 0, openVolt(), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent content = noticeOpen;
         boolean measuring = chargeMeasure.active() && !isChargeRecording() && !isRecording() && !phoneSaving();
-        String testStatus = measuring || isChargeRecording() || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
+        // A schedule test ranks above a charge recording (its Cancel matters more; Stop charge recording stays in the app).
+        String testStatus = measuring || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
         // A sounding battery alarm, then a watched charge, rank below every recording, measure and test.
         boolean alarming = !measuring && !testing && alarmPlaying() && !isChargeRecording() && !isRecording() && !phoneSaving();
         boolean watching = !measuring && !testing && alertWatchShown();
@@ -2856,12 +3166,16 @@ public final class ScooterService extends Service {
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
         if (live != null) chargeLiveCard(builder, live, isChargeRecording() ? chargeCaptureStatus() : null);
-        if(Build.VERSION.SDK_INT>=31&&keepsWorking())
+        boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
+        if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         boolean testEnding = testing && chargeSchedule().testPhase == ChargeScheduleTest.Phase.ENDING;
         String action = alarming ? "STOP_CHARGE_ALARM" : watching ? "STOP_ALERT_WATCH" : measuring ? "SCHEDULE_CHARGE_NOW" : testing ? "CANCEL_SCHEDULE_TEST" : isChargeRecording() ? "STOP_CHARGE_RECORDING" : isRecording() ? "STOP_RECORDING" : "DISCONNECT";
         if (liveStop) action = STOP_CHARGE_LIVE;
-        PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,ScooterService.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent stop=noticeActions.get(action);
+        if(stop==null){stop=PendingIntent.getService(this,1,new Intent(this,ScooterService.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);noticeActions.put(action,stop);}
+        // Neither can be read back from the notice: how soon Android shows it, and which action its intent sends.
+        noticeBuiltExtra = Arrays.asList(immediate, action);
         if (!phoneSaving() && !(measuring && chargeMeasure.arming()) && !testEnding)
             builder.addAction(
                     new Notification.Action.Builder(
@@ -2871,10 +3185,15 @@ public final class ScooterService extends Service {
         liveUpdateBuilt(notice);
         return notice;
     }
-    /** "UT5 MAX · 82%": the connected notification names the scooter and its charge. */
+    /**
+     * "UT5 MAX · 82%": the connected notification names the scooter and its charge, the charge only while that reading is
+     * live by its own rule (BleController.liveNumber). Out of sight the battery is read with every 15 s status poll, so
+     * the level stays current (owner, 2026-11-12); the link can outlive a sleep, and a read the scooter ignores is
+     * suppressed (ReadPolicy), so an older level would read as current: then the notice names the scooter alone.
+     */
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
-        Double battery = ble.telemetry.number("battery_percent");
+        Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
     }
@@ -2909,26 +3228,134 @@ public final class ScooterService extends Service {
         if(liveUpdateLast.asked()&&!destroyed)handler.postDelayed(liveUpdateProbe,1500);
     }
     private void notifyNow(int id,java.util.function.Supplier<Notification> build){
-        try{Notification notice=build.get();if(notice!=null){getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());}}
+        boolean sent=true;
+        try{Notification notice=build.get();if(notice!=null){
+            // The connection notice is rebuilt on every tick and change; it posts only when it differs from what shows (NoticeRepeat).
+            Object key=id==71?noticeKey(notice):null;
+            long now=SystemClock.elapsedRealtime();
+            sent=key==null||noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing);
+            // A skipped notice is the one showing, so the live card's baseline is what it carries either way.
+            if(sent)getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());
+            if(sent&&key!=null)noticeRepeat.posted(key,now);}}
         catch(RuntimeException unavailable){}
-        if(id==71)liveUpdatePosted();
+        if(id==71&&sent)liveUpdatePosted();
+    }
+    /** Android still shows the connection notice: not swiped away (Android 14 and later allow that) or removed. */
+    private boolean connectionNoticeShowing(){
+        try{
+            for(android.service.notification.StatusBarNotification n:getSystemService(NotificationManager.class).getActiveNotifications())
+                if(n.getId()==71&&n.getTag()==null)return true;
+        }catch(RuntimeException unknown){}
+        return false;
+    }
+    /** Everything the connection notice carries, for NoticeRepeat; noticeBuiltExtra is from the notification() that built it. */
+    private Object noticeKey(Notification notice){return NoticeRepeat.key(Arrays.asList(noticeBuiltExtra,noticeParts(notice)));}
+    /** The header shows when the notice was posted ("now"), not a running clock: the builder stamps that time on every rebuild. */
+    private static boolean showsPostTime(Notification n){
+        Bundle extras=n.extras;
+        return extras!=null&&extras.getBoolean(Notification.EXTRA_SHOW_WHEN)&&!extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER);
+    }
+    /** A notice's parts, its time only for a running clock (a post time is stamped on every rebuild; see NoticeRepeat), its lock screen version too. */
+    private static List<Object> noticeParts(Notification n){
+        if(n==null)return null;
+        Bundle extras=n.extras;
+        boolean timed=extras!=null&&extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER);
+        List<Object> actions=new ArrayList<>();
+        if(n.actions!=null)for(Notification.Action a:n.actions)
+            actions.add(Arrays.asList(noticePart(a.title),noticePart(a.actionIntent),noticePart(a.getIcon()),noticePart(a.getExtras()),noticePart(a.getRemoteInputs()),a.getAllowGeneratedReplies()));
+        return Arrays.asList(n.getChannelId(),noticePart(n.getSmallIcon()),noticePart(n.getLargeIcon()),n.flags,n.category,n.visibility,n.color,n.number,
+                timed?n.when:null,noticePart(n.contentIntent),noticePart(n.deleteIntent),noticePart(n.fullScreenIntent),n.getGroup(),n.getSortKey(),
+                n.getGroupAlertBehavior(),n.getTimeoutAfter(),n.getBadgeIconType(),n.getShortcutId(),noticePart(n.getSettingsText()),actions,
+                noticePart(extras),noticeParts(n.publicVersion));
+    }
+    /** Bundles as maps, resource icons by resource, styled text never equal, the app's own info by package; anything else as it is. */
+    private static Object noticePart(Object value){
+        if(value instanceof Bundle){
+            Bundle bundle=(Bundle)value;Map<String,Object> parts=new HashMap<>();
+            for(String key:bundle.keySet())parts.put(key,noticePart(bundle.get(key)));
+            return parts;
+        }
+        if(value instanceof android.text.Spanned&&((android.text.Spanned)value).getSpans(0,((android.text.Spanned)value).length(),Object.class).length>0)return new Object();
+        if(value instanceof android.graphics.drawable.Icon&&((android.graphics.drawable.Icon)value).getType()==android.graphics.drawable.Icon.TYPE_RESOURCE){
+            android.graphics.drawable.Icon icon=(android.graphics.drawable.Icon)value;
+            return Arrays.asList("icon",icon.getResPackage(),icon.getResId());
+        }
+        if(value instanceof Notification)return noticeParts((Notification)value);
+        if(value instanceof android.content.pm.ApplicationInfo)return Arrays.asList("app",((android.content.pm.ApplicationInfo)value).packageName);
+        if(value instanceof Object[]){List<Object> parts=new ArrayList<>();for(Object item:(Object[])value)parts.add(noticePart(item));return parts;}
+        if(value instanceof List){List<Object> parts=new ArrayList<>();for(Object item:(List<?>)value)parts.add(noticePart(item));return parts;}
+        return value;
     }
     /**
      * The volt-diagnostics-v1 file a report email may carry (DiagnosticsBundle), or null when it would contain a saved
      * scooter's serial, MAC, owner key or chosen name. Built on demand; it leaves the phone only when the owner sends it.
      */
     String diagnosticsBundle(CompatibilityReport report){
-        DiagnosticsBundle bundle=new DiagnosticsBundle(AppVersion.name(this),System.currentTimeMillis(),simulating())
-                .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL).report(report)
-                .connections(ble.diagnosticEvents(),ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
+        long now=System.currentTimeMillis();
+        String selected=activeProfileId();
+        List<ConnectionEventLog.Record> connectionEvents=ble.diagnosticEvents();
+        DiagnosticsBundle bundle=new DiagnosticsBundle(AppVersion.name(this),now,simulating())
+                .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL);
+        // Part 2: app and phone state, then the allow-listed settings. Each source is read here, once, as the report
+        // is built; one that fails leaves its own section empty.
+        long versionCode=0;String installer=null;
+        try{versionCode=versionCode(getPackageManager().getPackageInfo(getPackageName(),0));}catch(Exception unavailable){}
+        try{installer=Build.VERSION.SDK_INT>=30?getPackageManager().getInstallSourceInfo(getPackageName()).getInstallingPackageName():installerBefore30();}catch(Exception unavailable){}
+        bundle.app(versionCode,installer).phoneState(diagnosticsDevice());
+        Map<String,?> stored=null;try{stored=settings.getAll();}catch(RuntimeException unavailable){}
+        bundle.settings(stored,selected).report(report)
+                .connections(connectionEvents,ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
                 .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
-                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).chargeSchedule(schedules().diagnostics());
-        List<String> secrets=new ArrayList<>();
+                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).tally(ble.telemetry.tally,simulating())
+                .chargeSchedule(schedules().diagnostics());
+        // The selected scooter's evidence only; none in a simulation (its file is the real scooter's).
+        if(evidence!=null&&!simulating()&&ChargeEvidence.scope(selected))bundle.evidence(evidence.snapshot(selected));
+        DiagnosticsBundle.Recordings recordings=new DiagnosticsBundle.Recordings();
+        recordings.nowWallMs=now;
+        recordings.rideFolder=new File(getFilesDir(),"rides");recordings.phoneRideFolder=new File(getFilesDir(),"phone-rides");
+        recordings.chargeFolder=new File(getFilesDir(),"charge-recordings");
+        try{if(rides!=null){recordings.rides=rides.listCached();recordings.rideActive=rides.activeId()!=null;}}catch(RuntimeException unavailable){}
+        try{if(chargeStore!=null){recordings.chargeActive=chargeStore.active();recordings.chargeActiveSamples=chargeStore.sampleCount();}}catch(RuntimeException unavailable){}
+        Long free=null;try{free=new StatFs(getFilesDir().getPath()).getAvailableBytes();}catch(RuntimeException unavailable){}
+        bundle.recordings(recordings).storage(free,rides!=null,rides==null?null:recordingError!=null,chargeStore!=null)
+                .crash(CrashRecord.read(new File(getNoBackupFilesDir(),VoltApp.CRASH_FILE))).clockChanges(connectionEvents);
+        List<String> identities=new ArrayList<>(),names=new ArrayList<>();
         for(ScooterProfiles.Profile p:profiles.all()){
-            secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
-            if(!p.nameDefault)secrets.add(p.name);
+            identities.add(p.id);identities.add(p.serial);identities.add(p.identity);identities.add(p.mac);identities.add(p.mac==null?null:p.mac.replace(":",""));
+            if(!p.nameDefault)names.add(p.name);
         }
-        return bundle.json(secrets);
+        return bundle.json(identities,names);
+    }
+    /** getLongVersionCode is Android 9's; before it, the int versionCode. */
+    @SuppressWarnings("deprecation")
+    private static long versionCode(android.content.pm.PackageInfo info){return Build.VERSION.SDK_INT>=28?info.getLongVersionCode():info.versionCode;}
+    @SuppressWarnings("deprecation")
+    private String installerBefore30(){return getPackageManager().getInstallerPackageName(getPackageName());}
+    /** The phone's state for the diagnostics file (DiagnosticsBundle.Device); each value is null when Android won't say. */
+    private DiagnosticsBundle.Device diagnosticsDevice(){
+        DiagnosticsBundle.Device d=new DiagnosticsBundle.Device();
+        try{android.content.res.Configuration c=getResources().getConfiguration();
+            d.fontScale=c.fontScale;d.uiNightBits=c.uiMode&android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+            d.smallestWidthDp=c.smallestScreenWidthDp;d.widthDp=c.screenWidthDp;d.heightDp=c.screenHeightDp;d.densityDpi=c.densityDpi;}catch(RuntimeException unavailable){}
+        // Volt's own language: before Android 13 the choice lives in AppLanguage's resources, not the service's own (as notifications use).
+        try{android.os.LocaleList app=AppLanguage.resources(this).getConfiguration().getLocales();d.appLocale=app.isEmpty()?null:app.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
+        try{android.os.LocaleList system=android.content.res.Resources.getSystem().getConfiguration().getLocales();d.phoneLocale=system.isEmpty()?null:system.get(0).toLanguageTag();}catch(RuntimeException unavailable){}
+        try{PowerManager power=getSystemService(PowerManager.class);if(power!=null){d.batteryOptimisationExempt=power.isIgnoringBatteryOptimizations(getPackageName());d.powerSave=power.isPowerSaveMode();}}catch(RuntimeException unavailable){}
+        try{if(Build.VERSION.SDK_INT>=28){ActivityManager am=getSystemService(ActivityManager.class);if(am!=null)d.backgroundRestricted=am.isBackgroundRestricted();}}catch(RuntimeException unavailable){}
+        try{if(Build.VERSION.SDK_INT>=28){android.app.usage.UsageStatsManager usage=getSystemService(android.app.usage.UsageStatsManager.class);if(usage!=null)d.standbyBucket=usage.getAppStandbyBucket();}}catch(RuntimeException unavailable){}
+        try{NotificationManager manager=getSystemService(NotificationManager.class);
+            if(manager!=null){d.notificationsEnabled=manager.areNotificationsEnabled();
+                for(String id:DiagnosticsBundle.CHANNELS){NotificationChannel channel=manager.getNotificationChannel(id);d.channels.put(id,channel==null?-1:channel.getImportance());}}}catch(RuntimeException unavailable){}
+        String[][] permissions={{"bluetooth_scan","android.permission.BLUETOOTH_SCAN"},{"bluetooth_connect","android.permission.BLUETOOTH_CONNECT"},
+                {"fine_location","android.permission.ACCESS_FINE_LOCATION"},{"coarse_location","android.permission.ACCESS_COARSE_LOCATION"},{"post_notifications","android.permission.POST_NOTIFICATIONS"}};
+        for(String[] p:permissions){
+            // Before Android 12 there is no Nearby devices permission, and before 13 no notification permission: both read as granted.
+            boolean implicit=p[0].startsWith("bluetooth_")&&Build.VERSION.SDK_INT<31||p[0].equals("post_notifications")&&Build.VERSION.SDK_INT<33;
+            try{d.permissions.put(p[0],implicit||checkSelfPermission(p[1])==android.content.pm.PackageManager.PERMISSION_GRANTED);}catch(RuntimeException unavailable){}
+        }
+        try{if(Build.VERSION.SDK_INT>=28){android.location.LocationManager location=getSystemService(android.location.LocationManager.class);if(location!=null)d.locationEnabled=location.isLocationEnabled();}}catch(RuntimeException unavailable){}
+        try{android.bluetooth.BluetoothManager bt=getSystemService(android.bluetooth.BluetoothManager.class);android.bluetooth.BluetoothAdapter adapter=bt==null?null:bt.getAdapter();if(adapter!=null)d.bluetoothEnabled=adapter.isEnabled();}catch(RuntimeException unavailable){}
+        return d;
     }
     public String snapshot(){try{JSONObject o=new JSONObject();
             o.put("format", "navee-offline-diagnostics-v1");
@@ -2985,7 +3412,8 @@ public final class ScooterService extends Service {
         }}
     @Override public void onDestroy(){
         // No screen can show a test's result once the service ends: cancel() posts its notification instead.
-        if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel();}
+        if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel(ChargeScheduleController.Interruption.SERVICE_ENDED);}
+        closeEvidence();
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
         if(rideAutoExport!=null)rideAutoExport.shutdown();

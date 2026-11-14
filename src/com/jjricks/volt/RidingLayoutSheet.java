@@ -239,6 +239,7 @@ final class RidingLayoutSheet {
             case RidingLayout.DRIVE_MODE: return T.ridingLabelDriveMode();
             case RidingLayout.CLOCK: return T.ridingLabelClock();
             case RidingLayout.ODOMETER: return T.ridingLabelOdometer();
+            case RidingLayout.GPS_ACCURACY: return T.ridingLabelGpsAccuracy();
             case RidingLayout.RING_SPEED: return T.ridingContentRingSpeed();
             case RidingLayout.TRACE_SPEED_POWER: return T.ridingContentTraceSpeedPower();
             case RidingLayout.TRACE_POWER: return T.ridingContentTracePower();

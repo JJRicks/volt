@@ -53,6 +53,8 @@ public final class Ui {
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
     /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
     public final int accentDeep, onAccent, ok, dim;
+    /** The accent for text and line icons on dark cards (the Layout Plan's #FF8A8C); the accent itself on light. */
+    public final int accentText;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -70,6 +72,7 @@ public final class Ui {
         dim = Color.parseColor(dark ? "#878982" : "#7A7C76");
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
+        accentText = dark ? Color.parseColor("#FF8A8C") : accent;
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");
@@ -588,77 +591,6 @@ public final class Ui {
     /** The icon id of a row with no icon, for callers that name it rather than leave it to {@link #labelIcon}. */
     public static final String NO_ICON = "";
     /**
-     * Floating tab bar: a rounded pill with a raised red button for the centre destination.
-     * The selected side tab shows white with a small red dot; the selected centre button gains a ring.
-     */
-    public View floatingNav(String[] labels, String[] icons, int selected, int center, java.util.function.IntConsumer onSelect) {
-        return floatingNav(labels, icons, selected, -1, center, onSelect);
-    }
-    /** {@code previous} is the tab being left; the selection dot glides over from it. */
-    public View floatingNav(String[] labels, String[] icons, int selected, int previous, int center, java.util.function.IntConsumer onSelect) {
-        android.widget.FrameLayout bar = new android.widget.FrameLayout(context);
-        bar.setClipChildren(false); bar.setClipToPadding(false);
-        LinearLayout pill = new LinearLayout(context);
-        pill.setOrientation(LinearLayout.HORIZONTAL); pill.setGravity(Gravity.CENTER_VERTICAL);
-        pill.setClipChildren(false); // the selection dot travels across tabs
-        pill.setBackground(shape(surface, 26, raised));
-        pill.setElevation(dp(6));
-        bar.addView(pill, new android.widget.FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM));
-        for (int i = 0; i < labels.length; i++) {
-            final int index = i; boolean on = i == selected;
-            LinearLayout item = new LinearLayout(context);
-            item.setOrientation(LinearLayout.VERTICAL); item.setGravity(Gravity.CENTER); item.setClipChildren(false);
-            if (i == center) {
-                // A plain spacer under the raised button, which carries the label and the action.
-                item.setFocusable(false); item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            } else {
-                item.setContentDescription(labels[i]); item.setFocusable(true); item.setSelected(on);
-                if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(on ? T.commonSelected() : "");
-            }
-            if (i != center) {
-                item.addView(icon(icons[i], 21, on ? text : muted), new LinearLayout.LayoutParams(dp(21), dp(21)));
-                View dot = new View(context); dot.setBackground(shape(accent, 3, 0));
-                LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(dp(5), dp(5)); dp.topMargin = dp(4);
-                dot.setVisibility(on ? View.VISIBLE : View.INVISIBLE); item.addView(dot, dp);
-                if (on && previous >= 0 && previous != selected && motionEnabled()) {
-                    final int steps = previous - selected;
-                    Motion.beforeNextDraw(item, () -> {
-                        // Equal-width tabs: the dot starts under the tab being left and settles here.
-                        // Right to left, the tabs run the other way.
-                        int side = item.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -1 : 1;
-                        dot.setTranslationX(side * steps * item.getWidth());
-                        dot.animate().translationX(0).setDuration(Motion.ENTER_MS).setInterpolator(Motion.STANDARD).start();
-                    }, null);
-                }
-                item.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 30)), null, shape(Color.WHITE, 22, 0)));
-                item.setOnClickListener(v -> { if (index != selected) Haptics.tick(v); if (onSelect != null) onSelect.accept(index); });
-                pressFeedback(item);
-            }
-            pill.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
-        }
-        if (center >= 0 && center < labels.length) {
-            final boolean on = center == selected;
-            android.widget.FrameLayout button = new android.widget.FrameLayout(context);
-            GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL);
-            disc.setColor(accent); disc.setStroke(dp(5), bg);
-            GradientDrawable ring = new GradientDrawable(); ring.setShape(GradientDrawable.OVAL);
-            ring.setColor(Color.TRANSPARENT); ring.setStroke(dp(2), on ? withAlpha(accent, 150) : Color.TRANSPARENT);
-            android.graphics.drawable.LayerDrawable layers = new android.graphics.drawable.LayerDrawable(new Drawable[] {ring, disc});
-            layers.setLayerInset(1, dp(3), dp(3), dp(3), dp(3));
-            button.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(Color.WHITE, 50)), layers, null));
-            button.addView(icon(icons[center], 25, onAccent), new android.widget.FrameLayout.LayoutParams(dp(25), dp(25), Gravity.CENTER));
-            button.setContentDescription(labels[center]); button.setFocusable(true); button.setSelected(on);
-            if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(on ? T.commonSelected() : "");
-            button.setElevation(dp(8));
-            button.setOnClickListener(v -> { if (!on) Haptics.tick(v); if (onSelect != null) onSelect.accept(center); });
-            pressFeedback(button);
-            bar.addView(button, new android.widget.FrameLayout.LayoutParams(dp(68), dp(68), Gravity.TOP | Gravity.CENTER_HORIZONTAL));
-        }
-        return bar;
-    }
-    /** Height the floating tab bar needs, so scrolling pages can pad their bottom edge. */
-    public int floatingNavHeight() { return dp(72); }
-    /**
      * The round pencil that opens an editor in a page header, or the red {@code done} pill that replaces it while
      * editing (Home's dashboard, the Scooter tab's menu). {@code target} is the 48 dp touch target; its content
      * description is the caller's.
@@ -1142,6 +1074,12 @@ public final class Ui {
                 // Recording time: the record mark, a ring around a solid dot.
                 canvas.drawCircle(12, 12, 8.5f, paint);
                 paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 4.5f, paint);
+            } else if (key.equals("gps_accuracy")) {
+                // GPS accuracy: a location crosshair, the fix as a dot inside the ring of how far off it may be.
+                canvas.drawCircle(12, 12, 6.5f, paint);
+                p.moveTo(12, 2); p.lineTo(12, 5.5f); p.moveTo(12, 18.5f); p.lineTo(12, 22);
+                p.moveTo(2, 12); p.lineTo(5.5f, 12); p.moveTo(18.5f, 12); p.lineTo(22, 12); canvas.drawPath(p, paint);
+                paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 12, 2.2f, paint);
             } else if (key.equals("appearance")) {
                 canvas.drawCircle(12, 12, 8, paint); paint.setStyle(Paint.Style.FILL);
                 canvas.drawArc(new RectF(4, 4, 20, 20), 90, 180, true, paint);
@@ -1195,6 +1133,12 @@ public final class Ui {
             } else if (key.equals("lights")) {
                 p.moveTo(13, 5); p.cubicTo(21, 4, 22, 20, 13, 19); p.close(); canvas.drawPath(p, paint);
                 canvas.drawLine(3, 6, 9, 8, paint); canvas.drawLine(2, 12, 9, 12, paint); canvas.drawLine(3, 18, 9, 16, paint);
+            } else if (key.equals("bulb")) {
+                // A light bulb (Lights & sound in the Layout Plan): a round glass on a neck, over a two-line base.
+                p.moveTo(9, 16.5f); p.cubicTo(9, 13.8f, 5.5f, 12.6f, 5.5f, 9); p.cubicTo(5.5f, 5.3f, 8.4f, 2.5f, 12, 2.5f);
+                p.cubicTo(15.6f, 2.5f, 18.5f, 5.3f, 18.5f, 9); p.cubicTo(18.5f, 12.6f, 15, 13.8f, 15, 16.5f); p.close();
+                canvas.drawPath(p, paint);
+                canvas.drawLine(9.5f, 19.5f, 14.5f, 19.5f, paint); canvas.drawLine(10.5f, 22, 13.5f, 22, paint);
             } else if (key.equals("stats") || key.equals("chart") || key.equals("analytics")) {
                 canvas.drawLine(4, 3, 4, 20, paint); canvas.drawLine(4, 20, 21, 20, paint);
                 p.moveTo(7, 15); p.lineTo(11, 10); p.lineTo(15, 13); p.lineTo(21, 5); canvas.drawPath(p, paint);
@@ -1285,6 +1229,17 @@ public final class Ui {
                 p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
+            } else if (key.equals("bars")) {
+                // Four rising bars (Controls).
+                canvas.drawLine(4, 20, 4, 16, paint); canvas.drawLine(9, 20, 9, 12, paint);
+                canvas.drawLine(14, 20, 14, 8, paint); canvas.drawLine(19, 20, 19, 4, paint);
+            } else if (key.equals("wrench")) {
+                // A wrench (Service): an open-jawed head at the top right on a handle to the bottom left.
+                canvas.save(); canvas.rotate(45, 12, 12);
+                canvas.drawArc(new RectF(7.5f, 1.5f, 16.5f, 10.5f), -55, 290, false, paint);
+                p.moveTo(9.4f, 2.3f); p.lineTo(10.6f, 5.2f); p.lineTo(13.4f, 5.2f); p.lineTo(14.6f, 2.3f); canvas.drawPath(p, paint);
+                canvas.drawRoundRect(new RectF(10.3f, 10.2f, 13.7f, 22.5f), 1.7f, 1.7f, paint);
+                canvas.restore();
             } else {
                 canvas.drawCircle(12, 12, 9, paint); canvas.drawLine(12, 11, 12, 17, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 7, 1, paint);
             }
