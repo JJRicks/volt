@@ -70,7 +70,7 @@ public final class Protocol {
 
     /**
      * Release this scooter (OwnerRelease): 0x50 with one data byte 1, as the official app sends it over its
-     * owner-authenticated link to make the scooter forget its owner code. Only this builder makes it: frame() keeps
+     * owner-authenticated link to make the scooter forget its owner key. Only this builder makes it: frame() keeps
      * refusing 0x50, so no generic path can send it, and BleController sends it only as the admitted mutation.
      */
     public static byte[] ownerRelease() {

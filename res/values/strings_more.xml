@@ -119,7 +119,7 @@
     <string name="more_scooters_save_backup" volt:screen="My scooters" volt:purpose="button">Save backup first</string>
     <!-- Red button: remove the scooter's setup from this phone. -->
     <string name="more_scooters_forget_action" volt:screen="My scooters" volt:purpose="button">Forget</string>
-    <!-- Red button in the edit dialog, for a scooter set up with an owner code: the scooter forgets that code, so it can
+    <!-- Red button in the edit dialog, for a scooter set up with an owner key: the scooter forgets that key, so it can
          be added again like a new or reset scooter (asks first). The ellipsis says a confirmation follows. -->
     <string name="more_scooters_release" volt:screen="My scooters" volt:purpose="button"
         volt:safety="owner-key">Release this scooter…</string>
@@ -132,22 +132,22 @@
     <!-- Title of the confirmation before releasing a scooter. %1$s is the scooter's name. -->
     <string name="more_scooters_release_title" volt:screen="My scooters" volt:purpose="title"
         volt:safety="owner-key">Release %1$s?</string>
-    <!-- Body of the Release confirmation. The scooter forgets the owner code Volt uses, and Volt removes the scooter
+    <!-- Body of the Release confirmation. The scooter forgets the owner key Volt uses, and Volt removes the scooter
          from this phone. Anyone near it can then add it with the official NAVEE app or with Volt. Volt doesn't talk to
          NAVEE's servers, so a NAVEE app account that lists the scooter still lists it. Volt and NAVEE are names. -->
     <string name="more_scooters_release_body" volt:screen="My scooters" volt:purpose="dialog" volt:safety="owner-key"
-        volt:dnt="Volt|NAVEE">Your scooter forgets its owner code, and Volt removes it from this phone. Anyone nearby can then add it with the NAVEE app or Volt. If you added it in the NAVEE app, your account there still lists it.</string>
+        volt:dnt="Volt|NAVEE">Your scooter forgets its owner key, and Volt removes it from this phone. Anyone nearby can then add it with the NAVEE app or Volt. If you added it in the NAVEE app, your account there still lists it.</string>
     <!-- Red button in the Release confirmation: send the release to the scooter. -->
     <string name="more_scooters_release_action" volt:screen="My scooters" volt:purpose="button"
         volt:safety="owner-key">Release</string>
-    <!-- Toast: the scooter confirmed it forgot its owner code; Volt disconnected and removed it from this phone. -->
+    <!-- Toast: the scooter confirmed it forgot its owner key; Volt disconnected and removed it from this phone. -->
     <string name="more_scooters_released" volt:screen="My scooters" volt:purpose="toast"
         volt:safety="owner-key">Scooter released</string>
     <!-- Toast: the scooter answered that it would not release. Nothing changed on the scooter or in Volt. -->
     <string name="more_scooters_release_refused" volt:screen="My scooters" volt:purpose="toast"
         volt:safety="owner-key">The scooter refused the release. It stays saved in Volt.</string>
     <!-- Toast: the release was sent but the scooter didn't answer before the connection timed out or closed, so Volt
-         can't tell whether it took. Volt kept the scooter; if the scooter did take it, reconnecting gives it this owner code again. -->
+         can't tell whether it took. Volt kept the scooter; if the scooter did take it, reconnecting gives it this owner key again. -->
     <string name="more_scooters_release_unconfirmed" volt:screen="My scooters" volt:purpose="toast"
         volt:safety="owner-key">The scooter didn\'t confirm the release. It stays saved in Volt.</string>
     <!-- Toast: the release was cancelled before it was sent (for example, the scooter started moving). -->

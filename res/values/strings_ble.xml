@@ -36,7 +36,7 @@
     <string name="ble_status_checking_compatibility" volt:screen="Connection state" volt:purpose="status">Checking compatibility…</string>
     <!-- Volt is setting the scooter's clock to this phone's time. -->
     <string name="ble_status_setting_clock" volt:screen="Connection state" volt:purpose="status">Setting the scooter\'s clock from this phone…</string>
-    <!-- Volt is asking the connected scooter to forget its owner code (More › Scooters › Edit scooter ›
+    <!-- Volt is asking the connected scooter to forget its owner key (More › Scooters › Edit scooter ›
          Release this scooter), so it can be added again like a new or reset scooter. -->
     <string name="ble_status_releasing" volt:screen="Connection state" volt:purpose="status"
         volt:safety="owner-key">Releasing the scooter…</string>

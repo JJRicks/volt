@@ -1977,7 +1977,7 @@ public final class ScooterService extends Service {
         if(current)ble.profileSelected();
     }
     /**
-     * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner code.
+     * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
      * Once it confirms, BleController has closed the link and this forgets the profile at once, before anything can
      * reconnect with it and claim the scooter again; any other outcome keeps it. done gets the outcome on the main thread.
      */

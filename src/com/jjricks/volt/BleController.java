@@ -860,7 +860,7 @@ public final class BleController {
      * Sends Release this scooter (0x50 1) to the connected owner scooter of profileId as one admitted mutation: gated like
      * every write, rechecked at the radio boundary (moving while queued cancels it), and confirmed only by the scooter's
      * own 0x50 reply. Status 0: the link is closed (no reconnect stays pending), then released runs at once, before
-     * anything can connect with the owner code the scooter no longer knows, then done gets RELEASED. Any other ending
+     * anything can connect with the owner key the scooter no longer knows, then done gets RELEASED. Any other ending
      * (another status, no reply within the confirmation window, the link closing first, a refusal) leaves the profile to
      * the caller and done gets that outcome. done runs on the main thread; false when nothing was queued.
      */
@@ -895,7 +895,7 @@ public final class BleController {
             if(report!=null)handler.post(()->report.accept(outcome));
             return false;
         }
-        // A fresh scooter takes the first owner code it hears: end the link and drop any pending reconnect first, then
+        // A fresh scooter takes the first owner key it hears: end the link and drop any pending reconnect first, then
         // forget the profile, so nothing reconnects with it and claims the scooter again.
         disconnect();
         if(forget!=null)forget.run();

@@ -1,13 +1,13 @@
 package com.jjricks.volt;
 
 /**
- * Release this scooter (owner, 2026-11-13): the connected scooter forgets its owner code, as it does after the official
- * app's unbind, so it behaves like a new or reset scooter and the NAVEE app or another Volt owner code can add it again.
+ * Release this scooter (owner, 2026-11-13): the connected scooter forgets its owner key, as it does after the official
+ * app's unbind, so it behaves like a new or reset scooter and the NAVEE app or another Volt owner key can add it again.
  * The official app sends the same frame over its owner-authenticated link once its server unbind succeeds; Volt has no
  * server step, so a NAVEE account that lists the scooter keeps listing it. Not yet tried on a scooter
  * (docs/validation/owner-release.md).
  *
- * A fresh scooter takes the first owner code it hears as its owner, so a release that worked must end the link and
+ * A fresh scooter takes the first owner key it hears as its owner, so a release that worked must end the link and
  * remove the profile at once (ScooterService.releaseScooter): reconnecting with that profile would claim it again. Any
  * other ending keeps the profile, and a reconnect claims the scooter back if it did forget its owner after all, which
  * leaves Volt and the scooter agreeing. Pure: BleController sends the frame, the gate is CapabilityResolver.decideRelease.
@@ -20,7 +20,7 @@ final class OwnerRelease {
 
     /** How a release ended. */
     enum Outcome {
-        /** The scooter answered status 0: it forgot its owner code; Volt closed the link and removed the profile. */
+        /** The scooter answered status 0: it forgot its owner key; Volt closed the link and removed the profile. */
         RELEASED,
         /** The scooter answered another status: nothing changed, the profile stays. */
         REJECTED,
