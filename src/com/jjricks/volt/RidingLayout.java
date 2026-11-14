@@ -50,6 +50,11 @@ final class RidingLayout {
             CURRENT = "current", BATTERY_TEMPERATURE = "battery_temperature", DRIVE_MODE = "drive_mode", CLOCK = "clock";
     /** The three range readings a range spot can show; Range at this pace is the default (owner, live range). */
     static final String RANGE_AT_PACE = "range_at_pace", RANGE_SCOOTER = "range_scooter", RANGE_VOLT = "range_volt";
+    /**
+     * The latest GPS fix's accuracy while a ride records (owner, Nov 12): an optional reading for a tile or a chip, in no
+     * frame by default. It only reads the phone recorder, never starting GPS or keeping it or the screen awake.
+     */
+    static final String GPS_ACCURACY = "gps_accuracy";
     // Ring, trace and top-bar contents.
     static final String RING_SPEED = "ring_speed", TRACE_SPEED_POWER = "trace_speed_power", TRACE_POWER = "trace_power",
             TRACE_SPEED = "trace_speed", RECORD = "record", STATUS = "status";
@@ -85,6 +90,7 @@ final class RidingLayout {
             if (!id.equals(SPEED)) kinds.add(Kind.CHIP);
             all.add(new Content(id, kinds));
         }
+        all.add(new Content(GPS_ACCURACY, EnumSet.of(Kind.TILE, Kind.CHIP)));
         all.add(new Content(RING_SPEED, EnumSet.of(Kind.RING)));
         for (String id : new String[]{TRACE_SPEED_POWER, TRACE_POWER, TRACE_SPEED}) all.add(new Content(id, EnumSet.of(Kind.TRACE)));
         all.add(new Content(STATUS, EnumSet.of(Kind.TOP)));
@@ -131,6 +137,7 @@ final class RidingLayout {
             case CURRENT: return "current";
             case DRIVE_MODE: return "mode";
             case ODOMETER: return "distance";
+            case GPS_ACCURACY: return "gps_accuracy";
             default: return null;
         }
     }

@@ -154,8 +154,8 @@
     <string name="more_prefs_auto_connect" volt:screen="App preferences" volt:purpose="row">Connect automatically</string>
     <!-- Switch: keep the Bluetooth connection when the app is in the background. -->
     <string name="more_prefs_background" volt:screen="App preferences" volt:purpose="row">Stay connected in background</string>
-    <!-- Under the background switch: a ride recording keeps its connection either way. -->
-    <string name="more_prefs_background_sub" volt:screen="App preferences" volt:purpose="caption">Recordings always stay connected</string>
+    <!-- Under the background switch: what keeps the connection out of sight whatever the switch says. A ride or charge recording always does; Live charging (the charging notification, a feature name) and a charge alert waiting for the current charge do while the scooter charges. -->
+    <string name="more_prefs_background_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="alarm">Recordings stay connected, and so do Live charging and charge alerts during a charge</string>
     <!-- Switch: keep the phone's screen on. -->
     <string name="more_prefs_awake" volt:screen="App preferences" volt:purpose="row">Keep screen awake</string>
     <!-- Under the screen switch: only while a ride is recorded. -->
@@ -744,6 +744,19 @@
     <string name="more_dev_simulate" volt:screen="Developer options" volt:purpose="row">Simulate scooter as connected</string>
     <!-- Row and dialog title: which model the simulator acts as (the model names stay in English). -->
     <string name="more_dev_simulated_model" volt:screen="Developer options" volt:purpose="row">Simulated model</string>
+    <!-- Row and dialog title: what the simulated scooter is doing (parked, riding or charging). -->
+    <string name="more_dev_simulation_scene" volt:screen="Developer options" volt:purpose="row">Scene</string>
+    <!-- Scene choice: the simulated scooter stands still. -->
+    <string name="more_dev_simulation_scene_parked" volt:screen="Developer options" volt:purpose="value">Parked</string>
+    <!-- Scene choice: the simulated scooter rides a repeating loop (speeds up, cruises, slows, stops). -->
+    <string name="more_dev_simulation_scene_riding" volt:screen="Developer options" volt:purpose="value">Riding</string>
+    <!-- Scene choice: the simulated scooter is plugged in and charging. -->
+    <string name="more_dev_simulation_scene_charging" volt:screen="Developer options" volt:purpose="value">Charging</string>
+    <!-- Row and dialog title: the simulated scooter's drive mode (the mode names come from the scooter and stay as they are). -->
+    <string name="more_dev_simulation_drive_mode" volt:screen="Developer options" volt:purpose="row">Drive mode</string>
+    <!-- Drive mode choice where the model gives two codes the same name (SPORT is 3 and 5 on a GT5 Max): %1$s is the scooter's own mode name, %2$s its code number.
+         A no-break space joins "code" and its number, so a narrow row never leaves the number alone on a line. -->
+    <string name="more_dev_simulation_drive_mode_code" volt:screen="Developer options" volt:purpose="value">%1$s (code %2$s)</string>
     <!-- Shown while the simulator runs. -->
     <string name="more_dev_simulation_active" volt:screen="Developer options" volt:purpose="caption">Simulation active · sample data</string>
     <!-- Developer options row value while the simulator runs. -->
@@ -766,6 +779,10 @@
     <string name="more_dev_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Record this charge</string>
     <!-- Row while a charge is recorded. -->
     <string name="more_dev_stop_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Stop charge recording</string>
+    <!-- Switch beside the charge recording controls: Volt records charges by itself. Off by default. -->
+    <string name="more_charge_auto_record" volt:screen="Charge history &amp; recordings" volt:purpose="row" volt:safety="charge">Record charges automatically</string>
+    <!-- Under that switch. The second sentence says when it cannot catch a charge: Volt was not connected when charging started, or Android notifications are off for Volt. -->
+    <string name="more_charge_auto_record_sub" volt:screen="Charge history &amp; recordings" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Starts when the connected scooter begins charging. Misses a charge that starts while Volt isn\'t connected or its notifications are off.</string>
     <!-- Row: saved charge recordings. -->
     <string name="more_dev_recordings" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Charge recordings</string>
     <!-- Under the Charge recordings row. -->

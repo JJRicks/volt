@@ -39,7 +39,6 @@ public final class QuickAccessActions {
             if (shortMsg != null) return shortMsg;
             switch (labelMsg.id()) {
                 case T.DASHBOARD_MODEL_QA_LIGHTS: return M.dashboardModelQaLightsShort();
-                case T.DASHBOARD_MODEL_QA_SETTINGS: return M.dashboardModelQaSettingsShort();
                 case T.DASHBOARD_MODEL_QA_LIVE_STATS: return M.dashboardModelQaLiveStatsShort();
                 case T.DASHBOARD_MODEL_QA_RIDES: return M.dashboardModelQaRidesShort();
                 case T.DASHBOARD_MODEL_QA_RIDE_SETTINGS: return M.dashboardModelQaRideSettingsShort();
@@ -56,6 +55,7 @@ public final class QuickAccessActions {
                 case T.DASHBOARD_MODEL_QA_ABOUT_PERMISSIONS: return M.dashboardModelQaAboutPermissionsShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_BY: return M.dashboardModelQaChargeDoneByShort();
                 case T.DASHBOARD_MODEL_QA_CHARGE_DONE_TIME: return M.dashboardModelQaChargeDoneTimeShort();
+                case T.DASHBOARD_MODEL_QA_CHARGE_ALERTS: return M.dashboardModelQaChargeAlertsShort();
                 default: return labelMsg;
             }
         }
@@ -84,7 +84,10 @@ public final class QuickAccessActions {
     private static final LinkedHashMap<String, Entry> ENTRIES = new LinkedHashMap<>();
     static {
         add("lights", M.dashboardModelQaLights(), "lights", M.dashboardModelQaGroupMenus(), null);
-        add("controls", M.dashboardModelQaSettings(), "settings", M.dashboardModelQaGroupMenus(), null);
+        // The tile that opens search (HubRoutes: controls → the search page since part 11): "Search settings", short
+        // "Search", with the search icon (search-settings-tile, kept by the contributor on #383).
+        ENTRIES.put("controls", new Entry("controls", HubText.quickAccessSearch(), HubText.quickAccessSearchShort(), "search",
+                M.dashboardModelQaGroupMenus(), null));
         add("stats", M.dashboardModelQaLiveStats(), "stats", M.dashboardModelQaGroupPages(), null);
         add("rides", M.dashboardModelQaRides(), "rides", M.dashboardModelQaGroupPages(), null);
         add("section:Ride", M.dashboardModelQaRideSettings(), "scooter", M.dashboardModelQaGroupMenus(), null);
@@ -102,6 +105,10 @@ public final class QuickAccessActions {
         // Volt schedules a supported charge-start command; these are not new BLE opcodes.
         add("charge_done_by", M.dashboardModelQaChargeDoneBy(), "clock", M.controlsGroupBattery(), null);
         add("charge_done_time", M.dashboardModelQaChargeDoneTime(), "clock", M.controlsGroupBattery(), null);
+        // Battery alerts, the English name Clean Home shows: opens the Battery page's alerts sheet; offered only where
+        // ChargeAlertPolicy offers alerts (no built-in charge limit). Its own full and short rung, like the other Volt
+        // shortcuts: a Setting tile too narrow for Battery alerts says Alerts (as Clean Home's short rung does), never a cut word.
+        add(CHARGE_ALERTS_ID, M.dashboardModelQaChargeAlerts(), "bolt", M.controlsGroupBattery(), null);
         for (ScooterCommands.Feature feature : ScooterCommands.catalog())
             add(FEATURE_PREFIX + feature.key, feature.label(), icon(feature.key),
                     feature.experimental ? M.dashboardModelQaGroupExperimental() : feature.groupLabel(), feature.key);

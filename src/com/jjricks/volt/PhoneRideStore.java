@@ -172,6 +172,13 @@ public final class PhoneRideStore {
         /** Every accepted source fix; the map/inline preview list remains bounded separately. */
         public List<Point> fullPoints() { return allPoints; }
         /**
+         * Every fix's reported accuracy for the ride graph, rejected fixes included (a bad fix is what the line is
+         * for), bounded like points: a long ride keeps each run's worst. fullAccuracy() has them all. No positions.
+         */
+        public final List<AccuracySample> accuracy;
+        private final List<AccuracySample> allAccuracy;
+        public List<AccuracySample> fullAccuracy() { return allAccuracy; }
+        /**
          * The fix counts as display text, in the current language; in English it equals status.
          * status is the base English sentence. No screen shows it now, and saved files do not hold it
          * (the constructor works it out); it stays only because tests/l10n/RideMapsTextTest and the
@@ -206,7 +213,10 @@ public final class PhoneRideStore {
                 Double ascent,
                 Double descent,
                 Double motionPeak,
-                List<TelemetrySample> telemetry) {
+                List<TelemetrySample> telemetry,
+                List<AccuracySample> accuracySamples) {
+            allAccuracy = Collections.unmodifiableList(accuracySamples);
+            accuracy = Collections.unmodifiableList(AccuracySample.bounded(accuracySamples, 3000));
             this.id = id;
             this.placement = placement;
             allPoints = Collections.unmodifiableList(all);
@@ -373,6 +383,47 @@ public final class PhoneRideStore {
         }
     }
 
+    /**
+     * One GPS fix's reported horizontal accuracy (metres) and its clocks, for the ride graph's GPS accuracy line. It
+     * holds no position. segment changes at each GAP row, so a recorded break stays a break in the line.
+     */
+    public static final class AccuracySample {
+        public final long monoMs, wallMs, elapsedMs;
+        public final double metres;
+        public final int segment;
+
+        AccuracySample(long monoMs, long wallMs, long elapsedMs, double metres, int segment) {
+            this.monoMs = monoMs;
+            this.wallMs = wallMs;
+            this.elapsedMs = elapsedMs;
+            this.metres = metres;
+            this.segment = segment;
+        }
+
+        /**
+         * At most about limit samples: runs of consecutive samples in one segment become their worst (largest)
+         * one, so a short spike of bad fixes still shows on a long ride's preview. A run never spans a segment.
+         */
+        static List<AccuracySample> bounded(List<AccuracySample> all, int limit) {
+            if (all.size() <= limit) return new ArrayList<>(all);
+            int stride = Math.max(1, (all.size() + limit - 1) / limit);
+            ArrayList<AccuracySample> out = new ArrayList<>();
+            AccuracySample worst = null;
+            int count = 0;
+            for (AccuracySample s : all) {
+                if (worst != null && (count == stride || s.segment != worst.segment)) {
+                    out.add(worst);
+                    worst = null;
+                    count = 0;
+                }
+                if (worst == null || s.metres > worst.metres) worst = s;
+                count++;
+            }
+            if (worst != null) out.add(worst);
+            return out;
+        }
+    }
+
     private static final class Fix {
         long mono, wall;
         double lat, lon, accuracy;
@@ -467,7 +518,8 @@ public final class PhoneRideStore {
         long start = 0, motionCount = 0;
         Double motionPeak = null, filteredPressure = null, baseline = null;
         long pressureTime = -1;
-        int rejected = 0, epoch = 0;
+        int rejected = 0, epoch = 0, accuracySegment = 0;
+        ArrayList<AccuracySample> accuracyRows = new ArrayList<>();
         boolean gap = true;
         if (f.exists())
             try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(f))) {
@@ -492,6 +544,7 @@ public final class PhoneRideStore {
                         } else if (event.equals("GAP")) {
                             gap = true;
                             epoch++;
+                            accuracySegment++;
                             filteredPressure = null;
                             baseline = null;
                             pressureTime = -1;
@@ -509,6 +562,10 @@ public final class PhoneRideStore {
                             q.gap = gap;
                             q.epoch = epoch;
                             gap = false;
+                            // The accuracy line plots every fix the phone reported, the ones the route
+                            // rejects as low quality included; it keeps only the accuracy and clocks.
+                            if (Math.abs(q.lat) <= 90 && Math.abs(q.lon) <= 180 && q.accuracy >= 0)
+                                accuracyRows.add(new AccuracySample(mono, wall, 0, q.accuracy, accuracySegment));
                             if (Math.abs(q.lat) > 90
                                     || Math.abs(q.lon) > 180
                                     || q.accuracy < 0
@@ -747,6 +804,9 @@ public final class PhoneRideStore {
             }
             previous = q;
         }
+        ArrayList<AccuracySample> accuracySamples = new ArrayList<>(accuracyRows.size());
+        for (AccuracySample a : accuracyRows)
+            accuracySamples.add(new AccuracySample(a.monoMs, a.wallMs, Math.max(0, a.monoMs - start), a.metres, a.segment));
         cached =
                 new Track(
                         id,
@@ -759,7 +819,8 @@ public final class PhoneRideStore {
                         hasElevation ? ascent : null,
                         hasElevation ? descent : null,
                         motionPeak,
-                        telemetry);
+                        telemetry,
+                        accuracySamples);
         cachedId = id;
         cachedLength = f.length();
         cachedModified = f.lastModified();

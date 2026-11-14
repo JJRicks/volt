@@ -98,17 +98,17 @@ public final class MoreMenuValidation extends Instrumentation {
      */
     private void longTitles(Object more) throws Exception {
         gutterCentred(more, "English titles");
-        Object row = labRow(more);
+        Object row = aboutRow(more);
         TextView title = (TextView) field(row, "title");
         View icon = (View) field(row, "icon");
         Object line = field(row, "view");
         int[] room = new int[2];
         main(() -> { room[0] = (Integer) invoke(line, "titleRoomWithIcon", new Class<?>[0]); room[1] = (Integer) invoke(line, "titleRoomAtMost", new Class<?>[0]); });
-        require(room[1] > room[0], "Lab row icon cannot step aside: room " + room[0] + " / " + room[1]);
+        require(room[1] > room[0], "About row icon cannot step aside: room " + room[0] + " / " + room[1]);
         String aside = word(title, (room[0] + room[1]) / 2);
         main(() -> title.setText("Long " + aside)); settle();
         require(more() == more && (Boolean) field(more, "wide"), "A word that fits without the icon must keep two panes");
-        main(() -> require(icon.getWidth() == 0, "The Lab row's icon did not step aside for " + aside.length() + " letters"));
+        main(() -> require(icon.getWidth() == 0, "The About row's icon did not step aside for " + aside.length() + " letters"));
         wholeWords(title);
         gutterCentred(more, "a word that fits only without the icon");
         screenshot("wide-long-title");
@@ -119,11 +119,14 @@ public final class MoreMenuValidation extends Instrumentation {
         require(!(Boolean) field(onePane, "wide"), "A word too long even without the icon must give More one pane");
         screenshot("wide-long-title-one-pane");
     }
-    /** The Lab section's menu row, which has a plain (not numbered) icon. */
-    private Object labRow(Object more) {
+    /**
+     * The About section's menu row, which has a plain (not numbered) icon. This used the Lab row until the Hub layout
+     * (#387) moved Experimental controls to Scooter › Service, out of More's menu.
+     */
+    private Object aboutRow(Object more) {
         String[] sections = (String[]) field(more, "SECTIONS"); Object[] rows = (Object[]) field(more, "menuRows");
-        for (int i = 0; i < sections.length; i++) if ("Lab".equals(sections[i]) && rows[i] != null) return rows[i];
-        throw new IllegalStateException("No Lab menu row");
+        for (int i = 0; i < sections.length; i++) if ("About".equals(sections[i]) && rows[i] != null) return rows[i];
+        throw new IllegalStateException("No About menu row");
     }
     /** A single word of repeated letters as wide as px in the title's paint. */
     private String word(TextView title, int px) {

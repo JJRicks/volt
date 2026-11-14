@@ -85,6 +85,9 @@ public final class HubPagesTest {
         require(icons.size() == HubPages.SUBJECTS.size(), "Subject icons differ");
         require(HubPages.icon(HubPages.SETTINGS).equals("gear") && HubPages.icon(HubPages.SEARCH).equals("search"), "Header icons");
         require(HubPages.icon(HubPages.SERVICE_MAINTENANCE).equals(HubPages.icon(HubPages.SERVICE)), "A sub-page has its subject's icon");
+        // The Layout Plan's glyphs: Battery & charging a bolt, Controls rising bars, Lights & sound a bulb, Service a wrench (part 8b).
+        require(HubPages.icon(HubPages.BATTERY).equals("bolt") && HubPages.icon(HubPages.CONTROLS).equals("bars")
+                && HubPages.icon(HubPages.LIGHTS).equals("bulb") && HubPages.icon(HubPages.SERVICE).equals("wrench"), "The plan's subject icons");
     }
 
     private static void hub() {
@@ -138,6 +141,18 @@ public final class HubPagesTest {
         require(HubPages.dockSwipe(17, 0, 8), "17 dp up past a 8 dp slop: a swipe");
         require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
         require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
+        // The dock never covers the Lock bar (part 11), in dp at 3 px per dp as the emulator draws them. 725x604 dp at
+        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it steps aside); scrolled 130 dp, the bar
+        // (431-489) is above the dock (it shows). 725x604 at 1x: the bar ends at 422 dp, the dock starts at 460 dp.
+        // 344x882 dp at 1x and 1.4x: the bar sits well above a dock at 790 dp.
+        require(HubPages.dockCovers(561 * 3, 615 * 3, 561 * 3, 604 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x: the dock is over the Lock bar");
+        require(!HubPages.dockCovers(431 * 3, 489 * 3, 431 * 3, 489 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x, scrolled: the bar is clear of the dock");
+        require(!HubPages.dockCovers(372 * 3, 422 * 3, 372 * 3, 422 * 3, 460 * 3, 530 * 3), "725x604 at 1x: the dock is under the bar");
+        for (float text : new float[]{1f, 1.4f})
+            require(!HubPages.dockCovers(Math.round(420 * text), Math.round(474 * text), Math.round(420 * text), Math.round(474 * text), 790, 862), "344x882 at " + text + "x: clear");
+        require(!HubPages.dockCovers(-200, -10, 0, 0, 0, 70), "a bar scrolled out of sight is never covered");
+        require(HubPages.dockCovers(100, 160, 100, 160, 159, 200) && !HubPages.dockCovers(100, 160, 100, 160, 160, 200), "one pixel of overlap counts; touching does not");
+        require(!HubPages.dockCovers(500, 560, 500, 520, 530, 600), "only the bar's shown part counts");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 

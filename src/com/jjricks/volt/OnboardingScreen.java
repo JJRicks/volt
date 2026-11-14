@@ -1872,7 +1872,7 @@ public final class OnboardingScreen implements AppScreen {
             // The welcome screens use the UT5 MAX as a generic picture; "connected" shows the scooter that connected.
             ScooterService service = badge ? host.service() : null;
             ScooterProfiles.Profile active = service == null ? null : service.profiles.active();
-            DeviceDescriptor model = active == null ? null : active.savedDescriptor();
+            DeviceDescriptor model = active == null ? null : service.modelDescriptor(active);
             Bitmap own = model == null || ModelRegistry.ut5Max(model) ? null : ScooterPhotos.get(host.activity().getResources(), model, 2);
             shown = own != null ? own : photo;
             setContentDescription(own != null ? T.onboardingHeroModelConnected(ModelRegistry.modelName(model))

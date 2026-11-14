@@ -187,4 +187,102 @@
     <!-- Line under this release's notes when the sheet shows only the first of them (a long release); the button
          below it, more_update_open "Open release page", opens the full notes. -->
     <string name="hub_whats_new_cut" volt:screen="One-time What's new sheet after an update" volt:purpose="note">These are the first notes. The release page has them all.</string>
+    <!-- ===== Clean Home's quick actions: the one short name under each round button ===== -->
+    <!-- Clean Home shows four round buttons with ONE short name on ONE line under each circle (about 72 dp at
+         13.5 sp on a 344 dp phone); the full name stays the spoken one. Also the names in Settings › Home style's
+         Quick actions line and in the Home style pictures. Keep each a single short word where the language allows. -->
+    <!-- Opens riding mode (the full-screen speedometer); sentence case, not the Widgets header's RIDE button. -->
+    <string name="hub_qa_ride_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp">Ride</string>
+    <!-- Starts or stops recording a ride. -->
+    <string name="hub_qa_record_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp">Record</string>
+    <!-- Charge done by: sets the time the scooter's charge should be finished. A short form of that name. -->
+    <string name="hub_qa_charge_done_by_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="charge">Charge by</string>
+    <!-- Battery alerts: the phone's alerts while charging (level reached, charging stopped). -->
+    <string name="hub_qa_alerts_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="alarm">Alerts</string>
+    <!-- Cruise control: holds the scooter's speed. -->
+    <string name="hub_qa_cruise_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="ride">Cruise</string>
+    <!-- Traction control: limits wheel spin. -->
+    <string name="hub_qa_traction_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="ride">Traction</string>
+    <!-- Energy recovery: how strongly the motor brakes and recharges the battery. -->
+    <string name="hub_qa_recovery_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="ride">Recovery</string>
+    <!-- Overspeed active control: the scooter slows itself above its speed limit. -->
+    <string name="hub_qa_overspeed_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="ride">Overspeed</string>
+    <!-- Hill descent control: holds the speed down steep slopes. -->
+    <string name="hub_qa_descent_round" volt:screen="Clean Home quick actions, Home style" volt:purpose="shortcut name" volt:max="72dp@13.5sp" volt:safety="ride">Descent</string>
+    <!-- Between the quick actions' names on Settings › Home style's Quick actions line ("Ride, Record, Charge by,
+         Cruise"). Keep the quotes, which keep the space; use your language's list separator. -->
+    <string name="hub_list_separator" volt:screen="Settings › Home style" volt:purpose="separator">", "</string>
+
+    <!-- ===== Settings: the Quick access tile that opens search ===== -->
+    <!-- A Quick access tile on Widgets Home that opens the search page, with the magnifier icon. -->
+    <string name="hub_qa_search_settings" volt:screen="Widgets Home Quick access" volt:purpose="shortcut name" volt:ladder="full" volt:max="64dp@12sp" volt:overflow="short">Search settings</string>
+    <!-- The same tile's name where the full one does not fit on its one line. -->
+    <string name="hub_qa_search_settings_short" volt:screen="Widgets Home Quick access" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp">Search</string>
+
+    <!-- ===== Clean Home after a ride (Just back; its other text is in strings_home.xml, home_just_back_*) ===== -->
+    <!-- Name of the tile that shows the battery's change over the ride, as a signed percent ("−18%", "+2%"). -->
+    <string name="hub_just_back_battery" volt:screen="Clean Home after a ride" volt:purpose="tile name" volt:max="96dp@12sp">Battery</string>
+    <!-- The Ride time tile's value for a ride under a minute: %1$s is whole seconds ("45s"). Short: it shares a third of
+         the row with Avg speed and Battery. -->
+    <string name="hub_just_back_time_seconds" volt:screen="Clean Home after a ride" volt:purpose="value">%1$ss</string>
+    <!-- The Ride time tile's value under an hour: %1$s is whole minutes ("24m"). -->
+    <string name="hub_just_back_time_minutes" volt:screen="Clean Home after a ride" volt:purpose="value">%1$sm</string>
+    <!-- The Ride time tile's value from an hour: %1$s is whole hours, %2$s the minutes, always two digits ("1h 02m"). -->
+    <string name="hub_just_back_time_hours" volt:screen="Clean Home after a ride" volt:purpose="value">%1$sh %2$sm</string>
+    <!-- Screen-reader text of the Ride time tile, in words so it is never read as a distance ("20m" as "20 meters").
+         Under a minute: %1$d is whole seconds. -->
+    <plurals name="hub_just_back_time_spoken_seconds" volt:screen="Clean Home after a ride" volt:purpose="accessibility">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+    <!-- The same under an hour: %1$d is whole minutes ("20 minutes"); also the minutes after the hours below. -->
+    <plurals name="hub_just_back_time_spoken_minutes" volt:screen="Clean Home after a ride" volt:purpose="accessibility">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <!-- The same from an hour: %1$d is whole hours ("1 hour"); alone when the minutes are zero. -->
+    <plurals name="hub_just_back_time_spoken_hours" volt:screen="Clean Home after a ride" volt:purpose="accessibility">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <!-- Hours and minutes together, spoken: %1$s is the hours (hub_just_back_time_spoken_hours, "1 hour"), %2$s the
+         minutes (hub_just_back_time_spoken_minutes, "2 minutes"): "1 hour 2 minutes". -->
+    <string name="hub_just_back_time_spoken_hours_minutes" volt:screen="Clean Home after a ride" volt:purpose="accessibility">%1$s %2$s</string>
+    <!-- Screen-reader text of the last ride on Clean Home, in the first minute after it ended: what the muted line
+         says, then the ride. %1$s is the ride's distance with its unit ("6.2 mi"). Tapping opens the ride. -->
+    <string name="hub_just_back_spoken_now" volt:screen="Clean Home after a ride" volt:purpose="accessibility">Ride ended just now, %1$s. Opens the ride.</string>
+    <!-- The same later: %1$d is the minutes since the ride ended (1 to 59), %2$s the ride's distance with its unit. -->
+    <plurals name="hub_just_back_spoken_minutes" volt:screen="Clean Home after a ride" volt:purpose="accessibility">
+        <item quantity="one">Ride ended %1$d minute ago, %2$s. Opens the ride.</item>
+        <item quantity="other">Ride ended %1$d minutes ago, %2$s. Opens the ride.</item>
+    </plurals>
+
+    <!-- ===== Battery & charging page: section labels and the HISTORY line ===== -->
+    <!-- Label above the charging rows (Charge limit, Scheduled charging, Charge done by, Battery alerts, Live
+         charging). Shown in capitals. Not the charging status. -->
+    <string name="hub_battery_section_charging" volt:screen="Battery &amp; charging page" volt:purpose="section label" volt:safety="charge">Charging</string>
+    <!-- Label above the card with the last charges' chart. Shown in capitals. -->
+    <string name="hub_battery_section_history" volt:screen="Battery &amp; charging page" volt:purpose="section label">History</string>
+    <!-- Line under the chart in the HISTORY card. %1$s is the battery at the start and end of the last charge
+         ("42% → 90%", stats_charge_battery_span), %2$s how long it took ("2 h 10 min", stats_charge_duration_*). -->
+    <string name="hub_battery_last_charge" volt:screen="Battery &amp; charging page" volt:purpose="detail" volt:safety="charge">Last charge %1$s · %2$s</string>
+    <!-- The same when the last charge's length is not known: %1$s is the battery at its start and end ("42% → 90%"). -->
+    <string name="hub_battery_last_charge_span" volt:screen="Battery &amp; charging page" volt:purpose="detail" volt:safety="charge">Last charge %1$s</string>
+
+    <!-- ===== Controls page: the links to its sub-pages ===== -->
+    <!-- Label above the card linking to Assists and Speed limits. Shown in capitals. -->
+    <string name="hub_controls_more" volt:screen="Controls page" volt:purpose="section label">More controls</string>
+    <!-- Line under the Assists link: the kinds of assist the page holds (the scooter shows the ones it has). -->
+    <string name="hub_controls_assists_sub" volt:screen="Controls page" volt:purpose="caption" volt:safety="ride">Walk, power, hill descent, kick-start</string>
+    <!-- Line under the Speed limits link: what the page sets. -->
+    <string name="hub_controls_limits_sub" volt:screen="Controls page" volt:purpose="caption" volt:safety="ride">Custom, per mode, overspeed</string>
+
+    <!-- ===== Ride page: the Record ride tile and recent rides ===== -->
+    <!-- The Record ride tile's name while a simulated scooter runs, where rides_simulating_exit ("Simulating · Exit")
+         does not fit on one line (a half-width tile at large text). Tapping the tile still leaves the simulation. -->
+    <string name="hub_ride_simulating" volt:screen="Ride page, Record ride tile" volt:purpose="label">Simulating</string>
+    <!-- A recent ride's title when it started today: %1$s is the time, formatted for the language ("5:42 pm"). -->
+    <string name="hub_ride_today" volt:screen="Ride page, recent rides" volt:purpose="title">Today, %1$s</string>
+    <!-- A recent ride's title when it started yesterday: %1$s is the time ("5:42 pm"). Older rides show the day and date. -->
+    <string name="hub_ride_yesterday" volt:screen="Ride page, recent rides" volt:purpose="title">Yesterday, %1$s</string>
 </resources>

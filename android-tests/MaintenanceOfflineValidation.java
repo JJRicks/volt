@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterProfiles;
@@ -240,7 +241,20 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
 
     // ---- The sheet -----------------------------------------------------------------------------
 
-    private Object maintenance() { Object m = field(field(activity, "screen"), "maintenance"); require(m != null, "The Maintenance page is not open"); return m; }
+    /**
+     * The open Maintenance page's MaintenanceScreen. Since the Hub layout (#385) it is Scooter › Service › Maintenance,
+     * a page whose screen wraps a MaintenanceScreen (no longer the Scooter tab's "maintenance" field).
+     */
+    private Object maintenance() { Object m = maintenanceOf(field(activity, "screen")); require(m != null, "The Maintenance page is not open"); return m; }
+    private static Object maintenanceOf(Object screen) {
+        if (screen == null) return null;
+        if (screen.getClass().getSimpleName().equals("MaintenanceScreen")) return screen;
+        for (java.lang.reflect.Field f : screen.getClass().getDeclaredFields()) {
+            if (!f.getType().getSimpleName().equals("MaintenanceScreen")) continue;
+            try { f.setAccessible(true); return f.get(screen); } catch (IllegalAccessException e) { throw new IllegalStateException(e); }
+        }
+        return null;
+    }
     private View page() { return (View) invokeAny(maintenance(), "view"); }
     private AlertDialog sheet() { return (AlertDialog) field(maintenance(), "sheet"); }
     private View sheetView(String tag) {
@@ -270,14 +284,14 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
         settle();
         notConnected();
     }
+    /** Scooter › Service, then its Maintenance row (the Scooter tab's Reminders row until the Hub layout, #385). */
     private void openPage() {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
-        if (field(field(activity, "screen"), "maintenance") == null) {
-            View row = activity.getWindow().getDecorView().findViewWithTag("maintenance_reminders");
-            require(row != null && row.isShown() && row.isClickable(), "The Scooter tab's Reminders row is there disconnected");
-            main(row::performClick);
-        }
-        await(() -> field(field(activity, "screen"), "maintenance") != null, "The Maintenance page did not open");
+        HubTestPages.reach(this, activity, HubPages.SERVICE); settle();
+        View row = activity.getWindow().getDecorView().findViewWithTag("hub-row-" + HubPages.SERVICE_MAINTENANCE);
+        require(row != null && row.isShown() && row.isClickable(), "Scooter › Service's Maintenance row is there disconnected");
+        // A rider's tap: the row scrolled on screen, enabled, touched at its centre, and the Maintenance page on top.
+        HubTestPages.tapRow(this, activity, HubPages.SERVICE_MAINTENANCE);
+        await(() -> HubPages.SERVICE_MAINTENANCE.equals(HubTestPages.current(activity)) && maintenanceOf(field(activity, "screen")) != null, "The Maintenance page did not open");
         SystemClock.sleep(500); settle();
     }
     private void stop() {

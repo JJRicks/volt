@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
@@ -38,7 +39,7 @@ final class HubDock {
     static String tag(String subject) { return "hub-dock-" + subject; }
 
     /**
-     * The old floating tab bar's place (Ui.floatingNav as MainActivity added it): 14 dp from each side and 10 dp above the
+     * The old floating tab bar's place (as MainActivity added it before part 11): 14 dp from each side and 10 dp above the
      * screen's edge, and its 26 dp corners. Items are Ui.nav's: at least 64 dp tall, growing with the text.
      */
     private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64,
@@ -50,6 +51,8 @@ final class HubDock {
     private final Ui ui;
     private final boolean wide;
     private final BooleanSupplier hidden;
+    /** The view the dock never covers (Widgets' Lock bar), or null; read before every frame. */
+    private Supplier<View> keepClear;
     /** The sheet's Search and Settings rows: open those pages (Home's header buttons on Clean). */
     private final Runnable openSearch, openSettings;
     /** Wide: whether the items show their full names (else their short names, all alike). */
@@ -161,8 +164,26 @@ final class HubDock {
     }
 
     private void applyHidden() {
-        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : View.VISIBLE;
+        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : coversClearView() ? View.INVISIBLE : View.VISIBLE;
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
+    }
+
+    /**
+     * The view the dock must never cover (Widgets' Lock bar): on a short window (725x604 dp at 1.4x text) the bar sits
+     * where the dock floats until the page scrolls. The dock then steps aside (invisible, keeping its place, so it comes
+     * back as soon as the page scrolls the bar above it).
+     */
+    void keepClear(Supplier<View> clear) { keepClear = clear; applyHidden(); }
+
+    /** Whether the dock, where it sits now, is over any visible part of the view it keeps clear. */
+    private boolean coversClearView() {
+        View clear = keepClear == null ? null : keepClear.get();
+        if (clear == null || !clear.isShown() || !clear.isAttachedToWindow() || view.getHeight() == 0) return false;
+        int[] at = new int[2], dock = new int[2];
+        clear.getLocationInWindow(at); view.getLocationInWindow(dock);
+        android.graphics.Rect visible = new android.graphics.Rect();
+        if (!clear.getGlobalVisibleRect(visible)) return false;
+        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[1], dock[1] + view.getHeight());
     }
 
     /**
@@ -220,17 +241,30 @@ final class HubDock {
         });
     }
 
-    /** A sheet row for a page that is not a subject (Search, Settings): its icon and title; it closes the sheet first. */
+    /**
+     * A sheet row for a page that is not a subject (Search, Settings), built like CleanSubjects' subject row so the two
+     * cards read as one list: the 33 dp raised tile with the glyph in the accent's text colour, then the 15.5 sp title
+     * (no summary line) and the chevron. It closes the sheet first.
+     */
     private View pageLine(String page, String tag, Runnable dismiss, Runnable action) {
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(0, ui.dp(8), 0, ui.dp(8));
+        line.setBaselineAligned(false);
+        line.setMinimumHeight(ui.dp(48));
+        line.setPadding(0, ui.dp(5), 0, ui.dp(5));
         line.setTag(tag);
-        android.widget.TextView name = ui.text(HubText.title(page), 15, false);
+        FrameLayout tile = new FrameLayout(host.activity());
+        tile.setBackground(ui.shape(ui.raised, 10, 0));
+        tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        tile.addView(ui.icon(HubPages.icon(page), 18, ui.accentText), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
+        LinearLayout.LayoutParams tileSize = new LinearLayout.LayoutParams(ui.dp(33), ui.dp(33));
+        tileSize.setMarginEnd(ui.dp(12));
+        line.addView(tile, tileSize);
+        android.widget.TextView name = ui.text(HubText.title(page), 15.5f, false);
+        name.setTypeface(ui.medium());
         name.setMaxLines(2);
-        ui.decorate(name, HubPages.icon(page));
+        name.setIncludeFontPadding(false);
         line.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
         chevronSize.setMarginStart(ui.dp(8));
