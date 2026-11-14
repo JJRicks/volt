@@ -47,6 +47,16 @@ public final class JustBackFitTest {
         require(JustBackFit.valueSize(21, 12, 300, 78) == -1, "too wide even at the floor: the short rung");
         require(JustBackFit.valueSize(21, 12, 0, 78) == 21, "an empty value fits");
         require(JustBackFit.valueSize(21, 12, 10, 0) == -1, "no room: the short rung");
+        // One size for the row (review of #390): at 1.4x, "20m 00s" needs shrinking while "18.6 mph" and "−18%"
+        // fit; all three take the smallest fit size, so they share one size and one baseline.
+        float time = JustBackFit.valueSize(29.4f, 16.8f, 112, 78), speed = JustBackFit.valueSize(29.4f, 16.8f, 76, 78),
+                battery = JustBackFit.valueSize(29.4f, 16.8f, 60, 78);
+        require(time < 29.4f && speed == 29.4f && battery == 29.4f, "only the ride time needs shrinking alone");
+        float row = JustBackFit.rowValueSize(29.4f, time, speed, battery);
+        require(row == time, "the row takes the smallest fit size: " + row);
+        require(JustBackFit.rowValueSize(21, 21, 21, 21) == 21, "nothing shrinks: full size for all");
+        require(JustBackFit.rowValueSize(21, 12, 21, 18) == 12, "a value at the floor (its short rung) sets the row");
+        require(JustBackFit.rowValueSize(21) == 21 && JustBackFit.rowValueSize(21, -1, 0) == 21, "no fits: full size");
     }
 
     private static void split() {

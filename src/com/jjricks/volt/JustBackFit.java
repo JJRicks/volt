@@ -100,4 +100,15 @@ final class JustBackFit {
         float size = (float) Math.floor(top * room / widthAtTop * 100) / 100;
         return size >= floor ? size : -1;
     }
+
+    /**
+     * The one size every tile value in the row takes, as the mock-up draws them (all three the same size on one
+     * baseline): the smallest of each tile's own fit size (from {@link #valueSize}, or the floor for a value that only
+     * fits as its short rung). A long value no longer shrinks alone. {@code top} when there are none.
+     */
+    static float rowValueSize(float top, float... fits) {
+        float size = top;
+        for (float fit : fits) if (fit > 0) size = Math.min(size, fit);
+        return size;
+    }
 }
