@@ -45,8 +45,10 @@ import com.jjricks.volt.ScooterService;
  *   - a key never offered (no owner check went out, as when the chooser is cancelled) may be replaced by a typed key,
  *     and Import drops one too, with its record and setup's pointers;
  *   - the real controller's owner-check gate (mayOffer) ties the made key to the first scooter offered it, on disk,
- *     before any owner check is queued, and never for another profile's owner check; a retry then goes straight to
- *     that scooter (connectAddress), and the tie never blocks a typed key's setup of it (hardwareMatch);
+ *     before any owner check is queued, and never for another profile's owner check; with no saved address a retry
+ *     scans for the chooser (no direct reconnect), picking the tied scooter again sends the key, and the tie never
+ *     blocks a typed key's setup of it (hardwareMatch); once a scooter address is saved, another profile's saved
+ *     scooter is still refused first and the owner check goes to a new address (a repaired scooter), the record kept;
  *   - offered to a second scooter while tied, the key is refused before the owner check: nothing queued, no
  *     reconnect, and the new message fully on screen above Try again (rendered with the couldn't-save message too);
  *   - the owner check's rejection, through the real controller's ownerRefused: another scooter's leaves the tie; the
@@ -58,7 +60,9 @@ import com.jjricks.volt.ScooterService;
  *     an offered key with setup's pointers to it cleared, never renames it with a pending typed name, and the name
  *     goes to the imported profile (onOwnerImported);
  *   - a typed key a scooter accepted (its address saved) is never removed by Make a new owner key;
- *   - the done page's heading, then the backup note above Back up Volt, all fully on screen without scrolling, above Go to Home.
+ *   - the done page's heading, then the backup note above Back up Volt, all fully on screen without scrolling, above Go to Home;
+ *   - a real Scooters & setup keys backup of this phone holds the made key's record and none of setup's pointers, and a
+ *     merge of it onto a phone whose record says "made" plans the backup's "offered" (never loosened).
  * Not reached here: a live BluetoothGatt (authenticate() reads the link's address; NewOwnerKeyTest checks that mayOffer
  * comes first and is the only way to the owner check), a failed tie write (NewOwnerKeyTest), and a real Try again's
  * connect (Bluetooth stays off). Nothing reaches a scooter. The done page is entered directly once the profile has the scooter address a real
@@ -77,6 +81,9 @@ public final class NewOwnerKeyValidation extends Instrumentation {
     private static final String UNSAVED = "Couldn't save setup, so Volt didn't send the new key. Free up some storage and try again.";
     /** Synthetic scooter addresses: A is offered the made key first, B is another scooter. */
     private static final String A = "C0:FF:EE:00:00:0A", B = "C0:FF:EE:00:00:0B";
+    /** D: a scooter saved under another profile. MOVED: A's scooter at a new address after a repair. */
+    private static final String D = "C0:FF:EE:00:00:0D", MOVED = "C0:FF:EE:00:00:AD";
+    private static final char[] BACKUP_PASSWORD = "synthetic harness password".toCharArray();
     private static final String PENDING = "Imported pending name";
     private MainActivity activity;
     private ActivityMonitor bluetoothPrompt;
@@ -118,6 +125,7 @@ public final class NewOwnerKeyValidation extends Instrumentation {
             importAfterMadeKey(key[0]);
             acceptedTypedKept(key[0]);
             doneNote(key[0]);
+            backupCarriesRecord(key[0]);
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -259,8 +267,9 @@ public final class NewOwnerKeyValidation extends Instrumentation {
     /**
      * The new route makes a fresh key. The real controller's owner-check gate (mayOffer) ties it to the first scooter
      * offered it, on disk, before any owner check is queued, with setup not involved: another profile's owner check
-     * leaves the record alone. A retry goes straight to that scooter, and the tie never stops a typed key's setup of it.
-     * Bluetooth is off and there is no GATT, so nothing is transmitted.
+     * leaves the record alone. With no saved address a retry scans (Connect shows the chooser; no direct reconnect), and
+     * picking the tied scooter again sends the key. The tie never stops a typed key's setup of it, and it stops governing
+     * once a scooter address is saved. Bluetooth is off and there is no GATT, so nothing is transmitted.
      */
     private String[] offeredAtTransport(String droppedId) {
         openNewRoute();
@@ -273,7 +282,8 @@ public final class NewOwnerKeyValidation extends Instrumentation {
             ScooterService s = activity.service();
             if (s.ble.state() != BleController.State.DISCONNECTED) s.ble.disconnect();
             require(field(s.ble, "gatt") == null, "A transport is open");
-            require("".equals(s.ble.connectAddress(profileById(key[0]))), "A never-offered made key is not found by a scan");
+            require(noMethod(BleController.class, "connectAddress") && profileById(key[0]).mac.isEmpty(),
+                    "A made key with no saved address has a direct reconnect, or Connect would skip the chooser");
             ScooterProfiles.Profile other = new ScooterProfiles.Profile("someone-else", "Other", "000000000001", 0, "", "", 0);
             set(s.ble, "profile", other);
             require(offer(s, A), "Another profile's owner check was refused");
@@ -285,8 +295,32 @@ public final class NewOwnerKeyValidation extends Instrumentation {
             require(onDisk("app_settings").contains(recordXml(key[0], A)), "The tie is not on disk before the owner check");
             require(((java.util.Collection<?>) field(s.ble, "queue")).isEmpty(), "An owner check was queued with no transport");
             ScooterProfiles.Profile p = profileById(key[0]);
-            require(p.mac.isEmpty() && A.equals(s.ble.connectAddress(p)), "A retry of the dropped first link does not go straight to its scooter");
+            // The link dropped before remember() saved A: Connect's chooser condition (no saved address, as on main), and
+            // the controller's own retry scans instead of connecting anywhere (Bluetooth is off, so it stops there).
+            s.ble.disconnect();
+            require(p.mac.isEmpty(), "A tied made key has a saved address before any scooter accepted it");
+            s.ble.connectLast();
+            require(field(s.ble, "gatt") == null && s.ble.state() != BleController.State.CONNECTING && s.ble.state() != BleController.State.AUTHENTICATING,
+                    "A retry with no saved address connected somewhere by itself");
+            s.ble.disconnect();
+            set(s.ble, "profile", p);
+            require(offer(s, A) && A.equals(record(key[0])), "Picking the tied scooter in the chooser did not send the key");
+            require(((java.util.Collection<?>) field(s.ble, "queue")).isEmpty(), "An owner check was queued with no transport");
             require(profiles().hardwareMatch("someone-else", A, null) == null, "The tie blocks another profile's setup of that scooter");
+            // Once remember() saved A (the scooter accepted the key, its serial checked), the tie stops: another profile's
+            // saved scooter is still refused first, and the owner check goes to a new address (a repaired Bluetooth board).
+            p.mac = A;
+            ScooterProfiles.Profile elsewhere = profiles().create("Saved elsewhere", "000000000003", 0);
+            elsewhere.mac = D; profiles().update(elsewhere); profiles().select(key[0]);
+            s.ble.disconnect(); set(s.ble, "profile", p);
+            require(!offer(s, D) && s.ble.message() != null && s.ble.message().startsWith("This is Saved elsewhere."), "A saved address skipped the saved-scooter refusal: " + s.ble.message());
+            require(A.equals(record(key[0])), "The saved-scooter refusal changed the record");
+            s.ble.disconnect(); set(s.ble, "profile", p);
+            require(offer(s, MOVED) && A.equals(record(key[0])), "A saved made key was refused at its scooter's new address, or lost its record");
+            require(((java.util.Collection<?>) field(s.ble, "queue")).isEmpty(), "An owner check was queued with no transport");
+            profiles().remove(elsewhere.id); profiles().select(key[0]);
+            p.mac = ""; profiles().update(p);
+            require(profileById(key[0]).mac.isEmpty() && profiles().active().id.equals(key[0]), "The made key's profile was not put back");
             s.ble.disconnect();
         });
         return key;
@@ -327,7 +361,7 @@ public final class NewOwnerKeyValidation extends Instrumentation {
             require("offered".equals(record(key[0])) && onDisk("app_settings").contains(recordXml(key[0], "offered")),
                     "The tied scooter's refusal did not untie the made key, or kept it unmarked as offered");
             require(profileById(key[0]) != null && key[1].equals(profileById(key[0]).identity), "The refusal deleted the made key");
-            require("".equals(activity.service().ble.connectAddress(profileById(key[0]))), "An untied key's retry is not a scan");
+            require(profileById(key[0]).mac.isEmpty(), "An untied key's retry would not scan (a saved address)");
         });
         await(() -> shown(REFUSED) && shown(OTHER_WAY) && shown("Try again"), "Connect did not show the refusal");
         await(() -> fullyVisible(text(root(), REFUSED)) && bottom(text(root(), REFUSED)) <= top(text(root(), "Try again")),
@@ -460,6 +494,38 @@ public final class NewOwnerKeyValidation extends Instrumentation {
             require(profileById(keptId) != null && !profileById(keptId).mac.isEmpty(), "The accepted key's profile is missing");
         });
         shot("done");
+    }
+
+    /**
+     * The made key's record goes into a real Scooters & setup keys backup of this phone (AppDataBackup, on Android's
+     * storage), with none of setup's pointers, and a merge of that backup onto a phone whose record says "made" plans
+     * the backup's "offered": a restore never loosens it. Planned only, then discarded: nothing is restored.
+     */
+    @SuppressWarnings("unchecked")
+    private void backupCarriesRecord(String keyId) throws Exception {
+        Context app = getTargetContext();
+        AtomicReference<String> was = new AtomicReference<>();
+        main(() -> { was.set(record(keyId)); require("offered".equals(was.get()), "The made key's record before the backup: " + was.get()); });
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        java.util.Set<String> scooters = java.util.Collections.singleton("scooters");
+        com.jjricks.volt.AppDataBackup.write(app, out, BACKUP_PASSWORD, scooters);
+        com.jjricks.volt.AppDataBackup.PreparedRestore restore = com.jjricks.volt.AppDataBackup.stage(app, new java.io.ByteArrayInputStream(out.toByteArray()), BACKUP_PASSWORD);
+        try {
+            java.util.Map<String, java.util.Map<String, Object>> held = (java.util.Map<String, java.util.Map<String, Object>>) field(field(restore, "prepared"), "preferences");
+            require("offered".equals(held.get("app_settings").get("made_owner_key" + keyId)), "The backup lacks the made key's record");
+            for (String pointer : new String[]{"generated_profile_id", "profile_id", "created_profile_id"})
+                require(held.get("onboarding") == null || !held.get("onboarding").containsKey(pointer), "The backup holds setup's pointer " + pointer);
+            main(() -> require(prefs("app_settings").edit().putString("made_owner_key" + keyId, "made").commit(), "Could not set the record to made"));
+            require(com.jjricks.volt.AppDataBackup.destinations(app, restore, scooters).isEmpty(), "The made key's profile needs a destination on its own phone");
+            com.jjricks.volt.AppDataBackup.Review review = com.jjricks.volt.AppDataBackup.review(app, restore, scooters, false, new java.util.HashMap<>());
+            java.util.Map<String, java.util.Map<String, Object>> planned = (java.util.Map<String, java.util.Map<String, Object>>) field(field(review, "plan"), "preferences");
+            require(planned.get("app_settings") != null && "offered".equals(planned.get("app_settings").get("made_owner_key" + keyId)),
+                    "A merge would leave a made record over the backup's offered one");
+        } finally {
+            main(() -> require(prefs("app_settings").edit().putString("made_owner_key" + keyId, was.get()).commit(), "Could not put the record back"));
+            com.jjricks.volt.AppDataBackup.discard(app, restore);
+        }
+        main(() -> require("offered".equals(record(keyId)), "The record was not put back"));
     }
 
     private void backToRoutes() {
@@ -611,6 +677,10 @@ public final class NewOwnerKeyValidation extends Instrumentation {
     private static void set(Object target, String name, Object value) {
         try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); f.set(target, value); }
         catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private static boolean noMethod(Class<?> type, String name) {
+        for (Method m : type.getDeclaredMethods()) if (m.getName().equals(name)) return false;
+        return true;
     }
     private static Object invoke(Object target, String name, Class<?>[] types, Object... args) {
         try { Method m = target.getClass().getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); }
