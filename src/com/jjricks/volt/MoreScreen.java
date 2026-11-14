@@ -1244,9 +1244,8 @@ public final class MoreScreen implements AppScreen {
         // The selector's own caption repeats the title the dialog already shows.
         if (appearanceBox.getChildCount() > 0) appearanceBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(appearanceBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = doneDialog(box);
-        dialog.setOnDismissListener(d -> box.removeView(appearanceBox));
-        show(dialog);
+        // show() owns the dialog's dismiss listener (it forgets the dialog there), so the clean-up goes through it.
+        show(doneDialog(box), () -> box.removeView(appearanceBox));
     }
     /** Updates over Settings: the automatic check's switch and Check for updates (updates()), as the index had them. */
     private void updatesSheet() {
@@ -1256,9 +1255,7 @@ public final class MoreScreen implements AppScreen {
         // updates() opens with its section label, which the dialog's title replaces.
         if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = doneDialog(box);
-        dialog.setOnDismissListener(d -> { box.removeView(updatesBox); refresh(); });
-        show(dialog);
+        show(doneDialog(box), () -> { box.removeView(updatesBox); if (!closed) refresh(); });
     }
     private boolean batteryUnrestricted() {
         try {
