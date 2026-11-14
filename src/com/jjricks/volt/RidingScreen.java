@@ -2350,7 +2350,8 @@ final class RidingScreen implements AppScreen {
      * Chips stacked beside the big number (fitColumn). Trace's take at most CHIP_COLUMN_SHARE of the row, so a long
      * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
      * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
-     * Focus's (against its big number) take what the speed's widest value leaves at the size it draws. A column too short
+     * Focus's (against its big number) take what the big number's widest value leaves at the size its height allows, and
+     * at least the same share. A column too short
      * for every chip shows the first ones that fit.
      */
     private final class ChipColumn extends LinearLayout {
@@ -2371,9 +2372,13 @@ final class RidingScreen implements AppScreen {
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int room = Integer.MAX_VALUE;
             if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && against != null) {
+                // What the big number's widest value leaves at the size its height allows, and at least Trace's share:
+                // with chips chosen on a phone held upright, the big number gives up that share and fits the rest, as
+                // Trace's does (888.8 mph would otherwise leave no room for any chip).
                 againstHeight = against.number.getHeight();
+                int size = MeasureSpec.getSize(widthSpec);
                 float speed = against.number.widestWidth(widest(against.content, units()));
-                room = Math.max(0, MeasureSpec.getSize(widthSpec) - (int) Math.ceil(speed));
+                room = Math.max((int) (size * CHIP_COLUMN_SHARE), size - (int) Math.ceil(speed));
             } else if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 int size = MeasureSpec.getSize(widthSpec);
                 room = (int) (size * CHIP_COLUMN_SHARE);
