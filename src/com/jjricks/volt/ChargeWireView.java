@@ -1,6 +1,5 @@
 package com.jjricks.volt;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -14,6 +13,7 @@ import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -63,6 +63,13 @@ final class ChargeWireView extends ChargePicture {
     private Double watts;
     private boolean running;
     private long startMs;
+    /**
+     * The animator duration scale (Developer options), read from Settings.Global when the animation starts and when the
+     * layer is attached or its window shown again, never per frame (ChargeWirePulses.timeScale; review of #483, P1).
+     */
+    private float durationScale = 1;
+    /** The pulses over time as the power changes (the band and the phase carried across a switch). */
+    private final ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
 
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG), strip = new Paint();
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -126,6 +133,11 @@ final class ChargeWireView extends ChargePicture {
         };
         live = new LayerView(context) {
             @Override protected void onDraw(Canvas canvas) { drawLive(canvas); }
+            @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); readDurationScale(); }
+            @Override protected void onWindowVisibilityChanged(int visibility) {
+                super.onWindowVisibilityChanged(visibility);
+                if (visibility == View.VISIBLE) readDurationScale();
+            }
         };
     }
 
@@ -197,7 +209,21 @@ final class ChargeWireView extends ChargePicture {
         if (running) return;
         running = true;
         startMs = AnimationUtils.currentAnimationTimeMillis();
+        schedule.reset();
+        readDurationScale();
         live.invalidate();
+    }
+
+    /**
+     * The animator duration scale from Settings.Global (as RidingNight does), not ValueAnimator.getDurationScale(),
+     * which is public only from Android 13 and throws on Android 9 and 10 (minSdk is 26; review of #483, P1).
+     */
+    private void readDurationScale() {
+        try {
+            durationScale = Settings.Global.getFloat(live.getContext().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+        } catch (RuntimeException unavailable) {
+            durationScale = 1;
+        }
     }
 
     /** Stops it: the picture rests (grey cable and cells, no pulses). */
@@ -484,15 +510,18 @@ final class ChargeWireView extends ChargePicture {
         boolean tour = !Double.isNaN(frozen);
         if (!running && !tour) return;
         double t;
-        if (tour) t = frozen;
-        else {
+        ChargeWirePulses.Mode mode;
+        if (tour) {
+            // A frozen moment: the mode for its power alone, from time 0 (as ChargePictureValidation expects).
+            t = frozen;
+            mode = ChargeWirePulses.mode(tourWatts != null ? tourWatts : watts);
+            ChargeWirePulses.state(t, mode, state);
+        } else {
             // The animator duration scale (Developer options) slows or speeds it as it does every other animation.
-            float scale = ValueAnimator.getDurationScale();
-            t = (AnimationUtils.currentAnimationTimeMillis() - startMs) / 1000.0 / (scale > 0 ? scale : 1);
+            t = (AnimationUtils.currentAnimationTimeMillis() - startMs) / 1000.0 / ChargeWirePulses.timeScale(durationScale);
+            mode = schedule.follow(watts, t);
+            schedule.state(t, state);
         }
-        Double power = tour && tourWatts != null ? tourWatts : watts;
-        ChargeWirePulses.Mode mode = ChargeWirePulses.mode(power);
-        ChargeWirePulses.state(t, mode, state);
         double energy = ChargeWirePulses.cells(state, mode, levels);
         // The lit columns, each one strip of the lit pack at its light.
         if (litPack == null) bakeLitPack();

@@ -87,10 +87,12 @@ final class ChargeWireComet {
      * opacity up to x = fadeStart (cut-out pixels) and fades to nothing at fadeEnd (both infinite: no fade).
      */
     int draw(ChargeWire w, ChargeWirePulses.State state, ChargeWirePulses.Mode mode, double fadeStart, double fadeEnd, Sink sink) {
-        double length = w.length, trail = ChargeWirePulses.trail(length, mode);
+        double length = w.length;
         int drawn = 0;
         for (int p = 0; p < state.pulses; p++) {
             double progress = state.progress[p];
+            // Each pulse's trail in its own mode (pulses on the cable keep theirs across a switch).
+            double trail = ChargeWirePulses.trail(length, state.mode[p] != null ? state.mode[p] : mode);
             double head = ChargeWirePulses.head(length, progress), visible = ChargeWirePulses.headVisible(progress);
             for (Layer layer : layers) {
                 double len = layer.head ? HEAD * layer.length : trail * layer.length;

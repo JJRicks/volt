@@ -16,6 +16,9 @@ public final class ChargeWireTest {
         cells();
         modes();
         timing();
+        band();
+        switching();
+        animatorScale();
         landing();
         glow();
         comets();
@@ -167,6 +170,142 @@ public final class ChargeWireTest {
         near(ChargeWirePulses.FAST.trip, 1.1, 0, "fast: 1.1 s");
         near(ChargeWirePulses.FAST.period * 3, ChargeWirePulses.FAST.trip, 1e-12, "fast: three on the cable, evenly spaced");
         require(ChargeWirePulses.STOCK.period > ChargeWirePulses.STOCK.trip, "stock: the next leaves after the last lands");
+    }
+
+    /** The mode's band round 200 W (review of #483, P3-3): up at 205 W, down below 195 W while one runs. */
+    private static void band() {
+        ChargeWirePulses.Mode stock = ChargeWirePulses.STOCK, fast = ChargeWirePulses.FAST;
+        require(ChargeWirePulses.mode(null, 200d) == fast && ChargeWirePulses.mode(null, 199d) == stock, "nothing running: the 200 W rule");
+        require(ChargeWirePulses.mode(stock, 199d) == stock && ChargeWirePulses.mode(stock, 204.9) == stock, "one pulse: stays below 205 W");
+        require(ChargeWirePulses.mode(stock, 205d) == fast && ChargeWirePulses.mode(stock, 540d) == fast, "one pulse: three from 205 W");
+        require(ChargeWirePulses.mode(fast, 199d) == fast && ChargeWirePulses.mode(fast, 195d) == fast, "three: stay down to 195 W");
+        require(ChargeWirePulses.mode(fast, 194.9) == stock && ChargeWirePulses.mode(fast, 119d) == stock, "three: one below 195 W");
+        require(ChargeWirePulses.mode(fast, null) == stock && ChargeWirePulses.mode(fast, Double.NaN) == stock, "unknown power: one");
+        // The review's readings, one a second: 205, 199, 205 W never change the mode once it runs.
+        for (double first : new double[] {205, 199}) {
+            ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
+            ChargeWirePulses.Mode at = schedule.follow(first, 0);
+            int switches = 0;
+            double[] readings = {205, 199, 205, 199, 205};
+            for (int i = 0; i < readings.length; i++) {
+                ChargeWirePulses.Mode next = schedule.follow(readings[i], 1 + i);
+                if (next != at) switches++;
+                at = next;
+            }
+            require(at == fast && switches == (first == 205 ? 0 : 1), "from " + first + " W then 205, 199, 205 W: " + switches + " switch(es), ends " + at);
+        }
+        // From 205 W the frames are the steady fast mode's, frame for frame: no jump at all.
+        ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
+        ChargeWirePulses.State a = new ChargeWirePulses.State(), b = new ChargeWirePulses.State();
+        for (int f = 0; f < 60 * 6; f++) {
+            double t = f / 60.0, w = t < 2 ? 205 : t < 4 ? 199 : 205;
+            schedule.follow(w, t);
+            schedule.state(t, a);
+            ChargeWirePulses.state(t, fast, b);
+            require(a.pulses == b.pulses && a.lands == b.lands, "205/199/205 W: the fast mode's pulses at " + t);
+            for (int i = 0; i < a.pulses; i++) near(a.progress[i], b.progress[i], 0, "205/199/205 W: in place at " + t);
+        }
+    }
+
+    /**
+     * A real switch carries the phase over (review of #483, P3-3): every pulse on the cable keeps moving at its own
+     * speed and lands where it would have, no pulse appears part-way down the cable, a landing keeps fading as it began;
+     * the new mode's first pulse follows at its own spacing. So the pulses speed up and slow down without a jump.
+     */
+    private static void switching() {
+        ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
+        ChargeWirePulses.State s = new ChargeWirePulses.State();
+        java.util.Map<String, Double> seen = new java.util.HashMap<>();
+        double step = 1 / 60.0;
+        int fastMost = 0, stockAfter = 0, frames = 0;
+        double upAt = 5.03, downAt = 12.4, firstFastLeaves = Double.NaN;
+        for (int f = 0; f < 60 * 25; f++) {
+            double t = f * step, w = t < upAt ? 119 : t < downAt ? 250 : 150;
+            schedule.follow(w, t);
+            schedule.state(t, s);
+            java.util.Map<String, Double> now = new java.util.HashMap<>();
+            int travelling = 0;
+            for (int i = 0; i < s.pulses; i++) {
+                ChargeWirePulses.Mode m = s.mode[i];
+                String id = m.name + s.number[i];
+                double p = s.progress[i];
+                Double before = seen.get(id);
+                if (before == null) require(p <= step / m.trip + 1e-9 || f == 0, "a pulse appears part-way at " + t + ": " + id + " " + p);
+                else near(p - before, step / m.trip, 1e-9, "a pulse moves at its own speed at " + t + ": " + id);
+                now.put(id, p);
+                // Travelling: left (not at the very instant it leaves, when the one ahead may be just landing) and not landed.
+                if (p > 1e-6 && p < 1 - 1e-6) travelling++;
+                if (m == ChargeWirePulses.FAST && Double.isNaN(firstFastLeaves)) firstFastLeaves = t;
+            }
+            // Pulses that were on the cable and still had their trip to finish are still there.
+            for (java.util.Map.Entry<String, Double> e : seen.entrySet())
+                if (e.getValue() + step / (e.getKey().startsWith("fast") ? 1.1 : 1.8) < 1) require(now.containsKey(e.getKey()), "a pulse vanished at " + t + ": " + e.getKey());
+            seen = now;
+            require(s.pulses <= ChargeWirePulses.SLOTS && s.lands <= ChargeWirePulses.MAX_LANDS, "fits the pool at " + t);
+            if (t > upAt + 4 && t < downAt) fastMost = Math.max(fastMost, travelling);
+            if (t > downAt + 4) stockAfter = Math.max(stockAfter, travelling);
+            frames++;
+        }
+        require(fastMost == 3, "three at once after speeding up: " + fastMost);
+        require(stockAfter == 1, "one at a time after slowing down: " + stockAfter);
+        // Speeding up: the first fast pulse lands at least a fast period after the single one in flight did.
+        require(firstFastLeaves >= upAt - 1e-9, "the first fast pulse leaves after the switch: " + firstFastLeaves);
+        // A landing keeps its own fade across a switch: the cells' light changes about as fast through a switch as a
+        // landing's quick rise makes it change in either steady mode (within 10%: two landings in different modes can
+        // overlap); never the jump of every landing re-timed at once.
+        double steady = Math.max(cellJump(250, 250), cellJump(120, 120)) * 1.1;
+        require(cellJump(250, 120) <= steady,
+                "the cells' light never jumps across a switch: " + cellJump(250, 120) + " vs steady " + Math.max(cellJump(250, 250), cellJump(120, 120)));
+        require(cellJump(120, 250) <= steady, "nor speeding up: " + cellJump(120, 250));
+        require(frames == 60 * 25, "every frame checked");
+    }
+
+    /** The largest change of the cells' overall light between two frames at 60 fps over 10 s, switching at 3.9 s. */
+    private static double cellJump(double before, double after) {
+        ChargeWirePulses.Schedule light = new ChargeWirePulses.Schedule();
+        ChargeWirePulses.State s = new ChargeWirePulses.State();
+        float[] levels = new float[ChargeWire.HALF_COLUMNS];
+        double last = -1, worst = 0;
+        for (int f = 0; f < 60 * 10; f++) {
+            double t = f / 60.0;
+            light.follow(t < 3.9 ? before : after, t);
+            light.state(t, s);
+            double e = ChargeWirePulses.cells(s, ChargeWirePulses.STOCK, levels);
+            if (last >= 0) worst = Math.max(worst, Math.abs(e - last));
+            last = e;
+        }
+        return worst;
+    }
+
+    /**
+     * The animator duration scale (review of #483, P1): read from Settings.Global, never ValueAnimator.getDurationScale()
+     * (public only from Android 13; a blocked hidden API on Android 9 and 10, where Home would crash while a UT5 MAX
+     * charges). The app's sources must not call it again.
+     */
+    private static void animatorScale() {
+        near(ChargeWirePulses.timeScale(1), 1, 0, "normal speed");
+        near(ChargeWirePulses.timeScale(2), 2, 0, "2x slower");
+        near(ChargeWirePulses.timeScale(.5f), .5, 0, "faster");
+        near(ChargeWirePulses.timeScale(0), 1, 0, "animations off: as the platform's animators");
+        near(ChargeWirePulses.timeScale(Float.NaN), 1, 0, "unknown: 1");
+        near(ChargeWirePulses.timeScale(Float.POSITIVE_INFINITY), 1, 0, "unreadable: 1");
+        try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.walk(java.nio.file.Paths.get("src"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.filter(f -> f.toString().endsWith(".java"))::iterator) {
+                String code = withoutComments(new String(java.nio.file.Files.readAllBytes(file), java.nio.charset.StandardCharsets.UTF_8));
+                require(!code.matches("(?s).*\\bgetDurationScale\\s*\\(.*"), file + " calls ValueAnimator.getDurationScale() (API 33; it throws on Android 9 and 10)");
+            }
+            String view = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ChargeWireView.java")), java.nio.charset.StandardCharsets.UTF_8);
+            require(withoutComments(view).contains("Settings.Global.ANIMATOR_DURATION_SCALE"), "ChargeWireView reads the scale from Settings.Global");
+            int onDraw = view.indexOf("private void drawLive(");
+            require(onDraw > 0 && !withoutComments(view.substring(onDraw, view.indexOf("private void stretch(", onDraw))).contains("Settings.Global"), "not per frame: drawLive reads no setting");
+        } catch (java.io.IOException e) {
+            throw new AssertionError("reading the sources: " + e);
+        }
+    }
+
+    /** Java source without its comments (strings are left; none in the app holds a comment marker that matters here). */
+    private static String withoutComments(String source) {
+        return source.replaceAll("(?s)/\\*.*?\\*/", " ").replaceAll("//[^\\n]*", " ");
     }
 
     private static void timing() {
