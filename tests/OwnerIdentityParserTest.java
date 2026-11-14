@@ -22,6 +22,12 @@ public final class OwnerIdentityParserTest {
         equal(ID, 0, "Keep this private.\nOwner identity: " + ID + "\nShared-user option: OFF\n");
         equal(ID, 1, "{ \"identity\" : \"" + ID + "\", \"role\" : \"1\" }");
         equal(ID, 0, "owner_identity: " + ID + "\nOwner identity: " + ID + "\n");
+        // A key as written down from "Write down your owner key": six byte pairs, one separator throughout.
+        equal("886B33AF01C2", 0, "88 6B 33 AF 01 C2");
+        equal("886B33AF01C2", 0, "88:6b:33:af:01:c2");
+        equal("886B33AF01C2", 0, "88-6B-33-AF-01-C2");
+        equal("886B33AF01C2", 0, "  88 6b 33 Af 01 c2 \n");
+        equal(ID, 0, "86 00 12 34 56 78");
     }
 
     private static void captureFrames() {
@@ -79,6 +85,15 @@ public final class OwnerIdentityParserTest {
         StringBuilder huge = new StringBuilder(1048577);
         while (huge.length() <= 1048576) huge.append('x');
         rejects(huge.toString());
+        // The written form is the whole input or nothing: no partial or embedded keys, no mixed or doubled
+        // separators, five or seven bytes, stray characters or non-ASCII digits.
+        rejects("88 6B 33 AF 01"); rejects("88 6B 33 AF 01 C2 D4"); rejects("88 6B 33 AF 01 C");
+        rejects("88 6B 33-AF 01 C2"); rejects("88:6B:33 AF:01:C2"); rejects("88 6B 33 AF 01-C2");
+        rejects("88  6B 33 AF 01 C2"); rejects("88 6B 33 AF 01 C2 x"); rejects("x 88 6B 33 AF 01 C2");
+        rejects("Key: 88 6B 33 AF 01 C2"); rejects("88_6B_33_AF_01_C2"); rejects("88.6B.33.AF.01.C2");
+        rejects("88\t6B\t33\tAF\t01\tC2"); rejects("88 6B 33 AF 01 CG"); rejects("886 B33 AF0 1C2 ab cd");
+        rejects("88 6B 33 AF 01 C2\n88 6B 33 AF 01 C2"); rejects("\uFF18\uFF18 6B 33 AF 01 C2");
+        rejects("8 86B 33 AF 01 C2"); rejects("886B 33AF 01C2");
     }
 
     private static String row(byte[] bytes) {
