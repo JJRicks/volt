@@ -118,6 +118,13 @@ public final class HubPlanTextTest {
                 {10 * h + 59 * m, "10h 59m"}, {25 * h, "25h 00m"},
         };
         for (Object[] t : times) equal((String) t[1], HubText.justBackRideTimeValue((Long) t[0]).render(), "ride time of " + t[0] + " ms");
+        // Spoken in words with the same whole units, so "20m" is never read as a distance.
+        Object[][] spokenTimes = {
+                {-5 * s, "0 seconds"}, {s, "1 second"}, {45 * s, "45 seconds"}, {m, "1 minute"}, {20 * m + 30 * s, "20 minutes"},
+                {59 * m + 59 * s, "59 minutes"}, {h, "1 hour"}, {h + m, "1 hour 1 minute"}, {h + 2 * m + 30 * s, "1 hour 2 minutes"},
+                {2 * h, "2 hours"}, {10 * h + 59 * m, "10 hours 59 minutes"},
+        };
+        for (Object[] t : spokenTimes) equal((String) t[1], HubText.justBackRideTimeSpoken((Long) t[0]).render(), "spoken ride time of " + t[0] + " ms");
         equal("Ride ended just now, 6.2 mi. Opens the ride.", HubText.justBackSpoken(0, "6.2 mi").render(), "spoken, just now");
         equal("Ride ended 1 minute ago, 6.2 mi. Opens the ride.", HubText.justBackSpoken(1, "6.2 mi").render(), "spoken, one minute");
         equal("Ride ended 12 minutes ago, 10.0 km. Opens the ride.", HubText.justBackSpoken(12, "10.0 km").render(), "spoken, minutes");
@@ -189,6 +196,10 @@ public final class HubPlanTextTest {
             equal("⟦hub_just_back_time_seconds⟧", HubText.justBackRideTimeValue(30_000).render(), "echo: seconds");
             equal("⟦hub_just_back_time_minutes⟧", HubText.justBackRideTimeValue(24 * 60_000).render(), "echo: minutes");
             equal("⟦hub_just_back_time_hours⟧", HubText.justBackRideTimeValue(62 * 60_000).render(), "echo: hours");
+            equal("⟦hub_just_back_time_spoken_seconds⟧", HubText.justBackRideTimeSpoken(30_000).render(), "echo: spoken seconds");
+            equal("⟦hub_just_back_time_spoken_minutes⟧", HubText.justBackRideTimeSpoken(24 * 60_000).render(), "echo: spoken minutes");
+            equal("⟦hub_just_back_time_spoken_hours⟧", HubText.justBackRideTimeSpoken(60 * 60_000).render(), "echo: spoken hours");
+            equal("⟦hub_just_back_time_spoken_hours_minutes⟧", HubText.justBackRideTimeSpoken(62 * 60_000).render(), "echo: spoken hours and minutes");
             equal("⟦hub_just_back_spoken_now⟧", HubText.justBackSpoken(0, "6.2 mi").render(), "echo: spoken now");
             equal("⟦hub_just_back_spoken_minutes⟧", HubText.justBackSpoken(12, "6.2 mi").render(), "echo: spoken minutes");
             equal("⟦hub_battery_section_charging⟧", HubText.batterySectionCharging().render(), "echo: CHARGING");
@@ -226,6 +237,7 @@ public final class HubPlanTextTest {
         String justBack = read("src/com/jjricks/volt/JustBackView.java");
         check(justBack.contains("new Cell(host, HubText.justBackBatteryName())"), "Just back's battery tile is named by its own key");
         check(justBack.contains("HubText.justBackRideTimeValue(s.shownElapsedMs)"), "Just back's ride time is the short form");
+        check(justBack.contains("time.set(duration, HubText.justBackRideTimeSpoken(s.shownElapsedMs).render());"), "Just back's ride time is spoken in words");
         check(justBack.contains("spoken = HubText.justBackSpoken(minutes, spokenDistance).render();"), "Just back is spoken as one sentence");
         String editor = read("src/com/jjricks/volt/HomeQuickEditor.java");
         check(editor.contains("String.join(HubText.listSeparator().render(), names)"), "Home style's line joins with the list separator");

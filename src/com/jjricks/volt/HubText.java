@@ -263,6 +263,21 @@ public final class HubText {
     }
 
     /**
+     * The Ride time tile's value for screen readers, in words with the same whole units as
+     * {@link #justBackRideTimeValue(long)}, so "20m" is never read as a distance: "45 seconds", "20 minutes", "1 hour",
+     * "1 hour 2 minutes".
+     */
+    public static Msg justBackRideTimeSpoken(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        if (seconds < 60) return M.hubJustBackTimeSpokenSeconds(seconds, seconds);
+        long minutes = seconds / 60;
+        if (minutes < 60) return M.hubJustBackTimeSpokenMinutes(minutes, minutes);
+        long hours = minutes / 60, rest = minutes % 60;
+        Msg spokenHours = M.hubJustBackTimeSpokenHours(hours, hours);
+        return rest == 0 ? spokenHours : M.hubJustBackTimeSpokenHoursMinutes(spokenHours, M.hubJustBackTimeSpokenMinutes(rest, rest));
+    }
+
+    /**
      * Screen-reader text of the last ride on Clean Home, one whole sentence per language: the ended line first (what
      * sighted owners read first), then the distance, then what a tap does ("Ride ended 12 minutes ago, 6.2 mi. Opens
      * the ride."). minutes as {@link #justBackEnded(long)} takes them; distance with its unit.
