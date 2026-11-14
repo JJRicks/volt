@@ -2661,7 +2661,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             ControlRow row = new ControlRow(f); quickMenuRows.add(row);
             settings.addView(row.card); row.refresh();
             if((f.key.equals("timed_charging")||f.key.equals("charge_start"))&&chargeDoneOffered()){
-                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));
+                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"),false);
                 quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
             }
         }
@@ -3306,7 +3306,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         doneSheetRows.clear();
         for(boolean time:new boolean[]{false,true}){
             if(time)design.divider(card);
-            ChargeDoneRow row=new ChargeDoneRow(time,false,true);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
+            ChargeDoneRow row=new ChargeDoneRow(time);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
         }
         AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
         dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
@@ -3320,11 +3320,12 @@ public final class MainActivity extends Activity implements ScreenHost {
      * sheet that holds the other two. Same preferences and schedule. In that sheet (inSheet, under its "Charge done by"
      * title; the contributor's decision, 14 Nov) the switch row reads "Enable" and the time row "Finish charging by"
      * (HubText.doneByEnable, doneByFinish); the switch's spoken name keeps the sheet's title in front ("Charge done by,
-     * Enable"), so it makes sense alone. Elsewhere (the Quick actions sheets) both rows keep "Charge done by".
+     * Enable"), so it makes sense alone. Elsewhere (the quick menu's charging sheet) both rows keep "Charge done by".
      */
     private final class ChargeDoneRow {
         final SettingLine row;final Switch toggle;final boolean time,summary,inSheet;final View spinner;
-        ChargeDoneRow(boolean time){this(time,false,false);}
+        /** A row of the Charge done by sheet: the switch ("Enable") or the time ("Finish charging by"). */
+        ChargeDoneRow(boolean time){this(time,false,true);}
         ChargeDoneRow(boolean time,boolean summary){this(time,summary,false);}
         ChargeDoneRow(boolean time,boolean summary,boolean inSheet){
             this.time=time;this.summary=summary;this.inSheet=inSheet&&!summary;
