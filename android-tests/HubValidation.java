@@ -61,10 +61,12 @@ import com.jjricks.volt.WideLayout;
  *   list with no row fails the walk, and so does a listed page whose row shows.</li>
  *   <li><b>The page stack</b>: opening a page already in the stack closes the pages above it, Home resets it, and an
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
- *   <li><b>Search</b>: the header's search opens the search page (HubSearchScreen, part 12) with its field focused and
- *   the subjects listed; a search for "maintenance" shows the Reminders result, which opens Service › Maintenance
- *   reminders on top of the search; Back returns to the search with its query and results intact, Back again clears
- *   the query (the subjects show again), and Back once more returns to Home.</li>
+ *   <li><b>Search</b>: the header's search opens the search page with its field focused at the top (the page header
+ *   stepped aside, Cancel beside the field) and the subjects listed; typing ("batt", as the plan's mock-up) hides the
+ *   subjects and finds at least one result row (pictured with the keyboard gone); "maintenance" finds Reminders, which
+ *   opens over the search, and Back returns to the search with its query and results; the next Back clears the query
+ *   (the subjects come back), and the one after returns to Home; Cancel, and the page's back link once the field is
+ *   empty and left, return to Home at once.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
  *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each), and
@@ -259,21 +261,43 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * The header's search, as far as part 11 has it: its field focused, the subjects listed, typing hides them; Back
-     * clears the query before it leaves, the page's back link leaves at once. Search's results arrive with part 12.
+     * The header's search (Hub layout part 12): its field focused at the very top, the page header stepped aside while
+     * the owner searches, the subjects listed until typing; a result opens over the search and Back returns to it with
+     * its query and results; Back then clears the query, then leaves. Cancel leaves at once with a query typed; with
+     * the field empty and left the header stays hidden (Cancel the one way out) and Cancel goes Home at once.
      */
     private void search() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] != null) keyboardSearch(pane);
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, HubPages.SEARCH);
+        if (pane[0] != null) requireInPage(SEARCH_FIELD, "The search page's field");
         EditText[] field = new EditText[1];
         await(() -> onMain(() -> { field[0] = firstEditText(activity.findViewById(android.R.id.content)); return field[0] != null && field[0].hasFocus(); }),
                 "The search page's field is not focused");
         main(() -> {
             for (String subject : HubPages.SUBJECTS) require(shown(root().findViewWithTag("home-subject-" + subject)), "Search does not list " + subject + " while empty");
+            require(!shown(root().findViewWithTag("hub-back")), "The page header did not step aside while the field has the cursor");
+            require(shown(root().findViewWithTag("hub-search-cancel")), "Search has no Cancel beside its field");
         });
+        // "batt", as the plan's search mock-up: Battery's pages, settings and readings (part 12's full search). The mock-up has
+        // no count line, so the result rows themselves are counted (HubSearchScreen tags each "hub-search-<kind>-<id>").
+        main(() -> field[0].setText("batt")); settle();
+        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while a query is typed"));
+        main(() -> {
+            int found = resultRows(root().findViewWithTag("hub-search-results"));
+            require(found > 0, "Search found nothing for \"batt\" (" + found + " result rows shown)");
+        });
+        // On two panes the results show in the page pane, and the scooter pane stays as it was.
+        if (pane[0] != null) requireInPage("hub-search-results", "Search's results");
+        requireSamePane(pane, "Search's results");
+        // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
+        hideKeyboard();
+        main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
+        screenshot("search-typed");
+        // "maintenance" finds the Reminders setting.
         main(() -> field[0].setText("maintenance")); settle();
-        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while showing results"));
-        screenshot("search-maintenance");
         // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
         String reminders = "hub-search-setting-" + HubPages.SERVICE_MAINTENANCE;
         tapTag(reminders);
@@ -288,10 +312,60 @@ public final class HubValidation extends Instrumentation {
         hideKeyboard();
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        main(() -> require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back did not clear the search first"));
+        main(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            require(now != null && now.getText().length() == 0, "Back did not clear the search's query first");
+            require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back cleared the query but the subjects did not come back");
+        });
         systemBack();
         requireHome("CleanHomeScreen");
-        checks.add("Search: opens focused with the subjects listed; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home");
+        requireStack(HubPages.HOME);
+        // Cancel leaves at once, query and all.
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText("batt")); settle();
+        hideKeyboard();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        // Empty and left: the header stays hidden, the field at the top with Cancel, which goes Home at once.
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        main(() -> {
+            require(!shown(root().findViewWithTag("hub-back")), "The page header came back with the field empty and left");
+            require(shown(root().findViewWithTag("hub-search-cancel")), "Search has no Cancel with the field empty and left");
+        });
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
+    }
+
+    /** The search page's field (HubSearchScreen.TAG_FIELD). */
+    private static final String SEARCH_FIELD = "hub-search-field";
+
+    /**
+     * The wide Home's search field from a keyboard (#394 early review, finding 1): it takes focus by key, not by touch,
+     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home.
+     */
+    private void keyboardSearch(Object[] pane) throws Exception {
+        // A Tab leaves touch mode, as a keyboard's first key does.
+        sendKeyDownUpSync(KeyEvent.KEYCODE_TAB); settle();
+        main(() -> {
+            View field = root().findViewWithTag("home-search");
+            require(field != null && field.isFocusable() && !field.isFocusableInTouchMode(),
+                    "The wide Home's search field cannot take focus from a keyboard (or a tap would raise the keyboard)");
+            require(field.requestFocus() && field.hasFocus(), "The wide Home's search field did not take the keyboard's focus");
+        });
+        sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER); settle();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, "Search from the keyboard");
+        hideKeyboard();
+        systemBack();
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
     }
 
     /**
@@ -667,14 +741,21 @@ public final class HubValidation extends Instrumentation {
         settle();
     }
 
-    /** The page shown is page, the stack is exactly stack, and a non-Home page has its back link. */
+    /**
+     * The page shown is page, the stack is exactly stack, and a non-Home page has its back link: shown, except on Search
+     * with Cancel beside its field, where the page header is hidden and Cancel is the one way out (part 12,
+     * HubSearch.headerHidden); never both.
+     */
     private void arrived(String page, String... stack) {
         await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), () -> "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
         settle();
         requireStack(stack);
         if (!HubPages.HOME.equals(page)) main(() -> {
             View back = root().findViewWithTag("hub-back");
-            require(shown(back), page + " has no back link");
+            EditText search = HubPages.SEARCH.equals(page) ? firstEditText(activity.findViewById(android.R.id.content)) : null;
+            boolean aside = search != null && shown(root().findViewWithTag("hub-search-cancel"));
+            require(back != null && (shown(back) || aside), page + " has no back link");
+            require(!(aside && shown(back)), page + " shows both its back link and Cancel");
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
         });
     }
@@ -901,14 +982,14 @@ public final class HubValidation extends Instrumentation {
 
     private View root() { return activity.getWindow().getDecorView(); }
     private static boolean shown(View view) { return view != null && view.isShown() && view.getWidth() > 0 && view.getHeight() > 0; }
-    /** The number on the search's shown count line ("12 settings", English), 0 for none or "No matching settings". */
-    private static int resultCount(View view) {
-        if (view instanceof TextView && view.isShown()) {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+) settings?").matcher(((TextView) view).getText());
-            if (m.matches()) return Integer.parseInt(m.group(1));
-        }
-        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { int found = resultCount(((ViewGroup) view).getChildAt(i)); if (found > 0) return found; }
-        return 0;
+    /** The search's result rows shown under its results ("hub-search-<kind>-<id>", HubSearchScreen.tag); 0 for none. */
+    private static int resultRows(View view) {
+        if (view == null || !view.isShown()) return 0;
+        Object tag = view.getTag();
+        if (tag instanceof String && ((String) tag).matches("hub-search-(page|setting|reading|ride)-.+")) return 1;
+        int found = 0;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) found += resultRows(((ViewGroup) view).getChildAt(i));
+        return found;
     }
     private static EditText firstEditText(View view) {
         if (view instanceof EditText && view.isShown()) return (EditText) view;

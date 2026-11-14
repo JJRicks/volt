@@ -67,6 +67,12 @@ public final class StatsScreen implements AppScreen {
     private final Set<String> favourites;
     private final boolean dense;
     private String query, selectedSection;
+    /**
+     * A reading Hub search opened (HubNav.Args.reading): Readings shows that row alone, with its name in the field, until
+     * the owner types there; nothing about it is saved, so the owner's own search (stats_query) stays as it was and the
+     * next visit is as before (#393 review, finding 4). Null otherwise.
+     */
+    private String pinned;
     private String favouritesShown, devicesShown, eventsShown;
     private final EditText search;
     private static final String[] SECTIONS = {"Overview", "Readings", "Charts", "Diagnostics"};
@@ -117,8 +123,13 @@ public final class StatsScreen implements AppScreen {
     public StatsScreen(ScreenHost host) { this(host, false); }
 
     /** paneHosted: shown in a pane beside another page (hub layout plan, PR 13), so never in two panes of its own. */
-    StatsScreen(ScreenHost host, boolean paneHosted) {
+    StatsScreen(ScreenHost host, boolean paneHosted) { this(host, paneHosted, null); }
+
+    /** pin: a reading's key to show by itself on Readings for this visit (a Hub search result), or null. */
+    StatsScreen(ScreenHost host, boolean paneHosted, String pin) {
         this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings;
+        TelemetryHistory.Reading opened = pin == null ? null : service.displayReadings().get(pin);
+        pinned = opened == null ? null : pin;
         dense = "dense".equals(preferences.getString("stats_density", "comfortable"));
         favourites = new LinkedHashSet<String>(preferences.getStringSet("stats_favourites", new LinkedHashSet<String>()));
         chartFavourites = new LinkedHashSet<String>(preferences.getStringSet("stats_chart_favourites", new LinkedHashSet<String>()));
@@ -218,7 +229,9 @@ public final class StatsScreen implements AppScreen {
 
         // Readings: keep the count row geometry when removing the redundant Favourites filter.
         search = new EditText(host.activity()); search.setSingleLine(true); search.setHint(T.statsSearchHint());
-        ui.styleSearch(search); search.setContentDescription(T.statsReadingsSearchDescription()); search.setText(query);
+        ui.styleSearch(search); search.setContentDescription(T.statsReadingsSearchDescription());
+        // A pinned reading shows its name in the field (set before the watcher, so it is not saved as the owner's search).
+        search.setText(opened == null ? query : rowLabel(opened));
         readingsSection.addView(search, ui.searchLayout());
         SearchFocus.bind(search, host.activity().getWindow());
         LinearLayout filters = new LinearLayout(host.activity()); filters.setGravity(Gravity.CENTER_VERTICAL);
@@ -234,6 +247,8 @@ public final class StatsScreen implements AppScreen {
         search.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Typing ends a pinned reading: from here the field is the owner's own search again.
+                pinned = null;
                 query = s.toString(); preferences.edit().putString("stats_query", query).apply(); applyFilter();
             }
             public void afterTextChanged(Editable e) {}
@@ -457,19 +472,28 @@ public final class StatsScreen implements AppScreen {
      * search words (as the Readings search matches them), the full name and group it is also found by, and its value
      * as the row writes it, read when the result shows. The same names and values as addMetric's rows.
      */
-    static List<HubSearch.Entry> readingEntries(ScooterService service, Ui ui) {
+    static List<HubSearch.Entry> readingEntries(ScreenHost host) {
         List<HubSearch.Entry> entries = new ArrayList<>();
+        ScooterService service = host.service();
         if (service == null) return entries;
+        Ui ui = host.ui();
         for (TelemetryHistory.Reading metric : service.displayReadings().values()) {
             String name = rowLabel(service, metric), key = metric.key;
             String english = name + " " + (metric.label == null ? "" : metric.label) + " " + metric.group;
-            entries.add(HubSearch.reading(key, english + " " + ScooterReadingLabels.full(key, metric.label) + " " + ScooterReadingLabels.group(metric.group), name, () -> {
+            String full = ScooterReadingLabels.full(key, metric.label), group = ScooterReadingLabels.group(metric.group);
+            // The full name and group also as words in the current language, folded as the shown name is, as Live Stats'
+            // own search folds them (#393 review, note 8).
+            entries.add(HubSearch.reading(key, english + " " + full + " " + group, name, new CharSequence[] {full, group}, () -> {
                 TelemetryHistory.Reading now = service.displayReadings().get(key);
                 return now == null ? null : amountText(service, ui, now);
             }, () -> {
                 // Fresh as Live Stats' refresh() decides it: a saved value from an earlier session is muted there and here.
                 TelemetryHistory.Reading now = service.displayReadings().get(key);
                 return now != null && now.live && now.value != null;
+            }, () -> {
+                // A saved value's age, as Live Stats writes it beside the value and speaks it in the row (#393 review, finding 2).
+                TelemetryHistory.Reading now = service.displayReadings().get(key);
+                return now == null || now.value == null || now.live ? null : savedTime(host.activity(), service.settings, now.capturedWallMs);
             }));
         }
         return entries;
@@ -488,12 +512,13 @@ public final class StatsScreen implements AppScreen {
         applyFilter(); refresh();
     }
     private void applyFilter() {
-        String needle = query.trim().toLowerCase(Locale.ROOT); int count = 0;
+        // A pinned reading filters like a search (groups open, the count line) but by its exact key.
+        String needle = pinned != null ? pinned : query.trim().toLowerCase(Locale.ROOT); int count = 0;
         LinkedHashMap<String, Integer> counts = new LinkedHashMap<String, Integer>();
         for (Row row : rows.values()) {
-            boolean show = (needle.isEmpty()
+            boolean show = pinned != null ? row.key.equals(pinned) : (needle.isEmpty()
                     || (row.search + " " + row.key + " " + row.group).toLowerCase(Locale.ROOT).contains(needle));
-            if (!show) show = StatsLabels.matchesShown(query, shownSearch.get(row.key));
+            if (!show && pinned == null) show = StatsLabels.matchesShown(query, shownSearch.get(row.key));
             row.layout.setVisibility(show ? View.VISIBLE : View.GONE);
             if (show) { count++; counts.put(row.group, counts.containsKey(row.group) ? counts.get(row.group) + 1 : 1); }
         }
@@ -971,9 +996,11 @@ public final class StatsScreen implements AppScreen {
         }
         refreshRequestedMs = -1; return false;
     }
-    private String savedTime(long capturedWallMs) {
+    private String savedTime(long capturedWallMs) { return savedTime(host.activity(), preferences, capturedWallMs); }
+    /** A saved value's age line ("Last seen ..."), as Live Stats writes it; also Hub search's line for a saved reading. */
+    private static String savedTime(android.content.Context context, SharedPreferences preferences, long capturedWallMs) {
         return capturedWallMs <= 0 ? T.statsLastSeen()
-                : T.statsLastSeenWhen(DisplayTime.recent(host.activity(), preferences, capturedWallMs, System.currentTimeMillis()));
+                : T.statsLastSeenWhen(DisplayTime.recent(context, preferences, capturedWallMs, System.currentTimeMillis()));
     }
     private String readingIcon(String key) {
         if (key.equals("remaining_range_km")) return "route";

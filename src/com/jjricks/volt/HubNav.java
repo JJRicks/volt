@@ -18,14 +18,28 @@ final class HubNav {
      */
     static final class Args {
         final String inspect, ride, anchor;
+        /**
+         * A reading's key for Data's Readings to show by itself on this visit only (a Hub search result), leaving the
+         * owner's own saved Readings search as it was (#393 review, finding 4).
+         */
+        final String reading;
         final boolean recovery;
-        Args(String inspect, boolean recovery, String ride, String anchor) {
-            this.inspect = inspect; this.recovery = recovery; this.ride = ride; this.anchor = anchor;
+        /**
+         * With ride: closing that ride's details (Back or Done) also leaves its page, back to the page that opened it (a
+         * Hub search result: Back returns to the search in one step, as from any other result).
+         */
+        final boolean backAfterRide;
+        Args(String inspect, boolean recovery, String ride, String anchor) { this(inspect, recovery, ride, anchor, null, false); }
+        Args(String inspect, boolean recovery, String ride, String anchor, String reading, boolean backAfterRide) {
+            this.inspect = inspect; this.recovery = recovery; this.ride = ride; this.anchor = anchor; this.reading = reading;
+            this.backAfterRide = backAfterRide;
         }
         static Args inspect(String feature) { return new Args(feature, false, null, null); }
         static Args recovery() { return new Args(null, true, null, null); }
         static Args ride(String id) { return new Args(null, false, id, null); }
         static Args anchor(String tag) { return new Args(null, false, null, tag); }
+        static Args reading(String key) { return new Args(null, false, null, null, key, false); }
+        static Args rideAndBack(String id) { return new Args(null, false, id, null, null, true); }
     }
 
     private final ArrayList<String> stack = new ArrayList<>();

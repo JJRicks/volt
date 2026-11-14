@@ -274,9 +274,14 @@ public final class RidesScreen implements AppScreen {
         if (wide) Motion.scrollBeforeDraw(scroll, wideListScroll);
     }
     /** Shows one ride: selected in the wide panes, else its details page (a page argument, HubNav.Args.ride). */
-    void openRide(String id) {
+    void openRide(String id) { openRide(id, null); }
+    /**
+     * openRide; onClose runs when the owner closes the details page (Back or Done), not when it goes with the screen or
+     * a deleted ride (HubNav.Args.backAfterRide). The wide panes have no details page to close.
+     */
+    void openRide(String id, Runnable onClose) {
         if (closed || id == null || mode == SENSORS) return;
-        if (wide) selectRide(id); else showDetails(id);
+        if (wide) selectRide(id); else showDetails(id, onClose);
     }
     /** A shortcut into Back up & restore with only Rides selected. */
     private void rideBackups() { host.dataBackup(null, BackupRegistry.RIDES); }
@@ -818,14 +823,17 @@ public final class RidesScreen implements AppScreen {
         } catch (java.util.concurrent.RejectedExecutionException screenClosed) { comparisonLoading = false; }
         return null;
     }
-    private void showDetails(String id) {
+    private void showDetails(String id) { showDetails(id, null); }
+    private void showDetails(String id, Runnable onClose) {
         try {
             RideStore.Summary ride = service.rides.get(id); if (ride == null) { host.toast(T.ridesToastRecordingUnavailable()); return; }
             ScrollView scroller = new MapTouchScroll(); LinearLayout body = vertical();
             body.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(20)); scroller.addView(body);
             AlertDialog[] holder = new AlertDialog[1];
             buildOverview(body, ride, service.rides.trend(ride.id, RideStore.MAX_TREND_POINTS), () -> { if (holder[0] != null) holder[0].dismiss(); });
-            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).setPositiveButton(T.commonDone(), null).create();
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller)
+                    .setPositiveButton(T.commonDone(), onClose == null ? null : (d, which) -> onClose.run()).create();
+            if (onClose != null) dialog.setOnCancelListener(d -> onClose.run());
             holder[0] = dialog; show(dialog, PAGE, null);
         } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
     }

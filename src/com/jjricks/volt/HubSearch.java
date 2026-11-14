@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -49,6 +50,11 @@ final class HubSearch {
         final CharSequence[] words;
         /** Whether the value is live now (a reading: Live Stats mutes a saved one); null when that does not apply. */
         final Supplier<Boolean> live;
+        /**
+         * A line shown and spoken with the value, read when shown: a saved reading's age as Live Stats writes it beside
+         * the value ("Last seen 2 h ago"); null, or a null or empty line, for none.
+         */
+        final Supplier<CharSequence> note;
 
         Entry(Kind kind, String page, String english, CharSequence shown, String anchor, Target target, Supplier<CharSequence> value) {
             this(kind, page, english, shown, null, anchor, target, value, null);
@@ -56,9 +62,14 @@ final class HubSearch {
 
         Entry(Kind kind, String page, String english, CharSequence shown, CharSequence[] words, String anchor, Target target,
                 Supplier<CharSequence> value, Supplier<Boolean> live) {
+            this(kind, page, english, shown, words, anchor, target, value, live, null);
+        }
+
+        Entry(Kind kind, String page, String english, CharSequence shown, CharSequence[] words, String anchor, Target target,
+                Supplier<CharSequence> value, Supplier<Boolean> live, Supplier<CharSequence> note) {
             this.kind = kind; this.page = page; this.english = normalize(english); this.shown = shown;
             this.words = words == null ? new CharSequence[0] : words;
-            this.anchor = anchor; this.target = target; this.value = value; this.live = live;
+            this.anchor = anchor; this.target = target; this.value = value; this.live = live; this.note = note;
         }
 
         /** A stable id for the result's view tag: its kind and anchor (or page). */
@@ -93,12 +104,22 @@ final class HubSearch {
 
     /**
      * Whether an entry matches the query: its English words, or, in the current language, the name it shows or its
-     * other words (Entry.words).
+     * other words (Entry.words). A query of several words that doesn't match as a whole matches when each of its words
+     * does, so "max speed" finds Maximum speed (#393 emulator check).
      */
     static boolean matches(Entry entry, String query) {
+        if (matchesWhole(entry, query)) return true;
+        String[] parts = query == null ? new String[0] : query.trim().split("\\s+");
+        if (parts.length < 2) return false;
+        for (String part : parts) if (!matchesWhole(entry, part)) return false;
+        return true;
+    }
+
+    private static boolean matchesWhole(Entry entry, String query) {
         String needle = normalize(query);
         if (needle.isEmpty()) return false;
-        if (entry.english.contains(needle)) return true;
+        // The English words have no accents: a query typed with them ("café", "batería") is also tried without.
+        if (entry.english.contains(needle) || entry.english.contains(unaccented(needle))) return true;
         // A light page's shared zones words name both families: a query naming only the other family skips them.
         CharSequence[] words = entry.kind == Kind.PAGE && sharedPageWords(entry.page) && otherFamilyOnly(entry.page, query)
                 ? new CharSequence[0] : entry.words;
@@ -106,6 +127,12 @@ final class HubSearch {
         shown[0] = entry.shown == null ? null : entry.shown.toString();
         for (int i = 0; i < words.length; i++) shown[i + 1] = words[i] == null ? null : words[i].toString();
         return StatsLabels.matchesShown(query, shown);
+    }
+
+    /** text without its accents and other combining marks ("batería" is "bateria"); null is "". */
+    static String unaccented(String text) {
+        if (text == null) return "";
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
     }
 
     /**
@@ -128,14 +155,25 @@ final class HubSearch {
         return name.contains(needle) ? 2 : 3;
     }
 
-    /** The matching entries, grouped by kind, ranked inside each group, in the index's order otherwise; at most MAX. */
+    /**
+     * The matching entries, grouped by kind, ranked inside each group, in the index's order otherwise; at most MAX. One
+     * thing is listed once (#393 emulator check): an entry that would show as an earlier one does (same group, page, row
+     * and name) is left out, as the Security link and the PIN control, both "PIN & proximity unlock" on Security; and a
+     * setting named as a page that is also found is left out for that page, as the Units row on Settings for the Units
+     * page it opens.
+     */
     static List<Entry> search(List<Entry> index, String query) {
         List<Entry> found = new ArrayList<>();
         if (index == null || normalize(query).isEmpty()) return found;
         final List<int[]> keys = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>(), pageNames = new java.util.HashSet<>();
+        for (Entry entry : index)
+            if (entry != null && entry.kind == Kind.PAGE && matches(entry, query)) pageNames.add(sameName(entry));
         for (int i = 0; i < index.size(); i++) {
             Entry entry = index.get(i);
             if (entry == null || !matches(entry, query)) continue;
+            if (!seen.add(entry.id() + "\n" + entry.page + "\n" + sameName(entry))) continue;
+            if (entry.kind == Kind.SETTING && entry.target == Target.PAGE && pageNames.contains(sameName(entry))) continue;
             keys.add(new int[] {entry.kind.ordinal(), rank(entry, query), i});
         }
         Collections.sort(keys, (a, b) -> a[0] != b[0] ? Integer.compare(a[0], b[0]) : a[1] != b[1] ? Integer.compare(a[1], b[1]) : Integer.compare(a[2], b[2]));
@@ -144,6 +182,11 @@ final class HubSearch {
             found.add(index.get(key[2]));
         }
         return found;
+    }
+
+    /** An entry's shown name as two results are compared: folded as Live Stats folds a search (case, accents, spaces). */
+    private static String sameName(Entry entry) {
+        return entry.shown == null ? "" : NaveeModels.displayFold(entry.shown.toString());
     }
 
     // ===== The index's sources (each read when a search runs) =====
@@ -282,7 +325,7 @@ final class HubSearch {
             Msg title = HubText.settingTitle(tag);
             String page = HubSearchTables.settingPage(tag);
             if (title == null || page == null) continue;
-            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, tag, Target.PAGE, null));
+            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
         }
         return entries;
     }
@@ -292,7 +335,101 @@ final class HubSearch {
      * whether that value is live now (a saved one shows muted, as on Live Stats).
      */
     static Entry reading(String key, String english, CharSequence shown, Supplier<CharSequence> value, Supplier<Boolean> live) {
-        return new Entry(Kind.READING, HubPages.DATA, english + " " + key, shown, null, key, Target.READING, value, live);
+        return reading(key, english, shown, null, value, live, null);
+    }
+
+    /**
+     * reading, with the words it is also found by in the current language (its full name and group, folded as the
+     * shown name is: #393 review, note 8) and its age line (a saved value's "Last seen ...", shown and spoken with it:
+     * #393 review, finding 2).
+     */
+    static Entry reading(String key, String english, CharSequence shown, CharSequence[] words, Supplier<CharSequence> value,
+            Supplier<Boolean> live, Supplier<CharSequence> note) {
+        return new Entry(Kind.READING, HubPages.DATA, english + " " + key, shown, words, key, Target.READING, value, live, note);
+    }
+
+    // ===== The search page's layout rules (HubSearchScreen) =====
+
+    /**
+     * The most of a result row's content width its value may take beside the name. A wider value goes under the name, so
+     * the name always keeps at least the rest (60%): a raw reading (the battery serial answer's 32 hex digits) or a ride's
+     * date and distance at large text never squeezes it away (#393 review, finding 1, and the emulator check).
+     */
+    static final float VALUE_SHARE = 0.4f;
+
+    /**
+     * Whether a result's value goes under its name instead of beside it: when its one-line width is more than
+     * VALUE_SHARE of the row's content width. Both in the same unit (pixels); a row not measured yet (width 0 or less)
+     * keeps it beside.
+     */
+    static boolean valueBelow(float valueWidth, int contentWidth) {
+        return contentWidth > 0 && valueWidth > contentWidth * VALUE_SHARE;
+    }
+
+    /**
+     * Whether the page header (back link, status line, title) gets out of the way so the field sits at the very top
+     * (the Layout Plan's search mock-up). On a page with Cancel beside the field it is always hidden, empty or not, so
+     * there is one way out (Cancel) and the subjects start right under the field (#393 review: checklist 8's empty
+     * state is "the field at the top and Cancel"). Without Cancel (part 13's pane) it steps aside only while the field
+     * has the cursor or holds a query, which in a short window (725 x 604 dp) leaves room for results above the keyboard.
+     */
+    static boolean headerHidden(boolean hasCancel, boolean fieldFocused, String query) {
+        return hasCancel || fieldFocused || !normalize(query).isEmpty();
+    }
+
+    /**
+     * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
+     * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
+     * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)
+     * keeps the long one.
+     */
+    static boolean longHintFits(float longHintWidth, int textRoom) {
+        return textRoom <= 0 || longHintWidth <= textRoom;
+    }
+
+    /**
+     * A result's caption from its page titles, joined with " › ". With two or more titles, a title that fits on one
+     * caption line with its " ›" (fitsOneLine, measured by the caption) has its own spaces made no-break, and so has the
+     * space before "›", so a caption too long for one line (344 dp at 1.4x text) wraps after a "›" rather than inside a
+     * page's name ("Battery & charging ›" over "Battery modes", not "... › Battery" over "modes"). A title wider than one
+     * line keeps its spaces breakable, so it wraps between words and is never cut mid-word (#393 review: Italian
+     * "Cronologia ricariche e registrazioni"). A single title wraps as usual. Null for no titles.
+     */
+    static String captionText(List<String> titles, Predicate<String> fitsOneLine) {
+        StringBuilder text = new StringBuilder();
+        boolean path = titles.size() > 1;
+        for (String title : titles) {
+            if (title == null || title.isEmpty()) continue;
+            if (text.length() > 0) text.append("\u00a0\u203a ");
+            text.append(path && fitsOneLine.test(title + " \u203a") ? title.replace(' ', '\u00a0') : title);
+        }
+        return text.length() == 0 ? null : text.toString();
+    }
+
+    /**
+     * Whether a result's value is drawn as a reading's (bold, in the text colour: "50.48 V" in the Layout Plan's mock-up)
+     * or as quiet detail (a ride's date and distance: muted and regular, under the caption, so it never reads as a live
+     * value; the mock-up's ride row has none of its own).
+     */
+    static boolean valueStrong(Kind kind) { return kind == Kind.READING; }
+
+    /**
+     * Whether the result count shows as a line under the field. The Layout Plan's mock-up has none: the groups follow the
+     * field at once, which in a short window with the keyboard up (725 x 604 dp) is one more row of results. Only "No
+     * matches" is shown, where there is nothing else to see; the count is still spoken (HubSearchScreen).
+     */
+    static boolean countShown(int found) { return found == 0; }
+
+    /**
+     * The pages a result's caption names, from its subject down (the Layout Plan's search mock-up: "Battery & charging ›
+     * Modes", "Data", "Ride › ..."): the page that holds it and the pages above it under Home; for a page result, the
+     * pages above it only, so a subject page (and Settings) has none.
+     */
+    static List<String> captionPages(Entry entry) {
+        List<String> path = new ArrayList<>(HubPages.path(entry.page));
+        path.remove(0);
+        if (entry.kind == Kind.PAGE && !path.isEmpty()) path.remove(path.size() - 1);
+        return path;
     }
 
     /** A ride: its id, its name and when it was ridden (both shown), and its date and distance as its value. */

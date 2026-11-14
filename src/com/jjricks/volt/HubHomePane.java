@@ -30,17 +30,22 @@ final class HubHomePane implements AppScreen {
     }
 
     /**
-     * Looks like the search page's field and opens it: read as a button named like Home's search button, and it carries
+     * Looks like the search page's field and opens it (a tap, or Enter once a keyboard has moved focus to it): read as a
+     * button named like Home's search button, and it carries
      * that button's tag (CleanHomeScreen.TAG_SEARCH), which the scooter pane's header leaves out on this layout.
      */
     private static View searchField(ScreenHost host, Ui ui, Runnable open) {
         EditText field = new EditText(host.activity());
-        ui.styleSearch(field);
-        field.setHint(HubText.searchHint());
         field.setSingleLine(true);
+        // The search page's own field style and placeholder rule, so tapping it opens a field of the same size in the
+        // same place, its placeholder never cut (the short "Search" where the long one doesn't fit the pane).
+        HubSearchScreen.styleField(ui, field);
+        field.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> HubSearchScreen.fitHint(field));
         field.setKeyListener(null);
         field.setCursorVisible(false);
-        field.setFocusable(false);
+        // Reached by Tab or a D-pad like the buttons beside it (Enter opens the search); a tap never focuses it, so it
+        // never raises the keyboard here (#394 early review, finding 1).
+        field.setFocusable(true);
         field.setFocusableInTouchMode(false);
         field.setLongClickable(false);
         field.setClickable(true);
