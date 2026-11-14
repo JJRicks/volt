@@ -66,6 +66,8 @@ public final class ChargingFitTest {
                 c.name + ": the readings keep the mock-up's 24 dp or at least 12 dp from the track");
         require(!p.percent || p.percentScale > 0 && p.percentScale <= 1, c.name + ": the percentage within its sizes");
         require(!p.shortLine || p.line, c.name + ": a short line is a line");
+        require(p.line || !p.readings || !p.percent || p.percentScale <= ChargingFit.HALF_SCALE,
+                c.name + ": dropping the line never enlarges the percentage past half: " + p);
     }
 
     /** The maintainers' sizes: nothing is dropped but the line (the percentage, photo, track and readings stay). */
@@ -98,6 +100,13 @@ public final class ChargingFitTest {
         // 725x604 dp at 1.4x keeps the phone layout in a short area: the photo shrinks with the stage, the percentage
         // stays (smaller if it must), the readings show.
         c = checked(725, 604, 1.4f, 0, false);
+        for (int bars : new int[]{0, 72})
+            for (boolean pill : new boolean[]{false, true})
+                for (float taller : new float[]{1f, 1.3f}) {
+                    Case w = window(725, 604, 1.4f, bars, pill, taller);
+                    require(w.plan.line || w.plan.percentScale <= ChargingFit.HALF_SCALE,
+                            w.name + ": without the line, the percentage is at most half: " + w.plan);
+                }
         for (int width : new int[]{344, 725})
             for (float text : new float[]{1f, 1.4f})
                 for (int bars : new int[]{0, 72})
@@ -160,7 +169,37 @@ public final class ChargingFitTest {
         require(!ChargingFit.timeToLimit(100d, false) && !ChargingFit.timeToLimit(null, false) && !ChargingFit.timeToLimit(Double.NaN, false),
                 "no limit below 100%: Time to full");
         require(!ChargingFit.timeToLimit(80d, true), "a model that offers charge alerts has no limit: Time to full");
+        tiles();
         System.out.println("ChargingFit: " + checks + " checks passed");
+    }
+
+    /**
+     * The two reading tiles at 344x882 and 725x604 dp, 1x and 1.4x text: a pair in Home's row (the window less its 18 dp
+     * side padding, at most Clean's 560 dp column, less the 8 dp between the tiles), or one tile across the row.
+     * Clean's are the mock-up's: no icon, the 12 dp inset, the label a little smaller before it wraps. Widgets' keep
+     * their rule: the icon and the 12 dp inset from 170 dp times the text scale, else no icon and 6 dp.
+     */
+    private static void tiles() {
+        for (int window : new int[]{344, 725})
+            for (float text : new float[]{1f, 1.4f}) {
+                float row = Math.min(window - 36, 560);
+                for (float width : new float[]{(row - 8) / 2, row}) {
+                    String at = window + " dp at " + text + "x, a tile " + width + " dp wide";
+                    ChargingFit.Tile clean = ChargingFit.tile(true, width, text);
+                    require(!clean.icon, at + ": Clean's charging tile has no icon, as the mock-up: " + clean);
+                    require(clean.insetDp == 12, at + ": Clean's charging tile keeps the plan's 12 dp inset: " + clean);
+                    require(clean.labelMinScale == ChargingFit.TILE_LABEL_MIN_SCALE && clean.labelMinScale >= .85f && clean.labelMinScale < 1,
+                            at + ": a Clean label a little too wide gets a little smaller before it wraps: " + clean);
+                    ChargingFit.Tile widgets = ChargingFit.tile(false, width, text);
+                    boolean wide = width >= 170 * text;
+                    require(widgets.icon == wide && widgets.insetDp == (wide ? 12 : 6) && widgets.labelMinScale == 1,
+                            at + ": Widgets' tile unchanged: " + widgets);
+                }
+            }
+        // 344x882: Clean's pair is 150 dp each, narrow by Widgets' rule at either text size, and still has no icon.
+        require(!ChargingFit.tile(false, 150, 1f).icon && ChargingFit.tile(false, 150, 1f).insetDp == 6, "a 150 dp Widgets tile is narrow");
+        require(ChargingFit.tile(false, 170, 1f).icon && !ChargingFit.tile(false, 170, 1.4f).icon, "the narrow width grows with the text");
+        require(!ChargingFit.tile(true, 600, 1f).icon && !ChargingFit.tile(true, 0, 2f).icon, "Clean's tiles never show an icon");
     }
 
     private static void require(boolean condition, String message) {

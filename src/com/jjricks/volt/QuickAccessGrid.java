@@ -67,6 +67,24 @@ final class QuickAccessGrid extends ViewGroup {
         refresh();
     }
 
+    /**
+     * Clean Home's four: a long-press on any of them runs {@code edit} (the Edit sheet), and TalkBack offers it as the
+     * long-press action named {@code label}. A tap still runs the action.
+     */
+    void editOnLongPress(CharSequence label, Runnable edit) {
+        View.AccessibilityDelegate named = new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View view, android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(view, info);
+                info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                        android.view.accessibility.AccessibilityNodeInfo.ACTION_LONG_CLICK, label));
+            }
+        };
+        for (Cell cell : cells) {
+            cell.setOnLongClickListener(v -> { edit.run(); return true; });
+            cell.setAccessibilityDelegate(named);
+        }
+    }
+
     void fitHeight(int height) { budget = Math.max(0, height); }
 
     void refresh() {

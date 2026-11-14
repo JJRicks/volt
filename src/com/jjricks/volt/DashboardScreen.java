@@ -1702,10 +1702,11 @@ public final class DashboardScreen implements AppScreen {
         /** Optional pill beside the value for a short state. */
         TextView tag;
         int heightBudget = Integer.MAX_VALUE;
-        /** Below this width (dp, times the text scale) the label icon hides; Clean's charging tiles keep it longer. */
-        int narrowDp = 170;
-        /** Clean's charging tiles keep the Layout Plan's 12 dp inset when narrow (their value gets smaller instead). */
-        boolean keepInset;
+        /**
+         * Clean's two charging tiles (ChargingFit.tile): no icon, the Layout Plan's 12 dp inset at every width (their
+         * value gets smaller instead). Other tiles lose the icon and half the inset when narrow.
+         */
+        boolean cleanCharging;
         InfoCell(String icon, String full, String normal, String compact) {
             super(host.activity());
             setOrientation(VERTICAL);
@@ -1775,12 +1776,13 @@ public final class DashboardScreen implements AppScreen {
                     : pixels - getChildAt(0).getMeasuredHeight() - ui.dp(10));
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            boolean narrow = MeasureSpec.getSize(widthSpec) < ui.dp(narrowDp * ui.textScale
-                    * getResources().getConfiguration().fontScale);
-            int inset = ui.dp(narrow && !keepInset ? 6 : 12);
+            ChargingFit.Tile fit = ChargingFit.tile(cleanCharging,
+                    MeasureSpec.getSize(widthSpec) / getResources().getDisplayMetrics().density,
+                    ui.textScale * getResources().getConfiguration().fontScale);
+            int inset = ui.dp(fit.insetDp);
             int vertical = ui.dp(heightBudget == Integer.MAX_VALUE ? 10 : 4);
             setPadding(inset, vertical, inset, vertical);
-            showIcons(!narrow);
+            showIcons(fit.icon);
             super.onMeasure(widthSpec, heightSpec);
         }
         /** The label icon hides in a narrow cell, where the caption needs the room. */
@@ -2468,15 +2470,17 @@ public final class DashboardScreen implements AppScreen {
             power = powerCell.value;
             powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             if (clean) {
-                // The Layout Plan's tiles (152 x 66 dp, 21 sp values, an icon beside each label): smaller values and
-                // minimum, icons kept in a 344 dp phone's tiles, and the pair kept side by side at large text, where a
-                // stacked pair would take the percentage's room (ChargingFit). The time tile is fixed (no switching).
+                // The Layout Plan's tiles (152 x 66 dp, 21 sp values, no icon): smaller values and a minimum, and the
+                // pair kept side by side at large text, where a stacked pair would take the percentage's room
+                // (ChargingFit). The time tile is fixed (no switching).
                 timeTile.fixed = true;
                 tiles.pairDp = ChargingFit.PAIR_DP;
-                // Their inset stays 12 dp at large text: a label a little too wide gets a little smaller, not wrapped.
+                // The mock-up's tiles (ChargingFit.tile): no icon, the 12 dp inset at large text, and a label too wide
+                // takes its shorter rung, then a little smaller text, before it wraps.
                 for (InfoCell cell : new InfoCell[] {powerCell, timeTile}) {
-                    cell.narrowDp = 120; cell.keepInset = true;
-                    for (TextView caption : cell.captions()) ((DashboardCaption) caption).shrinkToOneLine(.85f);
+                    cell.cleanCharging = true;
+                    for (TextView caption : cell.captions())
+                        ((DashboardCaption) caption).shrinkToOneLine(ChargingFit.tile(true, 0, 1).labelMinScale);
                 }
                 for (TextView value : new TextView[] {power, timeTile.values[0], timeTile.values[1]}) {
                     ((FittedValue) value).capAt(Math.round(ChargingFit.VALUE_SP * ui.textScale));
@@ -2685,6 +2689,8 @@ public final class DashboardScreen implements AppScreen {
             final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             RadialGradient glowShader, fadeShader;
             float glowRadius = -1, fadeRadius = -1;
+            int fadeBg;
+            boolean fadeDark;
             int glowColor;
             /** This view, its ancestors and the window are all visible (false while backgrounded or the screen is off). */
             boolean onScreen;
@@ -2801,10 +2807,10 @@ public final class DashboardScreen implements AppScreen {
                     float cx = (percent.getLeft() + percent.getRight()) / 2f, cy = (percent.getTop() + percent.getBottom()) / 2f;
                     float rx = percent.getWidth() * .85f, ry = percent.getHeight() * .7f;
                     float baseline = Float.NaN;
-                    if (!ui.dark && percent.getLayout() != null) {
-                        // Light: a pale fade over the dark photo washes the whole scooter out, so it stays on the
-                        // digits' own box (cap height above the baseline, the text's width) and stops at the baseline:
-                        // the deck and wheels under the number stay solid, as the dark theme's photo does.
+                    if (percent.getLayout() != null) {
+                        // The fade stays on the digits' own box (cap height above the baseline, the text's width) and
+                        // stops at the baseline, in both themes: where the photo is small beside the number, a fade the
+                        // size of the whole view would dim the scooter; the deck and wheels under the number stay solid.
                         android.graphics.Rect digits = new android.graphics.Rect();
                         percent.getPaint().getTextBounds("8", 0, 1, digits);
                         baseline = percent.getTop() + percent.getTotalPaddingTop() + percent.getLayout().getLineBaseline(0);
@@ -2813,12 +2819,12 @@ public final class DashboardScreen implements AppScreen {
                         rx = Math.max(1, percent.getLayout().getLineWidth(0) * .62f);
                         ry = cap * .7f;
                     }
-                    if (fadeShader == null || rx != fadeRadius) {
+                    if (fadeShader == null || rx != fadeRadius || ui.bg != fadeBg || ui.dark != fadeDark) {
                         int[] colors = ui.dark
                                 ? new int[] {Ui.withAlpha(ui.bg, 225), Ui.withAlpha(ui.bg, 160), Ui.withAlpha(ui.bg, 0)}
                                 : new int[] {Ui.withAlpha(ui.bg, 190), Ui.withAlpha(ui.bg, 110), Ui.withAlpha(ui.bg, 0)};
                         fadeShader = new RadialGradient(0, 0, rx, colors, new float[] {0, .55f, 1}, Shader.TileMode.CLAMP);
-                        fadeRadius = rx;
+                        fadeRadius = rx; fadeBg = ui.bg; fadeDark = ui.dark;
                     }
                     canvas.save();
                     if (!Float.isNaN(baseline)) canvas.clipRect(0, 0, getWidth(), baseline);

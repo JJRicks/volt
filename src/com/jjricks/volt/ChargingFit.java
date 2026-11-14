@@ -18,7 +18,8 @@ package com.jjricks.volt;
  *   <li>the space over the readings closes from {@link #READINGS_GAP_DP} to {@link #READINGS_GAP_MIN_DP};</li>
  *   <li>the photo gets smaller (it is the stage less the track, so it shrinks with it);</li>
  *   <li>the percentage gets smaller, down to {@link #HALF_SCALE} of its size;</li>
- *   <li>the line makes way (the owner's ruling for 344x882 dp at 1.4x: the percentage stays, the line may go);</li>
+ *   <li>the line makes way (the owner's ruling for 344x882 dp at 1.4x: the percentage stays, the line may go); the
+ *       percentage stays at most half its size, so the height the line frees goes to the photo;</li>
  *   <li>the percentage gets smaller still, down to {@link #PERCENT_MIN_SCALE} of its size.</li>
  * </ol>
  * Only a slot shorter than the readings themselves loses them (the percentage and the track then stay). The photo
@@ -114,15 +115,16 @@ final class ChargingFit {
             int stage = inner - brief - gapMin - readingsHeight;
             float scale = share(stage - under, percentHeight);
             if (scale >= HALF_SCALE) return plan(true, true, scale, stage, under, photoMin, true, gapMin);
-            // 5-6. Without the line: the percentage as large as fits, down to its smallest.
+            // 5-6. Without the line: the percentage at most the half that step 4 could not reach (dropping the line
+            // never enlarges it; the freed height goes to the photo), down to its smallest.
             stage = inner - gapMin - readingsHeight;
             scale = share(stage - under, percentHeight);
-            if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(1, scale), stage, under, photoMin, true, gapMin);
+            if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(HALF_SCALE, scale), stage, under, photoMin, true, gapMin);
             // Too short for the percentage at its smallest with the track: the percentage over the readings, as large
-            // as fits (the track and the photo make way), else the readings alone.
+            // as fits up to half (the track and the photo make way), else the readings alone.
             stage = inner - readingsHeight;
             scale = share(stage, percentHeight);
-            if (scale >= PERCENT_MIN_SCALE) return new Plan(false, false, true, Math.min(1, scale), stage, 0, true, 0);
+            if (scale >= PERCENT_MIN_SCALE) return new Plan(false, false, true, Math.min(HALF_SCALE, scale), stage, 0, true, 0);
             return new Plan(false, false, false, 1, 0, 0, true, inner - readingsHeight);
         }
         // 7. Not even the readings fit: the percentage (as large as fits) over the track, nothing else.
@@ -145,6 +147,42 @@ final class ChargingFit {
      */
     static boolean timeToLimit(Double scooterTarget, boolean alertsOffered) {
         return ChargeTimeReadings.limitSource(scooterTarget, alertsOffered, false) == ChargeTimeReadings.SCOOTER_LIMIT;
+    }
+
+    /** A reading tile's inner space at its sides (dp): the Layout Plan's 12 dp, and Widgets' 6 dp in a narrow tile. */
+    static final int TILE_INSET_DP = 12, TILE_NARROW_INSET_DP = 6;
+    /** Widgets' reading tiles are narrow below this width (dp, times the text scale): the icon goes, the inset halves. */
+    static final int TILE_NARROW_DP = 170;
+    /** The least share of its size a Clean charging tile's label takes to stay on one line before it wraps. */
+    static final float TILE_LABEL_MIN_SCALE = .85f;
+
+    /** How a reading tile lays out its label row. */
+    static final class Tile {
+        /** The inset at the tile's sides (dp). */
+        final int insetDp;
+        /** Whether the small icon shows before the label. */
+        final boolean icon;
+        /** The least share of its size the label takes to stay on one line (1: it wraps at its size). */
+        final float labelMinScale;
+
+        Tile(int insetDp, boolean icon, float labelMinScale) {
+            this.insetDp = insetDp; this.icon = icon; this.labelMinScale = labelMinScale;
+        }
+
+        @Override public String toString() { return "inset=" + insetDp + " icon=" + icon + " labelMin=" + labelMinScale; }
+    }
+
+    /**
+     * A reading tile {@code widthDp} wide at {@code textScale} (the app's and the system's together). Clean's two
+     * charging tiles ({@code clean}) are the mock-up's: no icon at any width (the contributor's decisions, round 3, on
+     * #383), the 12 dp inset kept at every width and text size, and a label a little too wide gets a little smaller
+     * (down to {@link #TILE_LABEL_MIN_SCALE}) before it wraps. Widgets' tiles are unchanged: below
+     * {@link #TILE_NARROW_DP} dp times the text scale the icon goes and the inset is 6 dp; the label wraps at its size.
+     */
+    static Tile tile(boolean clean, float widthDp, float textScale) {
+        if (clean) return new Tile(TILE_INSET_DP, false, TILE_LABEL_MIN_SCALE);
+        boolean narrow = widthDp < TILE_NARROW_DP * textScale;
+        return new Tile(narrow ? TILE_NARROW_INSET_DP : TILE_INSET_DP, !narrow, 1f);
     }
 
     private static float share(int room, int height) { return height <= 0 ? 1 : Math.max(0, room) / (float) height; }
