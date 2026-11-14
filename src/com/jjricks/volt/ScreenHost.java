@@ -36,6 +36,8 @@ public interface ScreenHost {
         return sheetContent(title.render(), explanation == null ? null : explanation.render(), close);
     }
     android.app.AlertDialog showSheet(android.view.View content);
+    /** One of the host's own sheets or dialogs is showing over the screen right now (riding mode's alert banner waits). */
+    default boolean dialogShowing() { return false; }
     default void exportDashboardLayouts() { }
     default void importDashboardLayouts() { }
     /** Opens the owner's email app with a draft to Volt's report address; false when no app can. */

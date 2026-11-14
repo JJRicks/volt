@@ -108,8 +108,11 @@ public final class ScooterService extends Service {
      * Both render when shown (plan R2); alertTitle and alertText stay the empty text shown before any alert fired.
      */
     private AlertShown alertShown,pendingChargeAlert;
-    /** The alert riding mode's banner shows (RidingAlert): when it took it, whether the alarm sounded then, and its number. */
-    private AlertShown ridingAlert;private RidingAlert.Seen ridingAlertSeen;private long ridingAlertId;private boolean ridingAlertSounded;
+    /**
+     * The alert riding mode's banner shows (RidingAlert): when it took it, whether the alarm sounded then, its number,
+     * and whether the banner has put it on screen yet (a silent one waits while Volt's sheet or dialog covers riding mode).
+     */
+    private AlertShown ridingAlert;private RidingAlert.Seen ridingAlertSeen;private long ridingAlertId;private boolean ridingAlertSounded,ridingAlertOnScreen;
     /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
     private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
@@ -1244,12 +1247,14 @@ public final class ScooterService extends Service {
      */
     public boolean showChargeAlertInRiding(){
         AlertShown alert=pendingChargeAlert;if(alert==null)return false;
-        ridingAlert=alert;ridingAlertSeen=new RidingAlert.Seen();ridingAlertSounded=alarmPlaying();ridingAlertId++;
+        ridingAlert=alert;ridingAlertSeen=new RidingAlert.Seen();ridingAlertSounded=alarmPlaying();ridingAlertOnScreen=false;ridingAlertId++;
         return true;
     }
+    /** The banner put this alert on screen: from now on leaving riding mode counts it as shown. */
+    public void ridingAlertOnScreen(long id){if(ridingAlert!=null&&id==ridingAlertId)ridingAlertOnScreen=true;}
     /**
      * Riding mode's banner while it shows, else null; one whose time has passed is dropped, so it never shows again.
-     * inView: riding mode is in front with nothing over it; only that time counts toward a silent banner's ten seconds.
+     * inView: no sheet or dialog of Volt's covers riding mode; only that time counts toward a silent banner's ten seconds.
      */
     public RidingAlert ridingAlert(long nowMs,boolean inView){
         AlertShown alert=ridingAlert;if(alert==null)return null;
@@ -1265,13 +1270,17 @@ public final class ScooterService extends Service {
     /**
      * Riding mode closed with its banner up: the alert counts as shown (no dialog follows) and the alarm keeps its own
      * timeout. So the sound can still be stopped, the alert's notice carries Stop while it sounds, as out of sight;
-     * where Android shows Volt no notice, nothing could stop it, so it ends now.
+     * where Android shows Volt no notice, nothing could stop it, so it ends now. A silent alert still waiting behind
+     * Volt's sheet or dialog was never seen: it goes back to Volt's usual path (RidingAlert.leave), Home's message in
+     * view (a newer pending alert wins, as ever) or the alert notification out of view, so it is never lost.
      */
     public void ridingModeClosed(){
-        boolean showing=ridingAlert!=null;ridingAlert=null;
+        AlertShown held=ridingAlert;boolean unseen=held!=null&&!ridingAlertOnScreen;ridingAlert=null;
         if(destroyed)return;
-        RidingAlert.Leave leave=RidingAlert.leave(showing,alarmPlaying(),alertNotificationsAllowed());
+        RidingAlert.Leave leave=RidingAlert.leave(held!=null,unseen,alarmPlaying(),visible,chargeAlerts().notify,alertNotificationsAllowed());
         if(leave==RidingAlert.Leave.NOTICE)alertNotice(false);else if(leave==RidingAlert.Leave.STOP)stopChargeAlarm();
+        else if(leave==RidingAlert.Leave.POST&&held==alertShown)alertNotice(true);
+        else if(leave!=RidingAlert.Leave.NOTHING&&pendingChargeAlert==null)pendingChargeAlert=held;
     }
     /** Stop watching: no charge alert for the rest of this charge; the alert stays on for the next one. */
     public void skipChargeAlert(){

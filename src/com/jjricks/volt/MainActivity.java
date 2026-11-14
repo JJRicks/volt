@@ -3744,7 +3744,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         Intent send=new Intent(Intent.ACTION_SEND);send.setType("message/rfc822");send.putExtras(mail);
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
+    /** The sheets and dialogs shown through showSheet, showTallSheet and styleDialog, held weakly, for dialogShowing. */
+    private final java.util.Set<Dialog> shownDialogs=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /**
+     * One of this activity's sheets or dialogs is showing: riding mode's silent alert banner waits under it (its time
+     * held) and shows once it closes. Asked anew on every look, so however a dialog goes, it stops counting at once.
+     */
+    @Override public boolean dialogShowing(){
+        for(Dialog d:new Dialog[]{scanDialog,controlDialog,missedStartDialog,scheduleTestDialog,chargeAlertDialog,quickMenuDialog,reportDialog,tallSheet})if(d!=null&&d.isShowing())return true;
+        for(Dialog d:shownDialogs)if(d.isShowing())return true;
+        return false;
+    }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        shownDialogs.add(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);
@@ -3790,7 +3802,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
             window.getDecorView().setPadding(0,0,0,0);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
@@ -3815,7 +3827,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // The keyboard waits for a tap on the search box; while it is up, the sheet rises so the results above it stay in view.
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,tallSheetHeight());
         tallSheet=dialog;
         // Volt's window changes size without being recreated (configChanges): follow it, keeping the sheet's answer and check.

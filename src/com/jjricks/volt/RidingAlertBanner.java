@@ -22,7 +22,8 @@ import java.util.Map;
  *
  * It holds a battery icon, the alert's title and, while the alarm sounds, Stop sound; otherwise a close button. What
  * shows and for how long is ScooterService's RidingAlert: a silent alert hides after ten seconds in view, a sounding
- * one when the sound ends. The title steps down the narrow-label ladder (full, short, then the icon alone) and Stop
+ * one when the sound ends. A silent alert waits, and its time stops, only while Volt's own sheet or dialog covers
+ * riding mode (sheetOver); beside another app in split screen, or under the notification shade, it shows at once. The title steps down the narrow-label ladder (full, short, then the icon alone) and Stop
  * sound to Stop; neither wraps nor shrinks below the readable floor. TalkBack reads the alert as it appears.
  *
  * Where it sits (RidingAlert.inline): over the top bar between back and the scooter's warning chip, covering the
@@ -47,6 +48,8 @@ final class RidingAlertBanner {
     private final FrameLayout close;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable tick = this::refresh;
+    /** Volt's own sheet or dialog (the tune sheet, a message) is over riding mode; read on every look, never cached. */
+    private final java.util.function.BooleanSupplier sheetOver;
     /** The top bar, its back button and the scooter's warning chip, which the banner never covers. */
     private ViewGroup top;
     private View back, chip;
@@ -58,10 +61,14 @@ final class RidingAlertBanner {
     private float shortTitleWidth;
     private boolean closed;
 
-    /** @param sp the title's and the button's text size, riding mode's capped label size */
-    RidingAlertBanner(Context context, Ui ui, ScooterService service, float sp) {
+    /**
+     * @param sp the title's and the button's text size, riding mode's capped label size
+     * @param sheetOver whether Volt's own sheet or dialog is showing over riding mode right now
+     */
+    RidingAlertBanner(Context context, Ui ui, ScooterService service, float sp, java.util.function.BooleanSupplier sheetOver) {
         this.ui = ui;
         this.service = service;
+        this.sheetOver = sheetOver;
         holder = new FrameLayout(context);
         banner = new LinearLayout(context);
         banner.setOrientation(LinearLayout.HORIZONTAL);
@@ -135,13 +142,15 @@ final class RidingAlertBanner {
     void refresh() {
         if (closed) return;
         handler.removeCallbacks(tick);
-        // Riding mode in front with no sheet, dialog or other window over it: only then does a silent banner's time run.
-        boolean inView = holder.hasWindowFocus();
-        RidingAlert alert = service == null ? null : service.ridingAlert(SystemClock.elapsedRealtime(), inView);
+        // Only Volt's own sheet or dialog holds a silent banner's time, never another app's focus: in split screen
+        // beside a map, or under the notification shade, Volt is in view and posts no notice, so the banner must show.
+        boolean over = sheetOver.getAsBoolean();
+        RidingAlert alert = service == null ? null : service.ridingAlert(SystemClock.elapsedRealtime(), !over);
         if (alert == null) { hide(); return; }
         boolean sounding = service.chargeAlarmPlaying();
-        if (alert.id != shown && !sounding && !inView) {
-            // A silent alert waits for the sheet or dialog over riding mode to close; it then shows for its ten seconds.
+        if (alert.id != shown && RidingAlert.waits(sounding, over)) {
+            // A silent alert waits for the sheet or dialog to close; it then shows for its ten seconds. Looked at again
+            // every half second, so however the sheet or dialog goes, it shows within that.
             hide();
             handler.postDelayed(tick, TICK_MS);
             return;
@@ -160,6 +169,7 @@ final class RidingAlertBanner {
             shortTitleWidth = floor.measureText(shortest, 0, shortest.length());
             banner.setVisibility(View.VISIBLE);
             shown = alert.id;
+            service.ridingAlertOnScreen(alert.id);
             // Set after it shows: the live region speaks the change.
             banner.setContentDescription(alert.spoken());
         }

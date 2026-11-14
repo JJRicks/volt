@@ -10,6 +10,7 @@ public final class RidingAlertTest {
         sounding();
         replaced();
         seen();
+        waits();
         placement();
         titles();
         leaving();
@@ -49,7 +50,18 @@ public final class RidingAlertTest {
         check(second.tick(T0 + 12_000, true) == 3_000L, "a fresh clock for the newer alert");
     }
 
-    /** Time under the riding settings sheet, a dialog or another window doesn't count toward the silent ten seconds. */
+    /**
+     * Only Volt's own sheet or dialog over riding mode holds a silent alert back; another app's focus never does
+     * (split screen beside a map, the notification shade: Volt is in view and posts no notice). A sounding one never waits.
+     */
+    private static void waits() {
+        check(RidingAlert.waits(false, true), "silent under Volt's sheet or dialog: waits");
+        check(!RidingAlert.waits(false, false), "silent, nothing of Volt's over it (unfocused beside another app): shows at once");
+        check(!RidingAlert.waits(true, true), "sounding under the sheet: shows at once, with its Stop sound");
+        check(!RidingAlert.waits(true, false), "sounding: shows at once");
+    }
+
+    /** Time under Volt's own sheet or dialog doesn't count toward the silent ten seconds. */
     private static void seen() {
         RidingAlert.Seen clock = new RidingAlert.Seen();
         check(clock.tick(T0, false) == 0, "fired under the sheet: no time yet");
@@ -92,14 +104,30 @@ public final class RidingAlertTest {
         check(new RidingAlert(ChargeAlertPolicy.Event.LOW, 30, 1, T0, false, null).text.isEmpty(), "no sentence is empty, not null");
     }
 
-    /** Leaving riding mode: counted as shown, the alarm keeps its timeout with the notice's Stop, or stops when no notice can show. */
+    /**
+     * Leaving riding mode: counted as shown, the alarm keeps its timeout with the notice's Stop, or stops when no notice
+     * can show; an alert still waiting unseen behind Volt's sheet or dialog goes back to Volt's usual path, never lost.
+     * leave(held, unseen, sounding, visible, notify, noticesAllowed).
+     */
     private static void leaving() {
-        check(RidingAlert.leave(true, true, true) == RidingAlert.Leave.NOTICE, "sounding with notices: the notice carries Stop");
-        check(RidingAlert.leave(true, true, false) == RidingAlert.Leave.STOP, "sounding with notifications off: nothing else could stop it");
-        check(RidingAlert.leave(true, false, true) == RidingAlert.Leave.NOTHING, "silent: nothing to do");
-        check(RidingAlert.leave(true, false, false) == RidingAlert.Leave.NOTHING, "silent, notices off: nothing to do");
-        check(RidingAlert.leave(false, true, true) == RidingAlert.Leave.NOTHING, "no banner: another alarm is left alone");
-        check(RidingAlert.leave(false, false, false) == RidingAlert.Leave.NOTHING, "nothing at all");
+        check(RidingAlert.leave(true, false, true, true, true, true) == RidingAlert.Leave.NOTICE, "sounding with notices: the notice carries Stop");
+        check(RidingAlert.leave(true, false, true, true, true, false) == RidingAlert.Leave.STOP, "sounding with notifications off: nothing else could stop it");
+        check(RidingAlert.leave(true, false, true, false, false, true) == RidingAlert.Leave.NOTICE, "sounding, out of view, Notify me off: still the notice's Stop");
+        check(RidingAlert.leave(true, false, false, true, true, true) == RidingAlert.Leave.NOTHING, "silent, seen: nothing to do");
+        check(RidingAlert.leave(true, false, false, true, true, false) == RidingAlert.Leave.NOTHING, "silent, seen, notices off: nothing to do");
+        check(RidingAlert.leave(false, false, true, true, true, true) == RidingAlert.Leave.NOTHING, "no banner: another alarm is left alone");
+        check(RidingAlert.leave(false, false, false, false, false, false) == RidingAlert.Leave.NOTHING, "nothing at all");
+        // Held behind the tune sheet or a dialog, never on screen, and riding mode closed (Back, a recording ending).
+        check(RidingAlert.leave(true, true, false, true, true, true) == RidingAlert.Leave.DIALOG, "unseen, in view: Home's message, as off riding mode");
+        check(RidingAlert.leave(true, true, false, true, true, false) == RidingAlert.Leave.DIALOG, "unseen, in view, notices off: Home's message");
+        check(RidingAlert.leave(true, true, false, false, true, true) == RidingAlert.Leave.POST, "unseen, out of view, Notify me: the alert notification");
+        check(RidingAlert.leave(true, true, false, false, true, false) == RidingAlert.Leave.DIALOG, "unseen, out of view, notices off: the message waits for Volt");
+        check(RidingAlert.leave(true, true, false, false, false, true) == RidingAlert.Leave.DIALOG, "unseen, out of view, Notify me off: the message waits for Volt");
+        for (boolean sounding : new boolean[]{false, true})
+            for (boolean visible : new boolean[]{false, true})
+                for (boolean notify : new boolean[]{false, true})
+                    for (boolean allowed : new boolean[]{false, true})
+                        check(RidingAlert.leave(true, true, sounding, visible, notify, allowed) != RidingAlert.Leave.NOTHING, "an unseen alert is never dropped");
     }
 
     private static void same(String[] got, String[] want, String what) {

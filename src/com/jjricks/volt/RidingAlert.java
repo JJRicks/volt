@@ -7,7 +7,8 @@ package com.jjricks.volt;
  *
  * While the alarm sounds the banner stays, with Stop sound. An alert that sounded hides once the sound ends (Stop
  * sound, or the alarm's own timeout); a silent one hides by itself once it has been in view for SILENT_MS. Time
- * under the riding settings sheet, a dialog or another window doesn't count (Seen). Pure, so the host tests run it.
+ * under Volt's own sheet or dialog over riding mode doesn't count (Seen); time beside another app in split screen,
+ * or under the notification shade, does. Pure, so the host tests run it.
  */
 final class RidingAlert {
     /** How long a silent alert's banner shows. */
@@ -48,8 +49,18 @@ final class RidingAlert {
     }
 
     /**
-     * A banner's time in view: it counts only while riding mode is in front with nothing over it (window focus), so
-     * an alert that fires under the settings sheet, or a dialog, still gets its ten seconds once that closes.
+     * Whether a silent alert the banner hasn't shown yet waits: only while Volt's own sheet or dialog (the tune sheet,
+     * a missed-start message) covers riding mode, so it gets its ten seconds once that closes. Riding mode beside
+     * another app that has focus, or under the notification shade, shows it at once: Volt is in view there and posts
+     * no notice. A sounding alert never waits, so its Stop sound is always there.
+     */
+    static boolean waits(boolean sounding, boolean covered) {
+        return !sounding && covered;
+    }
+
+    /**
+     * A banner's time in view: it counts unless Volt's own sheet or dialog covers riding mode, so an alert that fires
+     * under the tune sheet, or a dialog, still gets its ten seconds once that closes.
      */
     static final class Seen {
         private long ms, lastMs = -1;
@@ -80,17 +91,26 @@ final class RidingAlert {
         return T.ridingAlertSpoken(titles()[0], text);
     }
 
-    /** What leaving riding mode does with its banner's alarm (ScooterService.ridingModeClosed). */
-    enum Leave { NOTHING, NOTICE, STOP }
+    /**
+     * What leaving riding mode does with its banner's alert (ScooterService.ridingModeClosed): nothing; the alarm's
+     * Stop on the alert notice; stop the alarm; or, for an alert the rider never saw, Volt's usual way for an alert
+     * that fires then: the message in the app (DIALOG) while Volt is in view, else the alert notification (POST).
+     */
+    enum Leave { NOTHING, NOTICE, STOP, DIALOG, POST }
 
     /**
-     * Riding mode closed while its banner showed (showing): the alert counts as shown and no dialog follows, and a
-     * sounding alarm keeps its own timeout, with the alert notice's Stop to end it sooner. Where Android shows Volt no
-     * notice, nothing would be left to stop it, so it stops now.
+     * Riding mode closed while it held an alert (held). A sounding alarm keeps its own timeout, with the alert
+     * notice's Stop to end it sooner; where Android shows Volt no notice, nothing would be left to stop it, so it
+     * stops now. A silent alert the banner showed counts as shown: nothing follows. One that was still waiting
+     * (unseen: Volt's sheet or dialog was over riding mode) is never dropped: in view it becomes the in-app message
+     * Home shows; out of view the alert notification when Notify me is on and Android shows Volt's notices, otherwise
+     * the message waiting for Volt's next visit.
      */
-    static Leave leave(boolean showing, boolean sounding, boolean noticesAllowed) {
-        if (!showing || !sounding) return Leave.NOTHING;
-        return noticesAllowed ? Leave.NOTICE : Leave.STOP;
+    static Leave leave(boolean held, boolean unseen, boolean sounding, boolean visible, boolean notify, boolean noticesAllowed) {
+        if (!held) return Leave.NOTHING;
+        if (sounding) return noticesAllowed ? Leave.NOTICE : Leave.STOP;
+        if (!unseen) return Leave.NOTHING;
+        return !visible && notify && noticesAllowed ? Leave.POST : Leave.DIALOG;
     }
 
     /**
