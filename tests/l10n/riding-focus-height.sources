@@ -1,0 +1,5 @@
+# Focus's speed row with chips beside the big number (the owner, Nov 14): the row shrinks to the height it needs and the
+# rows under it share the rest. tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each
+# tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/RidingFocusHeight.java
+tests/l10n/RidingFocusHeightTest.java
