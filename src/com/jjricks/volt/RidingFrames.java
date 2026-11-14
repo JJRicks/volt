@@ -28,14 +28,27 @@ final class RidingFrames {
     /** Halo's strip of small readings, in order. */
     static final List<String> HALO_STRIP = Collections.unmodifiableList(Arrays.asList("strip_1", "strip_2"));
     static final List<String> HALO_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
+    /** Trace's first two chips, as they always were; its whole column, a third included, is TRACE_COLUMN. */
     static final List<String> TRACE_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2"));
+    /** Trace's whole column of chips, stacked beside the speed: its two, then a third (a tester, Nov 14), None by default. */
+    static final List<String> TRACE_COLUMN = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
+    /** Focus's chips under the speed (RidingChipPlace); every one None until the rider picks a reading. */
+    static final List<String> FOCUS_CHIPS = Collections.unmodifiableList(Arrays.asList("chip_1", "chip_2", "chip_3"));
     static final List<String> TILES = Collections.unmodifiableList(Arrays.asList("tile_1", "tile_2"));
     /** Below this speed (km/h) the rider counts as stopped for the picker, with the scooter's own stationary state. */
     static final double STOPPED_KMH = 1;
     /** 4 mph in km/h: at this speed or more, an open tune menu closes, in any display unit (owner, Nov 9). */
     static final double MENU_CLOSE_KMH = 6.437;
-    /** The stopped controls' widest row, dp, so the lock's slide stays a sensible length on a tablet. */
-    static final float STOPPED_CONTROLS_MAX_DP = 320;
+    /**
+     * The stopped controls' widest Lock and Record side by side, dp, so the lock's slide stays a sensible length on a
+     * tablet; a wider slot keeps Record at its far end (the row spans its slot).
+     */
+    static final float STOPPED_CONTROLS_MAX_DP = 560;
+    /**
+     * The stacked Lock and Record column's widest, dp: the cap it always had. It shared the side-by-side cap, so raising
+     * that to 560 let a stacked Lock stretch to 560 dp in a wide window (the council on #493).
+     */
+    static final float STOPPED_CONTROLS_STACKED_MAX_DP = 320;
 
     /**
      * The ring's top in the rider's unit: the larger of 20 mph (30 km/h) and the fastest speed seen,

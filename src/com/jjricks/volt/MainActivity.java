@@ -98,6 +98,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private FrameLayout root,pageFrame;
     private ScrollView scroll;
     private AppScreen screen;
+    /** Returns to the app (onResume): Battery & charging's HISTORY card loads again after each (ControlsScreen.refreshHistory). */
+    private int resumes;
     /** First-run setup; while it is showing there is no header or tab bar. */
     private OnboardingScreen onboarding;
     /** Open riding mode (Home's RIDE button): kept across rotations and rebuilds; null when closed. */
@@ -302,7 +304,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
     private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
+        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         if(onTab(HubPages.SETTINGS)){boolean expired=expireMoreSection(true);markMoreActive();if(expired)rebuild();}
         if(onTab(HubPages.DATA)){boolean expired=expireStatsSection(true);markStatsActive();if(expired)rebuild();}
@@ -338,7 +340,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
+        if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -474,6 +478,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
+        for (ChargeDoneRow row : doneSheetRows) row.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -521,7 +526,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(RidingSession.Resume.restoresHome(ridingResume,scooterService.rideAutoEnds(),scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(RidingSession.Resume.restoresHome(ridingResume,scooterService.rideAutoEnds(),scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;scooterService.ridingModeClosed();showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
@@ -764,7 +769,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void riderClosedRiding(){if(riding!=null&&scooterService!=null)scooterService.autoStart.riderLeftRidingMode();closeRiding();}
     private void closeRiding(){
         if(riding==null)return;
-        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);
+        // Its battery alert banner goes with it, counted as shown (ScooterService.ridingModeClosed).
+        if(scooterService!=null)scooterService.ridingModeClosed();
+        transitionRebuild(0);
     }
     /** A recording that ended by itself closes the riding mode that was open for it, with no auto-open hold. True when it did. */
     private boolean dropAutoEndedRiding(){
@@ -772,7 +780,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropRiding();return true;
     }
     /** Closes to Home with no auto-open hold: Volt's decision, not the rider's. */
-    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}
+    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);
+        scooterService.ridingModeClosed();
+    }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){
         if(!selectedPage.equals(HubPages.HOME))return makeCompactHeader();
@@ -1097,7 +1107,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout line=row();line.setGravity(Gravity.CENTER_VERTICAL);line.setMinimumHeight(design.dp(40));
         TextView name=design.text(label,14,false);name.setTextColor(design.muted);line.addView(name,new LinearLayout.LayoutParams(0,-2,1));
         TextView shown=design.text(value,14,true);shown.setGravity(Gravity.END);line.addView(shown,new LinearLayout.LayoutParams(-2,-2));
-        line.setFocusable(true);line.setContentDescription(T.mainLabelValue(label,value));
+        line.setFocusable(true);line.setContentDescription(labelValue(label,value));
         parent.addView(line,new LinearLayout.LayoutParams(-1,-2));return shown;
     }
     private LinearLayout.LayoutParams connectionIcon(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(16),design.dp(16));p.setMarginEnd(design.dp(8));return p;}
@@ -2057,7 +2067,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final ControlsPages.Spec spec;
         private final LinearLayout view=column();
         private final ArrayList<ControlRow> rows=new ArrayList<>();
-        private final ArrayList<ChargeDoneRow> chargeRows=new ArrayList<>();
+        /** Battery & charging's one Charge done by row (ControlsPages.CHARGE_DONE): the time or Off; it opens the sheet with both rows. */
+        private ChargeDoneRow doneBy;
+        /** Battery & charging's HISTORY card (ControlsPages.CHARGE_HISTORY); null on other pages. */
+        private final ChargeHistoryCard history;
+        /** What the HISTORY card last loaded for (scooter and whether a charge was recording), and whether a load is out. */
+        private String historyKey;private boolean historyLoading;
+        /** A load that failed (refused during data maintenance, or a read error) is tried again after this time. */
+        private long historyRetryAt;
         private final LinkedHashMap<String,LinearLayout> sections=new LinkedHashMap<>(), bodies=new LinkedHashMap<>();
         private final LinkedHashMap<String,TextView> labels=new LinkedHashMap<>();
         private final LinkedHashMap<View,String[]> extras=new LinkedHashMap<>();
@@ -2077,6 +2094,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final java.util.HashMap<View,View> gluedBelow=new java.util.HashMap<>(),gluedTo=new java.util.HashMap<>();
         /** The page's own card, its rows in the spec's order; null on the index. */
         private final LinearLayout pageBody;
+        /** The page's last card of rows when it has more than one (ControlsPages.cards: the trailing links); null when they share it. */
+        private final LinearLayout linksBody;
+        /** Every card of rows the page places, pageBody first (the HISTORY card is not one). */
+        private final ArrayList<LinearLayout> cardBodies=new ArrayList<>();
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
@@ -2135,11 +2156,12 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // where another model maps them normally; maximum_speed's row replaces the top speed card the same way.
                 if(f.key.equals("lock")||f.key.equals("pin")||f.key.equals("proximity_key"))continue;
                 ControlRow control=new ControlRow(f);rows.add(control);addRow(groupOf(f),control.card);rowId(f.key,control.card);
-                if(f.key.equals("timed_charging")||f.key.equals("charge_start")){
-                    ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));chargeRows.add(done);
-                    addRow("Battery",done.row.card);gluedBelow.put(control.card,done.row.card);gluedTo.put(done.row.card,control.card);
-                    extras.put(done.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
-                    shownExtras.put(done.row.card,new String[]{T.mainSearchDoneBy(),T.mainScheduleDoneBy()});
+                // One Charge done by row follows the charging schedule's rows (the Layout Plan); its sheet holds the switch and the time.
+                if(f.key.equals("charge_start")){
+                    doneBy=new ChargeDoneRow(false,true);
+                    addRow("Battery",doneBy.row.card);rowId(ControlsPages.CHARGE_DONE,doneBy.row.card);
+                    extras.put(doneBy.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
+                    shownExtras.put(doneBy.row.card,new String[]{T.mainSearchDoneBy(),doneByTitle()});
                 }
             }
             // Lights page: a read-only first row says the front headlight is switched on the scooter itself.
@@ -2198,29 +2220,79 @@ public final class MainActivity extends Activity implements ScreenHost {
                 addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
                 shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
             }
-            pageBody=spec.search?null:design.groupCard();
-            if(pageBody!=null){
-                for(String id:spec.rows){
-                    String target=ControlsPages.linkTarget(id);
-                    if(target!=null){place(linkRow(target));continue;}
-                    View card=rowViews.get(id);if(card==null)continue;
-                    place(card);View done=gluedBelow.get(card);if(done!=null)place(done);
-                    // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
-                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(entry);}
+            // The Layout Plan's cards (ControlsPages.cards): the rows, then the sub-page links in a card of their own under
+            // them; Battery & charging's HISTORY card stands alone between its CHARGING rows and the rest.
+            java.util.List<java.util.List<String>> cardRows=spec.search?java.util.Collections.<java.util.List<String>>emptyList():ControlsPages.cards(spec);
+            ChargeHistoryCard historyCard=null;
+            for(java.util.List<String> ids:cardRows){
+                // The plan's CHARGING label over Battery & charging's first card (the rows above HISTORY).
+                if(HubPages.BATTERY.equals(spec.page)&&ids==cardRows.get(0)&&!ids.contains(ControlsPages.CHARGE_HISTORY))
+                    view.addView(design.sectionLabel(DashboardConfig.chargingLabel()));
+                if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
+                    view.addView(design.sectionLabel(RidesScreen.historyLabel()));
+                    historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
+                    // Tagged as the link it stands in for, so the walk that opens sub-pages by their link finds it.
+                    historyCard.card.setTag("hub-link-"+HubPages.BATTERY_HISTORY);
+                    view.addView(historyCard.card);continue;
                 }
-                view.addView(pageBody,new LinearLayout.LayoutParams(-1,-2));
+                LinearLayout body=design.groupCard();cardBodies.add(body);
+                for(String id:ids){
+                    String target=ControlsPages.linkTarget(id);
+                    if(target!=null){place(body,linkRow(target));continue;}
+                    if(ControlsPages.USABLE_ENERGY.equals(id)){place(body,usableEnergyRow());continue;}
+                    View card=rowViews.get(id);if(card==null)continue;
+                    place(body,card);View done=gluedBelow.get(card);if(done!=null)place(body,done);
+                    // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
+                    for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(body,entry);}
+                }
+                LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+                // Cards in a run sit 10 dp apart; after the HISTORY card its own bottom margin keeps the gap.
+                if(!cardBodies.isEmpty()&&cardBodies.size()>1&&view.getChildAt(view.getChildCount()-1)==cardBodies.get(cardBodies.size()-2))params.topMargin=design.dp(10);
+                view.addView(body,params);
             }
+            history=historyCard;
+            pageBody=cardBodies.isEmpty()?null:cardBodies.get(0);
+            linksBody=cardBodies.size()>1?cardBodies.get(cardBodies.size()-1):null;
+            // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
+            if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:cardBodies)
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLine(body.getChildAt(i));if(line!=null)line.bare();}
+            // The Controls pages' tiles are the plan's raised squares with an accent-text glyph.
+            if(ControlsPages.raisedTiles(spec.page))for(LinearLayout body:cardBodies)
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLine(body.getChildAt(i));if(line!=null)line.raise();}
+            emphasizeLimit();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
         }
-        /** Moves a row into the page's card (out of its section body, whose divider stays behind), with a divider before it. */
-        private void place(View card){
+        /**
+         * Battery & charging's Charge limit shows its value semibold in the text colour, as the Layout Plan draws it
+         * ("90 %"); a muted name (blocked or last seen) keeps the value muted. Again on each refresh.
+         */
+        private void emphasizeLimit(){
+            if(ControlsPages.iconTiles(spec.page))return;
+            for(ControlRow control:rows)if(control.feature.key.equals("charge_limit")&&control.card.getParent()!=null){
+                control.value.setTextColor(control.name.getCurrentTextColor()==design.text?design.text:design.muted);
+                control.value.setTypeface(design.semibold());
+            }
+        }
+        /** Moves a row into one of the page's cards (out of its section body, whose divider stays behind), with a divider before it. */
+        private void place(LinearLayout body,View card){
             if(card.getParent() instanceof ViewGroup)((ViewGroup)card.getParent()).removeView(card);
-            if(pageBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(card);pageBody.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}
-            pageBody.addView(card);
+            if(body.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(card);body.addView(line,new LinearLayout.LayoutParams(-1,design.dp(1)));}
+            body.addView(card);
         }
         /** A row that opens one of this page's sub-pages. */
         private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
+        /**
+         * Battery & charging's Usable ride energy row (ControlsPages.USABLE_ENERGY), with the Experimental tag after its
+         * name as the Layout Plan draws it; it opens Estimates & charger, where the panel is.
+         */
+        private View usableEnergyRow(){
+            String name=DashboardScreen.usableEnergyTitle();
+            SettingLine row=new SettingLine("battery",name,null);row.tag(HubText.experimentalBadge().toString());
+            row.chevron(()->open(HubPages.BATTERY_ESTIMATES));
+            row.line.setContentDescription(HubText.experimentalRowDescription(name));row.line.setTag("battery-usable-energy-row");
+            rowId(ControlsPages.USABLE_ENERGY,row.card);return row.card;
+        }
         private View linkCard(String target){
             SettingLine link=new SettingLine(linkIcon(target),HubText.rowTitle(target),null);link.chevron(()->open(target));
             link.line.setTag("hub-link-"+target);return link.card;
@@ -2241,8 +2313,8 @@ public final class MainActivity extends Activity implements ScreenHost {
          */
         private View labEntry(ScooterCommands.Feature feature){
             SettingLine entry=new SettingLine(design.featureIcon(feature.key),feature.label(),null);
-            // The badge sits under the name on every entry (beside a short name it moved to the row's end).
-            entry.setSub(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
+            // The badge follows the name on its line where both fit, and sits under the name otherwise (SettingLine.tag).
+            entry.tag(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
         }
@@ -2269,6 +2341,37 @@ public final class MainActivity extends Activity implements ScreenHost {
             View card=rowViews.get(id);
             for(ControlRow row:rows)if(row.card==card)return rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab);
             return true;
+        }
+        /**
+         * The HISTORY card's charges: loaded off the main thread from the saved charge recordings when the page opens,
+         * and again when the scooter changes, a recording ends or the app comes back, so a finished charge shows up.
+         */
+        private void refreshHistory(){
+            if(history==null||historyLoading)return;
+            String profile=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
+            // Each return to the app loads again (resumes): a charge recorded wholly in the background then shows up.
+            String key=profile+"|"+(scooterService!=null&&scooterService.isChargeRecording())+"|"+resumes;
+            if(key.equals(historyKey))return;
+            if(historyKey==null&&SystemClock.uptimeMillis()<historyRetryAt)return;
+            historyKey=key;
+            if(scooterService==null||profile.isEmpty()){showHistory(false,null);return;}
+            historyLoading=true;
+            // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": the card says it
+            // could not load them, as the Charge history dialog does, and forgets the key so a later refresh loads again.
+            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;
+                    // The scooter changed mid-load (the service answers null then too): load the new scooter's at once,
+                    // not "Could not load recordings." and a 5 s wait.
+                    String now=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
+                    if(sessions==null&&!key.startsWith(now+"|")){if(key.equals(historyKey))historyKey=null;refreshHistory();return;}
+                    if(sessions==null)historyFailed(key);showHistory(sessions==null,sessions);}))
+                {historyLoading=false;historyFailed(key);showHistory(true,null);}
+        }
+        private void historyFailed(String key){if(key.equals(historyKey))historyKey=null;historyRetryAt=SystemClock.uptimeMillis()+5000;}
+        private void showHistory(boolean failed,java.util.List<ChargeSessionStore.HistorySession> sessions){
+            ArrayList<ChargeHistoryBars.Charge> charges=new ArrayList<>();
+            if(sessions!=null)for(ChargeSessionStore.HistorySession session:sessions)charges.add(ChargeHistoryBars.of(session));
+            String line=ChargeHistoryDialog.historyCardLine(ChargeHistoryBars.line(failed,charges),ChargeHistoryBars.last(charges));
+            history.show(charges,line,labelValue(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(),line));
         }
         private void refreshMaintenance(){
             MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
@@ -2310,6 +2413,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
             if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
+            if(linksBody!=null)linksBody.setVisibility(hideDividers(linksBody)?View.VISIBLE:View.GONE);
+            for(LinearLayout body:cardBodies)if(body!=pageBody&&body!=linksBody)body.setVisibility(hideDividers(body)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
@@ -2338,11 +2443,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             return false;
         }
         @Override public View view(){return view;}
-        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}choiceSheet=null;}
+        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
         @Override public void refresh(){
             refreshMaintenance();
-            for(ControlRow row:rows)row.refresh();
-            for(ChargeDoneRow row:chargeRows)row.refresh();
+            for(ControlRow row:rows)row.refresh();emphasizeLimit();
+            if(doneBy!=null)doneBy.refresh();refreshHistory();
             scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();chargeLive.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
@@ -2599,11 +2704,24 @@ public final class MainActivity extends Activity implements ScreenHost {
         design.pressFeedback(pill);
         return pill;
     }
+    /** "Label, value" as a row is spoken. */
+    private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
+    /**
+     * A SettingLine's card, which carries its own row, so a page can restyle the rows it places (ControlsScreen: icon
+     * tiles). The record lives on the view, not in a map the activity keeps: a closed page's rows go with its views.
+     */
+    private static final class SettingCard extends LinearLayout {
+        SettingLine line;
+        SettingCard(Context context){super(context);setOrientation(VERTICAL);}
+    }
+    /** The SettingLine whose card this is, or null. */
+    private static SettingLine settingLine(View card){return card instanceof SettingCard?((SettingCard)card).line:null;}
     /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
     private final class SettingLine {
-        final LinearLayout card=column(),line=row(),words=column();
+        final LinearLayout card=new SettingCard(MainActivity.this),line=row(),words=column();
         final TextView name,sub,value;
         SettingLine(String icon,CharSequence label,CharSequence detail){
+            ((SettingCard)card).line=this;
             line.setGravity(Gravity.CENTER_VERTICAL);line.setBaselineAligned(false);line.setMinimumHeight(design.dp(60));line.setPadding(0,design.dp(8),0,design.dp(8));
             name=design.text(label,15,false);name.setMaxLines(2);design.decorate(name,icon);
             value=design.text("",14,false);value.setTextColor(design.muted);value.setGravity(Gravity.END);value.setMaxLines(1);
@@ -2611,6 +2729,22 @@ public final class MainActivity extends Activity implements ScreenHost {
             LinearLayout heading=new LinearLayout(MainActivity.this){
                 @Override protected void onMeasure(int widthSpec,int heightSpec){
                     int available=Math.max(0,MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight());
+                    if(sub.getParent()==this){
+                        // The EXPERIMENTAL tag (tag()): after the name on its line when both fit, else under the name.
+                        float titleWidth=android.text.Layout.getDesiredWidth(name.getText(),name.getPaint())+name.getCompoundPaddingLeft()+name.getCompoundPaddingRight();
+                        CharSequence shown=sub.getTransformationMethod()==null?sub.getText():sub.getTransformationMethod().getTransformation(sub.getText(),sub);
+                        float tagWidth=android.text.Layout.getDesiredWidth(shown,sub.getPaint())+sub.getCompoundPaddingLeft()+sub.getCompoundPaddingRight();
+                        boolean inline=MeasureSpec.getMode(widthSpec)==MeasureSpec.UNSPECIFIED
+                                ||Math.ceil(titleWidth)+design.dp(8)+Math.ceil(tagWidth)<=available;
+                        setOrientation(inline?HORIZONTAL:VERTICAL);
+                        LinearLayout.LayoutParams np=(LinearLayout.LayoutParams)name.getLayoutParams();
+                        np.width=inline?-2:-1;np.weight=0;
+                        LinearLayout.LayoutParams tp=(LinearLayout.LayoutParams)sub.getLayoutParams();
+                        tp.setMarginStart(inline?design.dp(8):name.getCompoundPaddingStart());tp.topMargin=inline?0:design.dp(4);
+                        tp.gravity=inline?Gravity.CENTER_VERTICAL:Gravity.START;tp.resolveLayoutDirection(getLayoutDirection());
+                        super.onMeasure(widthSpec,heightSpec);
+                        return;
+                    }
                     boolean hasValue=value.getVisibility()!=View.GONE&&value.length()>0;
                     float titleWidth=android.text.Layout.getDesiredWidth(name.getText(),name.getPaint())+name.getCompoundPaddingLeft()+name.getCompoundPaddingRight();
                     float valueWidth=android.text.Layout.getDesiredWidth(value.getText(),value.getPaint())+value.getCompoundPaddingLeft()+value.getCompoundPaddingRight();
@@ -2638,10 +2772,47 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         void chevron(Runnable action){
             View chevron=design.icon("chevron",15,design.muted);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(design.dp(15),design.dp(15));cp.leftMargin=design.dp(6);line.addView(chevron,cp);
+            // With a sub-line under the name, the chevron centres on the name's line, where the value sits, not on both lines.
+            words.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->alignChevron(chevron));
             line.setClickable(true);line.setFocusable(true);line.setBackground(rowRipple());line.setOnClickListener(v->action.run());
+        }
+        private void alignChevron(View chevron){
+            View heading=(View)name.getParent();LinearLayout.LayoutParams p=(LinearLayout.LayoutParams)chevron.getLayoutParams();
+            boolean twoLines=sub.getParent()==words&&sub.getVisibility()==View.VISIBLE&&heading.getHeight()>0;
+            int gravity=twoLines?Gravity.TOP:Gravity.CENTER_VERTICAL;
+            int margin=twoLines?Math.max(0,words.getTop()+heading.getTop()+(heading.getHeight()-design.dp(15))/2-line.getPaddingTop()):0;
+            if(p.gravity!=gravity||p.topMargin!=margin){p.gravity=gravity;p.topMargin=margin;chevron.setLayoutParams(p);}
+        }
+        /** The Layout Plan's raised icon tile (Ui.raiseIcon); the sub-line's indent follows the wider tile. */
+        void raise(){
+            design.raiseIcon(name);
+            // The name's line centres on the 33 dp tile (a TextView sets its text at the top beside a taller drawable), so
+            // it is level with the value, chevron and switch, which centre on the whole row.
+            name.setGravity((name.getGravity()&~Gravity.VERTICAL_GRAVITY_MASK)|Gravity.CENTER_VERTICAL);
+            // From the tile's own bounds: the name's compound padding is not resolved until it is laid out.
+            android.graphics.drawable.Drawable tile=name.getCompoundDrawablesRelative()[0];
+            if(tile!=null&&sub.getParent()==words&&sub.getPaddingStart()>0)
+                sub.setPaddingRelative(name.getPaddingStart()+tile.getBounds().width()+name.getCompoundDrawablePadding(),sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
         void setSub(CharSequence text){setSub(text==null?null:text.toString());}
+        /** No icon tile: the name and its sub-line start at the card's padding. */
+        void bare(){
+            android.graphics.drawable.Drawable[] old=name.getCompoundDrawablesRelative();
+            name.setCompoundDrawablesRelative(null,old[1],old[2],old[3]);name.setCompoundDrawablePadding(0);
+            // The EXPERIMENTAL tag keeps its pill's inner padding; its indent follows the name (the heading's onMeasure).
+            if(sub.getBackground()==null)sub.setPaddingRelative(0,sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
+            ViewGroup.LayoutParams p=sub.getLayoutParams();if(p instanceof ViewGroup.MarginLayoutParams)((ViewGroup.MarginLayoutParams)p).setMarginStart(0);
+        }
+        /**
+         * The sub-line as the Layout Plan's EXPERIMENTAL tag (Ui.experimentalTag): after the name on the same line when
+         * both fit, otherwise under the name where the icon tile's indent ends. Rows with a tag show no value.
+         */
+        void tag(CharSequence text){
+            setSub(text);design.experimentalTag(sub);
+            value.setVisibility(View.GONE);words.removeView(sub);
+            ((LinearLayout)name.getParent()).addView(sub,1,new LinearLayout.LayoutParams(-2,-2));
+        }
     }
     private boolean chargeAlertsOffered(){return scooterService!=null&&scooterService.chargeAlertsOffered();}
     /** Why an alert can't reach the owner now, or null; shared by the rows and the sheet. */
@@ -2682,13 +2853,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         void refresh(){
             boolean on=scooterService==null||scooterService.chargeLiveEnabled();
             String value=on?T.commonOn():T.commonOff();
-            String sub=on&&scooterService!=null&&!scooterService.chargeLiveAllowed()?T.mainAlertNotificationsOff():null;
+            // The warning first; else the Layout Plan's "On the lock screen" while the card shows there (PageRows.liveSub).
+            PageRows.LiveSub kind=PageRows.liveSub(on,scooterService==null||scooterService.chargeLiveAllowed(),
+                    scooterService!=null&&scooterService.chargeLiveDetail()==ChargeLiveState.Detail.HIDDEN);
+            String sub=kind==PageRows.LiveSub.NOTIFICATIONS_OFF?T.mainAlertNotificationsOff():kind==PageRows.LiveSub.LOCK_SCREEN?lockScreenTitle():null;
             if(!value.contentEquals(row.value.getText()))row.value.setText(value);
-            row.setSub(sub);row.sub.setTextColor(design.danger);
+            row.setSub(sub);row.sub.setTextColor(kind==PageRows.LiveSub.NOTIFICATIONS_OFF?design.danger:design.muted);
             row.line.setContentDescription(sub==null?T.mainLabelValue(T.chargeLiveRow(),value):T.mainLabelValueDetail(T.chargeLiveRow(),value,sub));
         }
     }
     private ChargeLiveSheet chargeLiveSheet;
+    /** "On the lock screen": the Live charging sheet's section and the row's sub-line while the card shows there. */
+    private String lockScreenTitle(){return T.chargeLiveLockTitle();}
     private void showChargeLive(){
         if(scooterService==null)return;
         if(controlDialog!=null)controlDialog.dismiss();
@@ -2713,7 +2889,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-2,-2);tp.leftMargin=design.dp(10);line.line.addView(toggle,tp);
             line.line.setClickable(true);line.line.setFocusable(true);line.line.setBackground(rowRipple());line.line.setOnClickListener(v->toggle.performClick());
             card.addView(line.card);
-            body.addView(design.sectionLabel(T.chargeLiveLockTitle()));
+            body.addView(design.sectionLabel(lockScreenTitle()));
             lock=new SegmentedSelector(design,T.chargeLiveLockTitle(),new String[]{T.chargeLiveLockDetails(),T.chargeLiveLockLevel(),T.chargeLiveLockHidden()},choice->{
                 if(scooterService==null){dialog().dismiss();return;}
                 scooterService.setChargeLiveDetail(ChargeLiveState.Detail.values()[choice]);
@@ -2890,9 +3066,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             catch(android.content.ActivityNotFoundException|SecurityException missing){toast(T.mainAlertOpenSettings());}
         }
     }
-    /** An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. */
+    /**
+     * An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. In riding
+     * mode it is riding mode's banner instead (RidingAlertBanner), so nothing covers the speed mid-ride.
+     */
     private void maybeShowChargeAlert(){
         if(scooterService==null||!resumed||onboarding!=null||chargeAlertDialog!=null&&chargeAlertDialog.isShowing())return;
+        if(riding!=null||ridingRestore){showChargeAlertInRiding();return;}
         String[] alert=scooterService.pendingChargeAlert();if(alert==null)return;
         boolean sounding=scooterService.chargeAlarmPlaying();
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(alert[0]).setMessage(alert[1])
@@ -2900,6 +3080,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.setOnDismissListener(d->{if(scooterService!=null)scooterService.stopChargeAlarm();if(chargeAlertDialog==dialog)chargeAlertDialog=null;});
         chargeAlertDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
         scooterService.chargeAlertShown();
+    }
+    /** Riding mode open (or about to be restored): the pending alert waits for riding mode's screen, then shows as its banner. */
+    private void showChargeAlertInRiding(){
+        if(riding==null||rebuilding||!(screen instanceof RidingScreen))return;
+        if(!scooterService.showChargeAlertInRiding())return;
+        scooterService.chargeAlertShown();
+        screen.refresh();
     }
     private boolean chargeDoneOffered(){
         return scooterService==null||scooterService.ble==null
@@ -3051,18 +3238,53 @@ public final class MainActivity extends Activity implements ScreenHost {
                 scheduleResult(result);
             });redraw();
         },charge.doneByMinuteOfDay/60,charge.doneByMinuteOfDay%60,DisplayTime.is24Hour(this,preferences));
-        picker.setTitle(T.mainScheduleDoneBy());controlDialog=picker;picker.show();
+        picker.setTitle(doneByTitle());controlDialog=picker;picker.show();
         styleDialogButton(picker.getButton(AlertDialog.BUTTON_POSITIVE),design.accent);
         styleDialogButton(picker.getButton(AlertDialog.BUTTON_NEGATIVE),design.muted);
     }
-    /** Local charge planning uses the same row and picker language as scooter-owned settings. */
+    /** The rows of the open Charge done by sheet (the switch, then the time); empty while it is closed. */
+    private final ArrayList<ChargeDoneRow> doneSheetRows=new ArrayList<>();
+    /**
+     * The open Charge done by sheet, kept apart from controlDialog: its time row opens the picker over it (which then
+     * becomes controlDialog), and the page's close and onDestroy still close the sheet.
+     */
+    private AlertDialog chargeDoneSheet;
+    private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
+    /** Battery & charging's Charge done by sheet: the on/off switch and the finish time, the rows the page used to show. */
+    private void showChargeDoneSheet(){
+        // No scooter: the time row's own answer (select a scooter first).
+        if(scooterService==null){showChargeDoneTime();return;}
+        if(controlDialog!=null)controlDialog.dismiss();
+        closeChargeDoneSheet();
+        final AlertDialog[] self=new AlertDialog[1];
+        LinearLayout body=sheetContent(doneByTitle(),null,()->{if(self[0]!=null)self[0].dismiss();});
+        body.setTag("charge-done-sheet");
+        LinearLayout card=design.groupCard();body.addView(card,new LinearLayout.LayoutParams(-1,-2));
+        doneSheetRows.clear();
+        for(boolean time:new boolean[]{false,true}){
+            if(time)design.divider(card);
+            ChargeDoneRow row=new ChargeDoneRow(time);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
+        }
+        AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
+        dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
+    }
+    /** "Charge done by": the rows' name, the time picker's and the sheet's title. */
+    private String doneByTitle(){return T.mainScheduleDoneBy();}
+    /**
+     * Local charge planning uses the same row and picker language as scooter-owned settings. A row is the on/off switch,
+     * the finish time, or (summary) Battery & charging's one Charge done by row (the Layout Plan: "Charge done by
+     * 7:30 am ›"): the finish time while it is on, Off, or the measuring minutes (PageRows.doneBy); a tap opens the
+     * sheet that holds the other two. Same preferences and schedule.
+     */
     private final class ChargeDoneRow {
-        final SettingLine row;final Switch toggle;final boolean time;final View spinner;
-        ChargeDoneRow(boolean time){
-            this.time=time;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
-            row.line.setTag(time?"charge-done-time":"charge-done-toggle");
+        final SettingLine row;final Switch toggle;final boolean time,summary;final View spinner;
+        ChargeDoneRow(boolean time){this(time,false);}
+        ChargeDoneRow(boolean time,boolean summary){
+            this.time=time;this.summary=summary;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
+            row.line.setTag(summary?"charge-done-row":time?"charge-done-time":"charge-done-toggle");
             spinner=new Spinner();spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());
-            if(time){toggle=null;row.chevron(MainActivity.this::showChargeDoneTime);}
+            if(summary){toggle=null;row.chevron(MainActivity.this::showChargeDoneSheet);}
+            else if(time){toggle=null;row.chevron(MainActivity.this::showChargeDoneTime);}
             else{
                 row.value.setVisibility(View.GONE);
                 toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));
@@ -3075,18 +3297,20 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         void refresh(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
-            String blocked=charge==null?(time?T.mainScheduleSelectScooter():T.commonConnectChargerFirst()):time?charge.timeBlockedReason:doneByActionBlocked(charge);
+            // The summary row is held back only without a scooter (as the time row is); its sheet says why for each row.
+            String blocked=charge==null?(time||summary?T.mainScheduleSelectScooter():T.commonConnectChargerFirst()):summary?null:time?charge.timeBlockedReason:doneByActionBlocked(charge);
             boolean measuring=!time&&scooterService!=null&&scooterService.isChargeMeasuring();if(measuring)blocked=null;
             blocked=ChargeScheduleText.shown(blocked);
             boolean on=charge!=null&&charge.doneByEnabled;int minute=charge==null?8*60:charge.doneByMinuteOfDay;
             Calendar at=Calendar.getInstance();at.set(Calendar.HOUR_OF_DAY,minute/60);at.set(Calendar.MINUTE,minute%60);
-            String value=time?DisplayTime.clock(MainActivity.this,preferences,at.getTimeInMillis())
-                    :measuring?T.mainScheduleMeasuringValue(Fmt.integer(scooterService.chargeMeasureMinutesLeft())):on?T.commonOn():T.commonOff();
-            if(!time)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
+            String clock=DisplayTime.clock(MainActivity.this,preferences,at.getTimeInMillis());
+            String state=measuring?T.mainScheduleMeasuringValue(Fmt.integer(scooterService.chargeMeasureMinutesLeft())):on?T.commonOn():T.commonOff();
+            String value=summary?(PageRows.doneBy(on,measuring)==PageRows.DoneBy.TIME?clock:state):time?clock:state;
+            if(!time&&!summary)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
             row.name.setTextColor(blocked==null?design.text:design.muted);row.value.setText(value);
             row.line.setAlpha(blocked==null?1f:.5f);row.line.setEnabled(true);
             row.line.setContentDescription(blocked==null?T.mainLabelValue(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value):T.mainLabelValueDetail(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value,blocked));
-            boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending?View.VISIBLE:View.GONE);
+            boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending&&!summary?View.VISIBLE:View.GONE);
             if(toggle!=null){toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
         }
     }
@@ -3316,7 +3540,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private Integer requested;private View pulsing;private android.animation.ValueAnimator pulse;
         TopSpeedCard(){
             card.setPadding(design.dp(16),design.dp(14),design.dp(16),design.dp(16));
-            LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);cardParams.bottomMargin=design.dp(2);card.setLayoutParams(cardParams);
+            LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);cardParams.bottomMargin=design.dp(10);card.setLayoutParams(cardParams);
             // Naming Sport here states the "Sport mode only" fact without a separate line.
             title=design.text(T.mainSpeedTitle(),12.5f,false);title.setTypeface(design.medium());card.addView(title);
             LinearLayout reading=row();reading.setPadding(0,design.dp(8),0,design.dp(14));
@@ -3788,7 +4012,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         Intent send=new Intent(Intent.ACTION_SEND);send.setType("message/rfc822");send.putExtras(mail);
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
+    /** The sheets and dialogs shown through showSheet, showTallSheet and styleDialog, held weakly, for dialogShowing. */
+    private final java.util.Set<Dialog> shownDialogs=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /**
+     * One of this activity's sheets or dialogs is showing: riding mode's silent alert banner waits under it (its time
+     * held) and shows once it closes. Asked anew on every look, so however a dialog goes, it stops counting at once.
+     */
+    @Override public boolean dialogShowing(){
+        for(Dialog d:new Dialog[]{scanDialog,controlDialog,missedStartDialog,scheduleTestDialog,chargeAlertDialog,quickMenuDialog,reportDialog,tallSheet})if(d!=null&&d.isShowing())return true;
+        for(Dialog d:shownDialogs)if(d.isShowing())return true;
+        return false;
+    }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        shownDialogs.add(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);
@@ -3834,7 +4070,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
             window.getDecorView().setPadding(0,0,0,0);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
@@ -3859,7 +4095,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // The keyboard waits for a tap on the search box; while it is up, the sheet rises so the results above it stay in view.
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,tallSheetHeight());
         tallSheet=dialog;
         // Volt's window changes size without being recreated (configChanges): follow it, keeping the sheet's answer and check.

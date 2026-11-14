@@ -16,6 +16,10 @@ import java.util.*;
  * That holds both ways across versions, so VERSION stays 1 when a kind accepts more: 1.13.0 only let a
  * chip hold drive mode, battery temperature or the clock, and reading this version's "average_speed"
  * chip it refuses the id and shows that chip's default, while the other spots keep their choices.
+ *
+ * A chip spot may also hold {@link #NONE} (a tester, Nov 14): the slot shows nothing and takes no room. It is no
+ * reading, so it isn't in the catalog; only a chip spot accepts it. A Volt from before it reads "none" as an unknown
+ * content and shows that chip's default, as above; it never crashes on it.
  */
 final class RidingLayout {
     /** What a spot is, which decides the contents it accepts. */
@@ -62,6 +66,8 @@ final class RidingLayout {
     // Record and Status showed the same thing. migrated() reads it as STATUS wherever it appears.
     // Switches.
     static final String POWER_BAR = "power_bar", CHIPS = "chips";
+    /** An empty chip slot: no chip, and no room taken. Only a chip spot accepts it (see accepts). */
+    static final String NONE = "none";
     /** Speed and range to tenths: on by default, with a switch in the layout editor (owner, Q23 B). */
     static final String TENTHS = "tenths";
 
@@ -99,7 +105,13 @@ final class RidingLayout {
     }
 
     static Content item(String id) { return id == null ? null : BY_ID.get(id); }
-    static boolean accepts(Kind kind, String contentId) { Content c = item(contentId); return c != null && c.accepts.contains(kind); }
+    static boolean accepts(Kind kind, String contentId) {
+        if (NONE.equals(contentId)) return kind == Kind.CHIP;
+        Content c = item(contentId);
+        return c != null && c.accepts.contains(kind);
+    }
+    /** True for a spot content that shows something: anything but an empty chip slot (or no content at all). */
+    static boolean shows(String contentId) { return contentId != null && !NONE.equals(contentId); }
     /** The contents a spot of this kind can show, in catalog order. */
     static List<String> choices(Kind kind) {
         List<String> out = new ArrayList<>();
@@ -178,12 +190,19 @@ final class RidingLayout {
 
     private static Spot spot(String id, Kind kind, String fallback) { return new Spot(id, kind, fallback); }
 
+    /** A frame's spots with more after them, in order (the chip slots added on Nov 14). */
+    private static Spot[] join(Spot[] spots, Spot... more) {
+        Spot[] out = Arrays.copyOf(spots, spots.length + more.length);
+        System.arraycopy(more, 0, out, spots.length, more.length);
+        return out;
+    }
+
     private static final Map<String, Frame> FRAME_DEFS = new LinkedHashMap<>();
     static {
         // Focus (concept-b-focus) with the owner's tweaks: battery temperature joins the bottom row beside
         // trip and ride time. Its top bar is the status pill, which turns into the recording pill while a
         // ride records (owner, Nov 6; the Record control it once named was retired).
-        FRAME_DEFS.put(FOCUS, new Frame(FOCUS, new Spot[]{
+        FRAME_DEFS.put(FOCUS, new Frame(FOCUS, join(new Spot[]{
                 spot("top", Kind.TOP, RECORD),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
@@ -191,6 +210,8 @@ final class RidingLayout {
                 spot("tile_2", Kind.TILE, TRIP),
                 spot("tile_3", Kind.TILE, RIDE_TIME),
                 spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE)},
+                // Up to three chips under the speed (a tester, Nov 14), none by default, so Focus looks as it did.
+                spot("chip_1", Kind.CHIP, NONE), spot("chip_2", Kind.CHIP, NONE), spot("chip_3", Kind.CHIP, NONE)),
                 new String[]{POWER_BAR, TENTHS}, new boolean[]{true, true}));
         // Halo (concept-a-halo): speed in the ring, range under it, two tiles, a strip and chips.
         FRAME_DEFS.put(HALO, new Frame(HALO, new Spot[]{
@@ -207,7 +228,7 @@ final class RidingLayout {
                 spot("chip_3", Kind.CHIP, CLOCK)},
                 new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
         // Trace (concept-c-trace): a 60 s chart across the screen under the big number.
-        FRAME_DEFS.put(TRACE, new Frame(TRACE, new Spot[]{
+        FRAME_DEFS.put(TRACE, new Frame(TRACE, join(new Spot[]{
                 spot("top", Kind.TOP, STATUS),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
@@ -216,6 +237,8 @@ final class RidingLayout {
                 spot("trace", Kind.TRACE, TRACE_SPEED_POWER),
                 spot("chip_1", Kind.CHIP, DRIVE_MODE),
                 spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE)},
+                // A third chip under the two (a tester, Nov 14), none by default, so Trace looks as it did.
+                spot("chip_3", Kind.CHIP, NONE)),
                 new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
     }
 

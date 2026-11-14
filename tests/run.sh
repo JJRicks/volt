@@ -81,6 +81,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/Scoo
 sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/ControlsPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubSummaries.java" "$TEST_DIR/HubSummariesTest.java")
 # Hub routes: where each saved Quick access id leads once the quick-access sheets are gone (hub layout plan, PR 4).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
+# The Ride page's tiles and recent rides, and Battery & charging's summary card, charge track, rows and HISTORY bars (the owner's Layout Plan).
+sources+=("$APP_DIR/src/com/jjricks/volt/RideRecordTile.java" "$APP_DIR/src/com/jjricks/volt/ChargeTrackShape.java" "$APP_DIR/src/com/jjricks/volt/BatterySummaryFit.java" "$APP_DIR/src/com/jjricks/volt/ChargeHistoryBars.java" "$APP_DIR/src/com/jjricks/volt/PageRows.java" "$TEST_DIR/HubPageTilesTest.java")
 # The shortcut picker's sections, first open section, search and availability; the Charge alerts shortcut's value.
 sources+=("$APP_DIR/src/com/jjricks/volt/ShortcutPicker.java" "$TEST_DIR/ShortcutPickerTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
@@ -195,6 +197,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPageTilesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"

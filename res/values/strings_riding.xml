@@ -20,6 +20,38 @@
     <!-- Spoken for the round back button at the top left that leaves riding mode. -->
     <string name="riding_back" volt:screen="Riding mode top bar" volt:purpose="accessibility description">Leave riding mode</string>
 
+    <!-- The battery alert banner: a battery or charge alert that fires while riding mode is open shows as a slim
+         banner over the top bar, right of the back button, instead of a dialog over the speed. It holds a battery
+         icon, the alert's title and, while the alarm sounds, a Stop sound button (otherwise a close button). Each
+         title steps down to its short rung, then to the icon alone; it never wraps or shrinks below a readable size.
+         The low battery alert: %1$s is the rider's alert level, a whole number ("30"), followed by the percent sign. -->
+    <string name="riding_alert_low" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="full"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Battery below %1$s%%</string>
+    <string name="riding_alert_low_short" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="short"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Below %1$s%%</string>
+    <!-- The charge alert: the charge reached the rider's level. %1$s is that level, a whole number ("80"), followed by
+         the percent sign. The short rung says only that it is charged. -->
+    <string name="riding_alert_charged" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="full"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Charged to %1$s%%</string>
+    <string name="riding_alert_charged_short" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="short"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Charged</string>
+    <!-- The full charge alert: the battery reached 100%. -->
+    <string name="riding_alert_full" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="full"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Fully charged</string>
+    <string name="riding_alert_full_short" volt:screen="Riding mode battery alert banner" volt:purpose="title" volt:ladder="short"
+        volt:max="150dp@15sp" volt:safety="alarm,charge">Full</string>
+    <!-- The banner's button while the alert's alarm sounds: it stops the sound and the banner goes. -->
+    <string name="riding_alert_stop" volt:screen="Riding mode battery alert banner" volt:purpose="button" volt:ladder="full"
+        volt:max="110dp@15sp" volt:safety="alarm">Stop sound</string>
+    <string name="riding_alert_stop_short" volt:screen="Riding mode battery alert banner" volt:purpose="button" volt:ladder="short"
+        volt:max="110dp@15sp" volt:safety="alarm">Stop</string>
+    <!-- Spoken for the banner's round close button (an × icon), shown when no alarm sounds. -->
+    <string name="riding_alert_close" volt:screen="Riding mode battery alert banner" volt:purpose="accessibility description">Close alert</string>
+    <!-- Spoken when the banner appears: %1$s is its full title ("Battery below 30%"), %2$s the alert's sentence
+         ("My scooter is at 29%."). -->
+    <string name="riding_alert_spoken" volt:screen="Riding mode battery alert banner" volt:purpose="accessibility description"
+        volt:safety="alarm,charge">%1$s. %2$s</string>
+
     <!-- The status pill at the top while connected: %1$s is the drive mode as the scooter shows it ("ECO", "SPORT"). -->
     <string name="riding_status_connected_mode" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="full" volt:max="210dp@17sp">%1$s · Connected</string>
     <string name="riding_status_connected_mode_short" volt:screen="Riding mode status pill" volt:purpose="status" volt:ladder="short" volt:max="210dp@17sp">Connected</string>
@@ -200,6 +232,10 @@
     <string name="riding_content_trace_speed_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed and power</string>
     <string name="riding_content_trace_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Power only</string>
     <string name="riding_content_trace_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed only</string>
+    <!-- A chip slot's choice that shows no chip there: the other chips share the row. -->
+    <string name="riding_content_none" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">None</string>
+    <!-- Riding layout editor: the heading over Focus's chips, small readings that sit under its big speed number. -->
+    <string name="riding_editor_beside_speed" volt:screen="Riding layout editor" volt:purpose="section heading">Chips under the speed</string>
     <!-- A switch: the tall bar at the left edge that shows power. -->
     <string name="riding_switch_power_bar" volt:screen="Riding layout editor" volt:purpose="switch">Power bar</string>
     <string name="riding_switch_power_bar_summary" volt:screen="Riding layout editor" volt:purpose="summary">Left edge: red for power, green for regen</string>

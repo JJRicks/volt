@@ -91,7 +91,7 @@ public final class HubRideDataTest {
         check(riding.contains("new MoreScreen.RidingSettingsMenu(") && !riding.contains("withoutAutoRecord"), "riding mode's tune menu keeps it");
         check(body(more, "void fill(LinearLayout body)").contains("if (autoRecord) content.addView(toggle(autoRecordTitle()"),
                 "the shared menu shows it unless told not to");
-        check(count(rides, "M.ridesBackups()") == 1 && rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(\"download\", M.ridesBackups()"),
+        check(count(rides, "M.ridesBackups()") == 1 && rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(null, M.ridesBackups()"),
                 "Ride backups only on the Ride page");
 
         System.out.println("HubRideData: " + checks + " checks passed");

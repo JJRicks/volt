@@ -92,12 +92,14 @@ public final class ChargeScheduleValidation extends Instrumentation {
         assertNoRadio();checks.add("Done-by time picker and shortcut save a per-scooter preference offline without radio operations");
     }
     private void verifyOrdering(){main(()->{
-        Object manual=control("timed_charging"),start=control("charge_start");
-        assertImmediatelyAfter((View)field(manual,"card"),(View)field(field(done(false),"row"),"card"));
-        assertImmediatelyAfter((View)field(start,"card"),(View)field(field(done(true),"row"),"card"));
+        // Since the Layout Plan's rows (#452): one Charge done by row right after Charge start; its sheet holds the switch, then the time.
+        Object start=control("charge_start");
+        assertImmediatelyAfter((View)field(start,"card"),summaryCard());
+        assertImmediatelyAfter((View)field(field(done(false),"row"),"card"),(View)field(field(done(true),"row"),"card"));
         require("Charge done by".contentEquals(((TextView)field(field(done(true),"row"),"name")).getText()),"Done time uses a different setting label");
-    });checks.add("Done-by toggle follows Scheduled charging; done-by time follows Charge start in Scooter > Battery");}
-    private void assertImmediatelyAfter(View previous,View next){ViewGroup parent=(ViewGroup)previous.getParent();require(next.getParent()==parent,"Schedule rows have different sections");int i=parent.indexOfChild(previous)+1;while(i<parent.getChildCount()&&parent.getChildAt(i)!=next){View gap=parent.getChildAt(i++);require(!(gap instanceof ViewGroup),"Another control separates related schedule rows");}require(i<parent.getChildCount(),"Done-by setting is not immediately after its matching schedule setting");}
+    });checks.add("Charge done by follows Charge start in Scooter > Battery; its sheet holds the done-by toggle, then the done-by time");}
+    /** Only dividers, or rows not shown (GONE: Charge start's hidden Lab entry on the page since #452), may sit between the two rows. */
+    private void assertImmediatelyAfter(View previous,View next){ViewGroup parent=(ViewGroup)previous.getParent();require(next.getParent()==parent,"Schedule rows have different sections");int i=parent.indexOfChild(previous)+1;while(i<parent.getChildCount()&&parent.getChildAt(i)!=next){View gap=parent.getChildAt(i++);require(!(gap instanceof ViewGroup)||gap.getVisibility()==View.GONE,"Another control separates related schedule rows");}require(i<parent.getChildCount(),"Done-by setting is not immediately after its matching schedule setting");}
     private void verifyUnplugged(){main(()->{
         ChargeScheduleController.View state=service.chargeSchedule();require(!state.chargerConnected&&!state.doneByEnabled,"Unplugged fixture starts armed");
         require("Connect a charger first".equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Toggle must require a charger while local time stays editable");
@@ -110,6 +112,9 @@ public final class ChargeScheduleValidation extends Instrumentation {
     });checks.add("Unplugged toggle explains charger requirement while the time preference stays editable");}
     private void verifyDisabledThumb(boolean manual)throws Exception{
         AtomicInteger taps=new AtomicInteger();AtomicReference<Switch> target=new AtomicReference<>();
+        // Scheduled charging is a page row: a Charge done by sheet left open by done() (#452) covers it, and the real tap
+        // lands on the sheet's scrim instead. Close it as the rider would before tapping the page.
+        if(manual){main(()->{Object sheet=field(activity,"chargeDoneSheet");if(sheet!=null&&((AlertDialog)sheet).isShowing())((AlertDialog)sheet).dismiss();});settle();}
         main(()->{
             Object row=manual?control("timed_charging"):done(false);
             Switch toggle=(Switch)field(row,"toggle");ViewGroup line=(ViewGroup)field(field(row,"row"),"line");
@@ -135,18 +140,43 @@ public final class ChargeScheduleValidation extends Instrumentation {
     }
     private void verifyStartupEstimateGuard(){
         main(()->{
-            String reason="Wait for charger detection or select a charger";
-            require(service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Startup fixture already knows a charger family");
-            require(service.chargingEstimate(service.displayReadings()).remainingMinutesToLimit!=null,"Unknown charger lost the dashboard's current-rate estimate");
-            ChargeScheduleController.View state=service.chargeSchedule();
-            require(reason.equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Unknown startup estimate did not block only the done-by switch");
-            AtomicReference<String> result=new AtomicReference<>();
-            service.setChargeDoneByEnabled(true,result::set);
-            require(reason.equals(result.get())&&!service.chargeSchedule().busy&&!service.chargeSchedule().doneByEnabled,"Startup estimate attempted to arm a schedule");
-            require(service.setChargeCharger(ChargeSessionStore.Charger.STOCK),"Could not select the simulated standard charger");
-            require(service.chargeSchedule().doneByBlockedReason==null,"Manual charger choice did not release the startup guard");
+            // Since the simulator's scenes (#430, 8a370f1c) Automatic finds the charger the Charging scene has plugged in, so a
+            // simulated UT5 MAX no longer starts without one. Hold that detection pending, as a real one's first frames after
+            // plugging in do. A build without the hook never detects while simulating, so it starts unknown as before.
+            boolean pendable=pendDetection(true);
+            try{
+                String reason="Wait for charger detection or select a charger";
+                require(service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Startup fixture already knows a charger family: "+service.chargerBasis());
+                require(service.chargingEstimate(service.displayReadings()).remainingMinutesToLimit!=null,"Unknown charger lost the dashboard's current-rate estimate");
+                ChargeScheduleController.View state=service.chargeSchedule();
+                require(reason.equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Unknown startup estimate did not block only the done-by switch");
+                AtomicReference<String> result=new AtomicReference<>();
+                service.setChargeDoneByEnabled(true,result::set);
+                require(reason.equals(result.get())&&!service.chargeSchedule().busy&&!service.chargeSchedule().doneByEnabled,"Startup estimate attempted to arm a schedule");
+                if(pendable){
+                    pendDetection(false);
+                    require(service.chargerBasis()==ScooterService.ChargerBasis.DETECTED&&service.chargeCharger()==null,"The scene's plugged charger was not detected without being saved");
+                    require(service.chargeSchedule().doneByBlockedReason==null,"Charger detection did not release the startup guard");
+                    pendDetection(true);
+                    require(reason.equals(service.chargeSchedule().doneByBlockedReason),"Startup guard did not return while detection was pending again");
+                }
+                require(service.setChargeCharger(ChargeSessionStore.Charger.STOCK),"Could not select the simulated standard charger");
+                require(service.chargeSchedule().doneByBlockedReason==null,"Manual charger choice did not release the startup guard");
+            }finally{if(pendable)pendDetection(false);}
         });settle();
         checks.add("Automatic startup keeps the dashboard rate estimate but requires charger detection or an explicit choice before arming done-by");
+    }
+    /**
+     * ScooterSimulation.pendDetection (validations only), looked up by reflection: false when this build lacks it. Older
+     * builds never detect a charger while simulating, so they need no hold.
+     */
+    private boolean pendDetection(boolean pending){
+        try{
+            Field field;try{field=service.ble.getClass().getDeclaredField("simulation");}catch(NoSuchFieldException older){return false;}field.setAccessible(true);
+            Object simulation=field.get(service.ble);if(simulation==null)throw new IllegalStateException("Simulation is not running");
+            Method method;try{method=simulation.getClass().getDeclaredMethod("pendDetection",boolean.class);}catch(NoSuchMethodException older){return false;}
+            method.setAccessible(true);method.invoke(simulation,pending);return true;
+        }catch(ReflectiveOperationException error){throw new IllegalStateException("pendDetection",error);}
     }
     private void verifyPickers(){
         for(boolean is24:new boolean[]{true,false}){
@@ -368,8 +398,26 @@ public final class ChargeScheduleValidation extends Instrumentation {
     private void home(){main(()->invoke(activity,"select",new Class<?>[]{String.class},"home"));settle();}
     /** The control's row on the page now shown, required placed there (a page's ControlsScreen also builds rows it never places). */
     private Object control(String key){return HubTestPages.controlRow(activity,key);}
-    /** A done-by row on the page now shown, required placed there. */
-    private Object done(boolean time){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"chargeRows"))if((Boolean)field(row,"time")==time){HubTestPages.requireOnPage(activity,(View)field(field(row,"row"),"card"),"the Charge done by "+(time?"time":"switch")+" row");return row;}throw new IllegalStateException("Missing done-by row");}
+    /** The page's one Charge done by row (tag charge-done-row, card tag charge-done-by), required placed on the page now shown. Main thread. */
+    private View summaryLine(){View line=root().findViewWithTag("charge-done-row");HubTestPages.requireOnPage(activity,line,"the Charge done by row");
+        View card=(View)line.getParent();require(card!=null&&"charge-done-by".equals(card.getTag()),"Charge done by row lost its card tag");return line;}
+    private View summaryCard(){return (View)summaryLine().getParent();}
+    /**
+     * A done-by row (the switch, or the time) in the Charge done by sheet; the page's row is tapped to open the sheet
+     * when it is not open. The rows keep their tags (charge-done-toggle, charge-done-time). Main thread.
+     */
+    private Object done(boolean time){
+        Object sheet=field(activity,"chargeDoneSheet");
+        if(sheet==null||!((AlertDialog)sheet).isShowing()){
+            View line=summaryLine();require(line.performClick(),"Charge done by row did not open its sheet");
+            sheet=field(activity,"chargeDoneSheet");require(sheet!=null&&((AlertDialog)sheet).isShowing(),"Charge done by sheet did not open");
+        }
+        View body=((AlertDialog)sheet).getWindow().getDecorView().findViewWithTag("charge-done-sheet");require(body!=null,"Charge done by sheet missing");
+        for(Object row:(List<?>)field(activity,"doneSheetRows"))if((Boolean)field(row,"time")==time){
+            View line=(View)field(field(row,"row"),"line");
+            require(line.getTag().equals(time?"charge-done-time":"charge-done-toggle")&&body.findViewWithTag(line.getTag())==line,"The Charge done by "+(time?"time":"switch")+" row is not in its sheet");
+            return row;}
+        throw new IllegalStateException("Missing done-by row");}
     private TimePickerDialog picker(){Object dialog=field(activity,"controlDialog");require(dialog instanceof TimePickerDialog&&((TimePickerDialog)dialog).isShowing(),"Native time picker missing");return (TimePickerDialog)dialog;}
     private <T> T find(View view,Class<T> type){if(type.isInstance(view))return type.cast(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){T found=find(((ViewGroup)view).getChildAt(i),type);if(found!=null)return found;}return null;}
     private void admit(){String hw=Build.HARDWARE.toLowerCase(Locale.ROOT);require(hw.contains("ranchu")||hw.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"Refusing physical phone");for(String name:new String[]{"app_settings","profiles","scooter","pending_documents","control_evidence"})require(prefs(name).getAll().isEmpty(),"Refusing existing preferences");File[] files=getTargetContext().getFilesDir().listFiles();require(files!=null&&files.length==0&&getTargetContext().databaseList().length==0,"Refusing existing app data");for(String permission:new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT})require(getTargetContext().checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED,"Grant emulator Nearby permission");BluetoothManager manager=getTargetContext().getSystemService(BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();require(adapter==null||!adapter.isEnabled(),"Disable emulator Bluetooth first");}

@@ -18,6 +18,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -57,6 +58,12 @@ final class RidingScreen implements AppScreen {
     private static final float LABEL_SP = 15, TOUCH_DP = 56;
     /** The most of Trace's top row its chip column may take beside the big number. */
     private static final float CHIP_COLUMN_SHARE = .45f;
+    /** The space between two chips, dp. */
+    private static final int CHIP_GAP_DP = 8;
+    /** Between Focus's big number (with the line under it) and its chips' rows. */
+    private static final int ROWS_GAP_DP = 4;
+    /** Focus's chips on the unit line: the space after the unit, and the least space between the number and the chips. */
+    private static final int UNIT_LINE_GAP_DP = 16, UNIT_LINE_CLEAR_DP = 6;
     private final float labelCap;
     private final ScreenHost host;
     private final Ui ui;
@@ -78,6 +85,8 @@ final class RidingScreen implements AppScreen {
     private ValueAnimator pulse;
     /** A phone-width window: the warning chip shows its short rung so the status pill keeps room. */
     private final boolean narrow;
+    /** A wide screen (the Fold's inner screen, a tablet): Focus's chips may sit on its unit line (RidingChipPlace). */
+    private final boolean wideChips;
     private final TextView status, warning, speedLast, wattsCaption;
     /** The layout picker's disc: shown only while stopped (owner Q17 A). */
     private final FrameLayout picker;
@@ -118,6 +127,8 @@ final class RidingScreen implements AppScreen {
     private final RidingDisplay display;
     /** Night vision: the red layer on this screen and the moon at the top bar's end. */
     private final RidingNight night;
+    /** A battery alert that fires while riding: a banner over the top bar or just under it, never a dialog (RidingAlertBanner). */
+    private final RidingAlertBanner alertBanner;
     /** The tune menu's clock seconds switch, as it was when this screen was built (a change rebuilds it). */
     private final boolean clockSeconds;
     /** Redraws the Clock readings each second while seconds show (RidingClockSeconds); idle otherwise. */
@@ -179,6 +190,7 @@ final class RidingScreen implements AppScreen {
         back.addView(ui.icon("back", 26, ui.text), new FrameLayout.LayoutParams(ui.dp(26), ui.dp(26), Gravity.CENTER));
         top.addView(back, new LinearLayout.LayoutParams(ui.dp(TOUCH_DP), ui.dp(TOUCH_DP)));
         narrow = configuration.screenWidthDp < 600;
+        wideChips = RidingChipPlace.wide(configuration.smallestScreenWidthDp);
         LinearLayout pill = statusPill = new LinearLayout(context);
         pill.setOrientation(LinearLayout.HORIZONTAL);
         pill.setGravity(Gravity.CENTER);
@@ -221,7 +233,8 @@ final class RidingScreen implements AppScreen {
         disc = new RidingDiscMotion(picker);
         LinearLayout.LayoutParams topSize = new LinearLayout.LayoutParams(-1, -2);
         topSize.bottomMargin = ui.dp(side ? 10 : 14);
-        frame.addView(top, topSize);
+        alertBanner = new RidingAlertBanner(context, ui, service, labelSp(15), this::covered);
+        frame.addView(alertBanner.over(top, back, warning), topSize);
 
         // The cells.
         // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.
@@ -232,6 +245,7 @@ final class RidingScreen implements AppScreen {
         speedLast.setVisibility(View.INVISIBLE);
         big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
         highlight = new Cell(layout.content(RidingLayout.FOCUS, "highlight"), 84, false);
+        highlight.grows(big);
         // Focus's cells; Halo and Trace build their own in place of these.
         battery = new Cell(layout.content(RidingLayout.FOCUS, RidingFocus.BATTERY_ROW), 84, false);
         for (String spot : RidingFocus.bottomRow(large)) {
@@ -342,7 +356,7 @@ final class RidingScreen implements AppScreen {
             // Speed and the power readout share the left column, so each reading on the right keeps a large number.
             LinearLayout out = row();
             LinearLayout speed = column();
-            speed.addView(big, new LinearLayout.LayoutParams(-1, 0, 2.3f));
+            speed.addView(focusHead(), new LinearLayout.LayoutParams(-1, 0, 2.3f));
             divider(speed);
             speed.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1f));
             out.addView(speed, new LinearLayout.LayoutParams(0, -1, 1.1f));
@@ -358,7 +372,7 @@ final class RidingScreen implements AppScreen {
             return out;
         }
         LinearLayout readings = column();
-        readings.addView(big, new LinearLayout.LayoutParams(-1, 0, 3.4f));
+        readings.addView(focusHead(), new LinearLayout.LayoutParams(-1, 0, 3.4f));
         divider(readings);
         readings.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1.5f));
         divider(readings);
@@ -368,6 +382,113 @@ final class RidingScreen implements AppScreen {
         divider(readings);
         readings.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1.3f));
         return readings;
+    }
+
+    /**
+     * Focus's big number, with the chips the rider picked under it (ChipsHead; the owner, Nov 14). With every one None, as
+     * by default, it's the big number alone, as it always was.
+     */
+    private View focusHead() {
+        List<String> spots = filled(RidingFrames.FOCUS_CHIPS);
+        if (spots.isEmpty()) return big;
+        ChipRows rows = new ChipRows();
+        for (String spot : spots) rows.addView(chip(spot), new ViewGroup.LayoutParams(-2, -2));
+        return new ChipsHead(rows);
+    }
+
+    /**
+     * Focus's big number with its chips (RidingChipPlace).
+     *
+     * In rows (a phone; a wide screen whose unit line can't take every chip): the number keeps its full width over the
+     * chips' rows, which sit at the bottom of the speed row, just above the row under it. The rows take their height from
+     * the speed row, at most half of it, so the number draws only as much smaller as that height forces.
+     *
+     * On the unit line (a wide screen, when every chip picked fits there): the number keeps its full size and the whole
+     * spot, and the chips sit in one row at the right edge of the line its unit draws on ("mph" under the speed), in the
+     * room the unit leaves there (RidingUnitLine). Where that row goes and how much room it has come from the number's
+     * largest size in its spot and the widest unit its reading shows, never the value on show.
+     *
+     * Which of the two is chosen once per layout (RidingChipPlace.Latch), so the chips never jump between them while riding.
+     *
+     * A row of weights can measure this head at other widths first (the Fold sideways measures it at four widths before
+     * its own), and a measure at a size seen before is answered from the view's cache without running onMeasure, leaving
+     * the children as the last pass measured them. So the head fits its children again at the size it's laid out at
+     * whenever that isn't the size it last fitted, and measures the number and the rows afresh every time: what's drawn
+     * and what's chosen are always worked out for the room they're drawn in.
+     */
+    private final class ChipsHead extends ViewGroup {
+        private final ChipRows rows;
+        private final RidingChipPlace.Latch latch = new RidingChipPlace.Latch();
+        private int numberHeight;
+        /** The unit-line row's top, px, or -1 with the chips in rows. */
+        private int lineTop = -1;
+        /** The size the children were last fitted to. */
+        private int fitWidth = -1, fitHeight = -1;
+        ChipsHead(ChipRows rows) {
+            super(host.activity());
+            this.rows = rows;
+            addView(big, new LayoutParams(-1, -1));
+            addView(rows, new LayoutParams(-1, -2));
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+            fit(width, height);
+            setMeasuredDimension(width, height);
+        }
+        /** Chooses the unit line or rows for this size and measures the number and the chips for it. */
+        private void fit(int width, int height) {
+            fitWidth = width;
+            fitHeight = height;
+            // The rows keep the split of their last onMeasure for their layout, and the number's measure is read below (its
+            // width sets the unit line's room): never let the cache answer either with what a pass at another size left.
+            rows.forceLayout();
+            RidingUnitLine.Place place = null;
+            boolean onLine = false;
+            if (wideChips) {
+                // The number at its full size, as it would draw with the chips on its unit line.
+                big.forceLayout();
+                big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+                place = unitLinePlace();
+                final RidingUnitLine.Place at = place;
+                onLine = place != null && latch.choose(width, height, units(), () -> RidingChipPlace.onUnitLine(true,
+                        big.number.unitBelow, true, at.room, rows.oneRow(at.room)));
+            }
+            if (onLine) {
+                numberHeight = height;
+                rows.hug = true;
+                rows.measure(MeasureSpec.makeMeasureSpec(place.room, MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(rows.chipHeight(), MeasureSpec.AT_MOST));
+                lineTop = big.numberTop() + place.top;
+            } else {
+                rows.hug = false;
+                lineTop = -1;
+                rows.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height / 2, MeasureSpec.AT_MOST));
+                int taken = rows.getMeasuredHeight() == 0 ? 0 : rows.getMeasuredHeight() + ui.dp(ROWS_GAP_DP);
+                numberHeight = Math.max(0, height - taken);
+                big.forceLayout();
+                big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(numberHeight, MeasureSpec.EXACTLY));
+            }
+        }
+        /**
+         * Where the unit-line row would go with the number measured at its full size, or null where there's no unit line:
+         * the unit beside the number (a short sideways window), a reading without a unit, or no room right of the unit.
+         */
+        private RidingUnitLine.Place unitLinePlace() {
+            if (!big.number.unitBelow) return null;
+            float[] m = big.number.unitLine(widest(big.content, units()));
+            if (m[4] == 0) return null;
+            RidingUnitLine.Place place = RidingUnitLine.place(m[0], m[1], m[2], m[3], big.number.maxPx,
+                    big.number.getMeasuredWidth(), big.number.getMeasuredHeight(), ui.dp(2), ui.dp(4), rows.chipHeight(),
+                    ui.dp(UNIT_LINE_GAP_DP), ui.dp(UNIT_LINE_CLEAR_DP));
+            return place.room > 0 ? place : null;
+        }
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            int width = r - l, height = b - t;
+            if (width != fitWidth || height != fitHeight) fit(width, height);
+            big.layout(0, 0, width, numberHeight);
+            if (lineTop >= 0) rows.layout(width - rows.getMeasuredWidth(), lineTop, width, lineTop + rows.getMeasuredHeight());
+            else rows.layout(0, height - rows.getMeasuredHeight(), width, height);
+        }
     }
 
     /**
@@ -382,6 +503,7 @@ final class RidingScreen implements AppScreen {
         big.number.centered = true;
         ring = new Ring(layout.content("ring"), big, speedLast);
         Cell range = cell(layout.content("highlight"), !side ? 76 : shortWindow ? 64 : 96, false);
+        range.grows(big);
         if (side) range.card();
         range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         LinearLayout tiles = tiles(!side ? 56 : shortWindow ? 52 : 84, false);
@@ -454,18 +576,20 @@ final class RidingScreen implements AppScreen {
         big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout head = row();
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
-        if (layout.on(RidingLayout.CHIPS)) {
-            LinearLayout beside = new ChipColumn();
+        List<String> besideSpots = filled(RidingFrames.TRACE_COLUMN);
+        if (layout.on(RidingLayout.CHIPS) && !besideSpots.isEmpty()) {
+            LinearLayout beside = new ChipColumn(filled(RidingFrames.TRACE_CHIPS).size());
             beside.setGravity(Gravity.END | Gravity.TOP);
-            // The column sets each chip's top gap by what's shown (fitChips).
-            for (int i = 0; i < RidingFrames.TRACE_CHIPS.size(); i++)
-                beside.addView(chip(RidingFrames.TRACE_CHIPS.get(i)), new LinearLayout.LayoutParams(-2, -2));
+            // The column sets each chip's top gap by what's shown (fitColumn).
+            for (int i = 0; i < besideSpots.size(); i++)
+                beside.addView(chip(besideSpots.get(i)), new LinearLayout.LayoutParams(-2, -2));
             LinearLayout.LayoutParams besideSize = new LinearLayout.LayoutParams(-2, -1);
             besideSize.setMarginStart(ui.dp(10));
             head.addView(beside, besideSize);
         }
         trace = new TraceView(layout.content("trace"));
         Cell range = cell(layout.content("highlight"), !side ? 72 : shortWindow ? 60 : 96, false);
+        range.grows(big);
         range.card();
         range.fitGauge(RidingFocus.Gauge.BAR_BELOW);
         // A short window held sideways leaves the tiles too little height for a name above the number.
@@ -532,14 +656,32 @@ final class RidingScreen implements AppScreen {
         return slot;
     }
 
-    /** The row of stopped controls; on a tablet the lock's slide stays a sensible length. */
+    /**
+     * The row of stopped controls. Side by side they span their slot, so Lock starts at the tiles' start edge and Record
+     * ends at their end edge whatever the slot's width (a tester, Nov 14: with the power bar hidden the row used to stop
+     * short); on a slot wider than the cap (a tablet) the lock's slide stays a sensible length and Record keeps the far end.
+     * Stacked, the column keeps the cap as before.
+     */
     private final class StoppedControls extends LinearLayout {
         StoppedControls() { super(host.activity()); }
         /** A touch that lands as they hide goes nowhere (one already down was cancelled when the hide began); Lock's queue never hears of it. */
         @Override public boolean onInterceptTouchEvent(MotionEvent event) { return !stoppedMotion.takesTaps() || super.onInterceptTouchEvent(event); }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP);
-            if (MeasureSpec.getSize(widthSpec) > cap) widthSpec = MeasureSpec.makeMeasureSpec(cap, MeasureSpec.getMode(widthSpec));
+            int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP), width = MeasureSpec.getSize(widthSpec);
+            if (getOrientation() == VERTICAL) {
+                int stackedCap = ui.dp(RidingFrames.STOPPED_CONTROLS_STACKED_MAX_DP);
+                if (width > stackedCap) widthSpec = MeasureSpec.makeMeasureSpec(stackedCap, MeasureSpec.getMode(widthSpec));
+            } else if (stoppedLock != null && stoppedLock.getParent() == this) {
+                boolean wide = MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && width > cap;
+                LayoutParams lock = (LayoutParams) stoppedLock.getLayoutParams(), disc = (LayoutParams) recordDisc.getLayoutParams();
+                int gap = ui.dp(12), lockWidth = wide ? cap - disc.width - gap : 0, start = wide ? width - cap + gap : gap;
+                float weight = wide ? 0 : 1;
+                if (lock.width != lockWidth || lock.weight != weight) { lock.width = lockWidth; lock.weight = weight; }
+                if (disc.getMarginStart() != start) {
+                    disc.setMarginStart(start);
+                    disc.resolveLayoutDirection(getLayoutDirection());
+                }
+            }
             super.onMeasure(widthSpec, heightSpec);
         }
     }
@@ -603,12 +745,22 @@ final class RidingScreen implements AppScreen {
         return out;
     }
 
+    /** A row of chips for the spots the rider filled, or null when every one is None (RidingLayout.NONE). */
     private LinearLayout chipRow(List<String> spots) {
-        LinearLayout out = new ChipRow();
+        ChipRow out = new ChipRow();
         out.setGravity(Gravity.CENTER_VERTICAL);
         for (int i = 0; i < spots.size(); i++) {
+            if (!RidingLayout.shows(layout.content(spots.get(i)))) continue;
             out.addView(chip(spots.get(i)), new LinearLayout.LayoutParams(-2, -2));
+            out.slots++;
         }
+        return out.slots == 0 ? null : out;
+    }
+
+    /** The spots of a group the rider filled: a None spot takes no room. */
+    private List<String> filled(List<String> spots) {
+        List<String> out = new ArrayList<>();
+        for (String spot : spots) if (RidingLayout.shows(layout.content(spot))) out.add(spot);
         return out;
     }
 
@@ -619,6 +771,15 @@ final class RidingScreen implements AppScreen {
     }
 
     private int cardColor() { return ui.dark ? ui.surface : ui.raised; }
+
+    /**
+     * Volt's own sheet or dialog is over riding mode: the tune sheet (with whatever opened from it) or one of the
+     * activity's dialogs. From isShowing, so every way a sheet or dialog closes counts at once.
+     */
+    private boolean covered() {
+        AlertDialog d = sheet;
+        return d != null && d.isShowing() || host.dialogShowing();
+    }
 
     /** Closes the picker sheet if it's showing; safe while the activity is going away. */
     private void dismissSheet() {
@@ -649,6 +810,7 @@ final class RidingScreen implements AppScreen {
         if (clockLifecycle != null) host.activity().getApplication().unregisterActivityLifecycleCallbacks(clockLifecycle);
         display.detach();
         night.detach();
+        alertBanner.close();
     }
 
     /**
@@ -783,6 +945,7 @@ final class RidingScreen implements AppScreen {
         float alpha = RidingBurnIn.chromeAlpha(now - session.openedMs);
         for (View v : chrome) v.setAlpha(alpha);
         clockTick.sync(wallNow);
+        alertBanner.refresh();
     }
 
     /**
@@ -1066,6 +1229,13 @@ final class RidingScreen implements AppScreen {
     /** A power reading's name, as a tile's label and the trace's key show it. */
     private static String powerName() { return T.ridingLabelPower(); }
 
+    /** A range content's names, full and short (RidingFocus.namedAs says whose a reading carries). */
+    private static String[] rangeNames(String content) {
+        if (RidingLayout.RANGE_SCOOTER.equals(content)) return new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
+        if (RidingLayout.RANGE_VOLT.equals(content)) return new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
+        return new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
+    }
+
     /** What a reading says to a screen reader: its name and value, or its name and that there's no reading. */
     private static String spokenReading(String name, String spoken) {
         return spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, spoken);
@@ -1166,11 +1336,12 @@ final class RidingScreen implements AppScreen {
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
                         scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
                 // The label names whose estimate it is; a chosen source keeps its name with no reading.
+                // The same rule as RidingFocus.namedAs, which the chip's sizing uses (RidingChipSteadyTest holds the two together).
                 if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))
-                    s.rungs = new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
+                    s.rungs = rangeNames(RidingLayout.RANGE_SCOOTER);
                 else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))
-                    s.rungs = new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
-                else s.rungs = new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
+                    s.rungs = rangeNames(RidingLayout.RANGE_VOLT);
+                else s.rungs = rangeNames(RidingLayout.RANGE_AT_PACE);
                 if (range.kind == RidingFocus.RangeKind.ALMOST_EMPTY) {
                     s.main = T.ridingRangeAlmostEmpty();
                     s.color = ui.orange;
@@ -1210,7 +1381,7 @@ final class RidingScreen implements AppScreen {
             case RidingLayout.RIDE_TIME: case RidingLayout.RECORDING_TIME: {
                 boolean ride = content.equals(RidingLayout.RIDE_TIME);
                 s.rungs = ride ? new String[]{T.ridingLabelRideTime(), T.ridingLabelRideTimeShort()}
-                        : new String[]{T.ridingLabelRecordingTime(), T.ridingLabelRecordingTimeShort()};
+                        : recordingRungs();
                 Long ms = ride ? session.rideTimeMs(now) : v.recordingTimeMs(now);
                 if (ms == null) { none(s); break; }
                 s.main = clock(ms);
@@ -1320,6 +1491,165 @@ final class RidingScreen implements AppScreen {
         return s;
     }
 
+    /**
+     * The widest values a reading can show, as shown() would show them, with 8 for every figure (callers set the
+     * figures to the font's widest: RidingChipFit.widened). The fit and sizes are worked out from these, never from the
+     * value on show, so they don't change while riding (a tester, Nov 14). The names around the values are the rider's
+     * units, clock format, temperature unit and language, so a change of any of them gives other samples.
+     *
+     * chip: for a chip, which adds the states a reading shows in words ("Almost empty", a GPS state) and reserves the
+     * widest value a supported scooter can show, each bound below with where it comes from; a wider value is kept when
+     * it comes (Chip.seeWide), so the chip widens for it once. Without chip (the highlight, which has no such net and
+     * where a state may simply draw smaller) the states are left out and the speeds keep RidingHighlightSize's samples.
+     */
+    private List<Shown> samples(String content, String units, boolean chip) {
+        List<Shown> out = new ArrayList<>();
+        switch (content) {
+            case RidingLayout.SPEED: {
+                Shown s = new Shown();
+                UnitCode unit = speedUnit(units);
+                s.main = Fmt.integer(888);
+                if (layout.on(RidingLayout.TENTHS)) s.fraction = decimalSeparator() + Fmt.integer(8);
+                s.suffix = unit.symbol();
+                s.spoken = T.fmtQuantity(Fmt.decimal(Locale.US, RidingHighlightSize.SPEED_SAMPLE, 1), unit.symbol());
+                out.add(s);
+                break;
+            }
+            case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
+                // Only what RidingFocus.range can give this content (RidingFocus.kinds): Scooter's range never reads "Almost
+                // empty", and reserving it dropped another chip for the whole ride (the council on #493). Three whole
+                // figures, as before: the scooter sends its range in one byte (Telemetry remaining_range_km, 0 to 255 km).
+                List<RidingFocus.RangeKind> kinds = RidingFocus.kinds(content);
+                Formatted unit = Fmt.unit(distanceUnit(units)), whole = Fmt.decimalNumber(Locale.US, 888, 0);
+                // The scooter's figure: a whole number, unmarked (RidingFocus.scooter).
+                if (kinds.contains(RidingFocus.RangeKind.SCOOTER)) out.add(sample(Fmt.quantity(whole, unit)));
+                // Volt's figure: an approximate whole number (RidingFocus.volt, and Range at this pace's NO_HISTORY).
+                if (kinds.contains(RidingFocus.RangeKind.VOLT)) out.add(sample(Fmt.quantity(Fmt.compose(T.RIDING_APPROX, whole), unit)));
+                // Range at this pace: whole or to a tenth, approximate or not (RangeReadout); the approximate ones are the wider.
+                if (kinds.contains(RidingFocus.RangeKind.AT_PACE))
+                    for (int decimals = 0; decimals <= 1; decimals++) {
+                        Formatted number = Fmt.decimalNumber(Locale.US, decimals == 0 ? 888 : 88.8, decimals);
+                        out.add(sample(Fmt.quantity(Fmt.compose(T.RIDING_APPROX, number), unit)));
+                    }
+                if (chip && kinds.contains(RidingFocus.RangeKind.ALMOST_EMPTY)) out.add(word(T.ridingRangeAlmostEmpty()));
+                break;
+            }
+            case RidingLayout.BATTERY:
+                out.add(sample(Fmt.percent(Fmt.integerNumber(RidingHighlightSize.BATTERY_SAMPLE))));
+                break;
+            case RidingLayout.TRIP:
+                // Bound: 999.9 km or mi since riding mode opened. A full charge takes a supported scooter at most 255 km (its
+                // own range estimate is one byte, Telemetry remaining_range_km), so a longer trip needs four charges in one go.
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 888.8, 1), Fmt.unit(distanceUnit(units)))));
+                break;
+            case RidingLayout.RIDE_TIME: case RidingLayout.RECORDING_TIME:
+                out.add(word(clock(RidingHighlightSize.STOPWATCH_SAMPLE_MS)));
+                break;
+            case RidingLayout.AVERAGE_SPEED: case RidingLayout.MAX_SPEED:
+                // Bound (chips): 99.9 km/h or mph. The fastest Top speed any supported scooter offers is 70 km/h (43.5 mph;
+                // ModelRegistry SPEED_25_70), so a speed needs a third whole figure only past 100 km/h. The highlight keeps 888.8.
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, chip ? 88.8 : RidingHighlightSize.SPEED_SAMPLE, 1), Fmt.unit(speedUnit(units)))));
+                break;
+            case RidingLayout.EFFICIENCY:
+                // Bound kept: a sign and three figures. Volt's own gates allow more (RidingValues.efficiency: 30 s over at least
+                // EFFICIENCY_MIN_KM, 0.02 km, at up to PowerScale's 6000 W draw or 3000 W regen), so nothing justifies fewer.
+                out.add(sample(Fmt.quantity(Fmt.integerNumber(-888), Fmt.unitText(T.ridingUnitWhPer(distanceUnit(units).symbol())))));
+                break;
+            case RidingLayout.RIDE_ENERGY:
+                // Bound kept: four figures. It counts every Wh since riding mode opened, and nothing in the code bounds a
+                // supported pack's size (only the UT5 MAX's is known), so nothing justifies three.
+                out.add(sample(Fmt.quantity(Fmt.integerNumber(8888), Fmt.unit(UnitCode.WATT_HOUR))));
+                break;
+            case RidingLayout.VOLTAGE:
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 88.8, 1), Fmt.unit(UnitCode.VOLT))));
+                break;
+            case RidingLayout.CURRENT:
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, -88.8, 1), Fmt.unit(UnitCode.AMP))));
+                break;
+            case RidingLayout.ODOMETER:
+                // Bound kept: five whole figures. The ride report's 32-bit field (Telemetry odometer_km) and OdometerCarry
+                // reach past 10,000 km, which a commuter's scooter can.
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 88888.8, 1), Fmt.unit(distanceUnit(units)))));
+                break;
+            case RidingLayout.BATTERY_TEMPERATURE:
+                for (double celsius : new double[]{-88, 88}) {
+                    Formatted t = DisplayTemperature.quantity(celsius, preferences.getString("temperature_unit", null), 0);
+                    if (t != null) out.add(sample(t));
+                }
+                break;
+            case RidingLayout.DRIVE_MODE: {
+                // The words this scooter's modes can show (raw codes never show: mode()).
+                BleController ble = service == null ? null : service.ble;
+                int product = ble == null ? 0 : ModelRegistry.driveModeLabelProduct(ble.descriptor());
+                for (double code : new double[]{2, 3, 5, 11}) {
+                    String label = Telemetry.drivingModeLabel(product, code);
+                    if (label != null && !Telemetry.rawReading(null, label)) out.add(word(label));
+                }
+                String now = mode(ble);
+                if (now != null) out.add(word(now));
+                break;
+            }
+            case RidingLayout.CLOCK: {
+                java.util.Calendar day = java.util.Calendar.getInstance();
+                for (int[] t : RidingHighlightSize.CLOCK_SAMPLES) {
+                    day.set(java.util.Calendar.HOUR_OF_DAY, t[0]);
+                    day.set(java.util.Calendar.MINUTE, t[1]);
+                    day.set(java.util.Calendar.SECOND, t[2]);
+                    long wall = day.getTimeInMillis();
+                    Shown s = word(DisplayTime.clock(host.activity(), preferences, wall));
+                    if (clockSeconds) {
+                        String[] time = DisplayTime.clockSeconds(host.activity(), preferences, wall);
+                        s = word(time[0]);
+                        s.seconds = true;
+                        s.mainShort = time[1];
+                    }
+                    out.add(s);
+                }
+                break;
+            }
+            case RidingLayout.POWER:
+                // Bound kept: a sign and four figures, as Volt's own limits allow (RidingValues.PowerScale: 6000 W draw, 3000 W regen).
+                out.add(sample(Fmt.quantity(Fmt.integerNumber(-8888), Fmt.unit(UnitCode.WATT))));
+                break;
+            case RidingLayout.GPS_ACCURACY: {
+                boolean feet = GpsAccuracy.feet(units);
+                out.add(sample(GpsAccuracyText.value(888, GpsAccuracy.unit(feet))));
+                if (chip)
+                    for (GpsAccuracy.State state : GpsAccuracy.State.values())
+                        if (state != GpsAccuracy.State.FIX) {
+                            Shown s = word(GpsAccuracyText.state(state));
+                            s.mainShort = GpsAccuracyText.compact(state);
+                            out.add(s);
+                        }
+                break;
+            }
+            default: break;
+        }
+        // Every reading can show the no-reading dash.
+        out.add(word(T.ridingNoValue()));
+        return out;
+    }
+
+    /** A reading's widest values in figures (samples without the dash, which draws at half size and never grows). */
+    private List<Shown> widest(String content, String units) {
+        List<Shown> out = new ArrayList<>();
+        for (Shown s : samples(content, units, false)) if (!TextUtils.equals(s.main, T.ridingNoValue())) out.add(s);
+        return out;
+    }
+
+    private static Shown sample(Formatted f) {
+        Shown s = new Shown();
+        split(s, f);
+        return s;
+    }
+
+    private static Shown word(CharSequence text) {
+        Shown s = new Shown();
+        s.main = text;
+        s.spoken = text.toString();
+        return s;
+    }
+
     private void none(Shown s) {
         s.prefix = "";
         s.main = T.ridingNoValue();
@@ -1399,6 +1729,8 @@ final class RidingScreen implements AppScreen {
         /** How a moved battery's gauge sits here, when it comes and goes with the room; null for Halo's and Trace's tiles. */
         private RidingFocus.Gauge fit;
         private float[] referenceEms;
+        /** The big number's largest size, px, for the highlight, which may grow up to it (RidingHighlightSize); 0 for the rest. */
+        private float growCapPx;
         Cell(String content, float maxSp, boolean unitBelow) {
             super(host.activity());
             this.content = content;
@@ -1457,6 +1789,18 @@ final class RidingScreen implements AppScreen {
             addView(line, p);
             gauge = extra;
         }
+        /** The number's top in this cell once measured, px: what's above it laid out as this column lays it out. */
+        int numberTop() {
+            View holder = line != null ? line : number;
+            int y = getPaddingTop();
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                LayoutParams p = (LayoutParams) child.getLayoutParams();
+                if (child == holder) return y + p.topMargin;
+                if (child.getVisibility() != GONE) y += p.topMargin + child.getMeasuredHeight() + p.bottomMargin;
+            }
+            return y;
+        }
         /** A battery gauge under the number (Halo's bar). */
         void addBelow(BatteryGauge extra) { addBelow(extra, RidingFocus.BAR_HEIGHT_DP); }
         /** A gauge straight under the number, above whatever else the cell holds. */
@@ -1475,6 +1819,11 @@ final class RidingScreen implements AppScreen {
         }
         /** No name above the number: the ring and the big speed speak for themselves (spoken names stay). */
         void hideLabel() { label.setVisibility(GONE); }
+        /**
+         * The frame's highlight: its number may grow into room its spot has spare, never past the big number's largest
+         * size (RidingHighlightSize), for the readings whose widest value is known.
+         */
+        void grows(Cell bigCell) { growCapPx = bigCell.number.maxPx; }
         /** The name beside the number on one line, as in Halo's strip. */
         void inline() {
             setOrientation(HORIZONTAL);
@@ -1493,6 +1842,7 @@ final class RidingScreen implements AppScreen {
                 split(s, Fmt.quantity(Fmt.integerNumber(Math.round(RidingPowerCue.shownWatts(s.inferredWatts, RidingValues.Direction.REGEN_INFERRED, rung))), Fmt.unit(UnitCode.WATT)));
             }
             number.clock(s.seconds, s.mainShort, s.shortMinPx > 0 ? s.shortMinPx : ui.dp(RidingClockSeconds.MARKER_MIN_DP));
+            if (growCapPx > 0) number.growWith(RidingHighlightSize.grows(content) ? widest(content, units) : null, growCapPx);
             number.set(s.prefix, s.main, s.fraction, s.suffix, s.color, s.unitColor);
             String name = s.name();
             setContentDescription(spokenReading(name, s.spoken == null ? null : s.spokenFull()));
@@ -1683,10 +2033,93 @@ final class RidingScreen implements AppScreen {
             big.setFontFeatureSettings(seconds ? "tnum" : null);
             invalidate();
         }
-        /** The size main draws at: maxPx, or less until it fits this view. */
+        /** The widest values the highlight's reading can show, or null for a number that keeps maxPx. */
+        private List<Shown> growSamples;
+        private List<String> growKey = new ArrayList<>();
+        private float growCapPx, topPx = -1, topW, topH;
+        /**
+         * Lets the number grow past maxPx into room its view has spare, to the size at which the widest of samples fits
+         * (RidingHighlightSize.px), never past capPx. The size depends on the samples and the view's size alone, never on
+         * the value on show; null samples keep maxPx.
+         */
+        void growWith(List<Shown> samples, float capPx) {
+            List<String> fresh = new ArrayList<>();
+            if (samples != null)
+                for (Shown s : samples)
+                    for (CharSequence part : new CharSequence[]{s.prefix, s.main, s.fraction, s.suffix}) fresh.add(String.valueOf(part));
+            if ((samples == null) == (growSamples == null) && fresh.equals(growKey) && capPx == growCapPx) return;
+            growSamples = samples;
+            growKey = fresh;
+            growCapPx = capPx;
+            topPx = -1;
+            invalidate();
+        }
+        /** The largest size the number draws at in a view this size: maxPx, or more where the highlight grows. */
+        private float top(float w, float h) {
+            if (growSamples == null || growSamples.isEmpty()) return maxPx;
+            if (topPx > 0 && topW == w && topH == h) return topPx;
+            float[] per = perPx(growSamples);
+            topPx = RidingHighlightSize.px(per[0], per[1], w - ui.dp(2), h - ui.dp(4), maxPx, growCapPx);
+            topW = w;
+            topH = h;
+            return topPx;
+        }
+        /** The widest sample's width and the tallest's height per px of number size. */
+        private float[] perPx(List<Shown> samples) {
+            float unitShare = unitBelow ? .30f : .42f, fractionShare = .46f;
+            // Measured in figures of one width, as a grown number draws, so no time of day or reading is wider than these.
+            Paint b = new Paint(big), u = new Paint(small), f = new Paint(big);
+            b.setFontFeatureSettings("tnum");
+            f.setFontFeatureSettings("tnum");
+            b.setTextSize(100);
+            u.setTextSize(100 * unitShare);
+            f.setTextSize(100 * fractionShare);
+            float widest = 0, tallest = 0;
+            for (Shown s : samples) {
+                float suffixWidth = u.measureText(s.suffix, 0, s.suffix.length());
+                boolean spaced = s.suffix.length() > 0 && Character.isLetter(s.suffix.charAt(0));
+                float width = u.measureText(s.prefix, 0, s.prefix.length()) + b.measureText(s.main, 0, s.main.length())
+                        + f.measureText(s.fraction, 0, s.fraction.length()) + (unitBelow ? 0 : (spaced ? u.getTextSize() * .3f : 0) + suffixWidth);
+                if (unitBelow) width = Math.max(width, suffixWidth);
+                float height = capHeight(b) + (unitBelow && s.suffix.length() > 0 ? capHeight(u) * 1.9f : 0);
+                widest = Math.max(widest, width / 100);
+                tallest = Math.max(tallest, height / 100);
+            }
+            return new float[]{widest, tallest};
+        }
+        /**
+         * What the unit line needs per px of number size, measured as onDraw draws a number with its unit under it and in
+         * figures of one width, from samples (the reading's widest values): {figure height, unit height, widest unit's
+         * width, an everyday value's width (RidingUnitLine.everyday), 1 when any sample has a unit (0: no unit line)}.
+         */
+        float[] unitLine(List<Shown> samples) {
+            Paint b = new Paint(big), u = new Paint(small), f = new Paint(big);
+            b.setFontFeatureSettings("tnum");
+            f.setFontFeatureSettings("tnum");
+            b.setTextSize(100);
+            u.setTextSize(100 * (unitBelow ? .30f : .42f));
+            f.setTextSize(100 * .46f);
+            float unit = 0, everyday = 0;
+            boolean any = false;
+            for (Shown s : samples) {
+                float suffix = u.measureText(s.suffix, 0, s.suffix.length());
+                any |= s.suffix.length() > 0;
+                unit = Math.max(unit, suffix);
+                String main = RidingUnitLine.everyday(String.valueOf(s.main));
+                everyday = Math.max(everyday, Math.max(suffix, u.measureText(s.prefix, 0, s.prefix.length()) + b.measureText(main)
+                        + f.measureText(s.fraction, 0, s.fraction.length())));
+            }
+            return new float[]{capHeight(b) / 100, capHeight(u) / 100, unit / 100, everyday / 100, any ? 1 : 0};
+        }
+        /** Figures of one width for the clock with seconds, and for any number drawn larger than its designed size. */
+        private void figures(float w, float h) {
+            String want = tabular || top(w, h) > maxPx ? "tnum" : null;
+            if (!TextUtils.equals(big.getFontFeatureSettings(), want)) big.setFontFeatureSettings(want);
+        }
+        /** The size main draws at: its largest (top), or less until it fits this view. */
         private float fitSize(CharSequence main, float w, float h) {
             // The no-reading dash is a mark, not a number: half size, so it never reads as a bar.
-            float size = TextUtils.equals(main, T.ridingNoValue()) ? maxPx * .5f : maxPx;
+            float size = TextUtils.equals(main, T.ridingNoValue()) ? maxPx * .5f : top(w, h);
             float fractionShare = .46f, unitShare = unitBelow ? .30f : .42f;
             for (int pass = 0; pass < 2; pass++) {
                 big.setTextSize(size);
@@ -1714,6 +2147,7 @@ final class RidingScreen implements AppScreen {
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0 || main.length() == 0) return;
             CharSequence main = this.main;
+            figures(w, h);
             float size = fitSize(main, w, h);
             // A clock with seconds too tight for its AM/PM drops the marker, never the seconds, before it gets small; a GPS
             // state too long for its tile shows the dash before its words get smaller than in a chip.
@@ -1945,26 +2379,45 @@ final class RidingScreen implements AppScreen {
      * to an icon, then the decorative icons go, then some padding, and only then a chip. The whole group uses one rung, and
      * a chip never shows cut. A name or icon another chip in the group also carries is skipped for a longer one, so two
      * readings never look alike.
+     *
+     * Every width is a chip's widest: its reading's widest value in the rider's units, clock and language (samples), never
+     * the value on show. So the rung, the names, the size and which chips show stay put while riding, and change only when
+     * the room, the units, the clock format, the language or the text size does (a tester, Nov 14).
      */
-    private void fitChips(ViewGroup group, int room, boolean stacked) {
+    private List<Chip> wanted(ViewGroup group) { return wanted(group, Integer.MAX_VALUE); }
+
+    /** {@link #wanted(ViewGroup)} among the group's first upTo children. */
+    private List<Chip> wanted(ViewGroup group, int upTo) {
         List<Chip> wanted = new ArrayList<>();
-        for (int i = 0; i < group.getChildCount(); i++) {
+        for (int i = 0; i < group.getChildCount() && i < upTo; i++) {
             View child = group.getChildAt(i);
             if (child instanceof Chip && ((Chip) child).wanted) wanted.add((Chip) child);
         }
+        return wanted;
+    }
+
+    /**
+     * Halo's row: the largest size its chips may take that costs no chip and no name (RidingChipFit.sized), then each shown
+     * chip widened by an equal share of what's left, so the row's ends meet the tiles' edges.
+     */
+    private void fitRow(ChipRow group, int room) {
+        List<Chip> wanted = wanted(group);
         int n = wanted.size();
         String[][] marks = new String[n][];
         String[] contents = new String[n];
         boolean[] canStep = new boolean[n];
-        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).compact != null; }
-        // The fit works out names for each set of chips it tries, among the chips in that set (a chip that stepped aside
-        // holds no mark); widths come from the probes, never from what's shown, so measuring the result again gives it again.
-        final int[][][][] measured = new int[2][n][RidingChipFit.RUNGS][RidingChipFit.NAME_ICON + 2];
-        RidingChipFit.Widths widths = (chip, rung, step) -> chipWidth(measured[0], wanted.get(chip), chip, rung, step, false);
-        // A GPS state that would step aside in full shows its dash instead (RidingChipFit.stepping): the chip the rider chose stays.
-        RidingChipFit.Widths compactWidths = (chip, rung, step) -> chipWidth(measured[1], wanted.get(chip), chip, rung, step, true);
-        int gap = ui.dp(8);
-        RidingChipFit fit = RidingChipFit.stepping(marks, contents, widths, compactWidths, canStep, stacked, gap, room);
+        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).canStep; }
+        int gap = ui.dp(CHIP_GAP_DP);
+        // A GPS state that would step aside in full, or push a later chip out, shows its dash instead (RidingChipFit.steadyStepping).
+        RidingChipFit.Sized sized = RidingChipFit.sized(marks, contents,
+                (size, chip, rung, step) -> wanted.get(chip).widthAt(size, rung, step, false),
+                (size, chip, rung, step) -> wanted.get(chip).widthAt(size, rung, step, true),
+                canStep, RidingChipFit.largestSize(group.slots), gap, room);
+        RidingChipFit fit = sized.fit;
+        int[] widths = new int[fit.count];
+        for (int i = 0, k = 0; i < n; i++)
+            if (fit.shown[i]) widths[k++] = wanted.get(i).widthAt(sized.size, fit.rung, fit.steps[i], fit.compact[i]);
+        int[] filled = RidingChipFit.spread(widths, gap, room);
         int shown = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -1973,19 +2426,68 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(fit.rung, fit.steps[at], fit.compact[at]);
+                int width = room == Integer.MAX_VALUE ? -2 : filled[shown];
+                chip.useRung(sized.size, fit.rung, fit.steps[at], fit.compact[at], width);
+                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+                if (p.width != width) p.width = width;
                 // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
-                setLeadingMargin(group, chip, shown == 0 ? 0 : gap, stacked);
+                setLeadingMargin(group, chip, shown == 0 ? 0 : gap, false);
                 shown++;
             }
             if (chip.getVisibility() != want) chip.setVisibility(want);
         }
     }
 
-    private static int chipWidth(int[][][] measured, Chip chip, int at, int rung, int step, boolean compact) {
-        int[] cell = measured[at][rung];
-        if (cell[step + 1] == 0) cell[step + 1] = chip.widthAt(rung, step, compact) + 1;
-        return cell[step + 1] - 1;
+    /**
+     * Trace's column: the chips keep the size they always had, each as wide as its widest value. Only its first upTo chips
+     * may show (ChipColumn: its third only where the column has room for every chip picked).
+     *
+     * With followValues (Trace), a chip whose widest value can't fit the column's room even alone at the tightest rung
+     * (Max speed's 888.8 mph beside the speed on a 344 dp cover screen) is fitted to the value on show, as every chip was
+     * before, rather than never showing: it can still step aside when its value grows. The others stay steady.
+     */
+    private void fitColumn(ChipColumn group, int room, int upTo, boolean followValues) {
+        List<Chip> wanted = wanted(group, upTo);
+        int n = wanted.size();
+        String[][] marks = new String[n][];
+        String[] contents = new String[n];
+        boolean[] canStep = new boolean[n];
+        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).canStep; }
+        int normal = RidingChipFit.SIZE_NORMAL;
+        boolean[] follows = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            Chip chip = wanted.get(i);
+            follows[i] = followValues && room != Integer.MAX_VALUE
+                    && chip.widthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > room;
+            chip.followsValue = follows[i];
+        }
+        RidingChipFit fit = RidingChipFit.steppingColumn(marks, contents,
+                (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, false)
+                        : wanted.get(chip).widthAt(normal, rung, step, false),
+                (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, true)
+                        : wanted.get(chip).widthAt(normal, rung, step, true), canStep, room, Integer.MAX_VALUE);
+        int gap = ui.dp(CHIP_GAP_DP), shown = 0;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (!(child instanceof Chip)) continue;
+            Chip chip = (Chip) child;
+            int at = wanted.indexOf(chip), want = View.GONE;
+            if (at >= 0 && fit.shown[at]) {
+                want = View.VISIBLE;
+                // Each chip as wide as its widest value in the form it shows, so its edge never moves with the value. A GPS
+                // chip in its compact form too: as wide as its widest compact value, with a state's words shown only where
+                // they fit that width, else its dash. It used to take its text's width, so the dash and "Off" moved it and
+                // the column beside the speed (the council on #493). Only a chip following its value takes its text's width.
+                int width = follows[at] || room == Integer.MAX_VALUE ? -2
+                        : Math.min(room, chip.widthAt(normal, fit.rung, fit.steps[at], fit.compact[at]));
+                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], width >= 0 ? width : room == Integer.MAX_VALUE ? -1 : room);
+                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+                if (p.width != width) p.width = width;
+                setLeadingMargin(group, chip, shown == 0 ? 0 : gap, true);
+                shown++;
+            }
+            if (chip.getVisibility() != want) chip.setVisibility(want);
+        }
     }
 
     private static void setLeadingMargin(ViewGroup group, View chip, int margin, boolean stacked) {
@@ -2000,27 +2502,39 @@ final class RidingScreen implements AppScreen {
         p.resolveLayoutDirection(group.getLayoutDirection());
     }
 
-    /** Halo's row of chips, side by side (fitChips). */
+    /** Halo's row of chips, side by side and filling the row (fitRow). */
     private final class ChipRow extends LinearLayout {
+        /** How many chip slots the rider filled (None left out): it sets how large the chips may draw. */
+        int slots;
         ChipRow() {
             super(host.activity());
             setOrientation(HORIZONTAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE : MeasureSpec.getSize(widthSpec);
-            fitChips(this, room, false);
+            int room = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE
+                    : MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+            fitRow(this, room);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
 
     /**
-     * Trace's chips, stacked beside the big number (fitChips). They take at most CHIP_COLUMN_SHARE of the row, so a long
+     * Trace's chips, stacked beside the big number (fitColumn). They take at most CHIP_COLUMN_SHARE of the row, so a long
      * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
      * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
+     *
+     * Its two original chips (chip_1, chip_2) stay whatever the height, as they always have (RidingChipChoicesValidation's
+     * split-screen half). Its third shows only where the column is tall enough for every chip picked, a drive-mode chip
+     * waiting for its mode included, so it never takes a waiting chip's place and then hides when the mode arrives, and a
+     * column whose chip 1 is None never forces it into a short column (the council on #496). The room counts every chip
+     * picked too, so a mode coming or going never changes how the others fit.
      */
     private final class ChipColumn extends LinearLayout {
-        ChipColumn() {
+        /** How many of the chips are Trace's original two (the rest, at most one, is its third). */
+        private final int kept;
+        ChipColumn(int kept) {
             super(host.activity());
+            this.kept = kept;
             setOrientation(VERTICAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -2032,11 +2546,111 @@ final class RidingScreen implements AppScreen {
                     View child = getChildAt(i);
                     if (!(child instanceof Chip)) continue;
                     Chip chip = (Chip) child;
-                    if (chip.wanted && chip.namesItself) room = Math.max(room, Math.min(size, chip.widthAt(RidingChipFit.FULL, -1)));
+                    if (chip.namesItself) room = Math.max(room, Math.min(size, chip.widthAt(RidingChipFit.FULL, -1)));
                 }
             }
-            fitChips(this, room, true);
+            int upTo = Integer.MAX_VALUE;
+            if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
+                int height = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom(), tallest = 0, picked = 0;
+                for (int i = 0; i < getChildCount(); i++)
+                    if (getChildAt(i) instanceof Chip) {
+                        tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
+                        picked++;
+                    }
+                if (RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height) < picked) upTo = kept;
+            }
+            fitColumn(this, room, upTo, true);
             super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
+    /**
+     * Focus's chips in rows under the big number, just above the row under it (the owner, Nov 14). Today's chip size, in
+     * slot order from the content's left edge; a chip that doesn't fit beside the ones before it starts the next row
+     * (RidingChipRows), worked out from each chip's widest value so the split never changes while riding. The rows take at
+     * most half the speed row's height; a row past that, like a chip too wide for a row of its own, is hidden, always the
+     * same one for the same layout. On a wide screen's unit line (ChipsHead) they're one row, as wide as its chips.
+     */
+    private final class ChipRows extends ViewGroup {
+        private RidingChipRows split;
+        private List<Chip> placed = new ArrayList<>();
+        /** Each placed chip's width, and whether it shows now (in a row, with something to say). */
+        private int[] widths = new int[0];
+        private boolean[] showing = new boolean[0];
+        private int rowHeight;
+        /** True on the unit line: as wide as the chips shown, so the head can set the row at the right edge. */
+        boolean hug;
+        ChipRows() { super(host.activity()); }
+        /** The split of these chips into at most most rows of room across, at today's chip size. */
+        private RidingChipRows split(List<Chip> chips, int room, int most) {
+            int n = chips.size();
+            String[][] marks = new String[n][];
+            String[] contents = new String[n];
+            boolean[] canStep = new boolean[n];
+            for (int i = 0; i < n; i++) { marks[i] = chips.get(i).marks(); contents[i] = chips.get(i).content; canStep[i] = chips.get(i).canStep; }
+            int normal = RidingChipFit.SIZE_NORMAL;
+            return RidingChipRows.split(marks, contents,
+                    (chip, rung, step) -> chips.get(chip).widthAt(normal, rung, step, false),
+                    (chip, rung, step) -> chips.get(chip).widthAt(normal, rung, step, true), canStep, ui.dp(CHIP_GAP_DP), room, most);
+        }
+        /** Every chip picked, shown or not (a drive mode not in yet): what the unit line must take (RidingChipPlace). */
+        private List<Chip> all() {
+            List<Chip> all = new ArrayList<>();
+            for (int i = 0; i < getChildCount(); i++) if (getChildAt(i) instanceof Chip) all.add((Chip) getChildAt(i));
+            return all;
+        }
+        /** Every chip picked in one row of room across, each at its widest value. */
+        RidingChipRows oneRow(int room) { return split(all(), room, 1); }
+        /** The tallest chip picked at today's size: a row's height. */
+        int chipHeight() {
+            int tallest = 0;
+            for (Chip chip : all()) tallest = Math.max(tallest, chip.heightAt(RidingChipFit.SIZE_NORMAL));
+            return tallest;
+        }
+        /**
+         * The chips' rows for a width and the most height they may take: lays them out and returns their height. Split and
+         * sized from every chip picked, a drive-mode chip waiting for its mode included, so the rows, their height and the
+         * number above depend only on the room, the text size, the units and the chips picked, never on a reading: a mode
+         * that arrives or goes stale only shows or hides its chip, and the chips after it on its row close up (the council
+         * on #496). It used to split only the chips with something to show, so a waiting mode chip could take its row
+         * away and the number grew, then shrank when the mode came back.
+         */
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int room = MeasureSpec.getSize(widthSpec);
+            int most = MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE : MeasureSpec.getSize(heightSpec);
+            List<Chip> picked = all();
+            int gap = ui.dp(CHIP_GAP_DP), normal = RidingChipFit.SIZE_NORMAL;
+            rowHeight = chipHeight();
+            int rows = Math.max(0, RidingChipFit.stackable(rowHeight, gap, most));
+            split = split(picked, room, rows);
+            placed = picked;
+            int n = picked.size();
+            widths = new int[n];
+            showing = new boolean[n];
+            for (int i = 0; i < n; i++) {
+                Chip chip = picked.get(i);
+                boolean inRow = split.row[i] >= 0;
+                if (inRow) {
+                    widths[i] = chip.widthAt(normal, split.rung, split.step[i], split.compact[i]);
+                    chip.useRung(normal, split.rung, split.step[i], split.compact[i], widths[i]);
+                    chip.measure(MeasureSpec.makeMeasureSpec(widths[i], MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
+                }
+                showing[i] = inRow && chip.wanted;
+                if (chip.getVisibility() != (showing[i] ? VISIBLE : GONE)) chip.setVisibility(showing[i] ? VISIBLE : GONE);
+            }
+            // On the unit line, as wide as the chips showing, so the row's right end stays at the line's right edge.
+            setMeasuredDimension(hug ? split.across(widths, showing, gap) : room, split.height(rowHeight, gap));
+        }
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            if (split == null) return;
+            int gap = ui.dp(CHIP_GAP_DP);
+            int[] left = split.lefts(widths, showing, gap);
+            for (int i = 0; i < placed.size(); i++) {
+                if (left[i] < 0) continue;
+                Chip chip = placed.get(i);
+                int top = split.row[i] * (rowHeight + gap);
+                chip.layout(left[i], top, left[i] + chip.getMeasuredWidth(), top + chip.getMeasuredHeight());
+            }
         }
     }
 
@@ -2046,10 +2660,14 @@ final class RidingScreen implements AppScreen {
      * reading carries its name ahead of its value, the tile's own names: the full one ("Average speed"), the short one
      * ("Avg"), then the tile's icon when that's narrower and no other chip in the group has it. It shows a value only; it
      * takes no taps. Spoken, it's always the reading's full name and its value, whatever the rung.
+     *
+     * Its widths are its widest: the widest value its reading can show (samples, every figure the font's widest) beside the
+     * widest name it can carry at that step, so its fit never follows the value on show.
      */
     private final class Chip extends LinearLayout {
         private static final float MODE_SPACING = .06f;
         private static final int START_PADDING_DP = 14, END_PADDING_DP = 16, TIGHT_PADDING_DP = 6, ICON_DP = 18, ICON_GAP_DP = 6;
+        private static final int HEIGHT_DP = 40;
         final String content;
         private final TextView name, text;
         /** Measure a name and the value at each rung; off screen, so trying a rung never disturbs the layout. */
@@ -2058,8 +2676,14 @@ final class RidingScreen implements AppScreen {
         private final View icon;
         private final String iconKey;
         private final boolean mode, namesItself;
+        /** True for a reading with a compact form (GPS accuracy: a state's dash), whatever it shows now. */
+        final boolean canStep;
+        /** The text sizes, px, at the three-chip size. */
+        private final float valuePx, namePx;
         /** The reading's names, full and short (the same when it has one name), from the same catalog its tile uses. */
         private String[] names = new String[0];
+        /** Every pair of names the reading can carry (Range at this pace can take the scooter's or Volt's), its own first. */
+        private String[][] nameSets = new String[0][];
         /** False for a chip with nothing to say (no drive mode yet): it steps aside. */
         boolean wanted = true;
         /** The reading, and the clock with seconds without its AM/PM for the tightest rung (null for any other). */
@@ -2067,17 +2691,41 @@ final class RidingScreen implements AppScreen {
         /** A GPS state's dash, shown in place of its words when in full the chip would step aside (fitChips); null otherwise. */
         String compact;
         private boolean compactShown;
-        private int rung = RidingChipFit.FULL;
+        /**
+         * True when the fit planned this chip's compact form (its widest state's words don't fit), with the width it has:
+         * a state whose own words fit that width shows them, a longer one its dash (GpsAccuracyValidation). The chip's
+         * place in the row never changes with the state; only its text does.
+         */
+        private boolean compactPlanned;
+        /** True while a column fits this chip to the value on show, its widest being too wide for it (fitColumn). */
+        boolean followsValue;
+        private int rung = RidingChipFit.FULL, size = RidingChipFit.SIZE_NORMAL;
+        /** The widest values, every figure the widest: in full, on the tightest rung, and in compact form. */
+        private String[] fullSamples = new String[0], tightSamples = new String[0], compactSamples = new String[0];
+        /** The language's figures 0 to 9, and the index of the font's widest (-1 until measured). */
+        private String digits;
+        private int widestDigit = -1;
+        /** Widths worked out, [size][rung][step + 1][compact], plus one (0: not yet). */
+        private int[][][][] widths = newWidths();
+        /**
+         * Values shown that were wider than every sample (a drive mode the samples lack, an odometer past 99,999.9): kept,
+         * so the chip widens for one once and stays.
+         */
+        private final List<String> seen = new ArrayList<>();
+        /** Measures a value at the three-chip size, and the widest sample of each form so measured (RidingChipFit.FORM_FULL...). */
+        private Paint ruler;
+        private final float[] rulerWidest = new float[RidingChipFit.FORMS];
         Chip(String content) {
             super(host.activity());
             this.content = content;
             mode = RidingLayout.DRIVE_MODE.equals(content);
             namesItself = RidingLayout.chipNamesItself(content);
+            canStep = RidingLayout.GPS_ACCURACY.equals(content);
             setOrientation(HORIZONTAL);
             setGravity(Gravity.CENTER);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
             setFocusable(true);
-            setMinimumHeight(ui.dp(40));
+            setMinimumHeight(ui.dp(HEIGHT_DP));
             setPaddingRelative(ui.dp(START_PADDING_DP), ui.dp(4), ui.dp(END_PADDING_DP), ui.dp(4));
             setBackground(ui.shape(mode ? ui.accent : cardColor(), 20, 0));
             // The same icon its tile shows: the thermometer, the clock face, the speedometer and so on. Drive mode's chip is
@@ -2111,15 +2759,11 @@ final class RidingScreen implements AppScreen {
                 text.setFontFeatureSettings("tnum");
                 probe.setFontFeatureSettings("tnum");
             }
+            valuePx = text.getTextSize();
+            namePx = name.getTextSize();
+            useSamples(units());
         }
-        /**
-         * The text this chip shows at a rung: the clock's AM/PM goes on the tightest one, before the chip would; a GPS
-         * state shows its dash when the fit asks for its compact form.
-         */
-        private CharSequence textAt(int rung, boolean compactForm) {
-            if (compactForm && compact != null) return compact;
-            return rung == RidingChipFit.TIGHT && tight != null ? tight : full != null ? full : text.getText();
-        }
+        private int[][][][] newWidths() { return new int[RidingChipFit.SIZES][RidingChipFit.RUNGS][RidingChipFit.NAME_ICON + 2][2]; }
         private TextView label() {
             TextView label = ui.text(T.ridingNoValue(), labelSp(17), true);
             label.setTypeface(ui.bold());
@@ -2135,52 +2779,104 @@ final class RidingScreen implements AppScreen {
             label.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
             return label;
         }
-        /** This chip's marks for RidingChipFit.nameStep: its full name, short name and icon; a chip that names itself, its icon. */
+        /**
+         * This chip's marks for RidingChipFit.nameStep: its own full name, short name and icon; a chip that names itself, its
+         * icon. Its own names, not the ones on show, so the marks never change while riding.
+         */
         String[] marks() {
             String iconMark = RidingChipFit.iconMark(iconKey);
-            if (namesItself || names.length == 0) return new String[]{null, null, iconMark};
-            return new String[]{names[0], names[names.length - 1], iconMark};
+            if (namesItself || nameSets.length == 0 || nameSets[0].length == 0) return new String[]{null, null, iconMark};
+            String[] own = nameSets[0];
+            return new String[]{own[0], own[own.length - 1], iconMark};
         }
         private int measured(TextView probe, CharSequence value) {
             if (!TextUtils.equals(probe.getText(), value)) probe.setText(value);
             probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
             return probe.getMeasuredWidth();
         }
-        /** The name text a step shows, or null at no name. */
-        private String nameAt(int step) { return step < 0 || names.length == 0 ? null : names[Math.min(step, names.length - 1)]; }
-        /** True when a step shows the icon in place of a name: it has one, and it's narrower than the short name. */
-        private boolean iconAt(int step) {
-            if (step != RidingChipFit.NAME_ICON || icon == null || names.length == 0) return false;
-            return ui.dp(ICON_DP) < measured(nameProbe, names[names.length - 1]);
+        private void sized(TextView view, float px) {
+            if (view.getTextSize() != px) view.setTextSize(TypedValue.COMPLEX_UNIT_PX, px);
         }
-        /** This chip's whole width at a RidingChipFit rung and name step, with the text it shows there (textAt). */
-        int widthAt(int rung, int step) { return widthAt(rung, step, false); }
-        /** The same, with its compact value (a GPS state's dash) when compactForm. */
-        int widthAt(int rung, int step, boolean compactForm) {
+        private float scale(int size) { return RidingChipFit.SIZE_SCALE[size]; }
+        private int iconPx(int size) { return ui.dp(ICON_DP * scale(size)); }
+        /** The name text a step shows from a pair of names, or null at no name. */
+        private String nameAt(String[] from, int step) { return step < 0 || from.length == 0 ? null : from[Math.min(step, from.length - 1)]; }
+        /** The widest name a step can show at a size, over every pair of names the reading can carry. */
+        private int nameWidth(int size, int step) {
+            sized(nameProbe, namePx * scale(size));
+            int widest = 0;
+            for (String[] set : nameSets) {
+                String at = nameAt(set, step);
+                if (at != null) widest = Math.max(widest, measured(nameProbe, at));
+            }
+            return widest;
+        }
+        /** True when a step shows the icon in place of a name: it has one, and it's narrower than every short name. */
+        private boolean iconAt(int size, int step) {
+            if (step != RidingChipFit.NAME_ICON || icon == null || nameSets.length == 0) return false;
+            sized(nameProbe, namePx * scale(size));
+            for (String[] set : nameSets) {
+                String at = nameAt(set, step);
+                if (at != null && iconPx(size) >= measured(nameProbe, at)) return false;
+            }
+            return true;
+        }
+        /** This chip's whole width at a RidingChipFit rung and name step, at the three-chip size. */
+        int widthAt(int rung, int step) { return widthAt(RidingChipFit.SIZE_NORMAL, rung, step, false); }
+        /** The same at a size, with its compact value (a GPS state's dash) when compactForm. */
+        int widthAt(int size, int rung, int step, boolean compactForm) {
+            int[] cell = widths[size][rung][step + 1];
+            int form = compactForm ? 1 : 0;
+            if (cell[form] == 0) cell[form] = measureWidth(size, rung, step, compactForm) + 1;
+            return cell[form] - 1;
+        }
+        private int measureWidth(int size, int rung, int step, boolean compactForm) {
+            return measureWidth(size, rung, step, compactForm && canStep ? compactSamples : rung == RidingChipFit.TIGHT ? tightSamples : fullSamples);
+        }
+        /** The chip's width at a size, rung and name step with the value on show (fitColumn's followValues). */
+        int nowWidthAt(int size, int rung, int step, boolean compactForm) {
+            String value = compactForm && canStep && compact != null ? compact : rung == RidingChipFit.TIGHT && tight != null ? tight : full;
+            return value == null ? widthAt(size, rung, step, compactForm) : measureWidth(size, rung, step, new String[]{value});
+        }
+        /** The chip's width at a size, rung and name step with the widest of these values. */
+        private int measureWidth(int size, int rung, int step, String[] values) {
+            sized(probe, valuePx * scale(size));
             probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            int value = measured(probe, textAt(rung, compactForm));
+            int value = 0;
+            for (String v : values) value = Math.max(value, measured(probe, v));
             int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
             int mark = 0;
-            if (namesItself) mark = icon != null && rung < RidingChipFit.NO_ICONS ? ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP) : 0;
-            else if (iconAt(step)) mark = ui.dp(ICON_DP) + ui.dp(ICON_GAP_DP);
-            else if (nameAt(step) != null) mark = measured(nameProbe, nameAt(step)) + ui.dp(ICON_GAP_DP);
+            if (namesItself) mark = icon != null && rung < RidingChipFit.NO_ICONS ? iconPx(size) + ui.dp(ICON_GAP_DP) : 0;
+            else if (iconAt(size, step)) mark = iconPx(size) + ui.dp(ICON_GAP_DP);
+            else if (step >= 0 && nameSets.length > 0) mark = nameWidth(size, step) + ui.dp(ICON_GAP_DP);
             return padding + mark + value;
+        }
+        /** This chip's height at a size: its tallest line with its padding, and never under its least height. */
+        int heightAt(int size) {
+            sized(probe, valuePx * scale(size));
+            sized(nameProbe, namePx * scale(size));
+            measured(probe, T.ridingNoValue());
+            measured(nameProbe, T.ridingNoValue());
+            int line = Math.max(probe.getMeasuredHeight(), nameProbe.getMeasuredHeight());
+            return Math.max(ui.dp(HEIGHT_DP * scale(size)), line + ui.dp(4) * 2);
         }
         /** The name step this chip last took, beside its rung (-1 before its first fit, or with no name). */
         int shownStep = -1;
-        /** Shows this chip at a RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
-        void useRung(int rung, int step, boolean compactForm) {
+        /** Shows this chip at a size, RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
+        void useRung(int size, int rung, int step, boolean compactForm, int room) {
             this.rung = rung;
             shownStep = step;
-            compactShown = compactForm;
-            CharSequence shown = textAt(rung, compactForm);
+            compactPlanned = compactForm;
+            useSize(size);
+            compactShown = compactForm && (room < 0 || full == null || measureWidth(size, rung, step, new String[]{full}) > room);
+            CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             boolean iconShown, nameShown;
             if (namesItself) { iconShown = rung < RidingChipFit.NO_ICONS; nameShown = false; }
             else {
-                iconShown = iconAt(step);
-                String shownName = iconShown ? null : nameAt(step);
+                iconShown = iconAt(size, step);
+                String shownName = iconShown ? null : nameAt(names, step);
                 nameShown = shownName != null;
                 if (nameShown && !TextUtils.equals(name.getText(), shownName)) name.setText(shownName);
             }
@@ -2189,6 +2885,28 @@ final class RidingScreen implements AppScreen {
             boolean tight = rung == RidingChipFit.TIGHT;
             int start = ui.dp(tight ? TIGHT_PADDING_DP : START_PADDING_DP), end = ui.dp(tight ? TIGHT_PADDING_DP : END_PADDING_DP);
             if (getPaddingStart() != start || getPaddingEnd() != end) setPaddingRelative(start, ui.dp(4), end, ui.dp(4));
+        }
+        /** Draws this chip's text, icon and height at a size (RidingChipFit.SIZE_SCALE). */
+        private void useSize(int size) {
+            if (this.size == size) return;
+            this.size = size;
+            sized(text, valuePx * scale(size));
+            sized(name, namePx * scale(size));
+            if (icon != null) {
+                LayoutParams p = (LayoutParams) icon.getLayoutParams();
+                p.width = iconPx(size);
+                p.height = iconPx(size);
+                icon.setLayoutParams(p);
+            }
+            setMinimumHeight(ui.dp(HEIGHT_DP * scale(size)));
+        }
+        /**
+         * The text this chip shows at a rung: the clock's AM/PM goes on the tightest one, before the chip would; a GPS
+         * state shows its dash when the fit asks for its compact form.
+         */
+        private CharSequence textAt(int rung, boolean compactForm) {
+            if (compactForm && compact != null) return compact;
+            return rung == RidingChipFit.TIGHT && tight != null ? tight : full != null ? full : text.getText();
         }
         /**
          * The reading's names, full then short, from its tile's ladder. Power keeps its own name (its tile's ladder starts
@@ -2200,6 +2918,90 @@ final class RidingScreen implements AppScreen {
             if (s.rungs.length == 0) return new String[0];
             if (RidingLayout.EFFICIENCY.equals(content)) return new String[]{s.rungs[0]};
             return new String[]{s.rungs[0], s.rungs[s.rungs.length - 1]};
+        }
+        /**
+         * Every pair of names this reading can carry, its own first: a range names whose estimate it shows, which can be
+         * another's when its own has no reading, and Trip names a recorded ride's distance.
+         */
+        private String[][] nameSets(String[] now) {
+            switch (content) {
+                case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
+                    // Only the names its kinds can carry (RidingFocus.kinds, namedAs), its own first: Volt's range never
+                    // shows the scooter's figure, so reserving "Scooter's range" shortened its own name (the council on #493).
+                    List<String> named = new ArrayList<>();
+                    named.add(content);
+                    for (RidingFocus.RangeKind kind : RidingFocus.kinds(content)) {
+                        String as = RidingFocus.namedAs(content, kind);
+                        if (!named.contains(as)) named.add(as);
+                    }
+                    String[][] out = new String[named.size()][];
+                    for (int i = 0; i < out.length; i++) out[i] = rangeNames(named.get(i));
+                    return out;
+                }
+                case RidingLayout.TRIP: {
+                    String trip = T.ridingLabelTrip(), ride = T.ridingLabelRideDistance();
+                    return new String[][]{{trip, trip}, {ride, ride}};
+                }
+                default: return now.length == 0 ? new String[0][] : new String[][]{now};
+            }
+        }
+        /**
+         * Takes the reading's widest values in these units (samples), with every figure the font's widest. A change (other
+         * units, clock format or language) fits the group again; the same values change nothing. A value shown that was
+         * wider than all of them is kept with them (seen), so the chip only ever widens for it once.
+         */
+        private void useSamples(String units) {
+            if (digits == null) {
+                StringBuilder all = new StringBuilder();
+                for (int d = 0; d <= 9; d++) all.append(Fmt.integer(d));
+                digits = all.toString();
+                sized(probe, valuePx);
+                int widest = 0, at = -1;
+                if (digits.length() == 10)
+                    for (int d = 0; d <= 9; d++) {
+                        int w = measured(probe, digits.substring(d, d + 1));
+                        if (w > widest) { widest = w; at = d; }
+                    }
+                widestDigit = at;
+            }
+            List<String> fulls = new ArrayList<>(), tights = new ArrayList<>(), compacts = new ArrayList<>();
+            for (Shown s : samples(content, units, true)) {
+                String value = s.seconds || s.spoken == null ? s.main.toString() : s.spoken;
+                String tightValue = s.seconds && s.mainShort != null ? s.mainShort.toString() : value;
+                String compactValue = !s.seconds && s.mainShort != null ? s.mainShort.toString() : value;
+                fulls.add(RidingChipFit.widened(value, digits, widestDigit));
+                tights.add(RidingChipFit.widened(tightValue, digits, widestDigit));
+                compacts.add(RidingChipFit.widened(compactValue, digits, widestDigit));
+            }
+            for (String kept : seen) { fulls.add(kept); tights.add(kept); compacts.add(kept); }
+            String[] f = fulls.toArray(new String[0]), t = tights.toArray(new String[0]), c = compacts.toArray(new String[0]);
+            if (java.util.Arrays.equals(f, fullSamples) && java.util.Arrays.equals(t, tightSamples) && java.util.Arrays.equals(c, compactSamples)) return;
+            fullSamples = f;
+            tightSamples = t;
+            compactSamples = c;
+            widths = newWidths();
+            ruler = new Paint(probe.getPaint());
+            ruler.setTextSize(valuePx);
+            ruler.setLetterSpacing(0);
+            String[][] forms = new String[RidingChipFit.FORMS][];
+            forms[RidingChipFit.FORM_FULL] = f;
+            forms[RidingChipFit.FORM_TIGHT] = t;
+            forms[RidingChipFit.FORM_COMPACT] = c;
+            for (int form = 0; form < RidingChipFit.FORMS; form++) {
+                rulerWidest[form] = 0;
+                for (String v : forms[form]) rulerWidest[form] = Math.max(rulerWidest[form], ruler.measureText(v));
+            }
+            requestLayout();
+        }
+        /**
+         * Keeps a value wider than every sample of the form the chip is sized in (RidingChipFit.widens) with them, so the
+         * chip fits it from now on. The form matters: a compact GPS chip is sized from its compact samples (±888 ft), and a
+         * ±1000 ft fix measured against "Not recording" was never kept, so it drew past the chip (the council on #493).
+         */
+        private boolean seeWide(String value, int form) {
+            if (value == null || ruler == null || seen.contains(value) || !RidingChipFit.widens(ruler.measureText(value), form, rulerWidest)) return false;
+            seen.add(value);
+            return true;
         }
         void show(long now, String units) {
             Shown s = shown(content, now, units);
@@ -2213,21 +3015,35 @@ final class RidingScreen implements AppScreen {
                 String[] fresh = names(s);
                 if (!java.util.Arrays.equals(fresh, names)) {
                     names = fresh;
-                    // Name the reading at once, before the group measures it to a rung.
-                    if (!TextUtils.equals(name.getText(), names[0])) name.setText(names[0]);
-                    requestLayout();
+                    String[][] sets = nameSets(fresh);
+                    if (!java.util.Arrays.deepEquals(sets, nameSets)) {
+                        // Other names in reach (a new language): fit again. Names within reach only swap the text shown.
+                        nameSets = sets;
+                        widths = newWidths();
+                        requestLayout();
+                    }
+                    String shownName = nameAt(names, shownStep < 0 ? RidingChipFit.NAME_FULL : shownStep);
+                    if (shownName != null && !TextUtils.equals(name.getText(), shownName)) name.setText(shownName);
                 }
             }
             // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48", "14.2 mph"), or the dash.
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
             if (s.seconds) value = s.main.toString();
-            // With the dash showing, a new state leaves the shown text as it was: fit again, so words that now fit come back.
-            if (RidingChipFit.refitsCompact(compactShown, full, value)) requestLayout();
+            // No reading yet: the dash keeps the reading's unit beside it ("— Wh/mi"), dim like the dash, so a pill sized for
+            // its widest value reads as a reading waiting for a value rather than an empty pill. Its size never changes: the
+            // unit and dash are always narrower than the widest value.
+            if (s.spoken == null && !mode && !s.seconds) value = emptyValue(value, units);
+            String was = full;
             full = value;
+            // A planned compact form shows a state's words where they fit: a new state works that out again.
+            if (RidingChipFit.refitsCompact(compactPlanned, was, full) || followsValue && !TextUtils.equals(was, full)) requestLayout();
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
-            String stepDown = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
-            if (!TextUtils.equals(stepDown, compact)) { compact = stepDown; requestLayout(); }
+            // The dash in place of a state's words, where the fit asked for it; a reading in figures shows as it is.
+            compact = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
+            int form = RidingChipFit.form(rung, compactPlanned);
+            seeWide(RidingChipFit.drawn(form, full, tight, compact), form);
+            useSamples(units);
             CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             int color = mode ? ui.onAccent : s.color;
@@ -2235,12 +3051,24 @@ final class RidingScreen implements AppScreen {
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
             boolean want = !(mode && s.spoken == null);
             if (want != wanted) { wanted = want; requestLayout(); }
-            if (!(getParent() instanceof ChipRow) && !(getParent() instanceof ChipColumn)) {
+            if (!(getParent() instanceof ChipRow) && !(getParent() instanceof ChipColumn) && !(getParent() instanceof ChipRows)) {
                 int visible = want ? VISIBLE : GONE;
                 if (getVisibility() != visible) setVisibility(visible);
             }
             String spokenName = s.rungs.length > 0 ? s.name() : s.main.toString();
             setContentDescription(spokenReading(spokenName, s.spoken == null ? null : s.spokenFull()));
+        }
+        /**
+         * The no-reading dash with the unit the reading's values carry, where the language puts it (RidingChipFit.emptyValue:
+         * "— Wh/mi", "—%", Turkish "%—"), or the dash alone for a reading without one (a clock, a stopwatch).
+         */
+        private String emptyValue(String dash, String units) {
+            for (Shown x : samples(content, units, false)) {
+                if (x.spoken == null) continue;
+                String value = RidingChipFit.emptyValue(dash, x.prefix, x.suffix);
+                if (!value.equals(dash)) return value;
+            }
+            return dash;
         }
         @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
             super.onInitializeAccessibilityNodeInfo(info);
@@ -2611,4 +3439,7 @@ final class RidingScreen implements AppScreen {
         ui.pressFeedback(button);
         return button;
     }
+
+    /** The recording time's label rungs, "Recording" then "Rec." (French "Enreg.", "REC"); the Ride page's Record ride tile reuses them. */
+    static String[] recordingRungs() { return new String[]{T.ridingLabelRecordingTime(), T.ridingLabelRecordingTimeShort()}; }
 }

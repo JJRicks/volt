@@ -61,6 +61,18 @@ final class RidingLayoutSheet {
         }
         content.addView(spots);
 
+        // Focus's chips under the speed, in a group of their own: each None until the rider picks a reading.
+        List<RidingLayout.Spot> beside = RidingEditor.besideChips(frame);
+        if (!beside.isEmpty()) {
+            content.addView(ui.sectionLabel(T.ridingEditorBesideSpeed()));
+            LinearLayout chips = ui.groupCard();
+            for (int i = 0; i < beside.size(); i++) {
+                if (i > 0) ui.divider(chips);
+                spotRow(chips, frame, beside.get(i));
+            }
+            content.addView(chips);
+        }
+
         TextView reset = ui.secondaryButton(T.ridingEditorReset(frameName(frame)), () -> {
             editor.reset();
             open = null;
@@ -164,7 +176,7 @@ final class RidingLayoutSheet {
         group.addView(row, new LinearLayout.LayoutParams(-1, -2));
         if (!expanded) return;
         String current = editor.content(spot.id);
-        for (String choice : RidingEditor.choices(spot)) {
+        for (String choice : RidingEditor.options(spot)) {
             boolean selected = choice.equals(current);
             LinearLayout option = new LinearLayout(context);
             option.setOrientation(LinearLayout.HORIZONTAL);
@@ -244,6 +256,7 @@ final class RidingLayoutSheet {
             case RidingLayout.TRACE_SPEED_POWER: return T.ridingContentTraceSpeedPower();
             case RidingLayout.TRACE_POWER: return T.ridingContentTracePower();
             case RidingLayout.TRACE_SPEED: return T.ridingContentTraceSpeed();
+            case RidingLayout.NONE: return T.ridingContentNone();
             default: return T.ridingNoValue();
         }
     }

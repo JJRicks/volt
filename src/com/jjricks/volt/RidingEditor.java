@@ -37,13 +37,14 @@ final class RidingEditor {
 
     /**
      * The spots the editor lists for a frame, in the frame's order: every spot but the top bar.
-     * Chips are left out while the frame's chips are switched off.
+     * Chips are left out while the frame's chips are switched off. A frame without a Chips switch
+     * (Focus) lists its chips apart, under the spots (besideChips).
      */
     List<RidingLayout.Spot> spots(String frameId) {
         RidingLayout.Frame f = RidingLayout.frameDef(frameId);
         List<RidingLayout.Spot> out = new ArrayList<>();
         if (f == null) return out;
-        boolean chips = !f.switches.containsKey(RidingLayout.CHIPS) || working.on(frameId, RidingLayout.CHIPS);
+        boolean chips = f.switches.containsKey(RidingLayout.CHIPS) && working.on(frameId, RidingLayout.CHIPS);
         for (RidingLayout.Spot s : f.spots) {
             if (s.kind == RidingLayout.Kind.TOP) continue;
             if (s.kind == RidingLayout.Kind.CHIP && !chips) continue;
@@ -52,10 +53,35 @@ final class RidingEditor {
         return out;
     }
 
+    /**
+     * A frame's chips beside its speed that the editor lists in a group of their own (Focus's, a tester, Nov 14):
+     * the chip spots of a frame without a Chips switch. Empty for the frames whose chips are among their spots.
+     */
+    static List<RidingLayout.Spot> besideChips(String frameId) {
+        RidingLayout.Frame f = RidingLayout.frameDef(frameId);
+        List<RidingLayout.Spot> out = new ArrayList<>();
+        if (f == null || f.switches.containsKey(RidingLayout.CHIPS)) return out;
+        for (RidingLayout.Spot s : f.spots) if (s.kind == RidingLayout.Kind.CHIP) out.add(s);
+        return out;
+    }
+
     /** What a spot can show, in catalog order; never the top bar's contents. */
     static List<String> choices(RidingLayout.Spot spot) {
         if (spot == null || spot.kind == RidingLayout.Kind.TOP) return Collections.emptyList();
         return RidingLayout.choices(spot.kind);
+    }
+
+    /**
+     * What the editor offers for a spot: its readings, and for a chip spot first of all None, an empty slot that takes
+     * no room (a tester, Nov 14). Everything else offers exactly its choices.
+     */
+    static List<String> options(RidingLayout.Spot spot) {
+        List<String> readings = choices(spot);
+        if (spot == null || spot.kind != RidingLayout.Kind.CHIP) return readings;
+        List<String> out = new ArrayList<>();
+        out.add(RidingLayout.NONE);
+        out.addAll(readings);
+        return out;
     }
 
     /** The switches a frame has, in the editor's order. */
