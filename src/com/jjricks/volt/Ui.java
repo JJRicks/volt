@@ -349,6 +349,17 @@ public final class Ui {
         label.setCompoundDrawablePadding(dp(12));
     }
     /**
+     * The Layout Plan's raised icon tile (the Controls pages): a 33 dp square in the raised colour with the glyph in
+     * accent text, instead of {@link #decorate}'s page-coloured 30 dp square. A label without a tile is left alone.
+     */
+    public void raiseIcon(TextView label) {
+        Drawable[] old = label.getCompoundDrawablesRelative();
+        if (!(old[0] instanceof LabelIcon) || !((LabelIcon) old[0]).boxed) return;
+        Drawable symbol = new LabelIcon(label, ((LabelIcon) old[0]).key, true, true);
+        int size = dp(33); symbol.setBounds(0, 0, size, size);
+        label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
+    }
+    /**
      * Display-only mode cues from the shown text, which must be Telemetry's English label; callers
      * that know the mode pass it to {@link #styleDriveMode(TextView, DriveMode, boolean)} instead.
      */
@@ -416,20 +427,22 @@ public final class Ui {
         return "";
     }
     private final class LabelIcon extends Drawable {
-        private final TextView owner; private final String key; private final boolean boxed;
+        private final TextView owner; private final String key; private final boolean boxed, raisedTile;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int alpha = 255;
-        LabelIcon(TextView owner, String key, boolean boxed) { this.owner = owner; this.key = key; this.boxed = boxed; }
+        LabelIcon(TextView owner, String key, boolean boxed) { this(owner, key, boxed, false); }
+        LabelIcon(TextView owner, String key, boolean boxed, boolean raisedTile) { this.owner = owner; this.key = key; this.boxed = boxed; this.raisedTile = raisedTile; }
         @Override public void draw(Canvas canvas) {
             canvas.save(); canvas.translate(getBounds().left, getBounds().top);
             int color = owner.getCurrentTextColor();
             if (boxed) {
                 // A dark rounded square with a red glyph; disabled or last-seen labels keep a grey glyph.
                 float w = getBounds().width(), h = getBounds().height();
-                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark ? bg : raised, alpha));
+                // The raised tile (raiseIcon) sits above the card instead of reading as a hole in it.
+                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark && !raisedTile ? bg : raised, alpha));
                 canvas.drawRoundRect(new RectF(0, 0, w, h), dp(10), dp(10), paint);
                 boolean quiet = color == muted || color == dim || !owner.isEnabled();
-                color = quiet ? dim : accent;
+                color = quiet ? dim : raisedTile ? accentText : accent;
                 float glyph = w * .56f; canvas.translate((w - glyph) / 2, (h - glyph) / 2);
                 canvas.scale(glyph / 24f, glyph / 24f);
             } else canvas.scale(getBounds().width() / 24f, getBounds().height() / 24f);

@@ -2056,8 +2056,23 @@ public final class MainActivity extends Activity implements ScreenHost {
             // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
             if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:cardBodies)
                 for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.bare();}
+            // The Controls pages' tiles are the plan's raised squares with an accent-text glyph.
+            if(ControlsPages.raisedTiles(spec.page))for(LinearLayout body:cardBodies)
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.raise();}
+            emphasizeLimit();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
+        }
+        /**
+         * Battery & charging's Charge limit shows its value semibold in the text colour, as the Layout Plan draws it
+         * ("90 %"); a muted name (blocked or last seen) keeps the value muted. Again on each refresh.
+         */
+        private void emphasizeLimit(){
+            if(ControlsPages.iconTiles(spec.page))return;
+            for(ControlRow control:rows)if(control.feature.key.equals("charge_limit")&&control.card.getParent()!=null){
+                control.value.setTextColor(control.name.getCurrentTextColor()==design.text?design.text:design.muted);
+                control.value.setTypeface(design.semibold());
+            }
         }
         /** Moves a row into one of the page's cards (out of its section body, whose divider stays behind), with a divider before it. */
         private void place(LinearLayout body,View card){
@@ -2224,7 +2239,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
         @Override public void refresh(){
             refreshMaintenance();
-            for(ControlRow row:rows)row.refresh();
+            for(ControlRow row:rows)row.refresh();emphasizeLimit();
             if(doneBy!=null)doneBy.refresh();refreshHistory();
             scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();chargeLive.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
@@ -2542,7 +2557,21 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         void chevron(Runnable action){
             View chevron=design.icon("chevron",15,design.muted);LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(design.dp(15),design.dp(15));cp.leftMargin=design.dp(6);line.addView(chevron,cp);
+            // With a sub-line under the name, the chevron centres on the name's line, where the value sits, not on both lines.
+            words.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->alignChevron(chevron));
             line.setClickable(true);line.setFocusable(true);line.setBackground(rowRipple());line.setOnClickListener(v->action.run());
+        }
+        private void alignChevron(View chevron){
+            View heading=(View)name.getParent();LinearLayout.LayoutParams p=(LinearLayout.LayoutParams)chevron.getLayoutParams();
+            boolean twoLines=sub.getParent()==words&&sub.getVisibility()==View.VISIBLE&&heading.getHeight()>0;
+            int gravity=twoLines?Gravity.TOP:Gravity.CENTER_VERTICAL;
+            int margin=twoLines?Math.max(0,words.getTop()+heading.getTop()+(heading.getHeight()-design.dp(15))/2-line.getPaddingTop()):0;
+            if(p.gravity!=gravity||p.topMargin!=margin){p.gravity=gravity;p.topMargin=margin;chevron.setLayoutParams(p);}
+        }
+        /** The Layout Plan's raised icon tile (Ui.raiseIcon); the sub-line's indent follows the wider tile. */
+        void raise(){
+            design.raiseIcon(name);
+            if(sub.getParent()==words&&sub.getPaddingStart()>0)sub.setPaddingRelative(name.getCompoundPaddingStart(),sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
         void setSub(CharSequence text){setSub(text==null?null:text.toString());}
@@ -2989,13 +3018,6 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private AlertDialog chargeDoneSheet;
     private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
-    /**
-     * The open Charge done by sheet, kept apart from controlDialog: its time row opens the picker over it (which then
-     * becomes controlDialog), and the page's close and onDestroy still close the sheet.
-     */
-    private AlertDialog chargeDoneSheet;
-        closeChargeDoneSheet();
-    private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
     /** Battery & charging's Charge done by sheet: the on/off switch and the finish time, the rows the page used to show. */
     private void showChargeDoneSheet(){
         // No scooter: the time row's own answer (select a scooter first).
@@ -3004,8 +3026,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         closeChargeDoneSheet();
         final AlertDialog[] self=new AlertDialog[1];
         LinearLayout body=sheetContent(doneByTitle(),null,()->{if(self[0]!=null)self[0].dismiss();});
-        AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
-        dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
+        body.setTag("charge-done-sheet");
+        LinearLayout card=design.groupCard();body.addView(card,new LinearLayout.LayoutParams(-1,-2));
         doneSheetRows.clear();
         for(boolean time:new boolean[]{false,true}){
             if(time)design.divider(card);

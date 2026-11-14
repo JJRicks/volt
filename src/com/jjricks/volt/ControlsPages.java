@@ -238,6 +238,11 @@ final class ControlsPages {
      */
     static boolean iconTiles(String page) { return !HubPages.BATTERY.equals(page); }
 
+    /** Whether a page's icon tiles are the Layout Plan's raised ones (Controls, Assists and Speed limits), not main's. */
+    static boolean raisedTiles(String page) {
+        return HubPages.CONTROLS.equals(page) || HubPages.CONTROLS_ASSISTS.equals(page) || HubPages.CONTROLS_LIMITS.equals(page);
+    }
+
     /** The page that shows a row (a "Done by" row's parent decides for it); null when no page does. */
     static String pageOf(String id) {
         for (Spec spec : SPECS.values()) if (spec.includes(id)) return spec.page;
