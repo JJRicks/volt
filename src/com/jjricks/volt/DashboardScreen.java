@@ -2773,6 +2773,11 @@ public final class DashboardScreen implements AppScreen {
         boolean wasLive;
         boolean active = true, querying;
         long queriedAt;
+        /** The odometer number's carry-over cue (OdometerAttention): its tap target, its colour before the cue, and how it shows. */
+        View odometerTarget;
+        TextView odometerNumber;
+        int odometerBase;
+        OdometerAttention.Style odometerStyle = OdometerAttention.Style.NONE;
         String queryKey = "";
         List<TelemetryHistory.Point> history = Collections.emptyList();
 
@@ -4491,8 +4496,67 @@ public final class DashboardScreen implements AppScreen {
             if (overview != null) overview.refresh(values);
             if (readingTiles != null) readingTiles.refresh(values);
             if (chart != null) refreshChart(values);
+            markOdometer(values);
             // Editing is a layout operation; data controls stay inert until Done.
             if (editing) disableInputs(body);
+        }
+
+        /**
+         * The odometer number after a reset was carried over (OdometerCarry): a tap on the number's area opens the
+         * explanation and Undo while anything is carried over; until the rider opens it once, the number pulses toward
+         * the accent (or, with animations off, is the accent with a dot beside it). Never while moving or off screen.
+         */
+        private void markOdometer(Map<String, TelemetryHistory.Reading> values) {
+            TextView number = amounts.get(MaintenanceView.ODOMETER);
+            if (number == null && big != null && MaintenanceView.ODOMETER.equals(widget.metric)) number = big;
+            if (number == null) return;
+            OdometerCarry record = service == null || editing ? null : service.odometerRecord();
+            boolean carried = record != null && record.carriedKm() > 0;
+            View target = number == big ? big : odometerTarget(number);
+            if (target != null && (carried || target == odometerTarget)) {
+                target.setOnClickListener(carried ? v -> { if (!editing) showOdometerCarry(); } : null);
+                target.setClickable(carried);
+                target.setMinimumHeight(carried ? ui.dp(48) : 0);
+                odometerTarget = carried ? target : null;
+            }
+            TelemetryHistory.Reading speed = values.get(RidingValues.SPEED_KEY);
+            boolean moving = speed != null && speed.live && speed.number != null && speed.number > 0;
+            OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(),
+                    Ui.motionEnabled(), !isShown(), moving);
+            odometerNumber = number;
+            odometerBase = number.getCurrentTextColor();
+            odometerStyle = style;
+            if (style == OdometerAttention.Style.NONE) {
+                if (number.getBackground() instanceof OdometerDot) number.setBackground(null);
+                pulsing.remove(this);
+            } else {
+                number.setContentDescription(T.dashboardOdometerCarrySpoken(number.getContentDescription()));
+                if (style == OdometerAttention.Style.STILL) {
+                    pulsing.remove(this);
+                    number.setTextColor(ui.accent);
+                    if (!(number.getBackground() instanceof OdometerDot)) number.setBackground(new OdometerDot(number));
+                } else {
+                    if (number.getBackground() instanceof OdometerDot) number.setBackground(null);
+                    pulsing.add(this);
+                    pulseOdometer(odometerPulse == null ? 0 : OdometerAttention.pulse(odometerPulse.getCurrentPlayTime()));
+                }
+            }
+            runOdometerPulse();
+        }
+
+        /** The odometer number's area: its reading cell (the overview's item, a reading tile, a row). */
+        private View odometerTarget(TextView number) {
+            if (!(number.getParent() instanceof View)) return null;
+            View holder = (View) number.getParent();
+            if (!(holder instanceof InfoCell) && holder.getParent() instanceof InfoCell) holder = (View) holder.getParent();
+            // A cell that already acts on a tap keeps its own action.
+            return holder.hasOnClickListeners() && holder != odometerTarget ? null : holder;
+        }
+
+        /** One frame of the pulse: the number's colour eased toward the accent. */
+        void pulseOdometer(double strength) {
+            if (odometerNumber == null || odometerStyle != OdometerAttention.Style.PULSE) return;
+            odometerNumber.setTextColor(blend(odometerBase, ui.accent, (float) strength));
         }
 
         private void refreshRecorder() {
@@ -6937,6 +7001,132 @@ public final class DashboardScreen implements AppScreen {
         return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(days, days);
     }
 
+    /** Tiles whose odometer number pulses (OdometerAttention.Style.PULSE), and the one animator that drives them all. */
+    private final Set<Tile> pulsing = new LinkedHashSet<>();
+    private android.animation.ValueAnimator odometerPulse;
+
+    /** Starts the pulse while a tile wants it and the screen is open; stops it otherwise. */
+    private void runOdometerPulse() {
+        // A tile the page dropped (a rebuild, another scooter) stops pulsing.
+        pulsing.removeIf(tile -> !tile.active || tile.getParent() == null);
+        boolean wanted = !closed && !pulsing.isEmpty();
+        if (!wanted) {
+            if (odometerPulse != null) { odometerPulse.cancel(); odometerPulse = null; }
+            return;
+        }
+        if (odometerPulse != null) return;
+        android.animation.ValueAnimator pulse = android.animation.ValueAnimator.ofFloat(0, 1);
+        pulse.setDuration(OdometerAttention.CYCLE_MS);
+        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        pulse.setInterpolator(new android.view.animation.LinearInterpolator());
+        pulse.addUpdateListener(a -> {
+            double strength = OdometerAttention.pulse(a.getCurrentPlayTime());
+            for (Tile tile : new ArrayList<>(pulsing)) tile.pulseOdometer(strength);
+        });
+        odometerPulse = pulse;
+        pulse.start();
+    }
+
+    /** The still cue, with animations off: a small accent dot beside the odometer number (after it, else before it). */
+    private final class OdometerDot extends android.graphics.drawable.Drawable {
+        private final TextView number;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        OdometerDot(TextView number) { this.number = number; paint.setColor(ui.accent); }
+
+        @Override public void draw(Canvas canvas) {
+            android.text.Layout layout = number.getLayout();
+            if (layout == null || layout.getLineCount() == 0) return;
+            float radius = ui.dp(3.5f), gap = ui.dp(6);
+            float left = number.getTotalPaddingLeft() + layout.getLineLeft(0), right = number.getTotalPaddingLeft() + layout.getLineRight(0);
+            float y = number.getTotalPaddingTop() + (layout.getLineTop(0) + layout.getLineBaseline(0)) / 2f;
+            float x = right + gap + radius <= getBounds().width() ? right + gap : left - gap - radius >= 0 ? left - gap : getBounds().width() - radius;
+            canvas.drawCircle(x, x == getBounds().width() - radius ? radius : y, radius, paint);
+        }
+
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); }
+        @Override public void setColorFilter(android.graphics.ColorFilter filter) { paint.setColorFilter(filter); }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+    }
+
+    /** A distance as the maintenance page writes an odometer: one decimal, grouped, in the rider's units. */
+    private String odometerText(double km) { return MaintenanceView.odometer(km, units()); }
+
+    private static String carryDate(long wall) {
+        return java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Fmt.locale(Locale.getDefault())).format(new java.util.Date(wall));
+    }
+
+    /**
+     * The odometer carry-over explanation (OdometerCarry): what happened, what is carried over, that the scooter's own
+     * number stays as it is, and Undo. Opening it counts as seen, so the number stops asking for attention.
+     */
+    private void showOdometerCarry() {
+        if (service == null || closed) return;
+        OdometerCarry record = service.odometerRecord();
+        OdometerCarry.Carry last = record == null ? null : record.last();
+        if (last == null || record.carriedKm() <= 0) return;
+        service.acknowledgeOdometerCarry();
+        LinearLayout content = column();
+        TextView what = ui.text(T.dashboardOdometerCarryWhat(carryDate(last.wall), odometerText(last.fromKm), odometerText(last.toKm)), 15, false);
+        content.addView(what, new LinearLayout.LayoutParams(-1, -2));
+        String carried = odometerText(record.carriedKm());
+        TextView includes = ui.text(record.carries.size() == 1 ? T.dashboardOdometerCarryIncludes(carried, carryDate(last.wall))
+                : T.dashboardOdometerCarryIncludesMany(carried, carryDate(last.wall)), 15, true);
+        includes.setPadding(0, ui.dp(12), 0, ui.dp(6));
+        content.addView(includes, new LinearLayout.LayoutParams(-1, -2));
+        if (record.hasBaseline()) {
+            content.addView(carryRow(T.dashboardOdometerCarryScooter(), odometerText(record.lastRawKm)));
+            content.addView(carryRow(T.dashboardOdometerCarryShown(), odometerText(record.displayKm(record.lastRawKm))));
+        }
+        TextView note = ui.caption(T.dashboardOdometerCarryNote());
+        note.setPadding(0, ui.dp(10), 0, 0);
+        content.addView(note, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout footer = column();
+        footer.setPadding(0, ui.dp(12), 0, 0);
+        footer.addView(ui.secondaryButton(T.dashboardOdometerCarryUndo(), this::confirmOdometerUndo), new LinearLayout.LayoutParams(-1, -2));
+        showSheet(T.dashboardOdometerCarryTitle(), content, footer, T.commonClose(), null);
+    }
+
+    private LinearLayout carryRow(String label, String value) {
+        LinearLayout line = row();
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.setMinimumHeight(ui.dp(40));
+        TextView name = ui.text(label, 14, false);
+        name.setTextColor(ui.muted);
+        line.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView amount = ui.text(value, 14, true);
+        amount.setGravity(Gravity.END);
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-2, -2);
+        space.setMarginStart(ui.dp(12));
+        line.addView(amount, space);
+        line.setContentDescription(T.dashboardReading(label, value));
+        line.setFocusable(true);
+        return line;
+    }
+
+    /** Undo's confirm: names what the odometer in Volt goes back to; removes only the latest carry-over. */
+    private void confirmOdometerUndo() {
+        if (service == null || closed) return;
+        OdometerCarry record = service.odometerRecord();
+        OdometerCarry.Carry last = record == null ? null : record.last();
+        if (last == null) { dismiss(); return; }
+        OdometerCarry after = record.copy();
+        after.undo();
+        double raw = record.hasBaseline() ? record.lastRawKm : 0;
+        dismiss();
+        AlertDialog created = new AlertDialog.Builder(dialogContext)
+                .setTitle(T.dashboardOdometerCarryUndoTitle())
+                .setMessage(T.dashboardOdometerCarryUndoMessage(odometerText(after.displayKm(raw)), odometerText(last.km()), carryDate(last.wall)))
+                .setNegativeButton(T.commonCancel(), null)
+                .setPositiveButton(T.dashboardOdometerCarryUndoConfirm(), (d, which) -> {
+                    if (closed || service == null) return;
+                    if (service.undoOdometerCarry()) host.toast(T.dashboardOdometerCarryRemoved());
+                })
+                .create();
+        dialog = created;
+        created.show();
+    }
+
     /**
      * Bottom sheet with a heading and an X close; the content scrolls and an optional footer
      * stays pinned underneath it.
@@ -8104,6 +8294,8 @@ public final class DashboardScreen implements AppScreen {
         stopEditTransition();
         editHistory.clear();
         for (Tile tile : tiles) tile.active = false;
+        pulsing.clear();
+        runOdometerPulse();
         rememberPicker();
         dismiss();
         if (grid != null) {

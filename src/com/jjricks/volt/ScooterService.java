@@ -189,6 +189,7 @@ public final class ScooterService extends Service {
             public void save(long count,String counted){settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_ENDS_COUNTED,counted).commit();}
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
+        odometerRecords = new OdometerCarry.Keeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         startEvidence();
         maintenanceNotices = new MaintenanceNotices(this, profiles);
@@ -1971,9 +1972,11 @@ public final class ScooterService extends Service {
     }
     /** The profile's part of forgetting: its profile, maintenance and evidence; the link is already closed. */
     private void forgetProfile(String id,boolean current){
+        ScooterProfiles.Profile forgotten=null;for(ScooterProfiles.Profile p:profiles.all())if(p.id.equals(id))forgotten=p;
         profiles.remove(id);
         settings.edit().remove(KeyBackups.key(id)).apply();
         if(maintenance!=null)maintenance.forget(id);
+        if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?"":forgotten.serial);
         forgetEvidence(id);
         if(current)ble.profileSelected();
     }
@@ -2558,6 +2561,38 @@ public final class ScooterService extends Service {
             try { ble.set("range_algorithm", target, MutationGate.Origin.AUTOMATIC_RANGE_FOLLOW); } finally { selectingRange = false; }
         }
     }
+    // ---- The lifetime odometer (OdometerCarry) ----
+
+    /** Each scooter's lifetime odometer record; null until the service starts. */
+    public OdometerCarry.Keeper odometerRecords;
+
+    /** The active scooter's odometer record (a copy), or null while simulating or without a scooter. */
+    public OdometerCarry odometerRecord() {
+        String id = activeProfileId();
+        if (odometerRecords == null || simulating() || id.isEmpty()) return null;
+        return odometerRecords.load(id);
+    }
+
+    /** The odometer to show the rider for a raw reading: the raw value plus any carried-over distance. Raw while simulating. */
+    public double shownOdometerKm(double rawKm) {
+        OdometerCarry record = odometerRecord();
+        return record == null ? rawKm : record.displayKm(rawKm);
+    }
+
+    /** The rider opened the carry-over explanation: Home's odometer stops asking for attention. */
+    public void acknowledgeOdometerCarry() {
+        String id = activeProfileId();
+        if (odometerRecords != null && !simulating() && !id.isEmpty() && odometerRecords.acknowledge(id)) changed();
+    }
+
+    /** Removes the latest carry-over (the explanation's Undo). Whether there was one. */
+    public boolean undoOdometerCarry() {
+        String id = activeProfileId();
+        boolean undone = odometerRecords != null && !simulating() && !id.isEmpty() && odometerRecords.undo(id);
+        if (undone) changed();
+        return undone;
+    }
+
     // ---- Maintenance reminders (MaintenanceKeeper) ----
 
     /** Each scooter's maintenance reminders; null until the service starts. */
@@ -2603,6 +2638,7 @@ public final class ScooterService extends Service {
         maintenanceRecording = recording;
         if (!valid || !scope.equals(maintenanceFed)) {
             if (!maintenanceFed.isEmpty()) maintenance.flush(maintenanceFed);
+            if (!maintenanceFed.isEmpty() && odometerRecords != null) odometerRecords.flush(maintenanceFed);
             // The connection ended: one check with the distance it counted. A simulation's notice goes with the simulation.
             if (!maintenanceFed.isEmpty() && MaintenanceKeeper.simulation(maintenanceFed)) { if (maintenanceNotices != null) maintenanceNotices.cancel(maintenanceFed); }
             else if (!maintenanceFed.isEmpty()) checkMaintenance(maintenanceFed);
@@ -2616,6 +2652,11 @@ public final class ScooterService extends Service {
         boolean first = maintenanceReadingMs < 0;
         maintenanceReadingMs = odometer.updatedMs;
         int bits = simulating() ? MaintenanceDistance.BITS_32 : ble.telemetry.odometerBits();
+        // The lifetime odometer record (OdometerCarry): every real reading, whatever the reminders say; never the simulator.
+        if (!simulating() && odometerRecords != null) {
+            odometerRecords.adopt(scope, connected.serial);
+            odometerRecords.observe(scope, odometer.numericValue, bits, odometer.updatedMs, System.currentTimeMillis());
+        }
         MaintenanceDistance.Outcome outcome = maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
         // Connected (the first reading brings rides counted since the last connection), or a new reading while reminders are on.
         if (first || outcome != null) checkMaintenance(scope);
@@ -2737,7 +2778,7 @@ public final class ScooterService extends Service {
     }
     /** Current forecast for glanceable UI. Recorded charts and explicit scooter readings stay raw. */
     public Map<String, TelemetryHistory.Reading> dashboardReadings() {
-        Map<String, TelemetryHistory.Reading> raw = displayReadings();
+        Map<String, TelemetryHistory.Reading> raw = withShownOdometer(displayReadings());
         if (!usesLearnedRange() || simulating()) return raw;
         String profile = activeProfileId();
         LearnedRangeEstimate.Result estimate = currentRangeCache(profile);
@@ -2750,6 +2791,21 @@ public final class ScooterService extends Service {
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(raw);
         result.put("remaining_range_km", new TelemetryHistory.Reading("remaining_range_km", "Learned remaining range",
                 "Ride", String.format(Locale.US, "%.2f km", km), "km", km, soc.capturedWallMs, soc.live));
+        return Collections.unmodifiableMap(result);
+    }
+    /**
+     * The readings with the odometer the rider sees: the raw reading plus what OdometerCarry carried over from before a
+     * reset. Only Home's glanceable values take it; displayReadings, charts and every other consumer stay raw.
+     */
+    private Map<String, TelemetryHistory.Reading> withShownOdometer(Map<String, TelemetryHistory.Reading> readings) {
+        TelemetryHistory.Reading odometer = readings.get(MaintenanceView.ODOMETER);
+        OdometerCarry record = odometer == null || odometer.number == null ? null : odometerRecord();
+        if (record == null) return readings;
+        double shown = record.displayKm(odometer.number);
+        if (shown == odometer.number) return readings;
+        Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(readings);
+        result.put(odometer.key, new TelemetryHistory.Reading(odometer.key, odometer.label, odometer.group,
+                String.format(Locale.US, "%.2f", shown) + Telemetry.SUFFIX_KM, odometer.unit, shown, odometer.capturedWallMs, odometer.live));
         return Collections.unmodifiableMap(result);
     }
     private LearnedRangeEstimate.Result currentRangeCache(String profile) {

@@ -258,6 +258,16 @@ Scooters without a charge limit setting, such as the GT3 Max, show **Charge aler
 - **From the … manual**, on the Maintenance page, shows the intervals NAVEE's published manual prints for your model (for example tire tread, screws, brakes, steering and battery storage), each with the manual and page it comes from. **Add** opens Add reminder already filled in, and the row then reads **Added**. Volt lists only what a manual states: when a model's manual isn't listed, it says **No intervals listed yet**, and you choose how often, with a suggested task or one in your own words (a custom job such as oiling a part works the same way).
 - Follow the scooter's manual and a qualified mechanic; reminders don't make the scooter safe to ride.
 
+## Odometer after a reset
+
+Volt keeps each scooter's last odometer reading, whether or not maintenance reminders are on. If the scooter's own odometer goes back (after a reset, or after **Release this scooter** and setting it up again) and two readings in a row confirm it, Volt carries the old distance over: it picks up from the last number it saw, so Home's odometer and riding mode's keep counting. A replaced part that brings its own mileage never adds it. One odd low reading, a wobble of up to 0.2 km, or an older odometer field that wraps around never counts as a reset.
+
+- The odometer number pulses gently until you tap it once (with animations off, it shows in the accent colour with a dot). It never pulses in riding mode or while the scooter is moving.
+- Tapping the number while anything is carried over shows what happened, **Includes … from before a reset**, the scooter's own reading and the total Volt shows. Volt can't change the scooter's own number, so the scooter's display shows the count since the reset.
+- **Remove the carried-over distance** takes away the latest carry-over, after a confirm.
+- Rides, range estimates, maintenance reminders, Stats, exports and diagnostics keep using the scooter's own reading.
+- A backup of **Scooters & setup keys** carries the record; a restore keeps whichever record read the odometer more recently. Forgetting or releasing a scooter keeps its record on this phone, so setting the same scooter up again picks it back up. The simulator never touches it.
+
 ## Last-known readings and connected history
 
 Last-known stats and settings stay on the phone for the selected scooter. Grey values are historical; a grey lock state is unverified until you reconnect. Only fresh authenticated scooter state enables setting changes.

@@ -719,4 +719,26 @@
     <!-- Spoken for the scale dialog's input: %1$s is the unit ("mph"). -->
     <string name="dashboard_scale_maximum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale maximum in %1$s</string>
     <string name="dashboard_scale_minimum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale minimum in %1$s</string>
+
+    <!-- The odometer carry-over (OdometerCarry): after a reset of the scooter's own odometer, Home's odometer keeps
+         counting from the last number Volt saw. Distances arrive formatted with their unit ("1,234.5 km"); dates arrive
+         formatted for the language ("Nov 14, 2026"). -->
+    <!-- TalkBack, while the rider hasn't opened the explanation: %1$s is the odometer's usual description ("Odometer, 1,234.5 km"). -->
+    <string name="dashboard_odometer_carry_spoken" volt:screen="Home odometer" volt:purpose="accessibility description">%1$s. Includes distance carried over from a reset. Double-tap for details.</string>
+    <string name="dashboard_odometer_carry_title" volt:screen="Odometer carry-over sheet" volt:purpose="title">Odometer carried over</string>
+    <!-- %1$s the date, %2$s the last reading Volt saved before the reset, %3$s the first reading after it. -->
+    <string name="dashboard_odometer_carry_what" volt:screen="Odometer carry-over sheet" volt:purpose="message">On %1$s your scooter\'s odometer went back from %2$s to %3$s. Volt picked up from the last number it saw, so the odometer in Volt keeps counting.</string>
+    <!-- %1$s all the distance carried over, %2$s the date of the reset. -->
+    <string name="dashboard_odometer_carry_includes" volt:screen="Odometer carry-over sheet" volt:purpose="message">Includes %1$s from before a reset (%2$s)</string>
+    <!-- More than one reset: %1$s all the distance carried over, %2$s the date of the latest reset. -->
+    <string name="dashboard_odometer_carry_includes_many" volt:screen="Odometer carry-over sheet" volt:purpose="message">Includes %1$s from before resets (the latest on %2$s)</string>
+    <string name="dashboard_odometer_carry_scooter" volt:screen="Odometer carry-over sheet" volt:purpose="row label">Scooter\'s own reading</string>
+    <string name="dashboard_odometer_carry_shown" volt:screen="Odometer carry-over sheet" volt:purpose="row label">Shown in Volt</string>
+    <string name="dashboard_odometer_carry_note" volt:screen="Odometer carry-over sheet" volt:purpose="caption">Volt can\'t change the scooter\'s own number, so the scooter\'s display shows the count since the reset. Rides, range and maintenance reminders keep using the scooter\'s own number.</string>
+    <string name="dashboard_odometer_carry_undo" volt:screen="Odometer carry-over sheet" volt:purpose="button">Remove the carried-over distance</string>
+    <string name="dashboard_odometer_carry_undo_title" volt:screen="Odometer carry-over sheet" volt:purpose="title">Remove the carried-over distance?</string>
+    <!-- %1$s the odometer in Volt afterwards, %2$s the distance removed, %3$s the date it was carried over. -->
+    <string name="dashboard_odometer_carry_undo_message" volt:screen="Odometer carry-over sheet" volt:purpose="message">The odometer in Volt goes back to %1$s, without the %2$s carried over on %3$s. You can\'t add it back later.</string>
+    <string name="dashboard_odometer_carry_undo_confirm" volt:screen="Odometer carry-over sheet" volt:purpose="button">Remove</string>
+    <string name="dashboard_odometer_carry_removed" volt:screen="Odometer carry-over sheet" volt:purpose="toast">Carried-over distance removed</string>
 </resources>

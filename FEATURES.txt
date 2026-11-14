@@ -387,6 +387,20 @@ Backups carry the key with this record. A scooter already saved in Volt is refus
 it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
 tried on a real scooter. See docs/validation/new-scooter-setup.md.
 
+ODOMETER CARRY-OVER AFTER A RESET (UNRELEASED)
+
+Volt keeps each scooter's last odometer reading on this phone, always on and
+read only (no command is sent). When the scooter's odometer drops by more than
+0.2 km and two readings in a row from separate frames confirm it, Home's and
+riding mode's odometer add last saved minus the first reading after the drop,
+so the total keeps counting and never over-counts. A wrap of an 8- or 16-bit
+field keeps counting instead. The odometer number pulses until tapped once;
+the tap explains it and offers an Undo of the latest carry-over. Rides, range,
+maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
+Backups (Scooters & setup keys) carry the record per profile, newer reading
+wins; a forgotten or released scooter's record waits on this phone by serial
+for the same scooter's next setup. Never in simulation. Untested on hardware.
+
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
 The parked scooter accepted a changed value, reported that new value, and

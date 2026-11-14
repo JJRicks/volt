@@ -79,15 +79,15 @@ final class MaintenanceDistance {
             baseline(rawKm, readingBits, wall);
             return new Outcome(first ? Kind.FIRST : Kind.REBASELINE, 0);
         }
-        double delta = round(rawKm - lastRawKm);
-        if (delta >= 0) {
+        Kind step = step(lastRawKm, bits, rawKm);
+        if (step == Kind.FORWARD || step == Kind.SAME) {
+            double delta = round(rawKm - lastRawKm);
             accumulatedKm = round(accumulatedKm + delta); lastRawKm = rawKm; lastWall = Math.max(lastWall, wall);
-            return new Outcome(delta == 0 ? Kind.SAME : Kind.FORWARD, delta);
+            return new Outcome(step, delta);
         }
-        if (-delta <= JITTER_KM) { lastWall = Math.max(lastWall, wall); return new Outcome(Kind.IGNORED, 0); }
-        double period = period(bits);
-        if (period > 0 && lastRawKm >= period * (1 - WRAP_WINDOW) && rawKm <= period * WRAP_WINDOW) {
-            double added = round(period - lastRawKm + rawKm);
+        if (step == Kind.IGNORED) { lastWall = Math.max(lastWall, wall); return new Outcome(Kind.IGNORED, 0); }
+        if (step == Kind.WRAP) {
+            double added = wrapped(lastRawKm, bits, rawKm);
             accumulatedKm = round(accumulatedKm + added); lastRawKm = rawKm; lastWall = Math.max(lastWall, wall); floorRawKm = 0;
             return new Outcome(Kind.WRAP, added);
         }
@@ -95,6 +95,24 @@ final class MaintenanceDistance {
         resetWall = wall; floorRawKm = rawKm;
         return new Outcome(Kind.RESET, 0);
     }
+
+    /**
+     * How a reading on the same field width steps from the last one: FORWARD or SAME, IGNORED for a backward step of
+     * at most {@link #JITTER_KM}, WRAP from the top 5 % of a wrapping field to its bottom 5 %, else RESET. Pure; the
+     * maintenance count and the lifetime odometer (OdometerCarry) share it, so both read a reading the same way.
+     */
+    static Kind step(double lastRawKm, int bits, double rawKm) {
+        double delta = round(rawKm - lastRawKm);
+        if (delta > 0) return Kind.FORWARD;
+        if (delta == 0) return Kind.SAME;
+        if (-delta <= JITTER_KM) return Kind.IGNORED;
+        double period = period(bits);
+        if (period > 0 && lastRawKm >= period * (1 - WRAP_WINDOW) && rawKm <= period * WRAP_WINDOW) return Kind.WRAP;
+        return Kind.RESET;
+    }
+
+    /** The distance across a wrap that {@link #step} found: the rest of the old lap plus the new reading. */
+    static double wrapped(double lastRawKm, int bits, double rawKm) { return round(period(bits) - lastRawKm + rawKm); }
 
     /** Odometer values are whole km or tenths; a metre keeps sums of tenths free of binary noise. */
     static double round(double km) { return Math.round(km * 1000) / 1000.0; }
