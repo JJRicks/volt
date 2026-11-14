@@ -51,11 +51,13 @@ public final class Ui {
     public final boolean dark;
     /** Page background, card surface, raised control fill, text, secondary text and the red accent. */
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
+    /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
+    public final int accentDeep, onAccent, ok, dim;
     /**
-     * Deeper red for gradients and pressed states, red for text and links (4.5:1 on cards, where the fill red is not),
-     * white text on red, confirmed-good green, faint last-seen grey.
+     * The accent for text, links and line icons on dark cards (the Layout Plan's #FF8A8C, 4.5:1 on cards where the fill
+     * red is not); the accent itself on light.
      */
-    public final int accentDeep, accentText, onAccent, ok, dim;
+    public final int accentText;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -73,7 +75,7 @@ public final class Ui {
         dim = Color.parseColor(dark ? "#878982" : "#7A7C76");
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
-        accentText = Color.parseColor(dark ? "#FF8A8C" : "#D3252A");
+        accentText = dark ? Color.parseColor("#FF8A8C") : accent;
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");
@@ -347,6 +349,90 @@ public final class Ui {
         Drawable[] old = label.getCompoundDrawablesRelative();
         label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
         label.setCompoundDrawablePadding(dp(12));
+        IconBalance.watch(label);
+    }
+    /**
+     * A view's measured width without an icon label's balance spacer, for a parent that measures labels to pick a
+     * layout (Stats' StackingRow): the balance then never changes the layout it picks.
+     */
+    static int unbalancedWidth(View view) {
+        if (!(view instanceof TextView)) return view.getMeasuredWidth();
+        TextView label = (TextView) view;
+        Drawable end = label.getCompoundDrawablesRelative()[2];
+        int spacer = end instanceof BalanceSpacer ? end.getBounds().width() : IconLabelBalance.NONE;
+        return IconLabelBalance.unbalanced(label.getMeasuredWidth(), spacer, label.getCompoundDrawablePadding());
+    }
+    /** The invisible end drawable that centres a centred label's text past its start icon (IconLabelBalance). */
+    private static final class BalanceSpacer extends Drawable {
+        BalanceSpacer(int width) { setBounds(0, 0, width, 0); }
+        @Override public void draw(Canvas canvas) {}
+        @Override public void setAlpha(int value) {}
+        @Override public void setColorFilter(ColorFilter value) {}
+        @Override public int getOpacity() { return PixelFormat.TRANSPARENT; }
+    }
+    /**
+     * Balances a decorated label at layout time, when its gravity, padding, gap, icon and width are final: a centred
+     * label gets the widest end spacer (up to the full balance) that keeps its text on one line, and any other label
+     * loses it. It decides before
+     * the frame draws (and lays the label out again first), so the text never jumps. One per label: decorate may
+     * run more than once on the same label, and a caller may swap the start icon (Stats' spinner) in between.
+     */
+    private static final class IconBalance implements View.OnAttachStateChangeListener, android.view.ViewTreeObserver.OnPreDrawListener {
+        private static final java.util.WeakHashMap<TextView, Boolean> WATCHED = new java.util.WeakHashMap<>();
+        private final TextView label;
+        private android.view.ViewTreeObserver observer;
+        private CharSequence measuredText; private float measuredSize, measuredSpacing, measuredWidth; private Typeface measuredFace;
+
+        private IconBalance(TextView label) { this.label = label; }
+
+        static void watch(TextView label) {
+            if (WATCHED.put(label, Boolean.TRUE) != null) return;
+            IconBalance balance = new IconBalance(label);
+            label.addOnAttachStateChangeListener(balance);
+            if (label.isAttachedToWindow()) balance.onViewAttachedToWindow(label);
+        }
+        @Override public void onViewAttachedToWindow(View view) {
+            if (observer != null && observer.isAlive()) return;
+            observer = label.getViewTreeObserver(); observer.addOnPreDrawListener(this);
+        }
+        @Override public void onViewDetachedFromWindow(View view) {
+            if (observer != null && observer.isAlive()) observer.removeOnPreDrawListener(this);
+            observer = null;
+        }
+        @Override public boolean onPreDraw() {
+            if (!label.isLaidOut() || label.isLayoutRequested()) return true;
+            Drawable[] drawables = label.getCompoundDrawablesRelative();
+            Drawable end = drawables[2];
+            if (end != null && !(end instanceof BalanceSpacer)) return true; // the end belongs to the caller
+            int have = end == null ? IconLabelBalance.NONE : end.getBounds().width(), want = wanted(drawables[0]);
+            if (want == have) return true;
+            // A spacer of width 0 still adds its gap: a tight label's partial balance.
+            label.setCompoundDrawablesRelative(drawables[0], drawables[1],
+                    want == IconLabelBalance.NONE ? null : new BalanceSpacer(want), drawables[3]);
+            return false; // lay out again before this frame draws
+        }
+        private int wanted(Drawable icon) {
+            int align = label.getTextAlignment();
+            boolean centred = align == View.TEXT_ALIGNMENT_CENTER || align == View.TEXT_ALIGNMENT_GRAVITY
+                    && (label.getGravity() & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL;
+            // Autosize could shrink the text into the balanced room; such a label keeps today's layout.
+            if (!centred || icon == null || label.getAutoSizeTextType() != TextView.AUTO_SIZE_TEXT_TYPE_NONE) return IconLabelBalance.NONE;
+            return IconLabelBalance.spacer(true, label.getWidth(), label.getPaddingStart(), label.getPaddingEnd(),
+                    icon.getBounds().width(), label.getCompoundDrawablePadding(), textWidth());
+        }
+        /** The shown text's widest line, unwrapped; measured again only when the text or its paint changes. */
+        private float textWidth() {
+            CharSequence shown = label.getText();
+            if (label.getTransformationMethod() != null) shown = label.getTransformationMethod().getTransformation(shown, label);
+            android.text.TextPaint paint = label.getPaint();
+            if (shown != measuredText || paint.getTextSize() != measuredSize || paint.getLetterSpacing() != measuredSpacing
+                    || paint.getTypeface() != measuredFace) {
+                measuredText = shown; measuredSize = paint.getTextSize(); measuredSpacing = paint.getLetterSpacing();
+                measuredFace = paint.getTypeface();
+                measuredWidth = android.text.Layout.getDesiredWidth(shown, paint);
+            }
+            return measuredWidth;
+        }
     }
     /**
      * The Layout Plan's raised icon tile (the Controls pages): a 33 dp square in the raised colour with the glyph in
@@ -1221,6 +1307,12 @@ public final class Ui {
             } else if (key.equals("lights")) {
                 p.moveTo(13, 5); p.cubicTo(21, 4, 22, 20, 13, 19); p.close(); canvas.drawPath(p, paint);
                 canvas.drawLine(3, 6, 9, 8, paint); canvas.drawLine(2, 12, 9, 12, paint); canvas.drawLine(3, 18, 9, 16, paint);
+            } else if (key.equals("bulb")) {
+                // A light bulb (Lights & sound in the Layout Plan): a round glass on a neck, over a two-line base.
+                p.moveTo(9, 16.5f); p.cubicTo(9, 13.8f, 5.5f, 12.6f, 5.5f, 9); p.cubicTo(5.5f, 5.3f, 8.4f, 2.5f, 12, 2.5f);
+                p.cubicTo(15.6f, 2.5f, 18.5f, 5.3f, 18.5f, 9); p.cubicTo(18.5f, 12.6f, 15, 13.8f, 15, 16.5f); p.close();
+                canvas.drawPath(p, paint);
+                canvas.drawLine(9.5f, 19.5f, 14.5f, 19.5f, paint); canvas.drawLine(10.5f, 22, 13.5f, 22, paint);
             } else if (key.equals("stats") || key.equals("chart") || key.equals("analytics")) {
                 canvas.drawLine(4, 3, 4, 20, paint); canvas.drawLine(4, 20, 21, 20, paint);
                 p.moveTo(7, 15); p.lineTo(11, 10); p.lineTo(15, 13); p.lineTo(21, 5); canvas.drawPath(p, paint);
@@ -1311,6 +1403,17 @@ public final class Ui {
                 p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
+            } else if (key.equals("bars")) {
+                // Four rising bars (Controls).
+                canvas.drawLine(4, 20, 4, 16, paint); canvas.drawLine(9, 20, 9, 12, paint);
+                canvas.drawLine(14, 20, 14, 8, paint); canvas.drawLine(19, 20, 19, 4, paint);
+            } else if (key.equals("wrench")) {
+                // A wrench (Service): an open-jawed head at the top right on a handle to the bottom left.
+                canvas.save(); canvas.rotate(45, 12, 12);
+                canvas.drawArc(new RectF(7.5f, 1.5f, 16.5f, 10.5f), -55, 290, false, paint);
+                p.moveTo(9.4f, 2.3f); p.lineTo(10.6f, 5.2f); p.lineTo(13.4f, 5.2f); p.lineTo(14.6f, 2.3f); canvas.drawPath(p, paint);
+                canvas.drawRoundRect(new RectF(10.3f, 10.2f, 13.7f, 22.5f), 1.7f, 1.7f, paint);
+                canvas.restore();
             } else {
                 canvas.drawCircle(12, 12, 9, paint); canvas.drawLine(12, 11, 12, 17, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 7, 1, paint);
             }

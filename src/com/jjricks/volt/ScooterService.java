@@ -108,6 +108,11 @@ public final class ScooterService extends Service {
      * Both render when shown (plan R2); alertTitle and alertText stay the empty text shown before any alert fired.
      */
     private AlertShown alertShown,pendingChargeAlert;
+    /**
+     * The alert riding mode's banner shows (RidingAlert): when it took it, whether the alarm sounded then, its number,
+     * and whether the banner has put it on screen yet (a silent one waits while Volt's sheet or dialog covers riding mode).
+     */
+    private AlertShown ridingAlert;private RidingAlert.Seen ridingAlertSeen;private long ridingAlertId;private boolean ridingAlertSounded,ridingAlertOnScreen;
     /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
     private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
@@ -189,6 +194,7 @@ public final class ScooterService extends Service {
             public void save(long count,String counted){settings.edit().putLong(RIDE_AUTO_ENDS,count).putString(RIDE_AUTO_ENDS_COUNTED,counted).commit();}
         });
         maintenance = new MaintenanceKeeper(maintenanceStorage());
+        odometerRecords = new OdometerCarry.Keeper(maintenanceStorage());
         profiles=new ScooterProfiles(this);ble=new BleController(this,profiles);ble.setListener(this::changed);
         startEvidence();
         maintenanceNotices = new MaintenanceNotices(this, profiles);
@@ -1235,6 +1241,47 @@ public final class ScooterService extends Service {
     /** An alert that fired in sight, for MainActivity's dialog (out of sight it is a notification). */
     public String[] pendingChargeAlert(){AlertShown alert=pendingChargeAlert;return alert==null?null:new String[]{alert.title(),alert.text()};}
     public void chargeAlertShown(){pendingChargeAlert=null;}
+    /**
+     * Riding mode takes the pending alert as its banner (RidingAlert) instead of a dialog; the caller then marks it
+     * shown with chargeAlertShown, as the dialog does. A newer alert replaces the one showing. False with none pending.
+     */
+    public boolean showChargeAlertInRiding(){
+        AlertShown alert=pendingChargeAlert;if(alert==null)return false;
+        ridingAlert=alert;ridingAlertSeen=new RidingAlert.Seen();ridingAlertSounded=alarmPlaying();ridingAlertOnScreen=false;ridingAlertId++;
+        return true;
+    }
+    /** The banner put this alert on screen: from now on leaving riding mode counts it as shown. */
+    public void ridingAlertOnScreen(long id){if(ridingAlert!=null&&id==ridingAlertId)ridingAlertOnScreen=true;}
+    /**
+     * Riding mode's banner while it shows, else null; one whose time has passed is dropped, so it never shows again.
+     * inView: no sheet or dialog of Volt's covers riding mode; only that time counts toward a silent banner's ten seconds.
+     */
+    public RidingAlert ridingAlert(long nowMs,boolean inView){
+        AlertShown alert=ridingAlert;if(alert==null)return null;
+        RidingAlert shown=new RidingAlert(alert.event,alert.level,ridingAlertId,ridingAlertSeen.tick(nowMs,inView),ridingAlertSounded,alert.text());
+        if(shown.shown(alarmPlaying()))return shown;
+        ridingAlert=null;return null;
+    }
+    /** The banner's Stop sound or close: it goes and the alarm ends. A close meant for an older banner leaves a newer one. */
+    public void closeRidingAlert(long id){
+        if(ridingAlert==null||id!=ridingAlertId)return;
+        ridingAlert=null;stopChargeAlarm();
+    }
+    /**
+     * Riding mode closed with its banner up: the alert counts as shown (no dialog follows) and the alarm keeps its own
+     * timeout. So the sound can still be stopped, the alert's notice carries Stop while it sounds, as out of sight;
+     * where Android shows Volt no notice, nothing could stop it, so it ends now. A silent alert still waiting behind
+     * Volt's sheet or dialog was never seen: it goes back to Volt's usual path (RidingAlert.leave), Home's message in
+     * view (a newer pending alert wins, as ever) or the alert notification out of view, so it is never lost.
+     */
+    public void ridingModeClosed(){
+        AlertShown held=ridingAlert;boolean unseen=held!=null&&!ridingAlertOnScreen;ridingAlert=null;
+        if(destroyed)return;
+        RidingAlert.Leave leave=RidingAlert.leave(held!=null,unseen,alarmPlaying(),visible,chargeAlerts().notify,alertNotificationsAllowed());
+        if(leave==RidingAlert.Leave.NOTICE)alertNotice(false);else if(leave==RidingAlert.Leave.STOP)stopChargeAlarm();
+        else if(leave==RidingAlert.Leave.POST&&held==alertShown)alertNotice(true);
+        else if(leave!=RidingAlert.Leave.NOTHING&&pendingChargeAlert==null)pendingChargeAlert=held;
+    }
     /** Stop watching: no charge alert for the rest of this charge; the alert stays on for the next one. */
     public void skipChargeAlert(){
         ensureAlertPolicy();if(alertPolicy==null)return;
@@ -1959,6 +2006,38 @@ public final class ScooterService extends Service {
         s[ChargeEvidence.S_VISIBLE]=visible?1:0;
         evidence.offer(scope,s,ble.pending(),ble.pendingValue());
     }
+    /**
+     * Forget this scooter (More › Scooters): ends its link (and simulation) when it is the selected one, then removes its
+     * profile, maintenance and charge evidence. Saved rides and charge recordings stay.
+     */
+    void forgetScooter(String id){
+        ScooterProfiles.Profile selected=profiles.active();boolean current=selected!=null&&selected.id.equals(id);
+        if(current&&simulating())setSimulation(false);
+        if(current)ble.disconnect();
+        forgetProfile(id,current);
+    }
+    /** The profile's part of forgetting: its profile, maintenance and evidence; the link is already closed. */
+    private void forgetProfile(String id,boolean current){
+        ScooterProfiles.Profile forgotten=null;for(ScooterProfiles.Profile p:profiles.all())if(p.id.equals(id))forgotten=p;
+        profiles.remove(id);
+        settings.edit().remove(KeyBackups.key(id)).apply();
+        if(maintenance!=null)maintenance.forget(id);
+        if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?null:forgotten.serial);
+        forgetEvidence(id);
+        // A held release ends with the profile: nothing is left to reconnect to.
+        ble.endReleaseHold(id);
+        if(current)ble.scooterSwitched();
+    }
+    /**
+     * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
+     * Once it confirms (a status-0 reply, or the quick drop the UT5 MAX answers with), BleController has closed the link
+     * and this forgets the profile at once, before anything can reconnect with it and claim the scooter again; any other
+     * outcome keeps it, and one after the send holds automatic reconnects to it (BleController.releaseHeld) until the
+     * owner chooses. done gets the outcome on the main thread.
+     */
+    void releaseScooter(String id,Consumer<OwnerRelease.Outcome> done){
+        ble.releaseOwner(id,()->{ScooterProfiles.Profile selected=profiles.active();forgetProfile(id,selected!=null&&selected.id.equals(id));},done);
+    }
     /** Forgetting a scooter removes its evidence (MoreScreen's forget flow). */
     void forgetEvidence(String profileId){if(profileId!=null&&profileId.equals(evidenceScope))evidenceScope=null;if(evidence!=null)evidence.forget(profileId);}
     /** At service end: the last reading closes the connection, and pending writes go to disk on the worker, without waiting here. */
@@ -2532,6 +2611,38 @@ public final class ScooterService extends Service {
             try { ble.set("range_algorithm", target, MutationGate.Origin.AUTOMATIC_RANGE_FOLLOW); } finally { selectingRange = false; }
         }
     }
+    // ---- The lifetime odometer (OdometerCarry) ----
+
+    /** Each scooter's lifetime odometer record; null until the service starts. */
+    public OdometerCarry.Keeper odometerRecords;
+
+    /** The active scooter's odometer record (a copy), or null while simulating or without a scooter. */
+    public OdometerCarry odometerRecord() {
+        String id = activeProfileId();
+        if (odometerRecords == null || simulating() || id.isEmpty()) return null;
+        return odometerRecords.load(id);
+    }
+
+    /** The odometer to show the rider for a raw reading: the raw value plus any carried-over distance. Raw while simulating. */
+    public double shownOdometerKm(double rawKm) {
+        OdometerCarry record = odometerRecord();
+        return record == null ? rawKm : record.displayKm(rawKm);
+    }
+
+    /** The rider opened the carry-over explanation: Home's odometer stops asking for attention. */
+    public void acknowledgeOdometerCarry() {
+        String id = activeProfileId();
+        if (odometerRecords != null && !simulating() && !id.isEmpty() && odometerRecords.acknowledge(id)) changed();
+    }
+
+    /** Removes the latest carry-over (the explanation's Undo). Whether there was one. */
+    public boolean undoOdometerCarry() {
+        String id = activeProfileId();
+        boolean undone = odometerRecords != null && !simulating() && !id.isEmpty() && odometerRecords.undo(id);
+        if (undone) changed();
+        return undone;
+    }
+
     // ---- Maintenance reminders (MaintenanceKeeper) ----
 
     /** Each scooter's maintenance reminders; null until the service starts. */
@@ -2577,6 +2688,7 @@ public final class ScooterService extends Service {
         maintenanceRecording = recording;
         if (!valid || !scope.equals(maintenanceFed)) {
             if (!maintenanceFed.isEmpty()) maintenance.flush(maintenanceFed);
+            if (!maintenanceFed.isEmpty() && odometerRecords != null) odometerRecords.flush(maintenanceFed);
             // The connection ended: one check with the distance it counted. A simulation's notice goes with the simulation.
             if (!maintenanceFed.isEmpty() && MaintenanceKeeper.simulation(maintenanceFed)) { if (maintenanceNotices != null) maintenanceNotices.cancel(maintenanceFed); }
             else if (!maintenanceFed.isEmpty()) checkMaintenance(maintenanceFed);
@@ -2590,6 +2702,11 @@ public final class ScooterService extends Service {
         boolean first = maintenanceReadingMs < 0;
         maintenanceReadingMs = odometer.updatedMs;
         int bits = simulating() ? MaintenanceDistance.BITS_32 : ble.telemetry.odometerBits();
+        // The lifetime odometer record (OdometerCarry): every real reading, whatever the reminders say; never the simulator.
+        if (!simulating() && odometerRecords != null) {
+            odometerRecords.adopt(scope, connected.serial);
+            odometerRecords.observe(scope, odometer.numericValue, bits, ble.telemetry.odometerExtended(), odometer.updatedMs, System.currentTimeMillis());
+        }
         MaintenanceDistance.Outcome outcome = maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
         // Connected (the first reading brings rides counted since the last connection), or a new reading while reminders are on.
         if (first || outcome != null) checkMaintenance(scope);
@@ -2711,7 +2828,7 @@ public final class ScooterService extends Service {
     }
     /** Current forecast for glanceable UI. Recorded charts and explicit scooter readings stay raw. */
     public Map<String, TelemetryHistory.Reading> dashboardReadings() {
-        Map<String, TelemetryHistory.Reading> raw = displayReadings();
+        Map<String, TelemetryHistory.Reading> raw = withShownOdometer(displayReadings());
         if (!usesLearnedRange() || simulating()) return raw;
         String profile = activeProfileId();
         LearnedRangeEstimate.Result estimate = currentRangeCache(profile);
@@ -2724,6 +2841,24 @@ public final class ScooterService extends Service {
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(raw);
         result.put("remaining_range_km", new TelemetryHistory.Reading("remaining_range_km", "Learned remaining range",
                 "Ride", String.format(Locale.US, "%.2f km", km), "km", km, soc.capturedWallMs, soc.live));
+        return Collections.unmodifiableMap(result);
+    }
+    /**
+     * The readings with the odometer the rider sees: the raw reading plus what OdometerCarry carried over from before a
+     * reset. Only Home's glanceable values take it; displayReadings, charts and every other consumer stay raw.
+     */
+    private Map<String, TelemetryHistory.Reading> withShownOdometer(Map<String, TelemetryHistory.Reading> readings) {
+        TelemetryHistory.Reading odometer = readings.get(MaintenanceView.ODOMETER);
+        OdometerCarry record = odometer == null || odometer.number == null ? null : odometerRecord();
+        if (record == null) return readings;
+        // A cached reading older than the record (a newer record restored meanwhile) shows the record's own reading.
+        // It is then dated by the record's own last reading, so the last-seen text names when that total was read.
+        double shown = record.shownKm(odometer.number, odometer.capturedWallMs, odometer.live);
+        long seen = record.shownWallMs(odometer.capturedWallMs, odometer.live);
+        if (shown == odometer.number && seen == odometer.capturedWallMs) return readings;
+        Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(readings);
+        result.put(odometer.key, new TelemetryHistory.Reading(odometer.key, odometer.label, odometer.group,
+                String.format(Locale.US, "%.2f", shown) + Telemetry.SUFFIX_KM, odometer.unit, shown, seen, odometer.live));
         return Collections.unmodifiableMap(result);
     }
     private LearnedRangeEstimate.Result currentRangeCache(String profile) {

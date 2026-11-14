@@ -371,6 +371,63 @@ identifying the helper used; successful real-scooter capture is not yet confirme
 separately for each new path. The computer ADB helper is the established route.
 Existing parked write/readback checks below do not establish helper capture.
 
+NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (UNRELEASED)
+
+For a scooter with no owner (never set up, or removed from the NAVEE app),
+setup can make an owner key instead of capturing one: 88 and five random
+bytes, kept only in that scooter's profile on this phone. No computer, helper
+or NAVEE account is needed. The NAVEE app can't add the scooter while it has
+Volt's key; release it in Volt first. Once the key has been offered to a
+scooter, setup keeps it, even after a refusal or a timeout, so a scooter is
+never left with an owner key nobody holds; forget it later from My scooters.
+Until that scooter is saved, the key goes to it only (Try again shows the
+scooter list; another scooter is refused before it hears the key), unless it
+refuses the key. Once saved, it reconnects like any scooter.
+Backups carry the key with this record. A scooter already saved in Volt is refused before
+it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
+tried on a real scooter. See docs/validation/new-scooter-setup.md.
+When the scooter first accepts the key, setup shows it once, big and a byte
+at a time ("88 6B 33 AF 01 C2"), with Save backup file (Back up with Scooters
+& setup keys) and a Done button that waits 10 seconds, or none once that backup
+is saved. It comes back until Done is tapped, then never again. The typed-key
+field and owner files accept the key written with spaces, colons or dashes.
+
+ODOMETER CARRY-OVER AFTER A RESET (UNRELEASED)
+
+Volt keeps each scooter's last odometer reading on this phone, always on and
+read only (no command is sent). When the scooter's odometer drops by more than
+0.2 km and two readings in a row from separate frames confirm it, Home's and
+riding mode's odometer add last saved minus the first reading after the drop,
+so the total keeps counting and never over-counts. An 8- or 16-bit field
+wrapping round (the reading going from near the field's top to near zero) keeps
+counting instead. A one-byte field that wraps while Volt isn't connected looks
+like a reset and is carried over as one, from the last number seen: the
+distance across it isn't counted, and Undo doesn't restore it. A scooter that
+reports both whole km and tenths is followed by the tenths, and no change of
+field drops the total. An orange dot by the odometer sends out a sonar
+ring until the number is tapped once (a still dot with animations off or while
+moving; nothing in riding mode);
+the tap explains it and offers an Undo of the latest carry-over. Rides, range,
+maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
+Backups (Scooters & setup keys) carry the record per profile, newer reading
+wins; a forgotten or released scooter's record waits on this phone by serial
+for the same scooter's next setup, where the record showing the higher total
+wins. Never in simulation. Untested on hardware.
+
+FIND IT NEARBY: A SAVED SCOOTER AT A NEW BLUETOOTH ADDRESS (UNRELEASED)
+
+Volt connects only to a scooter's saved Bluetooth address, so after a repair
+that changes it, Volt timed out forever. After two timeouts in a row at the
+saved address, Home offers Find it nearby; My scooters' Edit scooter has Find
+at a new address. Both need a saved address and serial number. The scan sheet
+lists nearby scooters of the same model (when it is known), closest first, the
+saved address marked and preselected, other profiles' scooters greyed. Another
+address asks first, since its owner check sends this profile's owner key, which
+a scooter with no owner would take. Only a serial number equal to the saved one
+saves the new address; any other is refused with nothing saved and no retry.
+Rules in FindNearby (tests/l10n/FindNearbyTest.java); not yet tried on a real
+scooter whose address changed.
+
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
 The parked scooter accepted a changed value, reported that new value, and
@@ -721,7 +778,27 @@ Overspeed control      Status field absent on this observed firmware.
 Separate Drive cap     Status field absent on this observed firmware.
 
 Missing or unexplained values keep a control unavailable. The app has no
-arbitrary command console, ownership reset or firmware-write feature.
+arbitrary command console or firmware-write feature.
+
+Release this scooter (More > My scooters > Edit scooter; not yet in a release;
+tried on a UT5 MAX, other models untested) is the one ownership command. For an
+owner profile only, connected and authenticated, parked, with fresh status, a
+real scooter (never simulation) and nothing recording, testing or changing, it
+sends the official app's owner release: command 0x50 with data byte 1, through
+the usual mutation gate, logged by key and outcome without a value and kept out
+of the raw-frame views. Status 0 counts, and so does the scooter ending the
+link within 1 s of the send, which is how the UT5 MAX answers: Volt
+disconnects, removes the profile (its maintenance reminders and model evidence
+too; saved rides and charge recordings stay) and leaves nothing to reconnect,
+since reconnecting with the same profile would claim the scooter again. A
+refusal or a release never sent keeps the profile. Any other ending after the
+send (no reply within 6.5 seconds, a later drop, a lost link, Bluetooth off)
+keeps the profile but holds every automatic reconnect to it and asks: Remove
+from Volt (Forget, with its key-backup rule) or Reconnect (which makes Volt its
+owner again if it did release). The hold is saved on the phone, never in a
+backup, and outlasts Volt closing and the phone restarting; the question comes
+back until answered, and Home and My scooters show the hold. It changes nothing
+on NAVEE's servers. See docs/validation/owner-release.md.
 
 APP TOOLS AND REMAINING VALIDATION
 
@@ -760,7 +837,7 @@ lighting output, folding transitions or ridden assistance behavior.
 
 Ordinary diagnostics exclude owner identity and PIN digits. A private owner
 backup intentionally contains the setup identity and must stay private.
-Cloud activation, ownership transfer, account sharing, firmware hosting and
+Cloud activation, cloud ownership transfer, account sharing, firmware hosting and
 Find My/Find Hub networks remain outside this offline app.
 
 
@@ -1317,23 +1394,29 @@ legacy unverified cache entries require refresh. No bulk prefetch is performed.
 CLEAN HOME
 
 Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
-Home (the pencil on Clean), or from the Home style row at the top of the Layout
-sheet while editing Widgets. Switching never changes widget layouts or saved
-slots. Clean's four quick actions: RIDE (the red pill into riding mode, the same
-look and word as Widgets' RIDE button), Record ride, Charge done by where the
+Home (a long-press on Clean's quick actions), or from the Home style row at the
+top of the Layout sheet while editing Widgets. Switching never changes widget
+layouts or saved slots. Clean's four quick actions are round buttons with one
+short name on one line under each (Ride, Record, Cruise), red while on, with no
+value line; each still says its full name and state to a screen reader. Until
+changed they are
+Ride (into riding mode), Record ride, Charge done by where the
 scooter has scheduled charging, else Battery alerts, then the first offered
 control in this order: cruise control, walk assist, traction control, power
 assist, energy recovery, hill descent control, overspeed control. On a scooter
 with neither scheduled charging nor battery alerts, a second offered control
 takes the third place; any place still empty goes to Rides and then Settings.
-There is no drive mode action. Edit Home changes any of the four per scooter.
-What each model offers: see OTHER NAVEE MODELS above. While charging, Clean's
-charging view shows the charging power beside the same switching time tile as
-Widgets: the time to the charge limit, or to the charge alert's level on a
-scooter without a limit while that alert is on and not yet reached, then the
-time to 100%. Where the view is too small, the photo goes before the
-readings. The Ride row shows a running recording and its time while a ride
-records, else the last ride.
+There is no drive mode action. Edit Home changes any of the four per scooter;
+the header has no Edit button, a long-press on a quick action opens it.
+What each model offers: see OTHER NAVEE MODELS above. The parked battery card
+shows the scooter's photo right of the charge and range. While charging, Clean's
+charging view sits on the page: "Charging to your 90% limit" (or "Charging"),
+the charge centred with the scooter's photo large under and behind it on a red
+glow, the track with a tick at the limit, then two fixed tiles: Charging power
+and Time to 90% (Time to full without a limit). Where the view is too small,
+nothing is dropped: the line shortens, the photo and then the charge get
+smaller, and only then the line goes; the tiles stay. The Ride row shows a
+running recording and its time while a ride records, else the last ride.
 
 QUICK ACCESS
 

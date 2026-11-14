@@ -561,7 +561,24 @@ final class BackupArchive {
         Map<String, Map<String, Object>> result;
         boolean history;
         if (replace) {
+            // An owner key this phone holds that the backup lacks is gone once everything is replaced (KeyBackups):
+            // without a backup of it saved here, that is the only copy Volt has.
+            for (BackupProfiles.Profile dropped : KeyBackups.dropped(live, prepared.profiles))
+                if (KeyBackups.savedAt(live.get("app_settings"), dropped.id, dropped.identity) == 0)
+                    throw new BackupException(M.backupEngineReplaceOwnerKeyUnsaved());
             result = replacement(live, prepared.preferences);
+            // A made key's record (NewOwnerKey) for a key this phone and the backup hold under one profile ID: replacing
+            // never loosens what this phone knows about where that key went.
+            Map<String, Object> liveProfiles = live.get("profiles"), liveSettings = live.get("app_settings");
+            for (BackupProfiles.Profile mine : BackupProfiles.readable(liveProfiles == null ? null : liveProfiles.get("items"))) {
+                BackupProfiles.Profile theirs = BackupProfiles.find(prepared.profiles, mine.id);
+                if (theirs != null && sameKey(mine, theirs) && liveSettings != null)
+                    madeKeyRecord(result, mine.id, liveSettings.get(NewOwnerKey.key(mine.id)), result.get("app_settings").get(NewOwnerKey.key(mine.id)));
+            }
+            // The odometer record (OdometerCarry) of a profile this phone and the backup share by ID: the newer reading wins.
+            for (BackupProfiles.Profile mine : BackupProfiles.readable(liveProfiles == null ? null : liveProfiles.get("items")))
+                if (BackupProfiles.find(prepared.profiles, mine.id) != null && liveSettings != null)
+                    odometerRecord(result, mine.id, liveSettings.get(OdometerCarry.key(mine.id)), result.get("app_settings").get(OdometerCarry.key(mine.id)));
             history = true;
             lines.add(M.backupEnginePlanReplaceEverything());
             for (Map.Entry<String, Integer> category : prepared.categories.entrySet()) lines.add(BackupRegistry.label(category.getKey()) + ": " + count(category.getKey(), category.getValue()));
@@ -639,6 +656,21 @@ final class BackupArchive {
                 profiles.put("active", active instanceof String && BackupProfiles.find(added, (String) active) != null ? active : added.get(0).id);
             }
         }
+        // A made key's record (NewOwnerKey) goes where its key does: under the backup profile's own ID when that profile is
+        // added or already here, or onto the chosen profile only when that holds the same key (a record describes a key,
+        // and a merge never copies a key onto another profile). This phone's record is never loosened (NewOwnerKey.merged).
+        for (BackupProfiles.Profile p : prepared.profiles) {
+            String target = mapping.get(p.id);
+            if (target == null || target.equals(SKIP)) continue;
+            BackupProfiles.Profile mine = BackupProfiles.find(local, target);
+            if (mine == null ? !target.equals(p.id) : !sameKey(mine, p)) continue;
+            madeKeyRecord(result, target, live.get("app_settings").get(NewOwnerKey.key(target)), prepared.preferences.get("app_settings").get(NewOwnerKey.key(p.id)));
+        }
+        // The odometer record (OdometerCarry) goes only to the profile with the backup's own ID (added or already here),
+        // never onto another scooter's profile; the record whose last reading is newer stays (this phone's on a tie).
+        for (BackupProfiles.Profile p : prepared.profiles)
+            if (p.id.equals(mapping.get(p.id)))
+                odometerRecord(result, p.id, live.get("app_settings").get(OdometerCarry.key(p.id)), prepared.preferences.get("app_settings").get(OdometerCarry.key(p.id)));
         // A restored profile list must never let the pre-profile setup migrate a second copy.
         if (!local.isEmpty() || !added.isEmpty()) profiles.put("legacy_migrated", true);
         boolean configured = false;
@@ -648,6 +680,18 @@ final class BackupArchive {
         if (configured && (!prepared.kind.equals("owner") || !alreadyConfigured)) { Map<String, Object> onboarding = result.get("onboarding"); onboarding.clear(); onboarding.put(BackupRegistry.OnboardingKeys.DONE, true); }
         lines.add(M.backupEnginePlanScooters(added.size(), here));
         if (skipped > 0) lines.add(M.backupEnginePlanScootersSkipped(skipped, skipped));
+    }
+    /** The same owner key: one identity, one role. */
+    private static boolean sameKey(BackupProfiles.Profile a, BackupProfiles.Profile b) { return a.role == b.role && !a.identity.isEmpty() && a.identity.equalsIgnoreCase(b.identity); }
+    /** Profile {@code target}'s made-key record after a restore: this phone's and the backup's, merged (NewOwnerKey.merged). */
+    private static void madeKeyRecord(Map<String, Map<String, Object>> result, String target, Object here, Object incoming) {
+        String kept = NewOwnerKey.merged(here instanceof String ? (String) here : null, incoming instanceof String ? (String) incoming : null);
+        if (kept != null) result.get("app_settings").put(NewOwnerKey.key(target), kept);
+    }
+    /** Profile {@code id}'s odometer record after a restore: this phone's and the backup's, merged (OdometerCarry.merged). */
+    private static void odometerRecord(Map<String, Map<String, Object>> result, String id, Object here, Object incoming) {
+        String kept = OdometerCarry.merged(here instanceof String ? (String) here : null, incoming instanceof String ? (String) incoming : null);
+        if (kept != null) result.get("app_settings").put(OdometerCarry.key(id), kept);
     }
     /** Dashboards or scooter preferences: each mapped scooter's entries are replaced as a set. */
     private static void perScooter(String category, Prepared prepared, Map<String, String> mapping, Map<String, Integer> uses, Map<String, String> names,

@@ -210,7 +210,8 @@ final class MaintenanceStore {
     }
 
     /** Writes the BackupJson value model back as JSON. Non-finite numbers become null. */
-    private static void write(StringBuilder out, Object v) {
+    /** Writes a value as JSON (OdometerCarry's record uses it too). */
+    static void write(StringBuilder out, Object v) {
         if (v == null || v == BackupJson.NULL) out.append("null");
         else if (v instanceof String) out.append(BackupJson.quote((String) v));
         else if (v instanceof Boolean) out.append(v.toString());

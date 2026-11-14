@@ -48,6 +48,8 @@ public final class OwnerIdentityParser {
         String trimmed = input.trim();
         if (trimmed.matches("(?i)[0-9a-f]{12}"))
             return new Result(trimmed.toUpperCase(Locale.ROOT), 0);
+        String written = written(trimmed);
+        if (written != null) return new Result(written, 0);
 
         Matcher ids = ID_FIELD.matcher(input);
         String explicitId = null;
@@ -91,6 +93,34 @@ public final class OwnerIdentityParser {
         }
         if (found == null) throw new IllegalArgumentException(NO_IDENTITY);
         return found;
+    }
+
+    /**
+     * A key as a rider writes it down from setup's "Write down your owner key" (MadeKeyPrompt): six hex byte pairs
+     * with one separator between each, the same one throughout: a space, a colon or a dash ("88 6B 33 AF 01 C2",
+     * "88:6b:33:af:01:c2", "88-6B-33-AF-01-C2"). The whole trimmed input, nothing around it: like the 12-digit form,
+     * never a key picked out of longer text. With spaces, it may also be the popup's two rows of three bytes
+     * (MadeKeyPrompt.twoRows): exactly one line break, LF or CRLF, in place of the space after the third byte.
+     * Upper-case, or null.
+     */
+    private static String written(String trimmed) {
+        StringBuilder text = new StringBuilder(trimmed);
+        // Two rows: a CRLF becomes an LF, and that LF (only after the third byte, only with spaces) a space. Code
+        // points throughout: the language gates keep new char literals out of src.
+        if (text.length() == 18 && text.charAt(8) == 0x0d && text.charAt(9) == 0x0a) text.deleteCharAt(8);
+        if (text.length() == 17 && text.charAt(8) == 0x0a && text.charAt(2) == 0x20) text.setCharAt(8, (char) 0x20);
+        if (text.length() != 17) return null;
+        char separator = text.charAt(2);
+        // Space, colon, dash (as code points: the language gates keep new char literals out of src).
+        if (separator != 0x20 && separator != 0x3a && separator != 0x2d) return null;
+        StringBuilder key = new StringBuilder(12);
+        for (int i = 0; i < 17; i++) {
+            char c = text.charAt(i);
+            if (i % 3 == 2) { if (c != separator) return null; continue; }
+            if (c >= 0x80 || Character.digit(c, 16) < 0) return null;
+            key.append(c);
+        }
+        return key.toString().toUpperCase(Locale.ROOT);
     }
 
     private static int explicitRole(String input) {
