@@ -59,9 +59,10 @@ public final class HubTestPages {
 
     /**
      * Reaches a page as a rider does, by touch: from Home (the root of every page stack since the tab bar went in part 11),
-     * taps on each page the row that opens the next page on {@link HubPages#path} ({@link #tapRow}): Home's subject row or
-     * gear first, then each page's own row. Throws, naming the row, when a row on the way is missing, hidden, disabled,
-     * off screen or opens something else.
+     * taps on each page the row that opens the next page on {@link HubPages#path} ({@link #tapRow}): Home's way in first
+     * on either Home style (Clean's subject row, search or gear; Widgets' dock item, or its All sheet's row), then each
+     * page's own row. Throws, naming the row, when a row on the way is missing, hidden, disabled, off screen or opens
+     * something else.
      */
     public static String route(Instrumentation instrumentation, MainActivity activity, String page) {
         String wanted = HubPages.canonical(page);
@@ -79,6 +80,7 @@ public final class HubTestPages {
      */
     public static void tapRow(Instrumentation instrumentation, MainActivity activity, String target) {
         String wanted = HubPages.canonical(target);
+        if (viaDock(instrumentation, activity, wanted)) return;
         View[] row = {null};
         String[] problem = {null}, from = {null};
         onMain(instrumentation, () -> {
@@ -262,6 +264,64 @@ public final class HubTestPages {
         return null;
     }
 
+    /**
+     * Widgets Home's way in to target (part 11): its header has no search or gear and it lists no subject rows, so a
+     * rider taps the dock's item for target when the dock shows one, and otherwise the dock's All item and then the
+     * sheet's row (a subject's "home-subject-" row, or its "home-settings" / "home-search" row). Each is required shown,
+     * enabled and tappable and gets a real touch ({@link #tapIn}); then target must be on top. False, doing nothing, when
+     * the page shown is not Home or Home has no dock (Clean Home: {@link #rowsTo}).
+     */
+    private static boolean viaDock(Instrumentation instrumentation, MainActivity activity, String target) {
+        Object[] dock = {null};
+        onMain(instrumentation, () -> dock[0] = HubPages.HOME.equals(current(activity)) ? field(activity, "dock") : null);
+        if (dock[0] == null) return false;
+        View[] item = {null}, all = {null};
+        String[] problem = {null};
+        onMain(instrumentation, () -> {
+            for (View view : descendants((View) call(dock[0], "view"))) {
+                if (!view.isShown()) continue;
+                if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
+                else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
+            }
+            View pick = item[0] != null ? item[0] : all[0];
+            if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
+            else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
+            else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
+        });
+        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+        if (item[0] != null) {
+            String name = "the dock item " + item[0].getTag() + " on page " + HubPages.HOME;
+            tap(instrumentation, activity, item[0], name);
+            awaitPage(instrumentation, activity, target, name);
+            return true;
+        }
+        tap(instrumentation, activity, all[0], "the dock's All item on page " + HubPages.HOME);
+        // The sheet: shown, with its window focused, and exactly one shown row to target in it.
+        String rowTag = HubPages.SETTINGS.equals(target) ? "home-settings" : HubPages.SEARCH.equals(target) ? "home-search" : "home-subject-" + target;
+        View[] root = {null}, row = {null};
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until && row[0] == null) {
+            onMain(instrumentation, () -> {
+                Object sheet = field(dock[0], "sheet");
+                if (!(sheet instanceof android.app.Dialog) || !((android.app.Dialog) sheet).isShowing()) { problem[0] = "The dock's All item did not open its sheet"; return; }
+                View decor = ((android.app.Dialog) sheet).getWindow().getDecorView();
+                List<View> shown = new ArrayList<>();
+                for (View view : descendants(decor)) if (rowTag.equals(view.getTag()) && view.isShown()) shown.add(view);
+                if (shown.isEmpty()) problem[0] = "The dock's All sheet shows no row to " + target;
+                else if (shown.size() > 1) problem[0] = "The dock's All sheet shows " + shown.size() + " rows to " + target;
+                else if (!shown.get(0).isEnabled()) problem[0] = "The All sheet's row to " + target + " is disabled";
+                else if (!shown.get(0).isClickable() || !shown.get(0).hasOnClickListeners()) problem[0] = "The All sheet's row to " + target + " is not tappable";
+                else { root[0] = decor; row[0] = shown.get(0); problem[0] = null; }
+            });
+            if (row[0] == null) SystemClock.sleep(40);
+        }
+        if (row[0] == null) throw new IllegalStateException(problem[0]);
+        String name = "the All sheet's row " + rowTag + " on page " + HubPages.HOME;
+        tapIn(instrumentation, activity, root[0], row[0], name);
+        awaitPage(instrumentation, activity, target, name);
+        return true;
+    }
+
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */
     public static boolean rowShown(MainActivity activity, String target) {
         for (View view : rowsTo(activity, target)) if (view.isShown()) return true;
@@ -273,7 +333,11 @@ public final class HubTestPages {
         if (rowShown(activity, target)) throw new IllegalStateException("Page " + current(activity) + " shows a row to " + target + " (" + why + ")");
     }
 
-    /** Views on the shown page's screen tagged as a row that opens target. Main thread. */
+    /**
+     * Views on the shown page's screen tagged as a row that opens target. Main thread. On Home these are Clean Home's ways
+     * in (its subject rows and its header's search and gear); Widgets Home's ways in, the dock and its All sheet, sit
+     * outside the screen's view and are tapped by {@link #viaDock}.
+     */
     private static List<View> rowsTo(MainActivity activity, String target) {
         List<View> out = new ArrayList<>();
         Object screen = field(activity, "screen");
@@ -281,7 +345,7 @@ public final class HubTestPages {
         for (View view : descendants(((AppScreen) screen).view())) {
             Object tag = view.getTag();
             if (("hub-row-" + target).equals(tag) || ("hub-link-" + target).equals(tag)) out.add(view);
-            // Home's own ways in (part 11): Clean's subject rows, and the header's gear and search on either Home.
+            // Clean Home's own ways in (part 11): its subject rows, and its header's search and gear.
             else if (HubPages.HOME.equals(current(activity)) && (("home-subject-" + target).equals(tag)
                     || (HubPages.SETTINGS.equals(target) && "home-settings".equals(tag)) || (HubPages.SEARCH.equals(target) && "home-search".equals(tag)))) out.add(view);
         }
@@ -293,6 +357,14 @@ public final class HubTestPages {
      * screen and still, then a touch down and up injected at its centre.
      */
     private static void tap(Instrumentation instrumentation, MainActivity activity, View view, String name) {
+        tapIn(instrumentation, activity, null, view, name);
+    }
+
+    /**
+     * {@link #tap} on a view in a given window: root is that window's decor view (the dock's All sheet), or null for the
+     * activity's own window. The window must have focus and nothing in it may cover the view's centre.
+     */
+    private static void tapIn(Instrumentation instrumentation, MainActivity activity, View root, View view, String name) {
         int[] centre = new int[2];
         String[] problem = {"did not settle on screen"};
         long until = SystemClock.uptimeMillis() + WAIT_MS;
@@ -305,7 +377,8 @@ public final class HubTestPages {
                 if (!view.isShown()) { problem[0] = "is hidden"; return; }
                 if (!view.isEnabled()) { problem[0] = "is disabled"; return; }
                 // A rider's touch reaches the page only while its window has focus (no dialog or sheet over it).
-                if (!activity.hasWindowFocus()) { problem[0] = "is under another window (the page has no focus)"; return; }
+                View window = root != null ? root : activity.getWindow().getDecorView();
+                if (!window.hasWindowFocus()) { problem[0] = "is under another window (" + (root != null ? "the sheet" : "the page") + " has no focus)"; return; }
                 Rect visible = new Rect();
                 // Whole: all of the view but a deliberate negative-margin bleed (the wide ride list's selection tint runs
                 // into its card's padding, which clips it in every scroll position), so that is not asked to be on screen.
@@ -324,7 +397,7 @@ public final class HubTestPages {
                 // touch as catching the scroll, not as a tap on the row: wait until every scroller around it has stopped.
                 if (scrolling(view)) { problem[0] = "is in a page that is still scrolling"; return; }
                 // Nothing drawn over the row's centre may take the touch instead (a floating bar, a pane, an overlay).
-                View top = topAt(activity.getWindow().getDecorView(), centre[0], centre[1]);
+                View top = topAt(window, centre[0], centre[1]);
                 if (top != null && !inside(top, view)) { problem[0] = "is covered by " + describe(top); return; }
                 ready[0] = true;
             });
