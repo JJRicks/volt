@@ -86,24 +86,33 @@ public final class SearchFocusValidation extends Instrumentation {
         }
     }
     private void controlsChecks(String theme) {
-        // The Scooter tab's settings search (a ControlsScreen, #385) is Home's Search page since part 11 (#392), reached from
+        // The Scooter tab's settings search (a ControlsScreen, #385) is Home's Search page since part 11 (#392), and its own
+        // HubSearchScreen since part 12 (#393), reached from
         // Home by the rider's taps (Widgets Home's dock or its All sheet). The page focuses its field as it opens; the
         // keyboard is put away first so each case below raises it itself.
         HubTestPages.reach(this, activity, HubPages.SEARCH);
         main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)), "Home's way in did not open Search (" + HubTestPages.current(activity) + ")"));
         main(() -> getTargetContext().getSystemService(InputMethodManager.class).hideSoftInputFromWindow(root().getWindowToken(), 0));
         await(() -> !imeVisible(activity.getWindow()), 4000, "Search's keyboard did not close");
-        Object page = screen(); Object controls = HubTestPages.part(activity, "ControlsScreen");
-        EditText search = (EditText)field(controls, "search");
-        showKeyboard(search, activity.getWindow(), "speed"); tap((View)field(controls, "results"), activity.getWindow());
+        // Part 12 (#393): Search is its own page, HubSearchScreen, with its field ("search") over its results ("results").
+        Object page = screen(); Object hub = HubTestPages.part(activity, "HubSearchScreen");
+        EditText search = (EditText)field(hub, "search");
+        // An inert spot outside the field: the results' first group label (a tap on a result row would open it).
+        showKeyboard(search, activity.getWindow(), "speed");
+        View[] label = {null};
+        await(() -> { ViewGroup results = (ViewGroup)field(hub, "results");
+            label[0] = results.getChildCount() > 0 && results.getChildAt(0) instanceof TextView ? results.getChildAt(0) : null;
+            return label[0] != null && label[0].isShown(); }, 4000, "Search shows no results for \"speed\"");
+        tap(label[0], activity.getWindow());
         assertDismissed(search, activity.getWindow(), "speed", "Outside results tap");
         require(screen() == page, "An inert outside tap navigated away from settings");
         showKeyboard(search, activity.getWindow(), "speed"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, activity.getWindow(), "speed", "System Back");
         require(screen() == page, "Hiding the keyboard also navigated away");
-        // The navigation outside the field is the page's back link since the tab bar went (part 11): a tap on it while the
-        // keyboard is up must still navigate (to Home) and close the keyboard.
-        showKeyboard(search, activity.getWindow(), "speed"); tap(root().findViewWithTag("hub-back"), activity.getWindow());
+        // The navigation outside the field is Search's Cancel (part 12): the page header steps aside while the field has
+        // the cursor or a query, and Cancel beside the field is its way back. A tap on it while the keyboard is up must
+        // still navigate (to Home) and close the keyboard.
+        showKeyboard(search, activity.getWindow(), "speed"); tap(root().findViewWithTag("hub-search-cancel"), activity.getWindow());
         await(() -> HubPages.HOME.equals(HubTestPages.current(activity)) && !imeVisible(activity.getWindow()), 4000,
                 "Outside navigation tap was swallowed or left the keyboard open");
         checks.add(theme + ": outside taps and system Back clear settings search focus, preserve the filter, and deliver navigation actions");

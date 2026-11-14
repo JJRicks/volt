@@ -1,11 +1,14 @@
 package com.jjricks.volt;
 
 /**
- * The ids Hub search indexes besides pages and feature rows (hub layout plan 1.12): the scooter menu's hand-built
- * rows and More's settings rows. Constants only for now: HubText.controlRowTitle and HubText.settingTitle (part 10)
- * switch on them to give each row its existing on-screen name, and part 12 adds each id's page and English search
- * words beside it. Every id is the one the row already has (its ScooterMenuLayout id or its view tag), so saved
- * menu layouts, validations and TalkBack keep finding the same rows.
+ * What Hub search indexes besides feature rows and readings (hub layout plan 1.12): the scooter menu's hand-built
+ * rows, the settings rows and the pages themselves. HubText.controlRowTitle and HubText.settingTitle (part 10)
+ * switch on the ids to give each row its existing on-screen name; this table gives each id the page that holds it
+ * and the English words search matches (part 12). Every id is the one the row already has (its ScooterMenuLayout
+ * id or its view tag), so saved menu layouts, validations and TalkBack keep finding the same rows, and search can
+ * bring the row on screen by it. Pure, so the JVM suite tests it (tests/l10n/HubSearchTest.java).
+ *
+ * <p>The English words are search keys, never shown: every language also matches the names the rows show.
  */
 final class HubSearchTables {
     private HubSearchTables() {}
@@ -39,7 +42,9 @@ final class HubSearchTables {
 
     // Settings rows, by the view tag each already carries: rows of MoreScreen's sections (on Settings and its pages, and
     // Service › Reports for the issue report), and Ride › Riding mode for the riding-mode switches (part 5 moved them
-    // there and removed More's riding group, so that group's tag is not listed).
+    // there and removed More's riding group, so that group's tag is not listed). Record rides automatically is the one
+    // riding switch whose Hub home is Ride › Recording settings (Riding mode leaves it out: withoutAutoRecord), where
+    // MoreScreen.recording() tags it with the same tag (#393 review, finding 3).
     static final String SETTING_HOME_STYLE = "home-style-menu";
     static final String SETTING_UNITS = "preference-units-menu";
     static final String SETTING_DISPLAY = "preference-display-options";
@@ -68,4 +73,156 @@ final class HubSearchTables {
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
             SETTING_REPORT_ISSUE, SETTING_DEVELOPER,
     };
+
+    /**
+     * The page that holds a hand-built row. Rows still on a scooter page are found in ControlsPages; the rows no
+     * scooter page shows any more (ControlsPages.RETIRED), the "Done by" row (it follows its parent) and the top speed
+     * card (it leads Controls) are named here.
+     */
+    static String rowPage(String row) {
+        if (row == null) return null;
+        switch (row) {
+            case ROW_SECURITY_LINK: return HubPages.SECURITY;
+            case ROW_SCOOTER_NAME: return HubPages.SETTINGS_SCOOTERS;
+            case ROW_MAINTENANCE: return HubPages.SERVICE_MAINTENANCE;
+            case ROW_CHARGE_DONE_BY: return HubPages.BATTERY;
+            // The UT5 MAX top speed card leads Controls (ControlsPages.Spec.topSpeed), outside its rows.
+            case ROW_TOP_SPEED: return HubPages.CONTROLS;
+            default: return ControlsPages.pageOf(row);
+        }
+    }
+
+    /**
+     * The id search asks the row's page to bring on screen: the row's own id, or null where the page is the row's
+     * whole content (Security, My scooters, Maintenance reminders).
+     */
+    static String rowAnchor(String row) {
+        if (row == null || ControlsPages.RETIRED.contains(row)) return null;
+        return row;
+    }
+
+    /** A hand-built row's English search words (what the Scooter tab's search matched); null for an unknown id. */
+    static String rowWords(String row) {
+        if (row == null) return null;
+        switch (row) {
+            case ROW_HEADLIGHT_INFO: return "headlight front lamp power button";
+            case ROW_CLOCK_SYNC: return "sync scooter clock scheduled charging time timezone";
+            case ROW_SCHEDULE_TEST: return "test scheduled charging check scooter clock schedule resume";
+            case ROW_CHARGE_DONE_BY: return "charge done by finish charging deadline time";
+            case ROW_CHARGER: return "charger for estimates automatic auto stock high speed charging time remaining";
+            case ROW_CHARGE_ALERT: return "charge alert battery alerts level reached full charged notify notification alarm sound";
+            case ROW_LOW_ALERT: return "low battery alert battery alerts notify notification alarm sound";
+            case ROW_CHARGE_LIVE: return "live charging lock screen notification card";
+            case ROW_SECURITY_LINK: return "pin password proximity unlock pairing bluetooth bond security";
+            case ROW_SCOOTER_NAME: return "scooter name rename profile";
+            case ROW_MAINTENANCE: return "maintenance reminders service check tyre tire brakes";
+            case ROW_TOP_SPEED: return "top speed maximum speed sport mode limit mph km/h";
+            default: return null;
+        }
+    }
+
+    /**
+     * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
+     * automatically (Ride › Recording settings) and the issue report (Service › Reports).
+     */
+    static String settingPage(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_HIDE_STATUS_BAR:
+            case SETTING_RIDING_CLOCK_SECONDS: case SETTING_RIDING_BRIGHTNESS: case SETTING_RIDING_NIGHT:
+                return HubPages.RIDE_RIDING;
+            case SETTING_RIDING_AUTO_RECORD: return HubPages.RIDE_RECORDING;
+            case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
+            default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
+        }
+    }
+
+    /**
+     * The view search brings on screen for a settings row: its tag, except Brightness and Night vision, whose tags sit on
+     * the cards below their selectors (the reset row and note, the schedule), so the selector itself, tagged
+     * "preference-selector-" and its preference key by RidingSettingsMenu.selector (#393 review, note 6). Null for an
+     * unknown tag.
+     */
+    static String settingAnchor(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            // RidingBrightness.MODE_KEY and NightSchedule.MODE_KEY (tests/l10n/HubSearchTest.java checks both).
+            case SETTING_RIDING_BRIGHTNESS: return "preference-selector-riding_brightness";
+            case SETTING_RIDING_NIGHT: return "preference-selector-riding_night_vision";
+            default: return settingPage(tag) == null ? null : tag;
+        }
+    }
+
+    /** A settings row's English search words; null for an unknown tag. */
+    static String settingWords(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            case SETTING_HOME_STYLE: return "home style clean widgets dashboard layout";
+            case SETTING_UNITS: return "units miles kilometres kilometers km mi temperature celsius fahrenheit";
+            // Haptic feedback has an entry of its own; Appearance is found through Settings' words (#393 review, note 7).
+            case SETTING_DISPLAY: return "text size font large display";
+            case SETTING_HAPTICS: return "haptic haptics feedback vibration vibrate vibrations";
+            case SETTING_LANGUAGE: return "language translation locale";
+            case SETTING_RIDING_AUTO_OPEN: return "riding mode open automatically auto start";
+            case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record start recording";
+            case SETTING_RIDING_HIDE_STATUS_BAR: return "riding mode hide status bar full screen";
+            case SETTING_RIDING_CLOCK_SECONDS: return "riding mode clock seconds time";
+            case SETTING_RIDING_BRIGHTNESS: return "riding mode brightness screen";
+            case SETTING_RIDING_NIGHT: return "riding mode night vision dark red";
+            case SETTING_UPDATE_AUTO: return "updates automatic update check";
+            case SETTING_CHECK_UPDATES: return "check for updates version";
+            case SETTING_BACKUP: return "back up backup restore export import";
+            case SETTING_REPORT_ISSUE: return "report issue bug problem email";
+            case SETTING_DEVELOPER: return "developer options simulate simulation debug";
+            default: return null;
+        }
+    }
+
+    /**
+     * A page's English search words besides its title; "" for a page with none. They hold the title of every row the
+     * page shows that has no search entry of its own, so typing the name written on a row finds the page that holds it
+     * (#393 emulator check: 45 of 114 settings rows were not found; tests/l10n/HubSearchTest.java fails for a settings
+     * row whose title search does not find).
+     */
+    static String pageWords(String page) {
+        if (page == null) return "";
+        switch (page) {
+            case HubPages.RIDE: return "ride rides riding recent";
+            case HubPages.RIDE_RIDES: return "all rides compare history list compare two rides ride backups";
+            case HubPages.RIDE_RECORDING: return "recording record rides automatically gps map sensors keep screen awake end rides automatically auto stop"
+                    + " start recording in the background background recording map settings gps route barometer elevation motion sensors";
+            case HubPages.RIDE_RIDING: return "riding mode display brightness night screen rotation reset volt auto brightness sunset from starts ends";
+            case HubPages.BATTERY: return "battery charging charge limit";
+            case HubPages.BATTERY_MODES: return "battery modes low battery mode long range";
+            case HubPages.BATTERY_ESTIMATES: return "estimates range charger capacity";
+            case HubPages.BATTERY_HISTORY: return "charge history charge recordings record this charge record charges automatically export charge recordings"
+                    + " stop charge recording clear this scooter's charge recordings live update status";
+            case HubPages.CONTROLS: return "controls drive mode speed cruise";
+            case HubPages.CONTROLS_ASSISTS: return "assists hill start parking walk";
+            case HubPages.CONTROLS_LIMITS: return "speed limits overspeed";
+            case HubPages.LIGHTS: return "lights sound headlight";
+            // Each light family's own words, its title among them (the zones row both replaced matched "zones" for
+            // both): "star" doesn't list Line lights, and "line lights" finds its page (#404 review).
+            case HubPages.LIGHTS_LINE: return "line lights zones ambient pattern color colour boost";
+            case HubPages.LIGHTS_STAR: return "star lights zones ambient pattern color colour boost";
+            case HubPages.SECURITY: return "security lock pin proximity pairing pin unlock set or change pin pair this phone with scooter unlock without phone";
+            case HubPages.SERVICE: return "service maintenance diagnostics diagnostics & connection activity";
+            case HubPages.SERVICE_MAINTENANCE: return "maintenance reminders service check";
+            case HubPages.SERVICE_EXPERIMENTAL: return "experimental lab try test controls controls to try command evidence clear try results";
+            case HubPages.SERVICE_COMPATIBILITY: return "compatibility test check model email to volt";
+            case HubPages.SERVICE_REPORTS: return "reports report issue";
+            case HubPages.DATA: return "data live stats readings charts diagnostics favorites favourites";
+            case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable"
+                    + " save readings history clear this scooter's history clear all readings history auto-save rides folder";
+            case HubPages.SETTINGS: return "settings preferences options appearance theme dark light follow system";
+            case HubPages.SETTINGS_HOME: return "home style clean widgets show charging automatically show the last ride after riding quick actions";
+            case HubPages.SETTINGS_UNITS: return "units miles kilometres";
+            case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect automatically stay connected in background telemetry refresh";
+            case HubPages.SETTINGS_ABOUT: return "about permissions version licenses nearby devices location notifications online map connection activity"
+                    + " licenses & attribution view full notices connect selected scooter";
+            case HubPages.SETTINGS_DEVELOPER: return "developer options simulate compatibility checker simulate scooter as connected simulated model"
+                    + " simulation scene drive mode load all widgets into slot 3 hide developer options";
+            default: return "";
+        }
+    }
 }

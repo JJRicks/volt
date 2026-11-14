@@ -49,10 +49,10 @@ public final class DashboardScreen implements AppScreen {
         /** Whether Home offers Find it nearby now (FindNearby.offerHome, and no recording). */
         default boolean findNearbyOffered() { return false; }
 
-        /** Clean Home's search button. */
+        /** Home header's search button (Clean and Widgets). */
         default void openSearch() { }
 
-        /** Clean Home's Settings button. */
+        /** Home header's Settings button (Clean and Widgets). */
         default void openSettings() { }
 
         /** Clean Home's scooter name: switch scooter. */
