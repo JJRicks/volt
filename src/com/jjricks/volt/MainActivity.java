@@ -1681,7 +1681,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         content.addView(status);
         scanList=column();content.addView(scanList);
         // Find mode: how many scooters of another model the list leaves out.
-        scanHidden=design.caption("");scanHidden.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,13*design.textScale);scanHidden.setPadding(design.dp(2),0,0,design.dp(10));scanHidden.setVisibility(View.GONE);content.addView(scanHidden);
+        scanHidden=findHiddenCaption();content.addView(scanHidden);
         LinearLayout actions=row();actions.setPadding(0,design.dp(6),0,0);
         TextView again=design.secondaryButton(T.mainScanAgain(),()->{if(scooterService!=null){scooterService.ble.scan();scanSignature="";updateScan();}});
         scanConnect=design.button(T.mainActionConnect(),this::connectSelectedScan);
@@ -1720,6 +1720,43 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         scanConnect.setEnabled(scanSelected!=null);
     }
+    /** Nearby scooter row (ph/10): scooter icon, name, signal bars; the selected scooter has a red outline. */
+    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected){
+        String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();if(name==null||name.isEmpty())name=T.mainScanNavee();
+        if(saved!=null)name=saved.name;
+        ScooterProfiles.Profile active=scooterService.profiles.active();boolean match=saved!=null&&active!=null&&saved.id.equals(active.id);
+        if(saved!=null)name=saved.shownName();
+        String address=result.getDevice().getAddress(),suffix=address.substring(Math.max(0,address.length()-5));
+        int rank=signalRank(result.getRssi());String strength=rank==4?T.mainScanStrong():rank==3?T.mainScanGood():rank==2?T.mainScanFair():T.mainScanWeak();
+        LinearLayout option=row();option.setGravity(Gravity.CENTER_VERTICAL);option.setPadding(design.dp(12),design.dp(10),design.dp(14),design.dp(10));option.setMinimumHeight(design.dp(64));
+        android.graphics.drawable.GradientDrawable face=new android.graphics.drawable.GradientDrawable();face.setCornerRadius(design.dp(16));
+        face.setColor(selected?Ui.withAlpha(design.accent,design.dark?26:18):design.surface);face.setStroke(design.dp(1.5f),selected?design.accent:design.surface);
+        option.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,30)),face,null));
+        option.addView(design.iconSquare("scooter",design.accent),new LinearLayout.LayoutParams(design.dp(40),design.dp(40)));
+        LinearLayout words=column();
+        TextView title=design.text(name,15,true);title.setMaxLines(1);title.setEllipsize(android.text.TextUtils.TruncateAt.END);words.addView(title);
+        // Every known address uses its saved name and label, including another profile's scooter.
+        LinearLayout detail=row();detail.setGravity(Gravity.CENTER_VERTICAL);detail.setPadding(0,design.dp(3),0,0);
+        if(saved!=null){
+            TextView yours=design.text(match?(scanFind?T.mainFindSavedAddress():T.mainScanYours()):T.mainScanSaved(),11,true);yours.setTextColor(design.ok);yours.setPadding(design.dp(8),design.dp(1),design.dp(8),design.dp(2));
+            yours.setBackground(design.shape(Ui.withAlpha(design.ok,design.dark?40:30),100,0));
+            LinearLayout.LayoutParams chip=new LinearLayout.LayoutParams(-2,-2);chip.setMarginEnd(design.dp(8));detail.addView(yours,chip);
+        }
+        detail.addView(design.caption(suffix));words.addView(detail);
+        LinearLayout.LayoutParams wordsParams=new LinearLayout.LayoutParams(0,-2,1);wordsParams.leftMargin=design.dp(12);wordsParams.rightMargin=design.dp(10);option.addView(words,wordsParams);
+        SignalBars bars=new SignalBars(rank);int color=rank>=3?design.ok:design.orange;bars.set(rank,color,design.raised);
+        option.addView(bars,new LinearLayout.LayoutParams(design.dp(18),design.dp(14)));
+        option.setClickable(true);option.setFocusable(true);option.setSelected(selected);
+        option.setContentDescription(T.mainScanOption(name,strength,saved==null?"":match?T.mainScanStateYours():T.mainScanStateSaved(),suffix));
+        // Find mode (FindNearby): the active scooter's own address reads Saved address.
+        if(scanFind&&match)option.setContentDescription(T.mainScanOption(name,strength,T.mainFindStateSavedAddress(),suffix));
+        if(Build.VERSION.SDK_INT>=30)option.setStateDescription(selected?T.commonSelected():"");
+        option.setOnClickListener(v->{scanSelected=address;scanSignature="";updateScan();});
+        // Find mode: another profile's scooter is shown greyed and can't be picked.
+        if(scanFind&&saved!=null&&!match)disableOption(option);
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=design.dp(8);option.setLayoutParams(params);
+        return option;
+    }
     /**
      * The scan sheet in find mode (FindNearby.sheet): the scooters that can be this model, closest first; the saved
      * address, if heard, marked and preselected; another profile's scooter shown but not pickable; and how many of
@@ -1747,7 +1784,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             scanSignature=signature.toString();scanList.removeAllViews();
             for(FindNearby.Heard h:sheet.shown){
                 ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,h.mac,null);
-                scanList.addView(scanOption(byMac.get(h.mac),saved,h.mac.equals(scanSelected),true,h.savedElsewhere));
+                scanList.addView(scanOption(byMac.get(h.mac),saved,h.mac.equals(scanSelected)));
             }
         }
         scanConnect.setEnabled(scanSelected!=null);
@@ -1782,44 +1819,13 @@ public final class MainActivity extends Activity implements ScreenHost {
                 }).create();
         confirm.show();styleDialog(confirm,AlertDialog.BUTTON_POSITIVE);
     }
-    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected){return scanOption(result,saved,selected,false,false);}
-    /**
-     * Nearby scooter row (ph/10): scooter icon, name, signal bars; the selected scooter has a red outline. In find mode
-     * the active scooter's own address reads Saved address, and another profile's scooter is shown greyed and can't be picked.
-     */
-    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected,boolean find,boolean disabled){
-        String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();if(name==null||name.isEmpty())name=T.mainScanNavee();
-        if(saved!=null)name=saved.name;
-        ScooterProfiles.Profile active=scooterService.profiles.active();boolean match=saved!=null&&active!=null&&saved.id.equals(active.id);
-        if(saved!=null)name=saved.shownName();
-        String address=result.getDevice().getAddress(),suffix=address.substring(Math.max(0,address.length()-5));
-        int rank=signalRank(result.getRssi());String strength=rank==4?T.mainScanStrong():rank==3?T.mainScanGood():rank==2?T.mainScanFair():T.mainScanWeak();
-        LinearLayout option=row();option.setGravity(Gravity.CENTER_VERTICAL);option.setPadding(design.dp(12),design.dp(10),design.dp(14),design.dp(10));option.setMinimumHeight(design.dp(64));
-        android.graphics.drawable.GradientDrawable face=new android.graphics.drawable.GradientDrawable();face.setCornerRadius(design.dp(16));
-        face.setColor(selected?Ui.withAlpha(design.accent,design.dark?26:18):design.surface);face.setStroke(design.dp(1.5f),selected?design.accent:design.surface);
-        option.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,30)),face,null));
-        option.addView(design.iconSquare("scooter",design.accent),new LinearLayout.LayoutParams(design.dp(40),design.dp(40)));
-        LinearLayout words=column();
-        TextView title=design.text(name,15,true);title.setMaxLines(1);title.setEllipsize(android.text.TextUtils.TruncateAt.END);words.addView(title);
-        // Every known address uses its saved name and label, including another profile's scooter.
-        LinearLayout detail=row();detail.setGravity(Gravity.CENTER_VERTICAL);detail.setPadding(0,design.dp(3),0,0);
-        if(saved!=null){
-            TextView yours=design.text(match?(find?T.mainFindSavedAddress():T.mainScanYours()):T.mainScanSaved(),11,true);yours.setTextColor(design.ok);yours.setPadding(design.dp(8),design.dp(1),design.dp(8),design.dp(2));
-            yours.setBackground(design.shape(Ui.withAlpha(design.ok,design.dark?40:30),100,0));
-            LinearLayout.LayoutParams chip=new LinearLayout.LayoutParams(-2,-2);chip.setMarginEnd(design.dp(8));detail.addView(yours,chip);
-        }
-        detail.addView(design.caption(suffix));words.addView(detail);
-        LinearLayout.LayoutParams wordsParams=new LinearLayout.LayoutParams(0,-2,1);wordsParams.leftMargin=design.dp(12);wordsParams.rightMargin=design.dp(10);option.addView(words,wordsParams);
-        SignalBars bars=new SignalBars(rank);int color=rank>=3?design.ok:design.orange;bars.set(rank,color,design.raised);
-        option.addView(bars,new LinearLayout.LayoutParams(design.dp(18),design.dp(14)));
-        option.setClickable(true);option.setFocusable(true);option.setSelected(selected);
-        option.setContentDescription(T.mainScanOption(name,strength,saved==null?"":match?(find?T.mainFindStateSavedAddress():T.mainScanStateYours()):T.mainScanStateSaved(),suffix));
-        if(Build.VERSION.SDK_INT>=30)option.setStateDescription(selected?T.commonSelected():"");
-        if(disabled){option.setEnabled(false);option.setClickable(false);option.setAlpha(.5f);}
-        else option.setOnClickListener(v->{scanSelected=address;scanSignature="";updateScan();});
-        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=design.dp(8);option.setLayoutParams(params);
-        return option;
+    /** Find mode's caption under the list: how many scooters of another model it leaves out. */
+    private TextView findHiddenCaption(){
+        TextView hidden=design.caption("");hidden.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,13*design.textScale);hidden.setPadding(design.dp(2),0,0,design.dp(10));hidden.setVisibility(View.GONE);
+        return hidden;
     }
+    /** A find-mode row for another profile's scooter: shown, greyed, and not pickable. */
+    private static void disableOption(View option){option.setOnClickListener(null);option.setClickable(false);option.setEnabled(false);option.setAlpha(.5f);}
     private Map<String,Telemetry.Metric> metrics(){LinkedHashMap<String,Telemetry.Metric> values=new LinkedHashMap<>();if(scooterService!=null)for(Telemetry.Metric metric:scooterService.ble.telemetry.metrics())values.put(metric.key,metric);return values;}
     private Double fresh(Map<String,Telemetry.Metric> metrics,String key,long age){Telemetry.Metric metric=metrics.get(key);return scooterService!=null&&scooterService.ble.connected()&&metric!=null&&metric.numericValue!=null&&metric.updatedMs>=0&&SystemClock.elapsedRealtime()-metric.updatedMs<=age?metric.numericValue:null;}
     private String speed(Double kmh){return kmh==null?"—":DisplayUnits.speed(kmh,preferences.getString("units","mi"));}

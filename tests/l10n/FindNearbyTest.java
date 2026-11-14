@@ -81,9 +81,11 @@ public final class FindNearbyTest {
         check(t.count("a") == 0 && !t.stuck("a"), "a successful connect resets");
         t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
         check(t.stuck("a"), "stuck again");
-        t.profile("b");
+        t.active("a");
+        check(t.stuck("a"), "the same active profile keeps the tally");
+        t.active("b");
         check(!t.stuck("a") && t.count("b") == 0, "a profile switch resets");
-        t.profile("a");
+        t.active("a");
         check(!t.stuck("a"), "switching back starts from zero");
         t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
         t.attempt("b");
@@ -158,7 +160,11 @@ public final class FindNearbyTest {
         String remember = body(ble, "private boolean remember(){", "\n    /** A verified frame");
         check(remember.contains("if(authenticated&&gatt!=null&&!serial.isEmpty()){") && remember.contains("profile.mac=address;profile.serial=serial;"),
                 "remember() saves only for an authenticated link with a checked serial");
-        int find = ble.indexOf("if(finding()&&FindNearby.serial(profile.serial,received)!=FindNearby.Serial.MATCH){findRefused();return;}");
+        int find = ble.indexOf("if(findSerialRefused(f))return;");
+        String serialCheck = body(ble, "private boolean findSerialRefused(Protocol.Frame f){", "\n    }\n");
+        check(serialCheck.contains("if(!finding()||f.cmd!=0x74||f.error()!=0||f.data.length<2)return false;")
+                && serialCheck.contains("if(FindNearby.serial(profile.serial,received)==FindNearby.Serial.MATCH)return false;")
+                && serialCheck.contains("findRefused();return true;"), "a find's serial: anything but a match is refused");
         int notSaved = ble.indexOf("if(!profile.serial.isEmpty()&&!profile.serial.equals(received)){failed(M.bleFailedNotSaved(),");
         int assigned = ble.indexOf("serial=received;", notSaved);
         check(find > 0 && find < notSaved && notSaved < assigned && assigned < ble.indexOf("if(!remember())return;", assigned),
@@ -193,16 +199,17 @@ public final class FindNearbyTest {
         check(failure.contains("connect(profile,profile.mac);") && count(failure, "connect(") == 1, "the only reconnect goes to the saved address");
         check(failure.indexOf("timeouts.failed(profile.id,attemptMac,profile.mac,reason);") < failure.indexOf("close("), "the tally sees the attempt before close");
         String close = body(ble, "private void close(State next){", "\n    private void failed(String");
-        check(close.contains("findMac=\"\";"), "every close ends the find");
+        check(close.contains("stopScan();endFind();") && ble.contains("private void endFind(){findMac=\"\";}"), "every close ends the find");
         check(ble.contains("findMac=mac.equals(pendingFindMac)?mac:\"\";pendingFindMac=\"\";"), "connect() starts a find only from a confirmed pick");
         String connect = body(ble, "private void connect(ScooterProfiles.Profile p,String mac){", "\n    private void close(");
-        check(connect.indexOf("close(State.CONNECTING);") < connect.indexOf("findMac=") && connect.indexOf("close(State.CONNECTING);") < connect.indexOf("connectGatt("),
+        check(connect.indexOf("close(State.CONNECTING);") < connect.indexOf("findAttempt(p.id,mac);") && connect.indexOf("close(State.CONNECTING);") < connect.indexOf("connectGatt("),
                 "the find address is set after the old link closed (8: one link)");
         // The found notice only on a find that reached ready (its serial matched above).
-        check(remember.contains("if(justReady&&finding()){findMac=\"\";findNotice=M.bleFoundNewAddress(profile.shownName());notice(findNotice);}")
+        check(remember.contains("if(justReady&&finding())foundAtNewAddress();")
+                && ble.contains("private void foundAtNewAddress(){findMac=\"\";findNotice=M.bleFoundNewAddress(profile.shownName());notice(findNotice);}")
                 && remember.indexOf("finding()") > remember.indexOf("profiles.update(profile);"), "found once saved");
         check(remember.contains("if(justReady)timeouts.connected();"), "a connection resets the tally");
-        check(ble.contains("public void profileSelected(){ScooterProfiles.Profile p=profiles.active();timeouts.profile("), "a profile switch resets the tally");
+        check(ble.contains("ScooterProfiles.Profile p=profiles.active();if(p!=null)timeouts.active(p.id);"), "a profile switch resets the tally before Home asks");
         // 7: find mode only for an eligible profile.
         check(main.contains("if(find&&!FindNearby.offerRow(finding.mac,finding.serial))return;"), "the sheet's find mode needs a saved address and serial");
         String more = read("src/com/jjricks/volt/MoreScreen.java");

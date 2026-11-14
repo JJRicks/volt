@@ -483,6 +483,24 @@ public final class BleController {
     }
     /** This link is a confirmed find (FindNearby.Step.FIND) at the address it was confirmed for. */
     private boolean finding(){return !findMac.isEmpty()&&gatt!=null&&findMac.equals(gatt.getDevice().getAddress());}
+    /** connect(): the attempt's address, its profile's timeout tally, and whether this link is the confirmed find. */
+    private void findAttempt(String profileId,String mac){
+        timeouts.attempt(profileId);attemptMac=mac;findMac=mac.equals(pendingFindMac)?mac:"";pendingFindMac="";
+    }
+    /** close(): no link, so no find in progress. */
+    private void endFind(){findMac="";}
+    /**
+     * The 0x74 serial on a find connection (FindNearby.serial): anything but the saved serial is refused here, before
+     * the ordinary serial checks, with the find's own message; a match goes on to them and remember() saves the address.
+     */
+    private boolean findSerialRefused(Protocol.Frame f){
+        if(!finding()||f.cmd!=0x74||f.error()!=0||f.data.length<2)return false;
+        String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace("\u0000","").trim();
+        if(FindNearby.serial(profile.serial,received)==FindNearby.Serial.MATCH)return false;
+        findRefused();return true;
+    }
+    /** remember() on a find connection whose serial matched: the new address is saved; say so once. */
+    private void foundAtNewAddress(){findMac="";findNotice=M.bleFoundNewAddress(profile.shownName());notice(findNotice);}
     /** A find connection whose serial isn't the saved one: nothing saved, no retry, and no reconnect to this address. */
     private void findRefused(){
         wanted=false;identifying=false;pendingAdvertised=null;pendingAdvertisedMac="";telemetry.clear();
@@ -491,7 +509,7 @@ public final class BleController {
     }
     /** Whether Home offers Find it nearby now (FindNearby.offerHome); recording is ScooterService's to add. */
     public boolean findNearbyOffered(){
-        ScooterProfiles.Profile p=profiles.active();
+        ScooterProfiles.Profile p=profiles.active();if(p!=null)timeouts.active(p.id);
         return p!=null&&p.configured()&&FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected(),simulating(),recording,mutation!=null);
     }
     /** The scan's advertised model ID for this address, or null. */
@@ -558,7 +576,8 @@ public final class BleController {
         if(simulating())return;
         if(!workAllowed()){suspend();return;}
         if(!permissions()){notice(NEARBY_NEEDED);return;}if(!bluetoothEnabled()){notice(BLUETOOTH_OFF);return;}
-        journal.attempt(p.id);recordDiagnostic(ConnectionEventLog.Reason.CONNECT_ATTEMPT,-1,p.id);close(State.CONNECTING);timeouts.attempt(p.id);attemptMac=mac;findMac=mac.equals(pendingFindMac)?mac:"";pendingFindMac="";if(discoveryProfileId!=null&&!discoveryProfileId.equals(p.id))clearDiscovery();profile=p;telemetry.clear();sessionFirmware=null;pinState=null;loadResults();message=M.bleStatusConnecting();changed();
+        journal.attempt(p.id);recordDiagnostic(ConnectionEventLog.Reason.CONNECT_ATTEMPT,-1,p.id);close(State.CONNECTING);if(discoveryProfileId!=null&&!discoveryProfileId.equals(p.id))clearDiscovery();profile=p;telemetry.clear();sessionFirmware=null;pinState=null;loadResults();message=M.bleStatusConnecting();changed();
+        findAttempt(p.id,mac);
         if(!mac.equals(pendingAdvertisedMac)){pendingAdvertised=null;pendingAdvertisedMac="";}
         try{gatt=adapter.getRemoteDevice(mac).connectGatt(context,false,callbacks,BluetoothDevice.TRANSPORT_LE);}catch(Exception e){failed(M.bleFailedConnection(),true,ConnectionEventLog.Reason.CONNECT_FAILED,-1);return;}
         // linkUp(), not ready(): out of sight a healthy link's status is up to 15 s old by now; one that never became ready still times out.
@@ -571,7 +590,7 @@ public final class BleController {
         // Disconnect, Bluetooth off, background pause or service end: the test stays outstanding and is never resumed automatically.
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
-        ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();findMac="";BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
+        ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();endFind();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
         queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:releaseSent(mutation)?ProximityFollowUp.NOT_CHECKED_RESULT:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
@@ -737,7 +756,8 @@ public final class BleController {
                 if(f.cmd==0x70&&outstandingStatusReads>0)outstandingStatusReads--;
                 if(readPolicy!=null)readPolicy.responded(f.cmd,f.error(),f.data.length-1,awake());
                 if(discovering)discovery.onFrame(f.cmd,f.error(),f.data.length-1,awake());
-                if(f.cmd==0x74&&f.error()==0&&f.data.length>=2){String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace("\u0000","").trim();if(!received.matches("[A-Za-z][A-Za-z0-9]{16}")){failed(M.bleFailedUnrecognised(),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}if(finding()&&FindNearby.serial(profile.serial,received)!=FindNearby.Serial.MATCH){findRefused();return;}if(!profile.serial.isEmpty()&&!profile.serial.equals(received)){failed(M.bleFailedNotSaved(),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}serial=received;if(state!=State.READY)pendingSerialFrame=f;if(!remember())return;}
+                if(findSerialRefused(f))return;
+                if(f.cmd==0x74&&f.error()==0&&f.data.length>=2){String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace("\u0000","").trim();if(!received.matches("[A-Za-z][A-Za-z0-9]{16}")){failed(M.bleFailedUnrecognised(),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}if(!profile.serial.isEmpty()&&!profile.serial.equals(received)){failed(M.bleFailedNotSaved(),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}serial=received;if(state!=State.READY)pendingSerialFrame=f;if(!remember())return;}
                 if(statusRead(f)){if(state==State.READY){statusFrame=f;statusMs=now();statusSleptMs=cadence.slept();}else{pendingStatusFrame=f;pendingStatusMs=now();pendingStatusSleptMs=cadence.slept();}if(!remember())return;}
                 // connected() also covers the owner handshake. Neither telemetry nor public
                 // status/features/motion may expose this account's other scooter during it.
@@ -797,9 +817,9 @@ public final class BleController {
             handler.post(()->{if(session==generation&&state==State.READY&&authenticated&&gatt!=null)refresh(true);});
         }
         if(justReady)timeouts.connected();
-        retries=0;if(mutation==null)message=M.bleStatusConnected();if(identifying){identifying=false;notice(captured?M.bleModelIdCaptured():M.bleModelIdNotCaptured());}
-        // A find connection's serial matched (the 0x74 check above): the address saved just now is the new one.
-        if(justReady&&finding()){findMac="";findNotice=M.bleFoundNewAddress(profile.shownName());notice(findNotice);}}return true;}
+        // A find connection's serial matched (findSerialRefused let it through): the address saved just now is the new one.
+        if(justReady&&finding())foundAtNewAddress();
+        retries=0;if(mutation==null)message=M.bleStatusConnected();if(identifying){identifying=false;notice(captured?M.bleModelIdCaptured():M.bleModelIdNotCaptured());}}return true;}
     /** A verified frame into telemetry; a settings read first learns whether its byte 1 is this model's acceleration setting. */
     private void feed(int cmd,byte[] data,long ms){
         if(cmd==0x70)telemetry.settingsByteIsAcceleration(ModelRegistry.settingsByteIsAcceleration(descriptor()));
@@ -1143,7 +1163,7 @@ public final class BleController {
     /** Hides a finished test card; an outstanding one stays as an unfinished-test review. */
     public void closeTest(){if(test!=null&&test.terminal()){test=null;changed();}}
     /** Another profile was selected: a running test is interrupted and stays with its own profile. */
-    public void profileSelected(){ScooterProfiles.Profile p=profiles.active();timeouts.profile(p==null?"":p.id);if(test!=null&&!test.terminal()&&(p==null||!p.id.equals(test.profileId))){test.onProfileSwitch(now());event("Guided test interrupted");changed();}}
+    public void profileSelected(){ScooterProfiles.Profile p=profiles.active();if(test!=null&&!test.terminal()&&(p==null||!p.id.equals(test.profileId))){test.onProfileSwitch(now());event("Guided test interrupted");changed();}}
     /** What an unfinished test needs now; null when it no longer exists. Never writes. */
     public GuidedTest.Review reviewTest(String testId){
         TestJournal.Entry e=testJournal.find(testId);if(e==null)return null;ScooterProfiles.Profile p=profile();

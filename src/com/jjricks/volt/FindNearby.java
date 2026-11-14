@@ -54,8 +54,11 @@ final class FindNearby {
         /** A connection attempt for this profile: another profile than the tally's starts it again. */
         void attempt(String id) { if (!same(id)) { profileId = id == null ? "" : id; count = 0; } }
 
-        /** The active profile changed (My scooters' Use, an import): the tally starts again for it. */
-        void profile(String id) { profileId = id == null ? "" : id; count = 0; }
+        /**
+         * The active profile is {@code id} (BleController.findNearbyOffered asks before every look): when it changed
+         * (My scooters' Use, an import), the tally starts again for it.
+         */
+        void active(String id) { if (!same(id)) { profileId = id == null ? "" : id; count = 0; } }
 
         /** A link failed. Counts only a timeout or connectGatt failure of an attempt at the profile's saved address. */
         void failed(String id, String attemptMac, String savedMac, ConnectionEventLog.Reason reason) {

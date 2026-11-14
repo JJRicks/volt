@@ -87,8 +87,8 @@ public final class DashboardScreen implements AppScreen {
     private final View add, layoutButton;
     private final ChargingHero chargingHero;
     /** Home's Find it nearby card (FindNearby, entry A), under the header; hidden unless offered. */
-    private final LinearLayout findCard;
-    private final TextView findText;
+    private LinearLayout findCard;
+    private TextView findText;
     private final Context dialogContext;
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
@@ -230,8 +230,7 @@ public final class DashboardScreen implements AppScreen {
         view.addView(tools);
         chargingHero = new ChargingHero(false);
         view.addView(chargingHero, new LinearLayout.LayoutParams(-1, -2));
-        findText = ui.text("", 14, false);
-        findCard = findCard(findText);
+        findCard = newFindCard();
         LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
         findSize.bottomMargin = ui.dp(12);
         view.addView(findCard, findSize);
@@ -267,15 +266,16 @@ public final class DashboardScreen implements AppScreen {
         status = statusLine();
         profileName = nameLine();
         chargingHero = new ChargingHero(true);
-        findText = ui.text("", 14, false);
-        findCard = findCard(findText);
+        findCard = newFindCard();
     }
 
     /**
      * Find it nearby (entry A): a card with what happened and a secondary button that opens the scan sheet in find mode.
      * Shown only while FindNearby.offerHome holds (two timeouts at the saved address, nothing else going on).
      */
-    private LinearLayout findCard(TextView words) {
+    private LinearLayout newFindCard() {
+        TextView words = ui.text("", 14, false);
+        findText = words;
         LinearLayout card = column();
         card.setTag(FIND_CARD);
         card.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
