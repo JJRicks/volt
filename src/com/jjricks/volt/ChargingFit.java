@@ -161,7 +161,7 @@ final class ChargingFit {
 
     /**
      * The shortest stage that still shows a photo (its least height over the track zone), in pixels: a picture model's
-     * percentage over a stage without one is never larger than over a picture this small (ChargePictureFit.cleanPlan).
+     * percentage over a stage without one is never larger than over a picture this small ({@link ChargePictureFit#cleanSlot}).
      */
     static int photoStage(float density) {
         return dp(PHOTO_MIN_DP, density) + dp(TRACK_DP + TICK_DP + PHOTO_GAP_DP, density);
