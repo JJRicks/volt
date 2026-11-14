@@ -299,7 +299,7 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /** Home's Find it nearby card and its button (view tags). */
-    static final String FIND_CARD = "home-find-nearby", FIND_BUTTON = "home-find-nearby-button";
+    static final String FIND_CARD = "home_find_nearby", FIND_BUTTON = "home_find_nearby_button";
 
     /** Clean Home's parts, from a parts-only instance (see the constructor above). */
     static CleanParts cleanParts(ScreenHost host, Actions actions) {

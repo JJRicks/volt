@@ -1741,8 +1741,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         scanStatus.setText(scanning?T.bleStatusSearching():count==0?T.mainScanNone():count==1?T.mainScanFoundOne():T.mainScanFoundMany(count,count));
         scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
         scanHidden.setText(sheet.hidden>0?T.mainFindHidden(sheet.hidden,sheet.hidden):"");scanHidden.setVisibility(sheet.hidden>0?View.VISIBLE:View.GONE);
-        StringBuilder signature=new StringBuilder("find").append(scanSelected).append(':').append(profile.id).append(':').append(sheet.hidden);
-        for(FindNearby.Heard h:sheet.shown){ScanResult result=byMac.get(h.mac);String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,h.mac,null);signature.append('|').append(h.mac).append(':').append(signalRank(h.rssi)).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}
+        ArrayList<Object> signature=new ArrayList<>(java.util.Arrays.asList("find",scanSelected,profile.id,sheet.hidden));
+        for(FindNearby.Heard h:sheet.shown){ScanResult result=byMac.get(h.mac);String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,h.mac,null);signature.add(java.util.Arrays.asList(h.mac,signalRank(h.rssi),name,saved==null?null:saved.id,saved==null?null:saved.name));}
         if(!signature.toString().equals(scanSignature)){
             scanSignature=signature.toString();scanList.removeAllViews();
             for(FindNearby.Heard h:sheet.shown){

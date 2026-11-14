@@ -1132,7 +1132,7 @@ public final class MoreScreen implements AppScreen {
         // Find it nearby (FindNearby, entry B): only with a saved address and serial; it makes this scooter the current one.
         if (FindNearby.offerRow(p.mac, p.serial)) {
             TextView find = ui.secondaryButton(T.moreScootersFindNewAddress(), () -> { dialog.dismiss(); findAtNewAddress(id); });
-            find.setTag("scooter-find-" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
+            find.setTag("scooter_find" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
             ui.decorate(find, "search"); box.addView(find);
         }
         ui.decorate(forget, "trash"); box.addView(forget);
