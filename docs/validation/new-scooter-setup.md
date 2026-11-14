@@ -52,22 +52,23 @@ The done page reminds the owner that the key is only on this phone and to back V
   - the council's lockout chains, as the record and the rule see them: a permission result while the service binds, the service's own reconnect, a link dropped before the address was saved, a refusal from a second scooter, a cancelled chooser and a saved scooter refused before the owner check;
   - in the connection controller's source, the saved-scooter refusal comes before the offer record, which comes before the only owner check, and simulation returns before both.
 - `bash build.sh`; `python3 tools/l10n/gen_catalog.py --check`; `python3 tools/l10n/ship_check.py --aapt required`.
-- **Emulator:** `NewOwnerKeyValidation`, 51 assertions, passed on this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
-  - 412 × 915 dp, dark and light;
-  - 412 × 915 dp at 130% system text;
-  - 344 × 882 dp (Fold cover screen);
-  - 673 × 841 dp (unfolded Fold);
+- **Emulator:** `NewOwnerKeyValidation` (the follow-up harness, 87 assertions) passed against this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
+  - 412 × 915 dp, dark;
+  - 344 × 882 dp (Fold cover screen), dark;
+  - 725 × 604 dp, light;
   - 725 × 604 dp, light, at 140% app text.
 
   It drives the real setup screens and stores on a disposable emulator with Bluetooth off:
   - the new route sits second, after the recommended one, and the new-key page makes nothing;
-  - Continue makes one key of the right shape, and Back and Continue reuse it;
-  - the owner check's rejection, injected into the real connection controller, shows the refusal on screen, and **Set up another way** keeps that key;
-  - after a timeout, the key stays and **Set up another way** is hidden;
-  - a typed key saved afterwards leaves the made key in place, and coming back to the new route reuses the made key and drops the typed one;
-  - the done page shows the backup note above **Back up Volt**, both on screen without scrolling.
+  - Continue makes one key of the right shape, on disk before Connect, and Back and Continue reuse it;
+  - a key never offered to a scooter may go when another route is chosen;
+  - the offer is recorded where the connection controller sends the owner check: another profile's check leaves it unset, the made key's sets it on disk;
+  - the owner check's rejection, injected into the real connection controller, shows the refusal fully on screen above **Try again**, and **Set up another way** keeps the key;
+  - after a timeout, the key stays, **Set up another way** is hidden, and **Import an owner setup file** still asks for a file;
+  - a typed key a scooter accepted is kept;
+  - the done page shows its heading, the backup note, **Back up Volt** and **Go to Home** fully on screen without scrolling. In a short window the hero gives up height so the heading stays above the pinned note.
 
-  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding.
+  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding. The saved-scooter refusal before the owner check needs a live Bluetooth link, so the source-order test above covers it.
 - **Physical:** none yet.
 
 ## Hardware test plan (UT5 MAX)
