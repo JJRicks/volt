@@ -2371,6 +2371,14 @@ final class RidingScreen implements AppScreen {
         private int widestDigit = -1;
         /** Widths worked out, [size][rung][step + 1][compact], plus one (0: not yet). */
         private int[][][][] widths = newWidths();
+        /**
+         * Values shown that were wider than every sample (a drive mode the samples lack, an odometer past 99,999.9): kept,
+         * so the chip widens for one once and stays.
+         */
+        private final List<String> seen = new ArrayList<>();
+        /** Measures a value at the three-chip size, and the widest sample so measured. */
+        private Paint ruler;
+        private float rulerWidest;
         Chip(String content) {
             super(host.activity());
             this.content = content;
@@ -2587,8 +2595,8 @@ final class RidingScreen implements AppScreen {
         }
         /**
          * Takes the reading's widest values in these units (samples), with every figure the font's widest. A change (other
-         * units, clock format or language) fits the group again; the same values change nothing. A drive mode the scooter
-         * shows that the samples lack is kept, so the chip only ever widens for it once.
+         * units, clock format or language) fits the group again; the same values change nothing. A value shown that was
+         * wider than all of them is kept with them (seen), so the chip only ever widens for it once.
          */
         private void useSamples(String units) {
             if (digits == null) {
@@ -2613,14 +2621,26 @@ final class RidingScreen implements AppScreen {
                 tights.add(RidingChipFit.widened(tightValue, digits, widestDigit));
                 compacts.add(RidingChipFit.widened(compactValue, digits, widestDigit));
             }
-            if (mode) for (String kept : fullSamples) if (!fulls.contains(kept)) { fulls.add(kept); tights.add(kept); compacts.add(kept); }
+            for (String kept : seen) { fulls.add(kept); tights.add(kept); compacts.add(kept); }
             String[] f = fulls.toArray(new String[0]), t = tights.toArray(new String[0]), c = compacts.toArray(new String[0]);
             if (java.util.Arrays.equals(f, fullSamples) && java.util.Arrays.equals(t, tightSamples) && java.util.Arrays.equals(c, compactSamples)) return;
             fullSamples = f;
             tightSamples = t;
             compactSamples = c;
             widths = newWidths();
+            ruler = new Paint(probe.getPaint());
+            ruler.setTextSize(valuePx);
+            ruler.setLetterSpacing(0);
+            rulerWidest = 0;
+            for (String v : f) rulerWidest = Math.max(rulerWidest, ruler.measureText(v));
+            for (String v : t) rulerWidest = Math.max(rulerWidest, ruler.measureText(v));
             requestLayout();
+        }
+        /** Keeps a value wider than every sample with them, so the chip fits it from now on. */
+        private boolean seeWide(String value) {
+            if (value == null || ruler == null || seen.contains(value) || ruler.measureText(value) <= rulerWidest) return false;
+            seen.add(value);
+            return true;
         }
         void show(long now, String units) {
             Shown s = shown(content, now, units);
@@ -2645,7 +2665,6 @@ final class RidingScreen implements AppScreen {
                     if (shownName != null && !TextUtils.equals(name.getText(), shownName)) name.setText(shownName);
                 }
             }
-            useSamples(units);
             // The formatted reading as it's spoken ("31 °C", "SPORT", "12:48", "14.2 mph"), or the dash.
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
@@ -2654,6 +2673,9 @@ final class RidingScreen implements AppScreen {
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
             // The dash in place of a state's words, where the fit asked for it; a reading in figures shows as it is.
             compact = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
+            seeWide(full);
+            seeWide(tight);
+            useSamples(units);
             CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             int color = mode ? ui.onAccent : s.color;
