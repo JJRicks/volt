@@ -93,11 +93,37 @@ public final class HubPages {
         return Collections.unmodifiableList(shown);
     }
     /**
-     * The tab bar's roots, in the bar's order (Scooter was the raised centre button), from parts 1-10. The Hub (PR 11) no
-     * longer shows the tab bar or the side rail; MainActivity keeps their code, unused, until the owner has used the Hub and
-     * says it can go (owner's answer 8 on #383), and this list with it.
+     * A wide dock's captions (#392's early review, emulator note): true when every subject's full name fits on one line,
+     * so each item shows its full name; false when any would wrap, and then every item shows its short name, keeping the
+     * row even and the dock one line of text tall. nameWidthsDp: each full name's width in dp at the caption's size;
+     * roomDp: the width the page frame gives the dock; items: the dock's items, "All" included; itemMaxDp: a wide item's
+     * cap; paddingDp: the dock's inner padding. Each caption has its item's width less 2 dp each side (Ui.nav).
      */
-    public static final List<String> TABS = Collections.unmodifiableList(Arrays.asList(HOME, DATA, SCOOTER, RIDE, SETTINGS));
+    public static boolean wideDockNames(float[] nameWidthsDp, float roomDp, int items, float itemMaxDp, float paddingDp) {
+        if (items <= 0) return false;
+        float dock = Math.min(itemMaxDp * items + 2 * paddingDp, roomDp);
+        float caption = (dock - 2 * paddingDp) / items - 4;
+        for (float width : nameWidthsDp) if (!(width <= caption)) return false;
+        return true;
+    }
+
+    /**
+     * Whether a dock from dockTop to dockBottom covers a view from top to bottom of which shownTop to shownBottom is on
+     * screen (window pixels): any overlap of the dock with the shown part. A view scrolled out of sight is never covered.
+     * HubDock steps aside while this holds for Widgets' Lock bar (part 11: a short window at large text).
+     */
+    public static boolean dockCovers(int top, int bottom, int shownTop, int shownBottom, int dockTop, int dockBottom) {
+        int from = Math.max(top, shownTop), to = Math.min(bottom, shownBottom);
+        return to > from && dockBottom > from && dockTop < to;
+    }
+
+    /**
+     * Whether a move on the dock is its upward swipe (it opens the All sheet at once): more than twice the touch slop
+     * upward, and more up than across. upDp is how far the finger moved up (negative when down), acrossDp how far sideways.
+     */
+    public static boolean dockSwipe(float up, float across, float slop) {
+        return up > slop * 2 && up > across;
+    }
 
     /**
      * Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts).
@@ -166,15 +192,15 @@ public final class HubPages {
         return path.size() > 1 ? path.get(1) : HOME;
     }
 
-    /** Ui icon key for a page's subject. */
+    /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */
     public static String icon(String id) {
         switch (subjectOf(id)) {
             case RIDE: return "route";
-            case BATTERY: return "battery";
-            case CONTROLS: return "speed";
-            case LIGHTS: return "lights";
+            case BATTERY: return "bolt";
+            case CONTROLS: return "bars";
+            case LIGHTS: return "bulb";
             case SECURITY: return "shield";
-            case SERVICE: return "tune";
+            case SERVICE: return "wrench";
             case DATA: return "chart";
             case SETTINGS: return "gear";
             case SEARCH: return "search";
@@ -184,18 +210,6 @@ public final class HubPages {
 
     /** Whether riding mode may open over this page by itself (AutoStartPolicy); unknown ids count as busy. */
     public static boolean clearForRiding(String id) { return id != null && CLEAR_FOR_RIDING.contains(id); }
-
-    /** The tab that held a page, by its root id in {@link #TABS}: only the kept, unused tab bar and rail code reads it (PR 11). */
-    public static String tabOf(String id) {
-        String page = canonical(id);
-        switch (subjectOf(page)) {
-            case HOME: return HOME;
-            case DATA: return DATA;
-            case RIDE: return RIDE;
-            case SETTINGS: return SETTINGS;
-            default: return SCOOTER;
-        }
-    }
 
     /**
      * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,

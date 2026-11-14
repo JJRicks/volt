@@ -133,6 +133,22 @@ public final class HubNavTest {
         require(HubNav.awayExpired(1_000, 3, 1_000 + minute, 3), "A minute closes sub-pages");
         require(HubNav.awayExpired(1_000, 3, 500, 3), "A clock that went backwards closes them");
         require(HubNav.awayExpired(1_000, 3, 1_001, 4), "A reboot closes them");
+        // When leaving starts that clock (#392 early review): not over Volt's own dialog (a ride's notes being typed),
+        // not when a page itself opened another app just before (an email, a file picker).
+        require(HubNav.awayClockStarts(false, -1, 50_000), "Plain leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
+        require(HubNav.awayClockStarts(false, -1, 50_000),
+                "Focus lost to a window that is not Volt's (the notification shade, split screen), then leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, 40_000, 50_000), "A dialog showing and an old launch: kept");
+        require(!HubNav.awayClockStarts(false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
+        require(!HubNav.awayClockStarts(false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
+        require(HubNav.awayClockStarts(false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
+        require(HubNav.awayClockStarts(false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        // The page header's link goes where it says: on Search it skips the query-clearing step; elsewhere the page's own Back runs.
+        require(HubNav.linkSkipsPageBack(HubPages.SEARCH), "Search's link goes to the page it names");
+        require(!HubNav.linkSkipsPageBack(HubPages.SETTINGS), "Settings' link keeps the page's own Back step");
+        require(!HubNav.linkSkipsPageBack(HubPages.RIDE), "Ride's link keeps the page's own Back step");
+        require(!HubNav.linkSkipsPageBack(null), "No page: the page's own Back step");
     }
 
     private static boolean stack(HubNav nav, String... pages) { return Arrays.equals(nav.toArray(), pages); }

@@ -283,17 +283,29 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Lab")); settle();
     }
-    /** A rotation or fold rebuilds the screen: Review's recovery route and the full checker each come back as themselves. */
+    /**
+     * A rotation or fold rebuilds the screen: Review's recovery route and the full checker each come back as themselves.
+     * Since part 11 (#392) both are the Service › Compatibility page on top of the page stack, its route a page argument
+     * the activity keeps across rebuilds (compatibilityRecovery), not More's saved more_section, which nothing reads now:
+     * the page title is the same for both, so the route is read from the page's panel (recovery only, or the checker).
+     */
     private void requireRouteSurvivesRebuild(String label, boolean recovery) {
-        String saved = settings().getString("more_section", "");
-        require(saved.equals(recovery ? "CompatibilityRecovery" : "Compatibility"), label + ": saved section " + saved);
-        main(() -> activity.rebuild()); settle();
-        main(() -> {
-            require(field(more(), "compatibilityRecovery").equals(recovery), label + ": rebuilt with the wrong Compatibility route");
-            String title = ((TextView)field(more(), "sectionTitle")).getText().toString();
-            require(title.equals(recovery ? "Unfinished test" : "Compatibility"), label + ": rebuilt title " + title);
-        });
+        for (boolean rebuilt : new boolean[]{false, true}) {
+            if (rebuilt) { main(() -> activity.rebuild()); settle(); }
+            String when = rebuilt ? "rebuilt" : "opened";
+            main(() -> {
+                require(HubPages.SERVICE_COMPATIBILITY.equals(field(activity, "selectedPage")), label + ": " + when + " on " + field(activity, "selectedPage") + ", not the check");
+                require(field(activity, "compatibilityRecovery").equals(recovery), label + ": " + when + " with the wrong Compatibility route");
+                require(field(compatibilityPanel(), "recoveryOnly").equals(recovery), label + ": " + when + " page shows the wrong Compatibility view");
+            });
+        }
         checks.add(label + ": " + (recovery ? "Review's recovery route" : "the full checker") + " came back after a screen rebuild");
+    }
+    /** The compatibility check's panel: the Service › Compatibility page's (part 11), or More's section's where it is one. */
+    private Object compatibilityPanel() {
+        Object screen = field(activity, "screen");
+        if (screen != null && screen.getClass().getSimpleName().equals("HubCompatibilityPage")) return field(screen, "panel");
+        return field(more(), "compatibilityPanel");
     }
     private void openCompatibility() {
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
@@ -643,7 +655,7 @@ public final class GuidedTestValidation extends Instrumentation {
         awaitText("Experimental controls tries", "Show JSON");
         final String[] json = {null}, summary = {null}; final int[] tries = {0}; final List<String> ids = new ArrayList<>();
         main(() -> {
-            Object report = field(field(more(), "compatibilityPanel"), "report");
+            Object report = field(compatibilityPanel(), "report");
             json[0] = (String)invoke(report, "json"); summary[0] = (String)invoke(report, "summary");
             List<TestJournal.Entry> all = ((TestJournal)field(activity.service().ble, "testJournal")).all(activity.service().ble.profile().id);
             for (TestJournal.Entry e : all) { ids.add(e.testId); if (e.isTry()) tries[0]++; require(!e.reported, label + ": reported before sharing"); }
@@ -720,7 +732,7 @@ public final class GuidedTestValidation extends Instrumentation {
             // snapshot, so only the entries that still read as it shows them are acknowledged.
             android.system.Os.mkfifo(fifo.getAbsolutePath(), 0600); destination[0] = fifo;
             final String[] stale = {null}; final List<String> staleRevisions = new ArrayList<>();
-            main(() -> { Object report = field(field(more(), "compatibilityPanel"), "report"); stale[0] = (String)invoke(report, "json"); staleRevisions.addAll(((CompatibilityReport)report).included()); });
+            main(() -> { Object report = field(compatibilityPanel(), "report"); stale[0] = (String)invoke(report, "json"); staleRevisions.addAll(((CompatibilityReport)report).included()); });
             require(stale[0].equals(json) && stale[0].contains("\"kept\": true"), label + ": the preview does not show the kept try");
             tapText("Save file", label + " save (still writing)");
             await(() -> pickers[0] == 2 && documents.contains("path"), label + ": the save did not reach the destination", 10000);
@@ -730,7 +742,7 @@ public final class GuidedTestValidation extends Instrumentation {
             awaitPhase(GuidedTest.Phase.DONE, label + " set back during the save");
             await(() -> fake.value("prompt_tone") == 2, label + ": prompt sound not set back", 10000);
             await(() -> { String[] r = {""}; main(() -> { TestJournal.Entry e = activity.service().ble.latestTry("prompt_tone"); r[0] = e.resolution + "/" + e.restoration; }); return r[0].equals("restored/confirmed"); }, label + ": the set back was not confirmed", 10000);
-            await(() -> { String[] now = {""}; main(() -> now[0] = (String)invoke(field(field(more(), "compatibilityPanel"), "report"), "json")); return !now[0].equals(stale[0]); }, label + ": the open preview kept the old snapshot", 10000);
+            await(() -> { String[] now = {""}; main(() -> now[0] = (String)invoke(field(compatibilityPanel(), "report"), "json")); return !now[0].equals(stale[0]); }, label + ": the open preview kept the old snapshot", 10000);
             String written = new String(Files.readAllBytes(fifo.toPath()), StandardCharsets.UTF_8);
             require(written.equals(stale[0]), label + ": the slow save did not write its own snapshot");
             await(() -> !documents.contains("path"), label + ": the slow save did not finish", 10000);
@@ -741,7 +753,7 @@ public final class GuidedTestValidation extends Instrumentation {
                 require(e != null && !e.reported && e.restoration.equals("confirmed"), label + ": the set-back try was acknowledged by a file that shows it kept " + (e == null ? null : TestJournal.line(e))); });
             checks.add(label + ": a save still writing when a kept try is set back writes its own snapshot and acknowledges only the entries that still read that way; the confirmed restoration stays unreported and the open preview follows the journal");
             destination[0] = target;
-            final String[] fresh = {null}; main(() -> fresh[0] = (String)invoke(field(field(more(), "compatibilityPanel"), "report"), "json"));
+            final String[] fresh = {null}; main(() -> fresh[0] = (String)invoke(field(compatibilityPanel(), "report"), "json"));
             tapText("Save file", label + " save (written)");
             await(() -> pickers[0] == 3 && !documents.contains("path") && target.length() > 0, label + ": the save never wrote the file", 10000);
             await(() -> { boolean[] all = {true}; main(() -> { for (TestJournal.Entry e : ((TestJournal)field(activity.service().ble, "testJournal")).all(activity.service().ble.profile().id)) all[0] &= e.reported; }); return all[0]; },

@@ -9,13 +9,16 @@ import android.widget.TextView;
 
 /**
  * The one-time What's new sheet (hub layout plan 1.8, PR 9; Joel 6): an owner who updated from a Volt without Clean
- * Home sees it once on Home (HomeStyle.showWhatsNew), whether or not they already chose a style. While
- * HomeStyle.offerSwitch holds (no style chosen yet and Home not already Clean) it opens with the offer: its title and
+ * Home sees it once on Home (HomeStyle.showWhatsNew), introducing Clean and asking whether to switch (the
+ * contributor's decisions on #383); an owner who already chose a style sees it only for the background-recording
+ * notice (HomeStyle.whatsNewShows). While
+ * HomeStyle.offerSwitch holds (no style chosen yet and Home not already Clean) it holds the offer: its title and
  * one sentence, the two styles drawn side by side (stacked on a narrow window or with large text), then
  * "Switch to Clean" and "Keep Widgets". Either button is an explicit choice (HomeStylePrefs.markChosen); closing the
  * sheet any other way keeps Widgets and records nothing. Without the offer, the heading of this version's notes is the
- * sheet's title. Below, for an updating owner who records rides automatically, the notice that background starts are
- * now off with the switch to turn them on (owner's answer on #403), then this version's changelog with a link to the
+ * sheet's title. For an updating owner who records rides automatically, the notice that background starts are now off
+ * with the switch to turn them on (owner's answer on #403) comes first, above the offer, since either offer button
+ * closes the sheet (council early review of part 9); then this version's changelog with a link to the
  * full release notes (owner's answers 9, 10 and 12 on #383). A sheet that would hold none of these is not shown.
  * It records itself as shown (committed) just before it appears, so a crash or rotation never shows it again.
  * Text from HubText only; the notes are the bundled CHANGELOG.md section, in English.
@@ -36,8 +39,9 @@ final class WhatsNewSheet {
 
     /**
      * Shows the sheet over the current screen and returns it, so the activity can close it when it goes away; records
-     * it as shown first. Returns null, showing and recording nothing, when it would hold nothing
-     * (HomeStyle.whatsNewHasContent): no offer, no notice and no bundled notes.
+     * it as shown first. Returns null, showing nothing, when it would hold nothing (HomeStyle.whatsNewShows): for a
+     * chosen style and no notice it records the sheet as shown (HomeStyle.whatsNewSettled); for no offer, no notice and
+     * no bundled notes it records nothing, so it is decided again.
      */
     static AlertDialog show(ScreenHost host, SharedPreferences preferences) {
         Ui ui = host.ui();
@@ -47,25 +51,49 @@ final class WhatsNewSheet {
         Object origin = all.get(HomeStyle.ORIGIN_KEY);
         Object autoRecord = all.get(AutoStartPolicy.AUTO_RECORD_KEY);
         boolean notice = HomeStyle.whatsNewBackgroundNotice(origin instanceof String ? (String) origin : null, Boolean.TRUE.equals(autoRecord));
+        boolean chosen = Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY));
+        // An owner who already chose a style sees nothing without the notice: no need to read the notes then, and the
+        // decision is final for them, so it is recorded (HomeStyle.whatsNewSettled).
+        if (HomeStyle.whatsNewSettled(chosen, notice)) {
+            preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).apply();
+            return null;
+        }
+        if (!HomeStyle.whatsNewShows(chosen, offer, notice, false) && !HomeStyle.whatsNewShows(chosen, offer, notice, true)) return null;
         WhatsNewNotes.Notes notes = WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity()));
-        if (!HomeStyle.whatsNewHasContent(offer, notice, notes != null)) return null;
+        if (!HomeStyle.whatsNewShows(chosen, offer, notice, notes != null)) return null;
         AlertDialog[] shown = new AlertDialog[1];
         Runnable close = () -> { if (shown[0] != null) shown[0].dismiss(); };
         // Without the offer the notes' heading (this version) titles the sheet; their own heading is then left out.
+        // With the notice above the offer, the offer's sentence moves down to the pictures it introduces.
+        boolean bodyWithOffer = offer && notice;
         LinearLayout content = offer
-                ? host.sheetContent(HubText.whatsNewTitle(), HubText.whatsNewBody(), close)
+                ? host.sheetContent(HubText.whatsNewTitle(), bodyWithOffer ? null : HubText.whatsNewBody(), close)
                 : host.sheetContent(HubText.whatsNewChanges(notes != null ? notes.version : AppVersion.name(host.activity())), null, close);
         content.setTag(TAG);
-        if (offer) addOffer(host, ui, content, preferences, close);
-        addBackgroundNotice(host, ui, content, preferences, close, offer);
-        if (notes != null) addNotes(host, ui, content, notes, offer || notice, offer);
+        // The notice first: either offer button closes the sheet, so it must be read before a choice (HomeStyle.whatsNewSections).
+        for (String section : HomeStyle.whatsNewSections(offer, notice, notes != null)) {
+            if (HomeStyle.SECTION_NOTICE.equals(section)) addBackgroundNotice(host, ui, content, preferences, close);
+            else if (HomeStyle.SECTION_OFFER.equals(section)) addOffer(host, ui, content, preferences, close, bodyWithOffer);
+            else addNotes(host, ui, content, notes, offer || notice, offer);
+        }
         preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).commit();
         shown[0] = host.showSheet(content);
         return shown[0];
     }
 
-    /** The offer to switch to Clean (HomeStyle.offerSwitch): the two styles, the two buttons and the note under them. */
-    private static void addOffer(ScreenHost host, Ui ui, LinearLayout content, SharedPreferences preferences, Runnable close) {
+    /**
+     * The offer to switch to Clean (HomeStyle.offerSwitch): the two styles, the two buttons and the note under them.
+     * Under the notice (afterNotice) a rule sets it apart and the offer's sentence, not in the sheet's head, starts it.
+     */
+    private static void addOffer(ScreenHost host, Ui ui, LinearLayout content, SharedPreferences preferences, Runnable close,
+                                 boolean afterNotice) {
+        if (afterNotice) {
+            content.addView(rule(host, ui), ruleSpace(ui));
+            TextView body = ui.caption(HubText.whatsNewBody().render());
+            body.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13 * ui.textScale);
+            body.setPadding(0, 0, 0, ui.dp(14));
+            content.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        }
         float scale = ui.textScale * host.activity().getResources().getConfiguration().fontScale;
         boolean stacked = host.activity().getResources().getConfiguration().screenWidthDp < 360 || scale > 1.15f;
         LinearLayout styles = new LinearLayout(host.activity());
@@ -114,14 +142,7 @@ final class WhatsNewSheet {
         LinearLayout box = new LinearLayout(host.activity());
         box.setOrientation(LinearLayout.VERTICAL);
         box.setTag(TAG_NOTES);
-        if (separated) {
-            View rule = new View(host.activity());
-            rule.setBackgroundColor(ui.outline);
-            LinearLayout.LayoutParams ruleSpace = new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(1)));
-            ruleSpace.topMargin = ui.dp(18);
-            ruleSpace.bottomMargin = ui.dp(14);
-            box.addView(rule, ruleSpace);
-        }
+        if (separated) box.addView(rule(host, ui), ruleSpace(ui));
         if (headed) {
             TextView heading = ui.text(HubText.whatsNewChanges(notes.version), 17, true);
             if (android.os.Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
@@ -142,6 +163,12 @@ final class WhatsNewSheet {
             line.setPaddingRelative(start, ui.dp(item.bullet ? 8 : 12), 0, 0);
             box.addView(line, new LinearLayout.LayoutParams(-1, -2));
         }
+        // A long changelog is cut to its first notes (WhatsNewNotes): say so, right above the link to all of them.
+        if (notes.cut) {
+            TextView cut = ui.caption(HubText.whatsNewCut().render());
+            cut.setPadding(0, ui.dp(12), 0, 0);
+            box.addView(cut, new LinearLayout.LayoutParams(-1, -2));
+        }
         TextView page = ui.secondaryButton(HubText.whatsNewReleasePage().render(), () -> openPage(host, notes.page()));
         page.setTag(TAG_RELEASE_PAGE);
         LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);
@@ -158,8 +185,7 @@ final class WhatsNewSheet {
      * key as that page (AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY); it is never greyed here, because the notice only
      * shows while Record rides automatically is on.
      */
-    private static void addBackgroundNotice(ScreenHost host, Ui ui, LinearLayout content, SharedPreferences preferences, Runnable close,
-                                            boolean separated) {
+    private static void addBackgroundNotice(ScreenHost host, Ui ui, LinearLayout content, SharedPreferences preferences, Runnable close) {
         boolean autoRecord, background;
         try {
             autoRecord = preferences.getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
@@ -177,15 +203,7 @@ final class WhatsNewSheet {
         LinearLayout box = new LinearLayout(host.activity());
         box.setOrientation(LinearLayout.VERTICAL);
         box.setTag(TAG_BACKGROUND);
-        // Under the offer, a rule sets the notice apart; without it the notice is the sheet's first line.
-        if (separated) {
-            View rule = new View(host.activity());
-            rule.setBackgroundColor(ui.outline);
-            LinearLayout.LayoutParams ruleSpace = new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(1)));
-            ruleSpace.topMargin = ui.dp(18);
-            ruleSpace.bottomMargin = ui.dp(14);
-            box.addView(rule, ruleSpace);
-        }
+        // The notice is the sheet's first section (HomeStyle.whatsNewSections), right under its head.
         TextView notice = ui.text(HubText.whatsNewBackgroundNotice(), 14, false);
         notice.setLineSpacing(ui.dp(2), 1);
         box.addView(notice, new LinearLayout.LayoutParams(-1, -2));
@@ -204,6 +222,20 @@ final class WhatsNewSheet {
         pageSpace.topMargin = ui.dp(8);
         box.addView(page, pageSpace);
         content.addView(box, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    /** The thin rule that sets one section of the sheet apart from the one above it. */
+    private static View rule(ScreenHost host, Ui ui) {
+        View rule = new View(host.activity());
+        rule.setBackgroundColor(ui.outline);
+        return rule;
+    }
+
+    private static LinearLayout.LayoutParams ruleSpace(Ui ui) {
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, Math.max(1, ui.dp(1)));
+        space.topMargin = ui.dp(18);
+        space.bottomMargin = ui.dp(14);
+        return space;
     }
 
     /** The bundled section (WhatsNewNotes.ASSET), or null when the APK has none or it can't be read. */

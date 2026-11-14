@@ -40,12 +40,13 @@ public final class ChargeCaptureValidation extends Instrumentation {
             verifyDefaultChargeEstimate();
             verifyReferenceLifecycle();
             verifyOrdinaryChargerChoice();
-            // Charge recordings live on Battery & charging › Charge history & recordings (hub layout plan, PR 4).
-            main(()->invoke(activity,"open",new Class<?>[]{String.class},"battery.history"));settle();
+            // Charge recordings live on Battery & charging › Charge history & recordings (hub layout plan, PR 4), reached by
+            // tapping the Scooter tab, Battery & charging and its Charge history & recordings link.
+            HubTestPages.reach(this,activity,"battery.history");settle();
             verifyCaptureConfirmation();
             main(()->{
                 // The charger has one home, Estimates & charger › Charger (owner, #383): this row shows it and links there.
-                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null&&selector.isClickable(),"Charger row missing");
+                View selector=root().findViewWithTag("charge-charger-selector");require(selector!=null&&selector.isClickable(),"Charger row missing");HubTestPages.requireShown(activity,selector,"the charge history Charger row");
                 require(findText(selector,"Automatic")!=null,"Charger row does not show Automatic");
                 require(!root().findViewWithTag("charge-capture-action").isEnabled(),"Disconnected capture action is enabled");
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.STOCK)&&!service.isChargeRecording(),"Disconnected start bypassed guard");
@@ -58,8 +59,15 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(!service.startChargeRecording(ChargeSessionStore.Charger.HIGH_SPEED)&&files().length==0,"Simulation created charge data");
                 require(service.setChargeCharger(null),"Could not return to Automatic");
                 require(service.chargeCharger()==null&&!settings().contains("charge_charger_"+profile),"Automatic did not clear developer override");
-                require(service.effectiveChargeCharger()==null,"Simulation classified an automatic charger");
+                // Since #430 the simulator's Automatic finds the charger its Charging scene plugged in (detection never runs
+                // while simulating; SimulatorScenesValidation covers each model). It must stay a live answer: never saved
+                // as the choice, never used once the simulation ends.
+                ChargeSessionStore.Charger scene=service.ble.simulationDetectedCharger();
+                require(service.effectiveChargeCharger()==scene&&service.chargerBasis()==(scene==null?ScooterService.ChargerBasis.UNKNOWN:ScooterService.ChargerBasis.DETECTED),
+                        "Simulation's Automatic is not the scene's plugged charger: "+service.effectiveChargeCharger()+" ("+service.chargerBasis()+"), scene "+scene);
+                require(service.chargeCharger()==null&&!settings().contains("charge_charger_"+profile),"Simulation's charger was saved as the choice");
                 require(service.setSimulation(false),"Could not exit preview");
+                require(service.effectiveChargeCharger()==null&&service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Simulation's charger outlived the simulation");
                 invoke(field(activity,"screen"),"refresh",new Class<?>[]{});
                 require(service.chargeCharger()==null,"Charge history refresh replaced Automatic with Stock");
                 View curves=root().findViewWithTag("charge-learning-status");
@@ -313,11 +321,13 @@ public final class ChargeCaptureValidation extends Instrumentation {
     }
     /** Ordinary preferences work offline without enabling capture or Developer options. */
     private void verifyOrdinaryChargerChoice()throws Exception{
+        main(()->settings().edit().putBoolean("developer_options",false).commit());
+        // The charger row's one home: Scooter › Battery & charging › Estimates & charger since the Hub layout (#385, #387),
+        // reached by tapping the Scooter tab, Battery & charging and Estimates & charger the first time.
+        HubTestPages.reach(this,activity,"battery.estimates");settle();
         main(()->{
-            settings().edit().putBoolean("developer_options",false).commit();
-            invoke(activity,"select",new Class<?>[]{String.class},"controls");
             View row=root().findViewWithTag("estimate-charger-setting");
-            require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");
+            require(row!=null&&row.isEnabled(),"Ordinary charger setting missing or requires connection/developer mode");HubTestPages.requireShown(activity,row,"the Charger for estimates row");
             require(((TextView)root().findViewWithTag("estimate-charger-value")).getText().toString().equals("Automatic"),"Default Automatic preference is not shown");
             row.performClick();
         });settle();screenshot("charger-choice");
@@ -555,7 +565,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private File[] files(){File[] entries=new File(getTargetContext().getFilesDir(),"charge-recordings").listFiles();return entries==null?new File[0]:entries;}
     private SharedPreferences settings(){return getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE);}
     private View root(){return (View)field(activity,"root");}
-    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed",failure.get());}
+    private void main(Runnable action){AtomicReference<Throwable> failure=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable error){failure.set(error);}});if(failure.get()!=null)throw new IllegalStateException("UI assertion failed: "+failure.get(),failure.get());}
     private void settle(){waitForIdleSync();SystemClock.sleep(350);waitForIdleSync();}
     private void await(BooleanSupplier test,String message){long until=SystemClock.uptimeMillis()+10000;while(!test.getAsBoolean()&&SystemClock.uptimeMillis()<until)SystemClock.sleep(40);require(test.getAsBoolean(),message);}
     /**

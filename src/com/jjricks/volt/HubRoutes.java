@@ -43,8 +43,13 @@ final class HubRoutes {
     }
 
     /** Ids that keep an action of their own (rename, the charge schedule's shortcuts); every "feature:" id is one too. */
-    static final java.util.List<String> ACTIONS = Collections.unmodifiableList(java.util.Arrays.asList(
-            "section:Profile", "charge_done_by", "charge_done_time"));
+    static final java.util.List<String> ACTIONS;
+    static {
+        java.util.List<String> actions = new java.util.ArrayList<>(java.util.Arrays.asList(
+                "section:Profile", "charge_done_by", "charge_done_time"));
+        actions.add(QuickAccessActions.CHARGE_ALERTS_ID);
+        ACTIONS = Collections.unmodifiableList(actions);
+    }
 
     /** The page a Quick access id opens, or null when the id opens a sheet (SHEETS) or runs an action (ACTIONS, a control's "feature:" id, an unknown id). */
     static String pageFor(String id) { return id == null ? null : PAGES.get(id); }

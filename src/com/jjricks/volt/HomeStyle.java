@@ -11,7 +11,8 @@ package com.jjricks.volt;
  * or while its first-run setup is under way (setup's end records it: its last step's pick, or
  * origin install and Clean when first-run setup is skipped); it records Widgets and {@link #ORIGIN_UPDATE} when it finds an
  * earlier owner, re-derives a missing style from a stored origin, and adds a missing origin next to a stored
- * style (a restore). A restore of a backup without a style keeps this phone's style and choice (BackupArchive).
+ * style (a restore). A restore of a backup without a style keeps this phone's style and choice (BackupArchive), and
+ * stores an unchosen Widgets on a phone with neither a style nor an origin yet ({@link #preHubRestoreStoresWidgets}).
  * Switching style only writes {@link #KEY}; nothing in either Home's storage is touched.
  */
 final class HomeStyle {
@@ -110,11 +111,27 @@ final class HomeStyle {
      * preferences, whose Home was Widgets. Whether the restore stores Widgets: yes when this phone's style was not
      * chosen by its owner but is stored, or would be Clean by its install origin (setup skipped on a new phone stores
      * Clean unchosen), so Home lands on the backup owner's Widgets instead of staying or turning Clean. A chosen style
-     * is kept (part 6's rule), and a phone with neither a style nor an install origin is left as it is (absent reads as
-     * Widgets, and the seed's earlier-owner rule keeps it so).
+     * is kept (part 6's rule), and a phone with neither a style nor an install origin is left to
+     * {@link #preHubRestoreStoresWidgets} (App preferences store Widgets, unchosen, when no origin is stored either;
+     * otherwise it is left as it is, since absent reads as Widgets).
      */
     static boolean preHubRestoreGivesWidgets(boolean chosen, boolean styleStored, Object storedOrigin) {
         return !chosen && (styleStored || ORIGIN_INSTALL.equals(storedOrigin));
+    }
+
+    /**
+     * Whether restoring App preferences from a backup made before Home styles (no home_style) stores Widgets, unchosen:
+     * only on a phone with neither a style nor an origin yet, which is a fresh installation restoring from the welcome
+     * screen while first-run setup is under way (the seed waits for setup to end). Those preferences are an earlier
+     * owner's, whose Home was Widgets; a style stored without an origin is how setup's end recognises a restored
+     * earlier owner ({@link #pickedOrigin(String, boolean)}, {@link #afterSkippedSetup}), so that owner gets origin
+     * update and still sees the What's new sheet once, with the background-recording notice when the restored Record
+     * rides automatically is on (council early review of part 9, note 1). Absent already reads as Widgets, so Home
+     * looks the same. A stored style or origin is left to the rules around it; the restore never writes the origin
+     * itself (a device key: no restore changes those).
+     */
+    static boolean preHubRestoreStoresWidgets(boolean styleStored, Object storedOrigin) {
+        return !styleStored && !ORIGIN_INSTALL.equals(storedOrigin) && !ORIGIN_UPDATE.equals(storedOrigin);
     }
 
     /**
@@ -160,9 +177,10 @@ final class HomeStyle {
 
     /**
      * Whether the one-time What's new sheet shows now (Joel 6, 10): only on an installation the seed found updated
-     * that never saw the sheet, on Home, resumed, with neither setup nor riding mode open. Choosing a style first
-     * (in settings, or a restore that brought a choice) does not skip it: the sheet also carries the changelog and
-     * one-time notices; the choice only hides its offer to switch ({@link #offerSwitch}). A fresh installation never
+     * that never saw the sheet, on Home, resumed, with neither setup nor riding mode open. A style chosen first (in
+     * settings, or a restore that brought a choice) hides its offer to switch ({@link #offerSwitch}); the sheet then
+     * shows only for the background-recording notice ({@link #whatsNewShows}), and without it the decision is settled
+     * ({@link #whatsNewSettled}). A fresh installation never
      * sees it once setup recorded its origin (HomeStylePrefs.recordNewInstall or markChosen).
      */
     static boolean showWhatsNew(String origin, boolean shown, boolean onboardingShowing,
@@ -186,6 +204,59 @@ final class HomeStyle {
      */
     static boolean whatsNewHasContent(boolean offer, boolean backgroundNotice, boolean hasNotes) {
         return offer || backgroundNotice || hasNotes;
+    }
+
+    /**
+     * Whether the What's new sheet shows, once {@link #showWhatsNew} says it may (the contributor's decisions on #383:
+     * a screen introducing Clean on the first launch after the update, asking whether to switch, never to someone who
+     * already chose a style). An owner who has not chosen sees it with the offer, the notice when it applies and this
+     * version's notes; an owner who already chose sees it only for the background-recording notice (owner's answer on
+     * #403), which must not be missed, never for the notes alone.
+     */
+    static boolean whatsNewShows(boolean chosen, boolean offer, boolean backgroundNotice, boolean hasNotes) {
+        if (chosen) return backgroundNotice;
+        return whatsNewHasContent(offer, backgroundNotice, hasNotes);
+    }
+
+    /**
+     * Whether the What's new sheet is settled for good without showing: an owner who already chose a style and gets no
+     * background-recording notice has no offer and never sees the notes alone, so it is recorded as shown (not decided
+     * again at each Home rebuild, which would open it weeks later if they turned Record rides automatically on).
+     * Only an owner who has not chosen, on an APK without notes and with nothing else to show, is left undecided.
+     */
+    static boolean whatsNewSettled(boolean chosen, boolean backgroundNotice) {
+        return chosen && !backgroundNotice;
+    }
+
+    /** The narrowest half (dp) the style picker's cards take side by side: the drawing, then the name and radio. */
+    static final int PICKER_HALF_DP = 128;
+    /** The page's or sheet's side gutters and the gap between the two cards (dp). */
+    static final int PICKER_CHROME_DP = 42;
+
+    /**
+     * Whether the style picker's two cards sit side by side, as the mock-up draws them on a 344 dp phone: while each
+     * half of the window's width less the gutters is at least {@link #PICKER_HALF_DP} dp, and the text is at most 1.5
+     * times, else stacked (each card a row, its drawing at the left).
+     */
+    static boolean pickerSideBySide(int screenWidthDp, float textScale) {
+        float scale = Float.isNaN(textScale) ? 1f : textScale;
+        return (screenWidthDp - PICKER_CHROME_DP) / 2f >= PICKER_HALF_DP && scale <= 1.5f;
+    }
+
+    /** The What's new sheet's sections, by {@link #whatsNewSections}. */
+    static final String SECTION_NOTICE = "notice", SECTION_OFFER = "offer", SECTION_NOTES = "notes";
+
+    /**
+     * The What's new sheet's sections in order, of those it holds: the background-recording notice first, then the
+     * offer to switch, then this version's notes. Either offer button closes the sheet, so the notice goes above the
+     * offer, where it is read before a choice closes it (council early review of part 9, note 4).
+     */
+    static java.util.List<String> whatsNewSections(boolean offer, boolean backgroundNotice, boolean hasNotes) {
+        java.util.List<String> sections = new java.util.ArrayList<>();
+        if (backgroundNotice) sections.add(SECTION_NOTICE);
+        if (offer) sections.add(SECTION_OFFER);
+        if (hasNotes) sections.add(SECTION_NOTES);
+        return sections;
     }
 
     /**

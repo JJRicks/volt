@@ -79,7 +79,8 @@ public final class ModelHomeValidation extends Instrumentation {
             restoreKeepsUndo();
             earlierPickAdapts();
 
-            // Simulated US GT5 Max: its reported codes 2 and 3 read DRIVE and SPORT; the simulator's 50 km/h isn't a GT5 Max choice.
+            // Simulated US GT5 Max: its reported codes 2 and 3 read DRIVE and SPORT; a Top speed of 50 km/h, set on purpose below
+            // (choosing the model brings every setting to the GT5 Max's own choices), isn't one of them.
             // The owner puts Top speed on Home (offered for a US serial region).
             main(() -> {
                 DashboardConfig config = (DashboardConfig) field(field(activity, "screen"), "config");
@@ -90,6 +91,15 @@ public final class ModelHomeValidation extends Instrumentation {
             main(() -> require(activity.service().setSimulation(true), "Simulation did not start")); settle();
             main(() -> { activity.service().ble.setSimulationRegion("US"); activity.service().ble.setSimulationModel("25462"); }); settle();
             await(() -> { AtomicReference<Boolean> ready = new AtomicReference<>(false); main(() -> ready.set(activity.service().ble.ready())); return ready.get(); }, "Simulated GT5 Max did not connect");
+            main(() -> {
+                Integer chosen = activity.service().ble.featureValue("maximum_speed");
+                int[] offered = activity.service().ble.featureChoices("maximum_speed");
+                require(chosen != null && Arrays.stream(offered).anyMatch(v -> v == chosen), "The simulated GT5 Max kept a Top speed it doesn't offer: " + chosen);
+                // A value the model doesn't offer, as a scooter set elsewhere can report it.
+                invoke(field(activity.service().ble, "simulation"), "setUnoffered", new Class<?>[]{String.class, int.class}, "maximum_speed", 50);
+                activity.service().ble.tickSimulation();
+            });
+            settle();
             simulateMode(2);
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false); main(() -> shown.set(text(root(), "DRIVE") != null)); return shown.get(); }, "Mode 2 does not read DRIVE");
             screenshot("home-gt5-drive");
@@ -252,16 +262,13 @@ public final class ModelHomeValidation extends Instrumentation {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = text(((ViewGroup) view).getChildAt(i), text); if (found != null) return found; }
         return null;
     }
-    /** The simulator now reports this drive mode (it derives the mode from the acceleration readback, so move both). */
+    /** The simulator now reports this drive mode (its Developer options drive mode); the acceleration readback moves with it, as on a scooter. */
     @SuppressWarnings("unchecked") private void simulateMode(int code) {
         main(() -> {
             try {
                 Object simulation = field(activity.service().ble, "simulation");
-                java.util.Map<String, Object> fixed = (java.util.Map<String, Object>) field(simulation, "fixed");
-                Class<?> sample = Class.forName("com.jjricks.volt.ScooterSimulation$Sample", true, simulation.getClass().getClassLoader());
-                java.lang.reflect.Constructor<?> make = sample.getDeclaredConstructor(String.class, Double.class); make.setAccessible(true);
-                fixed.put("driving_mode", make.newInstance("Mode " + code + " (simulation)", (double) code));
                 ((java.util.Map<String, Integer>) field(simulation, "features")).put("acceleration", code);
+                activity.service().ble.setSimulationDriveMode(code);
                 activity.service().ble.refresh(false);
             } catch (Exception error) { throw new IllegalStateException(error); }
         });

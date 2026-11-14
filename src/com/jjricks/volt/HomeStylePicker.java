@@ -10,8 +10,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * The Home style choice (hub layout plan, PR 8): Clean and Widgets, each with its drawing, name and one line, and the
- * note that switching keeps the widget layout. Settings › Home style and Clean's Edit sheet show it. A pick is an
+ * The Home style choice (hub layout plan, PR 8), as the Layout Plan's mock-up draws it (the contributor's decisions on
+ * #383): Clean and Widgets side by side, each card its drawing over its name with the radio at the right of the name,
+ * the chosen one outlined in red; under them, the chosen style's one line and the note that switching keeps the widget
+ * layout. Settings › Home style and Clean's Edit sheet show it. A pick is an
  * explicit choice (HomeStylePrefs.markChosen); Home rebuilds when the style changes (MainActivity's settings listener),
  * and nothing in either Home's storage is touched. Setup's last step shows it too, holding the pick until setup ends.
  */
@@ -35,15 +37,21 @@ final class HomeStylePicker {
         boolean clean = HomeStyle.CLEAN.equals(selected);
         LinearLayout view = new LinearLayout(host.activity());
         view.setOrientation(LinearLayout.VERTICAL);
-        // Side by side when each half has room; stacked on a narrow screen or with large text.
+        // Side by side as the mock-up, while each half has room for its drawing and name (HomeStyle.pickerSideBySide).
         float scale = ui.textScale * host.activity().getResources().getConfiguration().fontScale;
-        boolean stacked = host.activity().getResources().getConfiguration().screenWidthDp < 360 || scale > 1.15f;
+        boolean stacked = !HomeStyle.pickerSideBySide(host.activity().getResources().getConfiguration().screenWidthDp, scale);
         LinearLayout choices = new LinearLayout(host.activity());
         choices.setOrientation(stacked ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         View[] cards = new View[2];
         Ui.RadioDot[] dots = new Ui.RadioDot[2];
+        TextView note = ui.caption(note(clean));
+        note.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13.5f * ui.textScale);
+        java.util.function.Consumer<String> pick = style -> {
+            note.setText(note(HomeStyle.CLEAN.equals(style)));
+            picked.accept(style);
+        };
         for (boolean option : new boolean[] {true, false}) {
-            View choice = choice(host, ui, option, option == clean, stacked, cards, dots, picked);
+            View choice = choice(host, ui, option, option == clean, stacked, cards, dots, pick);
             LinearLayout.LayoutParams space = stacked ? new LinearLayout.LayoutParams(-1, -2) : new LinearLayout.LayoutParams(0, -2, 1);
             if (option) {
                 if (stacked) space.bottomMargin = ui.dp(10);
@@ -52,8 +60,7 @@ final class HomeStylePicker {
             choices.addView(choice, space);
         }
         view.addView(choices, new LinearLayout.LayoutParams(-1, -2));
-        TextView note = ui.caption(HubText.homeStyleKeepsLayout().render());
-        note.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(4));
+        note.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(4));
         view.addView(note, new LinearLayout.LayoutParams(-1, -2));
         return view;
     }
@@ -78,18 +85,16 @@ final class HomeStylePicker {
         LinearLayout title = new LinearLayout(host.activity());
         title.setOrientation(LinearLayout.HORIZONTAL);
         title.setGravity(Gravity.CENTER_VERTICAL);
+        TextView name = ui.text(HubText.homeStyleName(clean), 15.5f, true);
+        title.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+        // The radio at the right of the name, as the mock-up has it.
         Ui.RadioDot dot = ui.radioDot();
         dot.set(selected);
         dots[clean ? 0 : 1] = dot;
-        title.addView(dot, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-        TextView name = ui.text(HubText.homeStyleName(clean), 15, true);
-        LinearLayout.LayoutParams nameSpace = new LinearLayout.LayoutParams(0, -2, 1);
-        nameSpace.setMarginStart(ui.dp(8));
-        title.addView(name, nameSpace);
+        LinearLayout.LayoutParams dotSpace = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+        dotSpace.setMarginStart(ui.dp(8));
+        title.addView(dot, dotSpace);
         words.addView(title, new LinearLayout.LayoutParams(-1, -2));
-        TextView line = ui.caption(HubText.homeStyleDescription(clean).render());
-        line.setPadding(0, ui.dp(4), 0, 0);
-        words.addView(line, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout.LayoutParams wordsSpace = stacked ? new LinearLayout.LayoutParams(0, -2, 1) : new LinearLayout.LayoutParams(-1, -2);
         if (stacked) wordsSpace.setMarginStart(ui.dp(12));
         else wordsSpace.topMargin = ui.dp(10);
@@ -119,8 +124,15 @@ final class HomeStylePicker {
         return card;
     }
 
+    /** The line under the cards: the chosen style's description, then that switching keeps the widget layout. */
+    private static String note(boolean clean) {
+        return HubText.homeStyleDescription(clean).render() + " " + HubText.homeStyleKeepsLayout().render();
+    }
+
+    /** A card: the surface with a 2 dp red outline when chosen, as the mock-up; none otherwise. */
     private static android.graphics.drawable.Drawable background(Ui ui, boolean selected) {
-        return new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)),
-                ui.shape(ui.surface, 16, selected ? ui.accent : ui.outline), ui.shape(Color.WHITE, 16, 0));
+        android.graphics.drawable.GradientDrawable fill = ui.shape(ui.surface, 18, 0);
+        if (selected) fill.setStroke(ui.dp(2), ui.accent);
+        return new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), fill, ui.shape(Color.WHITE, 18, 0));
     }
 }

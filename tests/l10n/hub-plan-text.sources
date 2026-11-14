@@ -1,0 +1,10 @@
+# Hub layout plan, PR 10: the text for the Layout Plan's screens (Clean's round quick-action names, Just back, Home
+# style, Quick access search, Battery & charging, Controls, Ride). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/HubPlanTextTest.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java
+src/com/jjricks/volt/HubSearchTables.java
+src/com/jjricks/volt/HomeQuickActions.java
+src/com/jjricks/volt/QuickActionLayout.java
+# QuickAccessActions and ScooterMenuLayout compile with tests/run.sh's core list.
