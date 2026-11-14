@@ -41,6 +41,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.HubPages;
+import com.jjricks.volt.HubText;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.PhoneRideStore;
 import com.jjricks.volt.RideStore;
@@ -67,7 +68,9 @@ import com.jjricks.volt.WideLayout;
  *   rides) arrive with part 12, which checks them.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
- *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each), and
+ *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
+ *   three tile values at one size on one baseline and their names on one line each; the Ride row under it shows that
+ *   ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -339,13 +342,36 @@ public final class HubValidation extends Instrumentation {
             }
             TextView time = (TextView) field(field(card, "time"), "value");
             require("20m".contentEquals(time.getText()), "Just back's Ride time reads \"" + time.getText() + "\" for a 20 min ride");
+            // Part 9: the three values at one size on one baseline, and the three names each on one line at one size.
+            TextView first = null, firstName = null;
+            for (String name : new String[]{"time", "speed", "battery"}) {
+                TextView value = (TextView) field(field(card, name), "value"), label = (TextView) field(field(card, name), "name");
+                require(label.getLineCount() == 1, "Just back's " + name + " tile name \"" + label.getText() + "\" takes " + label.getLineCount() + " lines");
+                if (first == null) { first = value; firstName = label; continue; }
+                require(value.getTextSize() == first.getTextSize(), "Just back's " + name + " value is " + value.getTextSize() + " px, the Ride time's " + first.getTextSize() + " px");
+                require(baselineY(value) == baselineY(first), "Just back's " + name + " value sits on baseline " + baselineY(value) + ", the Ride time's on " + baselineY(first));
+                require(label.getTextSize() == firstName.getTextSize(), "Just back's " + name + " name is " + label.getTextSize() + " px, the Ride time's " + firstName.getTextSize() + " px");
+            }
         });
+        // Part 9: the Ride row under it shows the ride Just back shows (CleanSubjects.rideFound), not "No rides yet": the
+        // seeded ride's 6.2 mi.
+        Object subjects = onMain(() -> field(clean, "subjects"));
+        String none = HubText.rideNone().render();
+        String[] rideLine = {null};
+        await(() -> onMain(() -> {
+            activity.redraw();
+            @SuppressWarnings("unchecked") List<String> ids = (List<String>) field(subjects, "ids");
+            @SuppressWarnings("unchecked") List<TextView> values = (List<TextView>) field(subjects, "values");
+            TextView value = values.get(ids.indexOf(HubPages.RIDE));
+            rideLine[0] = shown(value) ? value.getText().toString() : null;
+            return rideLine[0] != null && !rideLine[0].equals(none) && rideLine[0].contains("6.2");
+        }), () -> "The Ride row reads \"" + rideLine[0] + "\" while Just back shows the 6.2 mi ride just saved");
         screenshot("moment-just-back");
         // Still Just back after the picture, at the place measured (only a closed card or a newer ride would change it).
         int[] afterJustBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
-                + " (a ride saved just now: its ended line, distance, tiles and route shown); each pictured at that scroll");
+                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and route shown; the Ride row shows that ride); each pictured at that scroll");
     }
 
     /**
@@ -725,6 +751,8 @@ public final class HubValidation extends Instrumentation {
         int[] at = new int[2], named = new int[2]; lock.getLocationInWindow(at); name.getLocationInWindow(named);
         return new int[]{at[0], at[1], lock.getWidth(), lock.getHeight(), top.getHeight(), named[0], named[1]};
     }
+    /** A text's baseline in the window (px). Main thread. */
+    private static int baselineY(TextView text) { int[] at = new int[2]; text.getLocationInWindow(at); return at[1] + text.getBaseline(); }
     /** A place from lockPlaceNow, named. */
     private static String describe(int[] place) {
         return place == null ? "none" : "Lock bar at " + place[0] + "," + place[1] + " size " + place[2] + "x" + place[3] + ", top area " + place[4]
