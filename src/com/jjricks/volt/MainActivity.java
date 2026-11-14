@@ -146,6 +146,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Review's recovery-only Compatibility page: pageArgs is one-shot, so this keeps it through rebuilds while the page is in the stack. */
     private boolean compatibilityRecovery;
     private boolean bound,binding,resumed,destroyed,pendingConnect,pendingScan,expanded,rebuilding,applyingOwnerImport,importWaitNotified,bodyRefreshScheduled;
+    /**
+     * The waiting scan (pendingScan) is a find (FindNearby): every resume reopens it in the mode it was asked in
+     * (resumePendingScan), so a find never comes back as the ordinary scanner. Set, cleared, saved and restored with it.
+     */
+    private boolean pendingFind;
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
@@ -191,7 +196,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
             // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
             ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
-            if(resumed){maybeApplyOwnerImport();if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}
+            if(resumed){maybeApplyOwnerImport();if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}
             rebuild();
         }
         @Override public void onServiceDisconnected(ComponentName name){
@@ -240,6 +245,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
         if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);}
+        if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
         // A notice tap still waiting for the Scooter tab survives a cold start (into unfinished setup, say), as on main.
@@ -299,7 +305,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(onTab(HubPages.SETTINGS)){boolean expired=expireMoreSection(true);markMoreActive();if(expired)rebuild();}
         if(onTab(HubPages.DATA)){boolean expired=expireStatsSection(true);markStatsActive();if(expired)rebuild();}
         if(hasBluetoothPermission()){ensureService();if(bound&&scooterService!=null)startService(new Intent(this,ScooterService.class));}
-        if(scooterService!=null){maybeApplyOwnerImport();scooterService.visible(true);if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}if(scooterService.ble.connected())scooterService.ble.refresh(false);}
+        if(scooterService!=null){maybeApplyOwnerImport();scooterService.visible(true);if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}if(scooterService.ble.connected())scooterService.ble.refresh(false);}
         handler.removeCallbacks(pulse);handler.post(pulse);
         finishRidePermission();
     }
@@ -367,6 +373,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
         captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);
+        saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
@@ -678,7 +685,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
-        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby();}public boolean findNearbyOffered(){return scooterService!=null&&!scooterService.isRecording()&&scooterService.ble.findNearbyOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
             // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
@@ -1611,7 +1618,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
     }
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
-    @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
+    @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
     @Override public void requestRideLocation(Runnable ready){
         if (scooterService != null && scooterService.simulating()) { toast(T.mainScanExitSimulation()); return; }
         if(destroyed||!resumed||ready==null)return;
@@ -1638,7 +1645,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             rideLocationResolved=true;rideLocationCancelled=results.length==0;finishRidePermission();
             return;
         }
-        if(request==BLUETOOTH_PERMISSION){if(hasBluetoothPermission())requestBluetooth();else{pendingConnect=pendingScan=false;toast(T.bleNearbyNeeded());}redraw();}
+        if(request==BLUETOOTH_PERMISSION){if(hasBluetoothPermission())requestBluetooth();else{pendingConnect=pendingScan=pendingFind=false;toast(T.bleNearbyNeeded());}redraw();}
     }
     private void finishRidePermission(){
         if(destroyed||!resumed||!rideLocationResolved||pendingRideLocation==null)return;
@@ -1650,20 +1657,36 @@ public final class MainActivity extends Activity implements ScreenHost {
      * the active scooter, which must have a saved address and serial. It ends any connection or attempt first, so a pick
      * is the only link, and refuses simulation, a recording or a change in flight as the scan sheet does.
      */
-    @Override public void findNearby(){
+    @Override public void findNearby(){findNearby(false);}
+    /**
+     * home: Home's card (entry A), which can be stale: drawn before the scooter answered at its saved address, or before
+     * a recording began. A tap then redraws instead of ending that link (homeFindOffered).
+     */
+    private void findNearby(boolean home){
         if(scooterService==null){showScanner(true,true);return;}
+        // The same refusal as entry B's canChangeScooter (recordings, phone saving, schedule tests, a change in flight).
+        String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}
+        if(home&&!homeFindOffered()){redraw();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
         if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
         showScanner(true,true);
     }
+    /** Home offers Find it nearby (FindNearby.offerHome): nothing a scooter change must not interrupt, a charge recording included. */
+    private boolean homeFindOffered(){return scooterService!=null&&scooterService.scooterChangeUnavailable()==null&&scooterService.ble.findNearbyOffered();}
     private void showScanner(boolean start){showScanner(start,false);}
+    /** The scan waits (resume, permission, the service, Bluetooth on) in its own mode. */
+    private void deferScan(boolean find){pendingScan=true;pendingFind=find;}
+    /** A waiting scan reopens in the mode it was asked in: a find stays a find. */
+    private void resumePendingScan(){boolean find=pendingFind;pendingScan=pendingFind=false;showScanner(true,find);}
     private void showScanner(boolean start,boolean find){
         if (scooterService != null && scooterService.simulating()) { toast(T.mainScanExitSimulationFind()); return; }
-        if(!resumed){pendingScan=true;return;}
-        if(!hasBluetoothPermission()){pendingScan=true;requestBluetooth();return;}if(scooterService==null){pendingScan=true;ensureService();return;}
+        if(!resumed){deferScan(find);return;}
+        if(!hasBluetoothPermission()){deferScan(find);requestBluetooth();return;}if(scooterService==null){deferScan(find);ensureService();return;}
+        // Find mode refuses what entry B's scooter-change guard refuses, also when it comes back from a wait.
+        if(find){String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}}
         if(scooterService.isRecording()){toast(T.mainScanStopRecording());return;}
         if(scooterService.ble.pending()!=null){toast(T.mainScanBusy());return;}
-        android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingScan=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
+        android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){deferScan(find);startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
         if(scooterService.profiles.active()==null){open(HubPages.SETTINGS_SCOOTERS);return;}
         ScooterProfiles.Profile finding=scooterService.profiles.active();
         if(find&&!FindNearby.offerRow(finding.mac,finding.serial))return;
@@ -1695,10 +1718,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void connectSelectedScan(){
         if(scooterService==null||scanSelected==null)return;
-        if(scanFind){for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){findSelected(result);return;}return;}
+        // Find mode, and any pick the ordinary sheet may not connect straight to (FindNearby.ordinaryConnect: another
+        // address than a saved one), go through the find's steps: the confirmation, then the serial rule, or a refusal.
+        ScooterProfiles.Profile active=scooterService.profiles.active();
+        if(scanFind||active!=null&&!FindNearby.ordinaryConnect(active.mac,scanSelected)){for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){findSelected(result);return;}return;}
         for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){scooterService.ble.connectDiscovered(result);if(scanDialog!=null)scanDialog.dismiss();redraw();return;}
     }
-    private static int signalRank(int rssi){return rssi>=-60?4:rssi>=-70?3:rssi>=-80?2:1;}
+    private static int signalRank(int rssi){return FindNearby.signalRank(rssi);}
     private void updateScan(){
         if(scanList==null||scooterService==null)return;scanResults.clear();scanResults.addAll(scooterService.ble.discoveries());
         if(scanFind){updateFindScan();return;}
@@ -1711,6 +1737,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
         StringBuilder signature=new StringBuilder(String.valueOf(scanSelected)).append(':').append(profile==null?"":profile.id);
         for(ScanResult result:scanResults){String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,result.getDevice().getAddress(),null);signature.append('|').append(result.getDevice().getAddress()).append(':').append(signalRank(result.getRssi())).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}
+        // The bars follow each scooter's latest signal bucket; the rows keep their first-heard order.
+        for(ScanResult result:scanResults)signature.append(signalRank(scooterService.ble.signal(result)));
         if(!signature.toString().equals(scanSignature)){
             scanSignature=signature.toString();scanList.removeAllViews();
             for(ScanResult result:scanResults){
@@ -1727,7 +1755,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile active=scooterService.profiles.active();boolean match=saved!=null&&active!=null&&saved.id.equals(active.id);
         if(saved!=null)name=saved.shownName();
         String address=result.getDevice().getAddress(),suffix=address.substring(Math.max(0,address.length()-5));
-        int rank=signalRank(result.getRssi());String strength=rank==4?T.mainScanStrong():rank==3?T.mainScanGood():rank==2?T.mainScanFair():T.mainScanWeak();
+        int rank=signalRank(scooterService.ble.signal(result));String strength=rank==4?T.mainScanStrong():rank==3?T.mainScanGood():rank==2?T.mainScanFair():T.mainScanWeak();
         LinearLayout option=row();option.setGravity(Gravity.CENTER_VERTICAL);option.setPadding(design.dp(12),design.dp(10),design.dp(14),design.dp(10));option.setMinimumHeight(design.dp(64));
         android.graphics.drawable.GradientDrawable face=new android.graphics.drawable.GradientDrawable();face.setCornerRadius(design.dp(16));
         face.setColor(selected?Ui.withAlpha(design.accent,design.dark?26:18):design.surface);face.setStroke(design.dp(1.5f),selected?design.accent:design.surface);
@@ -1768,7 +1796,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ArrayList<FindNearby.Heard> heard=new ArrayList<>();java.util.HashMap<String,ScanResult> byMac=new java.util.HashMap<>();
         for(ScanResult result:scanResults){
             String address=result.getDevice().getAddress();AdvertisedIdentity.Result id=scooterService.ble.advertisedAt(address);
-            heard.add(new FindNearby.Heard(address,result.getRssi(),id==null?null:id.pid,scooterService.profiles.hardwareMatch(profile.id,address,null)!=null));byMac.put(address,result);
+            heard.add(new FindNearby.Heard(address,scooterService.ble.signal(result),id==null?null:FindNearby.modelId(id.pid,id.marker),scooterService.profiles.hardwareMatch(profile.id,address,null)!=null));byMac.put(address,result);
         }
         FindNearby.Sheet sheet=FindNearby.sheet(heard,profile.mac,profile.savedDescriptor().family());
         boolean present=false;for(FindNearby.Heard h:sheet.shown)if(h.mac.equals(scanSelected)&&!h.savedElsewhere)present=true;
@@ -4207,7 +4235,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null)scooterService=ScooterService.currentForMaintenance();
         String unavailable=scooterService==null?null:scooterService.dataMaintenanceUnavailable();
         if(unavailable!=null){toast(unavailable);return;}
-        enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=false;
+        enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=pendingFind=false;
         closeQuickMenu();if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
         if(screen!=null){screen.close();screen=null;}onboarding=null;
         preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
@@ -4259,7 +4287,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }catch(Exception ignored){toast(T.mainImportRetrySetup());}}
             return;
         }
-        if(request==ENABLE_BLUETOOTH){if(result==RESULT_OK){if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}else pendingConnect=pendingScan=false;return;}
+        if(request==ENABLE_BLUETOOTH){if(result==RESULT_OK){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}else pendingConnect=pendingScan=pendingFind=false;return;}
         if(request==SAVE_DOCUMENT){File staging=new File(documents.getString("path",new File(getFilesDir(),"missing-export").getAbsolutePath()));String reportTests=documents.getString("report_tests","");if(result!=RESULT_OK||data==null||data.getData()==null){staging.delete();documents.edit().clear().apply();return;}Uri destination=data.getData();new Thread(()->{try(InputStream in=new FileInputStream(staging);OutputStream out=getContentResolver().openOutputStream(destination,"wt")){if(out==null)throw new java.io.IOException();copy(in,out);handler.post(()->{toast(T.mainImportSaved());if(!reportTests.isEmpty()&&scooterService!=null)scooterService.ble.markReported(java.util.Arrays.asList(reportTests.split(",")));});}catch(Exception e){handler.post(()->toast(T.mainImportSaveFailed()));}finally{staging.delete();documents.edit().clear().commit();}},"Volt-save").start();return;}
         if(request==IMPORT_LAYOUTS&&result==RESULT_OK&&data!=null&&data.getData()!=null){
             Uri uri=data.getData();
@@ -4350,7 +4378,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             scooterService.ble.disconnect();
             // Volt's own fallback stays a default name, so a later model name can replace it.
             if(match==null)match=scooterService.profiles.createForOwnerImport(importId,name,parsed.identity,parsed.role);
-            else{scooterService.profiles.select(match.id);scooterService.ble.profileSelected();}
+            else{scooterService.profiles.select(match.id);scooterService.ble.scooterSwitched();}
             if(match.id.equals(newProfileId)&&(match.name.trim().isEmpty()||IMPORTED_NAME.equals(match.name.trim())))match.nameDefault=true;
             if(!mac.isEmpty())match.mac=mac;if(!serial.isEmpty())match.serial=serial;scooterService.profiles.update(match);
             // Commit the existing profile snapshot before deleting its recovery staging file.

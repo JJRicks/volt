@@ -19,7 +19,11 @@ public final class FindNearbyTest {
         picks();
         serials();
         sheet();
+        ordinaryScanner();
+        verdict();
+        signal();
         wiring();
+        fixRound();
         System.out.println("FindNearbyTest: " + assertions + " assertions passed");
     }
 
@@ -55,31 +59,48 @@ public final class FindNearbyTest {
     private static void timeouts() {
         FindNearby.Timeouts t = new FindNearby.Timeouts();
         t.attempt("a");
-        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(t.count("a") == 1 && !t.stuck("a"), "one timeout: not yet");
-        t.failed("a", SAVED.toLowerCase(), SAVED, ConnectionEventLog.Reason.CONNECT_FAILED);
+        t.failed("a", SAVED.toLowerCase(), SAVED, ConnectionEventLog.Reason.CONNECT_FAILED, false);
         check(t.count("a") == 2 && t.stuck("a"), "a timeout and a connectGatt failure at the saved address: stuck");
         check(!t.stuck("b") && t.count("b") == 0, "another profile is never stuck from this tally");
         // Non-timeout failures and other addresses change nothing, whatever the count.
         for (ConnectionEventLog.Reason r : ConnectionEventLog.Reason.values()) {
             if (r == ConnectionEventLog.Reason.CONNECT_TIMEOUT || r == ConnectionEventLog.Reason.CONNECT_FAILED) continue;
             FindNearby.Timeouts u = new FindNearby.Timeouts();
-            u.attempt("a"); u.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
-            u.failed("a", SAVED, SAVED, r);
+            u.attempt("a"); u.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+            u.failed("a", SAVED, SAVED, r, false);
             check(u.count("a") == 1, r + " is not counted and doesn't reset");
         }
+        // Fix round, P3: an error Android reports before the link ever reached STATE_CONNECTED counts like a timeout;
+        // after it came up, a native drop is a lost link and doesn't. No other reason counts either way.
+        for (ConnectionEventLog.Reason r : ConnectionEventLog.Reason.values()) {
+            boolean counted = r == ConnectionEventLog.Reason.CONNECT_TIMEOUT || r == ConnectionEventLog.Reason.CONNECT_FAILED;
+            check(FindNearby.counts(r, false) == counted, r + " after STATE_CONNECTED");
+            check(FindNearby.counts(r, true) == (counted || r == ConnectionEventLog.Reason.NATIVE_DISCONNECT), r + " before STATE_CONNECTED");
+        }
+        FindNearby.Timeouts early = new FindNearby.Timeouts();
+        early.attempt("a");
+        early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, true);
+        early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, true);
+        check(early.stuck("a"), "two early native failures at the saved address: stuck");
+        early.connected();
+        early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, false);
+        check(early.count("a") == 0, "a link lost after it came up is not counted");
+        early.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, true);
+        check(early.count("a") == 0, "an early failure at another address (a find) is not counted");
         FindNearby.Timeouts other = new FindNearby.Timeouts();
         other.attempt("a");
-        other.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
-        other.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        other.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        other.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(other.count("a") == 0, "timeouts at another address (a find) don't count");
-        other.failed("a", SAVED, "", ConnectionEventLog.Reason.CONNECT_TIMEOUT);
-        other.failed("a", null, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        other.failed("a", SAVED, "", ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        other.failed("a", null, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(other.count("a") == 0, "no saved address or no attempt address: nothing counted");
         // Resets: a successful connect, a profile switch, an attempt for another profile.
         t.connected();
         check(t.count("a") == 0 && !t.stuck("a"), "a successful connect resets");
-        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(t.stuck("a"), "stuck again");
         t.active("a");
         check(t.stuck("a"), "the same active profile keeps the tally");
@@ -87,13 +108,13 @@ public final class FindNearbyTest {
         check(!t.stuck("a") && t.count("b") == 0, "a profile switch resets");
         t.active("a");
         check(!t.stuck("a"), "switching back starts from zero");
-        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         t.attempt("b");
         check(!t.stuck("a") && t.count("b") == 0, "an attempt for another profile resets");
-        t.attempt("b"); t.failed("b", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        t.attempt("b"); t.failed("b", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         t.attempt("b");
         check(t.count("b") == 1, "another attempt for the same profile keeps the tally");
-        t.failed("c", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT);
+        t.failed("c", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(t.count("c") == 1 && t.count("b") == 0, "a timeout for another profile starts its own tally");
         check(FindNearby.TIMEOUTS == 2, "two timeouts");
     }
@@ -151,6 +172,51 @@ public final class FindNearbyTest {
         check(FindNearby.sheet(new ArrayList<>(), SAVED, "2538").shown.isEmpty(), "nothing heard");
     }
 
+    /** Fix round, P1 (defence in depth): the ordinary scanner never sends a saved scooter's key to another address. */
+    private static void ordinaryScanner() {
+        check(FindNearby.ordinaryConnect("", OTHER) && FindNearby.ordinaryConnect(null, OTHER), "no saved address (first setup): any pick connects");
+        check(FindNearby.ordinaryConnect(SAVED, SAVED) && FindNearby.ordinaryConnect(SAVED, SAVED.toLowerCase()), "the saved address connects");
+        check(!FindNearby.ordinaryConnect(SAVED, OTHER) && !FindNearby.ordinaryConnect(SAVED, null) && !FindNearby.ordinaryConnect(SAVED, ""),
+                "another address than the saved one never connects straight from the ordinary sheet");
+        check(!FindNearby.mayConnect(SAVED, OTHER, "") && !FindNearby.mayConnect(SAVED, OTHER, null) && !FindNearby.mayConnect(SAVED, OTHER, SAVED),
+                "the controller refuses another address without a confirmed find for it");
+        check(FindNearby.mayConnect(SAVED, OTHER, OTHER), "a confirmed find connects to exactly its address");
+        check(!FindNearby.mayConnect(SAVED, "", "") && FindNearby.mayConnect(SAVED, SAVED, ""), "no address is never a find; the saved address is ordinary");
+    }
+
+    /** Fix round, P3: a 0x74 reply that can't be read as a serial ends a find without a verdict. */
+    private static void verdict() {
+        check(FindNearby.serialUnreadable(1, 18) && FindNearby.serialUnreadable(0x10, 1), "an error status is unreadable");
+        check(FindNearby.serialUnreadable(0, 1) && FindNearby.serialUnreadable(0, 0), "no bytes after the status byte is unreadable");
+        check(!FindNearby.serialUnreadable(0, 2) && !FindNearby.serialUnreadable(0, 18), "a status 0 reply with data is read (and compared)");
+    }
+
+    /** Fix round, P3: the model filter's unknown ID, and the latest signal's buckets. */
+    private static void signal() {
+        // AdvertisedIdentity's fallback (marker -1, two fixed record bytes) is unknown, so it never hides a scooter.
+        check(FindNearby.modelId("25461", -1) == null && "25461".equals(FindNearby.modelId("25461", 0)) && "25461".equals(FindNearby.modelId("25461", 5)),
+                "only a manufacturer-data model ID is known");
+        List<FindNearby.Heard> fallback = Arrays.asList(new FindNearby.Heard("AA:00:00:00:00:07", -50, FindNearby.modelId("25461", -1), false));
+        FindNearby.Sheet f = FindNearby.sheet(fallback, SAVED, "2538");
+        check(f.hidden == 0 && f.shown.size() == 1, "a packet without manufacturer data is shown, never filtered as another model");
+        check(FindNearby.signalRank(-40) == 4 && FindNearby.signalRank(-60) == 4 && FindNearby.signalRank(-61) == 3 && FindNearby.signalRank(-70) == 3
+                && FindNearby.signalRank(-71) == 2 && FindNearby.signalRank(-80) == 2 && FindNearby.signalRank(-81) == 1, "the four buckets");
+        // First-heard order inside a bucket: a few dB within it never reorders rows.
+        List<FindNearby.Heard> heard = Arrays.asList(
+                new FindNearby.Heard("AA:00:00:00:00:01", -66, null, false),
+                new FindNearby.Heard("AA:00:00:00:00:02", -62, null, false),
+                new FindNearby.Heard("AA:00:00:00:00:03", -85, null, false));
+        FindNearby.Sheet s = FindNearby.sheet(heard, SAVED, "");
+        check(s.shown.get(0).mac.endsWith("01") && s.shown.get(1).mac.endsWith("02") && s.shown.get(2).mac.endsWith("03"), "equal buckets keep first-heard order");
+        // The weaker one is walked to: its latest signal moves it up a bucket, and only then it leads.
+        heard = Arrays.asList(
+                new FindNearby.Heard("AA:00:00:00:00:01", -66, null, false),
+                new FindNearby.Heard("AA:00:00:00:00:02", -62, null, false),
+                new FindNearby.Heard("AA:00:00:00:00:03", -45, null, false));
+        s = FindNearby.sheet(heard, SAVED, "");
+        check(s.shown.get(0).mac.endsWith("03") && s.shown.get(1).mac.endsWith("01") && s.shown.get(2).mac.endsWith("02"), "a bucket change reorders");
+    }
+
     /** How the controller and screens use the rules (failure modes 1 to 5, 7 and 8). */
     private static void wiring() {
         String ble = read("src/com/jjricks/volt/BleController.java");
@@ -162,7 +228,7 @@ public final class FindNearbyTest {
                 "remember() saves only for an authenticated link with a checked serial");
         int find = ble.indexOf("if(findSerialRefused(f))return;");
         String serialCheck = body(ble, "private boolean findSerialRefused(Protocol.Frame f){", "\n    }\n");
-        check(serialCheck.contains("if(!finding()||f.cmd!=0x74||f.error()!=0||f.data.length<2)return false;")
+        check(serialCheck.contains("if(!finding()||f.cmd!=0x74)return false;")
                 && serialCheck.contains("if(FindNearby.serial(profile.serial,received)==FindNearby.Serial.MATCH)return false;")
                 && serialCheck.contains("findRefused();return true;"), "a find's serial: anything but a match is refused");
         int notSaved = ble.indexOf("if(!profile.serial.isEmpty()&&!profile.serial.equals(received)){failed(M.bleFailedNotSaved(),");
@@ -197,7 +263,8 @@ public final class FindNearbyTest {
         check(refused.contains("wanted=false;") && refused.contains("failed(findNotice,false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);"), "a mismatch: no retry, not wanted");
         String failure = body(ble, "private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){", "\n    private void notice(");
         check(failure.contains("connect(profile,profile.mac);") && count(failure, "connect(") == 1, "the only reconnect goes to the saved address");
-        check(failure.indexOf("timeouts.failed(profile.id,attemptMac,profile.mac,reason);") < failure.indexOf("close("), "the tally sees the attempt before close");
+        check(failure.indexOf("timeouts.failed(profile.id,attemptMac,profile.mac,reason,!mtuRequested&&bluetoothEnabled());") > 0
+                && failure.indexOf("timeouts.failed(") < failure.indexOf("close("), "the tally sees the attempt (and whether it came up) before close");
         String close = body(ble, "private void close(State next){", "\n    private void failed(String");
         check(close.contains("stopScan();endFind();") && ble.contains("private void endFind(){findMac=\"\";}"), "every close ends the find");
         check(ble.contains("findMac=mac.equals(pendingFindMac)?mac:\"\";pendingFindMac=\"\";"), "connect() starts a find only from a confirmed pick");
@@ -214,13 +281,77 @@ public final class FindNearbyTest {
         check(main.contains("if(find&&!FindNearby.offerRow(finding.mac,finding.serial))return;"), "the sheet's find mode needs a saved address and serial");
         String more = read("src/com/jjricks/volt/MoreScreen.java");
         check(more.contains("if (FindNearby.offerRow(p.mac, p.serial)) {") && more.contains("if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }"), "the row too");
-        check(ble.contains("FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected(),simulating(),recording,mutation!=null)"), "Home's button");
+        check(ble.contains("FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null)"), "Home's button");
         // 8: Find during an attempt ends it first: the sheet disconnects before scanning.
         String show = body(main, "private void showScanner(boolean start,boolean find){", "\n    private void connectSelectedScan(){");
         check(show.contains("if(start){scooterService.ble.disconnect();scooterService.ble.scan();}") && main.contains("showScanner(true,true);"), "Find disconnects, then scans");
         // R6: the sheet's own refusals come first.
         check(show.indexOf("mainScanExitSimulationFind") < show.indexOf("ble.disconnect()") && show.indexOf("mainScanStopRecording") < show.indexOf("ble.disconnect()")
                 && show.indexOf("mainScanBusy") < show.indexOf("ble.disconnect()"), "simulation, recording and busy are refused before anything");
+    }
+
+    /** The fix round's wiring (council review of a47b5ab7): each upheld finding where the controller and screens apply it. */
+    private static void fixRound() {
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        // P1: every wait keeps the find mode, and every resume reopens in it. No resume opens the ordinary scanner.
+        check(!main.contains("showScanner(true);") && !main.contains("pendingScan=false;showScanner("), "no resume site reopens the ordinary scanner by itself");
+        check(count(main, "if(pendingScan){resumePendingScan();}") == 4, "onServiceConnected, onResume, requestBluetooth and Bluetooth enable resume through resumePendingScan");
+        check(main.contains("private void resumePendingScan(){boolean find=pendingFind;pendingScan=pendingFind=false;showScanner(true,find);}"), "a resume reopens in the asked mode");
+        check(main.contains("private void deferScan(boolean find){pendingScan=true;pendingFind=find;}") && count(main, "pendingScan=true") == 1,
+                "pendingScan is set only with its mode");
+        String show = body(main, "private void showScanner(boolean start,boolean find){", "\n    private void connectSelectedScan(){");
+        check(count(show, "deferScan(find);") == 4 && !show.contains("pendingScan"), "the four waits in showScanner (resume, permission, the service, Bluetooth on) keep the mode");
+        check(count(main, "pendingConnect=pendingScan=pendingFind=false;") == 3 && !main.contains("pendingConnect=pendingScan=false;"), "every clear clears the mode too");
+        check(main.contains("pendingScan=saved.getBoolean(\"pending_scan\",false);") && main.contains("if(saved!=null)pendingFind=pendingScan&&saved.getBoolean(\"pending_find\",false);")
+                && main.contains("saved.putBoolean(\"pending_find\",pendingFind);"), "saved and restored with pendingScan");
+        // Every assignment of pendingScan is one of those.
+        int assignments = count(main, "pendingScan=") - count(main, "pendingScan==");
+        check(assignments == 1 + 1 + 3 + 1, "pendingScan: deferScan, resumePendingScan, three clears and the restore, got " + assignments);
+        // P1, defence in depth: the ordinary sheet routes another address through the find's steps; the controller refuses it.
+        String connectScan = body(main, "private void connectSelectedScan(){", "\n    private static int signalRank(");
+        check(connectScan.indexOf("if(scanFind||active!=null&&!FindNearby.ordinaryConnect(active.mac,scanSelected)){") > 0
+                && connectScan.indexOf("findSelected(result)") < connectScan.indexOf("scooterService.ble.connectDiscovered(result)"), "the ordinary sheet's other address goes through findSelected");
+        String discovered = body(ble, "public void connectDiscovered(ScanResult result){", "\n    /**");
+        check(discovered.indexOf("if(!FindNearby.mayConnect(p.mac,result.getDevice().getAddress(),pendingFindMac))return;") > 0
+                && discovered.indexOf("FindNearby.mayConnect(") < discovered.indexOf("wanted=true;") && discovered.indexOf("FindNearby.mayConnect(") < discovered.indexOf("connect(p,mac);"),
+                "connectDiscovered refuses another address without a confirmed find, before anything");
+        // P2: Home's Find refuses what entry B refuses, isn't offered then, and a stale tap never ends a live link.
+        String find = body(main, "private void findNearby(boolean home){", "\n    }\n");
+        check(find.contains("String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}")
+                && find.indexOf("scooterChangeUnavailable()") < find.indexOf("if(home&&!homeFindOffered()){redraw();return;}")
+                && find.indexOf("if(home&&!homeFindOffered()){redraw();return;}") < find.indexOf("showScanner(true,true);", find.indexOf("homeFindOffered")),
+                "the guard and the stale check come before the sheet disconnects");
+        check(main.contains("private boolean homeFindOffered(){return scooterService!=null&&scooterService.scooterChangeUnavailable()==null&&scooterService.ble.findNearbyOffered();}")
+                && main.contains("public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}"), "Home's card: offered and tapped through the same rule");
+        check(show.contains("if(find){String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}}")
+                && show.indexOf("scooterChangeUnavailable()") < show.indexOf("ble.disconnect()"), "a find that comes back from a wait is refused the same way");
+        check(ble.contains("connected()||answeringAt(p.mac)") && ble.contains("private boolean answeringAt(String mac){return gatt!=null&&(mtuRequested||authenticated)&&mac!=null&&mac.equalsIgnoreCase(gatt.getDevice().getAddress());}"),
+                "a link that came up at the saved address counts as connected");
+        // P3: a find that ends without a verdict.
+        String failure = body(ble, "private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){", "\n    private void notice(");
+        check(failure.indexOf("if(retry&&findUnverified()){findUnchecked(reason,code);return;}") > 0
+                && failure.indexOf("findUnverified()") < failure.indexOf("recordDiagnostic(") && failure.indexOf("findUnverified()") < failure.indexOf("connect(profile,profile.mac);"),
+                "a retrying failure of an unverified find shows the find's notice first");
+        String unchecked = body(ble, "private void findUnchecked(ConnectionEventLog.Reason reason,int code){", "\n    }\n");
+        check(unchecked.indexOf("endFind();") >= 0 && unchecked.indexOf("endFind();") < unchecked.indexOf("failed(findNotice,true,reason,code);")
+                && unchecked.contains("findNotice=M.bleFailedFindUnchecked(profile.shownName());"), "one notice, then the ordinary retry to the saved address (no loop)");
+        check(ble.contains("private boolean findUnverified(){return !findMac.isEmpty()&&profile!=null&&!findMac.equalsIgnoreCase(profile.mac);}"), "only before the address was saved");
+        String serial = body(ble, "private boolean findSerialRefused(Protocol.Frame f){", "\n    }\n");
+        check(serial.indexOf("if(FindNearby.serialUnreadable(f.error(),f.data.length)){findUnchecked(") > 0
+                && serial.indexOf("serialUnreadable") < serial.indexOf("FindNearby.serial(profile.serial,received)"), "an unreadable serial ends the find at once");
+        // P3: the latest signal, and only manufacturer-data model IDs.
+        check(ble.contains("Integer before=discoveryRssi.put(mac,r.getRssi());") && ble.contains("FindNearby.signalRank(before)!=FindNearby.signalRank(r.getRssi())")
+                && ble.contains("if(!discoveries.containsKey(mac)){discoveries.put(mac,r);changed();}"), "the first result stays; the latest signal is kept, redrawn on a bucket change");
+        check(ble.contains("public AdvertisedIdentity.Result advertisedAt(String mac){return advertisedModels.get(mac);}")
+                && ble.contains("FindNearby.modelId(id.pid,id.marker)!=null&&advertisedModels.put(mac,id)"), "the find sheet's model IDs come from manufacturer data only");
+        check(main.contains("scooterService.ble.signal(result),id==null?null:FindNearby.modelId(id.pid,id.marker),") && main.contains("int rank=signalRank(scooterService.ble.signal(result));"),
+                "the find sheet and the rows use the latest signal");
+        // P3: every scooter switch resets the tally for a different profile.
+        check(ble.contains("public void scooterSwitched(){ScooterProfiles.Profile p=profiles.active();timeouts.active(p==null?null:p.id);profileSelected();}"), "scooterSwitched resets, then profileSelected");
+        for (String path : new String[]{"src/com/jjricks/volt/MainActivity.java", "src/com/jjricks/volt/MoreScreen.java", "src/com/jjricks/volt/ScooterService.java"})
+            check(!read(path).contains("ble.profileSelected();"), path + ": switches go through scooterSwitched");
+        check(count(read("src/com/jjricks/volt/MoreScreen.java"), "s.ble.scooterSwitched();") == 2 && main.contains("scooterService.ble.scooterSwitched();"), "Use, Find at a new address and imports");
     }
 
     private static String body(String text, String start, String end) {

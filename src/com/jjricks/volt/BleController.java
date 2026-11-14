@@ -95,6 +95,11 @@ public final class BleController {
      * "" otherwise), and the one-shot outcome the screens show (takeFindNotice).
      */
     private String attemptMac="",pendingFindMac="",findMac="";private final FindNearby.Timeouts timeouts=new FindNearby.Timeouts();private Msg findNotice;
+    /**
+     * The scan's latest signal per address (discoveries keeps each address's first result: its name and first-heard
+     * place), and the manufacturer-data model IDs it heard (FindNearby.modelId), which the find sheet filters on.
+     */
+    private final LinkedHashMap<String,Integer> discoveryRssi=new LinkedHashMap<>();private final LinkedHashMap<String,AdvertisedIdentity.Result> advertisedModels=new LinkedHashMap<>();
     public BleController(Context c,ScooterProfiles p){context=c.getApplicationContext();profiles=p;diagnostics=ConnectionEventLog.open(new File(context.getNoBackupFilesDir(),"connection-events"));commands=CommandLog.open(new File(context.getNoBackupFilesDir(),"command-events"));testJournal=new TestJournal(TestJournal.file(new File(context.getNoBackupFilesDir(),"compat-tests")));BluetoothManager m=context.getSystemService(BluetoothManager.class);adapter=m==null?null:m.getAdapter();IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);if(Build.VERSION.SDK_INT>=33)context.registerReceiver(bluetoothReceiver,filter,Context.RECEIVER_EXPORTED);else context.registerReceiver(bluetoothReceiver,filter);}
     public void setListener(Listener l){listener=l;}
     /** Runtime only. The transition guard also prevents listeners from persisting display samples. */
@@ -463,7 +468,11 @@ public final class BleController {
      */
     public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
     public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
-    public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}wanted=true;retries=0;
+    public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}
+        // Never a saved scooter's owner key to another address without a confirmed find (FindNearby.mayConnect): the
+        // ordinary scan sheet routes such a pick through find mode, and this refuses anything else.
+        if(!FindNearby.mayConnect(p.mac,result.getDevice().getAddress(),pendingFindMac))return;
+        wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
         String mac=result.getDevice().getAddress();AdvertisedIdentity.Result id=advertised.get(mac);if(id==null&&result.getScanRecord()!=null)id=AdvertisedIdentity.parse(result.getScanRecord().getBytes());
         pendingAdvertised=id;pendingAdvertisedMac=id==null?"":mac;connect(p,mac);}
@@ -494,7 +503,9 @@ public final class BleController {
      * the ordinary serial checks, with the find's own message; a match goes on to them and remember() saves the address.
      */
     private boolean findSerialRefused(Protocol.Frame f){
-        if(!finding()||f.cmd!=0x74||f.error()!=0||f.data.length<2)return false;
+        if(!finding()||f.cmd!=0x74)return false;
+        // An error or a short reply leaves nothing to compare: no verdict, so the link ends now, not at the 18 s timeout.
+        if(FindNearby.serialUnreadable(f.error(),f.data.length)){findUnchecked(ConnectionEventLog.Reason.UNSUPPORTED_RESPONSE,f.error()!=0?f.error():-1);return true;}
         String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace(String.valueOf((char)0),"").trim();
         if(FindNearby.serial(profile.serial,received)==FindNearby.Serial.MATCH)return false;
         findRefused();return true;
@@ -507,13 +518,31 @@ public final class BleController {
         findNotice=M.bleFailedFindMismatch(profile.shownName());
         failed(findNotice,false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);
     }
-    /** Whether Home offers Find it nearby now (FindNearby.offerHome); recording is ScooterService's to add. */
+    /**
+     * A confirmed find whose link ended before its serial matched (FindNearby.serialUnreadable, or a failure that would
+     * retry): nothing was saved. One find notice, then back to the saved address as after any failed attempt; the find
+     * address was never the saved one, so the timeout tally doesn't count it.
+     */
+    private void findUnchecked(ConnectionEventLog.Reason reason,int code){
+        endFind();findNotice=M.bleFailedFindUnchecked(profile.shownName());
+        failed(findNotice,true,reason,code);
+    }
+    /** A confirmed find is in progress whose address isn't saved yet (remember() saves it, and ends the find, once ready). */
+    private boolean findUnverified(){return !findMac.isEmpty()&&profile!=null&&!findMac.equalsIgnoreCase(profile.mac);}
+    /** The link at this address reached STATE_CONNECTED (the scooter answered), whether or not it is authenticated yet. */
+    private boolean answeringAt(String mac){return gatt!=null&&(mtuRequested||authenticated)&&mac!=null&&mac.equalsIgnoreCase(gatt.getDevice().getAddress());}
+    /**
+     * Whether Home offers Find it nearby now (FindNearby.offerHome). A link that came up at the saved address counts as
+     * connected, so a card drawn before the scooter answered is stale. Recording is ScooterService's to add.
+     */
     public boolean findNearbyOffered(){
         ScooterProfiles.Profile p=profiles.active();if(p!=null)timeouts.active(p.id);
-        return p!=null&&p.configured()&&FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected(),simulating(),recording,mutation!=null);
+        return p!=null&&p.configured()&&FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);
     }
-    /** The scan's advertised model ID for this address, or null. */
-    public AdvertisedIdentity.Result advertisedAt(String mac){return advertised.get(mac);}
+    /** The scan's manufacturer-data model ID for this address (FindNearby.modelId), or null when none was heard. */
+    public AdvertisedIdentity.Result advertisedAt(String mac){return advertisedModels.get(mac);}
+    /** A scanned scooter's latest signal (discoveries() keeps each address's first result). */
+    public int signal(ScanResult result){Integer latest=discoveryRssi.get(result.getDevice().getAddress());return latest==null?result.getRssi():latest;}
     /** The find's outcome to show once (found at a new address, or not this scooter), then null. */
     public Msg takeFindNotice(){Msg n=findNotice;findNotice=null;return n;}
     /**
@@ -552,7 +581,7 @@ public final class BleController {
         if(!permissions()){notice(NEARBY_NEEDED);return;}if(!bluetoothEnabled()){notice(BLUETOOTH_OFF);return;}
         if(mutation!=null){notice(M.bleBusy());return;}
         if(gatt!=null||state==State.WAITING)close(State.DISCONNECTED);
-        stopScan();discoveries.clear();advertised.clear();identifying=false;scanner=adapter.getBluetoothLeScanner();if(scanner==null){notice(M.bleBluetoothStarting());if(!only.isEmpty())identifyFailed();return;}
+        stopScan();discoveries.clear();advertised.clear();discoveryRssi.clear();advertisedModels.clear();identifying=false;scanner=adapter.getBluetoothLeScanner();if(scanner==null){notice(M.bleBluetoothStarting());if(!only.isEmpty())identifyFailed();return;}
         final int session=generation;final long token=++scanSequence;
         scanCallback=new ScanCallback(){@Override public void onScanResult(int t,ScanResult r){handler.post(()->{
             if(!scanning||session!=generation||token!=scanSequence||!workAllowed()||r.getScanRecord()==null)return;String mac=r.getDevice().getAddress(),name=r.getScanRecord().getDeviceName();List<ParcelUuid> services=r.getScanRecord().getServiceUuids();
@@ -561,7 +590,11 @@ public final class BleController {
             // Raw AD walk only (see AdvertisedIdentity): the model ID, never the MAC bytes after it.
             AdvertisedIdentity.Result id=AdvertisedIdentity.parse(r.getScanRecord().getBytes());if(id!=null)advertised.put(mac,id);else advertised.remove(mac);
             if(!only.isEmpty()){if(id!=null){stopScan();connectDiscovered(r);}return;} // Identify waits for a packet with the model ID; the timeout reconnects
+            // The first result stays (its name, its first-heard place); the latest signal moves the bars and the find sheet's
+            // order, redrawn only when its bucket changes (FindNearby.signalRank), or when a model ID is first heard.
+            boolean modelHeard=id!=null&&FindNearby.modelId(id.pid,id.marker)!=null&&advertisedModels.put(mac,id)==null;Integer before=discoveryRssi.put(mac,r.getRssi());
             if(!discoveries.containsKey(mac)){discoveries.put(mac,r);changed();}
+            else if(modelHeard||before==null||FindNearby.signalRank(before)!=FindNearby.signalRank(r.getRssi()))changed();
         });}@Override public void onScanFailed(int code){handler.post(()->{if(!scanning||session!=generation||token!=scanSequence)return;stopScan();state=State.DISCONNECTED;notice(M.bleScanFailed(),"Scan failed ("+code+")");if(!only.isEmpty())identifyFailed();});}};
         scanning=true;state=State.SCANNING;message=M.bleStatusSearching();changed();
         try{scanner.startScan(null,new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(),scanCallback);}catch(Exception e){stopScan();state=State.DISCONNECTED;notice(M.bleScanFailed(),"Scan failed (could not start)");if(!only.isEmpty())identifyFailed();return;}
@@ -598,8 +631,12 @@ public final class BleController {
     }
     private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){
         if(simulating())return;
+        // A confirmed find whose link fails before its serial matched: the find's own notice, never a silent retry.
+        if(retry&&findUnverified()){findUnchecked(reason,code);return;}
         recoverableConnectionLoss=retry&&reason!=ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT;recordDiagnostic(reason,code);
-        if(profile!=null)timeouts.failed(profile.id,attemptMac,profile.mac,reason);
+        // The event log keeps its reason; the tally also learns whether the link ever reached STATE_CONNECTED (mtuRequested
+        // until the link closes below). Bluetooth going off is never a failed attempt.
+        if(profile!=null)timeouts.failed(profile.id,attemptMac,profile.mac,reason,!mtuRequested&&bluetoothEnabled());
         // A dropped lock or setting change is a safety fact; otherwise say whether a retry follows.
         // Error codes stay in the event log and diagnostics, never in the shown state.
         boolean dropped=mutation!=null;
@@ -1164,6 +1201,11 @@ public final class BleController {
     public void closeTest(){if(test!=null&&test.terminal()){test=null;changed();}}
     /** Another profile was selected: a running test is interrupted and stays with its own profile. */
     public void profileSelected(){ScooterProfiles.Profile p=profiles.active();if(test!=null&&!test.terminal()&&(p==null||!p.id.equals(test.profileId))){test.onProfileSwitch(now());event("Guided test interrupted");changed();}}
+    /**
+     * A scooter switch (My scooters' Use, Find at a new address, an owner import, forgetting the current scooter): the
+     * timeout tally starts again for a different profile (FindNearby.Timeouts.active), then profileSelected().
+     */
+    public void scooterSwitched(){ScooterProfiles.Profile p=profiles.active();timeouts.active(p==null?null:p.id);profileSelected();}
     /** What an unfinished test needs now; null when it no longer exists. Never writes. */
     public GuidedTest.Review reviewTest(String testId){
         TestJournal.Entry e=testJournal.find(testId);if(e==null)return null;ScooterProfiles.Profile p=profile();

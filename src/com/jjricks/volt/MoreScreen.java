@@ -1089,7 +1089,7 @@ public final class MoreScreen implements AppScreen {
         // End the old transport before changing its selected identity or cached readings.
         // Selection also works offline: only the current scooter's Connect button starts Bluetooth.
         if (s.simulating()) s.setSimulation(false);
-        s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected();
+        s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched();
         host.redraw();
     }
     /**
@@ -1102,7 +1102,7 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service(); ScooterProfiles.Profile p = findScooter(id), selected = active();
         if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }
         if (s.simulating()) { host.toast(T.mainScanExitSimulationFind()); return; }
-        if (selected == null || !id.equals(selected.id)) { s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected(); }
+        if (selected == null || !id.equals(selected.id)) { s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched(); }
         host.findNearby(); host.redraw();
     }
     private void editScooter(String id) {
