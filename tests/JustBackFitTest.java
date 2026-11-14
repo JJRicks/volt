@@ -9,11 +9,12 @@ package com.jjricks.volt;
 public final class JustBackFitTest {
     private static int checks;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         batteryChange();
         distance();
         values();
         split();
+        names(args.length > 0 ? args[0] : null);
         System.out.println("JustBackFit: " + checks + " checks passed");
     }
 
@@ -80,6 +81,49 @@ public final class JustBackFitTest {
             int[] r = JustBackFit.split(room, 80, 46, minRoute, gap);
             require(r[0] + r[1] + r[2] <= Math.max(room, 46), "never more than the room (or the floor): " + room);
         }
+    }
+
+    /**
+     * The tile names on one line (emulator walk on #390: "Avg speed" wrapped onto two lines at 344 dp with 1.4x text;
+     * the mock-up has one line each): a little smaller together, never under JustBackFit.NAME_MIN_SCALE or the readable
+     * floor, else they keep their size and wrap at spaces. Widths with Saira (res/font/saira_regular.ttf, the first
+     * argument), the app's font, at the names' 12.5 sp times the text scale; the tiles a third of Home's row less 2 x
+     * 8 dp, less their 2 x 10 dp padding and 1 px kept in hand. Rows: 344 dp less 2 x 18 dp; 725 dp at 1x is two
+     * panes with Clean's column about 330 dp; 725 dp at 1.4x is the phone layout, at most 560 dp.
+     */
+    private static void names(String fontPath) throws Exception {
+        java.awt.Font saira = fontPath == null ? new java.awt.Font(java.awt.Font.SANS_SERIF, java.awt.Font.PLAIN, 12)
+                : java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, new java.io.File(fontPath));
+        java.awt.font.FontRenderContext context = new java.awt.font.FontRenderContext(null, true, true);
+        String[] english = {"Ride time", "Avg speed", "Battery"};
+        int[][] sizes = {{344, 308}, {725, 330}, {412, 376}};
+        for (int[] size : sizes)
+            for (float text : new float[]{1f, 1.4f})
+                for (float wider : new float[]{1f, 1.1f}) {
+                    int row = size[0] == 725 && text > 1 ? Math.min(725 - 36, 560) : size[1];
+                    float room = (row - 2 * 8) / 3f - 20 - 1;
+                    java.awt.Font font = saira.deriveFont(JustBackFit.NAME_SP * text);
+                    float[] widths = new float[english.length];
+                    for (int i = 0; i < english.length; i++) widths[i] = (float) font.getStringBounds(english[i], context).getWidth() * wider;
+                    float scale = JustBackFit.nameScale(widths, room, JustBackFit.NAME_SP * text, 12);
+                    String at = size[0] + " dp at " + text + "x" + (wider > 1 ? ", wider text" : "");
+                    float widest = 0;
+                    for (float w : widths) widest = Math.max(widest, w);
+                    require(scale == 1 || scale >= JustBackFit.NAME_MIN_SCALE, at + ": never under the least share: " + scale);
+                    require(scale == 1 || widest * scale <= room, at + ": a shrunk name fits on one line: " + scale);
+                    if (wider == 1) require(widest * scale <= room, at + ": every English name on one line (scale " + scale + ", widest "
+                            + widest + ", room " + room + ")");
+                    if (size[0] == 344 && text == 1f && wider == 1) require(scale == 1, at + ": full size, as the mock-up");
+                    if (size[0] == 344 && text > 1 && wider == 1) require(scale < 1, at + ": Avg speed a little smaller, on one line: " + scale);
+                    System.out.println("  names " + at + ": scale " + scale + " (widest " + Math.round(widest) + " of " + Math.round(room) + ")");
+                }
+        // The rule alone.
+        require(JustBackFit.nameScale(new float[]{50, 70}, 70, 12.5f, 12) == 1, "fits: full size");
+        require(JustBackFit.nameScale(new float[]{50, 80}, 70, 17.5f, 12) == .87f, "a little wide: the largest share, in hundredths");
+        require(JustBackFit.nameScale(new float[]{50, 100}, 70, 17.5f, 12) == 1, "too wide even at the least share: full size, wrapped at spaces");
+        require(JustBackFit.nameScale(new float[]{50, 72}, 70, 12.5f, 12) == .97f, "at 1x, down to the readable floor (12 of 12.5 sp, 0.96): 0.97");
+        require(JustBackFit.nameScale(new float[]{50, 76}, 70, 12.5f, 12) == 1, "at 1x, under the readable floor (0.92 < 0.96): full size");
+        require(JustBackFit.nameScale(new float[]{80}, 0, 17.5f, 12) == 1, "no room: full size");
     }
 
     private static void require(boolean condition, String message) {

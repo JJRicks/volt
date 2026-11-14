@@ -191,7 +191,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest
+java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAveragesTest
 java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest

@@ -300,6 +300,13 @@ final class JustBackView extends LinearLayout {
             String[] names = new String[cells.length];
             for (int i = 0; i < cells.length; i++) names[i] = cells[i].label();
             Cell first = cells[0];
+            // The names a little smaller, together, before any wraps (JustBackFit.nameScale): one line each, as the mock-up.
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                float[] widths = new float[cells.length];
+                for (int i = 0; i < cells.length; i++) widths[i] = cells[i].nameWidthAtFull();
+                float scale = JustBackFit.nameScale(widths, third - first.horizontalPadding() - 1, JustBackFit.NAME_SP, Ui.READABLE_FLOOR_SP);
+                for (Cell cell : cells) cell.nameScale(scale);
+            }
             int wanted = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
                     : TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES);
             int height = measureAt(wanted, width);
@@ -364,6 +371,8 @@ final class JustBackView extends LinearLayout {
         static final int NAME_LINES = 2;
         private final TextView name, value;
         private final float valueTop, valueFloor;
+        /** The name's full size (px). */
+        private final float nameFull;
         private final android.text.TextPaint measure = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence full = "—", shorter;
 
@@ -377,7 +386,8 @@ final class JustBackView extends LinearLayout {
             // The charging moment's tile colour and corner (DashboardScreen.InfoCell), so the row keeps its look.
             setBackground(ui.shape(ui.raised, 14, 0));
             name = ui.caption(label.render());
-            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, JustBackFit.NAME_SP * ui.textScale);
+            nameFull = name.getTextSize();
             name.setMaxLines(NAME_LINES);
             // Only with very large text, where even half a row is too narrow, does a name still end in an ellipsis.
             name.setEllipsize(TextUtils.TruncateAt.END);
@@ -401,6 +411,19 @@ final class JustBackView extends LinearLayout {
         String label() { return name.getText().toString(); }
 
         Paint namePaint() { return name.getPaint(); }
+
+        /** The name's width at its full size (px), measured on a copy of its paint. */
+        float nameWidthAtFull() {
+            measure.set(name.getPaint());
+            measure.setTextSize(nameFull);
+            return measure.measureText(label());
+        }
+
+        /** The name at this share of its full size (JustBackFit.nameScale). */
+        void nameScale(float scale) {
+            float size = nameFull * scale;
+            if (Math.abs(name.getTextSize() - size) > .25f) name.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+        }
 
         int horizontalPadding() { return getPaddingLeft() + getPaddingRight(); }
 
