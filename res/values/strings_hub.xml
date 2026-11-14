@@ -285,4 +285,10 @@
     <string name="hub_ride_today" volt:screen="Ride page, recent rides" volt:purpose="title">Today, %1$s</string>
     <!-- A recent ride's title when it started yesterday: %1$s is the time ("5:42 pm"). Older rides show the day and date. -->
     <string name="hub_ride_yesterday" volt:screen="Ride page, recent rides" volt:purpose="title">Yesterday, %1$s</string>
+
+    <!-- ===== Settings page: section labels ===== -->
+    <!-- Label above the card with My scooters and Back up & restore. Shown in capitals. -->
+    <string name="hub_settings_section_scooters" volt:screen="Settings page" volt:purpose="section label">Scooters &amp; data</string>
+    <!-- Label above the card with Updates, About & permissions and Developer options. Shown in capitals. -->
+    <string name="hub_settings_section_about" volt:screen="Settings page" volt:purpose="section label">About</string>
 </resources>

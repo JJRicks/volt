@@ -14,8 +14,8 @@ import java.util.Locale;
  * (the contributor's decisions on #383). Clean Home's one-line round quick-action names ("Charge by" for Charge done
  * by), Just back's Battery tile name, short ride time and one spoken sentence, Home style's list separator, the
  * Quick access "Search settings" tile and its short rung, Battery &amp; charging's section labels and "Last charge"
- * line, Controls' "More controls" heading and its two sub-lines, the Ride page's "Today" / "Yesterday" ride titles
- * and the Record tile's short rung while simulating. In English and under a key-echo text source (each line is one
+ * line, Controls' "More controls" heading and its two sub-lines, the Ride page's "Today" / "Yesterday" ride titles,
+ * the Record tile's short rung while simulating, and Settings' "Scooters &amp; data" and "About" section labels. In English and under a key-echo text source (each line is one
  * whole catalog string, never glued from pieces).
  *
  * <p>The round names also fit their one line under the circles at the maintainers' sizes, 344x882 dp and 725x604 dp
@@ -34,9 +34,12 @@ public final class HubPlanTextTest {
 
     private static final String F = QuickAccessActions.FEATURE_PREFIX;
 
-    /** Round names: action id, English, key. */
+    /**
+     * Part 10's short round names (HubText.quickActionShortName): action id, English, key. Ride has none: it keeps the
+     * Ride controls group's existing, translated name (#449, HubText.quickActionRoundName: "Fahren", "Condução"), so
+     * part 10's hub_qa_ride_round is not shown.
+     */
     private static final String[][] ROUND = {
-            {HomeQuickActions.RIDING, "Ride", "hub_qa_ride_round"},
             {HomeQuickActions.RECORD, "Record", "hub_qa_record_round"},
             {HomeQuickActions.CHARGE_ALERTS, "Alerts", "hub_qa_alerts_round"},
             {"charge_done_by", "Charge by", "hub_qa_charge_done_by_round"},
@@ -90,19 +93,23 @@ public final class HubPlanTextTest {
     /** Clean's one short name per round button, from part 10's own keys; any other action has none (its short rung shows). */
     private static void roundNames() {
         for (String[] r : ROUND) {
-            Msg name = HubText.quickActionRoundName(r[0]);
+            Msg name = HubText.quickActionShortName(r[0]);
             equal(r[1], name == null ? null : name.render(), "round name of " + r[0]);
             key(r[2], name, "round name of " + r[0]);
         }
-        check(HubText.quickActionRoundName(null) == null, "no id, no round name");
+        check(HubText.quickActionShortName(null) == null, "no id, no round name");
+        check(HubText.quickActionShortName(HomeQuickActions.RIDING) == null, "Ride has no part 10 short name");
+        equal("Ride", HubText.quickActionRoundName(HomeQuickActions.RIDING).render(), "Ride is named as riding");
+        key("controls_group_ride", HubText.quickActionRoundName(HomeQuickActions.RIDING), "Ride's name is the Ride controls group's");
         for (String other : new String[]{"lights", "controls", "rides", F + "headlight", F + "hill_start_assist", "cruise_control",
                 F + "charge_done_by", "feature", F})
-            check(HubText.quickActionRoundName(other) == null, "no round name for " + other);
-        // Settings › Home style's Quick actions line: the four defaults the mock-up and the contributor's picks give.
+            check(HubText.quickActionShortName(other) == null, "no round name for " + other);
+        // Clean's four default names under the circles, joined as a list (Settings › Home style's row joins the names
+        // before part 10's short ones, "Charge done by" whole: QuickAccessGrid.listName).
         String line = String.join(HubText.listSeparator().render(), Arrays.asList(
-                HubText.quickActionRoundName(HomeQuickActions.RIDING).render(), HubText.quickActionRoundName(HomeQuickActions.RECORD).render(),
-                HubText.quickActionRoundName("charge_done_by").render(), HubText.quickActionRoundName(F + "cruise_control").render()));
-        equal("Ride, Record, Charge by, Cruise", line, "Home style's Quick actions line");
+                HubText.quickActionRoundName(HomeQuickActions.RIDING).render(), HubText.quickActionShortName(HomeQuickActions.RECORD).render(),
+                HubText.quickActionShortName("charge_done_by").render(), HubText.quickActionShortName(F + "cruise_control").render()));
+        equal("Ride, Record, Charge by, Cruise", line, "Clean's four round names as a list");
         equal("Search settings", HubText.quickAccessSearch().render(), "Quick access search tile");
         equal("Search", HubText.quickAccessSearchShort().render(), "Quick access search tile, short rung");
     }
@@ -152,6 +159,8 @@ public final class HubPlanTextTest {
         check(HubText.recentRideTitle(today.plusDays(1), today, "x") == null, "a ride dated after today keeps its date");
         check(HubText.recentRideTitle(null, today, "x") == null && HubText.recentRideTitle(today, null, "x") == null, "no date, no title");
         equal("Simulating", HubText.rideSimulatingShort().render(), "Record tile's short rung while simulating");
+        equal("Scooters & data", HubText.settingsSectionScooters().render(), "Settings: SCOOTERS & DATA label");
+        equal("About", HubText.settingsSectionAbout().render(), "Settings: ABOUT label");
     }
 
     private static float em(char c) {
@@ -175,9 +184,9 @@ public final class HubPlanTextTest {
             return total * sp;
         };
         for (String[] r : ROUND) {
-            String name = HubText.quickActionRoundName(r[0]).render();
-            QuickActionLayout.Name fit = QuickActionLayout.name(name, room, width);
-            check(!fit.clipped && name.equals(fit.text), at + ": " + name + " whole on one line: " + fit);
+            String name = HubText.quickActionShortName(r[0]).render();
+            QuickActionLayout.Name fit = QuickActionLayout.name(room, width, name);
+            check(!fit.iconOnly() && name.equals(fit.text), at + ": " + name + " whole on one line: " + fit);
             check(width.of(name) * fit.scale <= room, at + ": " + name + " within its column: " + fit);
             if (text == 1f) check(fit.scale == 1f, at + ": " + name + " at its full size: " + fit);
             else check(fit.scale >= QuickActionLayout.MIN_SCALE, at + ": " + name + " no smaller than the least size: " + fit);
@@ -188,7 +197,7 @@ public final class HubPlanTextTest {
     private static void echo() {
         T.install(ECHO);
         try {
-            for (String[] r : ROUND) equal("⟦" + r[2] + "⟧", HubText.quickActionRoundName(r[0]).render(), "echo: round name of " + r[0]);
+            for (String[] r : ROUND) equal("⟦" + r[2] + "⟧", HubText.quickActionShortName(r[0]).render(), "echo: round name of " + r[0]);
             equal("⟦hub_list_separator⟧", HubText.listSeparator().render(), "echo: list separator");
             equal("⟦hub_qa_search_settings⟧", HubText.quickAccessSearch().render(), "echo: search tile");
             equal("⟦hub_qa_search_settings_short⟧", HubText.quickAccessSearchShort().render(), "echo: search tile short");
@@ -213,6 +222,8 @@ public final class HubPlanTextTest {
             equal("⟦hub_ride_today⟧", HubText.recentRideTitle(today, today, "t").render(), "echo: today");
             equal("⟦hub_ride_yesterday⟧", HubText.recentRideTitle(today.minusDays(1), today, "t").render(), "echo: yesterday");
             equal("⟦hub_ride_simulating⟧", HubText.rideSimulatingShort().render(), "echo: simulating short");
+            equal("⟦hub_settings_section_scooters⟧", HubText.settingsSectionScooters().render(), "echo: Settings, scooters & data");
+            equal("⟦hub_settings_section_about⟧", HubText.settingsSectionAbout().render(), "echo: Settings, about");
         } finally {
             T.install(null);
         }
@@ -241,8 +252,12 @@ public final class HubPlanTextTest {
         check(justBack.contains("spoken = HubText.justBackSpoken(minutes, spokenDistance).render();"), "Just back is spoken as one sentence");
         String editor = read("src/com/jjricks/volt/HomeQuickEditor.java");
         check(editor.contains("String.join(HubText.listSeparator().render(), names)"), "Home style's line joins with the list separator");
+        check(editor.contains("QuickAccessGrid.listName(entry)"), "Home style's row keeps the names before part 10's short ones");
         String grid = read("src/com/jjricks/volt/QuickAccessGrid.java");
-        check(grid.contains("Msg own = HubText.quickActionRoundName(entry.id);"), "Clean's round names come from HubText first");
+        // Under QuickActionLayout's ladder part 10's short name is tried first, before the names that were there before it.
+        check(grid.contains("Msg shortName = HubText.quickActionShortName(entry.id);")
+                && grid.contains("return shortName == null ? before : withFirst(shortName.render(), before);"),
+                "part 10's short name is the ladder's first name, the names before it follow");
         String sheet = read("src/com/jjricks/volt/WhatsNewSheet.java");
         int cut = sheet.indexOf("if (notes.cut)"), line = sheet.indexOf("HubText.whatsNewCut()"), page = sheet.indexOf("HubText.whatsNewReleasePage()");
         check(cut >= 0 && line > cut && page > line, "What's new says a long changelog was cut, above the release page link");

@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.MainActivity;
+import com.jjricks.volt.HubText;
 import com.jjricks.volt.ScooterProfiles;
 
 /**
@@ -100,7 +101,35 @@ public final class MoreMenuValidation extends Instrumentation {
                 require(Math.abs(at[0] - first[0]) <= 1 && Math.abs(at[1] - first[1]) <= 1,
                         "Cards are not one column: " + at[0] + "-" + at[1] + " beside " + first[0] + "-" + first[1]);
             }
+            headings(cards);
         });
+    }
+    /**
+     * The plan's headings: none over the first card, "Scooters & data" right above the second and "About" right above
+     * the third (part 10's text), each shown whole, above its card and inside the cards' column.
+     */
+    private void headings(List<LinearLayout> cards) {
+        LinearLayout index = (LinearLayout) cards.get(0).getParent();
+        View beforeFirst = index.indexOfChild(cards.get(0)) > 0 ? index.getChildAt(index.indexOfChild(cards.get(0)) - 1) : null;
+        require(beforeFirst == null || !(beforeFirst instanceof TextView) || !beforeFirst.isShown()
+                || !(String.valueOf(beforeFirst.getTag()).startsWith("settings-heading-")), "A heading sits over Settings' first card");
+        String[][] expected = {{"settings-heading-scooters", HubText.settingsSectionScooters().render()},
+                {"settings-heading-about", HubText.settingsSectionAbout().render()}};
+        for (int c = 1; c <= 2; c++) {
+            LinearLayout card = cards.get(c);
+            int at = index.indexOfChild(card);
+            require(at > 0 && index.getChildAt(at - 1) instanceof TextView, "Settings card " + (c + 1) + " has no heading right above it");
+            TextView heading = (TextView) index.getChildAt(at - 1);
+            String tag = expected[c - 1][0], text = expected[c - 1][1];
+            require(tag.equals(heading.getTag()), "Settings card " + (c + 1) + "'s heading has tag " + heading.getTag() + ", not " + tag);
+            require(heading.isShown() && text.contentEquals(heading.getText()), "Settings card " + (c + 1) + "'s heading reads \"" + heading.getText() + "\", not \"" + text + "\"");
+            int[] h = bounds(heading), k = bounds(card);
+            require(h[0] >= k[0] - 1 && h[1] <= k[1] + 1, "The " + text + " heading runs outside the cards' column");
+            int[] top = new int[2], cardTop = new int[2];
+            heading.getLocationOnScreen(top); card.getLocationOnScreen(cardTop);
+            require(top[1] + heading.getHeight() <= cardTop[1] + 1, "The " + text + " heading overlaps its card");
+            wholeAndUncut(heading, index, text + " heading");
+        }
     }
     /**
      * Every row in every card: in the plan's card and order, no icon tile, one title edge for all, a 48 dp target with a

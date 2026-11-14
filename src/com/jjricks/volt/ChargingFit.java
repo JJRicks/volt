@@ -14,15 +14,22 @@ package com.jjricks.volt;
  * <p>When the slot is short (a short window, large text), nothing is dropped while the readings fit: the percentage,
  * the photo behind it, the track and the readings all stay. Things give way in this order:
  * <ol>
- *   <li>the line, where it wraps, shortens to one line ("Charging");</li>
  *   <li>the space over the readings closes from {@link #READINGS_GAP_DP} to {@link #READINGS_GAP_MIN_DP};</li>
+ *   <li>the line, where it wraps, shortens to one line ("Charging"), first with the space open again; a line that
+ *       already fits on one line keeps its words (shortening it gains nothing);</li>
  *   <li>the photo gets smaller (it is the stage less the track, so it shrinks with it);</li>
  *   <li>the percentage gets smaller, down to {@link #HALF_SCALE} of its size;</li>
  *   <li>the line makes way (the owner's ruling for 344x882 dp at 1.4x: the percentage stays, the line may go); the
  *       percentage stays at most half its size, so the height the line frees goes to the photo;</li>
- *   <li>the percentage gets smaller still, down to {@link #PERCENT_MIN_SCALE} of its size.</li>
+ *   <li>the percentage gets smaller still, down to {@link #PERCENT_MIN_SCALE} of its size;</li>
+ *   <li>the track and the space over the readings make way: the percentage stays over the readings at
+ *       {@link #PERCENT_MIN_SCALE} of its size (it never grows as the slot shrinks), then smaller, down to
+ *       {@link #PERCENT_TINY_SCALE}; nothing is drawn under it.</li>
  * </ol>
- * Only a slot shorter than the readings themselves loses them (the percentage and the track then stay). The photo
+ * The readings never go (the contributor's answer 2: the tiles stay): in a slot too short for the
+ * percentage even at {@link #PERCENT_TINY_SCALE} over them, the percentage gets smaller still while it is at least
+ * {@link #PERCENT_LEAST_DP} tall, and below that it gives way (as the line did) and the readings show alone; a slot shorter than the readings shows them alone, from its top. Nothing that went comes
+ * back as the slot shrinks: the percentage never grows and the photo never returns. The photo
  * shows while it is at least {@link #PHOTO_MIN_DP} tall. Every height given is in pixels, every constant in dp scaled
  * by {@code density}. The stage takes any height left over, so the readings end at the slot's bottom.
  */
@@ -49,6 +56,14 @@ final class ChargingFit {
     static final float LINE_SP = 15;
     /** The percentage keeps half its size while the line shows; without the line it may get as small as this share. */
     static final float HALF_SCALE = .5f, PERCENT_MIN_SCALE = .3f;
+    /** The least share of its size the percentage takes over the readings once the track has made way (9 sp at 1x, about 13 sp at 1.4x). */
+    static final float PERCENT_TINY_SCALE = .15f;
+    /**
+     * The least height (dp) the percentage is drawn at: about an 8.5 sp number, just under the smallest text Volt draws
+     * (the dock's 10 sp captions). Below it, in the very shortest slots, the percentage gives way and the readings show
+     * alone; above it the percentage stays, smaller, as the contributor's answer 2 asks.
+     */
+    static final int PERCENT_LEAST_DP = 10;
 
     private ChargingFit() {}
 
@@ -63,14 +78,16 @@ final class ChargingFit {
         final int stageHeight;
         /** The photo's height in the stage (from the stage's top down to the wheels); 0 when it does not show. */
         final int photoHeight;
+        /** The track shows along the stage's bottom (false once it has made way for the percentage). */
+        final boolean track;
         /** The readings show, and the space above them. */
         final boolean readings;
         final int readingsGap;
 
         Plan(boolean line, boolean shortLine, boolean percent, float percentScale, int stageHeight, int photoHeight,
-             boolean readings, int readingsGap) {
+             boolean track, boolean readings, int readingsGap) {
             this.line = line; this.shortLine = shortLine; this.percent = percent; this.percentScale = percentScale;
-            this.stageHeight = stageHeight; this.photoHeight = photoHeight; this.readings = readings;
+            this.stageHeight = stageHeight; this.photoHeight = photoHeight; this.track = track; this.readings = readings;
             this.readingsGap = readingsGap;
         }
 
@@ -84,12 +101,17 @@ final class ChargingFit {
 
         @Override public String toString() {
             return "line=" + (line ? shortLine ? "short" : "full" : "none") + " percent=" + (percent ? percentScale : 0)
-                    + " stage=" + stageHeight + " photo=" + photoHeight + " readings=" + readings + " gap=" + readingsGap;
+                    + " stage=" + stageHeight + " photo=" + photoHeight + " track=" + track + " readings=" + readings + " gap=" + readingsGap;
         }
     }
 
     /** A height at a share of its size, rounded down so a shrunk percentage never needs more than planned. */
     static int scaled(int height, float scale) { return (int) Math.floor(height * scale); }
+
+    /** The percentage {@code percentHeight} pixels tall at full size can still be read at this share of it. */
+    static boolean readable(int percentHeight, float scale, float density) {
+        return (int) Math.floor(percentHeight * scale + 1e-3f) >= dp(PERCENT_LEAST_DP, density);
+    }
 
     /**
      * The plan for a slot {@code inner} pixels tall, with the line (as it wraps at the slot's width), its one-line short
@@ -102,42 +124,59 @@ final class ChargingFit {
         int photoMin = dp(PHOTO_MIN_DP, density);
         inner = Math.max(0, inner);
         shortLineHeight = Math.min(shortLineHeight, lineHeight);
+        // A line already on one line is as short as "Charging": it keeps its words.
+        boolean shortens = shortLineHeight < lineHeight;
         int full = lineHeight + lineGap, brief = shortLineHeight + lineGap;
 
         if (readingsHeight <= inner) {
-            // 1-3. The percentage at full size: the line as it is, else short; the readings' gap full, else closed up.
-            int[][] tries = {{full, gap, 0}, {brief, gap, 1}, {brief, gapMin, 1}};
+            // 1-4. The percentage at full size: the line as it is with the readings' gap full, then closed up; then
+            // the short line with the gap full, then closed up.
+            int[][] tries = {{full, gap, 0}, {full, gapMin, 0}, {brief, gap, 1}, {brief, gapMin, 1}};
             for (int[] t : tries) {
                 int stage = inner - t[0] - t[1] - readingsHeight;
-                if (stage >= percentHeight + under) return plan(true, t[2] == 1, 1, stage, under, photoMin, true, t[1]);
+                if (stage >= percentHeight + under) return plan(true, t[2] == 1 && shortens, 1, stage, under, photoMin, true, t[1]);
             }
-            // 4. The percentage smaller, to half its size, under the short line.
+            // 5. The percentage smaller, to half its size, under the short line.
             int stage = inner - brief - gapMin - readingsHeight;
             float scale = share(stage - under, percentHeight);
-            if (scale >= HALF_SCALE) return plan(true, true, scale, stage, under, photoMin, true, gapMin);
-            // 5-6. Without the line: the percentage at most the half that step 4 could not reach (dropping the line
+            if (scale >= HALF_SCALE) return plan(true, shortens, scale, stage, under, photoMin, true, gapMin);
+            // 6-7. Without the line: the percentage at most the half that step 5 could not reach (dropping the line
             // never enlarges it; the freed height goes to the photo), down to its smallest.
             stage = inner - gapMin - readingsHeight;
             scale = share(stage - under, percentHeight);
             if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(HALF_SCALE, scale), stage, under, photoMin, true, gapMin);
-            // Too short for the percentage at its smallest with the track: the percentage over the readings, as large
-            // as fits up to half (the track and the photo make way), else the readings alone.
+            // 8. Too short for the percentage at its smallest with the track: the track, the photo and the gap make
+            // way and the percentage stays over the readings, no larger than step 7's smallest (so it never grows as
+            // the slot shrinks), then smaller down to its least, and smaller still in the very shortest slots. The
+            // readings stay (the contributor's answer 2: the tiles stay), and the height never goes back to a photo.
             stage = inner - readingsHeight;
-            scale = share(stage, percentHeight);
-            if (scale >= PERCENT_MIN_SCALE) return new Plan(false, false, true, Math.min(HALF_SCALE, scale), stage, 0, true, 0);
-            return new Plan(false, false, false, 1, 0, 0, true, inner - readingsHeight);
+            scale = Math.min(PERCENT_MIN_SCALE, share(stage, percentHeight));
+            // Below its least readable height (PERCENT_LEAST_DP) the percentage gives way, as the line did: a number a
+            // few pixels tall is a smudge, not a reading (review of f5540133, finding 1). It does not come back.
+            boolean readable = stage > 0 && readable(percentHeight, scale, density);
+            return new Plan(false, false, readable, readable ? scale : 0, Math.max(0, stage), 0, false, true, 0);
         }
-        // 7. Not even the readings fit: the percentage (as large as fits) over the track, nothing else.
-        float scale = share(inner - under, percentHeight);
-        if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(1, scale), inner, under, photoMin, false, 0);
-        return new Plan(false, false, inner > 0, Math.min(1, share(inner, percentHeight)), inner, 0, false, 0);
+        // 9. Not even the readings fit: they stay, from the slot's top (the percentage, already gone at a slot as tall
+        // as they are, does not come back, and no photo or track takes the height).
+        return new Plan(false, false, false, 0, 0, 0, false, true, 0);
+    }
+
+    /**
+     * Where the percentage sits in a stage {@code stage} pixels tall when the model has no photo: the percentage
+     * ({@code percent} tall) and the track zone under it ({@code under}) are centred together in the stage, so the
+     * stage keeps its height (the top area's height is fixed) without an empty photo-sized band between the number and
+     * the track. Returns the percentage's top; the track's zone ends {@code percent + under} below it. With a photo,
+     * or no room to spare, it is 0 (the percentage at the stage's top, the track at its bottom).
+     */
+    static int noPhotoTop(int stage, int percent, int under) {
+        return Math.max(0, (stage - percent - under) / 2);
     }
 
     /** A stage of this height with the percentage at this share: the photo fills it down to the track zone. */
     private static Plan plan(boolean line, boolean shortLine, float scale, int stage, int under, int photoMin,
                              boolean readings, int gap) {
         int photo = stage - under;
-        return new Plan(line, shortLine, true, scale, stage, photo >= photoMin ? photo : 0, readings, gap);
+        return new Plan(line, shortLine, true, scale, stage, photo >= photoMin ? photo : 0, true, readings, gap);
     }
 
     /**

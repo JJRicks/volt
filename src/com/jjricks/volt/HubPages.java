@@ -117,6 +117,21 @@ public final class HubPages {
         return to > from && dockBottom > from && dockTop < to;
     }
 
+    /** dockLift's answer when the dock has no room above the bar it keeps clear: it steps aside (invisible) instead. */
+    public static final int DOCK_STEP_ASIDE = Integer.MIN_VALUE;
+
+    /**
+     * How far HubDock moves up (a negative offset, window pixels) so it floats gap above a bar that starts at barTop,
+     * where the dock would sit from dockTop to dockBottom unmoved (#392's sweep review: on a tall phone the Shortcuts card
+     * pushes Widgets' Lock bar to where the dock floats, and the page must keep its navigation in sight). 0 when the
+     * dock's own place already ends gap above the bar; DOCK_STEP_ASIDE when moving up would take the dock's top above
+     * minTop (the top of the page under the app's bars), so on a window too short for both it steps aside instead.
+     */
+    public static int dockLift(int barTop, int dockTop, int dockBottom, int minTop, int gap) {
+        int lift = Math.min(0, barTop - gap - dockBottom);
+        return dockTop + lift < minTop ? DOCK_STEP_ASIDE : lift;
+    }
+
     /**
      * Whether a move on the dock is its upward swipe (it opens the All sheet at once): more than twice the touch slop
      * upward, and more up than across. upDp is how far the finger moved up (negative when down), acrossDp how far sideways.

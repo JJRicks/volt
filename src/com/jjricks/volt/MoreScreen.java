@@ -225,11 +225,10 @@ public final class MoreScreen implements AppScreen {
         // permissions, Developer options). Rows have no icon tiles; each row's tag is unchanged.
         onboarding();
         preferences();
-        // The plan's headings ("Scooters & data", "About") have no text yet (listed for part 10's follow-up): until then
-        // the nearest existing names, My scooters' and About & permissions' (SECTION_LABEL_IDS).
-        label(sectionLabel(1));
+        // The plan's headings over the second and third cards, part 10's text (HubText.settingsSection*).
+        label(HubText.settingsSectionScooters().render()).setTag("settings-heading-scooters");
         LinearLayout scooterGroup = group();
-        label(sectionLabel(5));
+        label(HubText.settingsSectionAbout().render()).setTag("settings-heading-about");
         LinearLayout laterGroup = group();
         // Updates: one row with its automatic check's state; the switch and the manual check open over it (updatesSheet).
         updatesBox = column();
@@ -1082,8 +1081,21 @@ public final class MoreScreen implements AppScreen {
         // End the old transport before changing its selected identity or cached readings.
         // Selection also works offline: only the current scooter's Connect button starts Bluetooth.
         if (s.simulating()) s.setSimulation(false);
-        s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected();
+        s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched();
         host.redraw();
+    }
+    /**
+     * Find at a new address (FindNearby, entry B): this scooter becomes the current one the way Use makes it (the old
+     * link ends first), then the scan sheet opens in find mode, which ends any attempt and refuses a change in flight.
+     * Simulation is refused here, before anything switches.
+     */
+    private void findAtNewAddress(String id) {
+        if (!canChangeScooter()) return;
+        ScooterService s = service(); ScooterProfiles.Profile p = findScooter(id), selected = active();
+        if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }
+        if (s.simulating()) { host.toast(T.mainScanExitSimulationFind()); return; }
+        if (selected == null || !id.equals(selected.id)) { s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched(); }
+        host.findNearby(); host.redraw();
     }
     private void editScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null) return;
@@ -1104,12 +1116,33 @@ public final class MoreScreen implements AppScreen {
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null)
                 .setPositiveButton(T.moreScootersSaveName(), null).create();
         if (model != null) model.setOnClickListener(v -> { dialog.dismiss(); host.chooseScooterModel(id); });
-        TextView forget = ui.dangerButton(T.moreScootersForget(), () -> {
+        TextView forget = ui.secondaryButton(T.moreScootersForget(), () -> {
             if (!canChangeScooter()) return;
             dialog.dismiss(); forgetScooter(id);
         });
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
         ui.decorate(forget, "trash"); box.addView(forget);
+        // Find it nearby (FindNearby, entry B): only with a saved address and serial; it makes this scooter the current one.
+        // Last, under Forget: the owner wants Release as the top option (2026-11-13).
+        if (FindNearby.offerRow(p.mac, p.serial)) {
+            TextView find = ui.secondaryButton(T.moreScootersFindNewAddress(), () -> { dialog.dismiss(); findAtNewAddress(id); });
+            find.setTag("scooter_find" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
+            ui.decorate(find, "search"); box.addView(find);
+        }
+        if (OwnerRelease.offered(p.role)) {
+            // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main
+            // action, and Forget is the grey secondary one (his pick, style B, from the renders): forgetting leaves the
+            // key on the scooter, and forgetScooter guards it.
+            TextView release = ui.button(T.moreScootersRelease(), () -> {
+                if (!releaseReady(id)) return;
+                dialog.dismiss(); releaseScooter(id);
+            });
+            release.setTag(OwnerRelease.KEY);
+            release.setContentDescription(T.moreScootersReleaseNamed(p.displayName()));
+            // Cycle arrows: the scooter goes back to new. An icon like Forget's trash, so the two labels line up.
+            ui.decorate(release, "restore");
+            box.addView(release, box.indexOfChild(forget));
+        }
         show(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             ScooterProfiles.Profile target = findScooter(id); if (closed || target == null) { dialog.dismiss(); return; }
@@ -1123,23 +1156,110 @@ public final class MoreScreen implements AppScreen {
         if (!canChangeScooter()) return;
         ScooterProfiles.Profile p = findScooter(id); if (p == null) return;
         LinearLayout box = dialogBox(T.moreScootersForgetTitle(p.displayName()), T.moreScootersForgetBody());
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        // Scrolls, so a short window (landscape, split screen) with large text still reaches the buttons.
+        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).create();
+        // An owner profile with no key yet holds nothing to lose (and no backup could ever record it), so it forgets
+        // like any other.
+        if (KeyBackups.guarded(p.role) && p.configured()) { forgetOwner(dialog, box, p); return; }
         TextView backup = ui.secondaryButton(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, null); });
         box.addView(backup);
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
             if (!canChangeScooter()) return;
-            ScooterService s = service(); ScooterProfiles.Profile target = findScooter(id), selected = active();
-            if (target == null) { dialog.dismiss(); return; }
-            boolean current = selected != null && selected.id.equals(id);
-            if (current && s.simulating()) s.setSimulation(false);
-            if (current) s.ble.disconnect();
-            s.profiles.remove(id);
-            if (s.maintenance != null) s.maintenance.forget(id);
-            s.forgetEvidence(id);
-            if (current) s.ble.profileSelected();
+            if (findScooter(id) == null) { dialog.dismiss(); return; }
+            service().forgetScooter(id);
             dialog.dismiss(); host.redraw();
         });
         show(dialog);
+    }
+    /**
+     * Forget on an owner scooter (KeyBackups, owner 2026-11-13: no tap may lock a rider out of their own scooter). The
+     * scooter keeps its owner key until it is released, so Forget needs a backup holding that key saved on this phone
+     * first; without one the dialog's main action is Save backup first, opening a backup of Scooters & setup keys.
+     * The tap rechecks, so a key changed since the dialog opened asks again.
+     */
+    private void forgetOwner(AlertDialog dialog, LinearLayout box, ScooterProfiles.Profile p) {
+        String id = p.id;
+        note(box, T.moreScootersForgetOwnerWarning());
+        long saved = KeyBackups.savedAt(settings().getAll(), id, p.identity);
+        if (saved > 0) {
+            note(box, T.moreScootersForgetBackedUp(DisplayTime.dateTime(host.activity(), settings(), saved)));
+            dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
+                if (!canChangeScooter()) return;
+                ScooterProfiles.Profile now = findScooter(id);
+                if (now == null) { dialog.dismiss(); return; }
+                if (KeyBackups.savedAt(settings().getAll(), id, now.identity) == 0) { dialog.dismiss(); forgetScooter(id); return; }
+                service().forgetScooter(id);
+                dialog.dismiss(); host.redraw();
+            });
+        } else {
+            note(box, T.moreScootersForgetBackupNeeded());
+            // Stacked full width, like the edit dialog's buttons: side by side, "Save backup first" broke onto three
+            // lines at 344 dp with large text.
+            box.addView(ui.button(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, BackupRegistry.SCOOTERS); }));
+            TextView cancel = ui.secondaryButton(T.commonCancel(), dialog::dismiss);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(10); lp.bottomMargin = ui.dp(12);
+            box.addView(cancel, lp);
+        }
+        show(dialog);
+    }
+    /**
+     * Release this scooter (OwnerRelease): owner profiles only, offered in the edit dialog above Forget. It needs this
+     * scooter connected as the owner, parked, with no recording or change in flight; a tap that can't go says why.
+     */
+    private boolean releaseReady(String id) {
+        if (!canChangeScooter()) return false;
+        ScooterService s = service(); ScooterProfiles.Profile connected = s.ble.profile();
+        boolean thisScooter = s.ble.ready() && !s.simulating() && connected != null && id.equals(connected.id);
+        if (!thisScooter) { host.toast(T.moreScootersReleaseConnectFirst()); return false; }
+        CapabilityResolver.Decision decision = s.ble.releaseDecision();
+        if (!decision.available()) { host.toast(decision.reasonMessage().toString()); return false; }
+        return true;
+    }
+    private void releaseScooter(String id) {
+        ScooterProfiles.Profile p = findScooter(id); if (closed || p == null || !releaseReady(id)) return;
+        LinearLayout box = dialogBox(T.moreScootersReleaseTitle(p.displayName()), T.moreScootersReleaseBody());
+        // Off the UT5 MAX, Release is known only from the NAVEE app's mapping, so it reads Untested here like every such
+        // control (MainActivity.controlNote); the owner's hardware check covers the UT5 MAX alone.
+        CapabilityResolver.Decision decision = service().ble.releaseDecision();
+        if (decision.layer != ModelRegistry.Layer.UT5_MAX && decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED)
+            note(box, T.mainRowUntested());
+        // Scrolls like Forget's, so a short window (landscape, split screen) with large text still reaches the buttons.
+        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).create();
+        dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersReleaseAction(), () -> {
+            if (!releaseReady(id)) return;
+            dialog.dismiss();
+            service().releaseScooter(id, this::releaseEnded);
+            host.redraw();
+        });
+        show(dialog);
+    }
+    /**
+     * The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). It is shown
+     * even if this screen was rebuilt or left while the scooter answered, since the service has already acted on it and
+     * the message is the only word of what happened; only the redraw waits for a live activity. A release sent but not
+     * confirmed is held (BleController.releaseHeld, saved on the phone): its question is owed until the owner answers it,
+     * and MainActivity shows it on the activity in front, now or when Volt is next in front, so the toast is only for an
+     * activity that is gone.
+     */
+    private void releaseEnded(OwnerRelease.Outcome outcome) {
+        boolean gone = host.activity().isDestroyed();
+        switch (outcome) {
+            case RELEASED: host.toast(T.moreScootersReleased()); break;
+            case REJECTED: host.toast(T.moreScootersReleaseRefused()); break;
+            case NOT_CONFIRMED: if (gone) host.toast(T.moreScootersReleaseUnconfirmed()); break;
+            default: host.toast(T.moreScootersReleaseNotSent()); break;
+        }
+        if (!gone) host.redraw();
+    }
+    /**
+     * Remove from Volt in the held release's sheet (MainActivity): this scooter's Forget, with every rule Forget has,
+     * its owner-key backup first among them (KeyBackups). Nothing is removed without that dialog's own confirmation.
+     */
+    void forgetAfterRelease(String id) {
+        if (closed || findScooter(id) == null) return;
+        forgetScooter(id);
     }
 
     // ---- App preferences ----------------------------------------------------------------
@@ -1265,7 +1385,25 @@ public final class MoreScreen implements AppScreen {
         // updates() opens with its section label, which the dialog's title replaces.
         if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
-        show(doneDialog(box), () -> { box.removeView(updatesBox); if (!closed) refresh(); });
+        View title = box.getChildAt(0);
+        updatesSheetTitle = title;
+        show(doneDialog(box), () -> {
+            if (updatesSheetTitle == title) updatesSheetTitle = null;
+            box.removeView(updatesBox); if (!closed) refresh();
+        });
+    }
+    /** The open Updates sheet's title, or null: hidden while GitHub's consent opens over the sheet (showOverUpdates). */
+    private View updatesSheetTitle;
+    /**
+     * Shows a dialog that opens from the Updates sheet's switch or Check for updates. The sheet stays open under it, and
+     * the dialog sits a little lower than the sheet's top, so its edge would cut through the sheet's "Updates" title:
+     * the title is hidden (keeping its place) while the dialog shows, and comes back when it closes.
+     */
+    private void showOverUpdates(AlertDialog dialog) {
+        View title = updatesSheetTitle;
+        boolean hide = title != null && title.isShown();
+        if (hide) title.setVisibility(View.INVISIBLE);
+        show(dialog, hide ? () -> title.setVisibility(View.VISIBLE) : null);
     }
     private boolean batteryUnrestricted() {
         try {
@@ -2485,7 +2623,7 @@ public final class MoreScreen implements AppScreen {
                 T.moreUpdateAskBody());
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> { dialog.dismiss(); enable.run(); });
-        show(dialog);
+        showOverUpdates(dialog);
     }
     /** Android 13 and later: the notice needs the notification permission; Android asks only if it may still ask. */
     private void askNotificationPermission() {
@@ -2507,7 +2645,7 @@ public final class MoreScreen implements AppScreen {
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> {
             settings.edit().putBoolean(UpdateCheck.CONSENT, true).apply(); dialog.dismiss(); runUpdateCheck();
         });
-        show(dialog);
+        showOverUpdates(dialog);
     }
     private void runUpdateCheck() {
         String installed = AppVersion.name(host.activity());
@@ -2879,7 +3017,7 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service();
         boolean simulating = s != null && s.simulating();
         if (developerIndexRow != null) {
-            developerIndexRow.value(simulating ? T.moreDevSimulating() : null);
+            developerIndexRow.value(simulating ? simulatingLabel() : null);
             developerIndexRow.value.setTextColor(ui.orange);
         }
         if (simulationRow != null) {
@@ -3075,7 +3213,8 @@ public final class MoreScreen implements AppScreen {
             boolean connected = selected && s.ble.ready();
             boolean connecting = selected && state != BleController.State.DISCONNECTED && !connected;
             card.name.setText(item.displayName());
-            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : T.moreScootersOffline();
+            // A held release (BleController.releaseHeld) says why Volt won't connect by itself; the line wraps at whole words.
+            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : s.ble.releaseHeld(item.id) ? T.bleReleaseHeld() : T.moreScootersOffline();
             card.stateLine.setVisibility(selected ? View.VISIBLE : View.GONE);
             card.status.setText(detail); card.status.setTextColor(ui.muted);
             DeviceDescriptor descriptor = item.savedDescriptor();
@@ -3542,4 +3681,7 @@ public final class MoreScreen implements AppScreen {
             return r;
         }
     }
+
+    /** "Simulating": the developer row's value while the simulator runs; the Ride page's Record ride tile's short rung then. */
+    static String simulatingLabel() { return T.moreDevSimulating(); }
 }

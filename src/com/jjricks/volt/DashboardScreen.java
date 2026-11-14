@@ -12,6 +12,8 @@ import java.util.*;
 
 /** A local, editable dashboard. Widget movement never shares gestures with scooter controls. */
 public final class DashboardScreen implements AppScreen {
+    /** The capacity tile's title, "Usable ride energy"; Battery & charging's row of that name uses it too. */
+    static String usableEnergyTitle() { return T.dashboardUsableEnergy(); }
     /**
      * What an idle recorder disc says: Home's, and riding mode's Record, which never connects, so its
      * disabled "Connect to scooter" is only the reason it can't start.
@@ -40,6 +42,12 @@ public final class DashboardScreen implements AppScreen {
 
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
+
+        /** Find it nearby (FindNearby): the scan sheet in find mode for the active scooter. */
+        default void findNearby() { }
+
+        /** Whether Home offers Find it nearby now (FindNearby.offerHome, and no recording). */
+        default boolean findNearbyOffered() { return false; }
 
         /** Clean Home's search button. */
         default void openSearch() { }
@@ -80,6 +88,9 @@ public final class DashboardScreen implements AppScreen {
     private final TextView status, profileName;
     private final View add, layoutButton;
     private final ChargingHero chargingHero;
+    /** Home's Find it nearby card (FindNearby, entry A), under the header; hidden unless offered. */
+    private LinearLayout findCard;
+    private TextView findText;
     private final Context dialogContext;
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
@@ -221,6 +232,10 @@ public final class DashboardScreen implements AppScreen {
         view.addView(tools);
         chargingHero = new ChargingHero(false);
         view.addView(chargingHero, new LinearLayout.LayoutParams(-1, -2));
+        findCard = newFindCard();
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.bottomMargin = ui.dp(12);
+        view.addView(findCard, findSize);
         grid = new Grid();
         view.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         render();
@@ -253,7 +268,40 @@ public final class DashboardScreen implements AppScreen {
         status = statusLine();
         profileName = nameLine();
         chargingHero = new ChargingHero(true);
+        findCard = newFindCard();
     }
+
+    /**
+     * Find it nearby (entry A): a card with what happened and a secondary button that opens the scan sheet in find mode.
+     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address, nothing else going on).
+     */
+    private LinearLayout newFindCard() {
+        TextView words = ui.text("", 14, false);
+        findText = words;
+        LinearLayout card = column();
+        card.setTag(FIND_CARD);
+        card.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
+        card.setBackground(ui.shape(ui.surface, 18, ui.outline));
+        LinearLayout line = row();
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.addView(ui.icon("bluetooth", 18, ui.orange), new LinearLayout.LayoutParams(ui.dp(18), ui.dp(18)));
+        words.setTextColor(ui.text);
+        LinearLayout.LayoutParams wordsSize = new LinearLayout.LayoutParams(0, -2, 1);
+        wordsSize.setMarginStart(ui.dp(12));
+        line.addView(words, wordsSize);
+        card.addView(line, new LinearLayout.LayoutParams(-1, -2));
+        TextView find = ui.secondaryButton(T.dashboardFindNearby(), () -> { if (!editing) actions.findNearby(); });
+        ui.decorate(find, "search");
+        find.setTag(FIND_BUTTON);
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.topMargin = ui.dp(12);
+        card.addView(find, findSize);
+        card.setVisibility(View.GONE);
+        return card;
+    }
+
+    /** Home's Find it nearby card and its button (view tags). */
+    static final String FIND_CARD = "home_find_nearby", FIND_BUTTON = "home_find_nearby_button";
 
     /** Clean Home's parts, from a parts-only instance (see the constructor above). */
     static CleanParts cleanParts(ScreenHost host, Actions actions) {
@@ -361,6 +409,8 @@ public final class DashboardScreen implements AppScreen {
 
         TextView status() { return status; }
         TextView name() { return profileName; }
+        /** Find it nearby's card (entry A); refresh() shows it only while it is offered. */
+        View findCard() { return findCard; }
         View overview() { return overview; }
         View chargingView() { return chargingHero; }
 
@@ -409,6 +459,9 @@ public final class DashboardScreen implements AppScreen {
             overview.active = false;
             chargingHero.shown = false;
             chargingHero.stopReveal();
+            // The odometer's rings stop with the page, as DashboardScreen.close() stops them.
+            pulsing.clear();
+            runOdometerPulse();
             dismiss();
         }
     }
@@ -1007,6 +1060,9 @@ public final class DashboardScreen implements AppScreen {
         // Keep the same age reference while editing even though its status line is hidden.
         // Revealing duplicate card footers would resize their content beneath the edit handles.
         headerSeenMs = !ready && !connecting ? lastConnected : 0;
+        boolean find = !editing && profile != null && actions.findNearbyOffered();
+        if (find) findText.setText(T.dashboardFindNearbyText(profile.shownName()));
+        findCard.setVisibility(find ? View.VISIBLE : View.GONE);
         // Done, undo/redo, the jiggle and the edit tools already show edit mode.
         status.setVisibility(editing ? View.GONE : View.VISIBLE);
         if (editing) {
@@ -1028,6 +1084,12 @@ public final class DashboardScreen implements AppScreen {
                     ? DisplayTime.recent(host.activity(), preferences, lastConnected, System.currentTimeMillis()) : null));
         status.setContentDescription(DashboardWords.statusSpoken(ready, connecting, mode, seen && !connecting
                 ? DisplayTime.dateTime(host.activity(), preferences, lastConnected) : null));
+        // A held release (BleController.releaseHeld): why Volt isn't reconnecting. The short form, since the full line
+        // reaches the Ride button beside it; Disconnected when even that doesn't fit. Spoken in full.
+        if (!ready && !connecting && profile != null && ble != null && ble.releaseHeld(profile.id)) {
+            ui.statusRungs(status, T.bleReleaseHeldShort(), T.dashboardStatusDisconnectedShort());
+            status.setContentDescription(T.bleReleaseHeld());
+        }
     }
 
     /** An inline spinner keeps "Connecting…" on its single status line. */
@@ -1158,6 +1220,18 @@ public final class DashboardScreen implements AppScreen {
      * (HubBatterySummary) speaks its range in this form too, so its spoken and drawn lines agree with Home's card.
      */
     static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }
+
+    /**
+     * The battery overview card's drawn range line, "about 31 mi left" from {@link #aboutRange}'s figure. Battery &
+     * charging's summary card draws its range line with it too.
+     */
+    static String rangeLeft(CharSequence distance) { return T.dashboardRangeLeft(distance); }
+
+    /**
+     * A reading spoken by its full name with its value, "Battery temperature, 23 °C", as Home's charging cards speak
+     * theirs. Battery & charging's summary card speaks its right column's compact-named rows with it.
+     */
+    static String readingSpoken(CharSequence name, CharSequence value) { return T.dashboardChargingDescription(name, value); }
 
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
@@ -2393,6 +2467,12 @@ public final class DashboardScreen implements AppScreen {
         final LinearLayout rows;
         /** The model has a photo; there is room for it (always on Widgets; Clean's slot can be too small). */
         boolean photoKnown, photoRoom = true;
+        /**
+         * Clean: the track shows (ChargingFit.Plan.track), and where its zone ends in the stage (0: the stage's bottom;
+         * with no photo the percentage and the track are centred together, ChargingFit.noPhotoTop).
+         */
+        boolean trackShown = true;
+        int trackEnd;
         /** Clean: the percentage's full text size in pixels (ChargingFit shrinks it from there). */
         float percentFullPx;
         /** Clean: the photo's side in the stage (the square picture, centred under the percentage); 0 while it does not show. */
@@ -2626,6 +2706,19 @@ public final class DashboardScreen implements AppScreen {
                 size.topMargin = plan.photoHeight - photoSide;
             }
             showPhoto();
+            // No photo for this model: the percentage and the track centred together in the stage (whose height the
+            // top area fixes), rather than an empty photo-sized band between them.
+            if (trackShown != plan.track) stage.invalidate();
+            trackShown = plan.track;
+            int under = ui.dp(ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP), top = 0;
+            if (!photoKnown && plan.track && plan.percent) {
+                percent.measure(free, free);
+                top = ChargingFit.noPhotoTop(plan.stageHeight, percent.getMeasuredHeight(), under);
+            }
+            FrameLayout.LayoutParams percentAt = (FrameLayout.LayoutParams) percent.getLayoutParams();
+            if (percentAt.topMargin != top) percentAt.topMargin = top;
+            int end = top > 0 ? top + percent.getMeasuredHeight() + under : 0;
+            if (trackEnd != end) { trackEnd = end; stage.invalidate(); }
             super.onMeasure(widthSpec, heightSpec);
         }
 
@@ -2671,6 +2764,8 @@ public final class DashboardScreen implements AppScreen {
                 percent.setContentDescription(T.dashboardBatteryPercent(Math.round(level), Math.round(level)));
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
+            // Clean places the percentage and the track by whether there is a photo (onMeasure).
+            if (clean && photoKnown != known) requestLayout();
             photoKnown = known;
             showPhoto();
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
@@ -2749,7 +2844,8 @@ public final class DashboardScreen implements AppScreen {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
-                    drawTrack(canvas, w, getHeight());
+                    // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
+                    if (trackShown) drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
                     return;
                 }
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
@@ -2851,27 +2947,14 @@ public final class DashboardScreen implements AppScreen {
 
             /**
              * A full rounded track along the bottom, red to the charge, with a light tick at the limit. Clean's
-             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too.
+             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too, and
+             * Battery & charging's summary card draws the same track (ChargeTrack).
              */
             private void drawTrack(Canvas canvas, float w, float h) {
-                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TICK_DP).
-                float thick = ui.dp(ChargingFit.TRACK_DP), r = thick / 2, reach = ui.dp(ChargingFit.TICK_DP);
-                h -= reach;
-                float top = h - thick;
-                paint.setShader(null);
-                paint.setAlpha(255);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(ui.raised);
-                canvas.drawRoundRect(0, top, w, h, r, r, paint);
-                if (!Double.isNaN(level) && level > 0) {
-                    paint.setColor(ui.accent);
-                    canvas.drawRoundRect(0, top, Math.max(thick, w * (float) (level / 100)), h, r, r, paint);
-                }
-                if (limit < 100) {
-                    float x = w * (float) (limit / 100);
-                    paint.setColor(Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
-                    canvas.drawRect(x - ui.dp(1), top - reach, x + ui.dp(1), h + reach, paint);
-                }
+                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TRACK_DP, TICK_DP).
+                float reach = ui.dp(ChargingFit.TICK_DP);
+                ChargeTrack.draw(canvas, paint, ui, w, h - reach, level, limit, ui.accent, Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255),
+                        ui.dp(ChargingFit.TRACK_DP), reach, reach);
             }
         }
     }
@@ -2963,6 +3046,11 @@ public final class DashboardScreen implements AppScreen {
         boolean wasLive;
         boolean active = true, querying;
         long queriedAt;
+        /** The odometer number's carry-over cue (OdometerAttention): its tap target, the number, how it shows, and its dot. */
+        View odometerTarget;
+        TextView odometerNumber;
+        OdometerAttention.Style odometerStyle = OdometerAttention.Style.NONE;
+        OdometerSonar sonar;
         String queryKey = "";
         List<TelemetryHistory.Point> history = Collections.emptyList();
 
@@ -4137,7 +4225,7 @@ public final class DashboardScreen implements AppScreen {
                 if (!shown.toString().contentEquals(percent.getText())) percent.setText(shown);
                 percent.setTextColor(live ? ui.text : ui.muted);
                 String distance = rangeText(values.get("remaining_range_km"));
-                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : T.dashboardRangeLeft(distance);
+                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : rangeLeft(distance);
                 if (!line.contentEquals(range.getText())) range.setText(line);
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
@@ -4635,7 +4723,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = detail.isEmpty() ? T.dashboardChargingDescription(label, value.getText())
+            String description = detail.isEmpty() ? readingSpoken(label, value.getText())
                     : T.dashboardChargingDescriptionDetail(label, value.getText(), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.
@@ -4751,8 +4839,80 @@ public final class DashboardScreen implements AppScreen {
             if (overview != null) overview.refresh(values);
             if (readingTiles != null) readingTiles.refresh(values);
             if (chart != null) refreshChart(values);
+            markOdometer(values);
             // Editing is a layout operation; data controls stay inert until Done.
             if (editing) disableInputs(body);
+        }
+
+        /**
+         * The odometer number after a reset was carried over (OdometerCarry): a tap on the number's area opens the
+         * explanation and Undo while anything is carried over; until the rider opens it once, the number pulses toward
+         * the accent (or, with animations off, is the accent with a dot beside it). Never while moving or off screen.
+         */
+        private void markOdometer(Map<String, TelemetryHistory.Reading> values) {
+            TextView number = amounts.get(MaintenanceView.ODOMETER);
+            if (number == null && big != null && MaintenanceView.ODOMETER.equals(widget.metric)) number = big;
+            // The odometer as a gauge: the gauge's area is the tap target, and the cue sits at its top-end corner.
+            Gauge dial = number == null && gauge != null && MaintenanceView.ODOMETER.equals(widget.metric) ? gauge : null;
+            if (number == null && dial == null) { dropSonar(); return; }
+            OdometerCarry record = service == null || editing ? null : service.odometerRecord();
+            boolean carried = record != null && record.carriedKm() > 0;
+            View target = dial != null ? dial : number == big ? big : odometerTarget(number);
+            // A number that already acts on a tap keeps its own action, and then shows no cue either.
+            if (target == big && big.hasOnClickListeners() && big != odometerTarget) target = null;
+            if (dial != null && target == dial && dial.hasOnClickListeners() && dial != odometerTarget) target = null;
+            boolean opens = carried && target != null;
+            if (target != null && (carried || target == odometerTarget)) {
+                target.setOnClickListener(carried ? v -> { if (!editing) showOdometerCarry(); } : null);
+                target.setClickable(carried);
+                target.setMinimumHeight(carried ? ui.dp(48) : 0);
+                odometerTarget = carried ? target : null;
+            }
+            TelemetryHistory.Reading speed = values.get(RidingValues.SPEED_KEY);
+            boolean moving = speed != null && speed.live && speed.number != null && speed.number > 0;
+            OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(), opens,
+                    Ui.motionEnabled(), !isShown(), moving);
+            odometerNumber = number;
+            odometerStyle = style;
+            if (style == OdometerAttention.Style.NONE) {
+                dropSonar();
+            } else {
+                if (dial != null) dial.setContentDescription(T.dashboardOdometerCarrySpoken(dial.getContentDescription()));
+                else number.setContentDescription(T.dashboardOdometerCarrySpoken(number.getContentDescription()));
+                // The number stays as it is: the dot and its ring are drawn over the tile, so nothing moves.
+                if (sonar == null || sonar.number != number || sonar.gauge != dial) {
+                    dropSonar();
+                    sonar = dial != null ? new OdometerSonar(this, dial) : new OdometerSonar(this, number);
+                    getOverlay().add(sonar);
+                }
+                sonar.ringing = style == OdometerAttention.Style.SONAR;
+                sonar.place();
+                if (sonar.ringing) pulsing.add(this); else pulsing.remove(this);
+                sonar.frame(odometerPulse == null ? 0 : OdometerAttention.ring(odometerPulse.getCurrentPlayTime()));
+            }
+            runOdometerPulse();
+        }
+
+        private void dropSonar() {
+            pulsing.remove(this);
+            if (sonar == null) return;
+            sonar.dispose();
+            getOverlay().remove(sonar);
+            sonar = null;
+        }
+
+        /** The odometer number's area: its reading cell (the overview's item, a reading tile, a row). */
+        private View odometerTarget(TextView number) {
+            if (!(number.getParent() instanceof View)) return null;
+            View holder = (View) number.getParent();
+            if (!(holder instanceof InfoCell) && holder.getParent() instanceof InfoCell) holder = (View) holder.getParent();
+            // A cell that already acts on a tap keeps its own action.
+            return holder.hasOnClickListeners() && holder != odometerTarget ? null : holder;
+        }
+
+        /** One frame of the ring, {@code progress} 0 to 1 through its life. */
+        void sonarFrame(float progress) {
+            if (sonar != null && sonar.ringing) sonar.frame(progress);
         }
 
         private void refreshRecorder() {
@@ -5069,7 +5229,7 @@ public final class DashboardScreen implements AppScreen {
                         : T.dashboardEnergyCaveat()));
                 if (capacityUnavailable != null) details.addView(caveat(capacityUnavailable));
             }
-            show(T.dashboardUsableEnergy(), details);
+            show(usableEnergyTitle(), details);
         }
 
         private LinearLayout detailRow(String label, String value) {
@@ -5460,6 +5620,10 @@ public final class DashboardScreen implements AppScreen {
         private TelemetryHistory.Reading reading;
         private String amount = "—", unit = "", secondary = "";
         private float arcStroke;
+        /** The ring as last drawn (its square and stroke), for the odometer cue; arcMoved runs after it moves. */
+        final RectF drawnArc = new RectF();
+        float drawnStroke;
+        Runnable arcMoved;
 
         Gauge(DashboardConfig.Widget widget) {
             super(host.activity());
@@ -5526,6 +5690,11 @@ public final class DashboardScreen implements AppScreen {
             float top = (h - graphicHeight) / 2f;
             float cy = top + arcStroke / 2f + radius;
             arcBounds.set(cx - radius, cy - radius, cx + radius, cy + radius);
+            if (!arcBounds.equals(drawnArc) || drawnStroke != arcStroke) {
+                drawnArc.set(arcBounds);
+                drawnStroke = arcStroke;
+                if (arcMoved != null) post(arcMoved);
+            }
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(arcStroke);
             paint.setStrokeCap(Paint.Cap.ROUND);
@@ -7197,6 +7366,248 @@ public final class DashboardScreen implements AppScreen {
         return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(days, days);
     }
 
+    /** Tiles whose odometer dot sends out rings (OdometerAttention.Style.SONAR), and the one animator that drives them all. */
+    private final Set<Tile> pulsing = new LinkedHashSet<>();
+    private android.animation.ValueAnimator odometerPulse;
+
+    /** Starts the rings while a tile wants them and the screen is open; stops them otherwise. */
+    private void runOdometerPulse() {
+        // A tile the page dropped (a rebuild, another scooter) stops pulsing.
+        pulsing.removeIf(tile -> !tile.active || tile.getParent() == null);
+        boolean wanted = !closed && !pulsing.isEmpty();
+        if (!wanted) {
+            if (odometerPulse != null) { odometerPulse.cancel(); odometerPulse = null; }
+            return;
+        }
+        if (odometerPulse != null) return;
+        android.animation.ValueAnimator pulse = android.animation.ValueAnimator.ofFloat(0, 1);
+        pulse.setDuration(OdometerAttention.RING_MS);
+        pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        pulse.setInterpolator(new android.view.animation.LinearInterpolator());
+        pulse.addUpdateListener(a -> {
+            // Never outlives its page: a closed screen, or no ringing tile still on screen, ends it here.
+            if (closed || !anyPulsingAttached()) {
+                a.cancel();
+                if (odometerPulse == a) odometerPulse = null;
+                return;
+            }
+            float progress = a.getAnimatedFraction();
+            for (Tile tile : new ArrayList<>(pulsing)) tile.sonarFrame(progress);
+        });
+        odometerPulse = pulse;
+        pulse.start();
+    }
+
+    /** Whether any tile that wants rings is still live and attached to a window. */
+    private boolean anyPulsingAttached() {
+        for (Tile tile : pulsing) if (tile.active && tile.getParent() != null && tile.isAttachedToWindow()) return true;
+        return false;
+    }
+
+    /**
+     * The carry-over cue: a small orange dot at the odometer number's top-end corner, like a notification badge, and
+     * (SONAR) a ring that grows out of it and fades. Drawn in the tile's overlay, so the number and its cell keep
+     * their size and place and the cell never clips the ring; the ring stops short of the tile's own edge. A frame
+     * invalidates only the dot's square.
+     */
+    private final class OdometerSonar extends android.graphics.drawable.Drawable
+            implements View.OnLayoutChangeListener, View.OnAttachStateChangeListener {
+        final ViewGroup host;
+        final TextView number;
+        /** An odometer gauge instead of a number: the dot goes at the gauge's top-end corner. */
+        final Gauge gauge;
+        private final Runnable replace = this::place;
+        boolean ringing;
+        private float progress, cx, cy, dot, reach;
+        private boolean placed;
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Rect digit = new Rect(), at = new Rect();
+
+        OdometerSonar(ViewGroup host, TextView number) { this(host, number, null); }
+
+        OdometerSonar(ViewGroup host, Gauge gauge) { this(host, null, gauge); }
+
+        private OdometerSonar(ViewGroup host, TextView number, Gauge gauge) {
+            this.host = host;
+            this.number = number;
+            this.gauge = gauge;
+            fill.setColor(ui.orange);
+            ring.setColor(ui.orange);
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(ui.dp(2));
+            host.addOnLayoutChangeListener(this);
+            host.addOnAttachStateChangeListener(this);
+            anchor().addOnLayoutChangeListener(this);
+            if (gauge != null) gauge.arcMoved = replace;
+        }
+
+        private View anchor() { return gauge != null ? gauge : number; }
+
+        void dispose() {
+            host.removeOnLayoutChangeListener(this);
+            host.removeOnAttachStateChangeListener(this);
+            anchor().removeOnLayoutChangeListener(this);
+            if (gauge != null && gauge.arcMoved == replace) gauge.arcMoved = null;
+        }
+
+        @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) { place(); }
+
+        /** Back on screen: the rings pick up again (the animator stops itself while no ringing tile is attached). */
+        @Override public void onViewAttachedToWindow(View v) { runOdometerPulse(); }
+
+        @Override public void onViewDetachedFromWindow(View v) { }
+
+        /** Where the dot sits: just past the end of the number's first line, level with the top of its digits. */
+        void place() {
+            if (gauge != null) { placeOnGauge(); return; }
+            android.text.Layout layout = number.getLayout();
+            at.set(0, 0, 0, 0);
+            boolean inside = layout != null && layout.getLineCount() > 0;
+            if (inside) try { host.offsetDescendantRectToMyCoords(number, at); } catch (IllegalArgumentException gone) { inside = false; }
+            if (!inside) { placed = false; setBounds(0, 0, 0, 0); return; }
+            dot = ui.dp(4);
+            float gap = ui.dp(1);
+            boolean rtl = number.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            float left = number.getTotalPaddingLeft() + layout.getLineLeft(0), right = number.getTotalPaddingLeft() + layout.getLineRight(0);
+            // The top of the number's own first digit, in the number's full-size paint.
+            String text = number.getText().toString();
+            number.getPaint().getTextBounds(text, 0, Math.min(1, text.length()), digit);
+            cx = at.left + (rtl ? left - gap - dot : right + gap + dot);
+            cy = at.top + number.getTotalPaddingTop() + layout.getLineBaseline(0) + digit.top;
+            float stroke = ring.getStrokeWidth();
+            float room = Math.min(Math.min(cx, host.getWidth() - cx), Math.min(cy, host.getHeight() - cy)) - stroke - ui.dp(2);
+            reach = Math.max(dot, Math.min(dot * OdometerAttention.RING_REACH, room));
+            int r = (int) Math.ceil(Math.max(reach, dot) + stroke + 1);
+            placed = true;
+            setBounds((int) Math.floor(cx) - r, (int) Math.floor(cy) - r, (int) Math.ceil(cx) + r, (int) Math.ceil(cy) + r);
+            invalidateSelf();
+        }
+
+        /**
+         * On a gauge: at the top-end corner of the ring's square, on its diagonal, as far from the ring as from the
+         * gauge's top and end edges (OdometerAttention.gaugeSpot), so neither the dot nor its ring touches the ring,
+         * the reading inside it or anything outside the gauge.
+         */
+        private void placeOnGauge() {
+            at.set(0, 0, 0, 0);
+            boolean inside = gauge.isLaidOut() && !gauge.drawnArc.isEmpty() && gauge.getParent() != null;
+            if (inside) try { host.offsetDescendantRectToMyCoords(gauge, at); } catch (IllegalArgumentException gone) { inside = false; }
+            if (!inside) { placed = false; setBounds(0, 0, 0, 0); return; }
+            dot = ui.dp(4);
+            float stroke = ring.getStrokeWidth();
+            boolean rtl = gauge.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            float[] spot = OdometerAttention.gaugeSpot(gauge.drawnArc.centerX(), gauge.drawnArc.centerY(),
+                    gauge.drawnArc.width() / 2f + gauge.drawnStroke / 2f, gauge.getWidth(), rtl, stroke + ui.dp(2));
+            cx = at.left + spot[0];
+            cy = at.top + spot[1];
+            reach = Math.max(dot, Math.min(dot * OdometerAttention.RING_REACH, spot[2]));
+            int r = (int) Math.ceil(Math.max(reach, dot) + stroke + 1);
+            placed = true;
+            setBounds((int) Math.floor(cx) - r, (int) Math.floor(cy) - r, (int) Math.ceil(cx) + r, (int) Math.ceil(cy) + r);
+            invalidateSelf();
+        }
+
+        void frame(float progress) {
+            this.progress = progress;
+            if (placed) invalidateSelf();
+        }
+
+        @Override public void draw(Canvas canvas) {
+            if (!placed) return;
+            if (ringing) {
+                ring.setAlpha(Math.round(255 * OdometerAttention.ringAlpha(progress)));
+                canvas.drawCircle(cx, cy, OdometerAttention.ringRadius(dot, reach, progress), ring);
+            }
+            canvas.drawCircle(cx, cy, dot, fill);
+        }
+
+        @Override public void setAlpha(int alpha) { fill.setAlpha(alpha); }
+        @Override public void setColorFilter(android.graphics.ColorFilter filter) { fill.setColorFilter(filter); ring.setColorFilter(filter); }
+        @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
+    }
+
+    /** A distance as the maintenance page writes an odometer: one decimal, grouped, in the rider's units. */
+    private String odometerText(double km) { return MaintenanceView.odometer(km, units()); }
+
+    private static String carryDate(long wall) {
+        return java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM, Fmt.locale(Locale.getDefault())).format(new java.util.Date(wall));
+    }
+
+    /**
+     * The odometer carry-over explanation (OdometerCarry): what happened, what is carried over, that the scooter's own
+     * number stays as it is, and Undo. Opening it counts as seen, so the number stops asking for attention.
+     */
+    private void showOdometerCarry() {
+        if (service == null || closed) return;
+        OdometerCarry record = service.odometerRecord();
+        OdometerCarry.Carry last = record == null ? null : record.last();
+        if (last == null || record.carriedKm() <= 0) return;
+        service.acknowledgeOdometerCarry();
+        LinearLayout content = column();
+        TextView what = ui.text(T.dashboardOdometerCarryWhat(carryDate(last.wall), odometerText(last.fromKm), odometerText(last.toKm)), 15, false);
+        content.addView(what, new LinearLayout.LayoutParams(-1, -2));
+        String carried = odometerText(record.carriedKm());
+        TextView includes = ui.text(record.carries.size() == 1 ? T.dashboardOdometerCarryIncludes(carried, carryDate(last.wall))
+                : T.dashboardOdometerCarryIncludesMany(carried, carryDate(last.wall)), 15, true);
+        includes.setPadding(0, ui.dp(12), 0, ui.dp(6));
+        content.addView(includes, new LinearLayout.LayoutParams(-1, -2));
+        // The two rows name numbers on screen, so they read exactly as Home writes an odometer reading (units included):
+        // the scooter's own reading as Home would show it raw, and the total Home shows.
+        TelemetryHistory.Reading own = service.displayReadings().get(MaintenanceView.ODOMETER);
+        TelemetryHistory.Reading total = service.dashboardReadings().get(MaintenanceView.ODOMETER);
+        if (own != null && own.number != null && total != null && total.number != null) {
+            content.addView(carryRow(T.dashboardOdometerCarryScooter(), shown(own).toString()));
+            content.addView(carryRow(T.dashboardOdometerCarryShown(), shown(total).toString()));
+        }
+        TextView note = ui.caption(T.dashboardOdometerCarryNote());
+        note.setPadding(0, ui.dp(10), 0, 0);
+        content.addView(note, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout footer = column();
+        footer.setPadding(0, ui.dp(12), 0, 0);
+        footer.addView(ui.secondaryButton(T.dashboardOdometerCarryUndo(), this::confirmOdometerUndo), new LinearLayout.LayoutParams(-1, -2));
+        showSheet(T.dashboardOdometerCarryTitle(), content, footer, T.commonClose(), null);
+    }
+
+    private LinearLayout carryRow(String label, String value) {
+        LinearLayout line = row();
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.setMinimumHeight(ui.dp(40));
+        TextView name = ui.text(label, 14, false);
+        name.setTextColor(ui.muted);
+        line.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView amount = ui.text(value, 14, true);
+        amount.setGravity(Gravity.END);
+        LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-2, -2);
+        space.setMarginStart(ui.dp(12));
+        line.addView(amount, space);
+        line.setContentDescription(T.dashboardReading(label, value));
+        line.setFocusable(true);
+        return line;
+    }
+
+    /** Undo's confirm: names what the odometer in Volt goes back to; removes only the latest carry-over. */
+    private void confirmOdometerUndo() {
+        if (service == null || closed) return;
+        OdometerCarry record = service.odometerRecord();
+        OdometerCarry.Carry last = record == null ? null : record.last();
+        if (last == null) { dismiss(); return; }
+        OdometerCarry after = record.copy();
+        after.undo();
+        double raw = record.hasBaseline() ? record.lastRawKm : 0;
+        dismiss();
+        AlertDialog created = new AlertDialog.Builder(dialogContext)
+                .setTitle(T.dashboardOdometerCarryUndoTitle())
+                .setMessage(T.dashboardOdometerCarryUndoMessage(odometerText(after.displayKm(raw)), odometerText(last.km()), carryDate(last.wall)))
+                .setNegativeButton(T.commonCancel(), null)
+                .setPositiveButton(T.dashboardOdometerCarryUndoConfirm(), (d, which) -> {
+                    if (closed || service == null) return;
+                    if (service.undoOdometerCarry()) host.toast(T.dashboardOdometerCarryRemoved());
+                })
+                .create();
+        dialog = created;
+        created.show();
+    }
+
     /**
      * Bottom sheet with a heading and an X close; the content scrolls and an optional footer
      * stays pinned underneath it.
@@ -8364,6 +8775,8 @@ public final class DashboardScreen implements AppScreen {
         stopEditTransition();
         editHistory.clear();
         for (Tile tile : tiles) tile.active = false;
+        pulsing.clear();
+        runOdometerPulse();
         rememberPicker();
         dismiss();
         if (grid != null) {
