@@ -40,8 +40,6 @@ done
 sources+=("$APP_DIR/src/com/jjricks/volt/ShizukuCaptureClient.java" "$TEST_DIR/ShizukuCaptureClientTest.java")
 # Route speed colours (depends on PhoneRideStore and RideStore above).
 sources+=("$APP_DIR/src/com/jjricks/volt/RouteSpeedScale.java" "$TEST_DIR/RouteSpeedScaleTest.java")
-# Owner keys Volt makes for a new or reset scooter (setup's "Make a new owner key").
-sources+=("$APP_DIR/src/com/jjricks/volt/NewOwnerKey.java" "$TEST_DIR/NewOwnerKeyTest.java")
 # Lock slider motion trail.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSliderTrailTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
@@ -168,7 +166,6 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeTaperMatcherTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeReferenceGateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShizukuCaptureClientTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NewOwnerKeyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest

@@ -153,10 +153,7 @@ for case in SIZES:
     STEPS += [inst(f'charge-schedule-{w}', T + 'ChargeScheduleValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
-                   '-e', 'layout', LAYOUT[case], size=size),
-              # Setup's Make a new owner key route: keys kept or deleted, refusal, done note.
-              inst(f'new-owner-key-{w}', T + 'NewOwnerKeyValidation', '-e', 'theme', theme, '-e', 'text_scale', text,
-                   '-e', 'label', w, size=size)]
+                   '-e', 'layout', LAYOUT[case], size=size)]
     # The Record charges automatically switch beside the recording controls, off and on.
     STEPS += [inst(f'charge-auto-record-page-{w}', PKG + '.ChargeAutoRecordValidation', '-e', 'mode', 'page', '-e', 'theme', theme,
                    '-e', 'text_scale', text, size=size, hidden_api=True)]

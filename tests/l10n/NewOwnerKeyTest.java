@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-/** Synthetic keys only. Compile with Protocol, OwnerIdentityParser and NewOwnerKey; no Android needed. */
+/** Synthetic keys only; no Android needed (tests/l10n/new-owner-key.sources). */
 public final class NewOwnerKeyTest {
     private static int assertions;
 
@@ -22,17 +22,17 @@ public final class NewOwnerKeyTest {
             check(key.length() == 12, "twelve digits: " + key);
             check(key.matches("[0-9A-F]{12}"), "upper-case hex: " + key);
             check(key.startsWith("88"), "NAVEE's account marker first: " + key);
-            check(NewOwnerKey.shaped(key), "shaped: " + key);
+            check(shaped(key), "shaped: " + key);
         }
         // Every byte after the marker can take any value, including 0x00 and 0xFF.
         Random zeros = new Random() { @Override public void nextBytes(byte[] b) { java.util.Arrays.fill(b, (byte) 0); } };
         check("880000000000".equals(NewOwnerKey.generate(zeros)), "all-zero tail kept");
         Random ones = new Random() { @Override public void nextBytes(byte[] b) { java.util.Arrays.fill(b, (byte) 0xff); } };
         check("88FFFFFFFFFF".equals(NewOwnerKey.generate(ones)), "all-0xFF tail kept");
-        check(!NewOwnerKey.shaped(null), "null not shaped");
-        check(!NewOwnerKey.shaped("860012345678"), "another top byte not shaped");
-        check(!NewOwnerKey.shaped("88001234567"), "eleven digits not shaped");
-        check(!NewOwnerKey.shaped("88001234567G"), "non-hex not shaped");
+        check(!shaped(null), "null not shaped");
+        check(!shaped("860012345678"), "another top byte not shaped");
+        check(!shaped("88001234567"), "eleven digits not shaped");
+        check(!shaped("88001234567G"), "non-hex not shaped");
     }
 
     private static void randomness() {
@@ -71,6 +71,9 @@ public final class NewOwnerKeyTest {
         check(!NewOwnerKey.removable(true, false, true), "accepted: kept");
         check(!NewOwnerKey.removable(false, false, true), "accepted without a recorded send (restored state): kept");
     }
+
+    /** Twelve hex digits starting 88: the shape of every key generate() makes. */
+    private static boolean shaped(String key) { return key != null && key.matches("(?i)88[0-9a-f]{10}"); }
 
     private static void check(boolean ok, String what) {
         if (!ok) throw new AssertionError(what);

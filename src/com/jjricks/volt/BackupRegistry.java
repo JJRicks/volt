@@ -173,10 +173,13 @@ final class BackupRegistry {
         // Dormant since 1.1.0 and data only: controls always need fresh authenticated state.
         RULES.add(new Rule("control_evidence", "", true, String.class, SCOOTER_PREFERENCES, null, true, false, false));
         add("onboarding", OnboardingKeys.DONE, Boolean.class, SCOOTERS);
-        for (String key : "rerun import_failed connect_requested connect_tried generated_sent".split(" ")) exclude("onboarding", key, Boolean.class, WIZARD);
+        for (String key : "rerun import_failed connect_requested connect_tried".split(" ")) exclude("onboarding", key, Boolean.class, WIZARD);
         exclude("onboarding", "nearby_asked", Boolean.class, PERMISSION);
         exclude("onboarding", "step", Integer.class, WIZARD);
-        for (String key : "path profile_id created_profile_id generated_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
+        // Setup's own owner key (Make a new owner key): which profile holds it and whether it was sent.
+        exclude("onboarding", "generated_profile_id", String.class, WIZARD);
+        exclude("onboarding", "generated_sent", Boolean.class, WIZARD);
+        for (String key : "path profile_id created_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
         RULES.add(new Rule("onboarding", "tick_", true, Boolean.class, null, WIZARD, false, false, false));
     }
     /** Avoid an Android dependency on OnboardingScreen for this pure table. */

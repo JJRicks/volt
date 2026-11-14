@@ -30,11 +30,6 @@ final class NewOwnerKey {
         return Protocol.hex(key).toUpperCase(Locale.ROOT);
     }
 
-    /** True for a key {@link #generate} could have made: twelve hex digits starting 88. */
-    static boolean shaped(String key) {
-        return key != null && key.matches("(?i)88[0-9a-f]{10}");
-    }
-
     /**
      * Whether setup may delete the scooter profile holding a key it made. Once Volt has tried the key on a scooter,
      * that scooter may have taken it as its owner key, and deleting the only copy would leave the scooter with an

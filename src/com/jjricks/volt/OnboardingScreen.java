@@ -92,7 +92,9 @@ public final class OnboardingScreen implements AppScreen {
 
     static final int WELCOME = 0, PATH = 1, PREPARE = 2, USB = 3, COMPUTER = 4, HELPER = 5,
             IMPORT = 6, IDENTITY = 7, NEARBY = 8, CONNECT = 9, DONE = 10;
-    private static final String CAPTURE = "capture", WEBADB = "webadb", BACKUP = "backup", RESTORE = "restore", TYPED = "identity", SHIZUKU = "shizuku", NEW_KEY = "new_key";
+    private static final String CAPTURE = "capture", WEBADB = "webadb", BACKUP = "backup", RESTORE = "restore", TYPED = "identity", SHIZUKU = "shizuku";
+    /** Setup's own owner key for a scooter with no owner yet (NewOwnerKey). */
+    private static final String NEW_KEY = "new_key";
     private static final String WEBADB_URL = "https://pairscooter.jjricks.com/";
     private static final String PLATFORM_TOOLS_URL = "https://developer.android.com/tools/releases/platform-tools";
     private static final String SOURCE_URL = "https://github.com/JJRicks/volt/releases/latest";
@@ -1226,6 +1228,9 @@ public final class OnboardingScreen implements AppScreen {
         return find(profiles(), prefs.getString(KEY_GENERATED, ""));
     }
 
+    /** True for the profile holding the key this setup made. */
+    private boolean madeHere(ScooterProfiles.Profile p) { return p != null && p.id.equals(prefs.getString(KEY_GENERATED, "")); }
+
     /**
      * Makes the key on the first Continue and keeps it after that: Back from Connect and Continue again, or a second
      * try after resetting the scooter, reuses the same key, because a scooter may already have taken it.
@@ -1442,7 +1447,7 @@ public final class OnboardingScreen implements AppScreen {
         backup.setContentDescription(T.onboardingDoneBackupDescription());
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2); bp.bottomMargin = ui.dp(10);
         // A key Volt made exists only on this phone, so the backup matters more than usual: say why, above the button.
-        if (NEW_KEY.equals(path()) && p != null && p.configured() && p.id.equals(prefs.getString(KEY_GENERATED, ""))) {
+        if (NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p)) {
             TextView note = ui.text(T.onboardingDoneNewKeyNote(), 13, false);
             note.setTextColor(ui.muted); note.setLineSpacing(ui.dp(2), 1); note.setGravity(Gravity.CENTER_HORIZONTAL);
             LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.bottomMargin = ui.dp(12);
