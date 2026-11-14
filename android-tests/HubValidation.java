@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -57,12 +59,14 @@ import com.jjricks.volt.ScooterService;
  *   rides) arrive with part 12, which checks them.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown. Each
- *   place is measured only while the moment it belongs to is the one shown, its crossfade over.</li>
+ *   place is measured only while the moment it belongs to is the one shown, its crossfade over. Every picture waits for a
+ *   frame drawn after the views changed to reach the screen.</li>
  *   <li><b>Widgets Home</b>: its header is main's (no search or gear of its own); Search and Settings are the first rows
  *   of the dock's All sheet and open over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only
  *   (never on a subject page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet
  *   listing all seven subjects, whose rows open their subject and close the sheet. With -e wide true or false, the dock
- *   must hold all seven (wide) or the phone's most-used ones (HubPages.dockSubjects).</li>
+ *   must hold all seven (wide) or the phone's most-used ones (HubPages.dockSubjects). While the dock shows, it covers no
+ *   shown part of Widgets' Lock bar (part 11 has it step aside), on arrival and after each Back.</li>
  *   <li><b>Taps</b>: every tap first scrolls its view into sight, and the view's centre must then be on screen and, on a
  *   page with the dock, above the dock; a view an owner cannot see is not tapped.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
@@ -279,8 +283,9 @@ public final class HubValidation extends Instrumentation {
             justBack = placeWhile(clean, 2, 1500);
         }
         require(justBack != null, "Clean Home's refresh replaced the Just back card before it could be measured, " + JUST_BACK_TRIES + " times");
-        // Its picture, taken the same way: kept only when Just back was still shown after it was taken; a discarded
-        // try's picture and census are deleted, and the step fails if no picture holds.
+        // Its picture, taken the same way, once a frame drawn after the measurement is on screen (screenshot): kept only
+        // when Just back was still the moment after it was taken (only the walk shows Just back, so it was shown the whole
+        // time); a discarded try's picture and census are deleted, and the step fails if no picture holds.
         boolean pictured = false;
         for (int attempt = 0; attempt < JUST_BACK_TRIES && !pictured; attempt++) {
             main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 2));
@@ -308,6 +313,7 @@ public final class HubValidation extends Instrumentation {
         }
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
+        dockClearOfLock("Widgets Home");
         screenshot("widgets-home");
         widgetsPages(false);
         for (String subject : shown) {
@@ -318,10 +324,11 @@ public final class HubValidation extends Instrumentation {
             main(() -> require(field(activity, "dock") == null, "The dock shows on " + subject));
             systemBack();
             requireHome("DashboardScreen");
+            dockClearOfLock("Widgets Home after " + subject);
         }
         for (String subject : HubPages.SUBJECTS) if (!shown.contains(subject))
             main(() -> require(root().findViewWithTag("hub-dock-" + subject) == null, "The dock has an item for " + subject + ", which it does not list"));
-        checks.add("Widgets dock: " + shown + " each open their subject over Home; Back returns to Widgets Home; no dock on subject pages");
+        checks.add("Widgets dock: " + shown + " each open their subject over Home; Back returns to Widgets Home; no dock on subject pages; the dock never over the Lock bar");
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
             AlertDialog[] sheet = {openAllSheet()};
@@ -371,6 +378,22 @@ public final class HubValidation extends Instrumentation {
             requireHome("DashboardScreen");
         }
         checks.add("Widgets Home keeps main's header; the All sheet's Search and Settings rows open those pages over Home, and Back returns to Widgets Home");
+    }
+
+    /**
+     * Part 11 keeps the dock off Widgets' Lock bar (it steps aside while it would cover any shown part of it): while the
+     * dock shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it. Measured in window pixels here,
+     * not with the app's own rule (HubPages.dockCovers).
+     */
+    private void dockClearOfLock(String where) {
+        main(() -> {
+            View dock = root().findViewWithTag("hub-dock"), lock = (View) field(activity, "dashboardLock");
+            require(lock != null, where + " has no Lock bar");
+            Rect bar = new Rect();
+            if (!shown(dock) || !lock.isShown() || !lock.getGlobalVisibleRect(bar)) return;
+            Rect over = new Rect();
+            require(!dock.getGlobalVisibleRect(over) || !Rect.intersects(over, bar), where + ": the dock " + over.toShortString() + " covers the Lock bar's shown part " + bar.toShortString());
+        });
     }
 
     /** Taps the dock's All item and returns its sheet, open and settled. */
@@ -644,11 +667,26 @@ public final class HubValidation extends Instrumentation {
     }
 
     private void screenshot(String label) throws Exception {
+        awaitFrameShown();
         File dir = new File(getTargetContext().getExternalFilesDir(null), "hub-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory unavailable");
         File file = new File(dir, arguments.getString("theme", "dark") + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
+    }
+    /**
+     * Waits until a frame drawn after this call has been committed to the window's surface, then a little more for the
+     * system to put it on screen, so a screenshot shows what the views hold now and not the frame before (the emulator's
+     * run on 6db305f8 kept a Just back "picture" that still showed the parked card while its census listed Just back).
+     */
+    private void awaitFrameShown() {
+        if (Build.VERSION.SDK_INT < 29) { settle(); return; }
+        CountDownLatch committed = new CountDownLatch(1);
+        main(() -> { root().getViewTreeObserver().registerFrameCommitCallback(committed::countDown); root().invalidate(); });
+        boolean drawn;
+        try { drawn = committed.await(3, TimeUnit.SECONDS); } catch (InterruptedException interrupted) { throw new IllegalStateException(interrupted); }
+        require(drawn, "No frame was drawn within 3 s for a screenshot");
+        SystemClock.sleep(150);
     }
     /** Deletes a screenshot that was not kept, with the census files written next to it. */
     private static void discardScreenshot(String path) {
