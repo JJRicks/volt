@@ -66,6 +66,8 @@ public final class ChargingFitTest {
                 c.name + ": the readings keep the mock-up's 24 dp or at least 12 dp from the track");
         require(!p.percent || p.percentScale > 0 && p.percentScale <= 1, c.name + ": the percentage within its sizes");
         require(!p.shortLine || p.line, c.name + ": a short line is a line");
+        require(p.line || !p.readings || !p.percent || p.percentScale <= ChargingFit.HALF_SCALE,
+                c.name + ": dropping the line never enlarges the percentage past half: " + p);
     }
 
     /** The maintainers' sizes: nothing is dropped but the line (the percentage, photo, track and readings stay). */
@@ -98,6 +100,13 @@ public final class ChargingFitTest {
         // 725x604 dp at 1.4x keeps the phone layout in a short area: the photo shrinks with the stage, the percentage
         // stays (smaller if it must), the readings show.
         c = checked(725, 604, 1.4f, 0, false);
+        for (int bars : new int[]{0, 72})
+            for (boolean pill : new boolean[]{false, true})
+                for (float taller : new float[]{1f, 1.3f}) {
+                    Case w = window(725, 604, 1.4f, bars, pill, taller);
+                    require(w.plan.line || w.plan.percentScale <= ChargingFit.HALF_SCALE,
+                            w.name + ": without the line, the percentage is at most half: " + w.plan);
+                }
         for (int width : new int[]{344, 725})
             for (float text : new float[]{1f, 1.4f})
                 for (int bars : new int[]{0, 72})
