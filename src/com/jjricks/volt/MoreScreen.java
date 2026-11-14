@@ -1111,7 +1111,7 @@ public final class MoreScreen implements AppScreen {
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null)
                 .setPositiveButton(T.moreScootersSaveName(), null).create();
         if (model != null) model.setOnClickListener(v -> { dialog.dismiss(); host.chooseScooterModel(id); });
-        TextView forget = ui.dangerButton(T.moreScootersForget(), () -> {
+        TextView forget = ui.secondaryButton(T.moreScootersForget(), () -> {
             if (!canChangeScooter()) return;
             dialog.dismiss(); forgetScooter(id);
         });
@@ -1119,14 +1119,15 @@ public final class MoreScreen implements AppScreen {
         ui.decorate(forget, "trash"); box.addView(forget);
         if (OwnerRelease.offered(p.role)) {
             // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main
-            // action, and Forget stays the outlined one (forgetting leaves the key on the scooter; forgetScooter guards it).
+            // action, and Forget is the grey secondary one (his pick, style B, from the renders): forgetting leaves the
+            // key on the scooter, and forgetScooter guards it.
             TextView release = ui.button(T.moreScootersRelease(), () -> {
                 if (!releaseReady(id)) return;
                 dialog.dismiss(); releaseScooter(id);
             });
             release.setTag(OwnerRelease.KEY);
             release.setContentDescription(T.moreScootersReleaseNamed(p.displayName()));
-            // Cycle arrows: the scooter goes back to new. Matches Forget's trash so the two red buttons line up.
+            // Cycle arrows: the scooter goes back to new. An icon like Forget's trash, so the two labels line up.
             ui.decorate(release, "restore");
             box.addView(release, box.indexOfChild(forget));
         }
@@ -1143,8 +1144,12 @@ public final class MoreScreen implements AppScreen {
         if (!canChangeScooter()) return;
         ScooterProfiles.Profile p = findScooter(id); if (p == null) return;
         LinearLayout box = dialogBox(T.moreScootersForgetTitle(p.displayName()), T.moreScootersForgetBody());
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
-        if (KeyBackups.guarded(p.role)) { forgetOwner(dialog, box, p); return; }
+        // Scrolls, so a short window (landscape, split screen) with large text still reaches the buttons.
+        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).create();
+        // An owner profile with no key yet holds nothing to lose (and no backup could ever record it), so it forgets
+        // like any other.
+        if (KeyBackups.guarded(p.role) && p.configured()) { forgetOwner(dialog, box, p); return; }
         TextView backup = ui.secondaryButton(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, null); });
         box.addView(backup);
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
@@ -1211,16 +1216,19 @@ public final class MoreScreen implements AppScreen {
         });
         show(dialog);
     }
-    /** The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). */
+    /**
+     * The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). It is shown
+     * even if this screen was rebuilt or left while the scooter answered, since the service has already acted on it and
+     * the message is the only word of what happened; only the redraw waits for a live activity.
+     */
     private void releaseEnded(OwnerRelease.Outcome outcome) {
-        if (closed) return;
         switch (outcome) {
             case RELEASED: host.toast(T.moreScootersReleased()); break;
             case REJECTED: host.toast(T.moreScootersReleaseRefused()); break;
             case NOT_CONFIRMED: host.toast(T.moreScootersReleaseUnconfirmed()); break;
             default: host.toast(T.moreScootersReleaseNotSent()); break;
         }
-        host.redraw();
+        if (!host.activity().isDestroyed()) host.redraw();
     }
 
     // ---- App preferences ----------------------------------------------------------------

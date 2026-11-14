@@ -532,7 +532,7 @@ public final class BleController {
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
         ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
-        queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
+        queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:releaseSent(mutation)?ProximityFollowUp.NOT_CHECKED_RESULT:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
         clearMutation();endCommandSession();pinState=null;pinStateMs=pinReadToken=0;pinReadPending=false;authenticated=writing=mtuRequested=discovered=subscribing=subscribed=challengePending=false;authRounds=0;statusFrame=pendingStatusFrame=pendingSerialFrame=null;pendingStatusMs=0;sessionFirmware=null;bondCheckedMs=0;statusMs=motionMs=warningMs=lastFrameMs=0;statusSleptMs=frameSleptMs=pendingStatusSleptMs=cadence.slept();serial="";speedRaw=driving=-1;warning=0;state=next;changed();
@@ -553,7 +553,10 @@ public final class BleController {
         boolean nativeDrop=reason==ConnectionEventLog.Reason.NATIVE_DISCONNECT;
         // A sent proximity change with no reconnect to check it is "not confirmed", never "cancelled" (the scooter may have taken it).
         String shown=ProximityFollowUp.dropNotice(text,dropped,dropped?mutation.key:null,dropped&&mutation.sent,dropped&&guided(mutation),next!=null,nativeDrop,reconnect);
-        if(dropped)mutation.dropResult=ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),next!=null,nativeDrop);
+        // A sent release is never "cancelled" either: the scooter may have taken it, and no reconnect checks it, so it
+        // reads like an unchecked proximity change (the same words as MoreScreen's "didn't confirm" message).
+        if(dropped&&releaseSent(mutation)){shown=text+ProximityFollowUp.NOT_CHECKED_SUFFIX;mutation.dropResult=ProximityFollowUp.NOT_CHECKED_RESULT;}
+        else if(dropped)mutation.dropResult=ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),next!=null,nativeDrop);
         if(next!=null)mutation.completion=null;
         close(reconnect?State.WAITING:State.DISCONNECTED);
         if(next!=null)startRecheck(next);else if(recheck!=null&&!reconnect)endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);
@@ -1109,6 +1112,8 @@ public final class BleController {
         forgetTest(testId);
     }
     private void forgetTest(String testId){testFirmwareConfirmed.remove(testId);if(test!=null&&test.terminal()&&testId.equals(test.testId()))test=null;changed();}
+    /** A release already written to the scooter (OwnerRelease): a closed link leaves it unconfirmed, not cancelled. */
+    private static boolean releaseSent(Mutation m){return m!=null&&m.sent&&OwnerRelease.KEY.equals(m.key);}
     private static boolean guided(Mutation m){return m.request!=null&&(m.request.origin==MutationGate.Origin.GUIDED_TEST||m.request.origin==MutationGate.Origin.GUIDED_RESTORE);}
     /**
      * Feeds the test's outputs back: a finished guided write releases the mutation, a wanted

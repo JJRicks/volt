@@ -73,17 +73,30 @@ public final class KeyBackupsTest {
         return live;
     }
 
-    private static void dropped() throws IOException {
+    private static void dropped() throws Exception {
         String phone = "[" + BackupTestStore.profileItem(ID, "Phone UT5", KEY, "SERIAL-C") + ","
                 + "{\"id\":\"e0000000-0000-4000-8000-00000000000e\",\"name\":\"Shared\",\"identity\":\"FEDCBA987654\",\"role\":1}]";
         List<BackupProfiles.Profile> none = Collections.emptyList();
         List<BackupProfiles.Profile> out = KeyBackups.dropped(live(phone), none);
         check(out.size() == 1 && out.get(0).id.equals(ID), "an owner key the backup lacks is dropped; a shared one isn't counted");
-        List<BackupProfiles.Profile> same = BackupProfiles.parse("[{\"id\":\"x1\",\"name\":\"Other name\",\"identity\":\"0123456789ab\",\"role\":0}]");
-        check(KeyBackups.dropped(live(phone), same).isEmpty(), "the backup holding the same owner key, under any profile, keeps it");
-        List<BackupProfiles.Profile> asShared = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789AB\",\"role\":1}]");
+        List<BackupProfiles.Profile> sameId = BackupProfiles.parse("[{\"id\":\"" + ID + "\",\"name\":\"Other name\",\"identity\":\"0123456789ab\",\"role\":0}]");
+        check(KeyBackups.dropped(live(phone), sameId).isEmpty(), "the backup holding the same owner key for the same profile keeps it");
+        List<BackupProfiles.Profile> sameSerial = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789AB\",\"role\":0,\"serial\":\"serial-c\"}]");
+        check(KeyBackups.dropped(live(phone), sameSerial).isEmpty(), "or for the same scooter under another profile (same serial)");
+        // A NAVEE account's scooters share one key; Volt can't use a key saved under another scooter's profile.
+        List<BackupProfiles.Profile> otherScooter = BackupProfiles.parse("[{\"id\":\"x1\",\"name\":\"Other name\",\"identity\":\"0123456789ab\",\"role\":0,\"serial\":\"SERIAL-D\"}]");
+        check(KeyBackups.dropped(live(phone), otherScooter).size() == 1, "the same key held only for another scooter doesn't keep this one");
+        List<BackupProfiles.Profile> unknownScooter = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789ab\",\"role\":0}]");
+        check(KeyBackups.dropped(live(phone), unknownScooter).size() == 1, "nor for a profile that can't be told to be this scooter");
+        List<BackupProfiles.Profile> asShared = BackupProfiles.parse("[{\"id\":\"" + ID + "\",\"identity\":\"0123456789AB\",\"role\":1}]");
         check(KeyBackups.dropped(live(phone), asShared).size() == 1, "the key held only as a shared profile still loses the owner's access");
         check(KeyBackups.dropped(live("[{broken"), none).isEmpty(), "unreadable saved scooters: Replace everything stays the way out");
+        // One damaged entry doesn't hide the others' keys (ScooterProfiles keeps what it can read too).
+        String damaged = "[{\"id\":\"d1\",\"identity\":\"not a key\",\"role\":0}," + BackupTestStore.profileItem(ID, "Phone UT5", KEY, "SERIAL-C")
+                + ",{\"id\":7},{\"id\":\"d2\",\"role\":5}]";
+        List<BackupProfiles.Profile> left = KeyBackups.dropped(live(damaged), none);
+        check(left.size() == 1 && left.get(0).id.equals(ID), "a damaged saved scooter beside an owner key still leaves that key guarded: " + left.size());
+        rejects(() -> BackupProfiles.parse(damaged), "a backup's own list is still read strictly");
         check(KeyBackups.dropped(new HashMap<>(), none).isEmpty() && KeyBackups.dropped(null, none).isEmpty(), "no saved scooters, nothing dropped");
     }
 

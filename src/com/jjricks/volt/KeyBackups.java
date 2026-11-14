@@ -73,20 +73,20 @@ final class KeyBackups {
 
     /**
      * Owner keys on this phone that replacing everything with a backup holding incoming would remove: an owner profile
-     * whose key the backup holds for no owner profile. Unreadable saved scooters give none, since Replace everything is
-     * also the way out of them and their keys can't be read anyway.
+     * the backup doesn't hold, with this key, as an owner profile of the same scooter (same profile ID, or the same
+     * scooter by BackupProfiles.Profile.sameScooter). The key alone isn't enough: a NAVEE account's scooters share one
+     * key, and Volt can't use a key saved under another scooter's profile. Saved scooters are read entry by entry, so
+     * one damaged entry doesn't hide the others' keys; a list that can't be read at all gives none, since Replace
+     * everything is also the way out of it and its keys can't be read anyway.
      */
     static List<BackupProfiles.Profile> dropped(Map<String, Map<String, Object>> live, List<BackupProfiles.Profile> incoming) {
-        List<BackupProfiles.Profile> local;
-        try {
-            Map<String, Object> profiles = live == null ? null : live.get("profiles");
-            local = BackupProfiles.parse(profiles == null ? null : profiles.get("items"));
-        } catch (IOException unreadable) { return Collections.emptyList(); }
+        Map<String, Object> profiles = live == null ? null : live.get("profiles");
         List<BackupProfiles.Profile> result = new ArrayList<>();
-        for (BackupProfiles.Profile p : local) {
+        for (BackupProfiles.Profile p : BackupProfiles.readable(profiles == null ? null : profiles.get("items"))) {
             if (!guarded(p.role) || !p.configured()) continue;
             boolean kept = false;
-            for (BackupProfiles.Profile q : incoming) if (guarded(q.role) && q.configured() && q.identity.equalsIgnoreCase(p.identity)) { kept = true; break; }
+            for (BackupProfiles.Profile q : incoming)
+                if (guarded(q.role) && q.configured() && q.identity.equalsIgnoreCase(p.identity) && (q.id.equals(p.id) || p.sameScooter(q))) { kept = true; break; }
             if (!kept) result.add(p);
         }
         return result;
