@@ -655,7 +655,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         Configuration c=getResources().getConfiguration();
         return HubSplit.fits(c.screenWidthDp-2*24,20,PANE_LEFT_DP,PANE_RIGHT_DP)&&!paneKey().equals(onePaneHomeAt);
     }
-    /** This window's size, text size and language, as MoreScreen keys its one-pane fallback. */
+    /** This window's size, text size and language: where a subject's name once failed to fit, Home keeps one pane (onePaneHomeAt). */
     private String paneKey(){
         Configuration c=getResources().getConfiguration();
         return c.screenWidthDp+"x"+c.screenHeightDp+"@"+design.textScale*c.fontScale+"/"+Fmt.displayLocale().toLanguageTag();
