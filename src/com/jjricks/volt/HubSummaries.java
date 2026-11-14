@@ -152,4 +152,19 @@ final class HubSummaries {
         if (recording) return false;
         return ended || !known || sinceMs >= everyMs;
     }
+
+    /**
+     * Whether Clean's Ride row takes the ride Clean's top area found (CleanHomeScreen's look at the saved rides, the
+     * one Just back shows) over its own. The row lists only rides already in memory and looks again every half
+     * minute, so a ride saved while Home shows (or one still being read) appeared on Just back while the row said "No
+     * rides yet" (emulator walk on #390). It takes a found ride while it knows none, or knows an older one; never one
+     * older than its own, and not while a ride records (the row shows the recording then).
+     *
+     * @param ownEndMs the row's newest finished ride's shown end (wall clock), or null for none known
+     * @param foundEndMs the found ride's shown end, or null when nothing was found
+     */
+    static boolean takeFoundRide(boolean recording, Long ownEndMs, Long foundEndMs) {
+        if (recording || foundEndMs == null) return false;
+        return ownEndMs == null || foundEndMs > ownEndMs;
+    }
 }

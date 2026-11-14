@@ -223,6 +223,8 @@ final class CleanHomeScreen implements AppScreen {
         String name = parts.name().getText().toString();
         parts.name().setContentDescription(HubText.switchScooterDescription(name).render());
         quick.refresh();
+        // The Ride row shows the ride Just back shows as soon as it is found (CleanSubjects.rideFound).
+        subjects.rideFound(ride);
         subjects.refresh();
     }
 
