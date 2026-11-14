@@ -18,6 +18,7 @@ public final class ChargeWireTest {
         timing();
         landing();
         glow();
+        comets();
         System.out.println("ChargeWire: " + checks + " checks passed");
     }
 
@@ -31,7 +32,7 @@ public final class ChargeWireTest {
                 && x.panelAbove == m.panelAbove && x.panelBelow == m.panelBelow && x.panelRight == m.panelRight
                 && x.panelLeftTop == m.panelLeftTop && x.panelLeftBottom == m.panelLeftBottom && x.panelRadius == m.panelRadius
                 && x.cableWidth == m.cableWidth && x.widthShare == m.widthShare && x.centreShare == m.centreShare
-                && x.tyreGapDp == m.tyreGapDp && x.percentLiftDp == m.percentLiftDp, "the Ultra X: the MAX's geometry");
+                && x.tyreGapDp == m.tyreGapDp, "the Ultra X: the MAX's geometry");
         require(ChargeWireModels.all().length == 2, "two animated pictures");
         require(ChargeWireModels.forKey(null) == null && ChargeWireModels.forKey("") == null, "no model, no picture");
         for (String other : new String[] {"n65i", "st3pro", "gt5max", "gt3max", "xt5ultra", "UT5 MAX", "ut5ultra"})
@@ -63,21 +64,22 @@ public final class ChargeWireTest {
     private static void placement() {
         ChargeWireModels.Model m = ChargeWireModels.UT5_MAX;
         // At 3 px per dp: a 308 dp content width; a tall stage.
-        ChargeWireModels.Placement p = ChargeWireModels.place(m, 924, 600);
-        near(p.width(m) / 3, 283.6, .05, "87% picture: 283.6 dp wide on a 344 dp phone");
+        float box = ChargePictureFit.widthBox(924);
+        ChargeWireModels.Placement p = ChargeWireModels.place(m, 924, 600, box);
+        near(p.width(m) / 3, 283.6, .05, "about 92% of the content width: 283.6 dp wide on a 344 dp phone");
         near(p.left / 3 + 18, 39.3, .05, "its left edge at 39.3 dp on screen");
         near(p.height(m) / 3, 283.6 * 691 / 1438, .05, "its height follows the cut-out");
         near(p.top + p.height(m), 600, .01, "its tyres stand at the floor");
-        // A short stage: smaller, same centre, still standing on the floor.
-        ChargeWireModels.Placement q = ChargeWireModels.place(m, 924, 240);
-        near(q.height(m), 240, .01, "a short stage: the picture fills its height");
+        // A smaller box (ChargePictureFit): smaller, same centre, still standing on the floor.
+        ChargeWireModels.Placement q = ChargeWireModels.place(m, 924, 600, 240);
+        near(q.height(m), 240, .01, "a smaller box: the picture its height");
         require(q.width(m) < p.width(m), "and is narrower");
         near(q.left + q.width(m) / 2, p.left + p.width(m) / 2, .01, "about the same centre");
-        near(q.top, 0, .01, "reaching the stage's top");
+        near(q.top + q.height(m), 600, .01, "on the floor");
         // 412 dp: wider in proportion.
-        ChargeWireModels.Placement r = ChargeWireModels.place(m, (412 - 36) * 3, 900);
+        ChargeWireModels.Placement r = ChargeWireModels.place(m, (412 - 36) * 3, 900, ChargePictureFit.widthBox((412 - 36) * 3));
         near(r.width(m) / 3, 283.6 * 376 / 308, .05, "412 dp: the same share of the width");
-        require(ChargeWireModels.place(m, 0, 100).scale == 0 && ChargeWireModels.place(m, 100, 0).scale == 0, "no room, no picture");
+        require(ChargeWireModels.place(m, 0, 100, 50).scale == 0 && ChargeWireModels.place(m, 100, 100, 0).scale == 0, "no room, no picture");
     }
 
     private static void path() {
@@ -234,7 +236,7 @@ public final class ChargeWireTest {
         for (double width : new double[] {44, 44 * 0.55}) {
             double[] half = new double[ChargeWirePulses.GLOW_Z.length], profile = new double[half.length], alpha = new double[half.length];
             int n = ChargeWirePulses.glowRings(width, 11, half, profile);
-            require(n >= 5, width + ": enough rings for a smooth blur");
+            require(n >= 4, width + ": enough rings for a smooth blur");
             near(half[0], width / 2 + 11 * 2.2, 1e-9, width + ": the outermost ring 2.2 sigmas out");
             for (int k = 1; k < n; k++) require(half[k] < half[k - 1] && profile[k] > profile[k - 1], width + ": rings narrower, brighter inwards");
             for (double peak : new double[] {1, .46, .1}) {
@@ -249,6 +251,49 @@ public final class ChargeWireTest {
         }
         near(ChargeWirePulses.blurred(0, 44, 11), 2 * ChargePercentShade.phi(2) - 1, 1e-12, "the blurred stroke's middle");
         require(ChargeWirePulses.blurred(22 + 33, 44, 11) < .002, "nothing 3 sigmas past its edge");
+    }
+
+    /**
+     * The comets' strokes per frame (review of #483, C3): averaged and at most over many frames at 60 fps, under a
+     * budget for each mode; nothing past the cable's fade; every stroke inside the drawn layer's stretch.
+     */
+    private static void comets() {
+        ChargeWireComet c = new ChargeWireComet(7.6f, 0xFF5FCB7E, 0xFF79DB95, 0xFFD6FBE0, 0xFF9BE8B2, 0xFFF4FFF6, 1f);
+        ChargeWire w = new ChargeWire(ChargeWireModels.UT5_MAX, 400);
+        final double[] last = new double[1];
+        final int[] beyond = new int[1];
+        for (ChargeWirePulses.Mode m : new ChargeWirePulses.Mode[] {ChargeWirePulses.STOCK, ChargeWirePulses.FAST}) {
+            ChargeWirePulses.State st = new ChargeWirePulses.State();
+            long sum = 0; int max = 0, frames = 0;
+            ChargeWireComet.Sink count = new ChargeWireComet.Sink() {
+                @Override public void piece(double s0, double s1, int argb, float width) {
+                    if (s0 < -1e-9 || s1 > w.length + 1e-9 || s1 <= s0) throw new AssertionError("a stroke outside the cable: " + s0 + ".." + s1);
+                }
+                @Override public void cap(double s, int argb, float r) {}
+            };
+            for (double t = 10; t < 10 + m.period * (m == ChargeWirePulses.STOCK ? 4 : 12); t += 1 / 60.0, frames++) {
+                ChargeWirePulses.state(t, m, st);
+                int d = c.draw(w, st, m, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, count);
+                sum += d; max = Math.max(max, d);
+            }
+            double avg = sum / (double) frames;
+            System.out.println("ChargeWire: comet strokes per frame, " + m + ": avg " + Math.round(avg) + ", max " + max);
+            require(max <= (m == ChargeWirePulses.STOCK ? 110 : 320), m + ": at most " + max + " strokes a frame");
+            require(avg > 10, m + ": the comets draw");
+            // Faded out from x 1500 to 1600 (cut-out pixels): nothing drawn whose middle is past 1600.
+            ChargeWireComet.Sink faded = new ChargeWireComet.Sink() {
+                @Override public void piece(double s0, double s1, int argb, float width) { if (w.xAt((s0 + s1) / 2) >= 1600) beyond[0]++; }
+                @Override public void cap(double s, int argb, float r) { if (w.xAt(s) >= 1600) beyond[0]++; }
+            };
+            for (double t = 10; t < 10 + m.period * 4; t += 1 / 60.0) { ChargeWirePulses.state(t, m, st); c.draw(w, st, m, 1500, 1600, faded); }
+        }
+        require(beyond[0] == 0, "nothing drawn past the cable's fade: " + beyond[0]);
+        near(ChargeWireComet.fadeAt(1400, 1500, 1600), 1, 0, "full before the fade");
+        near(ChargeWireComet.fadeAt(1550, 1500, 1600), .5, 1e-9, "half way");
+        near(ChargeWireComet.fadeAt(1600, 1500, 1600), 0, 0, "gone at its end");
+        near(ChargeWireComet.fadeAt(1e9, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY), 1, 0, "no fade: full everywhere");
+        require(ChargeWireComet.withAlpha(0xFF123456, 128) == 0x80123456, "an opacity");
+        require(ChargeWireComet.mix(0xFF000000, 0xFFFFFFFF, .5f) == 0xFF808080, "a mix");
     }
 
     private static void near(double actual, double expected, double tolerance, String message) {

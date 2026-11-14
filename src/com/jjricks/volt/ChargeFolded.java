@@ -47,13 +47,13 @@ final class ChargeFolded {
     static Model[] all() { return ALL.clone(); }
 
     /**
-     * The picture in a stage {@code width} pixels wide whose tyres stand at {@code floor} (pixels from the stage's
-     * top): {@link #WIDTH_SHARE} of the width, smaller where the stage is too short for it (it may reach up to the
-     * stage's top, behind the percentage), centred across.
+     * The picture at {@code share} of its full size (ChargePictureFit.Fit.boxShare: the reference box against the one
+     * the width allows), so it grows and shrinks with the wire picture's box: {@link #WIDTH_SHARE} of the width times
+     * the share, centred, its tyres at {@code floor}.
      */
-    static ChargeWireModels.Placement place(Model m, int width, float floor) {
-        if (width <= 0 || floor <= 0) return new ChargeWireModels.Placement(0, 0, 0);
-        float scale = (float) Math.min(WIDTH_SHARE * width / m.width, floor / (double) m.tyreY);
+    static ChargeWireModels.Placement place(Model m, int width, float floor, float share) {
+        if (width <= 0 || share <= 0) return new ChargeWireModels.Placement(0, 0, 0);
+        float scale = (float) (WIDTH_SHARE * width / m.width * Math.min(1, share));
         return new ChargeWireModels.Placement(scale, (width - m.width * scale) / 2, floor - m.tyreY * scale);
     }
 }

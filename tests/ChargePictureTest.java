@@ -15,6 +15,12 @@ public final class ChargePictureTest {
         halo();
         cutoff();
         largeText();
+        fit();
+        shadeFromBox();
+        layers();
+        clipping();
+        cableEnd();
+        registryKeys();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
 
@@ -43,17 +49,19 @@ public final class ChargePictureTest {
         float floor = (float) ((362.6 - 200) * 3);
         for (int i = 0; i < all.length; i++) {
             ChargeFolded.Model m = all[i];
-            ChargeWireModels.Placement p = ChargeFolded.place(m, 924, floor);
+            ChargeWireModels.Placement p = ChargeFolded.place(m, 924, floor, 1);
             near(p.scale * m.width / 3, 246.4, .05, m.key + ": 80% of the 308 dp content width");
             near(p.left / 3 + 18, expected[i][0], .25, m.key + ": centred (its left edge)");
             near(p.top / 3 + 200, expected[i][1], .15, m.key + ": its top as the prototype's");
             near(p.top + m.tyreY * p.scale, floor, .01, m.key + ": the tyres on the floor");
-            // A short stage: smaller, centred, still on the floor.
-            ChargeWireModels.Placement q = ChargeFolded.place(m, 924, 150);
-            near(q.top, 0, .01, m.key + ": a short stage: up to its top");
+            // A smaller box (ChargePictureFit): smaller in the same share, centred, still on the floor.
+            ChargeWireModels.Placement q = ChargeFolded.place(m, 924, floor, .75f);
+            near(q.scale, p.scale * .75, 1e-6, m.key + ": three quarters of the box, three quarters of the size");
             near(q.left + q.scale * m.width / 2, 462, .01, m.key + ": still centred");
+            near(q.top + m.tyreY * q.scale, floor, .01, m.key + ": still on the floor");
+            near(ChargeFolded.place(m, 924, floor, 2).scale, p.scale, 1e-6, m.key + ": never larger than its full size");
         }
-        require(ChargeFolded.place(ChargeFolded.N65I, 0, 10).scale == 0, "no room, no picture");
+        require(ChargeFolded.place(ChargeFolded.N65I, 0, 10, 1).scale == 0 && ChargeFolded.place(ChargeFolded.N65I, 100, 10, 0).scale == 0, "no room, no picture");
         // The tyres stand where the wire picture's do: its gap above the track for every picture.
         near(362.6, 372 - ChargeWireModels.UT5_MAX.tyreGapDp, .05, "the shared floor: 9.4 dp over the track");
     }
@@ -61,7 +69,7 @@ public final class ChargePictureTest {
     private static final float LEFT = 120.48f, RIGHT = 215.53f, BASE = 268, SIZE = 60;
 
     private static void halo() {
-        float[] h = ChargePercentShade.halo(LEFT, RIGHT, BASE, SIZE);
+        float[] h = ChargePercentShade.halo(LEFT, RIGHT, BASE, SIZE, SIZE, new float[3]);
         near(h[0], 172, .05, "the halo's centre: the prototype's box centre across");
         near(h[1], 254, .05, "and down (its box 211 to 297)");
         near(h[2] * 2, 168, .01, "168 dp across");
@@ -73,7 +81,7 @@ public final class ChargePictureTest {
     }
 
     private static void cutoff() {
-        float[] box = ChargePercentShade.cutoffBox(LEFT, RIGHT, BASE, SIZE);
+        float[] box = ChargePercentShade.cutoffBox(LEFT, RIGHT, BASE, SIZE, SIZE, new float[4]);
         // The prototype's ::before: 3 px left of the padded box (4 px padding) and 5 px in from its right (12 px), 9 px
         // below its top (211) and 20.5 px above its bottom (297).
         near(box[0], 113.48, .01, "the box's left: 7 dp outside the text");
@@ -111,16 +119,163 @@ public final class ChargePictureTest {
     private static void largeText() {
         float k = 1.4f;
         float left = 172 - (172 - LEFT) * k, right = 172 + (RIGHT - 172) * k;
-        float[] box = ChargePercentShade.cutoffBox(left, right, BASE, SIZE * k);
+        float[] box = ChargePercentShade.cutoffBox(left, right, BASE, SIZE * k, SIZE * k, new float[4]);
         near(box[0], left - 7 * k, 1e-3, "the cut-off's side grows");
         near(BASE - box[1], 48 * k, 1e-3, "its top");
         near(box[3] - BASE, 8.5 * k, 1e-3, "its bottom");
         near(ChargePercentShade.cutoffSigma(SIZE * k), 5 * k, 1e-4, "its blur");
         float r = ChargePercentShade.cutoffRadius(SIZE * k), sigma = ChargePercentShade.cutoffSigma(SIZE * k);
         near(ChargePercentShade.cutoffAlpha(box, r, sigma, left, (box[1] + box[3]) / 2), .92, .01, "still 92% at the glyphs");
-        near(ChargePercentShade.halo(left, right, BASE, SIZE * k)[2] * 2, 168 * k, 1e-3, "the halo grows");
-        float[] none = ChargePercentShade.cutoffBox(0, 0, 0, 0);
+        near(ChargePercentShade.halo(left, right, BASE, SIZE * k, SIZE * k, new float[3])[2] * 2, 168 * k, 1e-3, "the halo grows");
+        float[] none = ChargePercentShade.cutoffBox(0, 0, 0, 0, 0, new float[4]);
         require(none[0] == 0 && none[2] == 0, "no text, no box");
+    }
+
+    // ---- the percentage and the picture over each other (ChargePictureFit; review of #483, D1-D3) ----
+
+    /** Saira Bold's top (its bounding box's 1138/1000 em: the percentage's baseline below its view's top per px). */
+    private static final float SHARE = 1.138f;
+    private static final float D = 3;
+
+    /**
+     * Clean's stages as the app lays them out (3 px per dp): the slot's width and the tyres' floor below the stage's top
+     * (the percentage's top 10 dp above it, in the line's gap), at 1.0x and 1.4x Text size. 344 dp at both sizes and
+     * 412 and 725 dp at 1.0x were measured on the emulator at #483's first head (ChargingFit is unchanged); 412 and
+     * 725 dp at 1.4x are their 1.0x stages less the taller readings (18 dp, as on 344 dp). {name, width dp, floor dp,
+     * text scale}.
+     */
+    private static final Object[][] CLEAN = {
+            {"344x882 1.0x", 308f, 152.6f, 1f}, {"344x882 1.4x", 308f, 134.5f, 1.4f},
+            {"412x915 1.0x", 376f, 164.6f, 1f}, {"412x915 1.4x", 376f, 146.5f, 1.4f},
+            {"725x604 1.0x", 559f, 102.6f, 1f}, {"725x604 1.4x", 559f, 84.5f, 1.4f}};
+
+    private static void fit() {
+        for (Object[] c : CLEAN) {
+            String name = (String) c[0];
+            float width = (Float) c[1] * D, floor = (Float) c[2] * D, scale = (Float) c[3], top = -10 * D;
+            float full = 60 * D * scale, oneX = 60 * D;
+            ChargePictureFit.Fit f = fitOf(c);
+            float baseline = top + SHARE * f.text, boxTop = floor - f.box, share = (float) (ChargePictureFit.TEXT_PER_BOX * f.box);
+            require(f.text <= full + .01f, name + ": never above its own size: " + f.text / D);
+            // At 1.0x the number is at most the picture's share; at 1.4x it may be larger, up to its 1.0x size.
+            if (scale == 1) require(f.text <= share + .5f, name + ": at 1.0x no larger than the picture's share: " + f.text / D + " over " + f.box / D);
+            else require(f.text <= Math.max(share + .5f, oneX + .01f), name + ": at 1.4x at most its 1.0x size over a smaller picture");
+            // At 1.4x it is never smaller than at 1.0x on the same stage.
+            if (scale > 1) {
+                ChargePictureFit.Fit at1 = ChargePictureFit.clean(width, floor, top, SHARE, oneX, oneX, 1, D);
+                require(f.text >= at1.text - .01f, name + ": no smaller than at 1.0x (" + f.text / D + " vs " + at1.text / D + ")");
+            }
+            // Its baseline sits no deeper in the box than the prototype's (above the deck, over the stem's tip only).
+            require(baseline - boxTop <= ChargePictureFit.OVERLAP_PER_BOX * f.box + ChargePictureFit.SLACK_DP * D + .01f,
+                    name + ": the baseline " + (baseline - boxTop) / D + " dp into a " + f.box / D + " dp box");
+            // The picture: no wider than the width allows, standing on the floor, never above the stage's top.
+            require(f.box <= ChargePictureFit.widthBox(width) + .01f && boxTop >= -.01f && f.box > 20 * D, name + ": the box " + f.box / D);
+            require(f.shadeSize() <= f.text + .01f && f.shadeSize() <= share + .01f, name + ": the shade's size from the box");
+        }
+        // The prototype's own phone at 1.0x: unchanged (the 283.6 dp picture under the 60 dp number).
+        ChargePictureFit.Fit proto = fitOf(CLEAN[0]);
+        near(proto.text / D, 60, 1e-4, "344 dp at 1.0x: the full 60 dp number");
+        near(proto.box / D, ChargePictureFit.PROTO_BOX_DP, .01, "and the prototype's 136.3 dp picture");
+        // 1.4x on the phone: the number stays at its 1.0x size (the picture cannot grow), the picture gives way.
+        ChargePictureFit.Fit large = fitOf(CLEAN[1]);
+        near(large.text / D, 60, 1e-4, "344 dp at 1.4x: the number at its 1.0x size");
+        require(large.box < proto.box && large.box > proto.box * .7f, "344 dp at 1.4x: the picture a little smaller: " + large.box / D);
+        // 412 dp: the full number over a larger picture than the phone's.
+        ChargePictureFit.Fit wide412 = fitOf(CLEAN[2]);
+        near(wide412.text / D, 60, 1e-4, "412 dp at 1.0x: the full number");
+        require(wide412.box > proto.box, "412 dp: a larger picture than the phone's: " + wide412.box / D);
+        // 725 dp (two panes, a short slot): the number at the picture's share, not as tall as the scooter.
+        ChargePictureFit.Fit wide = fitOf(CLEAN[4]);
+        near(wide.text, ChargePictureFit.TEXT_PER_BOX * wide.box, .5, "725 dp at 1.0x: the number at the picture's share");
+        require(wide.text > 36 * D && wide.text < 50 * D && wide.box > 85 * D, "725 dp: a readable number over a fair picture: " + wide.text / D + " over " + wide.box / D);
+        ChargePictureFit.Fit wide14 = fitOf(CLEAN[5]);
+        require(wide14.text > wide.text, "725 dp at 1.4x: a larger number than at 1.0x: " + wide14.text / D);
+        // Widgets: the number on the picture as on Clean; the stage as tall as the picture's floor (plus the bar's foot).
+        for (float w : new float[] {312, 380, 560}) for (float scale : new float[] {1, 1.4f}) {
+            ChargePictureFit.Fit f = ChargePictureFit.widgets(w * D, SHARE, 60 * D * scale, 60 * D, scale, D);
+            String name = "Widgets " + w + " dp at " + scale + "x";
+            float baseline = f.percentTop + SHARE * f.text, boxTop = f.floor - f.box;
+            require(f.text >= 60 * D - .01f && f.text <= 60 * D * scale + .01f, name + ": the number's size " + f.text / D);
+            near(baseline - boxTop, ChargePictureFit.OVERLAP_PER_BOX * f.box, .01, name + ": the baseline the prototype's depth into the picture");
+            require(boxTop >= -.01f && f.percentTop >= 0, name + ": inside the stage");
+            require(f.box <= ChargePictureFit.WIDGETS_BOX_MAX_DP * D + .01f, name + ": the picture at most the old photo's height");
+        }
+        ChargePictureFit.Fit phone = ChargePictureFit.widgets(312 * D, SHARE, 60 * D, 60 * D, 1, D);
+        near(phone.text / D, 60, 1e-4, "Widgets on the phone: Clean's 60 dp number");
+        require(phone.floor + ChargePictureFit.WIDGETS_FOOT_DP * D < (236 + 72 * 1.4) * D, "Widgets: the takeover shorter than the photo's stage under the 72 sp number");
+        require(ChargePictureFit.clean(0, 100, 0, SHARE, 60, 60, 1, D).box == 0, "no width, no picture");
+        // The text rule alone: the share at 1.0x; grown by the Text size up to the 1.0x size; the full size near it.
+        near(ChargePictureFit.text(100, 84, 60, 1.4f), Math.min(60, ChargePictureFit.TEXT_PER_BOX * 100 * 1.4), 1e-3, "1.4x: the share grown, up to 1.0x");
+        near(ChargePictureFit.text(100, 60, 60, 1), ChargePictureFit.TEXT_PER_BOX * 100, 1e-3, "1.0x: the share");
+        near(ChargePictureFit.text(1000, 60, 60, 1), 60, 0, "a large box: the full size");
+    }
+
+    private static ChargePictureFit.Fit fitOf(Object[] c) {
+        float scale = (Float) c[3];
+        return ChargePictureFit.clean((Float) c[1] * D, (Float) c[2] * D, -10 * D, SHARE, 60 * D * scale, 60 * D, scale, D);
+    }
+
+    /** The shade reaches out by the box's em: the cut-off's foot and blur and the halo's radius shrink with the picture. */
+    private static void shadeFromBox() {
+        float em = 40;
+        float[] box = ChargePercentShade.cutoffBox(LEFT, RIGHT, BASE, SIZE, em, new float[4]);
+        near(box[0], LEFT - 7, 1e-3, "the sides still hug the number");
+        near(BASE - box[1], 48, 1e-3, "and its top");
+        near(box[3] - BASE, 8.5 * em / 60, 1e-3, "its foot from the box's em");
+        near(ChargePercentShade.halo(LEFT, RIGHT, BASE, SIZE, em, new float[3])[2], 84 * em / 60, 1e-3, "the halo's radius from it");
+        float[] out = new float[4];
+        require(ChargePercentShade.cutoffBox(LEFT, RIGHT, BASE, SIZE, em, out) == out, "into the caller's array (no allocation per frame)");
+    }
+
+    /** The layers' measure (review of #483, C1): the stage's width, and its height only when exact. */
+    private static void layers() {
+        int exactly = 1 << 30, atMost = 2 << 30, unspecified = 0;
+        near(ChargePictureFit.layerHeight(exactly | 600), 600, 0, "an exact height: the stage's");
+        near(ChargePictureFit.layerHeight(atMost | 600), 0, 0, "at most (the takeover animating open or closed): none");
+        near(ChargePictureFit.layerHeight(unspecified | 0), 0, 0, "unspecified: none");
+        require(ChargePictureFit.EXACTLY == exactly, "the platform's EXACTLY");
+    }
+
+    /** The parents stop clipping only at rest and only where the cable runs off the edge (review of #483, C2, D4). */
+    private static void clipping() {
+        require(ChargePictureFit.atRest(true, true, false, false, false), "shown, visible, still: at rest");
+        require(!ChargePictureFit.atRest(true, true, true, false, false), "animating open or closed: not at rest");
+        require(!ChargePictureFit.atRest(true, true, false, true, false), "editing: not at rest");
+        require(!ChargePictureFit.atRest(false, true, false, false, false), "hidden (charging stopped): not at rest");
+        require(!ChargePictureFit.atRest(true, false, false, false, false), "the picture not visible: not at rest");
+        require(!ChargePictureFit.atRest(true, true, false, false, true), "closed: not at rest");
+        require(ChargePictureFit.unclipped(true, true), "at rest, running off the edge: unclipped");
+        require(!ChargePictureFit.unclipped(true, false), "at rest, faded short of the edge: clipped");
+        require(!ChargePictureFit.unclipped(false, true), "not at rest: clipped");
+    }
+
+    /** On a wide window the cable fades out about 60 dp past the scooter's tail (review of #483, D2). */
+    private static void cableEnd() {
+        float[] out = new float[2];
+        ChargePictureFit.cableEnd(305 * D, 326 * D, D, out);
+        require(Float.isInfinite(out[0]) && Float.isInfinite(out[1]), "the phone: the edge 21 dp past the tail, the cable runs off it");
+        ChargePictureFit.cableEnd(300 * D, Float.NaN, D, out);
+        require(Float.isInfinite(out[1]), "no scroller: it runs on");
+        ChargePictureFit.cableEnd(400 * D, 700 * D, D, out);
+        near(out[0] / D, 412, 1e-3, "a far edge: full strength 12 dp past the tail");
+        near(out[1] / D, 460, 1e-3, "gone 60 dp past it");
+    }
+
+    /** Each charging picture's key is a photo key ModelRegistry gives a model (review of #483, C9). */
+    private static void registryKeys() {
+        java.util.Set<String> keys = new java.util.HashSet<>();
+        keys.add(ModelRegistry.ownerPhoto("UT5 Max"));
+        for (String[] named : ModelRegistry.knownModels().values()) keys.add(ModelRegistry.ownerPhoto(named[0]));
+        for (String name : ModelRegistry.WAITING_PHOTOS.keySet()) keys.add(ModelRegistry.ownerPhoto(name));
+        String[] pictures = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra"};
+        for (String key : pictures) {
+            require(keys.contains(key), key + ": ModelRegistry gives it to a model");
+            require((ChargeWireModels.forKey(key) != null) != (ChargeFolded.forKey(key) != null), key + ": exactly one picture");
+        }
+        int pictured = 0;
+        for (String key : keys) if (ChargeWireModels.forKey(key) != null || ChargeFolded.forKey(key) != null) pictured++;
+        near(pictured, 7, 0, "the seven bundled models each have a picture");
+        near(ChargeWireModels.all().length + ChargeFolded.all().length, 7, 0, "and the tables have no other");
     }
 
     private static void near(double actual, double expected, double tolerance, String message) {

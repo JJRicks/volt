@@ -128,7 +128,7 @@ final class ChargeWirePulses {
      * width w by a Gaussian of sigma; the view draws it as nested solid strokes, each a little narrower and each adding
      * its share, so the cross-section steps through the blurred stroke's profile.
      */
-    static final double[] GLOW_Z = {2.2, 1.5, 0.8, 0.2, -0.4, -1.0, -1.6};
+    static final double[] GLOW_Z = {2.2, 1.2, 0.3, -0.6, -1.5};
 
     /**
      * The glow's nested strokes for a stroke {@code width} wide blurred by {@code sigma}: each ring's half-width into

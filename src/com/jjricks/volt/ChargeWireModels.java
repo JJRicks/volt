@@ -38,29 +38,27 @@ final class ChargeWireModels {
         /**
          * Where the picture sits in the stage (Clean's charging view, the content width): its width as a share of the
          * content width and its centre's place across it, as the prototype draws it on a 344 dp phone (283.6 dp wide
-         * from 21.3 dp on a 308 dp content width); it shrinks to fit a shorter stage.
+         * from 21.3 dp on a 308 dp content width, about 92%); it shrinks to fit a shorter stage (ChargePictureFit).
          */
         final double widthShare, centreShare;
         /** The tyres' gap above the track's top (dp). */
         final double tyreGapDp;
-        /** How far the percentage moves up for this picture (dp). */
-        final int percentLiftDp;
 
         Model(String key, int width, int height, double[][] wire, double[] cells,
               double panelAbove, double panelBelow, double panelRight, double panelLeftTop, double panelLeftBottom,
-              double panelRadius, double cableWidth, double widthShare, double centreShare, double tyreGapDp, int percentLiftDp) {
+              double panelRadius, double cableWidth, double widthShare, double centreShare, double tyreGapDp) {
             this.key = key; this.width = width; this.height = height; this.wire = wire; this.cells = cells;
             this.panelAbove = panelAbove; this.panelBelow = panelBelow; this.panelRight = panelRight;
             this.panelLeftTop = panelLeftTop; this.panelLeftBottom = panelLeftBottom; this.panelRadius = panelRadius;
             this.cableWidth = cableWidth; this.widthShare = widthShare; this.centreShare = centreShare;
-            this.tyreGapDp = tyreGapDp; this.percentLiftDp = percentLiftDp;
+            this.tyreGapDp = tyreGapDp;
         }
 
         /** Another model with exactly this one's picture geometry (its own cut-out over the same body). */
         Model(String key, Model same) {
             this(key, same.width, same.height, same.wire, same.cells, same.panelAbove, same.panelBelow, same.panelRight,
                     same.panelLeftTop, same.panelLeftBottom, same.panelRadius, same.cableWidth, same.widthShare,
-                    same.centreShare, same.tyreGapDp, same.percentLiftDp);
+                    same.centreShare, same.tyreGapDp);
         }
     }
 
@@ -76,7 +74,7 @@ final class ChargeWireModels {
                     {873.0, 343.77, 1061.33, 316.55, 1249.67, 344.84, 1438.0, 373.12}},
             new double[] {434, 442, 776, 551},
             10.4, 2, 1, 1.8, 6, 2, 7.6,
-            283.6 / 308, (21.3 + 283.6 / 2) / 308, 9.4, 10);
+            283.6 / 308, (21.3 + 283.6 / 2) / 308, 9.4);
 
     /**
      * The UT5 Ultra X: the UT5 MAX's cut-out with the Ultra X render's gold parts pieced in (registered onto the MAX's
@@ -107,14 +105,12 @@ final class ChargeWireModels {
     }
 
     /**
-     * The picture in a stage {@code width} pixels wide whose tyres stand at {@code floor} (pixels from the stage's
-     * top): its model's share of the width, smaller where the stage is too short for it (it may reach up to the
-     * stage's top, behind the percentage), kept at its centre's place across.
+     * The picture {@code box} pixels tall (ChargePictureFit's box) in a stage {@code width} pixels wide, its tyres at
+     * {@code floor}, kept at its centre's place across.
      */
-    static Placement place(Model m, int width, float floor) {
-        if (width <= 0 || floor <= 0) return new Placement(0, 0, 0);
-        float scale = (float) Math.min(m.widthShare * width / m.width, floor / m.height);
-        float w = m.width * scale;
+    static Placement place(Model m, int width, float floor, float box) {
+        if (width <= 0 || box <= 0) return new Placement(0, 0, 0);
+        float scale = box / m.height, w = m.width * scale;
         return new Placement(scale, (float) (m.centreShare * width - w / 2), floor - m.height * scale);
     }
 }

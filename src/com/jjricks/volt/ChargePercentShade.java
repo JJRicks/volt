@@ -13,9 +13,12 @@ package com.jjricks.volt;
  *       and whatever part of the scooter is behind the number disappears into the page.
  * </ul>
  *
- * Every size is a share of the percentage's text size (the prototype's 60 px), so at large text the shade grows with
- * the number. Coordinates are the parent's pixels: the text's advance from {@code left} to {@code right} and its
- * {@code baseline}.
+ * Every size is a share of an em: the halo's radius and the cut-off's reach below the baseline (its bottom, corners
+ * and blur) of the {@code em} the picture allows (ChargePictureFit.Fit.shadeSize: the text size, at most the picture
+ * box's share), the parts that hug the number (the halo's centre, the cut-off's sides and top) of the text's own
+ * {@code size}. So the shade grows with the picture, and never erases more of a picture smaller than the number than
+ * the prototype erases of its own. Coordinates are the parent's pixels: the text's advance from {@code left} to
+ * {@code right} and its {@code baseline}. The results go into the caller's array (nothing is allocated per frame).
  */
 final class ChargePercentShade {
     private ChargePercentShade() {}
@@ -40,10 +43,12 @@ final class ChargePercentShade {
     /** Its fill's opacity at the centre, at {@link #HALO_STOPS}[1] of the way out and at the edge. */
     static final float[] HALO_ALPHAS = {.47f, .24f, 0}, HALO_STOPS = {0, .55f, 1};
 
-    /** The halo's centre and radius, {cx, cy, r}. */
-    static float[] halo(float left, float right, float baseline, float size) {
-        return new float[] {
-                (float) ((left + right) / 2 + HALO_RIGHT * size), (float) (baseline - HALO_UP * size), (float) (HALO_RADIUS * size)};
+    /** The halo's centre and radius, {cx, cy, r}, into out. */
+    static float[] halo(float left, float right, float baseline, float size, float em, float[] out) {
+        out[0] = (float) ((left + right) / 2 + HALO_RIGHT * size);
+        out[1] = (float) (baseline - HALO_UP * size);
+        out[2] = (float) (HALO_RADIUS * em);
+        return out;
     }
 
     // ---- the cut-off ----
@@ -52,11 +57,13 @@ final class ChargePercentShade {
     /** How far past the box the blur still shows (3 sigma: under 0.2%). */
     static final double CUT_REACH = 3 * CUT_SIGMA;
 
-    /** The unblurred box, {left, top, right, bottom}. */
-    static float[] cutoffBox(float left, float right, float baseline, float size) {
-        return new float[] {
-                (float) (left - CUT_SIDE * size), (float) (baseline - CUT_ABOVE * size),
-                (float) (right + CUT_SIDE * size), (float) (baseline + CUT_BELOW * size)};
+    /** The unblurred box, {left, top, right, bottom}, into out: its sides and top from the text, its bottom from em. */
+    static float[] cutoffBox(float left, float right, float baseline, float size, float em, float[] out) {
+        out[0] = (float) (left - CUT_SIDE * size);
+        out[1] = (float) (baseline - CUT_ABOVE * size);
+        out[2] = (float) (right + CUT_SIDE * size);
+        out[3] = (float) (baseline + CUT_BELOW * em);
+        return out;
     }
 
     static float cutoffRadius(float size) { return (float) (CUT_RADIUS * size); }
