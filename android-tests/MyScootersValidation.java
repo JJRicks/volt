@@ -268,8 +268,20 @@ public final class MyScootersValidation extends Instrumentation {
     }
     private void forgetWithConfirmation() {
         final AlertDialog forget = openForget(b.id);
+        // b is an owner scooter with a key and no backup of it yet (KeyBackups, owner 2026-11-13: no tap may lock a rider
+        // out): its Forget dialog offers Save backup first and no Forget.
+        main(() -> require(text(forget.getWindow().getDecorView(), "Save backup first") != null
+                && text(forget.getWindow().getDecorView(), "Forget") == null, "Forget offered for an owner key no backup holds"));
         main(() -> text(forget.getWindow().getDecorView(), "Cancel").performClick());
         main(() -> require(find(b.id) != null && activity.service().profiles.all().size() == 2, "Cancel forgot the scooter"));
+        // Record a backup holding b's key, as BackupActivity does once a backup's file is saved: app_settings
+        // "key_backup" + profile ID, a 16-hex-digit fingerprint of that and the key, then the time saved. Spelled out here
+        // rather than read from the app, so the test also pins the record's form.
+        main(() -> {
+            long bits = java.util.UUID.nameUUIDFromBytes(("key_backup" + b.id + b.identity.toUpperCase(Locale.ROOT))
+                    .getBytes(java.nio.charset.StandardCharsets.UTF_8)).getMostSignificantBits();
+            prefs("app_settings").edit().putString("key_backup" + b.id, Long.toHexString((bits >>> 4) | (0xaL << 60)) + System.currentTimeMillis()).commit();
+        });
         final AlertDialog accepted = openForget(b.id);
         // A recording beginning after the dialog opened must still block its destructive action.
         main(() -> { set(activity.service(), "phoneSavingCount", 1); text(accepted.getWindow().getDecorView(), "Forget").performClick();
@@ -286,6 +298,7 @@ public final class MyScootersValidation extends Instrumentation {
             require(find(b.id) == null && find(a.id) != null && activity.service().profiles.active().id.equals(a.id), "Forget removed or selected the wrong scooter");
             require(Arrays.equals(Files.readAllBytes(rideSentinel.toPath()), durable), "Forget changed saved ride files");
             require("learned".equals(prefs("app_settings").getString("range_source_" + b.id, "")), "Forget erased saved per-scooter preferences");
+            require(!prefs("app_settings").contains("key_backup" + b.id), "Forget kept the scooter's backup record");
         });
     }
     private AlertDialog openForget(String id) {

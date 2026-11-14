@@ -180,7 +180,9 @@ need riding, charging or physical security checks. Daily use needs no ADB or
 computer after this setup; an existing private owner backup can also be imported
 on a new phone without another capture.
 
-The app does not bind/unbind scooters, reset ownership, change firmware, or
-replace cloud ownership transfers, OEM activation or Find My/Find Hub services.
+The app does not bind scooters to an account, change firmware, or replace
+cloud ownership transfers, OEM activation or Find My/Find Hub services. Release
+this scooter (More > My scooters > Edit scooter, untested on hardware) only makes
+a connected scooter forget its owner key; it changes no NAVEE account record.
 Ordinary diagnostics exclude owner identity and PIN digits. A private owner
 backup intentionally contains its setup identity.

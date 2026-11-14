@@ -735,7 +735,20 @@ Overspeed control      Status field absent on this observed firmware.
 Separate Drive cap     Status field absent on this observed firmware.
 
 Missing or unexplained values keep a control unavailable. The app has no
-arbitrary command console, ownership reset or firmware-write feature.
+arbitrary command console or firmware-write feature.
+
+Release this scooter (More > My scooters > Edit scooter; not yet in a release,
+untested on hardware) is the one ownership command. For an owner profile only,
+connected and authenticated, parked, with fresh status, a real scooter (never
+simulation) and nothing recording, testing or changing, it sends the official
+app's owner release: command 0x50 with data byte 1, through the usual mutation
+gate, logged by key and outcome without a value and kept out of the raw-frame
+views. Status 0 alone counts: Volt disconnects, removes the profile (its
+maintenance reminders and model evidence too; saved rides and charge
+recordings stay) and leaves nothing to reconnect, since reconnecting with the
+same profile would claim the scooter again. A refusal, no reply within 6.5
+seconds or a dropped link keeps the profile. It changes nothing on NAVEE's
+servers. See docs/validation/owner-release.md.
 
 APP TOOLS AND REMAINING VALIDATION
 
@@ -774,7 +787,7 @@ lighting output, folding transitions or ridden assistance behavior.
 
 Ordinary diagnostics exclude owner identity and PIN digits. A private owner
 backup intentionally contains the setup identity and must stay private.
-Cloud activation, ownership transfer, account sharing, firmware hosting and
+Cloud activation, cloud ownership transfer, account sharing, firmware hosting and
 Find My/Find Hub networks remain outside this offline app.
 
 
