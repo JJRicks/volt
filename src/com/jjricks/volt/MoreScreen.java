@@ -1359,6 +1359,8 @@ public final class MoreScreen implements AppScreen {
             if (selected < 0) for (int i = 0; i < values.length; i++) if (fallback.equals(values[i])) selected = i;
             selector.select(Math.max(0, selected), false);
         };
+        // Fit or wrap: every choice stays visible at full text size (a scrolling track looks like cut text at 1.4x).
+        selector.setWrapChoices(true);
         cardDestination.addView(selector, new LinearLayout.LayoutParams(-1, -2));
         preferenceSelectors.add(selector);
         restyle.run(); valueRefreshers.add(restyle);
