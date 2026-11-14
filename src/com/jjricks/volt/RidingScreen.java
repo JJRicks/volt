@@ -410,10 +410,11 @@ final class RidingScreen implements AppScreen {
      *
      * Which of the two is chosen once per layout (RidingChipPlace.Latch), so the chips never jump between them while riding.
      *
-     * A row of weights can measure this head at another width first (the Fold sideways measures it across the whole
-     * window), and a later measure at a size seen before is answered from the view's cache without running onMeasure. So
-     * the head fits its children again at the size it's laid out at whenever that isn't the size it last fitted, and the
-     * rows are always measured afresh: what's drawn is always worked out for the room it's drawn in.
+     * A row of weights can measure this head at other widths first (the Fold sideways measures it at four widths before
+     * its own), and a measure at a size seen before is answered from the view's cache without running onMeasure, leaving
+     * the children as the last pass measured them. So the head fits its children again at the size it's laid out at
+     * whenever that isn't the size it last fitted, and measures the number and the rows afresh every time: what's drawn
+     * and what's chosen are always worked out for the room they're drawn in.
      */
     private final class ChipsHead extends ViewGroup {
         private final ChipRows rows;
@@ -438,12 +439,14 @@ final class RidingScreen implements AppScreen {
         private void fit(int width, int height) {
             fitWidth = width;
             fitHeight = height;
-            // The rows keep the split of their last onMeasure for their layout: never let the cache skip it.
+            // The rows keep the split of their last onMeasure for their layout, and the number's measure is read below (its
+            // width sets the unit line's room): never let the cache answer either with what a pass at another size left.
             rows.forceLayout();
             RidingUnitLine.Place place = null;
             boolean onLine = false;
             if (wideChips) {
                 // The number at its full size, as it would draw with the chips on its unit line.
+                big.forceLayout();
                 big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
                 place = unitLinePlace();
                 final RidingUnitLine.Place at = place;
@@ -462,6 +465,7 @@ final class RidingScreen implements AppScreen {
                 rows.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height / 2, MeasureSpec.AT_MOST));
                 int taken = rows.getMeasuredHeight() == 0 ? 0 : rows.getMeasuredHeight() + ui.dp(ROWS_GAP_DP);
                 numberHeight = Math.max(0, height - taken);
+                big.forceLayout();
                 big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(numberHeight, MeasureSpec.EXACTLY));
             }
         }

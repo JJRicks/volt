@@ -73,6 +73,13 @@ public final class RidingChipPlaceTest {
             check(again, "the same layout keeps the unit line whatever the readings");
         }
         check(asked[0] == 1, "and never asks again");
+        // A row of weights measures the head at other widths before its own, on every pass: its own keeps its choice.
+        for (int pass = 0; pass < 20; pass++) {
+            latch.choose(2080, 1368, "mph", () -> true);
+            latch.choose(1393, 996, "mph", () -> true);
+            check(latch.choose(1766, 900, "mph", () -> { asked[0]++; return false; }), "other widths between passes change nothing");
+        }
+        check(asked[0] == 1, "and still never asks again");
         RidingChipPlace.Latch rows = new RidingChipPlace.Latch();
         rows.choose(1766, 900, "mph", () -> false);
         check(!rows.choose(1766, 900, "mph", () -> true), "rows stay rows for the same layout");
@@ -82,8 +89,11 @@ public final class RidingChipPlaceTest {
         RidingChipPlace.Latch latch = new RidingChipPlace.Latch();
         latch.choose(1766, 900, "mph", () -> true);
         check(!latch.choose(2200, 640, "mph", () -> false), "turned sideways (another size): chosen again");
-        check(latch.choose(1766, 900, "mph", () -> true), "turned back: chosen again");
+        check(latch.choose(1766, 900, "mph", () -> true), "turned back: the choice it made for that size");
         check(!latch.choose(1766, 900, "km/h", () -> false), "other units: chosen again");
+        RidingChipPlace.Latch many = new RidingChipPlace.Latch();
+        for (int i = 0; i < RidingChipPlace.Latch.KEPT * 3; i++) many.choose(100 + i, 100, "mph", () -> true);
+        check(!many.choose(100, 100, "mph", () -> false), "past the sizes it keeps, the oldest is chosen afresh");
     }
 
     /** The unit line's room at the Fold's inner screen against a phone, from RidingUnitLine with today's sizes. */

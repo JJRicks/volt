@@ -39,24 +39,26 @@ final class RidingChipPlace {
     interface Choice { boolean onUnitLine(); }
 
     /**
-     * Holds the choice for a layout: asked again with the same size and units, it answers as it did, without asking the
-     * choice again, so nothing that changes while riding (a reading, a drive mode coming in, a chip widening once for a
-     * value past its samples) can move the chips between the unit line and the rows. Another size or units chooses again.
+     * Holds the choice for each layout: asked again with a size and units it has chosen for, it answers as it did, without
+     * asking the choice again, so nothing that changes while riding (a reading, a drive mode coming in, a chip widening
+     * once for a value past its samples) can move the chips between the unit line and the rows. It keeps every size it's
+     * chosen for, not just the last: a row of weights measures the head at several widths before its own on every pass.
+     * Another size or units chooses afresh.
      */
     static final class Latch {
-        private boolean chosen, onUnitLine;
-        private int width, height;
-        private String units;
+        /** More sizes than a window goes through while one screen is open; past this the oldest go. */
+        static final int KEPT = 32;
+        private final java.util.LinkedHashMap<String, Boolean> chosen = new java.util.LinkedHashMap<String, Boolean>() {
+            @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Boolean> eldest) { return size() > KEPT; }
+        };
 
         boolean choose(int width, int height, String units, Choice choice) {
-            if (chosen && width == this.width && height == this.height && java.util.Objects.equals(units, this.units))
-                return onUnitLine;
-            chosen = true;
-            this.width = width;
-            this.height = height;
-            this.units = units;
-            onUnitLine = choice.onUnitLine();
-            return onUnitLine;
+            String key = width + "x" + height + " " + units;
+            Boolean was = chosen.get(key);
+            if (was != null) return was;
+            boolean now = choice.onUnitLine();
+            chosen.put(key, now);
+            return now;
         }
     }
 }
