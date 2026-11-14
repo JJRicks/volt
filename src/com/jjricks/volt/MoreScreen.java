@@ -1212,7 +1212,9 @@ public final class MoreScreen implements AppScreen {
         CapabilityResolver.Decision decision = service().ble.releaseDecision();
         if (decision.layer != ModelRegistry.Layer.UT5_MAX && decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED)
             note(box, T.mainRowUntested());
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        // Scrolls like Forget's, so a short window (landscape, split screen) with large text still reaches the buttons.
+        ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).create();
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersReleaseAction(), () -> {
             if (!releaseReady(id)) return;
             dialog.dismiss();
