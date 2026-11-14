@@ -39,7 +39,6 @@ public final class QuickAccessActions {
             if (shortMsg != null) return shortMsg;
             switch (labelMsg.id()) {
                 case T.DASHBOARD_MODEL_QA_LIGHTS: return M.dashboardModelQaLightsShort();
-                case T.HUB_QA_SEARCH_SETTINGS: return HubText.quickAccessSearchShort();
                 case T.DASHBOARD_MODEL_QA_LIVE_STATS: return M.dashboardModelQaLiveStatsShort();
                 case T.DASHBOARD_MODEL_QA_RIDES: return M.dashboardModelQaRidesShort();
                 case T.DASHBOARD_MODEL_QA_RIDE_SETTINGS: return M.dashboardModelQaRideSettingsShort();
@@ -87,7 +86,8 @@ public final class QuickAccessActions {
         add("lights", M.dashboardModelQaLights(), "lights", M.dashboardModelQaGroupMenus(), null);
         // The tile that opens search (HubRoutes: controls → the search page since part 11): "Search settings", short
         // "Search", with the search icon (search-settings-tile, kept by the contributor on #383).
-        add("controls", HubText.quickAccessSearch(), "search", M.dashboardModelQaGroupMenus(), null);
+        ENTRIES.put("controls", new Entry("controls", HubText.quickAccessSearch(), HubText.quickAccessSearchShort(), "search",
+                M.dashboardModelQaGroupMenus(), null));
         add("stats", M.dashboardModelQaLiveStats(), "stats", M.dashboardModelQaGroupPages(), null);
         add("rides", M.dashboardModelQaRides(), "rides", M.dashboardModelQaGroupPages(), null);
         add("section:Ride", M.dashboardModelQaRideSettings(), "scooter", M.dashboardModelQaGroupMenus(), null);

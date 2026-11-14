@@ -101,6 +101,8 @@ public final class MoreScreen implements AppScreen {
      * against SECTION_TITLES, which stays as that reference, as SECTION_LABELS does for the menu rows). */
     private static final int[] SECTION_TITLE_IDS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY_TITLE,
             T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
+    /** A section's menu name in the current language (SECTION_LABEL_IDS), by index. */
+    private static String sectionLabel(int index) { return T.render(SECTION_LABEL_IDS[index]); }
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
     /**
@@ -157,6 +159,9 @@ public final class MoreScreen implements AppScreen {
     private TextView securityNotice;
     /** Settings › Updates' switch and manual check (updates()), shown over the index by its row (updatesSheet). */
     private LinearLayout updatesBox;
+    /** Updates' section label (its title) and its switch's short name, as updates() built them. */
+    private TextView updatesTitle;
+    private CharSequence updatesAutoShort;
     /** Appearance's three-way selector, shown over the index by its row (appearanceSheet). */
     private LinearLayout appearanceBox;
     private TextView labConnect, labTitle, labIntro, labFoot, labNotice, historyUsage, historyStatus;
@@ -221,25 +226,27 @@ public final class MoreScreen implements AppScreen {
         // permissions, Developer options). Rows have no icon tiles; each row's tag is unchanged.
         onboarding();
         preferences();
-        label(T.backupScootersTitle());
+        // The plan's headings ("Scooters & data", "About") have no text yet (listed for part 10's follow-up): until then
+        // the nearest existing names, My scooters' and About & permissions' (SECTION_LABEL_IDS).
+        label(sectionLabel(1));
         LinearLayout scooterGroup = group();
-        label(T.moreSectionAbout());
+        label(sectionLabel(5));
         LinearLayout laterGroup = group();
         // Updates: one row with its automatic check's state; the switch and the manual check open over it (updatesSheet).
         updatesBox = column();
         cardDestination = updatesBox;
         updates();
         cardDestination = indexView;
-        Row updatesRow = row(laterGroup, null, T.moreUpdatesTitle(), null, this::updatesSheet);
+        Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
         updatesRow.view.setTag("settings-updates");
-        valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? T.moreUpdatesAutoShort() : null));
+        valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? updatesAutoShort : null));
         indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
             // App preferences' rows are on the index itself.
             if (!knownSection(section) || subjectSection(section) || "App".equals(section)) continue;
             // My scooters, the first row this loop builds (SECTIONS' order), leads the second card; About and Developer follow Updates.
-            Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, null, T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
+            Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, null, sectionLabel(i), null, () -> selectSection(section));
             indexRow(row);
             menuRows[i] = row;
             if (section.equals("Scooters")) scootersIndexRow = row;
@@ -1203,10 +1210,11 @@ public final class MoreScreen implements AppScreen {
         // Appearance as the plan's row with its value ("Dark ›"), opening the three-way choice (the contributor's pick on #383).
         appearanceBox = column();
         cardDestination = appearanceBox;
-        segmentedField(T.morePrefsAppearance(), "theme", new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()},
-                new String[]{"dark", "system", "light"}, "dark");
+        appearanceTitle = T.morePrefsAppearance();
+        themeNames = new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()};
+        segmentedField(appearanceTitle, "theme", themeNames, THEMES, "dark");
         cardDestination = indexView;
-        Row appearance = row(display, null, T.morePrefsAppearance(), null, this::appearanceSheet);
+        Row appearance = row(display, null, appearanceTitle, null, this::appearanceSheet);
         appearance.view.setTag("preference-appearance");
         valueRefreshers.add(() -> appearance.value(themeName(settings().getString("theme", "dark"))));
         indexRow(appearance);
@@ -1225,9 +1233,14 @@ public final class MoreScreen implements AppScreen {
     }
     /** The Haptic feedback row: the Language row goes right above it (placeLanguageRow), after Text size, as the plan orders them. */
     private View hapticsRow;
-    /** Appearance's value: the chosen theme's name as its selector shows it. */
-    private static String themeName(String theme) {
-        return "light".equals(theme) ? T.morePrefsLight() : "system".equals(theme) ? T.morePrefsFollowSystem() : T.morePrefsDark();
+    /** The themes Appearance offers (stored values), their names as its selector shows them, and its title. */
+    private static final String[] THEMES = {"dark", "system", "light"};
+    private String[] themeNames;
+    private String appearanceTitle;
+    /** Appearance's value: the chosen theme's name as its selector shows it (Dark for an unknown value, as the selector). */
+    private String themeName(String theme) {
+        for (int i = 0; i < THEMES.length; i++) if (THEMES[i].equals(theme)) return themeNames[i];
+        return themeNames[0];
     }
     /** A row of Settings' index: the plan's single-line height (a 48 dp touch target), no icon tile. */
     private void indexRow(Row row) {
@@ -1237,24 +1250,24 @@ public final class MoreScreen implements AppScreen {
     /** Appearance's choice over Settings: Dark, Follow system or Light; a pick applies at once (MainActivity redraws). */
     private void appearanceSheet() {
         if (closed) return;
-        LinearLayout box = dialogBox(T.morePrefsAppearance(), null);
+        LinearLayout box = dialogBox(appearanceTitle, null);
         if (appearanceBox.getParent() instanceof ViewGroup) ((ViewGroup) appearanceBox.getParent()).removeView(appearanceBox);
         // The selector's own caption repeats the title the dialog already shows.
         if (appearanceBox.getChildCount() > 0) appearanceBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(appearanceBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setPositiveButton(T.commonDone(), null).create();
+        AlertDialog dialog = doneDialog(box);
         dialog.setOnDismissListener(d -> box.removeView(appearanceBox));
         show(dialog);
     }
     /** Updates over Settings: the automatic check's switch and Check for updates (updates()), as the index had them. */
     private void updatesSheet() {
         if (closed) return;
-        LinearLayout box = dialogBox(T.moreUpdatesTitle(), null);
+        LinearLayout box = dialogBox(updatesTitle.getText().toString(), null);
         if (updatesBox.getParent() instanceof ViewGroup) ((ViewGroup) updatesBox.getParent()).removeView(updatesBox);
         // updates() opens with its section label, which the dialog's title replaces.
         if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setPositiveButton(T.commonClose(), null).create();
+        AlertDialog dialog = doneDialog(box);
         dialog.setOnDismissListener(d -> { box.removeView(updatesBox); refresh(); });
         show(dialog);
     }
@@ -1561,8 +1574,11 @@ public final class MoreScreen implements AppScreen {
                     refresh();
                 });
         selector.select(selected, false); box.addView(selector, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box)
-                .setPositiveButton(T.commonDone(), null).create(); show(dialog);
+        show(doneDialog(box));
+    }
+    /** A dialog over the page with box as its content and one Done button that closes it. */
+    private AlertDialog doneDialog(LinearLayout box) {
+        return new AlertDialog.Builder(host.activity()).setView(box).setPositiveButton(T.commonDone(), null).create();
     }
 
     // ---- PIN & proximity ----------------------------------------------------------------
@@ -2428,7 +2444,7 @@ public final class MoreScreen implements AppScreen {
      * at most once a day in the background (UpdateCheckJob), and the manual check.
      */
     private void updates() {
-        label(T.moreUpdatesTitle());
+        updatesTitle = label(T.moreUpdatesTitle());
         LinearLayout box = group();
         if (wide) box.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
         Row[] auto = new Row[1];
@@ -2440,6 +2456,7 @@ public final class MoreScreen implements AppScreen {
         auto[0].title.addOnLayoutChangeListener(ladder);
         CharSequence[] rungs = {T.moreUpdatesAuto(), T.moreUpdatesAutoShort()};
         ladder.show(rungs);
+        updatesAutoShort = rungs[rungs.length - 1];
         // The menu makes room for the last rung's longest word, so the ladder always has a whole-word rung.
         ((RowLine) auto[0].view).fallback = rungs[rungs.length - 1];
         valueRefreshers.add(() -> {
