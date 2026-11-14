@@ -159,9 +159,9 @@ public final class MoreScreen implements AppScreen {
     private TextView securityNotice;
     /** Settings › Updates' switch and manual check (updates()), shown over the index by its row (updatesSheet). */
     private LinearLayout updatesBox;
-    /** Updates' section label (its title) and its switch's short name, as updates() built them. */
+    /** Updates' section label (its title) and its automatic switch's row (its short name is the row's fallback rung). */
     private TextView updatesTitle;
-    private CharSequence updatesAutoShort;
+    private Row updatesAuto;
     /** Appearance's three-way selector, shown over the index by its row (appearanceSheet). */
     private LinearLayout appearanceBox;
     private TextView labConnect, labTitle, labIntro, labFoot, labNotice, historyUsage, historyStatus;
@@ -239,7 +239,7 @@ public final class MoreScreen implements AppScreen {
         cardDestination = indexView;
         Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
         updatesRow.view.setTag("settings-updates");
-        valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? updatesAutoShort : null));
+        valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? ((RowLine) updatesAuto.view).fallback : null));
         indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
@@ -1210,13 +1210,13 @@ public final class MoreScreen implements AppScreen {
         // Appearance as the plan's row with its value ("Dark ›"), opening the three-way choice (the contributor's pick on #383).
         appearanceBox = column();
         cardDestination = appearanceBox;
-        appearanceTitle = T.morePrefsAppearance();
-        themeNames = new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()};
+        String appearanceTitle = T.morePrefsAppearance();
+        String[] themeNames = {T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()};
         segmentedField(appearanceTitle, "theme", themeNames, THEMES, "dark");
         cardDestination = indexView;
-        Row appearance = row(display, null, appearanceTitle, null, this::appearanceSheet);
+        Row appearance = row(display, null, appearanceTitle, null, () -> appearanceSheet(appearanceTitle));
         appearance.view.setTag("preference-appearance");
-        valueRefreshers.add(() -> appearance.value(themeName(settings().getString("theme", "dark"))));
+        valueRefreshers.add(() -> appearance.value(themeNames[themeIndex(settings().getString("theme", "dark"))]));
         indexRow(appearance);
         Row units = row(display, null, T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
         units.view.setTag("preference-units-menu");
@@ -1233,14 +1233,12 @@ public final class MoreScreen implements AppScreen {
     }
     /** The Haptic feedback row: the Language row goes right above it (placeLanguageRow), after Text size, as the plan orders them. */
     private View hapticsRow;
-    /** The themes Appearance offers (stored values), their names as its selector shows them, and its title. */
+    /** The themes Appearance offers (stored values), in its selector's order. */
     private static final String[] THEMES = {"dark", "system", "light"};
-    private String[] themeNames;
-    private String appearanceTitle;
-    /** Appearance's value: the chosen theme's name as its selector shows it (Dark for an unknown value, as the selector). */
-    private String themeName(String theme) {
-        for (int i = 0; i < THEMES.length; i++) if (THEMES[i].equals(theme)) return themeNames[i];
-        return themeNames[0];
+    /** Appearance's value: the chosen theme's place in THEMES (Dark for an unknown value, as the selector). */
+    private static int themeIndex(String theme) {
+        for (int i = 0; i < THEMES.length; i++) if (THEMES[i].equals(theme)) return i;
+        return 0;
     }
     /** A row of Settings' index: the plan's single-line height (a 48 dp touch target), no icon tile. */
     private void indexRow(Row row) {
@@ -1248,7 +1246,7 @@ public final class MoreScreen implements AppScreen {
         row.view.setPadding(0, ui.dp(SettingsRows.PAD_DP), 0, ui.dp(SettingsRows.PAD_DP));
     }
     /** Appearance's choice over Settings: Dark, Follow system or Light; a pick applies at once (MainActivity redraws). */
-    private void appearanceSheet() {
+    private void appearanceSheet(String appearanceTitle) {
         if (closed) return;
         LinearLayout box = dialogBox(appearanceTitle, null);
         if (appearanceBox.getParent() instanceof ViewGroup) ((ViewGroup) appearanceBox.getParent()).removeView(appearanceBox);
@@ -2456,7 +2454,7 @@ public final class MoreScreen implements AppScreen {
         auto[0].title.addOnLayoutChangeListener(ladder);
         CharSequence[] rungs = {T.moreUpdatesAuto(), T.moreUpdatesAutoShort()};
         ladder.show(rungs);
-        updatesAutoShort = rungs[rungs.length - 1];
+        updatesAuto = auto[0];
         // The menu makes room for the last rung's longest word, so the ladder always has a whole-word rung.
         ((RowLine) auto[0].view).fallback = rungs[rungs.length - 1];
         valueRefreshers.add(() -> {

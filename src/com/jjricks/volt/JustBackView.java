@@ -203,7 +203,8 @@ final class JustBackView extends LinearLayout {
         // A duration, short as the mock-up writes it ("24m", "1h 02m"), not a clock that reads as a time of day.
         String duration = s.shownElapsedMs > 0 ? HubText.justBackRideTimeValue(s.shownElapsedMs).render() : null;
         // Spoken in words ("20 minutes", "1 hour 2 minutes"), so a screen reader never reads "20m" as a distance.
-        time.set(duration, duration == null ? null : HubText.justBackRideTimeSpoken(s.shownElapsedMs).render());
+        if (duration == null) time.set(null, null);
+        else time.set(duration, HubText.justBackRideTimeSpoken(s.shownElapsedMs).render());
         // The saved average, else the measured distance over the moving or shown time (RideAverages, as the ride's page
         // on Rides): a ride with a distance and a time never shows a dash. Formatted as Rides formats a speed (RideText.speed).
         Double average = RideAverages.speedKmh(s);
