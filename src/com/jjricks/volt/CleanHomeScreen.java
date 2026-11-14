@@ -117,7 +117,7 @@ final class CleanHomeScreen implements AppScreen {
         android.graphics.Paint namePaint = new android.graphics.Paint(name.getPaint());
         namePaint.setTextSize(nameFull);
         // The wide Home's page pane has the search field (and the search button's tag) instead, so one button there.
-        int buttons = ui.dp((pane ? 1 : CleanHeaderFit.BUTTONS) * CleanHeaderFit.TARGET_DP + CleanHeaderFit.BUTTON_GAP_DP);
+        int buttons = ui.dp(CleanHeaderFit.buttonsDp(pane ? 1 : CleanHeaderFit.BUTTONS));
         LinearLayout second = new LinearLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 // Fit the name to the room the buttons leave, at its full size first (CleanHeaderFit.name).

@@ -64,13 +64,21 @@ final class MaintenanceScreen {
     private final Ui ui;
     private final Runnable back;
     private final boolean wide;
+    /** Its sheets open as a centred dialog of at most 480 dp (a wide window), not a full-width bottom sheet. */
+    private final boolean centredSheets;
     private final LinearLayout view, body;
     private String shown;
     private AlertDialog sheet;
 
     /** back null: a Hub page, whose header already shows the title and the back link. */
-    MaintenanceScreen(ScreenHost host, Runnable back, boolean wide) {
-        this.host = host; this.ui = host.ui(); this.back = back; this.wide = wide;
+    MaintenanceScreen(ScreenHost host, Runnable back, boolean wide) { this(host, back, wide, wide); }
+
+    /**
+     * wide lays the page out in two columns; centredSheets opens its sheets centred, which a wide window keeps even where
+     * the page is one column in the wide Home's page pane (#394 early review, 6).
+     */
+    MaintenanceScreen(ScreenHost host, Runnable back, boolean wide, boolean centredSheets) {
+        this.host = host; this.ui = host.ui(); this.back = back; this.wide = wide; this.centredSheets = centredSheets;
         view = column();
         if (back != null) header();
         body = column(); view.addView(body, new LinearLayout.LayoutParams(-1, -2));
@@ -421,7 +429,7 @@ final class MaintenanceScreen {
         sheet = host.showSheet(content);
         android.view.Window window = sheet.getWindow();
         // Wide screens: a centered dialog of at most 480 dp instead of a full-width sheet.
-        if (wide && window != null) {
+        if (centredSheets && window != null) {
             int width = Math.min(ui.dp(480), host.activity().getResources().getDisplayMetrics().widthPixels - ui.dp(32));
             window.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT); window.setGravity(Gravity.CENTER);
         }
@@ -875,8 +883,9 @@ final class MaintenanceScreen {
 
     /**
      * One line of the wide Home's Service card (HubServiceCard): a check, its status and whether it is highlighted (due
-     * or coming up soon). It keeps what the words are made from, not the words: name() and left() render them when the
-     * line is built, in the current language, with the Maintenance page's own words.
+     * now: the owner's answer on #394, the orange dot means due only, as the Service row's). It keeps what the words are
+     * made from, not the words: name() and left() render them when the line is built, in the current language, with the
+     * Maintenance page's own words.
      */
     static final class Check {
         final MaintenancePolicy.Reminder reminder; final MaintenancePolicy.Status status; final String units; final long now;
@@ -904,15 +913,14 @@ final class MaintenanceScreen {
     }
 
     /**
-     * The next maintenance checks for the wide Home's Service card (hub layout plan 1.11, PR 13): the highlighted ones
-     * first, at most max (every due check, the most overdue first, then those coming up soon, the nearest first), then
-     * the nearest other check, muted. Empty while reminders are off, none is set or there is no active scooter.
+     * The next maintenance checks for the wide Home's Service card (hub layout plan 1.11, PR 13): the due ones first,
+     * highlighted, at most max (the most overdue first), then the nearest check that is not due (coming up soon or
+     * later), not highlighted. Empty while reminders are off (see {@link #remindersOff}), none is set or there is no
+     * active scooter.
      */
     static List<Check> nextChecks(ScooterService service, int max) {
         List<Check> checks = new ArrayList<>();
-        MaintenanceKeeper keeper = service == null ? null : service.maintenance;
-        String scope = service == null || keeper == null ? "" : service.maintenanceScope();
-        MaintenanceStore.Settings s = scope.isEmpty() ? null : keeper.load(scope);
+        MaintenanceStore.Settings s = settings(service);
         if (s == null || !s.on) return checks;
         SharedPreferences settings = service.settings;
         String units = settings == null ? UNITS_DEFAULT : settings.getString(UNITS_PREF, UNITS_DEFAULT);
@@ -921,18 +929,29 @@ final class MaintenanceScreen {
             if (checks.size() >= max) break;
             checks.add(new Check(r, MaintenanceView.status(s, r, now, zone()), units, now, true));
         }
-        List<MaintenancePolicy.Reminder> coming = MaintenanceView.comingUp(s, now, zone());
-        List<MaintenancePolicy.Reminder> rest = new ArrayList<>();
-        for (MaintenancePolicy.Reminder r : coming) {
+        for (MaintenancePolicy.Reminder r : MaintenanceView.comingUp(s, now, zone())) {
             MaintenancePolicy.Status status = MaintenanceView.status(s, r, now, zone());
-            if (status.state == MaintenancePolicy.State.SOON && checks.size() < max) checks.add(new Check(r, status, units, now, true));
-            else rest.add(r);
-        }
-        if (!rest.isEmpty()) {
-            MaintenancePolicy.Reminder r = rest.get(0);
-            checks.add(new Check(r, MaintenanceView.status(s, r, now, zone()), units, now, false));
+            if (status.state == MaintenancePolicy.State.DUE) continue;
+            checks.add(new Check(r, status, units, now, false));
+            break;
         }
         return checks;
+    }
+
+    /** The active scooter's maintenance settings, or null without a service or an active scooter. */
+    private static MaintenanceStore.Settings settings(ScooterService service) {
+        MaintenanceKeeper keeper = service == null ? null : service.maintenance;
+        String scope = keeper == null ? "" : service.maintenanceScope();
+        return scope.isEmpty() ? null : keeper.load(scope);
+    }
+
+    /**
+     * Whether the active scooter has maintenance reminders switched off: the Service card then says so, as the Service
+     * row beside it does ("Maintenance reminders · Off", HubServiceCard), instead of saying no check is set (#394 early review, 8).
+     */
+    static boolean remindersOff(ScooterService service) {
+        MaintenanceStore.Settings s = settings(service);
+        return s != null && !s.on;
     }
 
     /** The Reminders row's value; empty without an active scooter. */
