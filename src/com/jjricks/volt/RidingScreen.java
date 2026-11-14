@@ -60,6 +60,8 @@ final class RidingScreen implements AppScreen {
     private static final float CHIP_COLUMN_SHARE = .45f;
     /** The space between two chips, dp. */
     private static final int CHIP_GAP_DP = 8;
+    /** Focus's chips on the unit line: the space after the unit, and the least space between the number and the chips. */
+    private static final int UNIT_LINE_GAP_DP = 16, UNIT_LINE_CLEAR_DP = 6;
     private final float labelCap;
     private final ScreenHost host;
     private final Ui ui;
@@ -375,22 +377,66 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Focus's big number, with the chips the rider picked for beside it stacked at its side (a tester, Nov 14). With
-     * every one None, as by default, it's the big number alone, as it always was.
+     * Focus's big number, with the chips the rider picked on the line under it, right of its unit (UnitLineHead; a tester
+     * and the owner, Nov 14). With every one None, as by default, it's the big number alone, as it always was.
      */
     private View focusHead() {
         List<String> spots = filled(RidingFrames.FOCUS_CHIPS);
         if (spots.isEmpty()) return big;
-        LinearLayout head = row();
-        head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
-        LinearLayout beside = new ChipColumn(big);
-        beside.setGravity(Gravity.END | Gravity.TOP);
-        // The column sets each chip's top gap by what's shown (fitColumn).
-        for (String spot : spots) beside.addView(chip(spot), new LinearLayout.LayoutParams(-2, -2));
-        LinearLayout.LayoutParams besideSize = new LinearLayout.LayoutParams(-2, -1);
-        besideSize.setMarginStart(ui.dp(10));
-        head.addView(beside, besideSize);
-        return head;
+        ChipLine line = new ChipLine();
+        for (String spot : spots) line.addView(chip(spot), new LinearLayout.LayoutParams(-2, -2));
+        return new UnitLineHead(line);
+    }
+
+    /**
+     * Focus's big number at its full size and width, with its chips in a row at the right edge of the line its unit draws
+     * on ("mph" under the speed), in the room the unit leaves there (RidingUnitLine). The owner, Nov 14: chips in a column
+     * beside the number made it smaller and left a gap under it. Where the unit sits beside the number (a phone sideways)
+     * or the reading has none, the chips take a row of their own under the number, which gives up that row's height.
+     *
+     * Where the row goes and how much room it has come from the number's largest size in its spot and the widest unit its
+     * reading shows, never the value on show, so the chips never move or come and go while riding.
+     */
+    private final class UnitLineHead extends ViewGroup {
+        private final ChipLine line;
+        /** True when the chips have a row of their own under the number. */
+        private boolean ownRow;
+        private int numberHeight, lineTop;
+        UnitLineHead(ChipLine line) {
+            super(host.activity());
+            this.line = line;
+            addView(big, new LayoutParams(-1, -1));
+            addView(line, new LayoutParams(-2, -2));
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+            int chipHeight = line.chipHeight();
+            float[] m = big.number.unitLine(widest(big.content, units()));
+            ownRow = !big.number.unitBelow || m[4] == 0;
+            if (ownRow) {
+                int gap = ui.dp(CHIP_GAP_DP);
+                numberHeight = Math.max(0, height - chipHeight - gap);
+                big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(numberHeight, MeasureSpec.EXACTLY));
+                line.room = width;
+                lineTop = numberHeight + gap;
+            } else {
+                numberHeight = height;
+                big.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
+                RidingUnitLine.Place place = RidingUnitLine.place(m[0], m[1], m[2], m[3], big.number.maxPx,
+                        big.number.getMeasuredWidth(), big.number.getMeasuredHeight(), ui.dp(2), ui.dp(4), chipHeight,
+                        ui.dp(UNIT_LINE_GAP_DP), ui.dp(UNIT_LINE_CLEAR_DP));
+                line.room = place.room;
+                lineTop = big.numberTop() + place.top;
+            }
+            line.measure(MeasureSpec.makeMeasureSpec(Math.max(0, line.room), MeasureSpec.AT_MOST),
+                    MeasureSpec.makeMeasureSpec(chipHeight, MeasureSpec.EXACTLY));
+            setMeasuredDimension(width, height);
+        }
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            int width = r - l;
+            big.layout(0, 0, width, numberHeight);
+            line.layout(width - line.getMeasuredWidth(), lineTop, width, lineTop + line.getMeasuredHeight());
+        }
     }
 
     /**
@@ -480,7 +526,7 @@ final class RidingScreen implements AppScreen {
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
         List<String> besideSpots = filled(RidingFrames.TRACE_COLUMN);
         if (layout.on(RidingLayout.CHIPS) && !besideSpots.isEmpty()) {
-            LinearLayout beside = new ChipColumn(null);
+            LinearLayout beside = new ChipColumn();
             beside.setGravity(Gravity.END | Gravity.TOP);
             // The column sets each chip's top gap by what's shown (fitColumn).
             for (int i = 0; i < besideSpots.size(); i++)
@@ -1632,6 +1678,18 @@ final class RidingScreen implements AppScreen {
             view.setVisibility(wanted ? VISIBLE : GONE);
             super.onMeasure(widthSpec, heightSpec);
         }
+        /** The number's top in this cell once measured, px: what's above it laid out as this column lays it out. */
+        int numberTop() {
+            View holder = line != null ? line : number;
+            int y = getPaddingTop();
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                LayoutParams p = (LayoutParams) child.getLayoutParams();
+                if (child == holder) return y + p.topMargin;
+                if (child.getVisibility() != GONE) y += p.topMargin + child.getMeasuredHeight() + p.bottomMargin;
+            }
+            return y;
+        }
         /** A battery gauge beside the number (Focus's segments). */
         void addBeside(BatteryGauge extra, LayoutParams size) {
             removeView(number);
@@ -1909,18 +1967,6 @@ final class RidingScreen implements AppScreen {
             topH = h;
             return topPx;
         }
-        /**
-         * The widest of samples' width, px, at the size this number draws in its height (never past maxPx; maxPx before
-         * it has a height): what chips beside it must leave it (Focus). Measured in figures of one width, as a grown number
-         * draws; the widened samples make a number drawn otherwise no wider, and the number still fits its own width.
-         */
-        float widestWidth(List<Shown> samples) {
-            if (samples == null || samples.isEmpty()) return 0;
-            float[] per = perPx(samples);
-            float size = maxPx;
-            if (getHeight() > 0) size = Math.min(size, (getHeight() - ui.dp(4)) / Math.max(1e-3f, per[1]));
-            return per[0] * size + ui.dp(2);
-        }
         /** The widest sample's width and the tallest's height per px of number size. */
         private float[] perPx(List<Shown> samples) {
             float unitShare = unitBelow ? .30f : .42f, fractionShare = .46f;
@@ -1943,6 +1989,30 @@ final class RidingScreen implements AppScreen {
                 tallest = Math.max(tallest, height / 100);
             }
             return new float[]{widest, tallest};
+        }
+        /**
+         * What the unit line needs per px of number size, measured as onDraw draws a number with its unit under it and in
+         * figures of one width, from samples (the reading's widest values): {figure height, unit height, widest unit's
+         * width, an everyday value's width (RidingUnitLine.everyday), 1 when any sample has a unit (0: no unit line)}.
+         */
+        float[] unitLine(List<Shown> samples) {
+            Paint b = new Paint(big), u = new Paint(small), f = new Paint(big);
+            b.setFontFeatureSettings("tnum");
+            f.setFontFeatureSettings("tnum");
+            b.setTextSize(100);
+            u.setTextSize(100 * (unitBelow ? .30f : .42f));
+            f.setTextSize(100 * .46f);
+            float unit = 0, everyday = 0;
+            boolean any = false;
+            for (Shown s : samples) {
+                float suffix = u.measureText(s.suffix, 0, s.suffix.length());
+                any |= s.suffix.length() > 0;
+                unit = Math.max(unit, suffix);
+                String main = RidingUnitLine.everyday(String.valueOf(s.main));
+                everyday = Math.max(everyday, Math.max(suffix, u.measureText(s.prefix, 0, s.prefix.length()) + b.measureText(main)
+                        + f.measureText(s.fraction, 0, s.fraction.length())));
+            }
+            return new float[]{capHeight(b) / 100, capHeight(u) / 100, unit / 100, everyday / 100, any ? 1 : 0};
         }
         /** Figures of one width for the clock with seconds, and for any number drawn larger than its designed size. */
         private void figures(float w, float h) {
@@ -2269,6 +2339,41 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
+     * Focus's row on the unit line: today's chip size, as many chips as fit the room at any rung and among those the widest
+     * rung (RidingChipFit.row, the lowest priority ones hiding first), each as wide as its widest value. Never filled out
+     * to the room, so the row keeps to the right edge and the unit keeps its space.
+     */
+    private void fitLine(ChipLine group, int room) {
+        List<Chip> wanted = wanted(group);
+        int n = wanted.size();
+        String[][] marks = new String[n][];
+        String[] contents = new String[n];
+        boolean[] canStep = new boolean[n];
+        for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).canStep; }
+        int gap = ui.dp(CHIP_GAP_DP), normal = RidingChipFit.SIZE_NORMAL;
+        RidingChipFit fit = RidingChipFit.stepping(marks, contents,
+                (chip, rung, step) -> wanted.get(chip).widthAt(normal, rung, step, false),
+                (chip, rung, step) -> wanted.get(chip).widthAt(normal, rung, step, true), canStep, false, gap, Math.max(0, room));
+        int shown = 0;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (!(child instanceof Chip)) continue;
+            Chip chip = (Chip) child;
+            int at = wanted.indexOf(chip), want = View.GONE;
+            if (at >= 0 && fit.shown[at]) {
+                want = View.VISIBLE;
+                int width = chip.widthAt(normal, fit.rung, fit.steps[at], fit.compact[at]);
+                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], width);
+                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
+                if (p.width != width) p.width = width;
+                setLeadingMargin(group, chip, shown == 0 ? 0 : gap, false);
+                shown++;
+            }
+            if (chip.getVisibility() != want) chip.setVisibility(want);
+        }
+    }
+
+    /**
      * Trace's column: the chips keep the size they always had, each as wide as its widest value; a column too short for them all
      * shows the first ones that fit (RidingChipFit.column with a limit), always the same ones for the same column.
      *
@@ -2347,39 +2452,19 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Chips stacked beside the big number (fitColumn). Trace's take at most CHIP_COLUMN_SHARE of the row, so a long
+     * Trace's chips, stacked beside the big number (fitColumn). They take at most CHIP_COLUMN_SHARE of the row, so a long
      * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
      * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
-     * Focus's (against its big number) take what the big number's widest value leaves at the size its height allows, and
-     * at least the same share. A column too short
-     * for every chip shows the first ones that fit.
+     * A column too short for every chip shows the first ones that fit.
      */
     private final class ChipColumn extends LinearLayout {
-        /** The big number the column sits beside and must leave room for (Focus); null for Trace's share. */
-        private final Cell against;
-        /** The big number's height the room was worked out with. */
-        private int againstHeight = -1;
-        ChipColumn(Cell against) {
+        ChipColumn() {
             super(host.activity());
-            this.against = against;
             setOrientation(VERTICAL);
-        }
-        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
-            super.onLayout(changed, l, t, r, b);
-            // The big number is laid out first in the row: once its height is known, or changes, work the room out again.
-            if (against != null && against.number.getHeight() != againstHeight) post(this::requestLayout);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int room = Integer.MAX_VALUE;
-            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && against != null) {
-                // What the big number's widest value leaves at the size its height allows, and at least Trace's share:
-                // with chips chosen on a phone held upright, the big number gives up that share and fits the rest, as
-                // Trace's does (888.8 mph would otherwise leave no room for any chip).
-                againstHeight = against.number.getHeight();
-                int size = MeasureSpec.getSize(widthSpec);
-                float speed = against.number.widestWidth(widest(against.content, units()));
-                room = Math.max((int) (size * CHIP_COLUMN_SHARE), size - (int) Math.ceil(speed));
-            } else if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 int size = MeasureSpec.getSize(widthSpec);
                 room = (int) (size * CHIP_COLUMN_SHARE);
                 for (int i = 0; i < getChildCount(); i++) {
@@ -2396,12 +2481,36 @@ final class RidingScreen implements AppScreen {
                     if (getChildAt(i) instanceof Chip) tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
                 limit = RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height);
                 // Trace's two chips stay whatever the height, as they always have (RidingChipChoicesValidation's
-                // split-screen half): only its third steps aside for a short column. Focus's chips are new, so every
-                // one of them hides when the column is short.
-                if (against == null) limit = Math.max(limit, Math.min(2, getChildCount()));
+                // split-screen half): only its third steps aside for a short column.
+                limit = Math.max(limit, Math.min(2, getChildCount()));
             }
-            // Only Trace's follow a value too wide to fit steadily, as they did before; Focus's hide.
-            fitColumn(this, room, limit, against == null);
+            fitColumn(this, room, limit, true);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
+    /**
+     * Focus's chips in a row (fitLine): on the line under the big number, right of its unit, or on a row of their own
+     * under a number whose unit sits beside it (UnitLineHead). Each keeps today's chip size and the width of its widest
+     * value; the row is as wide as the chips it shows.
+     */
+    private final class ChipLine extends LinearLayout {
+        /** The room across the head gives the row, px, worked out before it's measured. */
+        int room;
+        ChipLine() {
+            super(host.activity());
+            setOrientation(HORIZONTAL);
+            setGravity(Gravity.CENTER_VERTICAL);
+        }
+        /** The tallest of its chips at today's size: the row's height. */
+        int chipHeight() {
+            int tallest = 0;
+            for (int i = 0; i < getChildCount(); i++)
+                if (getChildAt(i) instanceof Chip) tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
+            return tallest;
+        }
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            fitLine(this, room);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
