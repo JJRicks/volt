@@ -400,14 +400,19 @@ read only (no command is sent). When the scooter's odometer drops by more than
 riding mode's odometer add last saved minus the first reading after the drop,
 so the total keeps counting and never over-counts. An 8- or 16-bit field
 wrapping round (the reading going from near the field's top to near zero) keeps
-counting instead. An orange dot by the odometer sends out a sonar
+counting instead. A one-byte field that wraps while Volt isn't connected looks
+like a reset and is carried over as one, from the last number seen: the
+distance across it isn't counted, and Undo doesn't restore it. A scooter that
+reports both whole km and tenths is followed by the tenths, and no change of
+field drops the total. An orange dot by the odometer sends out a sonar
 ring until the number is tapped once (a still dot with animations off or while
 moving; nothing in riding mode);
 the tap explains it and offers an Undo of the latest carry-over. Rides, range,
 maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
 Backups (Scooters & setup keys) carry the record per profile, newer reading
 wins; a forgotten or released scooter's record waits on this phone by serial
-for the same scooter's next setup. Never in simulation. Untested on hardware.
+for the same scooter's next setup, where the record showing the higher total
+wins. Never in simulation. Untested on hardware.
 
 FIND IT NEARBY: A SAVED SCOOTER AT A NEW BLUETOOTH ADDRESS (UNRELEASED)
 

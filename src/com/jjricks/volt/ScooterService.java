@@ -2655,7 +2655,7 @@ public final class ScooterService extends Service {
         // The lifetime odometer record (OdometerCarry): every real reading, whatever the reminders say; never the simulator.
         if (!simulating() && odometerRecords != null) {
             odometerRecords.adopt(scope, connected.serial);
-            odometerRecords.observe(scope, odometer.numericValue, bits, odometer.updatedMs, System.currentTimeMillis());
+            odometerRecords.observe(scope, odometer.numericValue, bits, ble.telemetry.odometerExtended(), odometer.updatedMs, System.currentTimeMillis());
         }
         MaintenanceDistance.Outcome outcome = maintenance.observe(scope, odometer.numericValue, bits, System.currentTimeMillis());
         // Connected (the first reading brings rides counted since the last connection), or a new reading while reminders are on.
@@ -2802,11 +2802,13 @@ public final class ScooterService extends Service {
         OdometerCarry record = odometer == null || odometer.number == null ? null : odometerRecord();
         if (record == null) return readings;
         // A cached reading older than the record (a newer record restored meanwhile) shows the record's own reading.
+        // It is then dated by the record's own last reading, so the last-seen text names when that total was read.
         double shown = record.shownKm(odometer.number, odometer.capturedWallMs, odometer.live);
-        if (shown == odometer.number) return readings;
+        long seen = record.shownWallMs(odometer.capturedWallMs, odometer.live);
+        if (shown == odometer.number && seen == odometer.capturedWallMs) return readings;
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(readings);
         result.put(odometer.key, new TelemetryHistory.Reading(odometer.key, odometer.label, odometer.group,
-                String.format(Locale.US, "%.2f", shown) + Telemetry.SUFFIX_KM, odometer.unit, shown, odometer.capturedWallMs, odometer.live));
+                String.format(Locale.US, "%.2f", shown) + Telemetry.SUFFIX_KM, odometer.unit, shown, seen, odometer.live));
         return Collections.unmodifiableMap(result);
     }
     private LearnedRangeEstimate.Result currentRangeCache(String profile) {
