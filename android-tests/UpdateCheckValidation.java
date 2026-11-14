@@ -84,7 +84,7 @@ public final class UpdateCheckValidation extends Instrumentation {
             HubTestPages.tapView(this, activity, updatesRow[0], "Settings' Updates row");
             await(() -> updatesSheet() != null && tag("check-updates") != null && tag("check-updates").isShown() && tag("update_auto") != null && tag("update_auto").isShown(),
                     "Check for updates is not in Settings' Updates sheet");
-            main(() -> sheet = updatesSheet());
+            sheet = updatesSheet();
 
             reply.set(release("v9.9.9", PAGE));
             tap(); require(showing("Check GitHub for updates?") && requests.isEmpty(), "No consent before the first request");

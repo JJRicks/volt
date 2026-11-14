@@ -2246,11 +2246,10 @@ public final class DashboardValidation extends Instrumentation {
     /** Back to Home as a rider goes there: each page's back link, tapped, until Home is on top (the tab bar's Home before part 11). */
     private void backHome() {
         for (int step = 0; step < 6; step++) {
-            View[] back = {null}; boolean[] home = {false};
-            main(() -> { home[0] = HubPages.HOME.equals(HubTestPages.current(activity)); back[0] = home[0] ? null : root().findViewWithTag("hub-back"); });
+            boolean[] home = {false};
+            main(() -> home[0] = HubPages.HOME.equals(HubTestPages.current(activity)));
             if (home[0]) return;
-            require(back[0] != null, "Missing navigation: page " + HubTestPages.current(activity) + " has no back link");
-            HubTestPages.tapView(this, activity, back[0], "the back link");
+            HubTestPages.back(this, activity);
         }
         throw new IllegalStateException("Six back links did not return Home");
     }
