@@ -781,18 +781,25 @@ Separate Drive cap     Status field absent on this observed firmware.
 Missing or unexplained values keep a control unavailable. The app has no
 arbitrary command console or firmware-write feature.
 
-Release this scooter (More > My scooters > Edit scooter; not yet in a release,
-untested on hardware) is the one ownership command. For an owner profile only,
-connected and authenticated, parked, with fresh status, a real scooter (never
-simulation) and nothing recording, testing or changing, it sends the official
-app's owner release: command 0x50 with data byte 1, through the usual mutation
-gate, logged by key and outcome without a value and kept out of the raw-frame
-views. Status 0 alone counts: Volt disconnects, removes the profile (its
-maintenance reminders and model evidence too; saved rides and charge
-recordings stay) and leaves nothing to reconnect, since reconnecting with the
-same profile would claim the scooter again. A refusal, no reply within 6.5
-seconds or a dropped link keeps the profile. It changes nothing on NAVEE's
-servers. See docs/validation/owner-release.md.
+Release this scooter (More > My scooters > Edit scooter; not yet in a release;
+tried on a UT5 MAX, other models untested) is the one ownership command. For an
+owner profile only, connected and authenticated, parked, with fresh status, a
+real scooter (never simulation) and nothing recording, testing or changing, it
+sends the official app's owner release: command 0x50 with data byte 1, through
+the usual mutation gate, logged by key and outcome without a value and kept out
+of the raw-frame views. Status 0 counts, and so does the scooter ending the
+link within 1 s of the send, which is how the UT5 MAX answers: Volt
+disconnects, removes the profile (its maintenance reminders and model evidence
+too; saved rides and charge recordings stay) and leaves nothing to reconnect,
+since reconnecting with the same profile would claim the scooter again. A
+refusal or a release never sent keeps the profile. Any other ending after the
+send (no reply within 6.5 seconds, a later drop, a lost link, Bluetooth off)
+keeps the profile but holds every automatic reconnect to it and asks: Remove
+from Volt (Forget, with its key-backup rule) or Reconnect (which makes Volt its
+owner again if it did release). The hold is saved on the phone, never in a
+backup, and outlasts Volt closing and the phone restarting; the question comes
+back until answered, and Home and My scooters show the hold. It changes nothing
+on NAVEE's servers. See docs/validation/owner-release.md.
 
 APP TOOLS AND REMAINING VALIDATION
 

@@ -458,7 +458,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
         if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         if(riding!=null&&scooterService!=null)riding.observeLink(scooterService.ble.connected());
-        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeShowReleaseHold();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -1353,6 +1353,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
+            // A held release (BleController.releaseHeld): say why Volt isn't reconnecting, down to Disconnected when narrow.
+            if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
+                design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
+                connectionTitle.setContentDescription(T.bleReleaseHeld());}
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
@@ -1614,8 +1618,62 @@ public final class MainActivity extends Activity implements ScreenHost {
         // No scooter: My scooters has Add scooter. A scooter not yet set up: More's index, whose checklist imports the owner setup.
         if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
         if(!profile.configured()){openMoreSection("");return;}
+        // A release that went out unconfirmed: ask again instead of connecting, since connecting claims the scooter back.
+        if(scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
         scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
+    }
+    /** The held release's sheet, at most one: the one shown, or null. */
+    private AlertDialog releaseHoldSheet;
+    /**
+     * The question a held release owes (BleController.releaseAsk), over whatever is in front, until the owner answers it
+     * (closes the sheet or picks an action): a sheet lost to a recreated screen or a restart is shown again.
+     */
+    private void maybeShowReleaseHold(){
+        if(scooterService==null||!resumed||onboarding!=null||riding!=null)return;
+        String id=scooterService.ble.releaseAsk();if(id!=null)showReleaseHold(id);
+    }
+    /**
+     * A release went out to this scooter and wasn't confirmed (OwnerRelease.holds), so Volt doesn't reconnect to it by
+     * itself. The sheet says so and asks: Remove from Volt (Forget's own dialog, owner-key backup first) or Reconnect
+     * (which makes Volt its owner again if it did release). Closing it keeps the hold; an explicit Connect asks again.
+     * Never two at once.
+     */
+    private void showReleaseHold(String id){
+        if(scooterService==null||destroyed)return;
+        if(releaseHoldSheet!=null&&releaseHoldSheet.isShowing())return;
+        ScooterProfiles.Profile held=null;for(ScooterProfiles.Profile p:scooterService.profiles.all())if(p.id.equals(id))held=p;
+        if(held==null||!scooterService.ble.releaseHeld(id)){scooterService.ble.releaseAsked(id);return;}
+        // Answered only by the owner: the close button, Back or a tap outside (cancel), or either action. A dismissal
+        // with the screen (recreation, finishing) leaves it owed.
+        BleController ble=scooterService.ble;
+        final AlertDialog[] self=new AlertDialog[1];
+        LinearLayout body=sheetContent(T.moreScootersReleaseHeldTitle(held.displayName()),T.moreScootersReleaseHeldBody(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();});
+        body.setTag("release_held_sheet");
+        TextView remove=design.button(T.moreScootersReleaseHeldRemove(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();removeHeldRelease(id);});
+        remove.setTag("release_held_remove");design.decorate(remove,"trash");
+        LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=design.dp(14);body.addView(remove,rp);
+        TextView again=design.secondaryButton(T.moreScootersReleaseHeldReconnect(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();reconnectHeldRelease(id);});
+        again.setTag("release_held_reconnect");design.decorate(again,"bluetooth");
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,-2);ap.topMargin=design.dp(10);body.addView(again,ap);
+        TextView note=design.caption(T.moreScootersReleaseHeldReconnectNote());note.setTag("release_held_reconnect_note");
+        note.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(note);
+        AlertDialog dialog=showSheet(body);self[0]=dialog;releaseHoldSheet=dialog;
+        dialog.setOnCancelListener(d->ble.releaseAsked(id));
+        dialog.setOnDismissListener(d->{if(releaseHoldSheet==dialog)releaseHoldSheet=null;});
+    }
+    /** Remove from Volt: My scooters, then that scooter's Forget dialog with all its rules (MoreScreen.forgetAfterRelease). */
+    private void removeHeldRelease(String id){
+        if(scooterService==null||destroyed)return;
+        open(HubPages.SETTINGS_SCOOTERS);
+        if(screen instanceof MoreScreen)((MoreScreen)screen).forgetAfterRelease(id);
+    }
+    /** Reconnect: the owner's choice ends the hold, and the scooter, when it's the current one, connects as Connect does. */
+    private void reconnectHeldRelease(String id){
+        if(scooterService==null||destroyed)return;
+        scooterService.ble.endReleaseHold(id);
+        ScooterProfiles.Profile active=scooterService.profiles.active();
+        if(active!=null&&active.id.equals(id))connect();else redraw();
     }
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
@@ -1668,6 +1726,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}
         if(home&&!homeFindOffered()){redraw();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
+        if(profile!=null&&scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
         showScanner(true,true);
     }
@@ -1721,6 +1780,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Find mode, and any pick the ordinary sheet may not connect straight to (FindNearby.ordinaryConnect: another
         // address than a saved one), go through the find's steps: the confirmation, then the serial rule, or a refusal.
         ScooterProfiles.Profile active=scooterService.profiles.active();
+        if(active!=null&&scooterService.ble.releaseHeld(active.id)){if(scanDialog!=null)scanDialog.dismiss();showReleaseHold(active.id);return;}
         if(scanFind||active!=null&&!FindNearby.ordinaryConnect(active.mac,scanSelected)){for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){findSelected(result);return;}return;}
         for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){scooterService.ble.connectDiscovered(result);if(scanDialog!=null)scanDialog.dismiss();redraw();return;}
     }

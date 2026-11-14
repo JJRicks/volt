@@ -1037,6 +1037,12 @@ public final class DashboardScreen implements AppScreen {
                     ? DisplayTime.recent(host.activity(), preferences, lastConnected, System.currentTimeMillis()) : null));
         status.setContentDescription(DashboardWords.statusSpoken(ready, connecting, mode, seen && !connecting
                 ? DisplayTime.dateTime(host.activity(), preferences, lastConnected) : null));
+        // A held release (BleController.releaseHeld): why Volt isn't reconnecting. The short form, since the full line
+        // reaches the Ride button beside it; Disconnected when even that doesn't fit. Spoken in full.
+        if (!ready && !connecting && profile != null && ble != null && ble.releaseHeld(profile.id)) {
+            ui.statusRungs(status, T.bleReleaseHeldShort(), T.dashboardStatusDisconnectedShort());
+            status.setContentDescription(T.bleReleaseHeld());
+        }
     }
 
     /** An inline spinner keeps "Connecting…" on its single status line. */

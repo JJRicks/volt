@@ -169,6 +169,25 @@
     <!-- Toast: the release was cancelled before it was sent (for example, the scooter started moving). -->
     <string name="more_scooters_release_not_sent" volt:screen="My scooters" volt:purpose="toast"
         volt:safety="owner-key">The release wasn\'t sent. The scooter stays saved in Volt.</string>
+    <!-- Sheet title after a release was sent but not confirmed: no answer in time, or the connection ended some other
+         way than the quick drop the UT5 MAX answers with. Volt kept the scooter and doesn't reconnect to it by itself
+         until the rider chooses below. Never say it was released. %1$s is the scooter's name. -->
+    <string name="more_scooters_release_held_title" volt:screen="Release sheet" volt:purpose="title"
+        volt:safety="owner-key">%1$s didn\'t confirm the release</string>
+    <!-- Body of that sheet. "This key" is the owner key Volt connects with. Volt and NAVEE are names. -->
+    <string name="more_scooters_release_held_body" volt:screen="Release sheet" volt:purpose="dialog"
+        volt:safety="owner-key" volt:dnt="Volt|NAVEE">It may have released. If it did, it no longer knows this key, and the NAVEE app or another Volt owner key can add it. Volt won\'t reconnect to it by itself until you choose.</string>
+    <!-- Filled red button in that sheet: forget the scooter in Volt, through Forget's own dialog (which asks for a saved
+         backup of the owner key first). A full-width button; keep it short. -->
+    <string name="more_scooters_release_held_remove" volt:screen="Release sheet" volt:purpose="button"
+        volt:safety="owner-key" volt:dnt="Volt">Remove from Volt</string>
+    <!-- Secondary button in that sheet: connect to the scooter again with the saved owner key. -->
+    <string name="more_scooters_release_held_reconnect" volt:screen="Release sheet" volt:purpose="button"
+        volt:safety="owner-key">Reconnect</string>
+    <!-- Under the Reconnect button: if the scooter did release, reconnecting gives it this owner key again, so Volt is
+         its owner once more and the NAVEE app can't add it. -->
+    <string name="more_scooters_release_held_reconnect_note" volt:screen="Release sheet" volt:purpose="note"
+        volt:safety="owner-key" volt:dnt="Volt">If it released, reconnecting makes Volt its owner again.</string>
 
     <!-- ===== App preferences and Units ===== -->
 
