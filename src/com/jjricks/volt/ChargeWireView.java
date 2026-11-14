@@ -578,6 +578,44 @@ final class ChargeWireView extends ChargePicture {
         canvas.restore();
     }
 
+    /**
+     * Where the live layer can draw, in its own pixels (for android-tests' MotionPolishValidation, which requires
+     * everything else on the stage to hold still while the animation runs; review of #483): the cable stroked as wide
+     * as a pulse's outermost glow ring with its round front, the lit cells' strips and the pack's bloom. From the
+     * picture's own geometry at its placement; empty before it is placed. Not called while drawing.
+     */
+    Path liveArea() {
+        Path area = new Path();
+        float s = placement.scale;
+        if (s <= 0) return area;
+        ChargeWire w = wire;
+        // The widest stroke a comet draws: the wide glow's outermost ring (ChargeWirePulses.glowRings), as a round band.
+        double reach = ChargeWireComet.HALO / 2.0 + ChargeWireComet.BLUR * ChargeWirePulses.GLOW_Z[0];
+        Path line = new Path();
+        w.point(0, point);
+        line.moveTo(point[0], point[1]);
+        for (int i = w.after(0); i < w.count; i++) line.lineTo(w.xs[i], w.ys[i]);
+        w.point(w.length, point);
+        line.lineTo(point[0], point[1]);
+        Paint band = new Paint();
+        band.setStyle(Paint.Style.STROKE);
+        band.setStrokeCap(Paint.Cap.ROUND);
+        band.setStrokeJoin(Paint.Join.ROUND);
+        band.setStrokeWidth((float) (2 * reach));
+        band.getFillPath(line, area);
+        // The pack's bloom: the ellipse round the cells' centre (it covers every lit strip too).
+        double[] box = model.cells;
+        float cx = (float) ((box[0] + box[2]) / 2), cy = (float) ((box[1] + box[3]) / 2);
+        area.addOval(new RectF(cx - bloomRadius, cy - bloomRadius * bloomRatio, cx + bloomRadius, cy + bloomRadius * bloomRatio), Path.Direction.CW);
+        area.addRect(new RectF((float) box[0] - w.rx - 2, (float) box[1] - w.ry - 2, (float) box[2] + w.rx + 2, (float) box[3] + w.ry + w.wall + 2), Path.Direction.CW);
+        android.graphics.Matrix to = new android.graphics.Matrix();
+        to.setScale(s, s);
+        to.postTranslate(placement.left, placement.top);
+        area.transform(to);
+        area.setFillType(Path.FillType.WINDING);
+        return area;
+    }
+
     /** The cable's path from arc length s0 to s1, into {@link #comet}. */
     private void stretch(double s0, double s1) {
         ChargeWire w = wire;
