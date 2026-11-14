@@ -1976,7 +1976,7 @@ public final class ScooterService extends Service {
         profiles.remove(id);
         settings.edit().remove(KeyBackups.key(id)).apply();
         if(maintenance!=null)maintenance.forget(id);
-        if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?"":forgotten.serial);
+        if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?null:forgotten.serial);
         forgetEvidence(id);
         if(current)ble.profileSelected();
     }

@@ -26,14 +26,14 @@ import java.util.*;
  */
 final class OdometerCarry {
     /** app_settings {@code PREFIX + profile ID}; travels with its profile in backups (Scooters & setup keys). */
-    static final String PREFIX = "odometer_v1_";
+    static final String PREFIX = "odometer_record";
     static final long FRESHNESS_WRITE_MS = 5L * 60 * 1000;
     static final int MAX_CARRIES = 50, MAX_LENGTH = 16 * 1024, MAX_DEPTH = 4;
 
     static String key(String profileId) { return PREFIX + profileId; }
 
     /** A forgotten profile's record, by the scooter's serial (Keeper.forget): device only, never backed up. */
-    static final String KEPT_PREFIX = "odometer_kept_v1_";
+    static final String KEPT_PREFIX = "odometer_kept";
 
     static String keptKey(String serial) { return KEPT_PREFIX + serial; }
 
