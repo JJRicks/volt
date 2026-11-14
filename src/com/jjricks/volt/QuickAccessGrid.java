@@ -670,10 +670,10 @@ final class QuickAccessGrid extends ViewGroup {
         return false;
     }
     /**
-     * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): Clean's
-     * own (HubText.quickActionRoundName); for cruise control, traction control and energy recovery, the one-word name
-     * Live Stats already gives them (StatsLabels.row: "Cruise", "Traction", "Recovery") until part 10 adds Clean's own;
-     * else the control's short rung.
+     * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): its
+     * round name where it has one (HubText.quickActionRoundName, part 10's text: Clean's own, Charge by and the
+     * controls); else, for cruise control, traction control and energy recovery, Live Stats' one-word name
+     * (StatsLabels.row); else the control's short rung.
      */
     static String roundName(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);

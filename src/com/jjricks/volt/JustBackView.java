@@ -32,7 +32,7 @@ import android.widget.TextView;
  *
  * <p>It fills the top area's fixed height (the same as parked and charging), so the Lock bar never moves: the route
  * panel takes what the words and tiles leave and goes when that is too little, then the distance gets smaller
- * (JustBackFit.split). Text from HubText and the ride formatters (RideText, RidesScreen.duration, Fmt); this file holds no
+ * (JustBackFit.split). Text from HubText and the ride formatters (RideText, Fmt); this file holds no
  * catalog references.
  */
 final class JustBackView extends LinearLayout {
@@ -57,6 +57,8 @@ final class JustBackView extends LinearLayout {
     private String shownKey = "";
     /** The card's spoken name without the ended line, which bind puts in front of it each time. */
     private Msg spokenRide;
+    /** The distance as the card shows it ("6.2 mi"), for the card's spoken sentence (HubText.justBackSpoken). */
+    private CharSequence spokenDistance;
 
     /** open gets the shown ride's id; close too. */
     JustBackView(ScreenHost host, java.util.function.Consumer<String> open, java.util.function.Consumer<String> close) {
@@ -129,7 +131,7 @@ final class JustBackView extends LinearLayout {
 
         time = new Cell(host, HubText.justBackRideTime());
         speed = new Cell(host, HubText.justBackAvgSpeed());
-        battery = new Cell(host, HubText.justBackBatteryTile());
+        battery = new Cell(host, HubText.justBackBatteryName());
         tiles = new Tiles(host, ui.dp(8), time, speed, battery);
         // The tiles read as one group of their own: the card's name says only the ride and that it opens.
         tiles.setFocusable(true);
@@ -180,13 +182,16 @@ final class JustBackView extends LinearLayout {
      * minutes line changes between rides, and the rest is set again only when the ride or the units change.
      */
     void bind(RideStore.Summary s, String units, long now) {
-        String ended = HubText.justBackEnded(HomeMoment.minutesAgo(s.shownEndWallMs, now)).render();
+        long minutes = HomeMoment.minutesAgo(s.shownEndWallMs, now);
+        String ended = HubText.justBackEnded(minutes).render();
         saved.setText(ended);
         String key = s.id + ":" + units;
         if (!key.equals(shownKey)) show(s, units, key);
         // The line sighted owners read first is spoken first too (council early review of part 9, note 7).
-        // Two sentences, as two separately translated strings; a combined one waits for a batch part.
         String spoken = ended + (endsSentence(ended) ? " " : ". ") + spokenRide.render();
+        // One whole sentence per language, ended line first, then the distance (part 10's text). It replaces the two
+        // sentences above; the line building them goes in an ordinary part (a batch may not change a line holding a literal).
+        spoken = HubText.justBackSpoken(minutes, spokenDistance).render();
         if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
     }
 
@@ -205,9 +210,9 @@ final class JustBackView extends LinearLayout {
         Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units, 1);
         distance.setText(miles == null ? "—" : large(miles));
         spokenRide = HubText.justBackDescription(miles == null ? "—" : miles.toString());
-        // A duration, as the ride's own Duration tile on Rides shows it ("20m 00s"), not a clock that reads as a time of
-        // day. The mock-up's shorter "24m" needs new text (part 10).
-        String duration = s.shownElapsedMs > 0 ? RidesScreen.duration(s.shownElapsedMs) : null;
+        spokenDistance = distance.getText().toString();
+        // A duration, short as the mock-up writes it ("24m", "1h 02m"), not a clock that reads as a time of day.
+        String duration = s.shownElapsedMs > 0 ? HubText.justBackRideTimeValue(s.shownElapsedMs).render() : null;
         time.set(duration, duration);
         // The saved average, else the measured distance over the moving or shown time (RideAverages, as the ride's page
         // on Rides): a ride with a distance and a time never shows a dash. Formatted as Rides formats a speed (RideText.speed).

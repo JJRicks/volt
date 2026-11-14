@@ -44,16 +44,16 @@ final class HomeQuickEditor {
     }
 
     /**
-     * The four names as Clean shows them, in order: "Ride, Record, Charge done by, Cruise". The separator is a plain comma
-     * until part 10 adds a translated list separator.
+     * The four names as Clean shows them, in order: "Ride, Record, Charge by, Cruise", joined by the language's list
+     * separator (HubText.listSeparator).
      */
     static String summary(List<String> ids) {
         List<String> names = new ArrayList<>();
         for (String id : ids) names.add(roundName(id));
-        return String.join(SEPARATOR, names);
+        return String.join(HubText.listSeparator().render(), names);
     }
 
-    /** Between the names on Settings › Home style's Quick actions row (part 10 replaces it with catalog text). */
+    /** The plain comma summary used before part 10's HubText.listSeparator; no longer read (an ordinary part removes it). */
     static final String SEPARATOR = ", ";
 
     /**
