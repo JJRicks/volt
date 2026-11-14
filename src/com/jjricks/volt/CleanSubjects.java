@@ -161,6 +161,23 @@ final class CleanSubjects {
 
     void close() { closed = true; }
 
+    /**
+     * Whether a subject's name has a word wider than the room beside its icon, after layout (the wide Home's page pane,
+     * hub layout plan 1.11, PR 13): the last rung of the panes' ladder, which takes the one-pane Home there. Names wrap
+     * between words; a single word never breaks.
+     */
+    boolean wordsBreak() {
+        for (TextView name : names) {
+            if (!name.isShown() || name.getWidth() == 0) continue;
+            int room = name.getWidth() - name.getTotalPaddingLeft() - name.getTotalPaddingRight();
+            CharSequence text = name.getText();
+            if (text == null) continue;
+            for (String word : text.toString().split("\\s+"))
+                if (!word.isEmpty() && name.getPaint().measureText(word) > room) return true;
+        }
+        return false;
+    }
+
     /** A subject's line now, or null when its state isn't known. */
     private CharSequence summary(ScooterService service, String subject) {
         if (subject.equals(HubPages.DATA)) return HubText.dataSummary().render();

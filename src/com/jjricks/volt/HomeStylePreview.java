@@ -105,9 +105,12 @@ final class HomeStylePreview extends View {
             subjectIcons.add(HubPages.icon(subject));
         }
         // A phone's dock at this window's width (a wide window's preview is still a phone, so no wider than a large one).
-        // At the dock's own text scale (HubDock: Volt's text size times Android's font size, at least 1).
+        // At the dock's own text scale (HubDock: Volt's text size times Android's font size, at least 1), and at the
+        // window's width, not the page's: in the wide Clean Home's page pane (PR 13) the page is narrower than the
+        // window, and the preview must show the same phone there as on a full-width page.
         float dockScale = Math.max(1f, ui.textScale * host.activity().getResources().getConfiguration().fontScale);
-        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(host.contentWidthDp(), 412)), dockScale)) {
+        int windowDp = host.activity().getResources().getConfiguration().screenWidthDp;
+        for (String subject : HubPages.dockSubjects(HubPages.dockRoom(Math.min(windowDp, 412)), dockScale)) {
             Msg shortName = HubText.shortTitle(subject);
             dockIcons.add(HubPages.icon(subject));
             dockLabels.add((shortName == null ? HubText.title(subject) : shortName).render());

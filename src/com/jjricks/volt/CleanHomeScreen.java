@@ -30,13 +30,18 @@ import java.util.List;
  * {@code home_quick_v1_<profile id>} in app_settings (HomeQuickActions), its moments follow {@code home_moment_*} (HomeMoment). The
  * header's words, the battery card and the charging view are DashboardScreen's own (DashboardScreen.CleanParts); every
  * other word comes from HubText, so this file holds no catalog references.
+ *
+ * <p>On a wide window (hub layout plan 1.11, PR 13) the same Home is the scooter pane at the left of two (pane mode):
+ * the subjects move to the page pane beside it (HubHomePane) with the search field, so the header leaves out its search
+ * button, and the Service card (HubServiceCard) fills the room left below the quick actions. Page navigation happens in
+ * the other pane; this one is built once per rebuild and never changes while browsing.
  */
 final class CleanHomeScreen implements AppScreen {
     /** View tags: the header's buttons, the top area, the lock slot, the quick actions and the Edit sheet's slots. */
     static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings",
             TAG_NAME = "home-switch-scooter", TAG_TOP = "home-top-area", TAG_LOCK = "home-lock", TAG_QUICK = "home-quick-actions",
             TAG_SLOT = "home-edit-slot-";
-    /** One column at most this wide on a wide window, until the wide two-pane Home arrives (plan 1.11). */
+    /** One column at most this wide on a wide window where the two-pane Home does not fit (plan 1.11). */
     private static final int MAX_WIDTH_DP = 560;
     private static final int CROSSFADE_MS = 180;
 
@@ -61,7 +66,15 @@ final class CleanHomeScreen implements AppScreen {
     /** The ride whose route was asked for, so each ride's route is read once. */
     private String routeAsked;
     private final QuickAccessGrid quick;
+    /** The seven subjects (one-pane Home), or the Service card (the wide Home's scooter pane); the other is null. */
     private final CleanSubjects subjects;
+    private final HubServiceCard serviceCard;
+    /** The wide Home's scooter pane (pane mode). */
+    private final boolean pane;
+    /** What the window shows above this Home (dp), left out of the top area's share of the window. */
+    private final int aboveDp;
+    /** From the header's top to its status line's text (px): the wide Home's page pane starts level with it. */
+    private int statusTextTop;
     private final List<String> quickIds;
     /** The scooter's model as known when this Home was built; the default quick actions follow it. */
     private final String modelIdentity;
@@ -74,15 +87,25 @@ final class CleanHomeScreen implements AppScreen {
     private boolean closed;
     private android.app.AlertDialog editSheet;
 
-    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) {
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) { this(host, actions, false, 0); }
+
+    /**
+     * pane: the wide Home's scooter pane (see the class comment); false is the one-pane Home. aboveDp: what the window
+     * shows above the panes (the Simulation banner), which the top area leaves out of the window's height so the quick
+     * actions still show whole on first view.
+     */
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions, boolean pane, int aboveDp) {
         this.host = host;
         this.actions = actions;
+        this.pane = pane;
+        this.aboveDp = Math.max(0, aboveDp);
         ui = host.ui();
         preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         parts = DashboardScreen.cleanParts(host, actions);
         view = new MaxWidth(host.activity(), ui.dp(MAX_WIDTH_DP));
         page = column();
-        view.addView(page, new LinearLayout.LayoutParams(-1, -2));
+        // The scooter pane fills its pane's height, so the Service card can take the room left at its foot.
+        view.addView(page, new LinearLayout.LayoutParams(-1, pane ? -1 : -2));
 
         // The plan's header: the status line, then the scooter's name with search and Settings beside it, level
         // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
@@ -97,12 +120,14 @@ final class CleanHomeScreen implements AppScreen {
         status.setGravity(Gravity.BOTTOM | Gravity.START);
         status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
         status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
+        statusTextTop = Math.max(0, Math.max(ui.dp(CleanHeaderFit.TARGET_DP), ui.dp(CleanHeaderFit.TOP_DP) + status.getLineHeight()) - status.getLineHeight());
         header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
         float nameFull = name.getTextSize();
         android.graphics.Paint namePaint = new android.graphics.Paint(name.getPaint());
         namePaint.setTextSize(nameFull);
-        int buttons = ui.dp(CleanHeaderFit.BUTTONS * CleanHeaderFit.TARGET_DP + CleanHeaderFit.BUTTON_GAP_DP);
+        // The wide Home's page pane has the search field (and the search button's tag) instead, so one button there.
+        int buttons = ui.dp(CleanHeaderFit.buttonsDp(pane ? 1 : CleanHeaderFit.BUTTONS));
         LinearLayout second = new LinearLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 // Fit the name to the room the buttons leave, at its full size first (CleanHeaderFit.name).
@@ -125,8 +150,8 @@ final class CleanHomeScreen implements AppScreen {
         second.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams searchSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
         searchSize.setMarginStart(ui.dp(CleanHeaderFit.BUTTON_GAP_DP));
-        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), searchSize);
-        second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        if (!pane) second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), searchSize);
+        second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), pane ? searchSize : new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
@@ -165,14 +190,31 @@ final class CleanHomeScreen implements AppScreen {
         quickSize.topMargin = ui.dp(12);
         page.addView(quick, quickSize);
 
-        subjects = new CleanSubjects(host);
-        LinearLayout.LayoutParams subjectSize = new LinearLayout.LayoutParams(-1, -2);
-        subjectSize.topMargin = ui.dp(16);
-        page.addView(subjects.view(), subjectSize);
+        if (pane) {
+            subjects = null;
+            serviceCard = new HubServiceCard(host);
+            // Fills what the pane has left; with large text the pane scrolls and the card keeps its own height.
+            LinearLayout.LayoutParams cardSize = new LinearLayout.LayoutParams(-1, -2, 1);
+            cardSize.topMargin = ui.dp(16);
+            page.addView(serviceCard.view(), cardSize);
+        } else {
+            serviceCard = null;
+            subjects = new CleanSubjects(host);
+            LinearLayout.LayoutParams subjectSize = new LinearLayout.LayoutParams(-1, -2);
+            subjectSize.topMargin = ui.dp(16);
+            page.addView(subjects.view(), subjectSize);
+        }
         refresh();
     }
 
     @Override public View view() { return view; }
+
+    /**
+     * How far below the header's top its status line's text starts (px): the status band keeps its 48 dp target with the
+     * text at its foot. The wide Home's page pane starts this much lower, so the search field (or a page's back link)
+     * lines up with "Connected" as in the Layout Plan's wide mock-ups.
+     */
+    int statusTextTop() { return statusTextTop; }
 
     /**
      * Tabletop posture: the header and the top area move to the pane above the hinge, as the widget dashboard's
@@ -219,7 +261,8 @@ final class CleanHomeScreen implements AppScreen {
         String name = parts.name().getText().toString();
         parts.name().setContentDescription(HubText.switchScooterDescription(name).render());
         quick.refresh();
-        subjects.refresh();
+        if (subjects != null) subjects.refresh();
+        if (serviceCard != null) serviceCard.refresh();
     }
 
     /** Swaps the top area's content: a short crossfade on a change only, never on a telemetry refresh. */
@@ -336,7 +379,8 @@ final class CleanHomeScreen implements AppScreen {
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
         editSheet = null;
         parts.close();
-        subjects.close();
+        if (subjects != null) subjects.close();
+        if (serviceCard != null) serviceCard.close();
     }
 
     private void quickAction(String id) {
@@ -396,7 +440,7 @@ final class CleanHomeScreen implements AppScreen {
     private int topHeight() {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        return TopArea.heightPx(configuration.screenHeightDp - aboveDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */

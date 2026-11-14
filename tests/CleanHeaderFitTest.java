@@ -110,6 +110,31 @@ public final class CleanHeaderFitTest {
         require(CleanHeaderFit.nameRowDp(10) == 48, "a short name keeps a full target");
         require(CleanHeaderFit.BUTTONS == 2, "two buttons beside the name, search and Settings, as the mock-up (no Edit)");
         require(CleanHeaderFit.nameRoomDp(308) == 308 - 2 * 48 - CleanHeaderFit.BUTTON_GAP_DP, "the name's room is the row less two buttons");
+        paneHeader();
+    }
+
+    /**
+     * The wide Home's scooter pane (hub layout plan 1.11, PR 13): one button, the gear (the page pane has the search
+     * field). At 725x604 dp and 1x the pane is 328 dp (HubSplit: 725 less 24 dp a side, a 20 dp gutter on the centre
+     * line); at 1.4x 725 dp is the phone layout (725 / 1.4 < 650), so the one-pane header with two buttons applies.
+     */
+    private static void paneHeader() {
+        require(CleanHeaderFit.buttonsDp(1) == 48 + CleanHeaderFit.BUTTON_GAP_DP, "one button: one target and the space before it");
+        require(CleanHeaderFit.buttonsDp(2) == 2 * 48 + CleanHeaderFit.BUTTON_GAP_DP, "two buttons, as nameRoomDp(row)");
+        require(CleanHeaderFit.nameRoomDp(328, 1) == 328 - 48 - CleanHeaderFit.BUTTON_GAP_DP, "the scooter pane's name has 276 dp beside the gear");
+        require(CleanHeaderFit.nameRoomDp(328, 1) - CleanHeaderFit.nameRoomDp(328, 2) == 48, "one button more room than two");
+        require(CleanHeaderFit.nameRoomDp(308, 2) == CleanHeaderFit.nameRoomDp(308), "two buttons is the phone's header");
+        require(CleanHeaderFit.nameRoomDp(40, 1) == 0 && CleanHeaderFit.nameRoomDp(300, -1) == 300 - CleanHeaderFit.BUTTON_GAP_DP, "no room, no buttons");
+        for (float text : new float[]{1f, 1.4f}) {
+            CleanHeaderFit.Width w = width(text, 1f);
+            float room = CleanHeaderFit.nameRoomDp(328, 1);
+            CleanHeaderFit.Name usual = CleanHeaderFit.name("Midnight Runner", room, w);
+            require(usual.lines == 1 && !usual.clipped, "725 dp pane at " + text + "x: Midnight Runner on one line beside the gear, " + usual);
+            CleanHeaderFit.Name longName = CleanHeaderFit.name("Segway Ninebot Max G2", room, w);
+            require(!longName.clipped, "725 dp pane at " + text + "x: a long name is not cut, " + longName);
+        }
+        // 344x882 dp keeps both buttons: the name's 208 dp (size() above) is less than the pane's 276.
+        require(CleanHeaderFit.nameRoomDp(308) < CleanHeaderFit.nameRoomDp(328, 1), "the pane's name has more room than the phone's");
     }
 
     private static void require(boolean condition, String message) {

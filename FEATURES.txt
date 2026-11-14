@@ -773,7 +773,13 @@ No tabs: Home is the hub for seven subjects, each with a summary (Ride,
 Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
 on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
 the tab bar was: the most-used subjects with short names, and All, or swipe
-up, for every subject with its summary). Each is a short page in a fixed, most-used-first
+up, for every subject with its summary). On a wide window (650 dp after
+text size) Clean Home takes two panes: the scooter (header, top area, Lock
+bar, quick actions and a Service card with the next maintenance checks)
+stays put while subjects and their pages open beside it, with All to go back;
+Widgets keeps its wide layouts with the same dock centred, all seven subjects
+with their short names. Large text that keeps the phone layout, tabletop
+posture, or a subject name that would not fit keeps one column. Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back
 link. The gear in Clean Home's header (beside the connection line), or
@@ -783,7 +789,8 @@ entries included), live readings (with their value; a saved one says when it
 was last seen) and rides, each with its path ("Battery & charging > Battery
 modes"), and opens the result's page with the row on screen; Back returns to
 the search as it was. The field sits at the top with Cancel, the page's back
-link and title hidden. The former arrange-and-hide editor is gone, and settings hidden with
+link and title hidden (on the wide Clean Home, at the top of the right pane,
+where Home's search field was). The former arrange-and-hide editor is gone, and settings hidden with
 it show again. Rename the local scooter profile in Settings > My scooters or
 with its widget pencil while editing Home. Maintenance
 (Service > Maintenance, off by default) keeps local reminders by

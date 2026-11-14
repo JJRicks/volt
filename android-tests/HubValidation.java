@@ -85,6 +85,14 @@ import com.jjricks.volt.WideLayout;
  *   that bar, and the walk scrolls Home as a rider would until the dock comes back before tapping it.</li>
  *   <li><b>Taps</b>: every tap first scrolls its view into sight, and the view's centre must then be on screen and, on a
  *   page with the dock, above the dock; a view an owner cannot see is not tapped.</li>
+ *   <li><b>Wide Clean Home</b> (part 13): on a window with room for two panes (MainActivity.twoPaneHome), Clean Home is
+ *   the scooter pane (tag hub-scooter-pane) beside the page pane (tag hub-page-pane), whose Home is HubHomePane. The
+ *   walk above runs in the page pane (Home's subjects and search field are HubHomePane's; the moments are the scooter
+ *   pane's Clean Home's), and every page it opens must leave the scooter pane the same view (never rebuilt by
+ *   browsing). Battery & charging › Estimates & charger must hold the usable-energy panel and Settings › Home style
+ *   both style previews inside the page pane, no wider than it. With -e wide true, Clean Home must take two panes
+ *   every time Home shows where the window gets the wide layout at its text size (WideLayout.wide), and one where large
+ *   text keeps the phone layout (725x604 dp at 1.4x, hub-725-large); with -e wide false, one.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
@@ -180,15 +188,22 @@ public final class HubValidation extends Instrumentation {
     private void cleanSubjects() throws Exception {
         requireHome("CleanHomeScreen");
         main(() -> require(field(activity, "dock") == null, "Clean Home shows the dock"));
+        if (panesExpected())
+            main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
+                    "Clean Home on a wide window did not take two panes"));
+        Object[] pane = scooterPane();
         screenshot("clean-home");
         for (String subject : HubPages.SUBJECTS) {
             tapTag("home-subject-" + subject);
             arrived(subject, HubPages.HOME, subject);
             main(() -> require(field(activity, "dock") == null, subject + " shows the dock"));
+            requireSamePane(pane, subject);
             screenshot("subject-" + subject);
             for (String child : children(subject)) {
                 reach(child, Arrays.asList("hub-link-" + child, "hub-row-" + child));
                 arrived(child, HubPages.HOME, subject, child);
+                requireSamePane(pane, child);
+                if (child.equals(HubPages.BATTERY_ESTIMATES)) requireInPage("battery-usable-energy", "The usable-energy panel");
                 tapTag("hub-back");
                 arrived(subject, HubPages.HOME, subject);
             }
@@ -196,7 +211,9 @@ public final class HubValidation extends Instrumentation {
             requireHome("CleanHomeScreen");
             requireStack(HubPages.HOME);
         }
+        requireSamePane(pane, HubPages.HOME);
         checks.add("Clean Home: each subject row opens its subject over Home; each sub-page opens from it; back links and Back return");
+        if (pane[0] != null) checks.add("Wide Clean Home: two panes; every page opens in the page pane and leaves the scooter pane as it was; Estimates & charger holds the usable-energy panel there");
         // Settings behind the gear, and its own rows.
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
@@ -206,9 +223,15 @@ public final class HubValidation extends Instrumentation {
             require(tag != null, "HubValidation names no Settings row for " + child + " (SETTINGS_ROWS)");
             reach(child, Collections.singletonList(tag));
             arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireSamePane(pane, child);
+            if (child.equals(HubPages.SETTINGS_HOME)) {
+                requireInPage("home-style-clean", "Home style's Clean preview");
+                requireInPage("home-style-widgets", "Home style's Widgets preview");
+            }
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
+        if (pane[0] != null) checks.add("Wide Clean Home: Settings › Home style shows both style previews inside the page pane, no wider than it");
         tapTag("hub-back");
         requireHome("CleanHomeScreen");
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
@@ -244,8 +267,12 @@ public final class HubValidation extends Instrumentation {
      * the field empty and left the header stays hidden (Cancel the one way out) and Cancel goes Home at once.
      */
     private void search() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] != null) keyboardSearch(pane);
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, HubPages.SEARCH);
+        if (pane[0] != null) requireInPage(SEARCH_FIELD, "The search page's field");
         EditText[] field = new EditText[1];
         await(() -> onMain(() -> { field[0] = firstEditText(activity.findViewById(android.R.id.content)); return field[0] != null && field[0].hasFocus(); }),
                 "The search page's field is not focused");
@@ -262,6 +289,9 @@ public final class HubValidation extends Instrumentation {
             int found = resultRows(root().findViewWithTag("hub-search-results"));
             require(found > 0, "Search found nothing for \"batt\" (" + found + " result rows shown)");
         });
+        // On two panes the results show in the page pane, and the scooter pane stays as it was.
+        if (pane[0] != null) requireInPage("hub-search-results", "Search's results");
+        requireSamePane(pane, "Search's results");
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
         main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
@@ -312,19 +342,46 @@ public final class HubValidation extends Instrumentation {
         checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
     }
 
+    /** The search page's field (HubSearchScreen.TAG_FIELD). */
+    private static final String SEARCH_FIELD = "hub-search-field";
+
+    /**
+     * The wide Home's search field from a keyboard (#394 early review, finding 1): it takes focus by key, not by touch,
+     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home.
+     */
+    private void keyboardSearch(Object[] pane) throws Exception {
+        // A Tab leaves touch mode, as a keyboard's first key does.
+        sendKeyDownUpSync(KeyEvent.KEYCODE_TAB); settle();
+        main(() -> {
+            View field = root().findViewWithTag("home-search");
+            require(field != null && field.isFocusable() && !field.isFocusableInTouchMode(),
+                    "The wide Home's search field cannot take focus from a keyboard (or a tap would raise the keyboard)");
+            require(field.requestFocus() && field.hasFocus(), "The wide Home's search field did not take the keyboard's focus");
+        });
+        sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER); settle();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, "Search from the keyboard");
+        hideKeyboard();
+        systemBack();
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
+    }
+
     /**
      * The Lock bar keeps its place and size, and Home's scooter name its place, while the top area changes moment; each
      * moment is pictured at the same scroll (Home's top).
      */
     private void moments() throws Exception {
         requireHome("CleanHomeScreen");
-        Object clean = field(activity, "screen");
-        main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
+        // On two panes the moments are the scooter pane's Clean Home's, scrolled in that pane (part 13).
+        Object clean = onMain(() -> twoPanes() ? field(activity, "homeScreen") : field(activity, "screen"));
+        main(() -> homeScroll().scrollTo(0, 0));
         settle();
         // The scroll bar a scroll shows fades on its own; every moment is pictured without it.
         SystemClock.sleep(ViewConfiguration.getScrollDefaultDelay() + ViewConfiguration.getScrollBarFadeDuration() + 100);
         settle();
-        main(() -> require(((ScrollView) field(activity, "scroll")).getScrollY() == 0, "Clean Home did not scroll back to its top"));
+        main(() -> require(homeScroll().getScrollY() == 0, "Clean Home did not scroll back to its top"));
         int[] parked = placeIn(clean, 0, "the battery card");
         screenshot("moment-parked");
         // Still the battery card after the picture, at the place measured.
@@ -710,15 +767,62 @@ public final class HubValidation extends Instrumentation {
         });
     }
     private void requireHome(String screenClass) {
+        // The wide Clean Home (part 13): Home's page pane is HubHomePane, beside the Clean Home of the scooter pane.
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
-                && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), "Home is not " + screenClass);
+                && field(activity, "screen").getClass().getSimpleName().equals("CleanHomeScreen".equals(screenClass) && twoPanes() ? "HubHomePane" : screenClass)),
+                "Home is not " + screenClass);
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
+        // -e wide true or false: Clean Home takes two panes where the window gets the wide layout at this text size, and
+        // one pane on the phone and on a wide window whose large text keeps the phone layout, every time it shows.
+        if ("CleanHomeScreen".equals(screenClass) && arguments.containsKey("wide")) {
+            boolean wide = panesExpected();
+            main(() -> require(twoPanes() == wide && shown(root().findViewWithTag("hub-scooter-pane")) == wide && shown(root().findViewWithTag("hub-page-pane")) == wide,
+                    wide ? "Clean Home on a wide window did not take two panes" : "Clean Home took two panes on a window whose layout is the phone's ("
+                            + widthDp() + " dp, " + textScale() + "x text)"));
+        }
+    }
+    /**
+     * Two panes are expected with -e wide true on a window that gets the wide layout at this text size (WideLayout.wide):
+     * at 725x604 dp and 1x; not at 1.4x, where 725 / 1.4 < 650 keeps the phone layout (hub-725-large).
+     */
+    private boolean panesExpected() {
+        return Boolean.parseBoolean(arguments.getString("wide", "false")) && WideLayout.wide(widthDp(), textScale());
     }
     private Object dock() {
         Object dock = field(activity, "dock");
         require(dock != null, "Widgets Home has no dock");
         return dock;
+    }
+    /** The wide Clean Home's two panes are up (MainActivity.homeScreen is the scooter pane's Clean Home). Call on the main thread. */
+    private boolean twoPanes() { return field(activity, "homeScreen") != null; }
+
+    /** Home's scroller: the scooter pane on two panes (part 13), else the page's. Main thread. */
+    private ScrollView homeScroll() {
+        return twoPanes() ? (ScrollView) root().findViewWithTag("hub-scooter-pane") : (ScrollView) field(activity, "scroll");
+    }
+    /** The scooter pane's view and its Clean Home, or nulls on one pane. */
+    private Object[] scooterPane() {
+        return onMain(() -> twoPanes() ? new Object[]{root().findViewWithTag("hub-scooter-pane"), field(activity, "homeScreen")} : new Object[]{null, null});
+    }
+    /** On two panes: the scooter pane is still the one captured (browsing never rebuilds it). */
+    private void requireSamePane(Object[] pane, String page) {
+        if (pane[0] == null) return;
+        main(() -> require(root().findViewWithTag("hub-scooter-pane") == pane[0] && field(activity, "homeScreen") == pane[1],
+                "The scooter pane was rebuilt opening " + page));
+    }
+    /** The view tagged tag exists and, on two panes, sits inside the page pane and is no wider than it. */
+    private void requireInPage(String tag, String what) {
+        main(() -> {
+            View view = root().findViewWithTag(tag);
+            require(view != null, what + " is missing (tag " + tag + ")");
+            if (!twoPanes()) return;
+            View pane = root().findViewWithTag("hub-page-pane");
+            boolean inside = false;
+            for (View at = view; at != null && !inside; at = at.getParent() instanceof View ? (View) at.getParent() : null) inside = at == pane;
+            require(inside, what + " is not in the page pane");
+            require(view.getWidth() <= pane.getWidth(), what + " is wider than the page pane");
+        });
     }
     /** The room a phone dock has (HubPages.dockRoom of the window's width, as HubDock measures it). */
     private int dockRoomDp() { return HubPages.dockRoom(widthDp()); }
