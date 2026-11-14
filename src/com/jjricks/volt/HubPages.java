@@ -127,15 +127,15 @@ public final class HubPages {
         return path.size() > 1 ? path.get(1) : HOME;
     }
 
-    /** Ui icon key for a page's subject. */
+    /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */
     public static String icon(String id) {
         switch (subjectOf(id)) {
             case RIDE: return "route";
-            case BATTERY: return "battery";
-            case CONTROLS: return "speed";
-            case LIGHTS: return "lights";
+            case BATTERY: return "bolt";
+            case CONTROLS: return "bars";
+            case LIGHTS: return "bulb";
             case SECURITY: return "shield";
-            case SERVICE: return "tune";
+            case SERVICE: return "wrench";
             case DATA: return "chart";
             case SETTINGS: return "gear";
             case SEARCH: return "search";

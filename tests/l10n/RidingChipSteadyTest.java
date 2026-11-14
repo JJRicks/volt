@@ -28,12 +28,16 @@ public final class RidingChipSteadyTest {
             highlight();
             clockDay();
             speeds();
+            rangeKinds();
+            stackedCap();
+            gpsFirstStepsToItsDash();
+            compactChipKeepsAWideFix();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
         System.out.println("RidingChipSteadyTest: " + checks + " checks passed (row fill, sizes, widest values, short column, "
-                + "None, highlight growth, every time of day, every speed)");
+                + "None, highlight growth, every time of day, every speed, range kinds, stacked cap, GPS first, a wide fix in a compact chip)");
     }
 
     private static void spread() {
@@ -312,5 +316,149 @@ public final class RidingChipSteadyTest {
             rides = tabular(shown) * rideSize <= rideRoom + 1e-3f;
         }
         check(rides, "every ride time under 100 hours draws at the one size");
+    }
+    /**
+     * F02 and F07 (the council on #493): a range chip reserves room and names only for what RidingFocus.range can give its
+     * content. Scooter's range reserved "Almost empty", which it never shows, and dropped another chip for the whole ride;
+     * Volt's range reserved "Scooter's range", which it never carries, and shortened its own name. Every input range()
+     * takes, tried for each content, gives a kind in kinds() and a name namedAs() allows.
+     */
+    private static void rangeKinds() {
+        java.util.Map<String, java.util.Set<String>> names = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Set<RidingFocus.RangeKind>> seen = new java.util.HashMap<>();
+        String[] contents = {RidingLayout.RANGE_AT_PACE, RidingLayout.RANGE_SCOOTER, RidingLayout.RANGE_VOLT};
+        List<RangeReadout.Value> lives = new java.util.ArrayList<>();
+        lives.add(null);
+        for (RangeReadout.State state : RangeReadout.State.values())
+            for (Double primary : new Double[]{null, 12.3})
+                for (int decimals = 0; decimals <= 1; decimals++)
+                    lives.add(new RangeReadout.Value(state, primary, null, true, decimals, decimals == 0, false, false, false));
+        for (String content : contents) {
+            names.put(content, new java.util.HashSet<>());
+            seen.put(content, java.util.EnumSet.noneOf(RidingFocus.RangeKind.class));
+            for (RangeReadout.Value live : lives)
+                for (Double scooterKm : new Double[]{null, 40.0, 255.0})
+                    for (Double learnedKm : new Double[]{null, 30.0})
+                        for (Double percent : new Double[]{null, 1.0, 50.0})
+                            for (String units : new String[]{"km", "mi"}) {
+                                RidingFocus.Range r = RidingFocus.range(content, live, scooterKm, false, learnedKm, percent, false, units);
+                                check(RidingFocus.kinds(content).contains(r.kind), content + " gave " + r.kind + ", which kinds() leaves out");
+                                seen.get(content).add(r.kind);
+                                names.get(content).add(RidingFocus.namedAs(content, r.kind));
+                                if (r.kind == RidingFocus.RangeKind.SCOOTER) check(!r.approx && r.decimals == 0, "the scooter's figure is whole and unmarked");
+                                if (r.kind == RidingFocus.RangeKind.VOLT) check(r.approx && r.decimals == 0, "Volt's figure is an approximate whole number");
+                                if (r.value != null) check(r.value < 1000, "three whole figures: " + content + " " + r.value);
+                            }
+            check(seen.get(content).equals(java.util.EnumSet.copyOf(RidingFocus.kinds(content))), content + ": kinds() lists only kinds range() gives: " + seen.get(content));
+        }
+        check(!RidingFocus.kinds(RidingLayout.RANGE_SCOOTER).contains(RidingFocus.RangeKind.ALMOST_EMPTY), "F02: Scooter's range never reads Almost empty");
+        check(RidingFocus.kinds(RidingLayout.RANGE_VOLT).contains(RidingFocus.RangeKind.ALMOST_EMPTY)
+                && RidingFocus.kinds(RidingLayout.RANGE_AT_PACE).contains(RidingFocus.RangeKind.ALMOST_EMPTY), "F02: Volt's and at-pace range can");
+        check(names.get(RidingLayout.RANGE_VOLT).equals(java.util.Collections.singleton(RidingLayout.RANGE_VOLT)), "F07: Volt's range carries only its own name");
+        check(names.get(RidingLayout.RANGE_SCOOTER).equals(java.util.Collections.singleton(RidingLayout.RANGE_SCOOTER)), "F07: Scooter's range carries only its own name");
+        check(names.get(RidingLayout.RANGE_AT_PACE).size() == 3, "F07: Range at this pace can carry all three names");
+        // shown() names the range itself; it must follow namedAs, or the sizing reserves names the chip never shows.
+        String screen = source("src/com/jjricks/volt/RidingScreen.java");
+        check(screen.contains("if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))\n                    s.rungs = rangeNames(RidingLayout.RANGE_SCOOTER);")
+                && screen.contains("else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))\n                    s.rungs = rangeNames(RidingLayout.RANGE_VOLT);")
+                && screen.contains("else s.rungs = rangeNames(RidingLayout.RANGE_AT_PACE);"), "F07: shown() names a range as RidingFocus.namedAs does");
+        check(screen.contains("String as = RidingFocus.namedAs(content, kind);"), "F07: the sizing names a range from namedAs");
+    }
+
+    private static String source(String path) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new AssertionError("can't read " + path, e);
+        }
+    }
+
+    /** F01 (the council on #493): the stacked Lock column keeps its 320 dp cap; only the side-by-side row rose to 560 dp. */
+    private static void stackedCap() {
+        check(RidingFrames.STOPPED_CONTROLS_STACKED_MAX_DP == 320, "the stacked column's cap is the one it always had");
+        check(RidingFrames.STOPPED_CONTROLS_MAX_DP == 560, "the side-by-side row's cap");
+    }
+
+    /** Fixed widths [rung][chip], the same whatever the name step. */
+    private static RidingChipFit.Widths fixedWidths(final int[][] widths) {
+        return (chip, rung, step) -> widths[rung][chip];
+    }
+
+    /**
+     * F04 (the council on #493): a GPS chip that fits in full but pushes a later chip out tries its compact form (the
+     * dash) before that chip is dropped, so every chip the rider chose shows where the dash makes room. Steady: the
+     * widths are each chip's widest, and the answer depends on them alone.
+     */
+    private static void gpsFirstStepsToItsDash() {
+        String[][] marks = {null, null, null};
+        String[] contents = {"gps_accuracy", "current", "clock"};
+        // GPS in full ("Not recording") 150, its compact form (±888 ft or the dash) 80; current 90; clock 70; gap 8.
+        int[][] full = new int[RidingChipFit.RUNGS][];
+        int[][] compact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { full[r] = new int[]{150, 90, 70}; compact[r] = new int[]{80, 90, 70}; }
+        boolean[] canStep = {true, false, false};
+        // 150 + 90 + 70 + 16 = 326 overfills 300; 80 + 90 + 70 + 16 = 256 fits.
+        RidingChipFit plain = RidingChipFit.row(marks, contents, fixedWidths(full), 8, 300);
+        check(plain.count == 2 && plain.shown[0], "F04 setup: in full GPS fits and the clock steps aside");
+        // stepping alone keeps main's rule (a chip that shows in full keeps its words; GpsAccuracyTextTest holds it to that).
+        RidingChipFit kept = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, 8, 300);
+        check(kept.count == 2 && !kept.compact[0], "F04: stepping alone keeps a GPS chip that fits in full in its words");
+        RidingChipFit fit = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, 8, 300);
+        check(fit.count == 3 && fit.compact[0] && !fit.compact[1] && !fit.compact[2],
+                "F04: a GPS chip that fits in full must step to its dash before the clock is dropped");
+        // All three fit in full: GPS keeps its words.
+        RidingChipFit roomy = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, 8, 326);
+        check(roomy.count == 3 && !roomy.compact[0], "F04: with room for every chip in full, GPS keeps its words");
+        // The dash doesn't make room (80 + 90 + 120 + 16 = 306 > 300): nothing to gain, so GPS keeps its words and the third goes.
+        int[][] wideClock = new int[RidingChipFit.RUNGS][];
+        int[][] wideClockCompact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { wideClock[r] = new int[]{150, 90, 120}; wideClockCompact[r] = new int[]{80, 90, 120}; }
+        RidingChipFit noGain = RidingChipFit.steadyStepping(marks, contents, fixedWidths(wideClock), fixedWidths(wideClockCompact), canStep, false, 8, 300);
+        check(noGain.count == 2 && !noGain.compact[0], "F04: a dash that saves no chip leaves GPS in full");
+        // GPS last and dropped steps down as before.
+        String[] last = {"current", "clock", "gps_accuracy"};
+        int[][] lastFull = new int[RidingChipFit.RUNGS][];
+        int[][] lastCompact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { lastFull[r] = new int[]{90, 70, 150}; lastCompact[r] = new int[]{90, 70, 80}; }
+        RidingChipFit lastFit = RidingChipFit.steadyStepping(marks, last, fixedWidths(lastFull), fixedWidths(lastCompact), new boolean[]{false, false, true}, false, 8, 300);
+        check(lastFit.count == 3 && lastFit.compact[2], "F04: a dropped GPS chip still shows its dash");
+        // Every room gives the same answer each time: it reads nothing but the widths.
+        for (int room = 0; room <= 400; room++) {
+            RidingChipFit a = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, 8, room);
+            RidingChipFit b = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, 8, room);
+            check(a.count == b.count && a.rung == b.rung && java.util.Arrays.equals(a.compact, b.compact),
+                    "F04: the fit must depend on the widths alone, room " + room);
+            RidingChipFit sansStep = RidingChipFit.row(marks, contents, fixedWidths(full), 8, room);
+            check(a.count >= sansStep.count, "F04: the steady fit never shows fewer chips than the plain fit, room " + room);
+        }
+        // The same in a column of two: a short column's limit isn't beaten by any dash.
+        RidingChipFit column = RidingChipFit.steppingColumn(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, 200, 2);
+        check(column.count == 2 && !column.compact[0], "F04: a column's limit stays; GPS in full fits its room");
+    }
+
+    /**
+     * F08 (the council on #493): a value wider than the samples of the form the chip is sized in is kept so the chip
+     * refits once. A ±1000 ft fix in a compact GPS chip (sized from ±888 ft) is narrower than "Not recording", so
+     * measured against the full samples it was never kept and drew past the chip's edge.
+     */
+    private static void compactChipKeepsAWideFix() {
+        check(RidingChipFit.form(RidingChipFit.FULL, true) == RidingChipFit.FORM_COMPACT, "F08: a planned compact form is the compact form");
+        check(RidingChipFit.form(RidingChipFit.TIGHT, false) == RidingChipFit.FORM_TIGHT, "F08: the tightest rung's form");
+        check(RidingChipFit.form(RidingChipFit.SHORT_NAMES, false) == RidingChipFit.FORM_FULL, "F08: any other rung is in full");
+        // Widest samples: full ("Not recording") 120, tight 120, compact (±888 ft) 60.
+        float[] widest = new float[RidingChipFit.FORMS];
+        widest[RidingChipFit.FORM_FULL] = 120; widest[RidingChipFit.FORM_TIGHT] = 120; widest[RidingChipFit.FORM_COMPACT] = 60;
+        String fix = "\u00b11000 ft";
+        String drawn = RidingChipFit.drawn(RidingChipFit.FORM_COMPACT, fix, null, null);
+        check(fix.equals(drawn), "F08: a fix has no compact form, so a compact chip draws its figure");
+        check(RidingChipFit.widens(70, RidingChipFit.FORM_COMPACT, widest), "F08: a ±1000 ft fix (70) in a compact chip must be kept");
+        check(!(RidingChipFit.widens(70, RidingChipFit.FORM_FULL, widest)), "F08: in full the same fix is within \"Not recording\"");
+        check(!(RidingChipFit.widens(60, RidingChipFit.FORM_COMPACT, widest)), "F08: a value as wide as the widest sample isn't kept");
+        // A GPS state draws its words only where they fit, else its dash: never past the chip, so never kept.
+        check(RidingChipFit.drawn(RidingChipFit.FORM_COMPACT, "Not recording", null, "\u2014") == null, "F08: a state in a compact chip is never measured");
+        // The tightest rung draws the clock without its AM/PM, measured against its own samples.
+        check("10:58:58".equals(RidingChipFit.drawn(RidingChipFit.FORM_TIGHT, "10:58:58 PM", "10:58:58", null)), "F08: the tight text at the tightest rung");
+        check("10:58 PM".equals(RidingChipFit.drawn(RidingChipFit.FORM_TIGHT, "10:58 PM", null, null)), "F08: no tight text, the full one");
+        check(!(RidingChipFit.widens(1000, -1, widest) || RidingChipFit.widens(1000, RidingChipFit.FORM_FULL, null)), "F08: no form, nothing kept");
     }
 }

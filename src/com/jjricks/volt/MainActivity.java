@@ -64,6 +64,8 @@ import org.json.JSONObject;
 
 /** Native adaptive shell. The foreground service owns Bluetooth and recordings. */
 public final class MainActivity extends Activity implements ScreenHost {
+    /** "Lock state unknown": the Home lock row's state while no lock state is known (also spoken by Clean's round Lock action). */
+    static String lockUnknownText(){return T.mainLockStateUnknown();}
     private static final int BLUETOOTH_PERMISSION=101, NOTIFICATION_PERMISSION=102, ENABLE_BLUETOOTH=103,
             RIDE_LOCATION_PERMISSION=104, IMPORT_OWNER=201, SAVE_DOCUMENT=202, IMPORT_LAYOUTS=203;
     private static final long BODY_REFRESH_MS=1000;
@@ -337,6 +339,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
+        if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -458,7 +462,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
         if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         if(riding!=null&&scooterService!=null)riding.observeLink(scooterService.ble.connected());
-        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeShowReleaseHold();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -519,7 +523,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             rebuilding=false;redraw();return;
         }
         onboarding=null;
-        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(RidingSession.Resume.restoresHome(ridingResume,scooterService.rideAutoEnds(),scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
+        if(ridingRestore&&riding==null&&scooterService!=null){ridingRestore=false;if(RidingSession.Resume.restoresHome(ridingResume,scooterService.rideAutoEnds(),scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){ridingResume=null;scooterService.ridingModeClosed();showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}else openRidingSession();}
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
@@ -762,7 +766,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void riderClosedRiding(){if(riding!=null&&scooterService!=null)scooterService.autoStart.riderLeftRidingMode();closeRiding();}
     private void closeRiding(){
         if(riding==null)return;
-        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);
+        // Its battery alert banner goes with it, counted as shown (ScooterService.ridingModeClosed).
+        if(scooterService!=null)scooterService.ridingModeClosed();
+        transitionRebuild(0);
     }
     /** A recording that ended by itself closes the riding mode that was open for it, with no auto-open hold. True when it did. */
     private boolean dropAutoEndedRiding(){
@@ -770,7 +777,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropRiding();return true;
     }
     /** Closes to Home with no auto-open hold: Volt's decision, not the rider's. */
-    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}
+    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);
+        scooterService.ridingModeClosed();
+    }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){
         if(!selectedPage.equals(HubPages.HOME))return makeCompactHeader();
@@ -822,7 +831,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         lockControl=new LockControl();lockControl.compact=true;lockReady=lockControl;
         View square=design.iconSquare("lock",design.dim);
         LinearLayout words=column();
-        offlineTitle=design.text(T.mainLockStateUnknown(),16,true);offlineTitle.setTypeface(design.semibold());
+        offlineTitle=design.text(lockUnknownText(),16,true);offlineTitle.setTypeface(design.semibold());
         offlineDetail=design.text("",13,false);offlineDetail.setTextColor(design.muted);offlineDetail.setVisibility(View.GONE);
         for(TextView line:new TextView[]{offlineTitle,offlineDetail}){
             // Saira's tall metrics need no extra spacing. The detail stays one line under a one-word state.
@@ -1353,6 +1362,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
+            // A held release (BleController.releaseHeld): say why Volt isn't reconnecting, down to Disconnected when narrow.
+            if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
+                design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
+                connectionTitle.setContentDescription(T.bleReleaseHeld());}
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
@@ -1614,8 +1627,62 @@ public final class MainActivity extends Activity implements ScreenHost {
         // No scooter: My scooters has Add scooter. A scooter not yet set up: More's index, whose checklist imports the owner setup.
         if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
         if(!profile.configured()){openMoreSection("");return;}
+        // A release that went out unconfirmed: ask again instead of connecting, since connecting claims the scooter back.
+        if(scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
         scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
+    }
+    /** The held release's sheet, at most one: the one shown, or null. */
+    private AlertDialog releaseHoldSheet;
+    /**
+     * The question a held release owes (BleController.releaseAsk), over whatever is in front, until the owner answers it
+     * (closes the sheet or picks an action): a sheet lost to a recreated screen or a restart is shown again.
+     */
+    private void maybeShowReleaseHold(){
+        if(scooterService==null||!resumed||onboarding!=null||riding!=null)return;
+        String id=scooterService.ble.releaseAsk();if(id!=null)showReleaseHold(id);
+    }
+    /**
+     * A release went out to this scooter and wasn't confirmed (OwnerRelease.holds), so Volt doesn't reconnect to it by
+     * itself. The sheet says so and asks: Remove from Volt (Forget's own dialog, owner-key backup first) or Reconnect
+     * (which makes Volt its owner again if it did release). Closing it keeps the hold; an explicit Connect asks again.
+     * Never two at once.
+     */
+    private void showReleaseHold(String id){
+        if(scooterService==null||destroyed)return;
+        if(releaseHoldSheet!=null&&releaseHoldSheet.isShowing())return;
+        ScooterProfiles.Profile held=null;for(ScooterProfiles.Profile p:scooterService.profiles.all())if(p.id.equals(id))held=p;
+        if(held==null||!scooterService.ble.releaseHeld(id)){scooterService.ble.releaseAsked(id);return;}
+        // Answered only by the owner: the close button, Back or a tap outside (cancel), or either action. A dismissal
+        // with the screen (recreation, finishing) leaves it owed.
+        BleController ble=scooterService.ble;
+        final AlertDialog[] self=new AlertDialog[1];
+        LinearLayout body=sheetContent(T.moreScootersReleaseHeldTitle(held.displayName()),T.moreScootersReleaseHeldBody(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();});
+        body.setTag("release_held_sheet");
+        TextView remove=design.button(T.moreScootersReleaseHeldRemove(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();removeHeldRelease(id);});
+        remove.setTag("release_held_remove");design.decorate(remove,"trash");
+        LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=design.dp(14);body.addView(remove,rp);
+        TextView again=design.secondaryButton(T.moreScootersReleaseHeldReconnect(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();reconnectHeldRelease(id);});
+        again.setTag("release_held_reconnect");design.decorate(again,"bluetooth");
+        LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,-2);ap.topMargin=design.dp(10);body.addView(again,ap);
+        TextView note=design.caption(T.moreScootersReleaseHeldReconnectNote());note.setTag("release_held_reconnect_note");
+        note.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(note);
+        AlertDialog dialog=showSheet(body);self[0]=dialog;releaseHoldSheet=dialog;
+        dialog.setOnCancelListener(d->ble.releaseAsked(id));
+        dialog.setOnDismissListener(d->{if(releaseHoldSheet==dialog)releaseHoldSheet=null;});
+    }
+    /** Remove from Volt: My scooters, then that scooter's Forget dialog with all its rules (MoreScreen.forgetAfterRelease). */
+    private void removeHeldRelease(String id){
+        if(scooterService==null||destroyed)return;
+        open(HubPages.SETTINGS_SCOOTERS);
+        if(screen instanceof MoreScreen)((MoreScreen)screen).forgetAfterRelease(id);
+    }
+    /** Reconnect: the owner's choice ends the hold, and the scooter, when it's the current one, connects as Connect does. */
+    private void reconnectHeldRelease(String id){
+        if(scooterService==null||destroyed)return;
+        scooterService.ble.endReleaseHold(id);
+        ScooterProfiles.Profile active=scooterService.profiles.active();
+        if(active!=null&&active.id.equals(id))connect();else redraw();
     }
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
@@ -1668,6 +1735,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}
         if(home&&!homeFindOffered()){redraw();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
+        if(profile!=null&&scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
         showScanner(true,true);
     }
@@ -1721,6 +1789,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Find mode, and any pick the ordinary sheet may not connect straight to (FindNearby.ordinaryConnect: another
         // address than a saved one), go through the find's steps: the confirmation, then the serial rule, or a refusal.
         ScooterProfiles.Profile active=scooterService.profiles.active();
+        if(active!=null&&scooterService.ble.releaseHeld(active.id)){if(scanDialog!=null)scanDialog.dismiss();showReleaseHold(active.id);return;}
         if(scanFind||active!=null&&!FindNearby.ordinaryConnect(active.mac,scanSelected)){for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){findSelected(result);return;}return;}
         for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){scooterService.ble.connectDiscovered(result);if(scanDialog!=null)scanDialog.dismiss();redraw();return;}
     }
@@ -2828,9 +2897,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             catch(android.content.ActivityNotFoundException|SecurityException missing){toast(T.mainAlertOpenSettings());}
         }
     }
-    /** An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. */
+    /**
+     * An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. In riding
+     * mode it is riding mode's banner instead (RidingAlertBanner), so nothing covers the speed mid-ride.
+     */
     private void maybeShowChargeAlert(){
         if(scooterService==null||!resumed||onboarding!=null||chargeAlertDialog!=null&&chargeAlertDialog.isShowing())return;
+        if(riding!=null||ridingRestore){showChargeAlertInRiding();return;}
         String[] alert=scooterService.pendingChargeAlert();if(alert==null)return;
         boolean sounding=scooterService.chargeAlarmPlaying();
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(alert[0]).setMessage(alert[1])
@@ -2838,6 +2911,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.setOnDismissListener(d->{if(scooterService!=null)scooterService.stopChargeAlarm();if(chargeAlertDialog==dialog)chargeAlertDialog=null;});
         chargeAlertDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
         scooterService.chargeAlertShown();
+    }
+    /** Riding mode open (or about to be restored): the pending alert waits for riding mode's screen, then shows as its banner. */
+    private void showChargeAlertInRiding(){
+        if(riding==null||rebuilding||!(screen instanceof RidingScreen))return;
+        if(!scooterService.showChargeAlertInRiding())return;
+        scooterService.chargeAlertShown();
+        screen.refresh();
     }
     private boolean chargeDoneOffered(){
         return scooterService==null||scooterService.ble==null
@@ -3726,7 +3806,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         Intent send=new Intent(Intent.ACTION_SEND);send.setType("message/rfc822");send.putExtras(mail);
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
+    /** The sheets and dialogs shown through showSheet, showTallSheet and styleDialog, held weakly, for dialogShowing. */
+    private final java.util.Set<Dialog> shownDialogs=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /**
+     * One of this activity's sheets or dialogs is showing: riding mode's silent alert banner waits under it (its time
+     * held) and shows once it closes. Asked anew on every look, so however a dialog goes, it stops counting at once.
+     */
+    @Override public boolean dialogShowing(){
+        for(Dialog d:new Dialog[]{scanDialog,controlDialog,missedStartDialog,scheduleTestDialog,chargeAlertDialog,quickMenuDialog,reportDialog,tallSheet})if(d!=null&&d.isShowing())return true;
+        for(Dialog d:shownDialogs)if(d.isShowing())return true;
+        return false;
+    }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        shownDialogs.add(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);
@@ -3772,7 +3864,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
             window.getDecorView().setPadding(0,0,0,0);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
@@ -3797,7 +3889,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // The keyboard waits for a tap on the search box; while it is up, the sheet rises so the results above it stay in view.
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN|WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
-        dialog.show();
+        dialog.show();shownDialogs.add(dialog);
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,tallSheetHeight());
         tallSheet=dialog;
         // Volt's window changes size without being recreated (configChanges): follow it, keeping the sheet's answer and check.

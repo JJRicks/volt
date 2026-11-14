@@ -8,8 +8,16 @@ import java.util.Set;
 public final class ScooterCommandsTest {
     private static int assertions;
     public static void main(String[] args) {
-        oemFixtures(); catalogDomains(); readbackMetadata(); lightingSemantics(); dynamicChoices(); sensitiveWorkflow(); rejectedCommands();
+        offValues(); oemFixtures(); catalogDomains(); readbackMetadata(); lightingSemantics(); dynamicChoices(); sensitiveWorkflow(); rejectedCommands();
         System.out.println("ScooterCommands tests passed: "+assertions+" assertions");
+    }
+
+    /** The setting labelled Off (Clean's round actions fill at any other): levels and on/off controls have one, a choice without Off has none. */
+    private static void offValues() {
+        check(Integer.valueOf(0).equals(ScooterCommands.find("energy_recovery").offValue()),"Energy recovery's Off is 0");
+        check(Integer.valueOf(0).equals(ScooterCommands.find("cruise_control").offValue()),"An on/off control's Off is 0");
+        check(ScooterCommands.find("acceleration").offValue()==null&&ScooterCommands.find("maximum_speed").offValue()==null
+                &&ScooterCommands.find("dual_drive").offValue()==null&&ScooterCommands.find("start_speed").offValue()==null,"No Off: Eco/Turbo, speeds, single/dual motor, a slider");
     }
 
     private static void oemFixtures() {
