@@ -8,6 +8,12 @@
 - Before this fix, Volt counted that as "not confirmed" (sent, no answer, link closed), kept the profile, and its usual retry reconnected one second later. A reset scooter takes the first owner key it hears, so that reconnect **claimed the scooter straight back**: it was authenticated with the same key again about 3.2 s after the release. So on the UT5 MAX the release could never finish.
 - On a second try Volt was force-stopped about 0.35 s after the tap, before its retry. The NAVEE app then found the scooter as a new one and added it. Afterwards the owner identity from the owner's older backup connected at once: the NAVEE re-link used the same account identity. The odometer was unchanged throughout.
 
+## Quick-drop handling on hardware (Nov 14, 2026, Volt 1.13.2-dev+04ef771)
+
+- Connected as owner with the account identity, parked. The release frame went out and **69 ms** later the scooter ended the link (status 257 while ready), as in the first run. Volt took the quick-drop path: it closed the link itself at the same moment and removed the profile within a second (My scooters empty, More showing **No scooter yet**). It made **no connection attempt** in the three minutes that followed.
+- The command log reads `owner_release` with outcome `interrupted`, and the profile is gone, which is the released outcome. The **Scooter released** toast had already faded by the first screen read, about a second later.
+- The NAVEE app, whose account still listed the scooter from the re-link above, connected as soon as it was opened, and the scooter beeped. Volt's key in this run was that same account identity, so this run shows that Volt no longer reclaims the scooter. The made-key run above is what shows that the UT5 MAX really resets.
+
 ## The official app's unbind, in words
 
 When an owner unbinds a scooter in the NAVEE app, the app first asks NAVEE's server to drop the scooter from the account. Once the server accepts, and while the app still holds the owner-authenticated Bluetooth link, it sends one frame to the scooter: command 0x50 with a single data byte of 1, framed as usual (`55 AA 00 50 01 01 51 FE FD`, where 51 is the low byte of the sum of the six bytes before it). The scooter answers with a status; the app then disconnects. (On the UT5 MAX no status reply was seen: the scooter ended the link itself within about 88 ms, above.) After that the scooter behaves like a new or reset one and accepts a fresh owner binding from anyone nearby.
@@ -37,4 +43,4 @@ Volt has no server step. It sends only the scooter frame, so a NAVEE account tha
 
 ## To test on hardware
 
-On the UT5 MAX: connect as owner, parked, release. Expect the scooter to drop the link at once, "Scooter released", and the scooter gone from My scooters, with no reconnect; then confirm the NAVEE app (or Volt's setup) can add it as a new scooter. Also try a release while moving or as a shared user (both should be refused before sending). On other models, note whether the scooter answers with a status, drops the link, or neither.
+On the UT5 MAX, done (above): connect as owner, parked, release. The scooter drops the link at once and leaves My scooters with no reconnect, and the NAVEE app can then add it. Still to do: try a release while moving or as a shared user (both should be refused before sending). On other models, note whether the scooter answers with a status, drops the link, or neither.
