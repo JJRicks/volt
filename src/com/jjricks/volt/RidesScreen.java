@@ -856,11 +856,14 @@ public final class RidesScreen implements AppScreen {
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
+        // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
+        // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
+        Double average = RideAverages.speedKmh(ride);
         if (ride.distanceKm != null) tileReadings(distanceParts(ride.distanceKm));
-        if (ride.averageSpeedKmh != null) tileReadings(speedParts(ride.averageSpeedKmh));
+        if (average != null) tileReadings(speedParts(average));
         if (ride.maximumSpeedKmh != null) tileReadings(speedParts(ride.maximumSpeedKmh));
         List<View> journey = tiles(body, new String[]{"route", T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), "clock", T.ridesTileDuration(), duration(ride.shownElapsedMs),
-                "speed", T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
+                "speed", T.ridesTileAvgSpeed(), speed(average), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
         if (ride.odometerReset) reasonOnTap(journey.get(0), T.ridesReasonOdometerReset());
         body.addView(ui.sectionLabel(T.ridesBatteryEnergy()));
         boolean batteryGain = ride.batteryDropPercent != null && ride.batteryDropPercent < 0;
@@ -1902,7 +1905,7 @@ public final class RidesScreen implements AppScreen {
             LinearLayout group = ui.groupCard(); content.addView(group);
             compareLine(group, T.ridesTileDistance(), distance(a.distanceKm), distance(b.distanceKm));
             compareLine(group, T.ridesTileDuration(), duration(a.shownElapsedMs), duration(b.shownElapsedMs));
-            compareLine(group, T.ridesTileAvgSpeed(), speed(a.averageSpeedKmh), speed(b.averageSpeedKmh));
+            compareLine(group, T.ridesTileAvgSpeed(), speed(RideAverages.speedKmh(a)), speed(RideAverages.speedKmh(b)));
             compareLine(group, T.ridesCompareBatteryChange(), change(a.batteryDropPercent), change(b.batteryDropPercent));
             compareLine(group, T.ridesCompareMeasuredThroughput(), quantity(a.measuredThroughputWh, "Wh", 2), quantity(b.measuredThroughputWh, "Wh", 2));
             compareLine(group, T.ridesNetEnergy(), quantity(a.netConsumptionWh, "Wh", 2), quantity(b.netConsumptionWh, "Wh", 2));
