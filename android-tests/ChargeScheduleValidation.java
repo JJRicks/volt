@@ -112,6 +112,9 @@ public final class ChargeScheduleValidation extends Instrumentation {
     });checks.add("Unplugged toggle explains charger requirement while the time preference stays editable");}
     private void verifyDisabledThumb(boolean manual)throws Exception{
         AtomicInteger taps=new AtomicInteger();AtomicReference<Switch> target=new AtomicReference<>();
+        // Scheduled charging is a page row: a Charge done by sheet left open by done() (#452) covers it, and the real tap
+        // lands on the sheet's scrim instead. Close it as the rider would before tapping the page.
+        if(manual){main(()->{Object sheet=field(activity,"chargeDoneSheet");if(sheet!=null&&((AlertDialog)sheet).isShowing())((AlertDialog)sheet).dismiss();});settle();}
         main(()->{
             Object row=manual?control("timed_charging"):done(false);
             Switch toggle=(Switch)field(row,"toggle");ViewGroup line=(ViewGroup)field(field(row,"row"),"line");
@@ -137,18 +140,43 @@ public final class ChargeScheduleValidation extends Instrumentation {
     }
     private void verifyStartupEstimateGuard(){
         main(()->{
-            String reason="Wait for charger detection or select a charger";
-            require(service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Startup fixture already knows a charger family");
-            require(service.chargingEstimate(service.displayReadings()).remainingMinutesToLimit!=null,"Unknown charger lost the dashboard's current-rate estimate");
-            ChargeScheduleController.View state=service.chargeSchedule();
-            require(reason.equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Unknown startup estimate did not block only the done-by switch");
-            AtomicReference<String> result=new AtomicReference<>();
-            service.setChargeDoneByEnabled(true,result::set);
-            require(reason.equals(result.get())&&!service.chargeSchedule().busy&&!service.chargeSchedule().doneByEnabled,"Startup estimate attempted to arm a schedule");
-            require(service.setChargeCharger(ChargeSessionStore.Charger.STOCK),"Could not select the simulated standard charger");
-            require(service.chargeSchedule().doneByBlockedReason==null,"Manual charger choice did not release the startup guard");
+            // Since the simulator's scenes (#430, 8a370f1c) Automatic finds the charger the Charging scene has plugged in, so a
+            // simulated UT5 MAX no longer starts without one. Hold that detection pending, as a real one's first frames after
+            // plugging in do. A build without the hook never detects while simulating, so it starts unknown as before.
+            boolean pendable=pendDetection(true);
+            try{
+                String reason="Wait for charger detection or select a charger";
+                require(service.chargerBasis()==ScooterService.ChargerBasis.UNKNOWN,"Startup fixture already knows a charger family: "+service.chargerBasis());
+                require(service.chargingEstimate(service.displayReadings()).remainingMinutesToLimit!=null,"Unknown charger lost the dashboard's current-rate estimate");
+                ChargeScheduleController.View state=service.chargeSchedule();
+                require(reason.equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Unknown startup estimate did not block only the done-by switch");
+                AtomicReference<String> result=new AtomicReference<>();
+                service.setChargeDoneByEnabled(true,result::set);
+                require(reason.equals(result.get())&&!service.chargeSchedule().busy&&!service.chargeSchedule().doneByEnabled,"Startup estimate attempted to arm a schedule");
+                if(pendable){
+                    pendDetection(false);
+                    require(service.chargerBasis()==ScooterService.ChargerBasis.DETECTED&&service.chargeCharger()==null,"The scene's plugged charger was not detected without being saved");
+                    require(service.chargeSchedule().doneByBlockedReason==null,"Charger detection did not release the startup guard");
+                    pendDetection(true);
+                    require(reason.equals(service.chargeSchedule().doneByBlockedReason),"Startup guard did not return while detection was pending again");
+                }
+                require(service.setChargeCharger(ChargeSessionStore.Charger.STOCK),"Could not select the simulated standard charger");
+                require(service.chargeSchedule().doneByBlockedReason==null,"Manual charger choice did not release the startup guard");
+            }finally{if(pendable)pendDetection(false);}
         });settle();
         checks.add("Automatic startup keeps the dashboard rate estimate but requires charger detection or an explicit choice before arming done-by");
+    }
+    /**
+     * ScooterSimulation.pendDetection (validations only), looked up by reflection: false when this build lacks it. Older
+     * builds never detect a charger while simulating, so they need no hold.
+     */
+    private boolean pendDetection(boolean pending){
+        try{
+            Field field;try{field=service.ble.getClass().getDeclaredField("simulation");}catch(NoSuchFieldException older){return false;}field.setAccessible(true);
+            Object simulation=field.get(service.ble);if(simulation==null)throw new IllegalStateException("Simulation is not running");
+            Method method;try{method=simulation.getClass().getDeclaredMethod("pendDetection",boolean.class);}catch(NoSuchMethodException older){return false;}
+            method.setAccessible(true);method.invoke(simulation,pending);return true;
+        }catch(ReflectiveOperationException error){throw new IllegalStateException("pendDetection",error);}
     }
     private void verifyPickers(){
         for(boolean is24:new boolean[]{true,false}){

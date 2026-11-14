@@ -355,6 +355,10 @@ public final class SimulatorScenesTest {
         check(Boolean.FALSE.equals(plugged.detectedFastCharger()), "UT5 MAX charging on the stock charger: Automatic finds Stock");
         plugged.setFastCharger(true);
         check(Boolean.TRUE.equals(plugged.detectedFastCharger()), "on the high-speed charger: Automatic finds High-speed");
+        plugged.pendDetection(true);
+        check(plugged.detectedFastCharger() == null, "detection held pending (validations only): Automatic finds nothing yet");
+        plugged.pendDetection(false);
+        check(Boolean.TRUE.equals(plugged.detectedFastCharger()), "detection no longer pending: the plugged charger again");
         plugged.setScene(ScooterSimulation.Scene.RIDING);
         check(plugged.detectedFastCharger() == null, "unplugged: nothing again");
         ScooterSimulation gt3 = simulation(SimulatorModels.find("24182", "US"));
