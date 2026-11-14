@@ -1089,8 +1089,21 @@ public final class MoreScreen implements AppScreen {
         // End the old transport before changing its selected identity or cached readings.
         // Selection also works offline: only the current scooter's Connect button starts Bluetooth.
         if (s.simulating()) s.setSimulation(false);
-        s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected();
+        s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched();
         host.redraw();
+    }
+    /**
+     * Find at a new address (FindNearby, entry B): this scooter becomes the current one the way Use makes it (the old
+     * link ends first), then the scan sheet opens in find mode, which ends any attempt and refuses a change in flight.
+     * Simulation is refused here, before anything switches.
+     */
+    private void findAtNewAddress(String id) {
+        if (!canChangeScooter()) return;
+        ScooterService s = service(); ScooterProfiles.Profile p = findScooter(id), selected = active();
+        if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }
+        if (s.simulating()) { host.toast(T.mainScanExitSimulationFind()); return; }
+        if (selected == null || !id.equals(selected.id)) { s.ble.disconnect(); s.profiles.select(id); s.ble.scooterSwitched(); }
+        host.findNearby(); host.redraw();
     }
     private void editScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null) return;
@@ -1117,6 +1130,13 @@ public final class MoreScreen implements AppScreen {
         });
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
         ui.decorate(forget, "trash"); box.addView(forget);
+        // Find it nearby (FindNearby, entry B): only with a saved address and serial; it makes this scooter the current one.
+        // Last, under Forget: the owner wants Release as the top option (2026-11-13).
+        if (FindNearby.offerRow(p.mac, p.serial)) {
+            TextView find = ui.secondaryButton(T.moreScootersFindNewAddress(), () -> { dialog.dismiss(); findAtNewAddress(id); });
+            find.setTag("scooter_find" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
+            ui.decorate(find, "search"); box.addView(find);
+        }
         if (OwnerRelease.offered(p.role)) {
             // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main
             // action, and Forget is the grey secondary one (his pick, style B, from the renders): forgetting leaves the

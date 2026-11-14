@@ -109,6 +109,10 @@
     <string name="more_scooters_forget" volt:screen="My scooters" volt:purpose="button">Forget this scooter</string>
     <!-- Screen-reader label of the Forget button. %1$s is the scooter's name. -->
     <string name="more_scooters_forget_named" volt:screen="My scooters" volt:purpose="accessibility">Forget %1$s</string>
+    <!-- Button: look for this scooter at a new Bluetooth address (after a repair, say). Opens the scan sheet. -->
+    <string name="more_scooters_find_new_address" volt:screen="My scooters" volt:purpose="button">Find at a new address</string>
+    <!-- Screen-reader label of that button. %1$s is the scooter's name. -->
+    <string name="more_scooters_find_new_address_named" volt:screen="My scooters" volt:purpose="accessibility">Find %1$s at a new address</string>
     <!-- Shown on the name field when it is left empty. -->
     <string name="more_scooters_enter_name" volt:screen="My scooters" volt:purpose="error">Enter a scooter name</string>
     <!-- Title of the confirmation before removing a scooter. %1$s is the scooter's name. -->

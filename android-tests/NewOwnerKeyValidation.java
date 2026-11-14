@@ -253,6 +253,8 @@ public final class NewOwnerKeyValidation extends Instrumentation {
         click("onboarding-path-backup"); clickText("Continue");
         await(() -> step() == IMPORT && shown("Choose owner file"), "Import did not open after a never-offered made key");
         await(() -> profileById(made[0]) == null, "Import kept a made key no scooter was ever offered");
+        // Setup drops the record with apply(), which reaches the disk after memory: wait for the file before the check below.
+        await(() -> onDiskLacks("app_settings", "made_owner_key" + made[0]), "Import left the dropped key's record on disk");
         main(() -> {
             require(record(made[0]) == null && !onDisk("app_settings").contains("made_owner_key" + made[0]),
                     "Import left the dropped key's record");
@@ -573,6 +575,11 @@ public final class NewOwnerKeyValidation extends Instrumentation {
     private String onDisk(String name) throws Exception {
         File file = new File(getTargetContext().getDataDir(), "shared_prefs/" + name + ".xml");
         return new String(java.nio.file.Files.readAllBytes(file.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** Whether a preferences file on disk no longer holds text; false while it can't be read. */
+    private boolean onDiskLacks(String name, String text) {
+        try { return !onDisk(name).contains(text); } catch (Exception unreadable) { return false; }
     }
 
     /** The real controller's failure path, as a finished owner check or timeout reaches it, then a setup refresh. */

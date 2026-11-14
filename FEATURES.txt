@@ -392,6 +392,20 @@ at a time ("88 6B 33 AF 01 C2"), with Save backup file (Back up with Scooters
 is saved. It comes back until Done is tapped, then never again. The typed-key
 field and owner files accept the key written with spaces, colons or dashes.
 
+FIND IT NEARBY: A SAVED SCOOTER AT A NEW BLUETOOTH ADDRESS (UNRELEASED)
+
+Volt connects only to a scooter's saved Bluetooth address, so after a repair
+that changes it, Volt timed out forever. After two timeouts in a row at the
+saved address, Home offers Find it nearby; My scooters' Edit scooter has Find
+at a new address. Both need a saved address and serial number. The scan sheet
+lists nearby scooters of the same model (when it is known), closest first, the
+saved address marked and preselected, other profiles' scooters greyed. Another
+address asks first, since its owner check sends this profile's owner key, which
+a scooter with no owner would take. Only a serial number equal to the saved one
+saves the new address; any other is refused with nothing saved and no retry.
+Rules in FindNearby (tests/l10n/FindNearbyTest.java); not yet tried on a real
+scooter whose address changed.
+
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
 The parked scooter accepted a changed value, reported that new value, and

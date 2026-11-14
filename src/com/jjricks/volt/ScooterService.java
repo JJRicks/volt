@@ -1975,7 +1975,7 @@ public final class ScooterService extends Service {
         settings.edit().remove(KeyBackups.key(id)).apply();
         if(maintenance!=null)maintenance.forget(id);
         forgetEvidence(id);
-        if(current)ble.profileSelected();
+        if(current)ble.scooterSwitched();
     }
     /**
      * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
