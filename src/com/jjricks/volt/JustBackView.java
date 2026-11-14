@@ -385,6 +385,8 @@ final class JustBackView extends LinearLayout {
             value = ui.text("—", JustBackFit.VALUE_SP, true);
             value.setMaxLines(1);
             value.setIncludeFontPadding(false);
+            // At the bottom of its box: a value shrunk to fit its tile keeps the row's baseline, not the box's top.
+            value.setGravity(Gravity.START | Gravity.BOTTOM);
             // Only the short rung at the floor can still be too wide (very large text); it ends in an ellipsis then.
             value.setEllipsize(TextUtils.TruncateAt.END);
             valueTop = ui.sp(JustBackFit.VALUE_SP);
