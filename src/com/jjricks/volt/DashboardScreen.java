@@ -2773,11 +2773,11 @@ public final class DashboardScreen implements AppScreen {
         boolean wasLive;
         boolean active = true, querying;
         long queriedAt;
-        /** The odometer number's carry-over cue (OdometerAttention): its tap target, its colour before the cue, and how it shows. */
+        /** The odometer number's carry-over cue (OdometerAttention): its tap target, the number, how it shows, and its dot. */
         View odometerTarget;
         TextView odometerNumber;
-        int odometerBase;
         OdometerAttention.Style odometerStyle = OdometerAttention.Style.NONE;
+        OdometerSonar sonar;
         String queryKey = "";
         List<TelemetryHistory.Point> history = Collections.emptyList();
 
@@ -4509,7 +4509,7 @@ public final class DashboardScreen implements AppScreen {
         private void markOdometer(Map<String, TelemetryHistory.Reading> values) {
             TextView number = amounts.get(MaintenanceView.ODOMETER);
             if (number == null && big != null && MaintenanceView.ODOMETER.equals(widget.metric)) number = big;
-            if (number == null) return;
+            if (number == null) { dropSonar(); return; }
             OdometerCarry record = service == null || editing ? null : service.odometerRecord();
             boolean carried = record != null && record.carriedKm() > 0;
             View target = number == big ? big : odometerTarget(number);
@@ -4527,24 +4527,31 @@ public final class DashboardScreen implements AppScreen {
             OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(), opens,
                     Ui.motionEnabled(), !isShown(), moving);
             odometerNumber = number;
-            odometerBase = number.getCurrentTextColor();
             odometerStyle = style;
             if (style == OdometerAttention.Style.NONE) {
-                if (number.getBackground() instanceof OdometerDot) number.setBackground(null);
-                pulsing.remove(this);
+                dropSonar();
             } else {
                 number.setContentDescription(T.dashboardOdometerCarrySpoken(number.getContentDescription()));
-                if (style == OdometerAttention.Style.STILL) {
-                    pulsing.remove(this);
-                    number.setTextColor(ui.accent);
-                    if (!(number.getBackground() instanceof OdometerDot)) number.setBackground(new OdometerDot(number));
-                } else {
-                    if (number.getBackground() instanceof OdometerDot) number.setBackground(null);
-                    pulsing.add(this);
-                    pulseOdometer(odometerPulse == null ? 0 : OdometerAttention.pulse(odometerPulse.getCurrentPlayTime()));
+                // The number stays as it is: the dot and its ring are drawn over the tile, so nothing moves.
+                if (sonar == null || sonar.number != number) {
+                    dropSonar();
+                    sonar = new OdometerSonar(this, number);
+                    getOverlay().add(sonar);
                 }
+                sonar.ringing = style == OdometerAttention.Style.SONAR;
+                sonar.place();
+                if (sonar.ringing) pulsing.add(this); else pulsing.remove(this);
+                sonar.frame(odometerPulse == null ? 0 : OdometerAttention.ring(odometerPulse.getCurrentPlayTime()));
             }
             runOdometerPulse();
+        }
+
+        private void dropSonar() {
+            pulsing.remove(this);
+            if (sonar == null) return;
+            sonar.dispose();
+            getOverlay().remove(sonar);
+            sonar = null;
         }
 
         /** The odometer number's area: its reading cell (the overview's item, a reading tile, a row). */
@@ -4556,10 +4563,9 @@ public final class DashboardScreen implements AppScreen {
             return holder.hasOnClickListeners() && holder != odometerTarget ? null : holder;
         }
 
-        /** One frame of the pulse: the number's colour eased toward the accent. */
-        void pulseOdometer(double strength) {
-            if (odometerNumber == null || odometerStyle != OdometerAttention.Style.PULSE) return;
-            odometerNumber.setTextColor(blend(odometerBase, ui.accent, (float) strength));
+        /** One frame of the ring, {@code progress} 0 to 1 through its life. */
+        void sonarFrame(float progress) {
+            if (sonar != null && sonar.ringing) sonar.frame(progress);
         }
 
         private void refreshRecorder() {
@@ -7004,11 +7010,11 @@ public final class DashboardScreen implements AppScreen {
         return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(days, days);
     }
 
-    /** Tiles whose odometer number pulses (OdometerAttention.Style.PULSE), and the one animator that drives them all. */
+    /** Tiles whose odometer dot sends out rings (OdometerAttention.Style.SONAR), and the one animator that drives them all. */
     private final Set<Tile> pulsing = new LinkedHashSet<>();
     private android.animation.ValueAnimator odometerPulse;
 
-    /** Starts the pulse while a tile wants it and the screen is open; stops it otherwise. */
+    /** Starts the rings while a tile wants them and the screen is open; stops them otherwise. */
     private void runOdometerPulse() {
         // A tile the page dropped (a rebuild, another scooter) stops pulsing.
         pulsing.removeIf(tile -> !tile.active || tile.getParent() == null);
@@ -7019,36 +7025,91 @@ public final class DashboardScreen implements AppScreen {
         }
         if (odometerPulse != null) return;
         android.animation.ValueAnimator pulse = android.animation.ValueAnimator.ofFloat(0, 1);
-        pulse.setDuration(OdometerAttention.CYCLE_MS);
+        pulse.setDuration(OdometerAttention.RING_MS);
         pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
         pulse.setInterpolator(new android.view.animation.LinearInterpolator());
         pulse.addUpdateListener(a -> {
-            double strength = OdometerAttention.pulse(a.getCurrentPlayTime());
-            for (Tile tile : new ArrayList<>(pulsing)) tile.pulseOdometer(strength);
+            float progress = a.getAnimatedFraction();
+            for (Tile tile : new ArrayList<>(pulsing)) tile.sonarFrame(progress);
         });
         odometerPulse = pulse;
         pulse.start();
     }
 
-    /** The still cue, with animations off: a small accent dot beside the odometer number (after it, else before it). */
-    private final class OdometerDot extends android.graphics.drawable.Drawable {
-        private final TextView number;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /**
+     * The carry-over cue: a small orange dot at the odometer number's top-end corner, like a notification badge, and
+     * (SONAR) a ring that grows out of it and fades. Drawn in the tile's overlay, so the number and its cell keep
+     * their size and place and the cell never clips the ring; the ring stops short of the tile's own edge. A frame
+     * invalidates only the dot's square.
+     */
+    private final class OdometerSonar extends android.graphics.drawable.Drawable implements View.OnLayoutChangeListener {
+        final ViewGroup host;
+        final TextView number;
+        boolean ringing;
+        private float progress, cx, cy, dot, reach;
+        private boolean placed;
+        private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), ring = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Rect digit = new Rect(), at = new Rect();
 
-        OdometerDot(TextView number) { this.number = number; paint.setColor(ui.accent); }
-
-        @Override public void draw(Canvas canvas) {
-            android.text.Layout layout = number.getLayout();
-            if (layout == null || layout.getLineCount() == 0) return;
-            float radius = ui.dp(3.5f), gap = ui.dp(6);
-            float left = number.getTotalPaddingLeft() + layout.getLineLeft(0), right = number.getTotalPaddingLeft() + layout.getLineRight(0);
-            float y = number.getTotalPaddingTop() + (layout.getLineTop(0) + layout.getLineBaseline(0)) / 2f;
-            float x = right + gap + radius <= getBounds().width() ? right + gap : left - gap - radius >= 0 ? left - gap : getBounds().width() - radius;
-            canvas.drawCircle(x, x == getBounds().width() - radius ? radius : y, radius, paint);
+        OdometerSonar(ViewGroup host, TextView number) {
+            this.host = host;
+            this.number = number;
+            fill.setColor(ui.orange);
+            ring.setColor(ui.orange);
+            ring.setStyle(Paint.Style.STROKE);
+            ring.setStrokeWidth(ui.dp(2));
+            host.addOnLayoutChangeListener(this);
+            number.addOnLayoutChangeListener(this);
         }
 
-        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); }
-        @Override public void setColorFilter(android.graphics.ColorFilter filter) { paint.setColorFilter(filter); }
+        void dispose() {
+            host.removeOnLayoutChangeListener(this);
+            number.removeOnLayoutChangeListener(this);
+        }
+
+        @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) { place(); }
+
+        /** Where the dot sits: just past the end of the number's first line, level with the top of its digits. */
+        void place() {
+            android.text.Layout layout = number.getLayout();
+            at.set(0, 0, 0, 0);
+            boolean inside = layout != null && layout.getLineCount() > 0;
+            if (inside) try { host.offsetDescendantRectToMyCoords(number, at); } catch (IllegalArgumentException gone) { inside = false; }
+            if (!inside) { placed = false; setBounds(0, 0, 0, 0); return; }
+            dot = ui.dp(4);
+            float gap = ui.dp(1);
+            boolean rtl = number.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            float left = number.getTotalPaddingLeft() + layout.getLineLeft(0), right = number.getTotalPaddingLeft() + layout.getLineRight(0);
+            // The top of the number's own first digit, in the number's full-size paint.
+            String text = number.getText().toString();
+            number.getPaint().getTextBounds(text, 0, Math.min(1, text.length()), digit);
+            cx = at.left + (rtl ? left - gap - dot : right + gap + dot);
+            cy = at.top + number.getTotalPaddingTop() + layout.getLineBaseline(0) + digit.top;
+            float stroke = ring.getStrokeWidth();
+            float room = Math.min(Math.min(cx, host.getWidth() - cx), Math.min(cy, host.getHeight() - cy)) - stroke - ui.dp(2);
+            reach = Math.max(dot, Math.min(dot * OdometerAttention.RING_REACH, room));
+            int r = (int) Math.ceil(Math.max(reach, dot) + stroke + 1);
+            placed = true;
+            setBounds((int) Math.floor(cx) - r, (int) Math.floor(cy) - r, (int) Math.ceil(cx) + r, (int) Math.ceil(cy) + r);
+            invalidateSelf();
+        }
+
+        void frame(float progress) {
+            this.progress = progress;
+            if (placed) invalidateSelf();
+        }
+
+        @Override public void draw(Canvas canvas) {
+            if (!placed) return;
+            if (ringing) {
+                ring.setAlpha(Math.round(255 * OdometerAttention.ringAlpha(progress)));
+                canvas.drawCircle(cx, cy, OdometerAttention.ringRadius(dot, reach, progress), ring);
+            }
+            canvas.drawCircle(cx, cy, dot, fill);
+        }
+
+        @Override public void setAlpha(int alpha) { fill.setAlpha(alpha); }
+        @Override public void setColorFilter(android.graphics.ColorFilter filter) { fill.setColorFilter(filter); ring.setColorFilter(filter); }
         @Override public int getOpacity() { return android.graphics.PixelFormat.TRANSLUCENT; }
     }
 

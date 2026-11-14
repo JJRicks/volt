@@ -394,7 +394,9 @@ read only (no command is sent). When the scooter's odometer drops by more than
 0.2 km and two readings in a row from separate frames confirm it, Home's and
 riding mode's odometer add last saved minus the first reading after the drop,
 so the total keeps counting and never over-counts. A wrap of an 8- or 16-bit
-field keeps counting instead. The odometer number pulses until tapped once;
+field keeps counting instead. An orange dot by the odometer sends out a sonar
+ring until the number is tapped once (a still dot with animations off or while
+moving; nothing in riding mode);
 the tap explains it and offers an Undo of the latest carry-over. Rides, range,
 maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
 Backups (Scooters & setup keys) carry the record per profile, newer reading

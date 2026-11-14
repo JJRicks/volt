@@ -144,12 +144,12 @@ public final class OdometerCarryTest {
         check(c.observe(10, 16, 4, WALL + 3) == OdometerCarry.Step.REBASELINE && near(c.carriedKm(), 1234.5), "a width change keeps what was carried over");
     }
 
-    // The cue: the reduced-motion choice, never while moving or riding, re-armed by a new carry-over.
+    // The cue: the reduced-motion choice, the still dot while moving, nothing in riding mode, re-armed by a new carry-over.
     private static void attention() {
-        check(OdometerAttention.style(true, true, true, false, false) == OdometerAttention.Style.PULSE, "unacknowledged, animations on: pulse");
-        check(OdometerAttention.style(true, true, false, false, false) == OdometerAttention.Style.STILL, "animations off: still accent and dot");
-        check(OdometerAttention.style(true, true, true, false, true) == OdometerAttention.Style.NONE && OdometerAttention.style(true, true, false, false, true) == OdometerAttention.Style.NONE,
-                "never while the scooter reports speed");
+        check(OdometerAttention.style(true, true, true, false, false) == OdometerAttention.Style.SONAR, "unacknowledged, animations on: the dot sends out rings");
+        check(OdometerAttention.style(true, true, false, false, false) == OdometerAttention.Style.DOT, "animations off: the still dot only");
+        check(OdometerAttention.style(true, true, true, false, true) == OdometerAttention.Style.DOT && OdometerAttention.style(true, true, false, false, true) == OdometerAttention.Style.DOT,
+                "while the scooter reports speed: the still dot, no ring");
         check(OdometerAttention.style(true, true, true, true, false) == OdometerAttention.Style.NONE && OdometerAttention.style(true, true, false, true, false) == OdometerAttention.Style.NONE,
                 "never in riding mode or off screen");
         check(OdometerAttention.style(false, true, true, false, false) == OdometerAttention.Style.NONE, "acknowledged: plain");
@@ -157,7 +157,7 @@ public final class OdometerCarryTest {
         for (boolean motion : new boolean[]{true, false})
             check(OdometerAttention.style(true, false, motion, false, false) == OdometerAttention.Style.NONE, "a cell whose tap does something else gets no cue");
         String home = read("src/com/jjricks/volt/DashboardScreen.java");
-        String mark = between(home, "private void markOdometer(", "void pulseOdometer(");
+        String mark = between(home, "private void markOdometer(", "void sonarFrame(");
         check(mark.contains("boolean opens = carried && target != null;")
                         && mark.contains("OdometerAttention.style(record != null && record.unacknowledged(), opens,")
                         && mark.contains("if (target == big && big.hasOnClickListeners() && big != odometerTarget) target = null;")
@@ -169,18 +169,29 @@ public final class OdometerCarryTest {
                 "the sheet's two rows use Home's own formatter on Home's own readings, so they match the tile exactly");
         check(mark.indexOf("dashboardOdometerCarrySpoken") > mark.indexOf("if (style == OdometerAttention.Style.NONE)"),
                 "the spoken hint comes only with a cue");
-        // Gentle: two pulses then a pause, well under three a second.
-        int peaks = 0; double previous = 0, max = 0; boolean rising = true;
-        for (long t = 0; t < OdometerAttention.CYCLE_MS; t += 10) {
-            double v = OdometerAttention.pulse(t);
-            check(v >= 0 && v <= 1, "pulse strength in 0..1");
-            if (rising && v < previous) { peaks++; rising = false; } else if (v > previous) rising = true;
-            previous = v; max = Math.max(max, v);
+        // The number stays plain: no colour change, and the dot is drawn over the tile, never in the number's own view.
+        String sonar = between(home, "private final class OdometerSonar", "/** A distance as the maintenance page writes an odometer");
+        check(!mark.contains("setTextColor") && !mark.contains("setBackground") && mark.contains("getOverlay().add(sonar)"),
+                "the cue never recolours, re-backgrounds or moves the number: it is an overlay");
+        check(sonar.contains("fill.setColor(ui.orange)") && sonar.contains("ring.setColor(ui.orange)") && sonar.contains("dot = ui.dp(4)"),
+                "an orange dot about 8 dp across, and an orange ring");
+        check(sonar.contains("LAYOUT_DIRECTION_RTL") && sonar.contains("rtl ? left - gap - dot : right + gap + dot"), "the dot sits at the number's end, mirrored right to left");
+        check(sonar.contains("host.getWidth() - cx") && sonar.contains("Math.min(dot * OdometerAttention.RING_REACH, room)"), "the ring stops short of the tile's edge, never clipped");
+        check(sonar.contains("if (ringing)"), "the still dot draws no ring");
+        // The ring: from the dot's edge out to three times its radius, easing out and fading to nothing, under three a second.
+        check(1000.0 / OdometerAttention.RING_MS < 3, "under three rings a second");
+        check(OdometerAttention.ring(0) == 0 && near(OdometerAttention.ring(OdometerAttention.RING_MS / 2), .5) && OdometerAttention.ring(OdometerAttention.RING_MS) == 0
+                && near(OdometerAttention.ring(OdometerAttention.RING_MS + OdometerAttention.RING_MS / 4), .25), "it repeats");
+        check(near(OdometerAttention.ringRadius(4, 12, 0), 4) && near(OdometerAttention.ringRadius(4, 12, 1), 12), "from the dot's edge to three times its radius");
+        check(OdometerAttention.ringRadius(4, 12, .5f) > 8, "easing out: most of the growth comes early");
+        check(OdometerAttention.ringRadius(4, 2, .5f) == 4, "no room: the ring stays at the dot");
+        float lastRadius = 0, lastAlpha = 2;
+        for (int i = 0; i <= 100; i++) {
+            float p = i / 100f, r = OdometerAttention.ringRadius(4, 12, p), a = OdometerAttention.ringAlpha(p);
+            check(r >= lastRadius && a <= lastAlpha && a >= 0 && a <= 1, "the ring only grows and fades");
+            lastRadius = r; lastAlpha = a;
         }
-        check(peaks == 2 && near(max, 1), "two pulses a cycle, each reaching full strength: " + peaks);
-        check(2.0 * 1000 / OdometerAttention.CYCLE_MS < 3 && 1000.0 / OdometerAttention.PULSE_MS < 3, "under three flashes a second");
-        check(OdometerAttention.pulse(2 * OdometerAttention.PULSE_MS + 100) == 0 && OdometerAttention.pulse(OdometerAttention.CYCLE_MS - 10) == 0, "then a pause");
-        check(near(OdometerAttention.pulse(OdometerAttention.PULSE_MS / 2), 1) && near(OdometerAttention.pulse(OdometerAttention.CYCLE_MS + OdometerAttention.PULSE_MS / 2), 1), "it repeats");
+        check(OdometerAttention.ringAlpha(0) == 1 && OdometerAttention.ringAlpha(1) == 0, "it fades to transparent");
         OdometerCarry c = at(1000);
         c.observe(0, 32, 2, WALL + 1); c.observe(0, 32, 3, WALL + 2);
         check(c.unacknowledged(), "a carry-over asks for attention");

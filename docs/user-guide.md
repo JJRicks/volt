@@ -262,7 +262,7 @@ Scooters without a charge limit setting, such as the GT3 Max, show **Charge aler
 
 Volt keeps each scooter's last odometer reading, whether or not maintenance reminders are on. If the scooter's own odometer goes back (after a reset, or after **Release this scooter** and setting it up again) and two readings in a row confirm it, Volt carries the old distance over: it picks up from the last number it saw, so Home's odometer and riding mode's keep counting. A replaced part that brings its own mileage never adds it. One odd low reading, a wobble of up to 0.2 km, or an older odometer field that wraps around never counts as a reset.
 
-- The odometer number pulses gently until you tap it once (with animations off, it shows in the accent colour with a dot). It never pulses in riding mode or while the scooter is moving.
+- A small orange dot at the odometer number's corner sends out a ring, like sonar, until you tap the number once. With animations off, or while the scooter is moving, the dot stays still; riding mode shows no dot.
 - Tapping the number while anything is carried over shows what happened, **Includes … from before a reset**, the scooter's own reading and the total Volt shows. Volt can't change the scooter's own number, so the scooter's display shows the count since the reset.
 - **Remove the carried-over distance** takes away the latest carry-over, after a confirm.
 - Rides, range estimates, maintenance reminders, Stats, exports and diagnostics keep using the scooter's own reading.
