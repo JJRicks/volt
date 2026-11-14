@@ -159,6 +159,11 @@ final class BackupRegistry {
         // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, travel with its profile, as
         // its key does. BackupArchive restores it with the profile it describes, never loosening this phone's record.
         prefix(app, NewOwnerKey.PREFIX, String.class, SCOOTERS, true);
+        // Each scooter's lifetime odometer record (OdometerCarry): what it last read and what a reset carried over travel
+        // with the profile. BackupArchive restores it onto the same profile ID only, keeping the record read more recently.
+        prefix(app, OdometerCarry.PREFIX, String.class, SCOOTERS, true);
+        // A forgotten scooter's odometer record, kept by serial for setting it up again (OdometerCarry.Keeper.forget): only this phone.
+        RULES.add(new Rule(app, OdometerCarry.KEPT_PREFIX, true, String.class, null, DEVICE, false, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);
