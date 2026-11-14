@@ -386,6 +386,110 @@ final class RidingChipFit {
         return widestByForm != null && form >= 0 && form < widestByForm.length && drawnWidth > widestByForm[form];
     }
 
+    // Usual room (the owner, Nov 14): four readings are sized from their usual values, not their widest, so a row keeps the
+    // chips it had before the steady fit. A value past that room widens its chip once, for the rest of the ride (Reserve).
+
+    /** Battery temperature's usual range, °C, shown in the rider's unit: -9 °C is 16 °F and 48 °C is 118 °F, three figures. */
+    static final double USUAL_PACK_LOW_C = -9, USUAL_PACK_HIGH_C = 48;
+    /**
+     * Efficiency's, Volt's range's and GPS accuracy's usual figure: two, in whatever unit shows (-88 Wh/mi or Wh/km, ≈ 88 mi
+     * or km, ±88 ft; ±88 ft is 26.8 m, so two figures in metres too).
+     */
+    static final int USUAL_TWO_FIGURES = 88;
+
+    /** A text's drawn width (a chip's value at the three-chip size). */
+    interface Measure {
+        float width(String text);
+    }
+
+    /**
+     * What a chip is sized from, by form, and what it keeps beyond that for the rest of the ride. A reading with usual
+     * samples (see above) uses them until a value is wider than them; then it takes its strict samples (each a supported
+     * scooter's widest value, as for every other reading), once, and never goes back. A value wider than those is kept
+     * too, in its widened form (every figure the widest), so a chip widens at most once for each count of figures:
+     * ±1188 ft and then ±1888 ft widen it once, not twice (the council on #493). Words ("Almost empty") have no figures and
+     * are kept as they are. Nothing kept is ever dropped, so a chip never shrinks back and the fit can't flicker.
+     */
+    static final class Reserve {
+        private boolean pastUsual;
+        private final java.util.List<String> kept = new java.util.ArrayList<>();
+        private String[][] measuredFor;
+        private float[] measuredWidest;
+
+        /** True once a value went past this reading's usual samples. */
+        boolean pastUsual() { return pastUsual; }
+
+        /** The values kept beyond the samples, in the order they came. */
+        java.util.List<String> kept() { return java.util.Collections.unmodifiableList(kept); }
+
+        /**
+         * The samples to size the chip from, [form][]: its usual ones (when it has some and no value went past them), else
+         * its strict ones with the usual ones (so nothing gets narrower), then every value kept.
+         *
+         * @param usual the usual samples [form][], or null for a reading sized from its widest values alone
+         * @param strict the widest values [form][]
+         */
+        String[][] samples(String[][] usual, String[][] strict) {
+            String[][] out = new String[FORMS][];
+            for (int form = 0; form < FORMS; form++) {
+                java.util.List<String> all = new java.util.ArrayList<>();
+                if (usual == null || pastUsual) java.util.Collections.addAll(all, strict[form]);
+                if (usual != null) java.util.Collections.addAll(all, usual[form]);
+                all.addAll(kept);
+                out[form] = all.toArray(new String[0]);
+            }
+            return out;
+        }
+
+        /** The widest of each form's samples, measured again only when the samples change. */
+        float[] widest(String[][] samples, Measure measure) {
+            if (measuredWidest != null && java.util.Arrays.deepEquals(samples, measuredFor)) return measuredWidest;
+            float[] out = new float[FORMS];
+            for (int form = 0; form < FORMS; form++)
+                for (String v : samples[form]) out[form] = Math.max(out[form], measure.width(v));
+            measuredFor = samples;
+            measuredWidest = out;
+            return out;
+        }
+
+        /**
+         * Sees the text the chip would draw in each form ({@link #drawn}; null where a form has nothing to measure).
+         * Every form is checked, not only the one the chip is sized in now: before its first fit a chip doesn't know it
+         * will be planned compact, and a ±1000 ft fix measured against "Not recording" alone was never kept, so it drew
+         * past the compact chip's edge until the next value (the council on #493). Keeping a value for a form the chip
+         * isn't in costs nothing there, as a form's width is its widest sample.
+         *
+         * @return true when the samples changed: the chip must be fitted again, once
+         */
+        boolean see(String[] drawn, String[][] usual, String[][] strict, Measure measure, String digits, int widestDigit) {
+            if (!wider(drawn, samples(usual, strict), measure)) return false;
+            if (usual != null) pastUsual = true;
+            for (int form = 0; form < FORMS; form++) {
+                String value = drawn[form];
+                if (value == null || !widens(measure.width(value), form, widest(samples(usual, strict), measure))) continue;
+                String wide = widened(value, digits, widestDigit);
+                // The widened form, unless the font's widest figure was measured a hair narrow: never keep less than the value.
+                String keep = measure.width(wide) >= measure.width(value) ? wide : value;
+                if (!kept.contains(keep)) kept.add(keep);
+            }
+            return true;
+        }
+
+        private boolean wider(String[] drawn, String[][] samples, Measure measure) {
+            float[] widest = widest(samples, measure);
+            for (int form = 0; form < FORMS && form < drawn.length; form++)
+                if (drawn[form] != null && widens(measure.width(drawn[form]), form, widest)) return true;
+            return false;
+        }
+    }
+
+    /** The text a chip draws in each form ({@link #drawn}), for {@link Reserve#see}. */
+    static String[] drawnByForm(String full, String tight, String compact) {
+        String[] out = new String[FORMS];
+        for (int form = 0; form < FORMS; form++) out[form] = drawn(form, full, tight, compact);
+        return out;
+    }
+
     /**
      * A reading's text with every figure set to the font's widest one, so its width is the most that many figures can
      * take: "12.3 km/h" becomes "88.8 km/h" where 8 is the widest. digits holds the language's ten figures, 0 to 9, one
