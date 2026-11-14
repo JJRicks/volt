@@ -2030,6 +2030,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             java.util.List<java.util.List<String>> cardRows=spec.search?java.util.Collections.<java.util.List<String>>emptyList():ControlsPages.cards(spec);
             ChargeHistoryCard historyCard=null;
             for(java.util.List<String> ids:cardRows){
+                // The plan's CHARGING label over Battery & charging's first card (the rows above HISTORY).
+                if(HubPages.BATTERY.equals(spec.page)&&ids==cardRows.get(0)&&!ids.contains(ControlsPages.CHARGE_HISTORY))
+                    view.addView(design.sectionLabel(DashboardConfig.chargingLabel()));
                 if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
                     view.addView(design.sectionLabel(RidesScreen.historyLabel()));
                     historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
