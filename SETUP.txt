@@ -129,6 +129,16 @@ You can also paste an existing 12-character identity or private setup backup
 under More → Scooters → Add with owner identity. Backup imports preserve owner/shared role.
 Never paste an account password or an HTTP token into this field.
 
+NEW OR RESET SCOOTER — NO COMPUTER
+
+A scooter that has never been set up, or was removed from the NAVEE app, has
+no owner. In Volt's guided setup, choose Make a new owner key: Volt makes an
+owner key, keeps it only on this phone, and connects with it. Set it up in
+Volt before adding it in the NAVEE app. While it has Volt's key, the NAVEE app
+can't add it; release it in Volt first (More → My scooters, the pencil,
+Edit scooter → Release this scooter). Back up Volt after it connects: the key
+is nowhere else. This route has not yet been tried on a real scooter.
+
 IF CAPTURE DOES NOT WORK
 
 - Approve USB debugging on the phone and check that adb devices shows "device".

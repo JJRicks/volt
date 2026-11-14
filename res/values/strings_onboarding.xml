@@ -153,6 +153,12 @@
     <!-- Setup method: type the 12-character owner identity by hand. -->
     <string name="onboarding_path_identity" volt:screen="Setup choices" volt:purpose="option"
         volt:safety="owner-key">Enter a 12-character owner key</string>
+    <!-- Setup method: Volt makes a new owner key itself, for a scooter with no owner yet (brand new, or removed from the NAVEE app). -->
+    <string name="onboarding_path_new_key" volt:screen="Setup choices" volt:purpose="option"
+        volt:safety="owner-key">Make a new owner key</string>
+    <!-- Under "Make a new owner key": it only works on a new or reset scooter, and needs no computer. -->
+    <string name="onboarding_path_new_key_detail" volt:screen="Setup choices" volt:purpose="option detail"
+        volt:safety="owner-key">New or reset scooter · no computer</string>
     <!-- Toast, and the end of the spoken description of the Shizuku choice, on Android 10 and older. -->
     <string name="onboarding_needs_android_11" volt:screen="Setup choices" volt:purpose="message"
         volt:dnt="Android">Needs Android 11 or newer</string>
@@ -460,6 +466,32 @@
     <!-- Toast: stop the ride recording before changing the scooter. -->
     <string name="onboarding_stop_recording" volt:screen="Import" volt:purpose="message"
         volt:safety="ride">Stop recording first</string>
+
+    <!-- ===================================================================== new owner key -->
+
+    <!-- Heading of the page where Volt makes an owner key for a scooter with no owner yet. -->
+    <string name="onboarding_new_title" volt:screen="New owner key" volt:purpose="title"
+        volt:safety="owner-key">Make a new owner key</string>
+    <!-- Under the heading. A scooter with no owner keeps the first owner key it is given; "it" is the scooter. -->
+    <string name="onboarding_new_body" volt:screen="New owner key" volt:purpose="instruction"
+        volt:safety="owner-key">Volt makes an owner key and keeps it on this phone. A scooter with no owner takes the first key it\'s given.</string>
+    <!-- Checklist item: the scooter has no owner yet. -->
+    <string name="onboarding_new_unowned" volt:screen="New owner key" volt:purpose="checklist item"
+        volt:safety="owner-key">Scooter is new or reset</string>
+    <!-- Under that item: what new or reset means here. -->
+    <string name="onboarding_new_unowned_detail" volt:screen="New owner key" volt:purpose="checklist detail"
+        volt:safety="owner-key" volt:dnt="NAVEE">Never set up, or removed from the NAVEE app</string>
+    <!-- Note under the checklist: the NAVEE app can't add a scooter that has Volt's key; releasing it in Volt makes it new again. -->
+    <string name="onboarding_new_navee_note" volt:screen="New owner key" volt:purpose="note"
+        volt:safety="owner-key" volt:dnt="NAVEE|Volt">The NAVEE app can\'t add this scooter while it has Volt\'s key. To switch back, release it in Volt first.</string>
+    <!-- Status line when the scooter refused the owner key Volt made: it already has an owner (usually from the NAVEE app). -->
+    <string name="onboarding_new_refused" volt:screen="Find your scooter" volt:purpose="status"
+        volt:safety="owner-key" volt:dnt="NAVEE">This scooter already has an owner, so it refused the new key. Remove it from the NAVEE app and try again, or set up another way.</string>
+    <!-- Link after that refusal: back to the list of setup methods. Volt forgets the key the scooter refused. -->
+    <string name="onboarding_new_other_way" volt:screen="Find your scooter" volt:purpose="link">Set up another way</string>
+    <!-- Under "You're connected" after "Make a new owner key": the key is only on this phone until Volt is backed up. -->
+    <string name="onboarding_done_new_key_note" volt:screen="You\'re connected" volt:purpose="note"
+        volt:safety="owner-key" volt:dnt="Volt">Volt made this scooter\'s owner key, and it\'s only on this phone. Back up Volt so you can set it up on another phone.</string>
 
     <!-- ===================================================================== identity -->
 

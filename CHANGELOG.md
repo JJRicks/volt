@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Set up a new or reset scooter without a computer.** Setup's new **Make a new owner key** route is for a scooter that's never been set up or was removed from the NAVEE app: Volt makes an owner key, keeps it only on this phone, and connects with it, so no capture helper or NAVEE account is needed. The NAVEE app can't add the scooter while it has Volt's key. If the scooter already has an owner, it refuses the key and setup offers **Set up another way**. Volt keeps any key a scooter may have taken. Not yet tried on a real scooter.
 - **Record charges automatically** is beside **Record this charge** in Scooter › Battery & charging › Charge history & recordings instead of Developer options, and **Email to Volt** also says which recordings started by themselves.
 - Part of 1.13.2's new text still shows in English in the beta languages until the next translation update, such as the line under **Stay connected in background**.
 - ST3 Pro (Model ID 23452) drive mode names also show in the Hub's controls summary.
