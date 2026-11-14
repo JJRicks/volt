@@ -48,12 +48,12 @@ final class RidingChipPlace {
     static final class Latch {
         /** More sizes than a window goes through while one screen is open; past this the oldest go. */
         static final int KEPT = 32;
-        private final java.util.LinkedHashMap<String, Boolean> chosen = new java.util.LinkedHashMap<String, Boolean>() {
-            @Override protected boolean removeEldestEntry(java.util.Map.Entry<String, Boolean> eldest) { return size() > KEPT; }
+        private final java.util.LinkedHashMap<java.util.List<Object>, Boolean> chosen = new java.util.LinkedHashMap<java.util.List<Object>, Boolean>() {
+            @Override protected boolean removeEldestEntry(java.util.Map.Entry<java.util.List<Object>, Boolean> eldest) { return size() > KEPT; }
         };
 
         boolean choose(int width, int height, String units, Choice choice) {
-            String key = width + "x" + height + " " + units;
+            java.util.List<Object> key = java.util.Arrays.asList(width, height, units);
             Boolean was = chosen.get(key);
             if (was != null) return was;
             boolean now = choice.onUnitLine();
