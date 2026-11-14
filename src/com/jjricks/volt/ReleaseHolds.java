@@ -8,9 +8,10 @@ import java.util.Set;
 /**
  * The scooters whose release went out but wasn't confirmed (OwnerRelease.holds), kept on disk per profile id so that
  * no automatic reconnect reaches them after Volt's process or service ends: a reconnect would make Volt the owner of a
- * scooter that may have released. BleController loads it from its own preference namespace (PREFERENCES, listed in
- * BackupRegistry.PRIVATE_NAMESPACES, so a backup never exports it and a restore never creates or clears one) and asks
- * it before every connection. Pure: storage is the Store the caller gives.
+ * scooter that may have released. BleController loads it from two app_settings keys that BackupRegistry excludes as
+ * this phone's state (like a hand stop's charge hold): a backup never exports them, and a restore keeps this phone's
+ * values, so it neither creates a hold nor clears one. It asks the store before every connection. Pure: storage is the
+ * Store the caller gives.
  *
  * A hold ends only when the owner chooses Reconnect, or when its profile is gone (forgotten, removed by a confirmed
  * release, or missing after a restore). A process or service restart, simulation, Bluetooth off and on, and switching
@@ -18,8 +19,8 @@ import java.util.Set;
  * sheet or picks an action, so a sheet lost to a restart or a recreated screen is asked again.
  */
 final class ReleaseHolds {
-    /** The preference namespace (private to this installation) and its two string-set keys. */
-    static final String PREFERENCES = "release_holds", HELD = "release_held", OWED = "release_owed";
+    /** The preference namespace and its two string-set keys, excluded from backups (BackupRegistry). */
+    static final String PREFERENCES = "app_settings", HELD = "release_held", OWED = "release_owed";
 
     /** Saves both sets, synchronously enough that a process ending right after keeps them. */
     interface Store { void save(Set<String> held, Set<String> owed); }

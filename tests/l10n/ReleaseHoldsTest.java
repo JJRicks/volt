@@ -9,8 +9,8 @@ import java.util.Set;
  * The release hold (ReleaseHolds) as BleController uses it: a sent release that ends unconfirmed holds its scooter on
  * disk, a fresh process built from what was saved still holds it and still owes the question, and only Reconnect or
  * the profile going ends it. Then the connection code's own calls into it, read from the source: every connection path
- * asks heldBack, close() and the release timeout record the hold, failed() asks retries, the store loads from its own
- * preferences, Forget ends the hold, and no backup reads the namespace. Synthesized ids only.
+ * asks heldBack, close() and the release timeout record the hold, failed() asks retries, the store loads from its
+ * preferences, Forget ends the hold, and backups exclude both keys. Synthesized ids only.
  */
 public final class ReleaseHoldsTest {
     private static int checks;
@@ -124,8 +124,11 @@ public final class ReleaseHoldsTest {
         String service = read("src/com/jjricks/volt/ScooterService.java");
         check(body(service, "private void forgetProfile(String id,boolean current){", "\n    }\n").contains("ble.endReleaseHold(id);"), "Forget, and a confirmed release, end the hold");
         String registry = read("src/com/jjricks/volt/BackupRegistry.java");
-        check(body(registry, "static final String[] PRIVATE_NAMESPACES", ";").contains("\"" + ReleaseHolds.PREFERENCES + "\""), "the namespace is private: no backup reads, clears or restores it");
-        check(!body(read("src/com/jjricks/volt/AppDataArchive.java"), "static final String[] PREFERENCES", ";").contains(ReleaseHolds.PREFERENCES), "and no backup lists it");
+        check("app_settings".equals(ReleaseHolds.PREFERENCES) && registry.contains("exclude(app, ReleaseHolds.HELD, Set.class, DEVICE);")
+                && registry.contains("exclude(app, ReleaseHolds.OWED, Set.class, DEVICE);"), "both keys are this phone's state: excluded from every backup");
+        String replace = body(read("src/com/jjricks/volt/BackupArchive.java"), "static Map<String, Map<String, Object>> replacement(", "\n    }\n");
+        check(replace.contains("if (rule != null && rule.excluded() && !rule.key.equals(\"dashboard_restore_undo_v1_\")) values.put(entry.getKey(), entry.getValue());")
+                && replace.contains("if (rule == null || !rule.excluded()) values.put("), "a restore keeps this phone's holds and takes none from the backup");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         String sheet = body(main, "private void showReleaseHold(String id){", "\n    }\n");
         check(sheet.contains("dialog.setOnCancelListener(d->ble.releaseAsked(id));") && !sheet.contains("scooterService.ble.releaseAsked(id);\n        final"),

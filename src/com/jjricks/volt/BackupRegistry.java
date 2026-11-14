@@ -19,11 +19,8 @@ final class BackupRegistry {
     static final String[] LABELS = {"Scooters & setup keys", "Dashboards", "App preferences", "Rides", "Charges", "Readings history", "Scooter preferences"};
     /** Namespaces a backup may read or replace, in the legacy full-backup order. */
     static final String[] NAMESPACES = AppDataArchive.PREFERENCES;
-    /**
-     * Namespaces owned by this installation. Backups never read, clear or replace them. release_holds is
-     * ReleaseHolds.PREFERENCES: an unconfirmed release is this phone's state, never exported and never restored.
-     */
-    static final String[] PRIVATE_NAMESPACES = {"pending_documents", "owner_capture_cleanup", "release_holds"};
+    /** Namespaces owned by this installation. Backups never read, clear or replace them. */
+    static final String[] PRIVATE_NAMESPACES = {"pending_documents", "owner_capture_cleanup"};
 
     static final class Rule {
         final String namespace, key, category, reason;
@@ -71,6 +68,10 @@ final class BackupRegistry {
         // Record charges automatically: the switch travels; a hand stop's hold belongs to this phone and the charge it was in.
         add(app, ChargeAutoRecordPolicy.KEY, Boolean.class, PREFERENCES);
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
+        // An owner release that wasn't confirmed (ReleaseHolds): the scooters held from reconnecting and the questions
+        // still owed belong to this phone. Never exported; a restore keeps this phone's, so it never creates or ends one.
+        exclude(app, ReleaseHolds.HELD, Set.class, DEVICE);
+        exclude(app, ReleaseHolds.OWED, Set.class, DEVICE);
         add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
         add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);
