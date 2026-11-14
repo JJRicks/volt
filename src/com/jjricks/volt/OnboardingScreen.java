@@ -1655,7 +1655,7 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout card = column();
         card.setBackground(ui.shape(ui.raised, 18, ui.outline));
         card.setPadding(ui.dp(12), ui.dp(16), ui.dp(12), ui.dp(14));
-        KeyDigits digits = new KeyDigits(identity);
+        TextView digits = keyDigits(identity);
         digits.setTag("made_key_digits");
         card.addView(digits, new LinearLayout.LayoutParams(-1, -2));
         TextView write = ui.text(T.onboardingKeyWrite(), 15, true);
@@ -1676,7 +1676,12 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
         box.addView(save, sp);
         AlertDialog dialog = new AlertDialog.Builder(c).setView(box).create();
-        TextView done = ui.secondaryButton(T.commonDone(), () -> dismissKeyPrompt(dialog, profileId));
+        long shownAt = android.os.SystemClock.elapsedRealtime();
+        boolean[] saved = {false};
+        // A disabled button takes no tap, but a click can still reach it another way (performClick): it waits too.
+        TextView done = ui.secondaryButton(T.commonDone(), () -> {
+            if (MadeKeyPrompt.doneEnabled(android.os.SystemClock.elapsedRealtime() - shownAt, saved[0])) dismissKeyPrompt(dialog, profileId);
+        });
         done.setTag("made_key_done");
         box.addView(done);
         // Back and taps outside do nothing until Done works; after that Back is Done, and a tap outside still does
@@ -1684,8 +1689,6 @@ public final class OnboardingScreen implements AppScreen {
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
         dialog.setOnCancelListener(d -> dismissKeyPrompt(dialog, profileId));
-        long shownAt = android.os.SystemClock.elapsedRealtime();
-        boolean[] saved = {false};
         Runnable update = () -> {
             if (keyPrompt != dialog) return;
             if (!saved[0] && keyBackupSaved(profileId, identity)) {
@@ -1740,36 +1743,32 @@ public final class OnboardingScreen implements AppScreen {
     /**
      * The made key in big monospace digits, a space between bytes: on one row when it fits at a large size, else on
      * two rows of three bytes, shrinking only as far as a size still easy to copy from. Never broken inside a byte, and
-     * always left to right. TalkBack reads it a character at a time, byte by byte.
+     * always left to right. TalkBack reads it a character at a time, byte by byte. A plain TextView (the census keys
+     * views by class), fitted from its own width whenever that changes; text is set only when the choice differs.
      */
-    private final class KeyDigits extends TextView {
-        private final String oneRow, twoRows, row;
-        KeyDigits(String identity) {
-            super(host.activity());
-            oneRow = MadeKeyPrompt.oneRow(identity); twoRows = MadeKeyPrompt.twoRows(identity); row = MadeKeyPrompt.firstRow(identity);
-            setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
-            setTextColor(ui.text); setGravity(Gravity.CENTER); setIncludeFontPadding(false);
-            setLineSpacing(ui.dp(6), 1);
-            setLayoutDirection(View.LAYOUT_DIRECTION_LTR); setTextDirection(View.TEXT_DIRECTION_LTR);
-            setContentDescription(T.onboardingKeySpoken(MadeKeyPrompt.spoken(identity)));
-            setText(oneRow);
-        }
-        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+    private TextView keyDigits(String identity) {
+        String oneRow = MadeKeyPrompt.oneRow(identity), twoRows = MadeKeyPrompt.twoRows(identity), row = MadeKeyPrompt.firstRow(identity);
+        TextView digits = ui.text(oneRow, 34, true);
+        digits.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        digits.setGravity(Gravity.CENTER); digits.setLineSpacing(ui.dp(6), 1);
+        digits.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); digits.setTextDirection(View.TEXT_DIRECTION_LTR);
+        digits.setContentDescription(T.onboardingKeySpoken(MadeKeyPrompt.spoken(identity)));
+        digits.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            float room = r - l - v.getPaddingLeft() - v.getPaddingRight();
+            if (room <= 0) return;
             float largest = ui.sp(34), oneRowFloor = ui.sp(24), floor = ui.sp(20);
-            boolean bounded = MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED;
-            float room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
-            Paint measure = new Paint(getPaint());
+            Paint measure = new Paint(digits.getPaint());
             measure.setTextSize(largest);
             float one = measure.measureText(oneRow), two = measure.measureText(row);
             String text; float size;
-            if (!bounded || one <= room) { text = oneRow; size = largest; }
+            if (one <= room) { text = oneRow; size = largest; }
             else if (largest * room / one >= oneRowFloor) { text = oneRow; size = largest * room / one; }
             else { text = twoRows; size = Math.max(floor, Math.min(largest, largest * room / two)); }
             size = (float) Math.floor(size);
-            if (!text.contentEquals(getText())) setText(text);
-            if (getTextSize() != size) setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
-            super.onMeasure(widthSpec, heightSpec);
-        }
+            if (!text.contentEquals(digits.getText())) digits.setText(text);
+            if (digits.getTextSize() != size) digits.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+        });
+        return digits;
     }
 
     /** "Write down your owner key" while it is up (keyPrompt()), and what keeps its buttons current; null otherwise. */
