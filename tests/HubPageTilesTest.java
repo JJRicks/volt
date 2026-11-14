@@ -76,6 +76,52 @@ public final class HubPageTilesTest {
                 "344 dp 1.4x: Riding mode and Record ride fit");
         for (float w : new float[]{exit, record, riding}) require(RideRecordTile.nameRung(w * 1.4f, wide) == 0, "725 dp 1.4x: full name " + w);
         require(RideRecordTile.nameRung(500, 0) == 0 && RideRecordTile.nameRung(500, -1) == 0, "Before layout: the full name");
+        tileLadder(phone, wide);
+    }
+
+    /**
+     * Every look of the Record ride tile through the ladder (RideRecordTile.rung) at 344x882 dp (128 dp of room) and
+     * 725x604 dp (310.5 dp; at 1.4x the phone layout's tile is as wide), 1.0x and 1.4x, and 2.0x for the largest text:
+     * French "Enregistrement" ≈ 110 dp at 15 sp bold, "Enreg." ≈ 48 dp, "REC" ≈ 30 dp; "Simulating · Exit" ≈ 123 dp
+     * (widest part "Simulating" ≈ 74 dp), "Simulation · Quitter" ≈ 140 dp (widest part "Simulation" ≈ 78 dp).
+     */
+    private static void tileLadder(float phone, float wide) {
+        float[] recLines = {110, 48, 30}, recWords = {110, 48, 30};
+        for (float scale : new float[]{1f, 1.4f, 2f}) {
+            float[] lines = times(recLines, scale), words = times(recWords, scale);
+            int onPhone = RideRecordTile.rung(lines, words, phone, false), onWide = RideRecordTile.rung(lines, words, wide, false);
+            require(onPhone >= 0 && lines[onPhone] <= phone, "344 dp " + scale + "x: a recording name on one line, never split");
+            require(onWide >= 0 && lines[onWide] <= wide, "725 dp " + scale + "x: a recording name on one line");
+            require(onPhone == (110 * scale <= phone ? 0 : 1), "344 dp " + scale + "x: Enregistrement while it fits, else Enreg.");
+            require(onWide == 0, "725 dp " + scale + "x: the whole name");
+        }
+        // Simulating · Exit wraps between words before a shorter rung; whichever is drawn, no word is wider than the tile.
+        for (float[] sim : new float[][]{{123, 74, 74, 74}, {140, 78, 150, 78}}) {
+            for (float scale : new float[]{1f, 1.4f, 2f}) {
+                float[] lines = {sim[0] * scale, sim[2] * scale}, words = {sim[1] * scale, sim[3] * scale};
+                for (float room : new float[]{phone, wide}) {
+                    int rung = RideRecordTile.rung(lines, words, room, true);
+                    String at = room + " dp, " + scale + "x, " + sim[0];
+                    require(rung == -1 || words[rung] <= room, "No word split at " + at);
+                    require(rung != 1 || words[0] > room, "The way out stays while its words fit at " + at);
+                }
+            }
+        }
+        require(RideRecordTile.rung(new float[]{123 * 1.4f}, new float[]{74 * 1.4f}, phone, true) == 0, "344 dp 1.4x: Simulating · Exit wraps, whole");
+        require(RideRecordTile.rung(new float[]{200, 180}, new float[]{200, 180}, 128, false) == -1, "Nothing fits: the icon alone");
+        require(RideRecordTile.rung(new float[]{200, 90}, new float[]{100, 90}, 128, false) == 1, "Short before wrapping");
+        require(RideRecordTile.rung(new float[]{200, 150}, new float[]{100, 150}, 128, false) == 0, "No rung on one line: the first whose words fit, wrapped");
+        require(RideRecordTile.rung(new float[]{500}, new float[]{500}, 0, false) == 0 && RideRecordTile.rung(new float[0], new float[0], 100, false) == -1,
+                "Before layout the first rung; no rungs, none");
+        require(java.util.Arrays.equals(RideRecordTile.words("Simulating \u00B7\u00A0Exit"), new String[]{"Simulating", "\u00B7\u00A0Exit"})
+                && RideRecordTile.words("Enregistrement").length == 1 && RideRecordTile.words(null).length == 0 && RideRecordTile.words("").length == 0,
+                "Parts split at ordinary spaces only");
+    }
+
+    private static float[] times(float[] widths, float scale) {
+        float[] out = new float[widths.length];
+        for (int i = 0; i < widths.length; i++) out[i] = widths[i] * scale;
+        return out;
     }
 
     /**
@@ -102,6 +148,38 @@ public final class HubPageTilesTest {
             for (float scale : new float[]{1f, 1.4f})
                 require(!BatterySummaryFit.stacks(room, Math.round(86 * scale), 12, 80 * scale), "Beside at " + room + " dp, " + scale + "x");
         require(BatterySummaryFit.stacks(200, 120, 12, 112), "A narrow card stacks the column under the level");
+        summaryColumn();
+    }
+
+    /**
+     * The right column's width (BatterySummaryFit.columnWidth) at 344x882 dp (279 dp inside the card) and 725x604 dp
+     * (the page's pane ≈ 330 dp at 1.0x, the phone layout ≈ 645 dp at 1.4x), 1.0x and 1.4x text: the widest line wins,
+     * so a short state line ("Charging" ≈ 58 dp at 14 sp, GT3 Max and GT5 Max with no charge limit) never cuts
+     * "Health 97%" (≈ 44 + 5 + 26 dp) or "Temp. 24 °C" (≈ 37 + 5 + 36 dp), and a long one ("Charging to 90%" ≈ 104 dp,
+     * "Not charging" ≈ 86 dp) still sets the width. The level ("97%" ≈ 80 dp at 48 sp) stays beside the column.
+     */
+    private static void summaryColumn() {
+        for (int room : new int[]{279, 330, 645}) {
+            for (float scale : new float[]{1f, 1.4f}) {
+                int gap = 5;
+                int health = BatterySummaryFit.factWidth(44 * scale, gap, 26 * scale), temp = BatterySummaryFit.factWidth(37 * scale, gap, 36 * scale);
+                for (float stateDp : new float[]{58, 86, 104}) {
+                    int state = (int) Math.ceil(stateDp * scale);
+                    int column = BatterySummaryFit.columnWidth(room, health, temp, state);
+                    String at = room + " dp, " + scale + "x, state " + stateDp + " dp";
+                    require(column >= health && column >= temp && column >= state, "No line of the column is cut at " + at);
+                    require(column == Math.max(Math.max(health, temp), state), "The column is its widest line at " + at);
+                    require(!BatterySummaryFit.stacks(room, column, 12, 80 * scale), "The level stays beside the column at " + at);
+                }
+                int noState = BatterySummaryFit.columnWidth(room, health, temp, 0);
+                require(noState == Math.max(health, temp), "No state line: the readings set the width at " + room + " dp, " + scale + "x");
+                require(BatterySummaryFit.columnWidth(room, 0, 0, (int) Math.ceil(58 * scale)) == (int) Math.ceil(58 * scale),
+                        "Only the state line: its width at " + room + " dp, " + scale + "x");
+            }
+        }
+        require(BatterySummaryFit.factWidth(43.2f, 5, 25.1f) == 44 + 5 + 26, "A line's parts round up: no glyph clipped");
+        require(BatterySummaryFit.columnWidth(100, 140, 60) == 100, "Never wider than the room");
+        require(BatterySummaryFit.columnWidth(100) == 0 && BatterySummaryFit.columnWidth(100, -3) == 0, "No line: no width");
     }
 
     private static void trackTick() {
@@ -157,6 +235,14 @@ public final class HubPageTilesTest {
         require(ChargeHistoryBars.last(java.util.Arrays.asList(new ChargeHistoryBars.Charge(Double.NaN, 5, 1), newestFirst.get(1))) == newestFirst.get(1),
                 "Skips one without samples");
         require(ChargeHistoryBars.last(null) == null && ChargeHistoryBars.last(java.util.Collections.emptyList()) == null, "None: the empty words");
+        // The line under the bars: a failed read is not "none", and bars without battery samples are not "none" either.
+        require(ChargeHistoryBars.line(false, newestFirst) == ChargeHistoryBars.Line.LAST, "Measured charges: the last one's line");
+        require(ChargeHistoryBars.line(false, java.util.Collections.emptyList()) == ChargeHistoryBars.Line.EMPTY
+                && ChargeHistoryBars.line(false, null) == ChargeHistoryBars.Line.EMPTY, "No recordings: the empty words");
+        require(ChargeHistoryBars.line(false, java.util.Arrays.asList(new ChargeHistoryBars.Charge(Double.NaN, Double.NaN, 4000))) == ChargeHistoryBars.Line.NO_SAMPLES,
+                "A bar with no battery sample: No battery samples, not the empty words");
+        require(ChargeHistoryBars.line(true, null) == ChargeHistoryBars.Line.FAILED && ChargeHistoryBars.line(true, newestFirst) == ChargeHistoryBars.Line.FAILED,
+                "A failed read says so");
     }
 
     /** Charge done by's value, the Live charging row's sub-line and the Ride page's recent ride line (PageRows). */
