@@ -12,7 +12,6 @@ final class HubSearchTables {
 
     // Scooter menu rows built by hand (MainActivity's controls menu). Feature rows are found by their feature key.
     static final String ROW_HEADLIGHT_INFO = ScooterMenuLayout.HEADLIGHT_INFO;
-    static final String ROW_LIGHT_ZONES = ScooterMenuLayout.LIGHT_ZONES;
     static final String ROW_CLOCK_SYNC = ScooterMenuLayout.CLOCK_SYNC;
     static final String ROW_SCHEDULE_TEST = ScooterMenuLayout.SCHEDULE_TEST;
     static final String ROW_CHARGER = ScooterMenuLayout.CHARGER;
@@ -23,14 +22,18 @@ final class HubSearchTables {
     static final String ROW_TOP_SPEED = ScooterMenuLayout.TOP_SPEED;
     /** Live charging: not a menu layout row, so its view tag (MainActivity's charge_live card). */
     static final String ROW_CHARGE_LIVE = "charge_live";
-    /** Maintenance's row: its menu layout id and view tag. */
-    static final String ROW_MAINTENANCE = MaintenanceScreen.ROW;
+    /**
+     * Maintenance's row: its menu layout id and view tag, the value of MaintenanceScreen.ROW. Spelled out because
+     * HubText switches on it and the JVM suite compiles HubText without Android (MaintenanceScreen needs it);
+     * tests/l10n/HubSearchTextTest.java checks the two stay equal.
+     */
+    static final String ROW_MAINTENANCE = "maintenance_reminders";
     /** The "Done by" row below scheduled charging: no menu layout id (it follows its parent row), so its view tag. */
     static final String ROW_CHARGE_DONE_BY = "charge-done-by";
 
     /** Every hand-built row search lists, in the menu's order. */
     static final String[] ROWS = {
-            ROW_HEADLIGHT_INFO, ROW_LIGHT_ZONES, ROW_CLOCK_SYNC, ROW_SCHEDULE_TEST, ROW_CHARGE_DONE_BY, ROW_CHARGER,
+            ROW_HEADLIGHT_INFO, ROW_CLOCK_SYNC, ROW_SCHEDULE_TEST, ROW_CHARGE_DONE_BY, ROW_CHARGER,
             ROW_CHARGE_ALERT, ROW_LOW_ALERT, ROW_CHARGE_LIVE, ROW_SECURITY_LINK, ROW_SCOOTER_NAME, ROW_MAINTENANCE, ROW_TOP_SPEED,
     };
 
@@ -40,6 +43,11 @@ final class HubSearchTables {
     static final String SETTING_HOME_STYLE = "home-style-menu";
     static final String SETTING_UNITS = "preference-units-menu";
     static final String SETTING_DISPLAY = "preference-display-options";
+    /**
+     * The Haptic feedback switch in the display card: a tag of its own, so search names it apart from Text size.
+     * Part 11 sets it on the switch in MoreScreen (a code change this text part cannot carry).
+     */
+    static final String SETTING_HAPTICS = "preference_haptics";
     static final String SETTING_LANGUAGE = "preference_language";
     static final String SETTING_RIDING_AUTO_OPEN = "preference_riding_auto_open";
     static final String SETTING_RIDING_AUTO_RECORD = "preference_riding_auto_record";
@@ -55,7 +63,7 @@ final class HubSearchTables {
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
-            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_LANGUAGE,
+            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_HAPTICS, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
             SETTING_REPORT_ISSUE, SETTING_DEVELOPER,

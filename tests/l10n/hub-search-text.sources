@@ -1,0 +1,9 @@
+# Hub layout plan, PR 10: the text of search, the Widgets dock and the wide Home's right pane, and the names
+# search gives hand-built rows and settings rows. tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/HubSearchTextTest.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java
+src/com/jjricks/volt/HubSearchTables.java
+src/com/jjricks/volt/HomeQuickActions.java
+# ScooterMenuLayout, which HubSearchTables names, compiles with tests/run.sh's core list.
