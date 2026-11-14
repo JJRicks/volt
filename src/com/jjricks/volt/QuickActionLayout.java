@@ -79,4 +79,26 @@ final class QuickActionLayout {
         }
         return new Name(name, 1, true);
     }
+
+    /**
+     * The four names as one row (part 10's notes, built in part 11): each fitted alone ({@link #name}), then all at the
+     * smallest size any whole name needs, so when one name has to get smaller the others match it and the row reads
+     * as one line of one size. A name that does not fit even at {@link #MIN_SCALE} takes that shared size too and ends
+     * in an ellipsis; the shared size never goes under MIN_SCALE.
+     */
+    static Name[] names(String[] names, float room, Width width) {
+        Name[] alone = new Name[names.length];
+        float shared = 1;
+        for (int i = 0; i < names.length; i++) {
+            alone[i] = name(names[i], room, width);
+            if (alone[i].text != null && !alone[i].clipped) shared = Math.min(shared, alone[i].scale);
+        }
+        Name[] out = new Name[names.length];
+        for (int i = 0; i < names.length; i++) {
+            if (alone[i].text == null) { out[i] = alone[i]; continue; }
+            boolean whole = width.of(alone[i].text) * shared <= room;
+            out[i] = new Name(alone[i].text, shared, !whole);
+        }
+        return out;
+    }
 }

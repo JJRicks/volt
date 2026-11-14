@@ -507,19 +507,17 @@ final class QuickAccessGrid extends ViewGroup {
         }
         /**
          * Round: the circle at its size for this column and the one short name on one line under it, a little smaller
-         * only where it does not fit at full size (QuickActionLayout).
+         * only where one of the row's names does not fit at full size, the same size as the others (QuickActionLayout).
          */
-        void measureRound(int width) {
+        void measureRound(int width, QuickActionLayout.Name name) {
             float density = getResources().getDisplayMetrics().density;
             int side = ui.dp(QuickActionLayout.circleDp(width / density));
             LinearLayout.LayoutParams circleSize = (LinearLayout.LayoutParams) circle.getLayoutParams();
             if (circleSize.width != side) { circleSize.width = circleSize.height = side; }
             int pad = ui.dp(QuickActionLayout.SIDE_DP);
             setPadding(pad, ui.dp(2), pad, ui.dp(4));
-            float room = width - 2 * pad;
-            // Measured at the full size on a copy of the paint, so the view's size changes only when the choice does.
-            QuickActionLayout.Name name = QuickActionLayout.name(roundName(entry), room,
-                    fullSize(label, QuickActionLayout.NAME_SP)::measureText);
+            // The name as the row fitted it (QuickActionLayout.names), measured at the full size on a copy of the paint, so
+            // the view's size changes only when the choice does.
             label.setVisibility(name.text == null ? GONE : VISIBLE);
             if (name.text != null) {
                 float size = QuickActionLayout.NAME_SP * ui.textScale * name.scale;
@@ -634,7 +632,13 @@ final class QuickAccessGrid extends ViewGroup {
         int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
         int rows = (count + columns - 1) / columns;
         rowHeight = ui.dp(48);
-        for (Cell cell : cells) { cell.measureRound(cellWidth); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
+        // The four names at one size: when one has to get smaller, the others match it (QuickActionLayout.names).
+        int pad = ui.dp(QuickActionLayout.SIDE_DP);
+        String[] words = new String[count];
+        for (int i = 0; i < count; i++) words[i] = roundName(cells.get(i).entry);
+        QuickActionLayout.Name[] fitted = count == 0 ? new QuickActionLayout.Name[0]
+                : QuickActionLayout.names(words, cellWidth - 2 * pad, cells.get(0).fullSize(cells.get(0).label, QuickActionLayout.NAME_SP)::measureText);
+        for (int i = 0; i < count; i++) { Cell cell = cells.get(i); cell.measureRound(cellWidth, fitted[i]); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
         for (Cell cell : cells) cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
         setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
@@ -672,19 +676,13 @@ final class QuickAccessGrid extends ViewGroup {
     /**
      * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): its
      * round name where it has one (HubText.quickActionRoundName, part 10's text: Clean's own, Charge by and the
-     * controls); else, for cruise control, traction control and energy recovery, Live Stats' one-word name
-     * (StatsLabels.row); else the control's short rung.
+     * controls, cruise, traction and recovery among them); else the control's short rung.
      */
     static String roundName(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
         if (own != null) return own.render();
-        if (ROUND_STATS_NAMES.contains(entry.featureKey)) return StatsLabels.row(entry.featureKey);
         return tileLabel(entry);
     }
-
-    /** Controls whose Live Stats row name is their one-word short name (feature keys, data). */
-    private static final java.util.Set<String> ROUND_STATS_NAMES =
-            new java.util.HashSet<>(java.util.Arrays.asList("cruise_control", "traction_control", "energy_recovery"));
 
     /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {

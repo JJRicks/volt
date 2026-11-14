@@ -36,6 +36,9 @@ public final class QuickActionLayoutTest {
                 for (float wider : new float[]{1f, 1.15f}) size(window, text, wider);
         order();
         narrow();
+        for (int window : new int[]{344, 412, 725})
+            for (float text : new float[]{1f, 1.4f}) row(window, text);
+        rowRule();
         System.out.println("QuickActionLayout: " + checks + " checks passed");
     }
 
@@ -87,6 +90,41 @@ public final class QuickActionLayoutTest {
             QuickActionLayout.Name fit = QuickActionLayout.name(text, 60, w);
             if (!fit.clipped && fit.scale < 1) require(length * 10 * (fit.scale + .05f) > 60, "the largest step that fits for " + text + ": " + fit);
         }
+    }
+
+    /**
+     * One row of four at one of the maintainers' sizes (part 10's note, built in part 11): every name at the same size,
+     * the largest that keeps every name that can be whole, whole; the defaults stay at full size where all fit.
+     */
+    private static void row(int window, float text) {
+        String at = window + " dp at " + text + "x";
+        float room = QuickActionLayout.room(QuickActionLayout.column(Math.min(window - 36, 560), 4));
+        QuickActionLayout.Width names = width(QuickActionLayout.NAME_SP * text, 1f);
+        for (String[] four : new String[][]{{"Ride", "Record", "Charge by", "Cruise"}, {"Ride", "Record", "Alerts", "Traction"},
+                {"Ride", "Record", "Recovery", "Max. speed"}, {"Ride", "Record", "Charge done by", "Cruise"}}) {
+            QuickActionLayout.Name[] fitted = QuickActionLayout.names(four, room, names);
+            float least = 1;
+            for (String name : four) { QuickActionLayout.Name alone = QuickActionLayout.name(name, room, names); if (!alone.clipped) least = Math.min(least, alone.scale); }
+            for (int i = 0; i < 4; i++) {
+                require(fitted[i].text.equals(four[i]), at + ": " + four[i] + " is shown as it is");
+                require(fitted[i].scale == fitted[0].scale, at + ": " + String.join(", ", four) + " share one size: " + fitted[i] + " beside " + fitted[0]);
+                require(fitted[i].scale == least, at + ": the size the smallest whole name needs: " + fitted[i]);
+                require(fitted[i].clipped == (names.of(four[i]) * fitted[i].scale > room), at + ": cut only when it does not fit at that size: " + fitted[i]);
+                require(fitted[i].scale >= QuickActionLayout.MIN_SCALE, at + ": never under the least size: " + fitted[i]);
+            }
+            System.out.println("  " + at + " row: " + java.util.Arrays.toString(fitted));
+        }
+    }
+
+    /** The row rule on plain widths: one name a little too wide makes all four a little smaller; none too wide, none smaller. */
+    private static void rowRule() {
+        QuickActionLayout.Width w = text -> text.length() * 10f;
+        QuickActionLayout.Name[] row = QuickActionLayout.names(new String[]{"Ab", "Abcd", "Abcdefg", "Abc"}, 60, w);
+        for (QuickActionLayout.Name name : row) require(name.scale == row[2].scale && name.scale < 1 && !name.clipped, "one too wide: all four smaller: " + name);
+        row = QuickActionLayout.names(new String[]{"Ab", "Abcd", "Abcdef", "Abc"}, 60, w);
+        for (QuickActionLayout.Name name : row) require(name.scale == 1 && !name.clipped, "all fit: all at full size: " + name);
+        row = QuickActionLayout.names(new String[]{"Ab", "Abcdefghijkl", "Abc", null}, 60, w);
+        require(row[0].scale == 1 && row[1].scale == 1 && row[1].clipped && row[3].text == null, "a name cut even at the least size does not shrink the rest");
     }
 
     /** A narrow column (a split screen, a small phone): the circle gets smaller, then two rows of two. */
