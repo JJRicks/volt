@@ -241,17 +241,30 @@ final class HubDock {
         });
     }
 
-    /** A sheet row for a page that is not a subject (Search, Settings): its icon and title; it closes the sheet first. */
+    /**
+     * A sheet row for a page that is not a subject (Search, Settings), built like CleanSubjects' subject row so the two
+     * cards read as one list: the 33 dp raised tile with the glyph in the accent's text colour, then the 15.5 sp title
+     * (no summary line) and the chevron. It closes the sheet first.
+     */
     private View pageLine(String page, String tag, Runnable dismiss, Runnable action) {
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(0, ui.dp(8), 0, ui.dp(8));
+        line.setBaselineAligned(false);
+        line.setMinimumHeight(ui.dp(48));
+        line.setPadding(0, ui.dp(5), 0, ui.dp(5));
         line.setTag(tag);
-        android.widget.TextView name = ui.text(HubText.title(page), 15, false);
+        FrameLayout tile = new FrameLayout(host.activity());
+        tile.setBackground(ui.shape(ui.raised, 10, 0));
+        tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        tile.addView(ui.icon(HubPages.icon(page), 18, ui.accentText), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
+        LinearLayout.LayoutParams tileSize = new LinearLayout.LayoutParams(ui.dp(33), ui.dp(33));
+        tileSize.setMarginEnd(ui.dp(12));
+        line.addView(tile, tileSize);
+        android.widget.TextView name = ui.text(HubText.title(page), 15.5f, false);
+        name.setTypeface(ui.medium());
         name.setMaxLines(2);
-        ui.decorate(name, HubPages.icon(page));
+        name.setIncludeFontPadding(false);
         line.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
         chevronSize.setMarginStart(ui.dp(8));
