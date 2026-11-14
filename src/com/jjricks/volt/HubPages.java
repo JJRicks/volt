@@ -116,13 +116,6 @@ public final class HubPages {
     }
 
     /**
-     * The tab bar's roots, in the bar's order (Scooter was the raised centre button), from parts 1-10. The Hub (PR 11) no
-     * longer shows the tab bar or the side rail; MainActivity keeps their code, unused, until the owner has used the Hub and
-     * says it can go (owner's answer 8 on #383), and this list with it.
-     */
-    public static final List<String> TABS = Collections.unmodifiableList(Arrays.asList(HOME, DATA, SCOOTER, RIDE, SETTINGS));
-
-    /**
      * Pages riding mode may open over by itself: no forms, setup flows or sub-pages (the screen's own busy() still counts).
      * Of the scooter subjects only Controls, Battery & charging and Lights & sound (the owner's answer 21 on #383); every
      * other subject, sub-page, form or setup flow blocks it.
@@ -207,18 +200,6 @@ public final class HubPages {
 
     /** Whether riding mode may open over this page by itself (AutoStartPolicy); unknown ids count as busy. */
     public static boolean clearForRiding(String id) { return id != null && CLEAR_FOR_RIDING.contains(id); }
-
-    /** The tab that held a page, by its root id in {@link #TABS}: only the kept, unused tab bar and rail code reads it (PR 11). */
-    public static String tabOf(String id) {
-        String page = canonical(id);
-        switch (subjectOf(page)) {
-            case HOME: return HOME;
-            case DATA: return DATA;
-            case RIDE: return RIDE;
-            case SETTINGS: return SETTINGS;
-            default: return SCOOTER;
-        }
-    }
 
     /**
      * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,

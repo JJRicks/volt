@@ -1196,42 +1196,6 @@ public final class MainActivity extends Activity implements ScreenHost {
      * so every route uses Home's page stack. Home closes every page above it.
      */
     private void select(String page){open(page,null);}
-    // The floating tab bar and the side rail the Hub replaced (parts 1-10). Not shown since part 11, but kept, unused, until
-    // the owner has used the Hub and says they can go (owner's answer 8 on #383): Hub layout part 14 leaves them in place too.
-    // Volt order: Scooter was the raised centre button of the floating tab bar. Each tab opened its root page (HubPages.TABS).
-    private final String[] pages=HubPages.TABS.toArray(new String[0]);
-    private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
-    /** The tab names as shown; names above are ids, in the same order. */
-    private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
-    /** The rail's one-line tab captions when a full name does not fit (Ui.nav); the screen reader keeps the full name. */
-    private String[] navShortNames(){return new String[]{T.mainNavHomeShort(),T.mainNavStatsShort(),T.mainNavScooterShort(),T.mainNavRidesShort(),T.mainNavMoreShort()};}
-    private final String[] icons={"home","stats","scooter","rides","more"};
-    private static final int NAV_CENTER=2;
-    /** The Scooter tab (the phone's raised button, or the rail item) for the maintenance dot, and whether it is the raised button. */
-    private View scooterTab;private boolean scooterTabCorner;
-    private int navFrom = -1;
-    /** Whether the shown page belongs to this tab (HubPages.tabOf). */
-    private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
-    private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
-    /** The phone's floating tab bar as it was added over the page (unused since part 11; HubDock took its place). */
-    private View floatingTabBar(){
-        View bar=design.floatingNav(navNames(),icons,tabIndex(selectedPage),navFrom,NAV_CENTER,i->select(pages[i]));
-        scooterTab=((ViewGroup)bar).getChildCount()>1?((ViewGroup)bar).getChildAt(1):null;scooterTabCorner=true;
-        return bar;
-    }
-    /** The wide window's side rail (92 dp wide) as it was (unused since part 11), or the plain bar when rail is false. */
-    private View navigation(boolean rail){
-        LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
-        View selected=null;
-        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],onTab(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(onTab(page))selected=item;}
-        if(rail){scooterTab=nav.getChildAt(java.util.Arrays.asList(pages).indexOf(HubPages.SCOOTER));scooterTabCorner=false;}
-        if(!rail)return nav;
-        // App text and Android font size compound. Let two-line captions determine each
-        // item's height, and keep every destination reachable in a short or large-text rail.
-        ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);scroller.setVerticalScrollBarEnabled(false);scroller.addView(nav,new ScrollView.LayoutParams(-1,-2));
-        View current=selected;if(current!=null)scroller.post(()->current.requestRectangleOnScreen(new Rect(0,0,current.getWidth(),current.getHeight()),true));
-        return scroller;
-    }
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){

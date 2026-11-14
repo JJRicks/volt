@@ -38,7 +38,7 @@ final class HubDock {
     static String tag(String subject) { return "hub-dock-" + subject; }
 
     /**
-     * The old floating tab bar's place (Ui.floatingNav as MainActivity added it): 14 dp from each side and 10 dp above the
+     * The old floating tab bar's place (as MainActivity added it before part 11): 14 dp from each side and 10 dp above the
      * screen's edge, and its 26 dp corners. Items are Ui.nav's: at least 64 dp tall, growing with the text.
      */
     private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64,

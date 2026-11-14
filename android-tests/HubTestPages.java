@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * moved the Scooter tab's rows onto subject pages (Battery & charging, Controls, Lights & sound, Security, Service) and
  * More's and Rides' settings onto Ride, Live Stats and Settings pages; docs/development-notes.md has the screen map.
  *
- * <p>{@link #reach} and {@link #route} go the rider's way, by touch: the tab, then each row on the way, each required
+ * <p>{@link #reach} and {@link #route} go the rider's way, by touch: from Home, each row on the way, each required
  * shown, enabled, on screen and leading to its page (#414 review: opening pages directly passed even with no rows at
  * all). They run from the instrumentation thread. {@link #open} opens a page directly (Home, then each page on
  * {@link HubPages#path} through the activity's own {@code open(String)}) for setup and repeat visits; it and the other
@@ -43,7 +43,7 @@ public final class HubTestPages {
     private static final Map<MainActivity, Set<String>> TAPPED = new WeakHashMap<>();
 
     /**
-     * Reaches a page the rider's way the first time this activity shows it ({@link #route}: its tab, then each row on the
+     * Reaches a page the rider's way the first time this activity shows it ({@link #route}: from Home, each row on the
      * way, all tapped), and directly ({@link #open}) on a repeat visit once that route has been proven. Call it from the
      * instrumentation thread, not inside runOnMainSync.
      */
@@ -58,41 +58,17 @@ public final class HubTestPages {
     }
 
     /**
-     * Reaches a page as a rider does, by touch: taps its tab in the navigation bar (the Scooter tab for the Scooter pages,
-     * Rides for the Ride pages, Live Stats for Data's), then on each page the row that opens the next page on
-     * {@link HubPages#path} ({@link #tapRow}). Throws, naming the row, when a row on the way is missing, hidden, disabled,
+     * Reaches a page as a rider does, by touch: from Home (the root of every page stack since the tab bar went in part 11),
+     * taps on each page the row that opens the next page on {@link HubPages#path} ({@link #tapRow}): Home's subject row or
+     * gear first, then each page's own row. Throws, naming the row, when a row on the way is missing, hidden, disabled,
      * off screen or opens something else.
      */
     public static String route(Instrumentation instrumentation, MainActivity activity, String page) {
-        String wanted = HubPages.canonical(page), tab = HubPages.tabOf(wanted);
-        tapTab(instrumentation, activity, tab);
-        for (String step : HubPages.path(wanted)) if (!step.equals(HubPages.HOME) && !step.equals(tab)) tapRow(instrumentation, activity, step);
+        String wanted = HubPages.canonical(page);
+        onMain(instrumentation, () -> open(activity, HubPages.HOME));
+        instrumentation.waitForIdleSync();
+        for (String step : HubPages.path(wanted)) if (!step.equals(HubPages.HOME)) tapRow(instrumentation, activity, step);
         return wanted;
-    }
-
-    /** Taps a tab of the navigation bar (floating bar or rail), found by its spoken name (Scooter: MainActivity.scooterTab), and waits for its page. */
-    public static void tapTab(Instrumentation instrumentation, MainActivity activity, String tab) {
-        int index = HubPages.TABS.indexOf(tab);
-        if (index < 0) throw new IllegalArgumentException(tab + " is not a tab");
-        View[] found = {null};
-        String[] label = {null};
-        List<String> seen = new ArrayList<>();
-        onMain(instrumentation, () -> {
-            label[0] = ((String[]) call(activity, "navNames"))[index];
-            View page = (View) field(activity, "scroll");
-            // The Scooter tab is the activity's own scooterTab (the raised button, or the rail's item): its spoken name
-            // gains "maintenance due" while a check is due (MaintenanceScreen.markTab), so it is not found by name.
-            View scooter = (View) field(activity, "scooterTab");
-            if (tab.equals(HubPages.SCOOTER) && scooter != null && scooter.isClickable()) { found[0] = scooter; return; }
-            for (View view : descendants(activity.getWindow().getDecorView())) {
-                if (!view.isClickable() || view.getContentDescription() == null || inside(view, page)) continue;
-                if (label[0].contentEquals(view.getContentDescription())) { found[0] = view; break; }
-                if (seen.size() < 12) seen.add(String.valueOf(view.getContentDescription()));
-            }
-        });
-        if (found[0] == null) throw new IllegalStateException("No " + label[0] + " tab in the navigation bar (page " + currentOn(instrumentation, activity) + "; other actions outside the page: " + seen + ")");
-        tap(instrumentation, activity, found[0], "the " + label[0] + " tab");
-        awaitPage(instrumentation, activity, tab, "the " + label[0] + " tab");
     }
 
     /**
@@ -218,7 +194,7 @@ public final class HubTestPages {
     }
 
     /**
-     * Opens a saved ride's details the rider's way: the Rides tab, the Ride page's All rides & compare row (the only page
+     * Opens a saved ride's details the rider's way: Home's Ride row, the Ride page's All rides & compare row (the only page
      * with the wide two panes; the Ride page itself is always compact), then the ride's history row, all by touch. Requires
      * the layout the window should get ({@link #expectWide}): wide, the ride selected in the right pane with no dialog
      * (its row selected, the pane shown and titled with the ride); compact, one new details dialog showing the ride. So a
@@ -305,6 +281,9 @@ public final class HubTestPages {
         for (View view : descendants(((AppScreen) screen).view())) {
             Object tag = view.getTag();
             if (("hub-row-" + target).equals(tag) || ("hub-link-" + target).equals(tag)) out.add(view);
+            // Home's own ways in (part 11): Clean's subject rows, and the header's gear and search on either Home.
+            else if (HubPages.HOME.equals(current(activity)) && (("home-subject-" + target).equals(tag)
+                    || (HubPages.SETTINGS.equals(target) && "home-settings".equals(tag)) || (HubPages.SEARCH.equals(target) && "home-search".equals(tag)))) out.add(view);
         }
         return out;
     }
