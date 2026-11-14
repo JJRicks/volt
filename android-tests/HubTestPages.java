@@ -277,6 +277,20 @@ public final class HubTestPages {
         if (dock[0] == null) return false;
         View[] item = {null}, all = {null};
         String[] problem = {null};
+        // On a short window with large text (725x604 dp at 1.4x) the dock steps aside while it would cover the Lock bar
+        // (HubDock.keepClear) and comes back once the page scrolls the bar above it: the rider scrolls Home first.
+        boolean[] aside = {false};
+        onMain(instrumentation, () -> aside[0] = ((View) call(dock[0], "view")).getVisibility() == View.INVISIBLE);
+        if (aside[0]) {
+            onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN));
+            long until = SystemClock.uptimeMillis() + WAIT_MS;
+            while (SystemClock.uptimeMillis() < until && aside[0]) {
+                instrumentation.waitForIdleSync();
+                onMain(instrumentation, () -> aside[0] = ((View) call(dock[0], "view")).getVisibility() == View.INVISIBLE);
+                if (aside[0]) SystemClock.sleep(40);
+            }
+            if (aside[0]) throw new IllegalStateException("Widgets Home's dock stayed aside after scrolling Home to its end");
+        }
         onMain(instrumentation, () -> {
             for (View view : descendants((View) call(dock[0], "view"))) {
                 if (!view.isShown()) continue;
