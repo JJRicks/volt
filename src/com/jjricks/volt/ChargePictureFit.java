@@ -208,6 +208,15 @@ final class ChargePictureFit {
     }
 
     /**
+     * How much larger than at 1.0x text the number's text size is: Volt's Text size times Android's font size (the
+     * text sizes are in sp at Volt's size, so both are in them; as Ui.wide reads the two). The fit grows the number by
+     * this where the picture limits it (review of #483, P3-4); an unknown font size counts as 1.
+     */
+    static float growth(float textScale, float fontScale) {
+        return textScale * (fontScale > 0 && !Float.isInfinite(fontScale) ? fontScale : 1);
+    }
+
+    /**
      * The number over a box this tall: its share of the box; at a larger Text size that share times the Text size, up
      * to its 1.0x size; never above its full size.
      */

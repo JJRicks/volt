@@ -22,6 +22,7 @@ public final class ChargePictureTest {
         clipping();
         cableEnd();
         cableInColumn();
+        fontScale();
         registryKeys();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
@@ -367,6 +368,37 @@ public final class ChargePictureTest {
         // A clip at or before the tail: nothing of the cable shows past it, and the fade never runs backwards.
         ChargePictureFit.cableEnd(400 * D, 700 * D, 390 * D, D, out);
         require(out[0] <= out[1] && out[1] == 400 * D, "a clip inside the picture: the fade ends at the tail");
+    }
+
+    /**
+     * The percentage's fit grows with Volt's Text size times Android's font size (review of #483, P3-4): 1.4x either
+     * way gives the same fit at 344 x 882 and 725 x 604 dp, on Clean and Widgets; 1.0x is unchanged.
+     */
+    private static void fontScale() {
+        near(ChargePictureFit.growth(1, 1), 1, 0, "1.0x: no growth");
+        near(ChargePictureFit.growth(1.4f, 1), 1.4f, 0, "Volt's 1.4x");
+        near(ChargePictureFit.growth(1, 1.4f), 1.4f, 1e-6, "Android's 1.4x");
+        near(ChargePictureFit.growth(1.4f, 1.3f), 1.82f, 1e-5, "both multiply");
+        near(ChargePictureFit.growth(1.2f, 0), 1.2f, 0, "an unknown font size counts as 1");
+        for (int[] window : new int[][] {{344, 882}, {725, 604}}) {
+            int[] s = slot(window[0], window[1], 1.4f);
+            String name = window[0] + "x" + window[1];
+            // The text sizes are in sp at Volt's size: with Android's 1.4x the full size is the same 84 dp.
+            float volt = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * 1.4f, ChargePictureFit.growth(1.4f, 1), D).fit.text;
+            float android = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * 1.4f, ChargePictureFit.growth(1, 1.4f), D).fit.text;
+            near(android, volt, 1e-3, name + " Clean: Android's 1.4x grows the number as Volt's does");
+            float before = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * 1.4f, 1, D).fit.text;
+            require(android >= before, name + " Clean: at least what the Text size alone gave: " + android / D + " vs " + before / D);
+            float w = (window[0] - 32) * D, full = 60 * D * 1.4f;
+            ChargePictureFit.Fit a = ChargePictureFit.widgets(w, SHARE, full, full / ChargePictureFit.growth(1, 1.4f), ChargePictureFit.growth(1, 1.4f), D);
+            ChargePictureFit.Fit v = ChargePictureFit.widgets(w, SHARE, full, full / 1.4f, 1.4f, D);
+            near(a.text, v.text, 1e-3, name + " Widgets: Android's 1.4x as Volt's");
+        }
+        // The review's case: a 280 dp window, Android at 140%, Volt at 1.0x: the number grows past the picture's share.
+        float full = 60 * D * 1.4f;
+        ChargePictureFit.Fit narrow = ChargePictureFit.widgets(248 * D, SHARE, full, full / 1.4f, ChargePictureFit.growth(1, 1.4f), D);
+        ChargePictureFit.Fit old = ChargePictureFit.widgets(248 * D, SHARE, full, full, 1, D);
+        require(narrow.text > old.text + 5 * D, "280 dp at Android's 140%: the number grows: " + narrow.text / D + " (was " + old.text / D + ")");
     }
 
     /** Each charging picture's key is a photo key ModelRegistry gives a model (review of #483, C9). */

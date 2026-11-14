@@ -2729,7 +2729,7 @@ public final class DashboardScreen implements AppScreen {
                 float density = getResources().getDisplayMetrics().density;
                 ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
                         fullPercent, rows.getMeasuredHeight(), width, plan.stageHeight - pictureFloor(plan.stageHeight),
-                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, ui.textScale, density).fit;
+                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), density).fit;
                 if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
                 if (photoRoom) {
                     ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift;
@@ -2897,6 +2897,15 @@ public final class DashboardScreen implements AppScreen {
             showAnimated(true);
         }
 
+        /**
+         * How much larger than at 1.0x the percentage's text is: Volt's Text size times Android's font size, as Ui.wide
+         * reads it (ChargePictureFit.growth; review of #483, P3-4), so either one grows the number where the picture
+         * limits it.
+         */
+        private float textGrowth() {
+            return ChargePictureFit.growth(ui.textScale, getResources().getConfiguration().fontScale);
+        }
+
         /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
         private CharSequence cleanLine(boolean hasLimit, double limit) {
             return (hasLimit ? HubText.chargingToLimit(Fmt.percent(Fmt.integerNumber(Math.round(limit)))) : HubText.charging()).render();
@@ -2962,7 +2971,8 @@ public final class DashboardScreen implements AppScreen {
                 if (!clean && picture != null && percent.getParent() == this) {
                     int width = MeasureSpec.getSize(widthSpec);
                     float full = percentWidgetsPx * ChargingFit.PERCENT_SP / 72f;
-                    fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, ui.textScale), ui.textScale,
+                    float growth = textGrowth();
+                    fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, growth), growth,
                             getResources().getDisplayMetrics().density);
                     if (percent.getTextSize() != fit.text) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fit.text);
                     percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
