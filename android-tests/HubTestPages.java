@@ -125,6 +125,29 @@ public final class HubTestPages {
     }
 
     /**
+     * A rider's tap on the shown page's back link ("hub-back", in the page header above the screen), with {@link #tapView}'s
+     * rules, then waits for the page's parent ({@link HubPages#parent}) to be on top. Throws when the page has no back link
+     * shown or the tap leaves another page on top. Instrumentation thread; returns the page now shown.
+     */
+    public static String back(Instrumentation instrumentation, MainActivity activity) {
+        View[] link = {null};
+        String[] from = {null};
+        onMain(instrumentation, () -> {
+            from[0] = current(activity);
+            View root = (View) field(activity, "root");
+            View found = root == null ? null : root.findViewWithTag("hub-back");
+            link[0] = found != null && found.isShown() ? found : null;
+        });
+        if (link[0] == null) throw new IllegalStateException("Page " + from[0] + " has no back link shown");
+        String parent = HubPages.parent(from[0]);
+        if (parent == null) throw new IllegalStateException("Page " + from[0] + " has no parent to go back to");
+        String name = "the back link on page " + from[0];
+        tap(instrumentation, activity, link[0], name);
+        awaitPage(instrumentation, activity, parent, name);
+        return parent;
+    }
+
+    /**
      * Whether a view is placed on the page now shown: attached to the window inside the shown screen's view. A screen
      * builds rows it never places (a ControlsScreen builds every control, and places only its page's), so a row object
      * from the screen says nothing about the page until this holds. Main thread.
