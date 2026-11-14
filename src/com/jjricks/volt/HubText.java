@@ -238,9 +238,38 @@ public final class HubText {
     /**
      * The battery tile's label as the Layout Plan's mock-up has it (the contributor's decisions on #383, which replace
      * the drop/gain pair above on Just back): "Battery", the value carrying the signed change ("−18%"). The Battery
-     * subject's short name (hub_subject_battery_short) until part 10 gives Just back a key of its own.
+     * subject's short name (hub_subject_battery_short); Just back now shows {@link #justBackBatteryName()}, its own key.
+     * Kept while HomeTextTest checks it (an existing test a batch part may not edit); unused by the app.
      */
     public static Msg justBackBatteryTile() { return shortTitle(HubPages.BATTERY); }
+    /**
+     * The battery tile's name on Just back, "Battery", with the signed change as its value ("−18%"): Just back's own key
+     * (hub_just_back_battery), so a language can name the change where the subject's short name would not fit or read.
+     */
+    public static Msg justBackBatteryName() { return M.hubJustBackBattery(); }
+
+    /**
+     * The Ride time tile's value as the mock-up writes it, short and without the estimate sign the charging time
+     * carries: "45s" under a minute, "24m" under an hour, then "1h 02m" (minutes always two digits). Whole units,
+     * rounded down, as the Rides page's Duration; a negative time counts as none.
+     */
+    public static Msg justBackRideTimeValue(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        if (seconds < 60) return M.hubJustBackTimeSeconds(Fmt.integer(seconds));
+        long minutes = seconds / 60;
+        if (minutes < 60) return M.hubJustBackTimeMinutes(Fmt.integer(minutes));
+        long rest = minutes % 60;
+        return M.hubJustBackTimeHours(Fmt.integer(minutes / 60), (rest < 10 ? Fmt.integer(0) : "") + Fmt.integer(rest));
+    }
+
+    /**
+     * Screen-reader text of the last ride on Clean Home, one whole sentence per language: the ended line first (what
+     * sighted owners read first), then the distance, then what a tap does ("Ride ended 12 minutes ago, 6.2 mi. Opens
+     * the ride."). minutes as {@link #justBackEnded(long)} takes them; distance with its unit.
+     */
+    public static Msg justBackSpoken(long minutes, CharSequence distance) {
+        return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
+    }
 
     // ===== Clean Home's Edit sheet and quick actions =====
 
@@ -289,17 +318,42 @@ public final class HubText {
     }
 
     /**
-     * The one short name one of Clean's own quick actions shows under its circle on Clean Home (the contributor's
-     * decisions on #383: "Ride" not "RIDE", "Record", "Alerts"); null for any other action (QuickAccessGrid picks its
-     * short name). Its spoken name stays the full one. Charge done by has no one-word name yet: its short rung is the
-     * whole "Charge done by", which ends in an ellipsis at the row's size until part 10 adds
-     * home_qa_charge_done_by_short ("Done by").
+     * The one short name an action shows under its round button on Clean Home, in Settings › Home style's Quick actions
+     * line and in the Home style pictures (the contributor's decisions on #383: one short name on one line; "Ride", not
+     * "RIDE"; "Charge by" for Charge done by, round 3). Clean's own actions (HomeQuickActions) and the catalog's Charge
+     * done by and controls (QuickAccessActions ids, a control as FEATURE_PREFIX + its feature key) that have a round
+     * name; null for any other action (QuickAccessGrid then picks its short rung). Its spoken name stays the full one.
      */
     public static Msg quickActionRoundName(String id) {
-        if (HomeQuickActions.RIDING.equals(id)) return shortTitle(HubPages.RIDE);
-        if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
-        return null;
+        if (id == null) return null;
+        if (id.startsWith(QuickAccessActions.FEATURE_PREFIX)) {
+            switch (id.substring(QuickAccessActions.FEATURE_PREFIX.length())) {
+                case "cruise_control": return M.hubQaCruiseRound();
+                case "traction_control": return M.hubQaTractionRound();
+                case "energy_recovery": return M.hubQaRecoveryRound();
+                case "overspeed_control": return M.hubQaOverspeedRound();
+                case "hill_descent_control": return M.hubQaDescentRound();
+                default: return null;
+            }
+        }
+        switch (id) {
+            case HomeQuickActions.RIDING: return M.hubQaRideRound();
+            case HomeQuickActions.RECORD: return M.hubQaRecordRound();
+            case HomeQuickActions.CHARGE_ALERTS: return M.hubQaAlertsRound();
+            case "charge_done_by": return M.hubQaChargeDoneByRound();
+            default: return null;
+        }
     }
+
+    /** Between the names of a short list on one line: Settings › Home style's Quick actions ("Ride, Record, Charge by, Cruise"). */
+    public static Msg listSeparator() { return M.hubListSeparator(); }
+
+    /**
+     * The Quick access tile that opens search (owner-era item the contributor kept, search-settings-tile): its name,
+     * "Search settings", and its short rung, "Search", where the name does not fit its one line.
+     */
+    public static Msg quickAccessSearch() { return M.hubQaSearchSettings(); }
+    public static Msg quickAccessSearchShort() { return M.hubQaSearchSettingsShort(); }
 
     /** The Record action's value while a ride is being recorded. */
     public static Msg qaRecording() { return M.homeQaRecording(); }
@@ -448,4 +502,40 @@ public final class HubText {
     /** The Service card: its title, and its line when no reminder is set. */
     public static Msg serviceCardTitle() { return M.hubServiceCardTitle(); }
     public static Msg serviceCardNone() { return M.hubServiceCardNone(); }
+
+    // ===== Battery & charging, Controls and Ride pages (the Layout Plan's pages) =====
+
+    /** Battery & charging's section labels, shown in capitals: CHARGING over the charging rows, HISTORY over the chart. */
+    public static Msg batterySectionCharging() { return M.hubBatterySectionCharging(); }
+    public static Msg batterySectionHistory() { return M.hubBatterySectionHistory(); }
+    /**
+     * The HISTORY card's line: "Last charge 42% → 90% · 2 h 10 min". span is the start and end battery
+     * (stats_charge_battery_span), duration how long it took (stats_charge_duration_*), or null when not known.
+     */
+    public static Msg batteryLastCharge(CharSequence span, CharSequence duration) {
+        return duration == null ? M.hubBatteryLastChargeSpan(span) : M.hubBatteryLastCharge(span, duration);
+    }
+
+    /** Controls' label over the links to its sub-pages, shown in capitals, and the lines under Assists and Speed limits. */
+    public static Msg controlsMore() { return M.hubControlsMore(); }
+    public static Msg controlsAssistsSub() { return M.hubControlsAssistsSub(); }
+    public static Msg controlsLimitsSub() { return M.hubControlsLimitsSub(); }
+
+    /**
+     * A recent ride's title on the Ride page when it started today or yesterday ("Yesterday, 5:42 pm"); null for an
+     * older ride (or one dated after today), which keeps its day and date. time is the start time formatted for the
+     * language.
+     */
+    public static Msg recentRideTitle(java.time.LocalDate rideDay, java.time.LocalDate today, CharSequence time) {
+        if (rideDay == null || today == null) return null;
+        if (rideDay.equals(today)) return M.hubRideToday(time);
+        if (rideDay.equals(today.minusDays(1))) return M.hubRideYesterday(time);
+        return null;
+    }
+
+    /**
+     * The Record ride tile's shorter name while simulating ("Simulating"), where rides_simulating_exit ("Simulating ·
+     * Exit") does not fit one line. Its own key, not a rung of that ladder-less, already translated one.
+     */
+    public static Msg rideSimulatingShort() { return M.hubRideSimulating(); }
 }
