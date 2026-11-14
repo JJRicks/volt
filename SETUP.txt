@@ -139,8 +139,8 @@ can't add it; release it in Volt first (More → My scooters, the pencil,
 Edit scooter → Release this scooter). A scooter already saved in Volt must be
 released from its saved profile first; setup refuses it otherwise. Once the
 key has been offered to a scooter, Volt keeps it, even if setup goes another
-way, and offers it to no other scooter unless that one refuses it; forget it
-later from My scooters. Back up Volt after it connects: the key is nowhere
+way, and until that scooter is saved offers it to no other scooter unless
+that one refuses it; forget it later from My scooters. Back up Volt after it connects: the key is nowhere
 else. This route has not yet been tried on a real scooter.
 
 IF CAPTURE DOES NOT WORK

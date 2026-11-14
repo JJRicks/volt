@@ -1604,8 +1604,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
         if(!profile.configured()){openMoreSection("");return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
-        // A key Volt made, tied to the scooter first offered it, reconnects there with no chooser (BleController.connectAddress).
-        scooterService.ble.connectLast();if(scooterService.ble.connectAddress(profile).isEmpty())showScanner(false);redraw();
+        scooterService.ble.connectLast();if(profile.mac.isEmpty())showScanner(false);redraw();
     }
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){pendingScan=false;showScanner(true);}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}

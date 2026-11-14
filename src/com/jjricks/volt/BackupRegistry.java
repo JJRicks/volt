@@ -156,8 +156,9 @@ final class BackupRegistry {
         RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
         // Which owner keys a backup saved on this phone holds (KeyBackups): only this phone knows the file exists.
         RULES.add(new Rule(app, KeyBackups.PREFIX, true, String.class, null, DEVICE, true, false, false));
-        // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, record this phone's own attempt.
-        RULES.add(new Rule(app, NewOwnerKey.PREFIX, true, String.class, null, DEVICE, true, false, false));
+        // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, travel with its profile, as
+        // its key does. BackupArchive restores it with the profile it describes, never loosening this phone's record.
+        prefix(app, NewOwnerKey.PREFIX, String.class, SCOOTERS, true);
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);
