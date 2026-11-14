@@ -56,7 +56,7 @@ The done page reminds the owner that the key is only on this phone and to back V
   - the council's lockout chains, as the record and the rules see them: a link dropped before the address was saved and Try again (back to the same scooter, sent, kept), a second scooter refused before the owner check, a refusal reported for that second scooter (the tie stands), the first scooter's refusal and a third scooter taking the key (kept throughout), a tie that can't be saved (nothing sent), a cancelled chooser, a saved scooter refused before the owner check, and a typed key (untouched);
   - in the sources: simulation returns first; the saved-scooter refusal, then the record, decide before the only owner check, and only SEND lets it go; a refusal unties before the link fails; the tie and offer are one commit, and a failure or exception sends nothing; connectLast and Connect's chooser follow the tie; the record is written before the made key's profile exists, lives outside setup's preferences and stays on this phone in backups; a pending name never renames a made key; every way into Import leaves the made key; and every removal in setup goes through the rule above, except undoing a key whose save failed before Connect.
 - `bash build.sh`; `python3 tools/l10n/gen_catalog.py --check`; `python3 tools/l10n/ship_check.py --aapt required`.
-- **Emulator:** `NewOwnerKeyValidation` (the follow-up harness, 87 assertions) passed against this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
+- **Emulator:** `NewOwnerKeyValidation` (the follow-up harness, 124 assertions) passed against this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
   - 412 × 915 dp, dark;
   - 344 × 882 dp (Fold cover screen), dark;
   - 725 × 604 dp, light;
@@ -64,15 +64,16 @@ The done page reminds the owner that the key is only on this phone and to back V
 
   It drives the real setup screens and stores on a disposable emulator with Bluetooth off:
   - the new route sits second, after the recommended one, and the new-key page makes nothing;
-  - Continue makes one key of the right shape, on disk before Connect, and Back and Continue reuse it;
-  - a key never offered to a scooter may go when another route is chosen;
-  - the offer is recorded where the connection controller sends the owner check: another profile's check leaves it unset, the made key's sets it on disk;
-  - the owner check's rejection, injected into the real connection controller, shows the refusal fully on screen above **Try again**, and **Set up another way** keeps the key;
-  - after a timeout, the key stays, **Set up another way** is hidden, and **Import an owner setup file** still asks for a file;
+  - Continue makes one key of the right shape, with its record ("made") and setup's pointer to it, on disk before Connect, and Back and Continue reuse it;
+  - a key never offered to a scooter may go when another route is chosen, and Import drops one too, with its record and setup's pointers;
+  - the real connection controller's gate before the owner check ties the made key to the first scooter offered it, on disk, with nothing queued; another profile's check leaves the record alone; a retry then goes straight to that scooter, and the tie never stops a typed key's setup of it;
+  - offered to a second scooter while tied, the key is refused before the owner check: nothing queued, no reconnect, the tie unchanged, and "This new key went to another scooter first…" fully on screen above **Try again**. The couldn't-save message is rendered the same way (its failed write is covered by `NewOwnerKeyTest`);
+  - through the controller's refusal path, a refusal reported for another scooter keeps the tie; the tied scooter's refusal unties the key, keeps it, shows the refusal fully on screen above **Try again**, and **Set up another way** keeps the key;
+  - after a timeout, the key stays, **Set up another way** is hidden, and **Import an owner setup file** still asks for a file. Import keeps the offered key with setup's pointers to it cleared; a pending typed name never renames it and goes to the imported profile;
   - a typed key a scooter accepted is kept;
   - the done page shows its heading, the backup note, **Back up Volt** and **Go to Home** fully on screen without scrolling. In a short window the hero gives up height so the heading stays above the pinned note.
 
-  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding. The saved-scooter refusal before the owner check needs a live Bluetooth link, so the source-order test above covers it.
+  Screenshots of the route list, the new-key page, both new messages, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding. The saved-scooter refusal and the record decide before the owner check from the live link's address; with no Bluetooth link, the harness calls that gate with synthetic addresses, and the source-order test above covers its place in the connection.
 - **Physical:** none yet.
 
 ## Hardware test plan (UT5 MAX)
