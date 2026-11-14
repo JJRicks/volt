@@ -458,9 +458,14 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     @Override public int contentWidthDp(){
         int width=getResources().getConfiguration().screenWidthDp;
-        if(!paneHosted&&rightPage==null)return width;
+        if(!paneHosted&&rightPage==null)return width-2*pageSideDp();
         int row=width-2*24;
         return HubSplit.split(row,20,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,HubSplit.centreLeft(width,20,24),0,0,8).right(row)+2*18;
+    }
+    /** The space (dp) each side of the shown page's column on one pane (PageColumn): 0 on a phone, on Home and in the page pane. */
+    private int pageSideDp(){
+        if(!PageColumn.capped(selectedPage))return 0;
+        return PageColumn.sideDp(getResources().getConfiguration().screenWidthDp,design.textScale*getResources().getConfiguration().fontScale);
     }
     @Override public ScooterService service(){return scooterService;}
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}
@@ -578,6 +583,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Wide Clean Home: the scooter pane beside the page pane, which shows every page (hub layout plan 1.11, PR 13).
         if(twoPaneHome())buildPanes(content,args);
         else{
+        // A one-column page keeps to a readable width on a wide window, centred with its header (PageColumn).
+        int side=design.dp(pageSideDp());content.setPadding(side,0,side,0);
         LinearLayout header=makeHeader();
         if(horizontalHinge()){
             ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
@@ -632,7 +639,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{all=preferences.getAll();}catch(RuntimeException e){return;}
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
         // On Home, either style, and not while it is being edited.
-        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        // The wide Clean Home counts too: its page pane shows Home (HubHomePane) beside the scooter pane (#394 early review, 4).
+        boolean homeShown=screen instanceof DashboardScreen||screen instanceof CleanHomeScreen?!screen.busy():screen instanceof HubHomePane&&homeScreen!=null&&!homeScreen.busy();
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&homeShown;
         if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
@@ -696,8 +705,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){
             scroll=(ScrollView)screenView;
-            // A page with its own scroller pads its content as on a phone: the header lines up with it.
-            if(header!=null)header.setPaddingRelative(design.dp(18),header.getPaddingTop(),design.dp(18),header.getPaddingBottom());
+            // Every page sits flush with the pane's edges, as the Layout Plan's page pane (the pane already keeps the
+            // window's 24 dp and the gutter): a page with its own scroller (Settings, Data) drops the side padding it
+            // gives its column on a phone, so it lines up with the header and with every other page (#394 early review, 5).
+            View column=scroll.getChildCount()>0?scroll.getChildAt(0):null;
+            if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
         }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(0,design.dp(6),0,design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
         scrollPage=selectedPage;
         rightPage.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
@@ -719,6 +731,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(args!=null&&args.anchor!=null)revealAnchor(screen,scroll,args.anchor);
         redraw();
         showUpdateCheck();
+        // Back on Home in the page pane: the one-time What's new sheet may show now, as after a rebuild onto Home.
+        if(HubPages.HOME.equals(selectedPage))handler.post(this::maybeShowWhatsNew);
     }
     /** Closes the wide Home's scooter pane, if this layout has one. */
     private void closeHomePane(){
@@ -792,7 +806,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
-            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded&&!paneHosted);
+            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded&&!paneHosted,expanded);
             return new AppScreen(){
                 @Override public View view(){return maintenance.view();}
                 @Override public void refresh(){maintenance.refresh();}
@@ -1420,7 +1434,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){
         String target=HubPages.canonical(page);
-        if(target.equals(selectedPage)){pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
+        if(target.equals(selectedPage)){
+            // Already shown. With arguments (a ride to open, a row to bring on screen, a control to try) it shows again
+            // with them: the wide Home's scooter pane stays beside its own open page, so Just back can be tapped again
+            // over All rides (#394 early review, 7). Without, it scrolls to its top.
+            if(args!=null){captureScroll();pageArgs=args;arrived(selectedPage);return;}
+            pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;
+        }
         String from=selectedPage;
         captureScroll();leaving(from,target);
         // Search opened afresh (Home's button) starts empty; Back to it from a result keeps the query.

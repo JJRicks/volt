@@ -775,7 +775,7 @@ on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
 the tab bar was: the most-used subjects with short names, and All, or swipe
 up, for every subject with its summary). On a wide window (650 dp after
 text size) Clean Home takes two panes: the scooter (header, top area, Lock
-bar, quick actions and a Next checks card with the next maintenance checks)
+bar, quick actions and a Service card with the next maintenance checks)
 stays put while subjects and their pages open beside it, with All to go back;
 Widgets keeps its wide layouts with the same dock centred, all seven subjects
 with their short names. Large text that keeps the phone layout, tabletop
