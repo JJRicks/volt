@@ -403,11 +403,14 @@ final class RidingChipFit {
         return dash;
     }
 
-    /** True for text that holds a letter or a percent or per-mille sign: a unit, not a sign like "≈" or "±". */
+    /**
+     * True for text that holds a letter or a percent-like mark (%, ‰, the Arabic percent sign: Unicode's "other
+     * punctuation"): a unit. The signs a number can carry ("≈", "±", "+", "~", a minus) are math symbols or dashes.
+     */
     private static boolean unitLike(String text) {
         for (int i = 0; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (Character.isLetter(c) || c == '%' || c == '\u066A' || c == '\u2030' || c == '\uFF05') return true;
+            if (Character.isLetter(c) || Character.getType(c) == Character.OTHER_PUNCTUATION) return true;
         }
         return false;
     }

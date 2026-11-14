@@ -44,6 +44,10 @@ public final class RidingChipEmptyTest {
         check(RidingChipFit.emptyValue(DASH, "±", " ft").equals(DASH + " ft"), "a GPS fix keeps its unit, not its sign");
         check(RidingChipFit.emptyValue(DASH, "≈ ", "").equals(DASH), "a sign alone is not a unit");
         check(RidingChipFit.emptyValue(DASH, "-", "").equals(DASH), "nor a minus");
+        check(RidingChipFit.emptyValue(DASH, "−", "").equals(DASH) && RidingChipFit.emptyValue(DASH, "+", "").equals(DASH)
+                && RidingChipFit.emptyValue(DASH, "~", "").equals(DASH), "nor a minus sign, a plus or a tilde");
+        check(RidingChipFit.emptyValue(DASH, "٪", "").equals("٪" + DASH), "the Arabic percent sign before is a unit");
+        check(RidingChipFit.emptyValue(DASH, "‰", "").equals("‰" + DASH), "and the per-mille sign");
         check(RidingChipFit.emptyValue(DASH, "", "").equals(DASH), "a word (a clock, a stopwatch) is the dash alone");
         check(RidingChipFit.emptyValue(DASH, null, null).equals(DASH), "nothing at all");
     }
