@@ -956,7 +956,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return dashboardLock=makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return dashboardLock=makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
-            // The search page (HubSearchScreen) with its field focused; Clean's search button and the Widgets dock's All sheet.
+            // The search page (HubSearchScreen) with its field focused; Clean's search button and the Widgets dock's All sheet
+            // (the wide Home's page-pane field opens it the same way, from HubHomePane).
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.

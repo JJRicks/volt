@@ -789,7 +789,8 @@ entries included), live readings (with their value; a saved one says when it
 was last seen) and rides, each with its path ("Battery & charging > Battery
 modes"), and opens the result's page with the row on screen; Back returns to
 the search as it was. The field sits at the top with Cancel, the page's back
-link and title hidden. The former arrange-and-hide editor is gone, and settings hidden with
+link and title hidden (on the wide Clean Home, at the top of the right pane,
+where Home's search field was). The former arrange-and-hide editor is gone, and settings hidden with
 it show again. Rename the local scooter profile in Settings > My scooters or
 with its widget pencil while editing Home. Maintenance
 (Service > Maintenance, off by default) keeps local reminders by
