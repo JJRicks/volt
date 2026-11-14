@@ -154,6 +154,10 @@ final class BackupRegistry {
         // a restored copy could repeat or silence the next reminder.
         prefix(app, "maintenance_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
+        // Which owner keys a backup saved on this phone holds (KeyBackups): only this phone knows the file exists.
+        RULES.add(new Rule(app, KeyBackups.PREFIX, true, String.class, null, DEVICE, true, false, false));
+        // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, record this phone's own attempt.
+        RULES.add(new Rule(app, NewOwnerKey.PREFIX, true, String.class, null, DEVICE, true, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);
@@ -176,9 +180,8 @@ final class BackupRegistry {
         for (String key : "rerun import_failed connect_requested connect_tried".split(" ")) exclude("onboarding", key, Boolean.class, WIZARD);
         exclude("onboarding", "nearby_asked", Boolean.class, PERMISSION);
         exclude("onboarding", "step", Integer.class, WIZARD);
-        // Setup's own owner key (Make a new owner key): which profile holds it and whether it was sent.
+        // Setup's own owner key (Make a new owner key): which profile holds it, so Back and Continue reuse it.
         exclude("onboarding", "generated_profile_id", String.class, WIZARD);
-        exclude("onboarding", "generated_sent", Boolean.class, WIZARD);
         for (String key : "path profile_id created_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
         RULES.add(new Rule("onboarding", "tick_", true, Boolean.class, null, WIZARD, false, false, false));
     }

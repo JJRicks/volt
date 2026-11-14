@@ -456,7 +456,12 @@ public final class BleController {
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
     public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
-    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
+    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;String address=connectAddress(p);if(address.isEmpty())scan();else connect(p,address);}
+    /**
+     * Where connectLast() goes without a scan: the saved scooter, else the scooter a key Volt made is tied to, whose link
+     * dropped before its address was saved (NewOwnerKey.connectAddress). "" means a scan, with the chooser (MainActivity.connect).
+     */
+    public String connectAddress(ScooterProfiles.Profile p){return NewOwnerKey.connectAddress(p==null?null:p.mac,p==null?null:OnboardingScreen.madeKeyRecord(context,p.id));}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
         String mac=result.getDevice().getAddress();AdvertisedIdentity.Result id=advertised.get(mac);if(id==null&&result.getScanRecord()!=null)id=AdvertisedIdentity.parse(result.getScanRecord().getBytes());
@@ -532,7 +537,7 @@ public final class BleController {
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
         ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
-        queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
+        queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:releaseSent(mutation)?ProximityFollowUp.NOT_CHECKED_RESULT:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
         clearMutation();endCommandSession();pinState=null;pinStateMs=pinReadToken=0;pinReadPending=false;authenticated=writing=mtuRequested=discovered=subscribing=subscribed=challengePending=false;authRounds=0;statusFrame=pendingStatusFrame=pendingSerialFrame=null;pendingStatusMs=0;sessionFirmware=null;bondCheckedMs=0;statusMs=motionMs=warningMs=lastFrameMs=0;statusSleptMs=frameSleptMs=pendingStatusSleptMs=cadence.slept();serial="";speedRaw=driving=-1;warning=0;state=next;changed();
@@ -553,7 +558,10 @@ public final class BleController {
         boolean nativeDrop=reason==ConnectionEventLog.Reason.NATIVE_DISCONNECT;
         // A sent proximity change with no reconnect to check it is "not confirmed", never "cancelled" (the scooter may have taken it).
         String shown=ProximityFollowUp.dropNotice(text,dropped,dropped?mutation.key:null,dropped&&mutation.sent,dropped&&guided(mutation),next!=null,nativeDrop,reconnect);
-        if(dropped)mutation.dropResult=ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),next!=null,nativeDrop);
+        // A sent release is never "cancelled" either: the scooter may have taken it, and no reconnect checks it, so it
+        // reads like an unchecked proximity change (the same words as MoreScreen's "didn't confirm" message).
+        if(dropped&&releaseSent(mutation)){shown=text+ProximityFollowUp.NOT_CHECKED_SUFFIX;mutation.dropResult=ProximityFollowUp.NOT_CHECKED_RESULT;}
+        else if(dropped)mutation.dropResult=ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),next!=null,nativeDrop);
         if(next!=null)mutation.completion=null;
         close(reconnect?State.WAITING:State.DISCONNECTED);
         if(next!=null)startRecheck(next);else if(recheck!=null&&!reconnect)endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);
@@ -593,15 +601,31 @@ public final class BleController {
     };
     private void discover(BluetoothGatt g){if(simulating())return;if(g!=gatt||discovered)return;if(!workAllowed()){suspend();return;}discovered=true;if(!g.discoverServices())failed(M.bleFailedConnection(),true,ConnectionEventLog.Reason.SERVICE_DISCOVERY_FAILED,-1);}
     private void authenticate(){if(simulating())return;if(!workAllowed()){suspend();return;}if(profile==null||++authRounds>3){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}
-        // Hardware saved under another profile is refused before it is offered this profile's owner key, as remember()
-        // refuses it after the owner check: an unowned (reset) scooter would take the key and drop the saved profile's.
-        // No reconnect, and an advertised model ID read for this address is dropped (null; a new scan result resets its address).
-        if(gatt!=null){ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,gatt.getDevice().getAddress(),null);if(saved!=null){wanted=false;identifying=false;pendingAdvertised=null;telemetry.clear();
-            failed(M.bleFailedOtherSaved(saved.name),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}}
+        if(gatt==null||!mayOffer(gatt.getDevice().getAddress()))return;
         state=State.AUTHENTICATING;message=M.bleStatusCheckingOwner();authenticated=false;challengePending=false;changed();
-        // A key setup made counts as offered from here on, whatever started this connection: the scooter may take it.
-        OnboardingScreen.keyOffered(context,profile.id);
         send(Protocol.auth(Protocol.fromHex(profile.identity),1,profile.role));}
+    /**
+     * Whether this profile's owner key may go to the scooter at address; if not, the link has failed with no reconnect.
+     * Hardware saved under another profile is refused first, as remember() refuses it after the owner check: an unowned
+     * (reset) scooter would take the key and drop the saved profile's. Then a key Volt made is tied to the first scooter
+     * offered it, on disk before the frame (OnboardingScreen.keyOffered): another scooter is refused while the tie stands,
+     * and a tie that can't be saved sends nothing. An advertised model ID read for this address is dropped (null; a new
+     * scan result resets its address).
+     */
+    private boolean mayOffer(String address){
+        ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,address,null);
+        Msg refused=saved!=null?M.bleFailedOtherSaved(saved.name):null;
+        if(refused==null)switch(OnboardingScreen.keyOffered(context,profile.id,address)){
+            case ELSEWHERE:refused=M.bleFailedNewKeyElsewhere();break;
+            case UNSAVED:refused=M.bleFailedNewKeyUnsaved();break;
+            default:return true;
+        }
+        wanted=false;identifying=false;pendingAdvertised=null;telemetry.clear();
+        failed(refused,false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return false;
+    }
+    /** This link's scooter refused this profile's owner key: a made key tied to it is untied (OnboardingScreen.keyRefused), then the link fails. */
+    private void ownerRefused(int code){ownerRefused(gatt==null?null:gatt.getDevice().getAddress(),code);}
+    private void ownerRefused(String address,int code){OnboardingScreen.keyRefused(context,profile.id,address);failed(OWNER_REJECTED,false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,code);}
     private void send(byte[] frame){send(frame,null);}
     /** A read for the connected notice alone (ReadPolicy.noticeBattery): marked quiet unless the same read is already queued. */
     private void sendQuietly(byte[] frame){quietReads.add(frame);send(frame);boolean queued=false;for(byte[] q:queue)queued|=q==frame;if(!queued)quietReads.remove(frame);}
@@ -668,7 +692,7 @@ public final class BleController {
             lastFrameMs=now();frameSleptMs=cadence.slept();if(f.flag!=0){failed(M.bleFailedUnsupportedFirmware(),false,ConnectionEventLog.Reason.UNSUPPORTED_RESPONSE,-1);return;}
             if(!ScooterCommands.sensitiveCommand(f.cmd))event(String.format(Locale.ROOT,"Receive 0x%02X · status %d · %d bytes",f.cmd,f.error(),f.data.length-1));
             if(f.cmd==0x30){
-                if(f.error()!=0){failed(OWNER_REJECTED,false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,f.error());return;}
+                if(f.error()!=0){ownerRefused(f.error());return;}
                 if(f.data.length>1){authVariant=CompatibilityReport.authVariant(f.data.length,f.data[1]&255);try{send(Protocol.challengeResponse(f,1));challengePending=true;}catch(Exception e){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}}
                 else if(!authenticated){authenticated=true;challengePending=false;if(authVariant.isEmpty())authVariant="challenge_free";event("Owner authenticated locally");message=M.bleStatusConnecting();policy();send(Protocol.frame(0x74,null));send(Protocol.frame(0x70,null));refresh(true);poll(generation);}
             }else if(f.cmd==0x31&&challengePending){if(f.error()!=0){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,f.error());return;}int s=generation;handler.postDelayed(()->{if(s==generation)authenticate();},150);}
@@ -696,6 +720,8 @@ public final class BleController {
                         logMutation(mutation,CommandLog.Outcome.READBACK_SAME,-1,null);finishMutation(M.blePinConfirmed());
                     }
                 }
+                // Release this scooter's reply ends it here; once released the link is closed, so later frames are not read.
+                if(releasing(mutation)&&mutation.sent&&f.cmd==mutation.cmd){if(releaseReply(f))return;changed();continue;}
                 boolean guidedReply=mutation!=null&&mutation.sent&&f.cmd==mutation.cmd&&guided(mutation)&&test!=null;
                 if(guidedReply)test.onAck(f.cmd,f.error(),now());
                 if(mutation!=null&&mutation.sent&&f.cmd==mutation.cmd){logMutation(mutation,CommandLog.reply(f.error()),f.error()!=0?f.error()&255:-1,null);if(f.error()!=0){String key=mutation.key;clearMutation();result(key,RESULT_REJECTED+f.error()+")");notice(M.bleChangeRejected(),"Change rejected ("+f.error()+")");}else if(mutation.key.equals("clock_sync")){finishMutation(M.bleClockSent(),RESULT_CLOCK_ACCEPTED);}else{mutation.ack=true;int s=generation;long token=mutation.token;String key=mutation.key;handler.postDelayed(()->{if(s==generation&&mutation!=null&&mutation.token==token)for(int cmd:ScooterCommands.followUpReads(key))send(Protocol.frame(cmd,null));},250);}}
@@ -855,6 +881,67 @@ public final class BleController {
         if(pinReadPending||mutation!=null)return;send(ScooterCommands.readPin(true));}
     public void setPin(String digits){if(simulating()){simulationUnavailable("Handlebar PIN changes");return;}MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.PIN_SET,"pin",1,MutationGate.Origin.USER);if(!gate(request)||pinReadPending)return;try{if(begin(request,null,1,ScooterCommands.setPin(digits,true),null))mutation.desiredPin=digits.toCharArray();}catch(Exception e){notice(e.getMessage());}}
     public void enablePin(boolean enabled){if(simulating()){simulationUnavailable("Handlebar PIN changes");return;}MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.PIN_ENABLE,"pin",enabled?1:0,MutationGate.Origin.USER);if(!gate(request)||pinReadPending)return;if(!enabled&&Integer.valueOf(1).equals(featureValue("proximity_key"))){notice(M.blePinProximityFirst());return;}if(!pinFresh()){readPin();notice(M.blePinReadFirst());return;}try{begin(request,null,enabled?1:0,ScooterCommands.enablePin(enabled,true,pinState!=null&&pinState.status==0&&pinState.configured),null);}catch(Exception e){notice(e.getMessage());}}
+    // ---- Release this scooter (OwnerRelease) -------------------------------------------------
+
+    /** Whether Release this scooter may be sent now (MutationGate's RELEASE rule, CapabilityResolver.decideRelease). Read-only. */
+    public CapabilityResolver.Decision releaseDecision(){return check(releaseRequest());}
+    private static MutationGate.Request releaseRequest(){return new MutationGate.Request(MutationGate.Kind.RELEASE,OwnerRelease.KEY,1,MutationGate.Origin.USER);}
+    /** The running release's synchronous step on success (ScooterService forgets the profile there) and its outcome; null otherwise. */
+    private Runnable releaseHook;private Consumer<OwnerRelease.Outcome> releaseDone;
+    private static boolean releasing(Mutation m){return m!=null&&m.request!=null&&m.request.kind==MutationGate.Kind.RELEASE;}
+    /**
+     * Sends Release this scooter (0x50 1) to the connected owner scooter of profileId as one admitted mutation: gated like
+     * every write, rechecked at the radio boundary (moving while queued cancels it), and confirmed only by the scooter's
+     * own 0x50 reply. Status 0: the link is closed (no reconnect stays pending), then released runs at once, before
+     * anything can connect with the owner key the scooter no longer knows, then done gets RELEASED. Any other ending
+     * (another status, no reply within the confirmation window, the link closing first, a refusal) leaves the profile to
+     * the caller and done gets that outcome. done runs on the main thread; false when nothing was queued.
+     */
+    public boolean releaseOwner(String profileId,Runnable released,Consumer<OwnerRelease.Outcome> done){
+        Consumer<OwnerRelease.Outcome> report=done==null?outcome->{}:done;
+        MutationGate.Request request=releaseRequest();
+        if(!gate(request)){handler.post(()->report.accept(OwnerRelease.Outcome.NOT_SENT));return false;}
+        // The gate judged the connected profile; this must be the scooter the owner chose to release.
+        if(simulating()||profile==null||profileId==null||!profileId.equals(profile.id)||!OwnerRelease.offered(profile.role)){
+            notice(M.bleStatusNotConnected());handler.post(()->report.accept(OwnerRelease.Outcome.NOT_SENT));return false;}
+        Mutation pending=new Mutation(OwnerRelease.KEY,OwnerRelease.CMD,1,++mutationSequence);
+        pending.bytes=Protocol.ownerRelease();pending.request=request;
+        pending.completion=ok->report.accept(ok?OwnerRelease.Outcome.RELEASED:OwnerRelease.unanswered(pending.sent));
+        // Once Bluetooth takes the frame the release keeps its own confirmation window: a new token retires the generic
+        // change timeout (which reads the ScooterCommands catalogue, where the release has no row), and releaseTimeout
+        // runs after the same 6.5 seconds instead.
+        pending.sentHook=()->{if(mutation!=pending)return;long token=++mutationSequence;pending.token=token;int session=generation;
+            handler.postDelayed(()->{if(session==generation&&mutation==pending&&pending.token==token)releaseTimeout();},6500);};
+        mutation=pending;releaseHook=released;releaseDone=report;
+        message=M.bleStatusReleasing();changed();send(pending.bytes);
+        return mutation==pending;
+    }
+    /** The scooter's 0x50 reply to the pending release; true when it released and the link is closed. */
+    private boolean releaseReply(Protocol.Frame f){
+        Mutation m=mutation;int status=f.error();
+        logMutation(m,CommandLog.reply(status),status!=0?status&255:-1,null);
+        OwnerRelease.Outcome outcome=OwnerRelease.reply(status);
+        Runnable forget=releaseHook;Consumer<OwnerRelease.Outcome> report=releaseDone;releaseHook=null;releaseDone=null;
+        m.completion=null;clearMutation();
+        if(!OwnerRelease.forgetsProfile(outcome)){
+            notice(M.bleChangeRejected());
+            if(report!=null)handler.post(()->report.accept(outcome));
+            return false;
+        }
+        // A fresh scooter takes the first owner key it hears: end the link and drop any pending reconnect first, then
+        // forget the profile, so nothing reconnects with it and claims the scooter again.
+        disconnect();
+        if(forget!=null)forget.run();
+        if(report!=null)handler.post(()->report.accept(outcome));
+        return true;
+    }
+    /** No reply within the confirmation window: logged as a timeout, and the link drops as for any unconfirmed change. */
+    private void releaseTimeout(){
+        Mutation m=mutation;releaseHook=null;releaseDone=null;
+        logMutation(m,CommandLog.Outcome.TIMEOUT,-1,null);
+        clearMutation();
+        failed(M.bleFailedNotConfirmed(),true,ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT,-1);
+    }
     // ---- Compatibility check (read-only) ------------------------------------------------------
 
     /**
@@ -1055,6 +1142,8 @@ public final class BleController {
         forgetTest(testId);
     }
     private void forgetTest(String testId){testFirmwareConfirmed.remove(testId);if(test!=null&&test.terminal()&&testId.equals(test.testId()))test=null;changed();}
+    /** A release already written to the scooter (OwnerRelease): a closed link leaves it unconfirmed, not cancelled. */
+    private static boolean releaseSent(Mutation m){return m!=null&&m.sent&&OwnerRelease.KEY.equals(m.key);}
     private static boolean guided(Mutation m){return m.request!=null&&(m.request.origin==MutationGate.Origin.GUIDED_TEST||m.request.origin==MutationGate.Origin.GUIDED_RESTORE);}
     /**
      * Feeds the test's outputs back: a finished guided write releases the mutation, a wanted

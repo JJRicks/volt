@@ -272,6 +272,35 @@ public final class CapabilityResolver {
         return withReason(decision,Reason.MODEL_EXCLUDED);
     }
 
+    /**
+     * Whether the connected owner may release this scooter now (OwnerRelease, feature OwnerRelease.KEY). Every supported
+     * layer: the official app sends the release from its device page for any model, so it has no registry row. It needs a
+     * real scooter (never the simulator), a ready owner-authenticated link, no running check or guided test, no change in
+     * flight, no recording, fresh status, the owner role, and a motion report showing the scooter parked (as every parked
+     * control: MOVING while it moves, NO_MOTION_REPORT before any report).
+     */
+    public static Decision decideRelease(DeviceDescriptor d,StatusFields s,Runtime rt){
+        StatusFields status=s==null?StatusFields.NONE:s;
+        ModelRegistry.Resolution r=ModelRegistry.resolve(d);
+        EnumSet<Precondition> p=EnumSet.of(Precondition.FRESH_STATUS,Precondition.STATIONARY,Precondition.MOTION_REPORT,Precondition.OWNER);
+        Reason refused=r.layer==ModelRegistry.Layer.UNSUPPORTED_PRODUCT?Reason.PRODUCT_UNSUPPORTED
+            :r.layer==ModelRegistry.Layer.UNSUPPORTED_TRANSPORT?Reason.TRANSPORT_UNSUPPORTED:Reason.NONE;
+        Support support=refused==Reason.NONE?Support.KNOWN_ENCODING:Support.INCOMPATIBLE;
+        Evidence evidence=refused==Reason.NONE?Evidence.OEM_MAPPED:Evidence.NONE;
+        ModelRegistry.Rule rule=new ModelRegistry.Rule(support,refused,evidence,null,p,null);
+        Reason reason;
+        if(refused!=Reason.NONE)reason=refused;
+        else if(rt==null||!rt.ready)reason=Reason.NOT_CONNECTED;
+        else if(rt.simulation)reason=Reason.NEEDS_REAL_SCOOTER;
+        else if(rt.discovery)reason=Reason.DISCOVERY_ACTIVE;
+        else if(rt.test)reason=Reason.TEST_ACTIVE;
+        else if(rt.busy)reason=Reason.BUSY;
+        else if(rt.recording)reason=Reason.RECORDING;
+        else if(!status.fresh(rt.nowMs,STATUS_MAX_AGE_MS))reason=Reason.STATUS_STALE;
+        else reason=preconditions(p,status,rt);
+        return new Decision(OwnerRelease.KEY,r.layer,rule,reason,status,null);
+    }
+
     /** The same decision with another reason (MutationGate's request-level rules). */
     static Decision withReason(Decision d,Reason reason){
         ModelRegistry.Rule rule=new ModelRegistry.Rule(d.support,Reason.NONE,d.evidence,d.oemNote,d.preconditions,d.variant);

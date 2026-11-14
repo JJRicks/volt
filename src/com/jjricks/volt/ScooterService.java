@@ -1959,6 +1959,32 @@ public final class ScooterService extends Service {
         s[ChargeEvidence.S_VISIBLE]=visible?1:0;
         evidence.offer(scope,s,ble.pending(),ble.pendingValue());
     }
+    /**
+     * Forget this scooter (More › Scooters): ends its link (and simulation) when it is the selected one, then removes its
+     * profile, maintenance and charge evidence. Saved rides and charge recordings stay.
+     */
+    void forgetScooter(String id){
+        ScooterProfiles.Profile selected=profiles.active();boolean current=selected!=null&&selected.id.equals(id);
+        if(current&&simulating())setSimulation(false);
+        if(current)ble.disconnect();
+        forgetProfile(id,current);
+    }
+    /** The profile's part of forgetting: its profile, maintenance and evidence; the link is already closed. */
+    private void forgetProfile(String id,boolean current){
+        profiles.remove(id);
+        settings.edit().remove(KeyBackups.key(id)).apply();
+        if(maintenance!=null)maintenance.forget(id);
+        forgetEvidence(id);
+        if(current)ble.profileSelected();
+    }
+    /**
+     * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
+     * Once it confirms, BleController has closed the link and this forgets the profile at once, before anything can
+     * reconnect with it and claim the scooter again; any other outcome keeps it. done gets the outcome on the main thread.
+     */
+    void releaseScooter(String id,Consumer<OwnerRelease.Outcome> done){
+        ble.releaseOwner(id,()->{ScooterProfiles.Profile selected=profiles.active();forgetProfile(id,selected!=null&&selected.id.equals(id));},done);
+    }
     /** Forgetting a scooter removes its evidence (MoreScreen's forget flow). */
     void forgetEvidence(String profileId){if(profileId!=null&&profileId.equals(evidenceScope))evidenceScope=null;if(evidence!=null)evidence.forget(profileId);}
     /** At service end: the last reading closes the connection, and pending writes go to disk on the worker, without waiting here. */
