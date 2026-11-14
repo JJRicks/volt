@@ -289,7 +289,9 @@ public final class HubText {
      * until part 10 adds Clean's own ("Charge by").
      */
     public static Msg quickActionRoundName(String id) {
-        if (HomeQuickActions.RIDING.equals(id)) return shortTitle(HubPages.RIDE);
+        // Ride opens riding mode: the Ride controls group's name, "Ride" as riding ("Fahren", "Conduite", "Condução"), not the Ride
+        // subject's short title, which some languages give as the rides list ("Fahrten", "Trajets", "Viagens").
+        if (HomeQuickActions.RIDING.equals(id)) return ScooterCommands.groupLabel(ScooterCommands.GROUP_RIDE);
         if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
         return null;
     }
