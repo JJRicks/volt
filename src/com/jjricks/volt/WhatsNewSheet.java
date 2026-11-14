@@ -9,7 +9,9 @@ import android.widget.TextView;
 
 /**
  * The one-time What's new sheet (hub layout plan 1.8, PR 9; Joel 6): an owner who updated from a Volt without Clean
- * Home sees it once on Home (HomeStyle.showWhatsNew), whether or not they already chose a style. While
+ * Home sees it once on Home (HomeStyle.showWhatsNew), introducing Clean and asking whether to switch (the
+ * contributor's decisions on #383); an owner who already chose a style sees it only for the background-recording
+ * notice (HomeStyle.whatsNewShows). While
  * HomeStyle.offerSwitch holds (no style chosen yet and Home not already Clean) it holds the offer: its title and
  * one sentence, the two styles drawn side by side (stacked on a narrow window or with large text), then
  * "Switch to Clean" and "Keep Widgets". Either button is an explicit choice (HomeStylePrefs.markChosen); closing the
@@ -37,8 +39,9 @@ final class WhatsNewSheet {
 
     /**
      * Shows the sheet over the current screen and returns it, so the activity can close it when it goes away; records
-     * it as shown first. Returns null, showing and recording nothing, when it would hold nothing
-     * (HomeStyle.whatsNewHasContent): no offer, no notice and no bundled notes.
+     * it as shown first. Returns null, showing nothing, when it would hold nothing (HomeStyle.whatsNewShows): for a
+     * chosen style and no notice it records the sheet as shown (HomeStyle.whatsNewSettled); for no offer, no notice and
+     * no bundled notes it records nothing, so it is decided again.
      */
     static AlertDialog show(ScreenHost host, SharedPreferences preferences) {
         Ui ui = host.ui();
@@ -48,8 +51,16 @@ final class WhatsNewSheet {
         Object origin = all.get(HomeStyle.ORIGIN_KEY);
         Object autoRecord = all.get(AutoStartPolicy.AUTO_RECORD_KEY);
         boolean notice = HomeStyle.whatsNewBackgroundNotice(origin instanceof String ? (String) origin : null, Boolean.TRUE.equals(autoRecord));
+        boolean chosen = Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY));
+        // An owner who already chose a style sees nothing without the notice: no need to read the notes then, and the
+        // decision is final for them, so it is recorded (HomeStyle.whatsNewSettled).
+        if (HomeStyle.whatsNewSettled(chosen, notice)) {
+            preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).apply();
+            return null;
+        }
+        if (!HomeStyle.whatsNewShows(chosen, offer, notice, false) && !HomeStyle.whatsNewShows(chosen, offer, notice, true)) return null;
         WhatsNewNotes.Notes notes = WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity()));
-        if (!HomeStyle.whatsNewHasContent(offer, notice, notes != null)) return null;
+        if (!HomeStyle.whatsNewShows(chosen, offer, notice, notes != null)) return null;
         AlertDialog[] shown = new AlertDialog[1];
         Runnable close = () -> { if (shown[0] != null) shown[0].dismiss(); };
         // Without the offer the notes' heading (this version) titles the sheet; their own heading is then left out.

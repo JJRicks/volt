@@ -1,0 +1,7 @@
+# Hub 9: a finished ride's Avg speed on Just back and on Rides, one value (RideAverages) formatted as Rides formats a
+# speed (RideText). RideStore and L10nFiles are listed elsewhere too; tests/run.sh compiles each file once.
+src/com/jjricks/volt/RideAverages.java
+src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/RideText.java
+tests/l10n/L10nFiles.java
+tests/l10n/JustBackSpeedTest.java
