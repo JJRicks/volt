@@ -43,12 +43,18 @@ final class HomeQuickEditor {
         return entry == null ? id : QuickAccessGrid.roundName(entry);
     }
 
-    /** The four names as Clean shows them, in order: "Ride, Record, Done by, Cruise". */
+    /**
+     * The four names as Clean shows them, in order: "Ride, Record, Done by, Cruise". The separator is a plain comma
+     * until part 10 adds a translated list separator.
+     */
     static String summary(List<String> ids) {
         List<String> names = new ArrayList<>();
         for (String id : ids) names.add(roundName(id));
-        return String.join(HubText.quickActionsSeparator().render(), names);
+        return String.join(SEPARATOR, names);
     }
+
+    /** Between the names on Settings › Home style's Quick actions row (part 10 replaces it with catalog text). */
+    static final String SEPARATOR = ", ";
 
     /**
      * One of the four in an editing list: its icon and full name, a chevron; a tap runs tapped (which opens the
