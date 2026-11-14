@@ -105,6 +105,14 @@
          sent nothing. -->
     <string name="ble_failed_new_key_unsaved" volt:screen="Connection state" volt:purpose="error"
         volt:safety="owner-key">Couldn\'t save setup, so Volt didn\'t send the new key. Free up some storage and try again.</string>
+    <!-- Find it nearby: the scooter Volt reached at a new Bluetooth address answered with another serial number than
+         the saved scooter's, so it is another scooter. Volt saved nothing and doesn't try that address again. %1$s is the
+         saved scooter's name (the owner's own name for it). -->
+    <string name="ble_failed_find_mismatch" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">This isn\'t %1$s: its serial number is different. Nothing was saved.</string>
+    <!-- Find it nearby: the scooter at the new Bluetooth address is the saved one (its serial number matched), and Volt
+         saved the new address. %1$s is the scooter's name (the owner's own name for it). -->
+    <string name="ble_found_new_address" volt:screen="Connection state" volt:purpose="notice">Found %1$s at a new Bluetooth address</string>
     <!-- The scooter stopped answering. -->
     <string name="ble_failed_signal_lost" volt:screen="Connection state" volt:purpose="error">Signal lost</string>
     <!-- A setting change got no confirmation from the scooter in time; the connection is then

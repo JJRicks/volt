@@ -1092,6 +1092,19 @@ public final class MoreScreen implements AppScreen {
         s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected();
         host.redraw();
     }
+    /**
+     * Find at a new address (FindNearby, entry B): this scooter becomes the current one the way Use makes it (the old
+     * link ends first), then the scan sheet opens in find mode, which ends any attempt and refuses a change in flight.
+     * Simulation is refused here, before anything switches.
+     */
+    private void findAtNewAddress(String id) {
+        if (!canChangeScooter()) return;
+        ScooterService s = service(); ScooterProfiles.Profile p = findScooter(id), selected = active();
+        if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }
+        if (s.simulating()) { host.toast(T.mainScanExitSimulationFind()); return; }
+        if (selected == null || !id.equals(selected.id)) { s.ble.disconnect(); s.profiles.select(id); s.ble.profileSelected(); }
+        host.findNearby(); host.redraw();
+    }
     private void editScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null) return;
         LinearLayout box = dialogBox(T.moreScootersEdit(), null);
@@ -1116,6 +1129,12 @@ public final class MoreScreen implements AppScreen {
             dialog.dismiss(); forgetScooter(id);
         });
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
+        // Find it nearby (FindNearby, entry B): only with a saved address and serial; it makes this scooter the current one.
+        if (FindNearby.offerRow(p.mac, p.serial)) {
+            TextView find = ui.secondaryButton(T.moreScootersFindNewAddress(), () -> { dialog.dismiss(); findAtNewAddress(id); });
+            find.setTag("scooter-find-" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
+            ui.decorate(find, "search"); box.addView(find);
+        }
         ui.decorate(forget, "trash"); box.addView(forget);
         if (OwnerRelease.offered(p.role)) {
             // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main

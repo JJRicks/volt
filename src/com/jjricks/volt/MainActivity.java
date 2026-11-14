@@ -163,6 +163,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private TextView scanStatus,scanConnect;
     private View scanSpinner;
     private String scanSignature="",scanSelected;
+    /** The scan sheet is in find mode (Find it nearby, FindNearby): the active scooter at a new address. */
+    private boolean scanFind;private TextView scanHidden;
     private final ArrayList<ScanResult> scanResults=new ArrayList<>();
     private final Runnable serviceChanged=this::automaticRefresh;
     private final Runnable deferredBodyRefresh=()->{
@@ -676,7 +678,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
-        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby();}public boolean findNearbyOffered(){return scooterService!=null&&!scooterService.isRecording()&&scooterService.ble.findNearbyOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
             // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
@@ -1290,6 +1292,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LinearLayout row(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.HORIZONTAL);return v;}
     private void heading(LinearLayout parent,String title,String detail){TextView h=design.text(title,22,true);h.setPadding(0,design.dp(12),0,design.dp(6));parent.addView(h);if(detail!=null){TextView d=design.caption(detail);d.setPadding(0,0,0,design.dp(16));parent.addView(d);}}
     private void updateHeader(){
+        // A find's outcome (FindNearby): found at a new address, or not this scooter. Shown once, while Volt is in front.
+        if(resumed&&scooterService!=null){Msg found=scooterService.ble.takeFindNotice();if(found!=null)toast(found);}
         if(liveStatsTitle!=null)liveStatsTitle.setLive(scooterService!=null&&scooterService.ble.connected());
         BleController ble=scooterService==null?null:scooterService.ble;Boolean locked=ble==null?null:ble.locked();String pending=ble==null?null:ble.pending();boolean ready=ble!=null&&ble.ready(),home=selectedPage.equals(HubPages.HOME);Boolean shownLock=locked;if(shownLock==null&&scooterService!=null){Integer saved=scooterService.displayFeatures().get("lock");if(saved!=null)shownLock=saved!=0;}
         boolean connecting=ble!=null&&(ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
@@ -1641,7 +1645,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         Runnable ready=pendingRideLocation;pendingRideLocation=null;rideLocationResolved=false;ready.run();rideLocationCancelled=false;
     }
 
-    private void showScanner(boolean start){
+    /**
+     * Find it nearby (FindNearby, Home's button and My scooters' Find at a new address): the scan sheet in find mode for
+     * the active scooter, which must have a saved address and serial. It ends any connection or attempt first, so a pick
+     * is the only link, and refuses simulation, a recording or a change in flight as the scan sheet does.
+     */
+    @Override public void findNearby(){
+        if(scooterService==null){showScanner(true,true);return;}
+        ScooterProfiles.Profile profile=scooterService.profiles.active();
+        if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
+        showScanner(true,true);
+    }
+    private void showScanner(boolean start){showScanner(start,false);}
+    private void showScanner(boolean start,boolean find){
         if (scooterService != null && scooterService.simulating()) { toast(T.mainScanExitSimulationFind()); return; }
         if(!resumed){pendingScan=true;return;}
         if(!hasBluetoothPermission()){pendingScan=true;requestBluetooth();return;}if(scooterService==null){pendingScan=true;ensureService();return;}
@@ -1649,16 +1665,23 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService.ble.pending()!=null){toast(T.mainScanBusy());return;}
         android.bluetooth.BluetoothManager manager=getSystemService(android.bluetooth.BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingScan=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
         if(scooterService.profiles.active()==null){open(HubPages.SETTINGS_SCOOTERS);return;}
+        ScooterProfiles.Profile finding=scooterService.profiles.active();
+        if(find&&!FindNearby.offerRow(finding.mac,finding.serial))return;
+        // One sheet at a time: a sheet in the other mode closes (ending its scan) before this one scans.
+        if(scanDialog!=null&&scanDialog.isShowing()&&scanFind!=find)scanDialog.dismiss();
         if(start){scooterService.ble.disconnect();scooterService.ble.scan();}
         if(scanDialog!=null&&scanDialog.isShowing()){updateScan();return;}
+        scanFind=find;
         final AlertDialog[] sheet=new AlertDialog[1];
-        LinearLayout content=sheetContent(T.mainScanTitle(),null,()->{if(sheet[0]!=null)sheet[0].dismiss();});
+        LinearLayout content=sheetContent(find?T.mainFindTitle(finding.shownName()):T.mainScanTitle(),null,()->{if(sheet[0]!=null)sheet[0].dismiss();});
         LinearLayout status=row();status.setGravity(Gravity.CENTER_VERTICAL);status.setPadding(design.dp(2),0,0,design.dp(12));
         scanSpinner=new Spinner();status.addView(scanSpinner,new LinearLayout.LayoutParams(design.dp(14),design.dp(14)));
         scanStatus=design.caption("");scanStatus.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,13*design.textScale);
         LinearLayout.LayoutParams statusText=new LinearLayout.LayoutParams(0,-2,1);statusText.leftMargin=design.dp(10);status.addView(scanStatus,statusText);
         content.addView(status);
         scanList=column();content.addView(scanList);
+        // Find mode: how many scooters of another model the list leaves out.
+        scanHidden=design.caption("");scanHidden.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,13*design.textScale);scanHidden.setPadding(design.dp(2),0,0,design.dp(10));scanHidden.setVisibility(View.GONE);content.addView(scanHidden);
         LinearLayout actions=row();actions.setPadding(0,design.dp(6),0,0);
         TextView again=design.secondaryButton(T.mainScanAgain(),()->{if(scooterService!=null){scooterService.ble.scan();scanSignature="";updateScan();}});
         scanConnect=design.button(T.mainActionConnect(),this::connectSelectedScan);
@@ -1667,16 +1690,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         content.addView(actions);
         scanSignature="";scanSelected=null;
         scanDialog=showSheet(content);sheet[0]=scanDialog;
-        scanDialog.setOnDismissListener(d->{scanDialog=null;scanList=null;scanStatus=null;scanSpinner=null;scanConnect=null;scanSelected=null;if(scooterService!=null&&scooterService.ble.state()==BleController.State.SCANNING)scooterService.ble.disconnect();});
+        scanDialog.setOnDismissListener(d->{scanDialog=null;scanList=null;scanStatus=null;scanSpinner=null;scanConnect=null;scanSelected=null;scanHidden=null;scanFind=false;if(scooterService!=null&&scooterService.ble.state()==BleController.State.SCANNING)scooterService.ble.disconnect();});
         updateScan();
     }
     private void connectSelectedScan(){
         if(scooterService==null||scanSelected==null)return;
+        if(scanFind){for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){findSelected(result);return;}return;}
         for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected)){scooterService.ble.connectDiscovered(result);if(scanDialog!=null)scanDialog.dismiss();redraw();return;}
     }
     private static int signalRank(int rssi){return rssi>=-60?4:rssi>=-70?3:rssi>=-80?2:1;}
     private void updateScan(){
         if(scanList==null||scooterService==null)return;scanResults.clear();scanResults.addAll(scooterService.ble.discoveries());
+        if(scanFind){updateFindScan();return;}
         boolean scanning=scooterService.ble.state()==BleController.State.SCANNING;
         ScooterProfiles.Profile profile=scooterService.profiles.active();String mine=profile==null?"":profile.mac;
         boolean present=false;for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected))present=true;
@@ -1695,8 +1720,74 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         scanConnect.setEnabled(scanSelected!=null);
     }
-    /** Nearby scooter row (ph/10): scooter icon, name, signal bars; the selected scooter has a red outline. */
-    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected){
+    /**
+     * The scan sheet in find mode (FindNearby.sheet): the scooters that can be this model, closest first; the saved
+     * address, if heard, marked and preselected; another profile's scooter shown but not pickable; and how many of
+     * another model were left out.
+     */
+    private void updateFindScan(){
+        boolean scanning=scooterService.ble.state()==BleController.State.SCANNING;
+        ScooterProfiles.Profile profile=scooterService.profiles.active();if(profile==null)return;
+        ArrayList<FindNearby.Heard> heard=new ArrayList<>();java.util.HashMap<String,ScanResult> byMac=new java.util.HashMap<>();
+        for(ScanResult result:scanResults){
+            String address=result.getDevice().getAddress();AdvertisedIdentity.Result id=scooterService.ble.advertisedAt(address);
+            heard.add(new FindNearby.Heard(address,result.getRssi(),id==null?null:id.pid,scooterService.profiles.hardwareMatch(profile.id,address,null)!=null));byMac.put(address,result);
+        }
+        FindNearby.Sheet sheet=FindNearby.sheet(heard,profile.mac,profile.savedDescriptor().family());
+        boolean present=false;for(FindNearby.Heard h:sheet.shown)if(h.mac.equals(scanSelected)&&!h.savedElsewhere)present=true;
+        // Only the saved address starts selected; any other scooter needs a deliberate tap (and then the confirmation).
+        if(!present)scanSelected=sheet.preselected;
+        int count=sheet.shown.size();
+        scanStatus.setText(scanning?T.bleStatusSearching():count==0?T.mainScanNone():count==1?T.mainScanFoundOne():T.mainScanFoundMany(count,count));
+        scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
+        scanHidden.setText(sheet.hidden>0?T.mainFindHidden(sheet.hidden,sheet.hidden):"");scanHidden.setVisibility(sheet.hidden>0?View.VISIBLE:View.GONE);
+        StringBuilder signature=new StringBuilder("find").append(scanSelected).append(':').append(profile.id).append(':').append(sheet.hidden);
+        for(FindNearby.Heard h:sheet.shown){ScanResult result=byMac.get(h.mac);String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,h.mac,null);signature.append('|').append(h.mac).append(':').append(signalRank(h.rssi)).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}
+        if(!signature.toString().equals(scanSignature)){
+            scanSignature=signature.toString();scanList.removeAllViews();
+            for(FindNearby.Heard h:sheet.shown){
+                ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,h.mac,null);
+                scanList.addView(scanOption(byMac.get(h.mac),saved,h.mac.equals(scanSelected),true,h.savedElsewhere));
+            }
+        }
+        scanConnect.setEnabled(scanSelected!=null);
+    }
+    /**
+     * Connect in find mode (BleController.findAt): the saved address connects as usual; another address first asks
+     * (Connect to this scooter as ...?), and only its Connect sends the owner key. Cancel, Back or closing sends nothing.
+     */
+    private void findSelected(ScanResult result){
+        if(scooterService==null)return;
+        if(scooterService.simulating()){toast(T.mainScanExitSimulationFind());return;}
+        if(scooterService.isRecording()){toast(T.mainScanStopRecording());return;}
+        if(scooterService.ble.pending()!=null){toast(T.mainScanBusy());return;}
+        FindNearby.Step step=scooterService.ble.findAt(result,false);
+        if(step==FindNearby.Step.ASK){confirmFind(result);return;}
+        if(step!=FindNearby.Step.REFUSE&&scanDialog!=null)scanDialog.dismiss();
+        redraw();
+    }
+    private void confirmFind(ScanResult result){
+        ScooterProfiles.Profile profile=scooterService.profiles.active();if(profile==null)return;
+        String name=profile.shownName();
+        TextView body=design.text(T.mainFindConfirmBody(name),14,false);body.setTextColor(design.muted);body.setLineSpacing(design.dp(3),1);body.setPadding(design.dp(24),design.dp(4),design.dp(24),design.dp(4));
+        ScrollView holder=new ScrollView(this);holder.addView(body);
+        AlertDialog confirm=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainFindConfirmTitle(name))).setView(holder)
+                .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainActionConnect(),(d,which)->{
+                    if(scooterService==null)return;
+                    if(scooterService.simulating()){toast(T.mainScanExitSimulationFind());return;}
+                    if(scooterService.isRecording()){toast(T.mainScanStopRecording());return;}
+                    if(scooterService.ble.pending()!=null){toast(T.mainScanBusy());return;}
+                    if(scooterService.ble.findAt(result,true)==FindNearby.Step.FIND&&scanDialog!=null)scanDialog.dismiss();
+                    redraw();
+                }).create();
+        confirm.show();styleDialog(confirm,AlertDialog.BUTTON_POSITIVE);
+    }
+    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected){return scanOption(result,saved,selected,false,false);}
+    /**
+     * Nearby scooter row (ph/10): scooter icon, name, signal bars; the selected scooter has a red outline. In find mode
+     * the active scooter's own address reads Saved address, and another profile's scooter is shown greyed and can't be picked.
+     */
+    private View scanOption(ScanResult result,ScooterProfiles.Profile saved,boolean selected,boolean find,boolean disabled){
         String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();if(name==null||name.isEmpty())name=T.mainScanNavee();
         if(saved!=null)name=saved.name;
         ScooterProfiles.Profile active=scooterService.profiles.active();boolean match=saved!=null&&active!=null&&saved.id.equals(active.id);
@@ -1713,7 +1804,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Every known address uses its saved name and label, including another profile's scooter.
         LinearLayout detail=row();detail.setGravity(Gravity.CENTER_VERTICAL);detail.setPadding(0,design.dp(3),0,0);
         if(saved!=null){
-            TextView yours=design.text(match?T.mainScanYours():T.mainScanSaved(),11,true);yours.setTextColor(design.ok);yours.setPadding(design.dp(8),design.dp(1),design.dp(8),design.dp(2));
+            TextView yours=design.text(match?(find?T.mainFindSavedAddress():T.mainScanYours()):T.mainScanSaved(),11,true);yours.setTextColor(design.ok);yours.setPadding(design.dp(8),design.dp(1),design.dp(8),design.dp(2));
             yours.setBackground(design.shape(Ui.withAlpha(design.ok,design.dark?40:30),100,0));
             LinearLayout.LayoutParams chip=new LinearLayout.LayoutParams(-2,-2);chip.setMarginEnd(design.dp(8));detail.addView(yours,chip);
         }
@@ -1722,9 +1813,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         SignalBars bars=new SignalBars(rank);int color=rank>=3?design.ok:design.orange;bars.set(rank,color,design.raised);
         option.addView(bars,new LinearLayout.LayoutParams(design.dp(18),design.dp(14)));
         option.setClickable(true);option.setFocusable(true);option.setSelected(selected);
-        option.setContentDescription(T.mainScanOption(name,strength,saved==null?"":match?T.mainScanStateYours():T.mainScanStateSaved(),suffix));
+        option.setContentDescription(T.mainScanOption(name,strength,saved==null?"":match?(find?T.mainFindStateSavedAddress():T.mainScanStateYours()):T.mainScanStateSaved(),suffix));
         if(Build.VERSION.SDK_INT>=30)option.setStateDescription(selected?T.commonSelected():"");
-        option.setOnClickListener(v->{scanSelected=address;scanSignature="";updateScan();});
+        if(disabled){option.setEnabled(false);option.setClickable(false);option.setAlpha(.5f);}
+        else option.setOnClickListener(v->{scanSelected=address;scanSignature="";updateScan();});
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.bottomMargin=design.dp(8);option.setLayoutParams(params);
         return option;
     }

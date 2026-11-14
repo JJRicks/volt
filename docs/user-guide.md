@@ -337,6 +337,14 @@ for background timeout and handlebar fallback behavior.
 
 **Stay connected in background** (**More → My scooters**, off by default) keeps an idle connection after you leave Volt. With it off, Volt disconnects about ten seconds after you leave, unless something is still using the connection. Then Volt stays connected, whatever the switch says, until that ends: a ride or charge recording; **Live charging**, when you leave while the scooter charges or a **Charge done by** or **Scheduled charging** start comes within the next 12 hours (see [Live charging](#live-charging)); a charge alert waiting for this charge; the measuring window of **Charge done by**; and **Test scheduled charging** while it runs. Each shows the connection notification. The line under the switch names the first three; the last two are short and you start them yourself. Live charging and charge alerts need Volt's notifications to hold the connection. A low battery alert doesn't keep Volt connected while it waits; only its **Alarm sound** does, while it plays (up to a minute), as any alert's alarm does.
 
+### Find it nearby
+
+Volt connects only to the Bluetooth address it saved for your scooter. If that address changes (after a repair, say), Volt keeps showing **Timed out** and retrying. When the last two tries at the saved address timed out, Home shows **Find it nearby**; you can also open **More › My scooters**, tap the scooter's pencil and choose **Find at a new address** at any time (it makes that scooter the current one).
+
+Both open the scan sheet as **Find <name> nearby**. It ends any connection first, scans, and lists the nearby scooters of the same model, closest first (a line says how many of another model it left out). The saved address, if Volt hears it, is marked **Saved address** and already selected. A scooter saved under another of your profiles is shown greyed and can't be picked.
+
+Picking any other scooter asks first: Volt will send your scooter's owner key to it, and a scooter with no owner yet (new, or reset) would take that key, so pick only your own scooter, with your phone next to it. Cancel sends nothing. After **Connect**, Volt checks the scooter's serial number: only when it matches the saved one does Volt save the new address and say **Found <name> at a new Bluetooth address**. Otherwise it says the scooter isn't yours, saves nothing and doesn't try that address again. Find needs a scooter that has connected before (a saved address and serial number); it isn't offered while simulating, recording or sending a change.
+
 ## Other NAVEE models
 
 Volt is verified on the US UT5 MAX only. Other standard NAVEE scooters connect with the same owner setup and show live readings, battery data, ride recording and the lock.
