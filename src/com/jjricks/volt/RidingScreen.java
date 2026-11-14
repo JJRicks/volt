@@ -478,7 +478,7 @@ final class RidingScreen implements AppScreen {
         big.addView(speedLast, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout head = row();
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
-        List<String> besideSpots = filled(RidingFrames.TRACE_CHIPS);
+        List<String> besideSpots = filled(RidingFrames.TRACE_COLUMN);
         if (layout.on(RidingLayout.CHIPS) && !besideSpots.isEmpty()) {
             LinearLayout beside = new ChipColumn(null);
             beside.setGravity(Gravity.END | Gravity.TOP);
@@ -1903,8 +1903,7 @@ final class RidingScreen implements AppScreen {
         private float top(float w, float h) {
             if (growSamples == null || growSamples.isEmpty()) return maxPx;
             if (topPx > 0 && topW == w && topH == h) return topPx;
-            // Measured in figures of one width, as a grown number draws, so no time of day or reading is wider than these.
-            float[] per = perPx(growSamples, "tnum");
+            float[] per = perPx(growSamples);
             topPx = RidingHighlightSize.px(per[0], per[1], w - ui.dp(2), h - ui.dp(4), maxPx, growCapPx);
             topW = w;
             topH = h;
@@ -1912,22 +1911,23 @@ final class RidingScreen implements AppScreen {
         }
         /**
          * The widest of samples' width, px, at the size this number draws in its height (never past maxPx; maxPx before
-         * it has a height): what chips beside it must leave it (Focus).
+         * it has a height): what chips beside it must leave it (Focus). Measured in figures of one width, as a grown number
+         * draws; the widened samples make a number drawn otherwise no wider, and the number still fits its own width.
          */
         float widestWidth(List<Shown> samples) {
             if (samples == null || samples.isEmpty()) return 0;
-            boolean grows = growSamples != null && !growSamples.isEmpty();
-            float[] per = perPx(samples, grows ? "tnum" : big.getFontFeatureSettings());
+            float[] per = perPx(samples);
             float size = maxPx;
             if (getHeight() > 0) size = Math.min(size, (getHeight() - ui.dp(4)) / Math.max(1e-3f, per[1]));
             return per[0] * size + ui.dp(2);
         }
-        /** The widest sample's width and the tallest's height per px of number size, drawn with these font features. */
-        private float[] perPx(List<Shown> samples, String features) {
+        /** The widest sample's width and the tallest's height per px of number size. */
+        private float[] perPx(List<Shown> samples) {
             float unitShare = unitBelow ? .30f : .42f, fractionShare = .46f;
+            // Measured in figures of one width, as a grown number draws, so no time of day or reading is wider than these.
             Paint b = new Paint(big), u = new Paint(small), f = new Paint(big);
-            b.setFontFeatureSettings(features);
-            f.setFontFeatureSettings(features);
+            b.setFontFeatureSettings("tnum");
+            f.setFontFeatureSettings("tnum");
             b.setTextSize(100);
             u.setTextSize(100 * unitShare);
             f.setTextSize(100 * fractionShare);

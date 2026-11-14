@@ -190,23 +190,28 @@ final class RidingLayout {
 
     private static Spot spot(String id, Kind kind, String fallback) { return new Spot(id, kind, fallback); }
 
+    /** A frame's spots with more after them, in order (the chip slots added on Nov 14). */
+    private static Spot[] join(Spot[] spots, Spot... more) {
+        Spot[] out = Arrays.copyOf(spots, spots.length + more.length);
+        System.arraycopy(more, 0, out, spots.length, more.length);
+        return out;
+    }
+
     private static final Map<String, Frame> FRAME_DEFS = new LinkedHashMap<>();
     static {
         // Focus (concept-b-focus) with the owner's tweaks: battery temperature joins the bottom row beside
         // trip and ride time. Its top bar is the status pill, which turns into the recording pill while a
         // ride records (owner, Nov 6; the Record control it once named was retired).
-        FRAME_DEFS.put(FOCUS, new Frame(FOCUS, new Spot[]{
+        FRAME_DEFS.put(FOCUS, new Frame(FOCUS, join(new Spot[]{
                 spot("top", Kind.TOP, RECORD),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
                 spot("tile_1", Kind.TILE, BATTERY),
                 spot("tile_2", Kind.TILE, TRIP),
                 spot("tile_3", Kind.TILE, RIDE_TIME),
-                spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE),
+                spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE)},
                 // Up to three chips beside the speed (a tester, Nov 14), none by default, so Focus looks as it did.
-                spot("chip_1", Kind.CHIP, NONE),
-                spot("chip_2", Kind.CHIP, NONE),
-                spot("chip_3", Kind.CHIP, NONE)},
+                spot("chip_1", Kind.CHIP, NONE), spot("chip_2", Kind.CHIP, NONE), spot("chip_3", Kind.CHIP, NONE)),
                 new String[]{POWER_BAR, TENTHS}, new boolean[]{true, true}));
         // Halo (concept-a-halo): speed in the ring, range under it, two tiles, a strip and chips.
         FRAME_DEFS.put(HALO, new Frame(HALO, new Spot[]{
@@ -223,7 +228,7 @@ final class RidingLayout {
                 spot("chip_3", Kind.CHIP, CLOCK)},
                 new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
         // Trace (concept-c-trace): a 60 s chart across the screen under the big number.
-        FRAME_DEFS.put(TRACE, new Frame(TRACE, new Spot[]{
+        FRAME_DEFS.put(TRACE, new Frame(TRACE, join(new Spot[]{
                 spot("top", Kind.TOP, STATUS),
                 spot("big", Kind.BIG, SPEED),
                 spot("highlight", Kind.HIGHLIGHT, RANGE_AT_PACE),
@@ -231,9 +236,9 @@ final class RidingLayout {
                 spot("tile_2", Kind.TILE, BATTERY),
                 spot("trace", Kind.TRACE, TRACE_SPEED_POWER),
                 spot("chip_1", Kind.CHIP, DRIVE_MODE),
-                spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE),
+                spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE)},
                 // A third chip under the two (a tester, Nov 14), none by default, so Trace looks as it did.
-                spot("chip_3", Kind.CHIP, NONE)},
+                spot("chip_3", Kind.CHIP, NONE)),
                 new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
     }
 

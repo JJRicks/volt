@@ -31,7 +31,9 @@ public final class RidingChipSlotsTest {
 
     private static void trace() {
         RidingLayout.Frame f = RidingLayout.frameDef(RidingLayout.TRACE);
-        check(RidingFrames.TRACE_CHIPS.size() == 3 && "chip_3".equals(RidingFrames.TRACE_CHIPS.get(2)), "Trace stacks three chips");
+        check(RidingFrames.TRACE_COLUMN.size() == 3 && "chip_3".equals(RidingFrames.TRACE_COLUMN.get(2))
+                && RidingFrames.TRACE_COLUMN.subList(0, 2).equals(RidingFrames.TRACE_CHIPS), "Trace stacks three chips, its two first");
+        for (String spot : RidingFrames.TRACE_COLUMN) check(f.spot(spot) != null, "Trace's column names its spots: " + spot);
         RidingLayout.Spot third = f.spot("chip_3");
         check(third != null && third.kind == RidingLayout.Kind.CHIP, "Trace's third chip is a chip slot");
         RidingLayout layout = new RidingLayout();
