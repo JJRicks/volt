@@ -105,6 +105,11 @@ public final class RidesScreen implements AppScreen {
     private LinearLayout sensorIcons;
     private TextView gapChip, recoveredChip, coverageText, disconnectedPill, reconnectButton;
     private Drawable recordFill; private ColorStateList recordInk;
+    /** SUMMARY only (the Ride page): the Record ride tile beside Riding mode, and what it shows now. */
+    private LinearLayout recordTile; private TextView recordName; private GlyphView recordGlyph;
+    private RideRecordTile.Look recordLook = RideRecordTile.Look.START;
+    /** The Record ride tile's rungs for its current look (recordRungs), and whether its full name wraps before a shorter rung. */
+    private String[] recordRungs; private boolean recordWraps;
     /** ALL only: Compare two rides (SUMMARY links to ALL instead). */
     private Row compareRow;
     /** SENSORS only: the Next ride tag shown while a ride records, since a change applies to the next recording. */
@@ -211,29 +216,47 @@ public final class RidesScreen implements AppScreen {
         activeCard.addView(pair(notes, endButton));
         page.addView(activeCard, activeParams);
 
-        // Record controls: the red record button, then (on the Ride page) the way into riding mode.
-        recordCard = ui.card(); recordCard.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), 0);
-        recordButton = ui.button(T.ridesStartRecording(), this::toggleRecording); iconize(recordButton, "record");
-        recordFill = recordButton.getBackground(); recordInk = recordButton.getTextColors();
-        LinearLayout.LayoutParams recordParams = new LinearLayout.LayoutParams(-1, -2); recordParams.bottomMargin = ui.dp(4);
-        recordCard.addView(recordButton, recordParams);
-        connectButton = ui.secondaryButton(T.ridesConnectToRecord(), host::connect);
-        LinearLayout.LayoutParams connectParams = new LinearLayout.LayoutParams(-1, -2); connectParams.topMargin = ui.dp(4); connectParams.bottomMargin = ui.dp(4);
-        recordCard.addView(connectButton, connectParams);
+        // Record controls. The Ride page has two equal tiles, Riding mode (filled red, the primary) and Record ride
+        // (owner's Layout Plan); All rides & compare keeps the red record button alone.
         if (mode == SUMMARY) {
-            Row riding = navRow("scooter", HubText.openRiding(), "", "", host::openRiding);
-            riding.view.setTag("ride-open-riding"); recordCard.addView(riding.view);
+            recordCard = vertical();
+            LinearLayout tiles = horizontal(); tiles.setBaselineAligned(false);
+            GlyphView ridingGlyph = new GlyphView(HomeQuickActions.ICON_RIDING, ui.onAccent);
+            TextView ridingName = tileName(HubText.title(HubPages.RIDE_RIDING), ui.onAccent);
+            LinearLayout riding = rideTile(ridingGlyph, ridingName, ui.accent, Ui.withAlpha(Color.WHITE, 45), host::openRiding);
+            // Spoken as the row it replaces was named: "Open riding mode".
+            riding.setContentDescription(HubText.openRiding().render()); riding.setTag("ride-open-riding");
+            recordGlyph = new GlyphView(HomeQuickActions.ICON_RECORD, ui.accent);
+            recordName = tileName(HubText.quickActionLabel(HomeQuickActions.RECORD), ui.text);
+            // A word too long for the tile takes a shorter rung (fitRecordName), never a hyphen.
+            recordName.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+            recordName.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> fitRecordName());
+            recordTile = rideTile(recordGlyph, recordName, ui.surface, Ui.withAlpha(ui.accent, 30), this::tapRecordTile);
+            recordTile.setTag("ride-record");
+            LinearLayout.LayoutParams first = new LinearLayout.LayoutParams(0, -1, 1); first.rightMargin = ui.dp(4);
+            LinearLayout.LayoutParams second = new LinearLayout.LayoutParams(0, -1, 1); second.leftMargin = ui.dp(4);
+            tiles.addView(riding, first); tiles.addView(recordTile, second);
+            LinearLayout.LayoutParams tilesParams = new LinearLayout.LayoutParams(-1, -2); tilesParams.bottomMargin = ui.dp(10);
+            recordCard.addView(tiles, tilesParams);
+        } else {
+            recordCard = ui.card(); recordCard.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), 0);
+            recordButton = ui.button(T.ridesStartRecording(), this::toggleRecording); iconize(recordButton, "record");
+            recordFill = recordButton.getBackground(); recordInk = recordButton.getTextColors();
+            LinearLayout.LayoutParams recordParams = new LinearLayout.LayoutParams(-1, -2); recordParams.bottomMargin = ui.dp(4);
+            recordCard.addView(recordButton, recordParams);
         }
+        connectButton = ui.secondaryButton(T.ridesConnectToRecord(), host::connect);
+        LinearLayout.LayoutParams connectParams = new LinearLayout.LayoutParams(-1, -2); connectParams.topMargin = ui.dp(mode == SUMMARY ? 0 : 4); connectParams.bottomMargin = ui.dp(mode == SUMMARY ? 10 : 4);
+        recordCard.addView(connectButton, connectParams);
         page.addView(recordCard);
 
         LinearLayout comparison = ui.card(); comparison.setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4));
         if (mode == SUMMARY) {
-            // The Ride page links to all rides and to its two settings pages, above the backups.
-            String[] links = {HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING};
-            String[] glyphs = {"compare", "record", "settings"};
-            for (int i = 0; i < links.length; i++) {
-                final String link = links[i];
-                Row row = navRow(glyphs[i], HubText.title(link), "", "", () -> host.open(link));
+            // The Ride page links to its two settings pages, above the backups; All rides & compare closes the recent
+            // rides' card (allRidesLink). No icon tiles on the Ride page's rows (the owner's Layout Plan).
+            String[] links = {HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING};
+            for (String link : links) {
+                Row row = navRow(null, HubText.title(link), "", "", () -> host.open(link));
                 row.view.setTag(HubListScreen.tag(link)); comparison.addView(row.view);
                 ui.divider(comparison);
             }
@@ -244,12 +267,12 @@ public final class RidesScreen implements AppScreen {
         // Ride backups has one home, the Ride page (as the owner's "one home" answer for the charger); All rides & compare
         // keeps Compare two rides only.
         if (mode == SUMMARY) {
-            Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
+            Row backups = navRow(null, M.ridesBackups(), "", "", this::rideBackups);
             backups.view.setTag("ride-backups-menu"); comparison.addView(backups.view);
         }
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : historyLabel()), new LinearLayout.LayoutParams(0, -2, 1));
         historyCount = ui.caption(""); historyCount.setGravity(Gravity.END); historyCount.setPadding(ui.dp(4), ui.dp(14), ui.dp(4), ui.dp(6));
         head.addView(historyCount);
         history = vertical();
@@ -287,18 +310,22 @@ public final class RidesScreen implements AppScreen {
         boolean recording = service.isRecording(), ready = service.ble.ready(), saving = service.phoneSaving();
         String error = service.recordingError();
         boolean simulating = service.simulating();
-        label(recordButton, simulating ? T.ridesSimulatingExit() : saving ? T.ridesSavingSensorsButton() : T.ridesStartRecording());
-        // While simulating the button looks disabled, but a tap exits simulation.
-        recordButton.setEnabled(simulating || (service.rides != null && !saving && ready));
-        if (simulating) { recordButton.setBackground(ui.shape(ui.raised, 14, 0)); recordButton.setTextColor(ui.muted); }
-        else if (recordButton.getBackground() != recordFill) { recordButton.setBackground(recordFill); recordButton.setTextColor(recordInk); }
-        if (simulating) recordButton.setContentDescription(T.ridesSimulatingExitDescription());
-        recordButton.setVisibility(recording ? View.GONE : View.VISIBLE);
+        String startLabel = simulating ? T.ridesSimulatingExit() : saving ? T.ridesSavingSensorsButton() : T.ridesStartRecording();
+        String startSpoken = simulating ? T.ridesSimulatingExitDescription() : startLabel;
         connectButton.setVisibility(!ready && !recording ? View.VISIBLE : View.GONE);
-        // On the Ride page the riding mode row closes the card; elsewhere the card is the button alone, gone while recording.
-        boolean rows = mode == SUMMARY;
-        recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), rows ? 0 : ui.dp(6));
-        recordCard.setVisibility(recording && !rows ? View.GONE : View.VISIBLE);
+        if (mode == SUMMARY) refreshRecordTile(recording, simulating, saving, ready, startLabel, startSpoken);
+        else {
+            label(recordButton, startLabel);
+            // While simulating the button looks disabled, but a tap exits simulation.
+            recordButton.setEnabled(simulating || (service.rides != null && !saving && ready));
+            if (simulating) { recordButton.setBackground(ui.shape(ui.raised, 14, 0)); recordButton.setTextColor(ui.muted); }
+            else if (recordButton.getBackground() != recordFill) { recordButton.setBackground(recordFill); recordButton.setTextColor(recordInk); }
+            if (simulating) recordButton.setContentDescription(startSpoken);
+            recordButton.setVisibility(recording ? View.GONE : View.VISIBLE);
+            // The card is the button alone, gone while recording.
+            recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), ui.dp(6));
+            recordCard.setVisibility(recording ? View.GONE : View.VISIBLE);
+        }
         label(endButton, error == null ? T.ridesEnd() : T.ridesRetrySave());
         endButton.setContentDescription(error == null ? T.ridesEndDescription() : T.ridesRetrySave());
         endButton.setEnabled(service.rides != null && !saving);
@@ -307,6 +334,95 @@ public final class RidesScreen implements AppScreen {
         activeCard.setVisibility(recording ? View.VISIBLE : View.GONE); if (recording) refreshActive();
         refreshHistory(); updateComparisonActions();
         for (Runnable refresh : new ArrayList<>(phoneRefreshers)) refresh.run();
+    }
+    /**
+     * The Ride page's Record ride tile (RideRecordTile): its name and spoken text, as the Start recording button had
+     * them (startLabel and startSpoken, while simulating or saving), "Recording" while a ride records, and whether a
+     * tap does anything. The record button's rules carry over: a tap while simulating exits simulation.
+     */
+    private void refreshRecordTile(boolean recording, boolean simulating, boolean saving, boolean ready, String startLabel, String startSpoken) {
+        boolean storage = service.rides != null;
+        recordLook = RideRecordTile.look(recording, simulating, saving);
+        boolean taps = RideRecordTile.taps(recordLook, storage, ready), dim = RideRecordTile.dim(recordLook, storage, ready);
+        recordTile.setEnabled(taps || recordLook == RideRecordTile.Look.RECORDING);
+        recordTile.setClickable(taps);
+        int ink = dim ? ui.dim : recordLook == RideRecordTile.Look.SIMULATING ? ui.muted : ui.text;
+        recordName.setTextColor(ink);
+        recordGlyph.setColor(dim || recordLook == RideRecordTile.Look.SIMULATING ? ink : ui.accent);
+        // Every look goes through the narrow-label ladder (fitRecordName); each is spoken by its full name, even while a
+        // shorter rung (or the icon alone) is drawn, so the spoken name holds the visible one.
+        String[] rungs = recordRungs(recordLook, startLabel);
+        if (!java.util.Arrays.equals(rungs, recordRungs)) recordRungs = rungs;
+        recordWraps = recordLook != RideRecordTile.Look.START && recordLook != RideRecordTile.Look.RECORDING;
+        fitRecordName();
+        recordTile.setContentDescription(recordLook == RideRecordTile.Look.RECORDING ? HubText.qaRecording().render()
+                : recordLook == RideRecordTile.Look.START ? HubText.quickActionLabel(HomeQuickActions.RECORD).render() : startSpoken);
+    }
+    /**
+     * The Record ride tile's rungs for a look, longest first: "Record ride", then "Record"; "Recording", then the riding
+     * screen's abbreviation for it ("Rec.", "REC" in French); "Simulating · Exit" (wrapping before the dot where it
+     * must), then "Simulating"; the sensors-saving line alone.
+     */
+    private static String[] recordRungs(RideRecordTile.Look look, String startLabel) {
+        switch (look) {
+            case START: return new String[]{HubText.quickActionLabel(HomeQuickActions.RECORD).render(), HubText.quickActionShortLabel(HomeQuickActions.RECORD).render()};
+            case RECORDING: {
+                // Only the riding screen's abbreviation ("Rec.", "REC"): its reading name ("Tempo REC", "Aufnahme") is
+                // the recording time's name, not a status.
+                String[] shorter = RidingScreen.recordingRungs();
+                return new String[]{HubText.qaRecording().render(), shorter[1]};
+            }
+            case SIMULATING: return new String[]{RideRecordTile.dotsLead(startLabel), MoreScreen.simulatingLabel()};
+            default: return new String[]{RideRecordTile.dotsLead(startLabel)};
+        }
+    }
+    /** The tile's tap: only when RideRecordTile.taps allows it (start, or leave simulation), as the button's was. */
+    private void tapRecordTile() {
+        if (recordLook == RideRecordTile.Look.START || recordLook == RideRecordTile.Look.SIMULATING) toggleRecording();
+    }
+    /**
+     * The narrow-label ladder on the Record ride tile's name, in every look (RideRecordTile.rung): the full name while it
+     * fits one line, else a shorter rung ("Record ride", then "Record"), wrapping only between words where nothing fits
+     * one line, and the icon alone where even a single word would have to break. The text is never shrunk or broken.
+     */
+    private void fitRecordName() {
+        String[] rungs = recordRungs;
+        if (recordName == null || rungs == null) return;
+        float room = recordName.getWidth() - recordName.getPaddingLeft() - recordName.getPaddingRight();
+        float[] lines = new float[rungs.length], words = new float[rungs.length];
+        for (int i = 0; i < rungs.length; i++) {
+            lines[i] = recordName.getPaint().measureText(rungs[i]);
+            for (String word : RideRecordTile.words(rungs[i])) words[i] = Math.max(words[i], recordName.getPaint().measureText(word));
+        }
+        // Before the first layout there is no room yet: the full name, until the layout listener measures it.
+        int rung = RideRecordTile.rung(lines, words, room, recordWraps);
+        CharSequence pick = rung < 0 ? "" : rungs[rung];
+        if (TileRung.needsSet(pick, recordName.getText())) recordName.post(() -> { if (java.util.Arrays.equals(recordRungs, rungs)) recordName.setText(pick); });
+    }
+    /** One of the Ride page's two tiles: an icon over its name, on a rounded fill, the whole tile one button. */
+    private LinearLayout rideTile(GlyphView glyph, TextView name, int fill, int ripple, Runnable action) {
+        int pad = ui.dp(RideRecordTile.PAD_DP);
+        LinearLayout tile = vertical(); tile.setPadding(pad, ui.dp(14), pad, ui.dp(14));
+        tile.setMinimumHeight(ui.dp(80));
+        tile.setBackground(new RippleDrawable(ColorStateList.valueOf(ripple), ui.shape(fill, 18, 0), null));
+        tile.addView(glyph, new LinearLayout.LayoutParams(ui.dp(24), ui.dp(24)));
+        LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(-1, -2); nameParams.topMargin = ui.dp(10);
+        tile.addView(name, nameParams);
+        tile.setClickable(true); tile.setFocusable(true); tile.setOnClickListener(v -> action.run());
+        tile.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                // A button while a tap does something (or is held back); while a ride records the tile is a status.
+                info.setClassName((host.isClickable() || !host.isEnabled() ? android.widget.Button.class : android.widget.TextView.class).getName());
+            }
+        });
+        ui.pressFeedback(tile);
+        return tile;
+    }
+    private TextView tileName(CharSequence name, int color) {
+        TextView view = ui.text(name, 15, true); view.setTextColor(color);
+        view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        return view;
     }
     /** Buttons keep their spoken label in step with the visible one. */
     private static void label(TextView button, String text) {
@@ -495,7 +611,7 @@ public final class RidesScreen implements AppScreen {
         view.setContentDescription((spoken == null ? "" : spoken + ", ") + reason);
     }
     private void refreshHistory() {
-        if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); return; }
+        if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); lonelyAllRidesLink(); return; }
         try {
             List<RideStore.Summary> summaries = historySummaries();
             if (summaries == null) return;
@@ -520,16 +636,18 @@ public final class RidesScreen implements AppScreen {
                     if (i > 0) ui.divider(group);
                     group.addView(historyRow(stopped.get(i), stopped.get(i).id.equals(chosen))); shown.add(stopped.get(i).id);
                 }
+                allRidesLink(group);
                 history.addView(group);
                 if (mode == ALL && stopped.size() > visibleHistory) history.addView(ui.secondaryButton(T.ridesShowMore(), () -> { visibleHistory += 20; refreshHistory(); }));
             } else {
                 LinearLayout empty = ui.card(); empty.addView(ui.icon("route", 30, ui.muted), new LinearLayout.LayoutParams(ui.dp(30), ui.dp(30)));
                 TextView copy = ui.text(T.ridesNoRidesYet(), 18, true); copy.setPadding(0, ui.dp(10), 0, ui.dp(2)); empty.addView(copy);
+                allRidesLink(empty);
                 history.addView(empty);
             }
             updateHistoryCount(); loadThumbnails(shown); measureStorage();
             if (wide) refreshDetail(chosen, stopped);
-        } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); }
+        } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); lonelyAllRidesLink(); }
     }
     /**
      * The list from the ride cache when every journal is in it, so a warm open draws at once. Otherwise null: skeleton
@@ -601,6 +719,8 @@ public final class RidesScreen implements AppScreen {
         }
         group.setFocusable(true); group.setContentDescription(T.ridesHistoryLoading());
         history.addView(group);
+        // The link stays reachable while the rides load, under the loading card.
+        if (mode == SUMMARY) { LinearLayout link = ui.groupCard(); allRidesLink(link); history.addView(link); }
         if (wide) detailSkeleton();
     }
     private View skeletonBlock(float radius) {
@@ -613,8 +733,29 @@ public final class RidesScreen implements AppScreen {
         String storageText = storageSize(storedBytes);
         historyCount.setText(storageText.isEmpty() ? count : count + " · " + storageText);
     }
+    /**
+     * The Ride page (SUMMARY): All rides & compare as the last row of the recent rides' card, in accent text with a
+     * chevron and no icon (the owner's Layout Plan). Its tag is the link's as before (hub-row-ride.rides).
+     */
+    private void allRidesLink(LinearLayout card) {
+        if (mode != SUMMARY) return;
+        if (card.getChildCount() > 0) ui.divider(card);
+        Row row = navRow(null, HubText.title(HubPages.RIDE_RIDES), "", "", () -> host.open(HubPages.RIDE_RIDES));
+        row.title.setTextColor(ui.accentText); row.title.setTypeface(ui.medium());
+        row.view.setMinimumHeight(ui.dp(48));
+        row.view.setTag(HubListScreen.tag(HubPages.RIDE_RIDES)); card.addView(row.view);
+    }
+    /**
+     * The Ride page when no history card is drawn (no ride storage, or the list could not be read): All rides & compare
+     * still gets a card of its own, so Compare two rides and the full history stay reachable.
+     */
+    private void lonelyAllRidesLink() {
+        if (mode != SUMMARY || history.getChildCount() > 0) return;
+        LinearLayout link = ui.groupCard(); allRidesLink(link); history.addView(link);
+    }
     /** History row: route thumbnail, name and start time, then distance and duration. */
     private View historyRow(RideStore.Summary s, boolean chosen) {
+        if (mode == SUMMARY) return recentRideRow(s);
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(64));
         row.setPadding(0, ui.dp(10), 0, ui.dp(10));
         if (wide) {
@@ -626,7 +767,7 @@ public final class RidesScreen implements AppScreen {
         RouteThumb thumb = new RouteThumb(); thumbs.put(s.id, thumb);
         row.addView(thumb, new LinearLayout.LayoutParams(ui.dp(52), ui.dp(40)));
         LinearLayout words = vertical();
-        String label = s.label.isEmpty() ? T.ridesDefaultName() : s.label;
+        String label = rideLabel(s);
         TextView name = ui.text(label, 15, false); name.setMaxLines(1); name.setEllipsize(TextUtils.TruncateAt.END); words.addView(name);
         TextView when = ui.caption(shortDate(s.startWallMs)); when.setPadding(0, ui.dp(4), 0, 0); when.setMaxLines(1); words.addView(when);
         LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1); wordsParams.leftMargin = ui.dp(12);
@@ -645,8 +786,36 @@ public final class RidesScreen implements AppScreen {
             historyRows.put(s.id, row); styleHistoryRow(row, chosen);
         } else {
             rowTouch(row, () -> showDetails(s.id));
-            row.setContentDescription(T.ridesHistoryRow(spoken));
+            row.setContentDescription(historySpoken(spoken));
         }
+        return row;
+    }
+    /** "History", the label over All rides & compare's list; Battery & charging's HISTORY card uses it too. */
+    static String historyLabel() { return T.ridesHistory(); }
+    /** A ride's name: its label, or the default name. */
+    private static String rideLabel(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
+    /** A history row's spoken text around its words (name, date, distance, duration). */
+    private static String historySpoken(String words) { return T.ridesHistoryRow(words); }
+    /**
+     * The Ride page's recent ride (the owner's Layout Plan): titled by its date and time, with distance, duration and
+     * the battery change under it (PageRows.rideLine) and a chevron; no route thumbnail. It opens the ride, and is
+     * spoken as the history row was (its name, date, distance and duration), then the battery change it shows.
+     */
+    private View recentRideRow(RideStore.Summary s) {
+        LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56));
+        row.setPadding(0, ui.dp(10), 0, ui.dp(10));
+        LinearLayout words = vertical();
+        TextView title = ui.text(longDate(s.startWallMs), 15, false); title.setMaxLines(2); words.addView(title);
+        String measured = s.batteryDropPercent != null && Double.isFinite(s.batteryDropPercent) ? change(s.batteryDropPercent) : null;
+        TextView line = ui.caption(PageRows.rideLine(distance(s.distanceKm), duration(s.shownElapsedMs), measured));
+        line.setPadding(0, ui.dp(3), 0, 0); words.addView(line);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        View chevron = ui.icon("chevron", 15, ui.muted); LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)); cp.leftMargin = ui.dp(10);
+        row.addView(chevron, cp);
+        String label = rideLabel(s);
+        rowTouch(row, () -> showDetails(s.id));
+        row.setContentDescription(historySpoken(label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.shownElapsedMs)
+                + (measured == null ? "" : ", " + measured)));
         return row;
     }
     /** Wide layout: the selected ride's row carries a red tint and reads as selected. */
@@ -2055,7 +2224,7 @@ public final class RidesScreen implements AppScreen {
             view.setContentDescription(spoken);
         }
         void setEnabled(boolean enabled) {
-            view.setEnabled(enabled); title.setTextColor(enabled ? ui.text : ui.muted); glyph.setColor(enabled ? ui.accent : ui.dim);
+            view.setEnabled(enabled); title.setTextColor(enabled ? ui.text : ui.muted); if (glyph != null) glyph.setColor(enabled ? ui.accent : ui.dim);
         }
         void addChevron() {
             if (chevron) return; chevron = true;
@@ -2066,7 +2235,8 @@ public final class RidesScreen implements AppScreen {
     /** Navigation row: icon square, title with muted sub-text, an optional short value and a chevron. */
     private Row navRow(String glyphKey, CharSequence title, String sub, String value, Runnable action) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));
-        FrameLayout square = glyphSquare(glyphKey, ui.accent); row.addView(square, squareParams());
+        // No icon square when glyphKey is null (the Ride page's rows): the title starts at the card's padding.
+        FrameLayout square = glyphKey == null ? null : glyphSquare(glyphKey, ui.accent); if (square != null) row.addView(square, squareParams());
         LinearLayout words = vertical();
         TextView heading = ui.text(title, 15, false); words.addView(heading);
         TextView detail = ui.caption(""); detail.setPadding(0, ui.dp(3), 0, 0); words.addView(detail);
@@ -2074,7 +2244,7 @@ public final class RidesScreen implements AppScreen {
         TextView amount = ui.text("", 14, false); amount.setTextColor(ui.muted); amount.setGravity(Gravity.END); amount.setMaxLines(2); amount.setMaxWidth(ui.dp(140));
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(10);
         row.addView(amount, valueParams);
-        Row result = new Row(row, heading, detail, amount, (GlyphView) square.getChildAt(0));
+        Row result = new Row(row, heading, detail, amount, square == null ? null : (GlyphView) square.getChildAt(0));
         result.update(sub == null ? "" : sub, value == null ? "" : value);
         if (action != null) { rowTouch(row, action); result.addChevron(); }
         return result;

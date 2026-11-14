@@ -18,7 +18,7 @@ public final class ControlsPagesTest {
     private static final List<String> HAND_BUILT = Arrays.asList(ScooterMenuLayout.HEADLIGHT_INFO, ScooterMenuLayout.LIGHT_ZONES,
             ScooterMenuLayout.CLOCK_SYNC, ScooterMenuLayout.SCHEDULE_TEST, ScooterMenuLayout.CHARGER, ScooterMenuLayout.CHARGE_ALERT,
             ScooterMenuLayout.LOW_ALERT, ScooterMenuLayout.SECURITY_LINK, ScooterMenuLayout.SCOOTER_NAME, ControlsPages.CHARGE_LIVE,
-            "maintenance_reminders");
+            "maintenance_reminders", ControlsPages.CHARGE_DONE, ControlsPages.CHARGE_HISTORY, ControlsPages.USABLE_ENERGY);
 
     public static void main(String[] args) throws IOException {
         pages();
@@ -29,6 +29,7 @@ public final class ControlsPagesTest {
         order();
         experimental();
         linkVisibility();
+        cards();
         System.out.println("ControlsPages: " + checks + " checks passed");
     }
 
@@ -69,7 +70,8 @@ public final class ControlsPagesTest {
             require(HubPages.CONTROLS_LIMITS.equals(ControlsPages.pageOf(key)), "Limit: " + key);
         for (String key : new String[] {"low_power", "long_range_mode"})
             require(HubPages.BATTERY_MODES.equals(ControlsPages.pageOf(key)), "Battery mode: " + key);
-        require(HubPages.BATTERY_ESTIMATES.equals(ControlsPages.pageOf("range_algorithm")), "Range estimate source is set once");
+        // Range estimate sits on Battery & charging, beside Usable ride energy (the Layout Plan, the contributor's pick on #383).
+        require(HubPages.BATTERY.equals(ControlsPages.pageOf("range_algorithm")), "Range estimate source is set once, on Battery & charging");
         for (ScooterCommands.Feature f : ScooterCommands.catalog()) {
             if (f.key.startsWith("line_")) require(HubPages.LIGHTS_LINE.equals(ControlsPages.pageOf(f.key)), "Line light: " + f.key);
             if (f.key.startsWith("star_")) require(HubPages.LIGHTS_STAR.equals(ControlsPages.pageOf(f.key)), "Star light: " + f.key);
@@ -107,10 +109,18 @@ public final class ControlsPagesTest {
             require(ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)), "Linked from its parent: " + page);
         }
         require(ControlsPages.linkTarget("charge_limit") == null && !ControlsPages.isLink(null), "Only links have targets");
-        // Charge history & recordings is MoreScreen's page, linked from Battery & charging (hub layout plan, PR 4).
+        // Charge history & recordings is MoreScreen's page, opened from Battery & charging (hub layout plan, PR 4): by its
+        // HISTORY card since the Layout Plan's rows (the contributor's pick on #383).
         for (String page : ControlsPages.HOSTED_ELSEWHERE)
-            require(ControlsPages.spec(page) == null && ControlsPages.spec(HubPages.parent(page)).includes(ControlsPages.link(page)),
-                    "Linked from its parent, built elsewhere: " + page);
+            require(ControlsPages.spec(page) == null && ControlsPages.linksTo(ControlsPages.spec(HubPages.parent(page)), page),
+                    "Opened from its parent, built elsewhere: " + page);
+        require(HubPages.BATTERY_HISTORY.equals(ControlsPages.opens(ControlsPages.CHARGE_HISTORY))
+                && HubPages.BATTERY_ESTIMATES.equals(ControlsPages.opens(ControlsPages.USABLE_ENERGY))
+                && HubPages.BATTERY_MODES.equals(ControlsPages.opens(ControlsPages.link(HubPages.BATTERY_MODES)))
+                && ControlsPages.opens("charge_limit") == null, "What each row opens");
+        require(ControlsPages.linksTo(ControlsPages.spec(HubPages.BATTERY), HubPages.BATTERY_MODES)
+                && !ControlsPages.linksTo(ControlsPages.spec(HubPages.CONTROLS), HubPages.BATTERY_HISTORY)
+                && !ControlsPages.linksTo(null, HubPages.BATTERY_MODES), "linksTo");
         // The index's search finds the Line lights and Star lights links (they replaced the zones row and carry its words).
         require(ControlsPages.SEARCHED_LINKS.equals(Arrays.asList(HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR)), "Searched links");
         for (String page : ControlsPages.SEARCHED_LINKS) {
@@ -124,14 +134,26 @@ public final class ControlsPagesTest {
     }
 
     private static void doneBy(String mainActivity) throws IOException {
-        // The "Done by" row follows its parent: both charging rows sit on Battery & charging.
-        require(HubPages.BATTERY.equals(ControlsPages.pageOf("timed_charging")) && HubPages.BATTERY.equals(ControlsPages.pageOf("charge_start")),
-                "Charge done by follows its parents onto Battery & charging");
-        // ...and ControlsScreen places it directly after its parent's card: glued below that card, then placed straight after it.
+        // One Charge done by row (the Layout Plan), straight after the charging schedule's rows on Battery & charging.
+        require(HubPages.BATTERY.equals(ControlsPages.pageOf("timed_charging")) && HubPages.BATTERY.equals(ControlsPages.pageOf("charge_start"))
+                && HubPages.BATTERY.equals(ControlsPages.pageOf(ControlsPages.CHARGE_DONE)), "Charge done by sits with the schedule on Battery & charging");
+        List<String> battery = ControlsPages.spec(HubPages.BATTERY).rows;
+        require(battery.indexOf(ControlsPages.CHARGE_DONE) == battery.indexOf("charge_start") + 1
+                && battery.indexOf("charge_start") == battery.indexOf("timed_charging") + 1, "Scheduled charging, Charge start, then Charge done by");
+        require(places(ControlsPages.CHARGE_DONE) == 1, "One Charge done by row");
         String source = new String(Files.readAllBytes(Paths.get(mainActivity)), StandardCharsets.UTF_8).replaceAll("\\s+", "");
-        require(source.contains("gluedBelow.put(control.card,done.row.card);"), "Each Done by row is glued below its parent row");
-        require(source.contains("place(card);Viewdone=gluedBelow.get(card);if(done!=null)place(done);"),
-                "A page places a Done by row directly after its parent");
+        // The row opens a sheet with both former rows (the switch and the time): every setting stays reachable.
+        require(source.contains("doneBy=newChargeDoneRow(false,true);") && source.contains("rowId(ControlsPages.CHARGE_DONE,doneBy.row.card);"),
+                "ControlsScreen builds the one Charge done by row under its id");
+        require(source.contains("row.chevron(MainActivity.this::showChargeDoneSheet);")
+                && source.contains("for(booleantime:newboolean[]{false,true})") && source.contains("ChargeDoneRowrow=newChargeDoneRow(time);"),
+                "Its sheet holds the on/off switch and the finish time");
+        require(source.contains("for(ChargeDoneRowrow:doneSheetRows)row.refresh();"), "The sheet's rows stay current while it is open");
+        // Quick access keeps both shortcuts as they were.
+        require(source.contains("if(id.equals(\"charge_done_by\")){toggleChargeDoneBy();return;}")
+                && source.contains("if(id.equals(\"charge_done_time\")){showChargeDoneTime();return;}"), "Quick access ids still act directly");
+        require(source.contains("place(body,card);Viewdone=gluedBelow.get(card);if(done!=null)place(body,done);"),
+                "A page still places any glued row directly after its parent, in the same card");
         // The searched links carry the zones row's words, so searching "zones" or "ambient" still finds the light pages;
         // each link its own family's words with its title among them (#404 review), the words Hub search uses too.
         require(source.contains("for(Stringtarget:ControlsPages.SEARCHED_LINKS)") && source.contains("extras.put(card,newString[]{section,HubSearchTables.pageWords(target)});"),
@@ -147,6 +169,8 @@ public final class ControlsPagesTest {
         require(source.contains("pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);")
                 && source.contains("privatebooleanhideDividers(LinearLayoutbody)") && source.contains("returnhasVisible;"),
                 "A page's card shows only while one of its rows does");
+        require(source.contains("linksBody.setVisibility(hideDividers(linksBody)?View.VISIBLE:View.GONE);"),
+                "The links' own card shows only while one of its links does");
         // Disconnected, Security shows one Connect, the lock bar's (#387 review): the banner's pill and More's button hide there.
         require(ControlsPages.CONNECT_ABOVE.equals(Arrays.asList(HubPages.SECURITY)), "Security's lock bar has the page's Connect");
         require(source.contains("bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);"),
@@ -160,14 +184,26 @@ public final class ControlsPagesTest {
                 "The Charger row's charger is its sub-line");
         // Charge history & recordings' link draws the chart its recordings row uses, never the default star.
         require(source.contains("caseHubPages.BATTERY_HISTORY:return\"chart\";"), "Charge history & recordings has the chart icon");
+        // Battery & charging's HISTORY card opens Charge history & recordings and carries that link's tag.
+        require(source.contains("historyCard=newChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));")
+                && source.contains("historyCard.card.setTag(\"hub-link-\"+HubPages.BATTERY_HISTORY);"), "The HISTORY card opens Charge history & recordings");
+        require(source.contains("for(LinearLayoutbody:cardBodies)if(body!=pageBody&&body!=linksBody)body.setVisibility(hideDividers(body)?View.VISIBLE:View.GONE);"),
+                "Every card of rows shows only while one of its rows does");
     }
 
     private static void order() {
         // Most used first (owner's decision 3): drive mode then cruise on Controls; scheduled charging first on Battery.
         List<String> controls = ControlsPages.spec(HubPages.CONTROLS).rows;
         require(controls.indexOf("maximum_speed") == 0 && controls.indexOf("cruise_control") == 1, "Controls opens with drive mode and cruise");
+        // Battery & charging in the Layout Plan's order (the contributor's pick on #383): Charge limit, Scheduled charging,
+        // Charge done by, Battery alerts, Live charging; then HISTORY; then Range estimate and Usable ride energy.
         List<String> battery = ControlsPages.spec(HubPages.BATTERY).rows;
-        require(battery.indexOf("timed_charging") == 0, "Battery opens with scheduled charging");
+        require(battery.indexOf("charge_limit") == 0 && battery.indexOf("timed_charging") == 1, "Battery opens with the charge limit, then scheduled charging");
+        require(battery.indexOf(ControlsPages.CHARGE_DONE) < battery.indexOf(ScooterMenuLayout.CHARGE_ALERT)
+                && battery.indexOf(ScooterMenuLayout.LOW_ALERT) < battery.indexOf(ControlsPages.CHARGE_LIVE)
+                && battery.indexOf(ControlsPages.CHARGE_LIVE) < battery.indexOf(ControlsPages.CHARGE_HISTORY)
+                && battery.indexOf(ControlsPages.CHARGE_HISTORY) < battery.indexOf("range_algorithm")
+                && battery.indexOf("range_algorithm") + 1 == battery.indexOf(ControlsPages.USABLE_ENERGY), "The plan's order");
         List<String> lights = ControlsPages.spec(HubPages.LIGHTS).rows;
         require(lights.indexOf(ScooterMenuLayout.HEADLIGHT_INFO) == 0, "Lights opens with the headlight's note");
         require(lights.indexOf(ControlsPages.link(HubPages.LIGHTS_STAR)) < lights.indexOf("turn_sound"), "Lights before sounds");
@@ -250,6 +286,41 @@ public final class ControlsPagesTest {
         int n = 0;
         for (String page : ControlsPages.pages()) if (ControlsPages.spec(page).includes(id)) n++;
         return n;
+    }
+
+    /** The Layout Plan's two cards: the rows, then the trailing links in a card of their own; no icon tiles on Battery. */
+    private static void cards() {
+        ControlsPages.Spec controls = ControlsPages.spec(HubPages.CONTROLS);
+        int from = ControlsPages.linksCardFrom(controls);
+        require(controls.rows.get(from).equals(ControlsPages.link(HubPages.CONTROLS_ASSISTS)) && from == controls.rows.size() - 2,
+                "Controls: Assists and Speed limits in a card of their own");
+        require(ControlsPages.cards(controls).size() == 2 && ControlsPages.cards(controls).get(1).equals(controls.rows.subList(from, controls.rows.size())),
+                "cards() keeps linksCardFrom's split on a page without a card of its own");
+        // Battery & charging: CHARGING rows, the HISTORY card alone, then Range estimate, Usable ride energy and the links.
+        ControlsPages.Spec battery = ControlsPages.spec(HubPages.BATTERY);
+        List<List<String>> batteryCards = ControlsPages.cards(battery);
+        require(batteryCards.size() == 3, "Battery & charging: three cards");
+        require(batteryCards.get(1).equals(Arrays.asList(ControlsPages.CHARGE_HISTORY)), "HISTORY is a card of its own");
+        for (String id : batteryCards.get(0)) require(!ControlsPages.isLink(id), "No link among the charging rows");
+        require(batteryCards.get(0).get(0).equals("charge_limit") && batteryCards.get(0).get(batteryCards.get(0).size() - 1).equals(ControlsPages.CHARGE_LIVE),
+                "CHARGING runs from Charge limit to Live charging");
+        require(batteryCards.get(2).equals(Arrays.asList("range_algorithm", ControlsPages.USABLE_ENERGY,
+                ControlsPages.link(HubPages.BATTERY_MODES), ControlsPages.link(HubPages.BATTERY_ESTIMATES))), "Range estimate, Usable ride energy, then the sub-pages");
+        int total = 0; for (List<String> card : batteryCards) total += card.size();
+        require(total == battery.rows.size(), "Every row in exactly one card");
+        require(ControlsPages.cards(ControlsPages.spec(HubPages.SCOOTER)).isEmpty() && ControlsPages.cards(null).isEmpty(), "No cards on the index");
+        // Charge history & recordings stays reachable: the HISTORY card opens it, and More's Charging section still leads there.
+        require(!battery.rows.contains(ControlsPages.link(HubPages.BATTERY_HISTORY)) && battery.rows.contains(ControlsPages.CHARGE_HISTORY),
+                "The HISTORY card stands in for the Charge history link");
+        ControlsPages.Spec lights = ControlsPages.spec(HubPages.LIGHTS);
+        require(ControlsPages.linksCardFrom(lights) == lights.rows.size(), "Lights: links between rows keep one card");
+        ControlsPages.Spec assists = ControlsPages.spec(HubPages.CONTROLS_ASSISTS);
+        require(ControlsPages.linksCardFrom(assists) == assists.rows.size(), "A page without links keeps one card");
+        require(ControlsPages.linksCardFrom(ControlsPages.spec(HubPages.SCOOTER)) == 0 && ControlsPages.linksCardFrom(null) == 0,
+                "The index (no rows) and no spec: nothing to split");
+        require(!ControlsPages.iconTiles(HubPages.BATTERY), "No icon tiles on Battery & charging");
+        for (String page : new String[]{HubPages.CONTROLS, HubPages.CONTROLS_ASSISTS, HubPages.LIGHTS, HubPages.BATTERY_MODES, HubPages.SECURITY})
+            require(ControlsPages.iconTiles(page), "Icon tiles stay on " + page);
     }
 
     private static void require(boolean ok, String message) {

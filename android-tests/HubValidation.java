@@ -41,6 +41,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.HubPages;
+import com.jjricks.volt.HubText;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.PhoneRideStore;
 import com.jjricks.volt.RideStore;
@@ -69,7 +70,9 @@ import com.jjricks.volt.WideLayout;
  *   empty and left, return to Home at once.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
- *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each), and
+ *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
+ *   three tile values at one size on one baseline and their names on one line each; the Ride row under it shows that
+ *   ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -81,8 +84,10 @@ import com.jjricks.volt.WideLayout;
  *   650 dp wide) or false (a narrower one), the dock must be the layout's: all seven when the window at this text size
  *   gets the wide layout (WideLayout.wide), else the phone's most-used ones (HubPages.dockSubjects; at 725x604 dp and
  *   1.4x text, a phone dock that holds all seven). While the dock shows, it covers no shown part of Widgets' Lock bar,
- *   on arrival and after each Back; while it has stepped aside (part 11, a short window at large text), it would cover
- *   that bar, and the walk scrolls Home as a rider would until the dock comes back before tapping it.</li>
+ *   on arrival and after each Back; where it would, it lifts to end 10 dp above the bar (part 11; 725x604 dp at 1.4x
+ *   text, and the phones whose Shortcuts card pushes the bar down). It may step aside only where lifted it would leave
+ *   the page; then the walk scrolls Home as a rider would until the dock comes back (HubTestPages.showDock) before
+ *   tapping it.</li>
  *   <li><b>Taps</b>: every tap first scrolls its view into sight, and the view's centre must then be on screen and, on a
  *   page with the dock, above the dock; a view an owner cannot see is not tapped.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
@@ -92,7 +97,8 @@ import com.jjricks.volt.WideLayout;
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
  * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
- * fixture runners. Every word it types or reads is English: run it with the emulator in en-US.
+ * fixture runners. -e dock_arrival lifted|resting|aside requires that state of the dock as Widgets Home opens. Every
+ * word it types or reads is English: run it with the emulator in en-US.
  */
 public final class HubValidation extends Instrumentation {
     private static final String FIXTURE_NAME = "Synthetic hub fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
@@ -127,6 +133,10 @@ public final class HubValidation extends Instrumentation {
     private String simulatedModel = "";
     private MainActivity activity;
     private boolean admitted;
+    /** The gap the dock keeps above the Lock bar when it lifts (HubDock.BOTTOM_DP, HubPages.dockLift's gap). */
+    private static final int DOCK_GAP_DP = 10;
+    /** The dock was seen lifted above the Lock bar (dockClearOfLock). */
+    private boolean dockLifted;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>(), routed = new ArrayList<>();
     /** The simulator's settings when the walk began: a command would change them. */
@@ -189,7 +199,7 @@ public final class HubValidation extends Instrumentation {
             for (String child : children(subject)) {
                 reach(child, Arrays.asList("hub-link-" + child, "hub-row-" + child));
                 arrived(child, HubPages.HOME, subject, child);
-                tapTag("hub-back");
+                HubTestPages.back(this, activity);
                 arrived(subject, HubPages.HOME, subject);
             }
             systemBack();
@@ -209,7 +219,7 @@ public final class HubValidation extends Instrumentation {
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
-        tapTag("hub-back");
+        HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
         for (String page : mayRoute) require(routed.contains(page), page + " is listed as routed for model \"" + simulatedModel + "\" but the walk never reached it");
@@ -365,13 +375,36 @@ public final class HubValidation extends Instrumentation {
             }
             TextView time = (TextView) field(field(card, "time"), "value");
             require("20m".contentEquals(time.getText()), "Just back's Ride time reads \"" + time.getText() + "\" for a 20 min ride");
+            // Part 9: the three values at one size on one baseline, and the three names each on one line at one size.
+            TextView first = null, firstName = null;
+            for (String name : new String[]{"time", "speed", "battery"}) {
+                TextView value = (TextView) field(field(card, name), "value"), label = (TextView) field(field(card, name), "name");
+                require(label.getLineCount() == 1, "Just back's " + name + " tile name \"" + label.getText() + "\" takes " + label.getLineCount() + " lines");
+                if (first == null) { first = value; firstName = label; continue; }
+                require(value.getTextSize() == first.getTextSize(), "Just back's " + name + " value is " + value.getTextSize() + " px, the Ride time's " + first.getTextSize() + " px");
+                require(baselineY(value) == baselineY(first), "Just back's " + name + " value sits on baseline " + baselineY(value) + ", the Ride time's on " + baselineY(first));
+                require(label.getTextSize() == firstName.getTextSize(), "Just back's " + name + " name is " + label.getTextSize() + " px, the Ride time's " + firstName.getTextSize() + " px");
+            }
         });
+        // Part 9: the Ride row under it shows the ride Just back shows (CleanSubjects.rideFound), not "No rides yet": the
+        // seeded ride's 6.2 mi.
+        Object subjects = onMain(() -> field(clean, "subjects"));
+        String none = HubText.rideNone().render();
+        String[] rideLine = {null};
+        await(() -> onMain(() -> {
+            activity.redraw();
+            @SuppressWarnings("unchecked") List<String> ids = (List<String>) field(subjects, "ids");
+            @SuppressWarnings("unchecked") List<TextView> values = (List<TextView>) field(subjects, "values");
+            TextView value = values.get(ids.indexOf(HubPages.RIDE));
+            rideLine[0] = shown(value) ? value.getText().toString() : null;
+            return rideLine[0] != null && !rideLine[0].equals(none) && rideLine[0].contains("6.2");
+        }), () -> "The Ride row reads \"" + rideLine[0] + "\" while Just back shows the 6.2 mi ride just saved");
         screenshot("moment-just-back");
         // Still Just back after the picture, at the place measured (only a closed card or a newer ride would change it).
         int[] afterJustBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
-                + " (a ride saved just now: its ended line, distance, tiles and route shown); each pictured at that scroll");
+                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and route shown; the Ride row shows that ride); each pictured at that scroll");
     }
 
     /**
@@ -445,7 +478,12 @@ public final class HubValidation extends Instrumentation {
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(root().findViewWithTag("hub-dock") != null && root().findViewWithTag("hub-dock-handle") != null, "Widgets Home has no dock or All item"));
         boolean aside = dockClearOfLock("Widgets Home");
-        // Pictured as Home opens: with the dock stepped aside where it would cover the Lock bar.
+        // -e dock_arrival names how the step's window shows the dock as Widgets Home opens: lifted above the Lock bar,
+        // resting in its own place, or aside (no room to lift it).
+        String arrival = aside ? "aside" : dockLifted ? "lifted" : "resting";
+        if (arguments.containsKey("dock_arrival"))
+            require(arrival.equals(arguments.getString("dock_arrival")), "Widgets Home opened with the dock " + arrival + ", expected " + arguments.getString("dock_arrival"));
+        // Pictured as Home opens: with the dock lifted above the Lock bar where it would cover it.
         screenshot("widgets-home");
         dockInReach("Widgets Home");
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
@@ -464,7 +502,8 @@ public final class HubValidation extends Instrumentation {
         for (String subject : HubPages.SUBJECTS) if (!shown.contains(subject))
             main(() -> require(root().findViewWithTag("hub-dock-" + subject) == null, "The dock has an item for " + subject + ", which it does not list"));
         checks.add("Widgets dock (" + layout + " layout at " + widthDp() + " dp, " + textScale() + "x text): " + shown + " each open their subject over Home; Back returns to Widgets Home; "
-                + "no dock on subject pages; the dock never over the Lock bar" + (aside ? "; it stepped aside over the Lock bar as Home opened and came back once Home scrolled" : ""));
+                + "no dock on subject pages; the dock never over the Lock bar" + (dockLifted ? "; it lifted " + DOCK_GAP_DP + " dp above the Lock bar where it would cover it" : "")
+                + (aside ? "; it stepped aside over the Lock bar as Home opened (no room to lift it) and came back once Home scrolled" : "; never aside"));
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
             AlertDialog[] sheet = {openAllSheet()};
@@ -517,10 +556,12 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * Part 11 keeps the dock off Widgets' Lock bar (it steps aside while it would cover any shown part of it): while the
-     * dock shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it; while it has stepped aside
-     * (invisible, keeping its place), it would. Measured in window pixels here, not with the app's own rule
-     * (HubPages.dockCovers). True when the dock is aside.
+     * Part 11 keeps the dock off Widgets' Lock bar: where it would cover any shown part of it, the dock lifts to float
+     * 10 dp above the bar (HubPages.dockLift), and steps aside only where lifted it would leave the page. While the dock
+     * shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it, and a lifted dock ends 10 dp above
+     * the bar; while it has stepped aside (invisible, keeping its place), it would cover the bar there AND lifted it would
+     * start above the page frame's top, so a dock aside where it had room fails. Measured in window pixels here, not with
+     * the app's own rules (HubPages.dockCovers, dockLift). True when the dock is aside.
      */
     private boolean dockClearOfLock(String where) {
         return onMain(() -> {
@@ -529,30 +570,45 @@ public final class HubValidation extends Instrumentation {
             require(dock != null && dock.getVisibility() != View.GONE, where + " has no dock");
             Rect bar = new Rect();
             boolean barShown = lock.isShown() && lock.getGlobalVisibleRect(bar);
+            int[] lockAt = new int[2]; lock.getLocationInWindow(lockAt);
+            int gap = Math.round(DOCK_GAP_DP * activity.getResources().getDisplayMetrics().density);
             if (dock.getVisibility() == View.INVISIBLE) {
                 int[] at = new int[2]; dock.getLocationInWindow(at);
                 Rect place = new Rect(at[0], at[1], at[0] + dock.getWidth(), at[1] + dock.getHeight());
                 require(barShown && Rect.intersects(place, bar), where + ": the dock stepped aside but its place " + place.toShortString()
                         + " is clear of the Lock bar's shown part " + (barShown ? bar.toShortString() : "(none)"));
+                // Aside only where there is no room to lift it: floated gap above the bar, its top would be above the
+                // top of the page frame it floats in (under the app's bars).
+                View frame = (View) dock.getParent();
+                int[] frameAt = new int[2]; frame.getLocationInWindow(frameAt);
+                int frameTop = frameAt[1] + frame.getPaddingTop(), liftedTop = lockAt[1] - gap - dock.getHeight();
+                require(liftedTop < frameTop, where + ": the dock stepped aside although lifted " + DOCK_GAP_DP + " dp above the Lock bar (top " + lockAt[1]
+                        + ") it would start at " + liftedTop + ", inside the page from " + frameTop);
                 return true;
             }
             if (!shown(dock) || !barShown) return false;
             Rect over = new Rect();
             require(!dock.getGlobalVisibleRect(over) || !Rect.intersects(over, bar), where + ": the dock " + over.toShortString() + " covers the Lock bar's shown part " + bar.toShortString());
+            if (dock.getTranslationY() < 0) {
+                // Lifted: it floats the gap above the bar, not anywhere higher (a dock lifted further than it needs hides
+                // more of the page for nothing).
+                int[] at = new int[2]; dock.getLocationInWindow(at);
+                int bottom = at[1] + dock.getHeight();
+                require(Math.abs(lockAt[1] - gap - bottom) <= 1, where + ": the lifted dock ends at " + bottom + ", not " + DOCK_GAP_DP + " dp above the Lock bar at " + lockAt[1]);
+                dockLifted = true;
+            }
             return false;
         });
     }
 
     /**
-     * Where the dock has stepped aside over the Lock bar, scrolls Home to its end as a rider would, until the bar is above
-     * the dock and the dock shows again (dockClearOfLock checks it then).
+     * The dock as a rider finds it before a tap (HubTestPages.showDock: shown and still; where it had stepped aside, Home
+     * scrolled to its end as a rider would until it shows again), then dockClearOfLock on it.
      */
     private void dockInReach(String where) {
-        if (!dockClearOfLock(where)) return;
-        main(() -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN));
-        await(() -> onMain(() -> root().findViewWithTag("hub-dock").getVisibility() == View.VISIBLE), where + ": the dock stayed aside after scrolling Home to its end");
+        HubTestPages.showDock(this, activity);
         settle();
-        require(!dockClearOfLock(where + " scrolled to its end"), where + ": the dock stepped aside again");
+        require(!dockClearOfLock(where + " with the dock shown"), where + ": the dock stepped aside again");
     }
 
     /** Taps the dock's All item and returns its sheet, open and settled. */
@@ -740,6 +796,8 @@ public final class HubValidation extends Instrumentation {
         int[] at = new int[2], named = new int[2]; lock.getLocationInWindow(at); name.getLocationInWindow(named);
         return new int[]{at[0], at[1], lock.getWidth(), lock.getHeight(), top.getHeight(), named[0], named[1]};
     }
+    /** A text's baseline in the window (px). Main thread. */
+    private static int baselineY(TextView text) { int[] at = new int[2]; text.getLocationInWindow(at); return at[1] + text.getBaseline(); }
     /** A place from lockPlaceNow, named. */
     private static String describe(int[] place) {
         return place == null ? "none" : "Lock bar at " + place[0] + "," + place[1] + " size " + place[2] + "x" + place[3] + ", top area " + place[4]

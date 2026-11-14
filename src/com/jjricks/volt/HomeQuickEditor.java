@@ -37,15 +37,18 @@ final class HomeQuickEditor {
         preferences.edit().putString(HomeQuickActions.key(profile.id), HomeQuickActions.encode(ids)).apply();
     }
 
-    /** The name an action shows under its round button on Clean ("Cruise" for cruise control), or its id if unknown. */
+    /**
+     * An action's name in the Quick actions row ("Cruise" for cruise control, "Charge done by" whole: the row has the
+     * room Clean's circles lack, QuickAccessGrid.listName), or its id if unknown.
+     */
     static String roundName(String id) {
         QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        return entry == null ? id : QuickAccessGrid.roundName(entry);
+        return entry == null ? id : QuickAccessGrid.listName(entry);
     }
 
     /**
-     * The four names as Clean shows them, in order: "Ride, Record, Charge by, Cruise", joined by the language's list
-     * separator (HubText.listSeparator).
+     * The four names in order: "Ride, Record, Charge done by, Cruise", joined by the language's list separator
+     * (HubText.listSeparator).
      */
     static String summary(List<String> ids) {
         List<String> names = new ArrayList<>();
@@ -68,7 +71,7 @@ final class HomeQuickEditor {
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setMinimumHeight(ui.dp(56));
         line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : entry.icon, 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+        line.addView(ui.icon(entry == null ? "tune" : QuickAccessGrid.roundGlyph(id, entry.icon), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
         TextView name = ui.text(label, 15, false);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);

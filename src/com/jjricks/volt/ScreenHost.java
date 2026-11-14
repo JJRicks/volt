@@ -41,6 +41,8 @@ public interface ScreenHost {
         return sheetContent(title.render(), explanation == null ? null : explanation.render(), close);
     }
     android.app.AlertDialog showSheet(android.view.View content);
+    /** One of the host's own sheets or dialogs is showing over the screen right now (riding mode's alert banner waits). */
+    default boolean dialogShowing() { return false; }
     default void exportDashboardLayouts() { }
     default void importDashboardLayouts() { }
     /** Opens the owner's email app with a draft to Volt's report address; false when no app can. */
@@ -56,6 +58,8 @@ public interface ScreenHost {
     default boolean emailDraft(String subject, String body) { return false; }
     /** Asks which scooter this is (and optionally its drive modes), then drafts the finished check's report to Volt's report address. */
     default void emailReport(CompatibilityReport report) { }
+    /** Find it nearby (FindNearby): the scan sheet in find mode for the active scooter at a new Bluetooth address. */
+    default void findNearby() { }
     /** Asks which listed NAVEE model this scooter is and keeps the answer on its profile. */
     default void chooseScooterModel(String profileId) { }
     /** Opens riding mode (Home's RIDE button). */

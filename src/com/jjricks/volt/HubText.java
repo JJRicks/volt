@@ -333,13 +333,28 @@ public final class HubText {
     }
 
     /**
-     * The one short name an action shows under its round button on Clean Home, in Settings › Home style's Quick actions
-     * line and in the Home style pictures (the contributor's decisions on #383: one short name on one line; "Ride", not
-     * "RIDE"; "Charge by" for Charge done by, round 3). Clean's own actions (HomeQuickActions) and the catalog's Charge
-     * done by and controls (QuickAccessActions ids, a control as FEATURE_PREFIX + its feature key) that have a round
-     * name; null for any other action (QuickAccessGrid then picks its short rung). Its spoken name stays the full one.
+     * The one short name one of Clean's own quick actions shows under its circle on Clean Home (the contributor's
+     * decisions on #383: "Ride" not "RIDE", "Record", "Alerts"); null for any other action (QuickAccessGrid picks its
+     * short name). Its spoken name stays the full one. Part 10's shorter names ({@link #quickActionShortName}, such as
+     * "Charge by") come before it in QuickActionLayout's ladder (QuickAccessGrid.roundNames).
      */
     public static Msg quickActionRoundName(String id) {
+        // Ride opens riding mode: the Ride controls group's name, "Ride" as riding ("Fahren", "Conduite", "Condução"), not the Ride
+        // subject's short title, which some languages give as the rides list ("Fahrten", "Trajets", "Viagens").
+        if (HomeQuickActions.RIDING.equals(id)) return ScooterCommands.groupLabel(ScooterCommands.GROUP_RIDE);
+        if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
+        return null;
+    }
+
+    /**
+     * Part 10's one short name for an action's round button on Clean Home and in the Home style pictures (the
+     * contributor's decisions on #383: one short name on one line; "Charge by" for Charge done by, round 3): Record,
+     * Alerts, Charge done by and the controls (QuickAccessActions ids, a control as FEATURE_PREFIX + its feature key).
+     * QuickAccessGrid.roundNames tries it first, at full size, before the names that were there before it
+     * ({@link #quickActionRoundName}, Live Stats' and the short rungs). Null for any other action, Ride included: Ride
+     * keeps the Ride controls group's name, already translated as riding. Its spoken name stays the full one.
+     */
+    public static Msg quickActionShortName(String id) {
         if (id == null) return null;
         if (id.startsWith(QuickAccessActions.FEATURE_PREFIX)) {
             switch (id.substring(QuickAccessActions.FEATURE_PREFIX.length())) {
@@ -352,7 +367,6 @@ public final class HubText {
             }
         }
         switch (id) {
-            case HomeQuickActions.RIDING: return M.hubQaRideRound();
             case HomeQuickActions.RECORD: return M.hubQaRecordRound();
             case HomeQuickActions.CHARGE_ALERTS: return M.hubQaAlertsRound();
             case "charge_done_by": return M.hubQaChargeDoneByRound();
@@ -360,7 +374,7 @@ public final class HubText {
         }
     }
 
-    /** Between the names of a short list on one line: Settings › Home style's Quick actions ("Ride, Record, Charge by, Cruise"). */
+    /** Between the names of a short list on one line: Settings › Home style's Quick actions ("Ride, Record, Charge done by, Cruise"). */
     public static Msg listSeparator() { return M.hubListSeparator(); }
 
     /**
@@ -566,4 +580,13 @@ public final class HubText {
      * Exit") does not fit one line. Its own key, not a rung of that ladder-less, already translated one.
      */
     public static Msg rideSimulatingShort() { return M.hubRideSimulating(); }
+
+    // ===== Settings page (the Layout Plan's settings mock-up) =====
+
+    /**
+     * Settings' section labels, shown in capitals: SCOOTERS &amp; DATA over My scooters and Back up &amp; restore, ABOUT over
+     * Updates, About &amp; permissions and Developer options.
+     */
+    public static Msg settingsSectionScooters() { return M.hubSettingsSectionScooters(); }
+    public static Msg settingsSectionAbout() { return M.hubSettingsSectionAbout(); }
 }

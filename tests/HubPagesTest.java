@@ -151,9 +151,9 @@ public final class HubPagesTest {
         require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
         require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
         // The dock never covers the Lock bar (part 11), in dp at 3 px per dp as the emulator draws them. 725x604 dp at
-        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it steps aside); scrolled 130 dp, the bar
+        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it moves, below); scrolled 130 dp, the bar
         // (431-489) is above the dock (it shows). 725x604 at 1x: the bar ends at 422 dp, the dock starts at 460 dp.
-        // 344x882 dp at 1x and 1.4x: the bar sits well above a dock at 790 dp.
+        // A bar well above a dock at 790 dp (a 344 dp phone with no Shortcuts card above the bar).
         require(HubPages.dockCovers(561 * 3, 615 * 3, 561 * 3, 604 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x: the dock is over the Lock bar");
         require(!HubPages.dockCovers(431 * 3, 489 * 3, 431 * 3, 489 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x, scrolled: the bar is clear of the dock");
         require(!HubPages.dockCovers(372 * 3, 422 * 3, 372 * 3, 422 * 3, 460 * 3, 530 * 3), "725x604 at 1x: the dock is under the bar");
@@ -162,6 +162,28 @@ public final class HubPagesTest {
         require(!HubPages.dockCovers(-200, -10, 0, 0, 0, 70), "a bar scrolled out of sight is never covered");
         require(HubPages.dockCovers(100, 160, 100, 160, 159, 200) && !HubPages.dockCovers(100, 160, 100, 160, 160, 200), "one pixel of overlap counts; touching does not");
         require(!HubPages.dockCovers(500, 560, 500, 520, 530, 600), "only the bar's shown part counts");
+        // #392's sweep review: where the dock would cover the bar it floats 10 dp above it instead, so Widgets Home keeps
+        // its navigation in sight; it steps aside only where moving up would take it above the page's top (minTop: under
+        // the status bar and the 48 dp Simulation banner, 72 dp). In dp, times 3 for window pixels as the emulator draws.
+        int px = 3, gap = 10 * px, minTop = 72 * px;
+        // 344x882 dp, 1x: the Shortcuts card puts the bar at 791-843 dp, under a dock at 777-847 dp: up 66 dp, top at 711 dp.
+        require(HubPages.dockCovers(791 * px, 843 * px, 791 * px, 843 * px, 777 * px, 847 * px), "344x882 at 1x: the bar is under the dock");
+        require(HubPages.dockLift(791 * px, 777 * px, 847 * px, minTop, gap) == -66 * px, "344x882 at 1x: the dock floats 10 dp above the bar");
+        // 344x882 dp, 1.4x: a 98 dp dock at 749-847 dp, the bar at 820 dp: up 37 dp.
+        require(HubPages.dockLift(820 * px, 749 * px, 847 * px, minTop, gap) == -37 * px, "344x882 at 1.4x: the dock floats above the bar");
+        // 412x915 dp, 1x: the bar at 830-882 dp, the dock at 810-880 dp: up 60 dp.
+        require(HubPages.dockLift(830 * px, 810 * px, 880 * px, minTop, gap) == -60 * px, "412x915 at 1x: the dock floats above the bar");
+        // 412x915 dp at 1.4x: the bar at 860 dp, a 98 dp dock at 782-880 dp: up 30 dp.
+        require(HubPages.dockLift(860 * px, 782 * px, 880 * px, minTop, gap) == -30 * px, "412x915 at 1.4x: the dock floats above the bar");
+        // 725x604 dp, 1x: the bar (372-422 dp) is above the dock (460-530 dp), so the dock covers nothing and keeps its place
+        // (checked above). A bar that starts 10 dp or more under the dock's own place needs no move either.
+        require(HubPages.dockLift(540 * px, 460 * px, 530 * px, minTop, gap) == 0 && HubPages.dockLift(600 * px, 460 * px, 530 * px, minTop, gap) == 0,
+                "A bar 10 dp or more under the dock: no move");
+        // 725x604 dp, 1.4x: the bar at 561 dp under a dock at 496-569 dp: up 18 dp, its top at 478 dp, still on the page.
+        require(HubPages.dockLift(561 * px, 496 * px, 569 * px, minTop, gap) == -18 * px, "725x604 at 1.4x: the dock floats above the bar");
+        // A window too short for both: moving up would put the dock's top at 70 dp, above the page: it steps aside.
+        require(HubPages.dockLift(150 * px, 140 * px, 210 * px, minTop, gap) == HubPages.DOCK_STEP_ASIDE, "No room above the bar: step aside");
+        require(HubPages.dockLift(152 * px, 140 * px, 210 * px, minTop, gap) == -68 * px, "Exactly the room: the dock moves up");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 

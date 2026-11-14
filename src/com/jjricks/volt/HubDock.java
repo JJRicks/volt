@@ -17,8 +17,9 @@ import java.util.function.Supplier;
 /**
  * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
  * on #383: not cramped on a portrait phone, not drab or out of place): the same rounded floating bar, its surface,
- * outline, elevation and margins, holding the subjects' icons each with its short name under it (Ui.nav, the rail's
- * item, whose caption ladder falls back to the icon alone) and an "All" item. Where all seven don't fit at a comfortable
+ * outline, elevation and margins, under the plan's grab handle, holding the subjects' icons on the plan's raised tiles
+ * (accent-coloured), each with its short name under it (Ui.nav, the rail's item, whose caption ladder falls back to the
+ * tile alone) and an "All" item. Where all seven don't fit at a comfortable
  * width (HubPages.dockSubjects: a 344 dp phone shows four), it shows the most-used ones; "All" opens a sheet listing
  * every subject with its name and live summary (CleanSubjects), so each stays one tap away, and so does an upward swipe
  * on the dock. Tapping an icon opens its subject on Home's page stack. Service's icon carries the orange dot while a
@@ -32,7 +33,8 @@ import java.util.function.Supplier;
  */
 final class HubDock {
     /**
-     * View tags: the dock, its "All" item (which took the old grab handle's place and job, so it keeps the handle's tag),
+     * View tags: the dock, its "All" item (it opens the sheet, the job the grab handle above the items also shows, and keeps the
+     * tag the handle had before part 11's review),
      * the sheet, and each shown subject's icon ("hub-dock-" and the subject's page id).
      */
     static final String TAG = "hub-dock", TAG_HANDLE = "hub-dock-handle", TAG_SHEET = "hub-dock-sheet";
@@ -46,6 +48,8 @@ final class HubDock {
             PADDING_DP = HubPages.DOCK_PADDING_DP;
     /** A wide window: each item is at most this wide, so the dock sits centred under the dashboard; narrower when room is short. */
     private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24;
+    /** The plan's dock look: a 51 x 6 dp grab handle at the top, and each icon (20 dp) on a 39 dp raised tile with 12 dp corners. */
+    private static final int HANDLE_W_DP = 51, HANDLE_H_DP = 6, HANDLE_TOP_DP = 4, HANDLE_BOTTOM_DP = 2, TILE_DP = 39, TILE_ICON_DP = 20;
 
     private final ScreenHost host;
     private final Ui ui;
@@ -81,12 +85,23 @@ final class HubDock {
         shown = wide ? HubPages.SUBJECTS : HubPages.dockSubjects(phoneRoom(host.contentWidthDp()), textScale());
         fullNames = wide && fullNamesFit();
         view = new Dock();
-        view.setOrientation(LinearLayout.HORIZONTAL);
-        view.setGravity(Gravity.CENTER_VERTICAL);
+        view.setOrientation(LinearLayout.VERTICAL);
+        view.setGravity(Gravity.CENTER_HORIZONTAL);
         view.setTag(TAG);
         view.setBackground(ui.shape(ui.surface, CORNER_DP, ui.raised));
         view.setElevation(ui.dp(6));
         view.setPadding(ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP));
+        // The plan's grab handle (51 x 6 dp, the outline colour) centred at the top: the upward swipe opens the All sheet.
+        View handle = new View(host.activity());
+        handle.setBackground(ui.shape(ui.outline, 3, 0));
+        handle.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        LinearLayout.LayoutParams handleSize = new LinearLayout.LayoutParams(ui.dp(HANDLE_W_DP), ui.dp(HANDLE_H_DP));
+        handleSize.topMargin = ui.dp(HANDLE_TOP_DP); handleSize.bottomMargin = ui.dp(HANDLE_BOTTOM_DP);
+        view.addView(handle, handleSize);
+        LinearLayout row = new LinearLayout(host.activity());
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        view.addView(row, new LinearLayout.LayoutParams(-1, -2));
         for (String subject : shown) {
             View item = item(subject);
             item.setTag(tag(subject));
@@ -94,12 +109,12 @@ final class HubDock {
             if (subject.equals(HubPages.SERVICE)) service = item;
             // Weighted: equal widths, and a wide dock caps its own width (Dock.onMeasure), so every item always fits. Each
             // takes the dock's full height, so the icons stay level even where one label wraps and another doesn't.
-            view.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
+            row.addView(item, new LinearLayout.LayoutParams(0, -1, 1));
         }
         View all = allItem();
         items.add(all);
         if (service == null) service = all;
-        view.addView(all, new LinearLayout.LayoutParams(0, -1, 1));
+        row.addView(all, new LinearLayout.LayoutParams(0, -1, 1));
         // Editing toggles inside the dashboard with no rebuild: follow it before each frame, so the dock never covers the editor.
         follow = () -> { applyHidden(); return true; };
         view.getViewTreeObserver().addOnPreDrawListener(follow);
@@ -145,7 +160,8 @@ final class HubDock {
 
     /** The room the page's scroller leaves under its last card so it can scroll clear of the dock. */
     int clearance() {
-        return Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(BOTTOM_DP) + ui.dp(16);
+        return Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(HANDLE_TOP_DP + HANDLE_H_DP + HANDLE_BOTTOM_DP)
+                + ui.dp(BOTTOM_DP) + ui.dp(16);
     }
 
     /** Service's dot and its spoken "check due" text, and the open sheet's summaries. */
@@ -164,26 +180,59 @@ final class HubDock {
     }
 
     private void applyHidden() {
-        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : coversClearView() ? View.INVISIBLE : View.VISIBLE;
+        int visibility = View.VISIBLE;
+        float lift = 0;
+        if (hidden != null && hidden.getAsBoolean()) visibility = View.GONE;
+        else if (coversClearView()) {
+            int offset = liftOverClearView();
+            if (offset == HubPages.DOCK_STEP_ASIDE) visibility = View.INVISIBLE;
+            else lift = offset;
+        }
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
+        if (view.getTranslationY() != lift) view.setTranslationY(lift);
     }
 
     /**
-     * The view the dock must never cover (Widgets' Lock bar): on a short window (725x604 dp at 1.4x text) the bar sits
-     * where the dock floats until the page scrolls. The dock then steps aside (invisible, keeping its place, so it comes
-     * back as soon as the page scrolls the bar above it).
+     * The view the dock must never cover (Widgets' Lock bar). When the bar sits where the dock floats (the Shortcuts card
+     * pushes it down on a 344 or 412 dp phone; a 725x604 dp window at 1.4x text), the dock moves up to float 10 dp above
+     * the bar (HubPages.dockLift), so Home always shows its navigation, and drops back to its place once the page scrolls
+     * the bar above it. Only where moving up would take it above the page's top does it step aside (invisible, keeping its
+     * place, so it comes back as soon as the page scrolls the bar clear).
      */
     void keepClear(Supplier<View> clear) { keepClear = clear; applyHidden(); }
 
-    /** Whether the dock, where it sits now, is over any visible part of the view it keeps clear. */
+    /** The dock's top and bottom in the window where it sits unmoved (its translation taken off). */
+    private int[] restingSpan() {
+        int[] dock = new int[2];
+        view.getLocationInWindow(dock);
+        int top = dock[1] - Math.round(view.getTranslationY());
+        return new int[] {top, top + view.getHeight()};
+    }
+
+    /** Whether the dock, in its own place (unmoved), is over any visible part of the view it keeps clear. */
     private boolean coversClearView() {
         View clear = keepClear == null ? null : keepClear.get();
         if (clear == null || !clear.isShown() || !clear.isAttachedToWindow() || view.getHeight() == 0) return false;
-        int[] at = new int[2], dock = new int[2];
-        clear.getLocationInWindow(at); view.getLocationInWindow(dock);
+        int[] at = new int[2];
+        clear.getLocationInWindow(at);
+        int[] dock = restingSpan();
         android.graphics.Rect visible = new android.graphics.Rect();
         if (!clear.getGlobalVisibleRect(visible)) return false;
-        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[1], dock[1] + view.getHeight());
+        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[0], dock[1]);
+    }
+
+    /** HubPages.dockLift for the view kept clear: the offset that floats the dock 10 dp above it, or DOCK_STEP_ASIDE. */
+    private int liftOverClearView() {
+        View clear = keepClear.get();
+        int[] at = new int[2];
+        clear.getLocationInWindow(at);
+        // The highest the dock may go: the top of the page frame it floats in (under the status bar and any banner).
+        int[] frame = new int[2];
+        View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
+        if (parent != null) parent.getLocationInWindow(frame);
+        int minTop = frame[1] + (parent == null ? 0 : parent.getPaddingTop());
+        int[] dock = restingSpan();
+        return HubPages.dockLift(at[1], dock[0], dock[1], minTop, ui.dp(BOTTOM_DP));
     }
 
     /**
@@ -194,7 +243,7 @@ final class HubDock {
         Msg shortName = HubText.shortTitle(subject);
         String name = HubText.title(subject).render();
         String shortLabel = shortName == null ? name : shortName.render();
-        View item = ui.nav(fullNames ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject));
+        View item = tiled(ui.nav(fullNames ? name : shortLabel, shortLabel, HubPages.icon(subject), false, () -> open(subject)), HubPages.icon(subject));
         item.setContentDescription(name);
         item.setTooltipText(name);
         return item;
@@ -203,11 +252,30 @@ final class HubDock {
     /** "All": the old tab bar's More icon over HubText.all(); read as HubText.dockAll(). It opens every subject's row. */
     private View allItem() {
         String label = HubText.all().render();
-        View item = ui.nav(label, label, HubPages.DOCK_ALL_ICON, false, this::showAll);
+        View item = tiled(ui.nav(label, label, HubPages.DOCK_ALL_ICON, false, this::showAll), HubPages.DOCK_ALL_ICON);
         item.setTag(TAG_HANDLE);
         item.setContentDescription(HubText.dockAll());
         item.setTooltipText(HubText.dockAll());
         return item;
+    }
+
+    /**
+     * The plan's tile on a Ui.nav item: its line icon (first child) moves onto a 39 dp raised rounded square, drawn in the
+     * accent's text colour as Clean's subject tiles and the sheet's rows are; the 10 sp caption stays under it. The item's
+     * padding shrinks to 4 dp top and bottom so it stays at Ui.nav's 64 dp at normal text. Service's due dot sits at the
+     * tile's top corner (MaintenanceScreen.markTab places it on the item's first child).
+     */
+    private View tiled(View item, String icon) {
+        if (!(item instanceof LinearLayout) || ((LinearLayout) item).getChildCount() == 0) return item;
+        LinearLayout column = (LinearLayout) item;
+        column.removeViewAt(0);
+        FrameLayout tile = new FrameLayout(host.activity());
+        tile.setBackground(ui.shape(ui.raised, 12, 0));
+        tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        tile.addView(ui.icon(icon, TILE_ICON_DP, ui.accentText), new FrameLayout.LayoutParams(ui.dp(TILE_ICON_DP), ui.dp(TILE_ICON_DP), Gravity.CENTER));
+        column.addView(tile, 0, new LinearLayout.LayoutParams(ui.dp(TILE_DP), ui.dp(TILE_DP)));
+        column.setPadding(column.getPaddingLeft(), ui.dp(4), column.getPaddingRight(), ui.dp(4));
+        return column;
     }
 
     private void open(String subject) {

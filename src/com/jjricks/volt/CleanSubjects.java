@@ -51,6 +51,8 @@ final class CleanSubjects {
     private long rideAt = Long.MIN_VALUE;
     /** A ride was recording at the last refresh: when it ends, the rides are looked at again at once. */
     private boolean wasRecording;
+    /** The newest finished ride Clean's top area found (rideFound), or null. */
+    private RideStore.Summary foundRide;
     private static final long RIDE_EVERY_MS = 30_000;
 
     CleanSubjects(ScreenHost host) { this(host, null); }
@@ -161,6 +163,14 @@ final class CleanSubjects {
 
     void close() { closed = true; }
 
+    /**
+     * The newest finished ride Clean's top area found (CleanHomeScreen.lookForRide, the one Just back shows), so the Ride
+     * row shows it as soon as Just back does rather than at its own next look (HubSummaries.takeFoundRide).
+     */
+    void rideFound(RideStore.Summary found) {
+        foundRide = found == null || found.active ? null : found;
+    }
+
     /** A subject's line now, or null when its state isn't known. */
     private CharSequence summary(ScooterService service, String subject) {
         if (subject.equals(HubPages.DATA)) return HubText.dataSummary().render();
@@ -172,6 +182,9 @@ final class CleanSubjects {
             wasRecording = recording;
             long now = android.os.SystemClock.elapsedRealtime();
             if (HubSummaries.rescanRides(recording, ended, ridesKnown, now - rideAt, RIDE_EVERY_MS)) { scanRides(service); rideAt = now; }
+            RideStore.Summary found = foundRide;
+            if (HubSummaries.takeFoundRide(recording, ridesKnown && lastRide != null ? lastRide.shownEndWallMs : null,
+                    found == null ? null : found.shownEndWallMs)) { lastRide = found; ridesKnown = true; }
             if (HubSummaries.rideLine(recording) == HubSummaries.RideLine.RECORDING) return recording(service);
             return ride();
         }

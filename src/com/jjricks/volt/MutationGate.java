@@ -8,7 +8,8 @@ import java.util.Arrays;
  * every frame, so a future path that skips check() fails closed. Pure; it builds no frames.
  */
 final class MutationGate {
-    enum Kind { SET, CHARGE_START, CLOCK, PIN_SET, PIN_ENABLE, PIN_READ, BOND, PROXIMITY }
+    /** RELEASE: the owner's Release this scooter (OwnerRelease, feature OwnerRelease.KEY), only from the owner's tap. */
+    enum Kind { SET, CHARGE_START, CLOCK, PIN_SET, PIN_ENABLE, PIN_READ, BOND, PROXIMITY, RELEASE }
     /** EXPERIMENTAL: a change from Experimental controls, admitted only through the experimental rule (Lab variants). */
     enum Origin { USER, AUTOMATIC_RANGE_FOLLOW, GUIDED_TEST, GUIDED_RESTORE, EXPERIMENTAL }
     static final class Request {
@@ -30,6 +31,7 @@ final class MutationGate {
     }
 
     static CapabilityResolver.Decision check(Request r,DeviceDescriptor d,StatusFields s,CapabilityResolver.Runtime rt){
+        if(r.kind==Kind.RELEASE)return release(r,d,s,rt);
         if(r.origin==Origin.GUIDED_TEST||r.origin==Origin.GUIDED_RESTORE)return guided(r,d,s,rt);
         if(r.origin==Origin.EXPERIMENTAL)return experimental(r,d,s,rt);
         CapabilityResolver.Decision decision;
@@ -63,6 +65,16 @@ final class MutationGate {
                 return decision;
             default: return decision;
         }
+    }
+
+    /**
+     * Releasing the scooter has its own rule (CapabilityResolver.decideRelease), never a registry row: only the owner's
+     * own tap (origin USER) for the release feature with its one value, 1; anything else is refused.
+     */
+    private static CapabilityResolver.Decision release(Request r,DeviceDescriptor d,StatusFields s,CapabilityResolver.Runtime rt){
+        CapabilityResolver.Decision decision=CapabilityResolver.decideRelease(d,s,rt);
+        if(r.origin!=Origin.USER||!OwnerRelease.KEY.equals(r.feature)||r.value!=1)return CapabilityResolver.withReason(decision,CapabilityResolver.Reason.MODEL_EXCLUDED);
+        return decision;
     }
 
     /**

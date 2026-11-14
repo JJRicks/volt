@@ -45,6 +45,7 @@ import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardLayout;
 import com.jjricks.volt.DashboardScreen;
 import com.jjricks.volt.DisplayTime;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
@@ -58,7 +59,12 @@ import com.jjricks.volt.TelemetryHistory;
  */
 public final class DashboardValidation extends Instrumentation {
     private static final String[] PREFS = {"app_settings", "profiles", "scooter", "pending_documents"};
-    private static final String[] DESTINATIONS = {"Home", "Scooter", "Live Stats", "Rides", "More"};
+    /**
+     * The tab bar's five destinations (Home, Scooter, Live Stats, Rides, More) as part 11 (#392) holds them: Home and the
+     * pages that replaced the tabs, Search (the Scooter index's search and subjects), Data, Ride and Settings, each reached
+     * from Home by the rider's taps (Widgets Home's dock or its All sheet).
+     */
+    private static final String[] DESTINATIONS = {HubPages.HOME, HubPages.SEARCH, HubPages.DATA, HubPages.RIDE, HubPages.SETTINGS};
     private static final String[] DEFAULT_TYPES = {"overview", "lockbar", "tiles", "shortcuts", "ride", "capacity"};
     /** Lock and Lock bar are mutually exclusive; the default's Lock bar keeps the palette from adding Lock. */
     private static final int HOME_TYPE_COUNT = DashboardConfig.TYPES.length - 1;
@@ -84,8 +90,8 @@ public final class DashboardValidation extends Instrumentation {
             verifyClockFormats();
             seedSyntheticProfileAndHistory(); launch();
             verifyLayoutPickerRouting();
-            for (String destination : DESTINATIONS) { clickDescription(destination); assertNavigationFits(); assertNoScooterWork(); }
-            clickDescription("Home"); awaitDashboard();
+            for (String destination : DESTINATIONS) { reachPage(destination); assertNavigationFits(); assertNoScooterWork(); }
+            backHome(); awaitDashboard();
             main(() -> require(types().equals(new HashSet<>(Arrays.asList(DEFAULT_TYPES)))
                     && config().widgets.size() == DEFAULT_TYPES.length && settings().getInt("dashboard_columns", 0) == 5,
                     "Fresh Home did not provide the default dashboard widgets"));
@@ -137,8 +143,10 @@ public final class DashboardValidation extends Instrumentation {
             verifyCompactConnection();
             verifyDisconnectedScooterPhoto();
             // The Scooter tab's "Scooter name" row was retired from the Scooter pages by the Hub layout (#385); the name
-            // is edited in More › My scooters (and Home's edit mode, below), so rename there and check Home follows.
-            clickDescription("More"); clickText(root(), "My scooters");
+            // is edited in More › My scooters (and Home's edit mode, below), so rename there and check Home follows. More is
+            // Settings since part 11 (#392), reached from Home's dock; My scooters is its row and opens its own page.
+            reachPage(HubPages.SETTINGS); clickText(root(), "My scooters");
+            main(() -> require(HubPages.SETTINGS_SCOOTERS.equals(HubTestPages.current(activity)), "Settings' My scooters row did not open My scooters"));
             String activeId = new ScooterProfiles(getTargetContext()).active().id;
             View[] edit = {null}; main(() -> edit[0] = root().findViewWithTag("scooter-edit-" + activeId));
             require(edit[0] != null && edit[0].isShown(), "My scooters has no Edit for the current scooter");
@@ -147,7 +155,7 @@ public final class DashboardValidation extends Instrumentation {
             main(() -> first(rename.getWindow().getDecorView(), EditText.class).setText(RENAMED));
             click(rename.getButton(AlertDialog.BUTTON_POSITIVE));
             main(() -> require(RENAMED.equals(new ScooterProfiles(getTargetContext()).active().name), "Scooter name was not saved"));
-            clickDescription("Home"); awaitDashboard();
+            backHome(); awaitDashboard();
             main(() -> require(RENAMED.contentEquals(((TextView)field(dashboard(), "profileName")).getText()),
                     "Dashboard scooter card did not update its name"));
             assertConfigurationHidden();
@@ -2185,18 +2193,73 @@ public final class DashboardValidation extends Instrumentation {
     private Object tileById(String id) { for (Object tile : tiles()) if (((DashboardConfig.Widget)field(tile, "widget")).id.equals(id)) return tile; throw new IllegalStateException("Missing tile ID"); }
     private String metricLabel(String key) { for (Telemetry.Metric metric : new Telemetry().metrics()) if (metric.key.equals(key)) return metric.label; throw new IllegalStateException("Unknown parameter"); }
     private void scrollHomeTop() { main(() -> ((ScrollView)field(activity, "scroll")).scrollTo(0, 0)); waitForIdleSync(); }
+    /**
+     * The navigation a rider has on the page shown, all fully on screen, 48 dp tall and with uncut captions. The tab bar's
+     * five targets went in part 11 (#392): on Home they are Widgets Home's dock (its items and its All item, after the
+     * rider scrolls the dock clear of the Lock bar where it stepped aside: HubTestPages.showDock); on every other page the
+     * page's back link.
+     */
     private void assertNavigationFits() {
-        main(() -> { for (String name : DESTINATIONS) {
-            View item = findActionableDescription(root(), name); require(item != null && item.isShown(), "Missing navigation " + name);
-            Rect visible = new Rect(); require(item.getGlobalVisibleRect(visible) && visible.width() >= item.getWidth() - 2
-                    && visible.height() >= item.getHeight() - 2, "Navigation target is clipped: " + name);
-            TextView caption = first(item, TextView.class);
-            if (caption != null) require(caption.getLayout() != null
-                    && caption.getLayout().getHeight() <= caption.getHeight() + 2, "Navigation caption is clipped: " + name);
-            else { int minimum = Math.round(48 * item.getResources().getDisplayMetrics().density);
-                // The compact floating tab bar is icon-only; each target must still be 48dp.
-                require(item.getWidth() >= minimum && item.getHeight() >= minimum, "Navigation target smaller than 48dp: " + name); }
-        }});
+        boolean[] home = {false};
+        main(() -> home[0] = HubPages.HOME.equals(HubTestPages.current(activity)));
+        if (home[0]) HubTestPages.showDock(this, activity);
+        main(() -> {
+            List<View> targets = new ArrayList<>();
+            if (home[0]) {
+                Object dock = field(activity, "dock"); require(dock != null, "Missing navigation: Widgets Home has no dock");
+                for (View view : descendants((View)invoke(dock, "view"))) {
+                    Object tag = view.getTag();
+                    if (tag instanceof String && ((String)tag).startsWith("hub-dock-") && !"hub-dock-sheet".equals(tag) && view.isShown()) targets.add(view);
+                }
+                require(targets.size() >= 2, "Missing navigation: Widgets Home's dock shows " + targets.size() + " items");
+                View all = root().findViewWithTag("hub-dock-handle"); require(all != null && all.isShown(), "Missing navigation: the dock's All item");
+            } else {
+                View back = root().findViewWithTag("hub-back");
+                require(back != null && back.isShown(), "Missing navigation: page " + HubTestPages.current(activity) + " has no back link");
+                targets.add(back);
+            }
+            int minimum = Math.round(48 * root().getResources().getDisplayMetrics().density);
+            for (View item : targets) {
+                String name = String.valueOf(item.getTag());
+                Rect visible = new Rect(); require(item.getGlobalVisibleRect(visible) && visible.width() >= item.getWidth() - 2
+                        && visible.height() >= item.getHeight() - 2, "Navigation target is clipped: " + name);
+                require(item.getHeight() >= minimum, "Navigation target under 48dp tall: " + name);
+                TextView caption = first(item, TextView.class);
+                if (caption != null) require(caption.getLayout() != null
+                        && caption.getLayout().getHeight() <= caption.getHeight() + 2, "Navigation caption is clipped: " + name);
+                else require(item.getWidth() >= minimum, "Navigation target smaller than 48dp: " + name);
+            }
+        });
+    }
+    /** A destination the rider's way: Home itself, or a page reached from Home by touch (HubTestPages.reach), then on top. */
+    private void reachPage(String page) {
+        if (HubPages.HOME.equals(page)) backHome();
+        else HubTestPages.reach(this, activity, page);
+        // Search focuses its field and raises the keyboard; the rider puts it away before the next tap (as UiOrganizationValidation).
+        main(() -> {
+            android.view.inputmethod.InputMethodManager input = activity.getSystemService(android.view.inputmethod.InputMethodManager.class);
+            if (input != null) input.hideSoftInputFromWindow(root().getWindowToken(), 0);
+        });
+        waitForIdleSync();
+        main(() -> require(page.equals(HubTestPages.current(activity)), "Navigation did not reach " + page + " (" + HubTestPages.current(activity) + ")"));
+    }
+    /** Back to Home as a rider goes there: each page's back link, tapped, until Home is on top (the tab bar's Home before part 11). */
+    private void backHome() {
+        for (int step = 0; step < 6; step++) {
+            boolean[] home = {false};
+            main(() -> home[0] = HubPages.HOME.equals(HubTestPages.current(activity)));
+            if (home[0]) return;
+            HubTestPages.back(this, activity);
+        }
+        throw new IllegalStateException("Six back links did not return Home");
+    }
+    private static List<View> descendants(View root) {
+        List<View> out = new ArrayList<>(); out.add(root);
+        for (int i = 0; i < out.size(); i++) if (out.get(i) instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup)out.get(i);
+            for (int c = 0; c < group.getChildCount(); c++) out.add(group.getChildAt(c));
+        }
+        return out;
     }
     private void clickDescription(String label) { View target = findActionableDescription(root(), label); require(target != null, "Missing navigation " + label); click(target); }
     private void clickText(View tree, String label) {

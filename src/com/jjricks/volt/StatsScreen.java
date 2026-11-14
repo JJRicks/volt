@@ -364,7 +364,8 @@ public final class StatsScreen implements AppScreen {
             for (int i = 0; i < getChildCount(); i++) {
                 View child = getChildAt(i);
                 child.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                if (child.getMeasuredWidth() > half) stack = true;
+                // Without an icon label's balance spacer (Ui.decorate), so centring never stacks the buttons.
+                if (Ui.unbalancedWidth(child) > half) stack = true;
             }
             if (stack != (getOrientation() == VERTICAL)) {
                 setOrientation(stack ? VERTICAL : HORIZONTAL);
