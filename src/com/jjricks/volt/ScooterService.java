@@ -1972,6 +1972,7 @@ public final class ScooterService extends Service {
     /** The profile's part of forgetting: its profile, maintenance and evidence; the link is already closed. */
     private void forgetProfile(String id,boolean current){
         profiles.remove(id);
+        settings.edit().remove(KeyBackups.key(id)).apply();
         if(maintenance!=null)maintenance.forget(id);
         forgetEvidence(id);
         if(current)ble.profileSelected();

@@ -119,6 +119,18 @@
     <string name="more_scooters_save_backup" volt:screen="My scooters" volt:purpose="button">Save backup first</string>
     <!-- Red button: remove the scooter's setup from this phone. -->
     <string name="more_scooters_forget_action" volt:screen="My scooters" volt:purpose="button">Forget</string>
+    <!-- In the Forget dialog for a scooter set up with an owner key (KeyBackups): forgetting in Volt doesn't clear the
+         key from the scooter, so without a copy the rider may not be able to connect as its owner again. -->
+    <string name="more_scooters_forget_owner_warning" volt:screen="My scooters" volt:purpose="warning"
+        volt:safety="owner-key" volt:dnt="Volt">The scooter keeps its owner key until it\'s released. Forgetting deletes Volt\'s copy, so without a backup you may not be able to connect as its owner again.</string>
+    <!-- In the Forget dialog when a backup holding this scooter's owner key was saved on this phone. %1$s is the date and
+         time it was saved, for example "Nov 13, 10:40 PM". -->
+    <string name="more_scooters_forget_backed_up" volt:screen="My scooters" volt:purpose="note"
+        volt:safety="owner-key">Backup with this key saved %1$s.</string>
+    <!-- In the Forget dialog when no backup holding this scooter's owner key was saved on this phone: Forget waits until
+         one is. "Release this scooter" is the button's name in the scooter's edit dialog. -->
+    <string name="more_scooters_forget_backup_needed" volt:screen="My scooters" volt:purpose="note"
+        volt:safety="owner-key">Save a backup with this key first. To make the scooter new again instead, use Release this scooter.</string>
     <!-- Red button in the edit dialog, for a scooter set up with an owner key: the scooter forgets that key, so it can
          be added again like a new or reset scooter (asks first). The ellipsis says a confirmation follows. -->
     <string name="more_scooters_release" volt:screen="My scooters" volt:purpose="button"

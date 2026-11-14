@@ -561,6 +561,11 @@ final class BackupArchive {
         Map<String, Map<String, Object>> result;
         boolean history;
         if (replace) {
+            // An owner key this phone holds that the backup lacks is gone once everything is replaced (KeyBackups):
+            // without a backup of it saved here, that is the only copy Volt has.
+            for (BackupProfiles.Profile dropped : KeyBackups.dropped(live, prepared.profiles))
+                if (KeyBackups.savedAt(live.get("app_settings"), dropped.id, dropped.identity) == 0)
+                    throw new BackupException(M.backupEngineReplaceOwnerKeyUnsaved());
             result = replacement(live, prepared.preferences);
             history = true;
             lines.add(M.backupEnginePlanReplaceEverything());

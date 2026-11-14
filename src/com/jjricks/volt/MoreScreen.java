@@ -1118,7 +1118,9 @@ public final class MoreScreen implements AppScreen {
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
         ui.decorate(forget, "trash"); box.addView(forget);
         if (OwnerRelease.offered(p.role)) {
-            TextView release = ui.dangerButton(T.moreScootersRelease(), () -> {
+            // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main
+            // action, and Forget stays the outlined one (forgetting leaves the key on the scooter; forgetScooter guards it).
+            TextView release = ui.button(T.moreScootersRelease(), () -> {
                 if (!releaseReady(id)) return;
                 dialog.dismiss(); releaseScooter(id);
             });
@@ -1126,7 +1128,7 @@ public final class MoreScreen implements AppScreen {
             release.setContentDescription(T.moreScootersReleaseNamed(p.displayName()));
             // Cycle arrows: the scooter goes back to new. Matches Forget's trash so the two red buttons line up.
             ui.decorate(release, "restore");
-            box.addView(release);
+            box.addView(release, box.indexOfChild(forget));
         }
         show(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -1142,6 +1144,7 @@ public final class MoreScreen implements AppScreen {
         ScooterProfiles.Profile p = findScooter(id); if (p == null) return;
         LinearLayout box = dialogBox(T.moreScootersForgetTitle(p.displayName()), T.moreScootersForgetBody());
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        if (KeyBackups.guarded(p.role)) { forgetOwner(dialog, box, p); return; }
         TextView backup = ui.secondaryButton(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, null); });
         box.addView(backup);
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
@@ -1153,7 +1156,34 @@ public final class MoreScreen implements AppScreen {
         show(dialog);
     }
     /**
-     * Release this scooter (OwnerRelease): owner profiles only, offered in the edit dialog under Forget. It needs this
+     * Forget on an owner scooter (KeyBackups, owner 2026-11-13: no tap may lock a rider out of their own scooter). The
+     * scooter keeps its owner key until it is released, so Forget needs a backup holding that key saved on this phone
+     * first; without one the dialog's main action is Save backup first, opening a backup of Scooters & setup keys.
+     * The tap rechecks, so a key changed since the dialog opened asks again.
+     */
+    private void forgetOwner(AlertDialog dialog, LinearLayout box, ScooterProfiles.Profile p) {
+        String id = p.id;
+        note(box, T.moreScootersForgetOwnerWarning());
+        long saved = KeyBackups.savedAt(settings().getAll(), id, p.identity);
+        if (saved > 0) {
+            note(box, T.moreScootersForgetBackedUp(DisplayTime.dateTime(host.activity(), settings(), saved)));
+            dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
+                if (!canChangeScooter()) return;
+                ScooterProfiles.Profile now = findScooter(id);
+                if (now == null) { dialog.dismiss(); return; }
+                if (KeyBackups.savedAt(settings().getAll(), id, now.identity) == 0) { dialog.dismiss(); forgetScooter(id); return; }
+                service().forgetScooter(id);
+                dialog.dismiss(); host.redraw();
+            });
+        } else {
+            note(box, T.moreScootersForgetBackupNeeded());
+            dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersSaveBackup(),
+                    () -> { dialog.dismiss(); host.dataBackup(false, BackupRegistry.SCOOTERS); });
+        }
+        show(dialog);
+    }
+    /**
+     * Release this scooter (OwnerRelease): owner profiles only, offered in the edit dialog above Forget. It needs this
      * scooter connected as the owner, parked, with no recording or change in flight; a tap that can't go says why.
      */
     private boolean releaseReady(String id) {
