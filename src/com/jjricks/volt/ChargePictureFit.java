@@ -186,9 +186,24 @@ final class ChargePictureFit {
      * FADE_FROM_DP to FADE_DP past the picture, so a wide window shows no long taut cable across an empty page.
      */
     static float[] cableEnd(float pictureRight, float edge, float density, float[] out) {
+        return cableEnd(pictureRight, edge, Float.POSITIVE_INFINITY, density, out);
+    }
+
+    /**
+     * As {@link #cableEnd(float, float, float, float[])}, with {@code clipEdge}: the nearest edge a parent still clips
+     * the picture at where the cable fades (Clean's page is a centred column no wider than 560 dp in a parent that
+     * clips it, so on a wide portrait window that column's edge, not the screen's, is where the cable is cut; review
+     * of #483, P3-2). The fade then ends there at the latest, shortened in proportion (it starts at the same share of
+     * its length past the picture), so the cable fades out inside the column rather than being cut square at full
+     * strength. Where nothing clips nearer than FADE_DP past the picture it is the same fade as before; the run off the
+     * screen's edge is decided by the screen's edge alone, as before.
+     */
+    static float[] cableEnd(float pictureRight, float edge, float clipEdge, float density, float[] out) {
         float fade = FADE_DP * density;
-        if (Float.isNaN(edge) || edge - pictureRight <= fade) { out[0] = out[1] = Float.POSITIVE_INFINITY; }
-        else { out[0] = pictureRight + FADE_FROM_DP * density; out[1] = pictureRight + fade; }
+        if (Float.isNaN(edge) || edge - pictureRight <= fade) { out[0] = out[1] = Float.POSITIVE_INFINITY; return out; }
+        float end = Float.isNaN(clipEdge) ? pictureRight + fade : Math.max(pictureRight, Math.min(pictureRight + fade, clipEdge));
+        out[0] = end == pictureRight + fade ? pictureRight + FADE_FROM_DP * density : pictureRight + (end - pictureRight) * FADE_FROM_DP / FADE_DP;
+        out[1] = end;
         return out;
     }
 

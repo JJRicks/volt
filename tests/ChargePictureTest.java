@@ -21,6 +21,7 @@ public final class ChargePictureTest {
         layers();
         clipping();
         cableEnd();
+        cableInColumn();
         registryKeys();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
@@ -335,6 +336,37 @@ public final class ChargePictureTest {
         ChargePictureFit.cableEnd(400 * D, 700 * D, D, out);
         near(out[0] / D, 412, 1e-3, "a far edge: full strength 12 dp past the tail");
         near(out[1] / D, 460, 1e-3, "gone 60 dp past it");
+    }
+
+    /**
+     * A wide portrait window (800 x 1280 dp): Clean's page is a 560 dp column the window's edge is 120 dp past; the
+     * fade ends at the column's edge, not past it where the column cuts it square (review of #483, P3-2). Where nothing
+     * clips nearer than the fade's end (the phone, 725 dp) the cable is as before.
+     */
+    private static void cableInColumn() {
+        float[] out = new float[2], before = new float[2];
+        // The column 560 dp from 120 dp; its content 18 dp in; the picture's tail 3 dp short of the content's edge.
+        float right = (800 - 120 - 18 - 3) * D, column = (800 - 120) * D, screen = 800 * D;
+        ChargePictureFit.cableEnd(right, screen, column, D, out);
+        require(!Float.isInfinite(out[1]), "800 dp: the screen's edge 141 dp past the tail, the cable fades");
+        require(out[1] <= column + .01f, "800 dp: the fade ends inside the column: " + out[1] / D + " (column " + column / D + ")");
+        near(out[1] / D, 680, 1e-3, "800 dp: gone at the column's edge");
+        near((out[0] - right) / (out[1] - right), 12 / 60.0, 1e-4, "800 dp: full strength over the same share of its shorter length");
+        // The old rule measured from the screen's edge alone: its fade ran past the column, cut at full strength.
+        ChargePictureFit.cableEnd(right, screen, D, before);
+        require(before[1] > column + 30 * D && ChargeWireComet.fadeAt(column, before[0], before[1]) > .85, "the screen's edge alone: the fade ran on past the column, cut there almost at full strength");
+        // Nothing nearer than 60 dp past the tail (725 dp two panes, a stage wider than the picture): as before.
+        for (float clip : new float[] {460 * D, 700 * D, Float.POSITIVE_INFINITY, Float.NaN}) {
+            ChargePictureFit.cableEnd(400 * D, 700 * D, clip, D, out);
+            ChargePictureFit.cableEnd(400 * D, 700 * D, D, before);
+            require(out[0] == before[0] && out[1] == before[1], "a clip at " + clip / D + " dp, past the fade: the same fade");
+        }
+        // The phone (344 dp): the screen's edge 21 dp past the tail: it runs off, whatever clips.
+        ChargePictureFit.cableEnd(305 * D, 326 * D, 308 * D, D, out);
+        require(Float.isInfinite(out[0]) && Float.isInfinite(out[1]), "344 dp: runs off the edge");
+        // A clip at or before the tail: nothing of the cable shows past it, and the fade never runs backwards.
+        ChargePictureFit.cableEnd(400 * D, 700 * D, 390 * D, D, out);
+        require(out[0] <= out[1] && out[1] == 400 * D, "a clip inside the picture: the fade ends at the tail");
     }
 
     /** Each charging picture's key is a photo key ModelRegistry gives a model (review of #483, C9). */

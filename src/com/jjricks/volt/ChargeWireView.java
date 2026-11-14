@@ -97,6 +97,8 @@ final class ChargeWireView extends ChargePicture {
     private final Rect[] litFrom = new Rect[ChargeWire.HALF_COLUMNS], litTo = new Rect[ChargeWire.HALF_COLUMNS];
     /** The screen's edge the cable runs off (the nearest scroller's right edge, layer pixels; NaN: none known). */
     private float edge = Float.NaN;
+    /** The nearest edge a parent below the scroller clips the layers at (layer pixels; infinite: none). */
+    private float clipped = Float.POSITIVE_INFINITY;
     /** The cable's end needs working out again (a new placement). */
     private boolean cableStale = true;
     /** The cable's fade along x in cut-out pixels (both infinite: it runs off the edge). */
@@ -305,16 +307,34 @@ final class ChargeWireView extends ChargePicture {
     }
 
     /**
+     * The nearest right edge, in the layers' pixels, at which a parent below the scroller clips them (a parent's
+     * clipChildren cuts at its child's bounds, clipToPadding at its own padding); parents {@link #clip} opened count as
+     * clipping, so opening them never moves it. Infinite when nothing clips (no allocation).
+     */
+    private float clipEdge() {
+        float x = 0, nearest = Float.POSITIVE_INFINITY;
+        View v = picture;
+        for (ViewParent p = v.getParent(); p instanceof ViewGroup && !(p instanceof ScrollView); p = p.getParent()) {
+            ViewGroup g = (ViewGroup) p;
+            if (g.getClipChildren() || unclipped.contains(g)) nearest = Math.min(nearest, v.getWidth() - x);
+            x += v.getLeft() - g.getScrollX();
+            v = g;
+            if (g.getClipToPadding() || unpadded.contains(g)) nearest = Math.min(nearest, g.getWidth() - g.getPaddingRight() - x);
+        }
+        return nearest;
+    }
+
+    /**
      * Where the cable ends for the current layout (ChargePictureFit.cableEnd): off the screen's edge (the straight run
      * long enough to reach past it, so a pulse enters off screen) or faded out a short way past the picture.
      */
     private void updateCable() {
         float s = placement.scale;
         if (s <= 0) return;
-        float e = scrollerEdge();
-        if (!cableStale && (e == edge || (Float.isNaN(e) && Float.isNaN(edge)))) return;
-        edge = e; cableStale = false;
-        ChargePictureFit.cableEnd(placement.left + model.width * s, e, density, ends);
+        float e = scrollerEdge(), c = clipEdge();
+        if (!cableStale && (e == edge || (Float.isNaN(e) && Float.isNaN(edge))) && c == clipped) return;
+        edge = e; clipped = c; cableStale = false;
+        ChargePictureFit.cableEnd(placement.left + model.width * s, e, c, density, ends);
         double start = Double.isInfinite(ends[0]) ? Double.POSITIVE_INFINITY : (ends[0] - placement.left) / s;
         double end = Double.isInfinite(ends[1]) ? Double.POSITIVE_INFINITY : (ends[1] - placement.left) / s;
         // The run: past the edge by 40 px, or past the fade's end.
