@@ -1876,6 +1876,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final ChargeHistoryCard history;
         /** What the HISTORY card last loaded for (scooter and whether a charge was recording), and whether a load is out. */
         private String historyKey;private boolean historyLoading;
+        /** A load that failed (refused during data maintenance, or a read error) is tried again after this time. */
+        private long historyRetryAt;
         private final LinkedHashMap<String,LinearLayout> sections=new LinkedHashMap<>(), bodies=new LinkedHashMap<>();
         private final LinkedHashMap<String,TextView> labels=new LinkedHashMap<>();
         private final LinkedHashMap<View,String[]> extras=new LinkedHashMap<>();
@@ -2134,12 +2136,15 @@ public final class MainActivity extends Activity implements ScreenHost {
             String profile=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
             String key=profile+"|"+(scooterService!=null&&scooterService.isChargeRecording());
             if(key.equals(historyKey))return;
+            if(historyKey==null&&SystemClock.uptimeMillis()<historyRetryAt)return;
             historyKey=key;
             if(scooterService==null||profile.isEmpty()){showHistory(null);return;}
             historyLoading=true;
-            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;showHistory(sessions);}))
-                {historyLoading=false;showHistory(null);}
+            // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": forget the key so a later refresh loads again.
+            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;if(sessions==null)historyFailed(key);showHistory(sessions);}))
+                {historyLoading=false;historyFailed(key);showHistory(null);}
         }
+        private void historyFailed(String key){if(key.equals(historyKey))historyKey=null;historyRetryAt=SystemClock.uptimeMillis()+5000;}
         private void showHistory(java.util.List<ChargeSessionStore.HistorySession> sessions){
             ArrayList<ChargeHistoryBars.Charge> charges=new ArrayList<>();
             if(sessions!=null)for(ChargeSessionStore.HistorySession session:sessions)charges.add(ChargeHistoryBars.of(session));
@@ -2984,6 +2989,13 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private AlertDialog chargeDoneSheet;
     private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
+    /**
+     * The open Charge done by sheet, kept apart from controlDialog: its time row opens the picker over it (which then
+     * becomes controlDialog), and the page's close and onDestroy still close the sheet.
+     */
+    private AlertDialog chargeDoneSheet;
+        closeChargeDoneSheet();
+    private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
     /** Battery & charging's Charge done by sheet: the on/off switch and the finish time, the rows the page used to show. */
     private void showChargeDoneSheet(){
         // No scooter: the time row's own answer (select a scooter first).
@@ -2992,8 +3004,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         closeChargeDoneSheet();
         final AlertDialog[] self=new AlertDialog[1];
         LinearLayout body=sheetContent(doneByTitle(),null,()->{if(self[0]!=null)self[0].dismiss();});
-        body.setTag("charge-done-sheet");
-        LinearLayout card=design.groupCard();body.addView(card,new LinearLayout.LayoutParams(-1,-2));
+        AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
+        dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
         doneSheetRows.clear();
         for(boolean time:new boolean[]{false,true}){
             if(time)design.divider(card);
