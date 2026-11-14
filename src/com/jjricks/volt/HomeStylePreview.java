@@ -91,7 +91,7 @@ final class HomeStylePreview extends View {
         String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
         for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-            if (entry != null) quick.add(new String[] {entry.icon, QuickAccessGrid.roundName(entry), id});
+            if (entry != null) quick.add(new String[] {QuickAccessGrid.roundGlyph(id, entry.icon), QuickAccessGrid.roundName(entry), id});
         }
         for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
