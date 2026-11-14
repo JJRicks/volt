@@ -715,15 +715,17 @@ final class QuickAccessGrid extends ViewGroup {
         return false;
     }
     /**
-     * A round action's names on Clean, for QuickActionLayout's ladder (the contributor's decisions on #383: "Cruise" for
-     * Cruise control). First its one short name: Clean's own (HubText.quickActionRoundName); for cruise control,
-     * traction control and energy recovery, the one-word name Live Stats already gives them (StatsLabels.row: "Cruise",
-     * "Traction", "Recovery") until part 10 adds Clean's own; for the electronic lock, the reading's one-word compact
-     * name ("Lock", ScooterReadingLabels.compact), with "Electronic lock" as its next rung; else the control's short
-     * rung. Then the shorter names
-     * the catalog already has for it (a control's Setting tile rung, such as pt-BR "Cruzeiro", and its short rung),
-     * for a column too narrow for the first; the ladder skips any that is not narrower. Where Live Stats' name has more
-     * than one word in the language shown, a one-word name from the others comes first (QuickActionLayout.oneWordFirst).
+     * A round action's names on Clean, for QuickActionLayout's ladder (the contributor's decisions on #383: one short
+     * name on one line, "Cruise" for Cruise control, "Charge by" for Charge done by). First part 10's one short name
+     * (HubText.quickActionShortName: Record, Alerts, Charge by and the controls' one-word names), tried whole at full
+     * size before any other. Then the names that were there before it: for Clean's own actions the already-translated
+     * one (HubText.quickActionRoundName: Ride as riding, "Fahren"); for cruise control, traction control and energy
+     * recovery, Live Stats' one-word name (StatsLabels.row); for the electronic lock, the reading's one-word compact name
+     * ("Lock", ScooterReadingLabels.compact), with "Electronic lock" as its next rung; else the control's short rung.
+     * Then the shorter names the catalog already has for it (a control's Setting tile rung, such as pt-BR "Cruzeiro",
+     * and its short rung), for a column too narrow for the first; the ladder skips any that is not narrower. Where Live
+     * Stats' name has more than one word in the language shown, a one-word name from the others comes before it
+     * (QuickActionLayout.oneWordFirst).
      */
     static String[] roundNames(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
@@ -734,12 +736,32 @@ final class QuickAccessGrid extends ViewGroup {
         String[] names = {first, rung == null ? null : rung.render(), own != null ? null : entry.shortLabel().render()};
         // Live Stats' row name is one word in English ("Cruise") but not in every language (pt-BR "Controle de
         // cruzeiro"): there an existing one-word name comes first (QuickActionLayout.oneWordFirst).
-        return own == null && ROUND_STATS_NAMES.contains(entry.featureKey) ? QuickActionLayout.oneWordFirst(names) : names;
+        String[] before = own == null && ROUND_STATS_NAMES.contains(entry.featureKey) ? QuickActionLayout.oneWordFirst(names) : names;
+        // Part 10's short name first (the contributor's pick: "Charge by" whole rather than the icon alone).
+        Msg shortName = HubText.quickActionShortName(entry.id);
+        return shortName == null ? before : withFirst(shortName.render(), before);
     }
 
-    /** A round action's first name (roundNames), the one Clean shows at full size where it fits: for lists and previews. */
+    /** names with first in front of them. */
+    private static String[] withFirst(String first, String[] names) {
+        String[] ladder = new String[names.length + 1];
+        ladder[0] = first;
+        System.arraycopy(names, 0, ladder, 1, names.length);
+        return ladder;
+    }
+
+    /** A round action's first name (roundNames), the one Clean shows at full size where it fits: for previews. */
     static String roundName(QuickAccessActions.Entry entry) {
         return roundNames(entry)[0];
+    }
+
+    /**
+     * A round action's name in a list with room for it, Settings › Home style's Quick actions row: the first name of
+     * the ladder after part 10's short one ("Charge done by", not "Charge by"; "Ride", "Record", "Cruise" as before).
+     */
+    static String listName(QuickAccessActions.Entry entry) {
+        String[] names = roundNames(entry);
+        return HubText.quickActionShortName(entry.id) == null || names.length < 2 || names[1] == null ? names[0] : names[1];
     }
 
     /**

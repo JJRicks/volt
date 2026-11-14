@@ -163,6 +163,12 @@ final class WhatsNewSheet {
             line.setPaddingRelative(start, ui.dp(item.bullet ? 8 : 12), 0, 0);
             box.addView(line, new LinearLayout.LayoutParams(-1, -2));
         }
+        // A long changelog is cut to its first notes (WhatsNewNotes): say so, right above the link to all of them.
+        if (notes.cut) {
+            TextView cut = ui.caption(HubText.whatsNewCut().render());
+            cut.setPadding(0, ui.dp(12), 0, 0);
+            box.addView(cut, new LinearLayout.LayoutParams(-1, -2));
+        }
         TextView page = ui.secondaryButton(HubText.whatsNewReleasePage().render(), () -> openPage(host, notes.page()));
         page.setTag(TAG_RELEASE_PAGE);
         LinearLayout.LayoutParams pageSpace = new LinearLayout.LayoutParams(-1, -2);

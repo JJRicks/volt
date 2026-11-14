@@ -9,15 +9,15 @@ package com.jjricks.volt;
  *
  * Pages are named by their {@link HubPages} id. Each summary is a whole line chosen by its state, with
  * only values filled in; values arrive formatted ({@code Fmt}, {@code DisplayUnits}, {@code DisplayTime}).
- * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java, tests/l10n/HomeTextTest.java).
+ * Search, the Widgets dock and the wide Home's right pane (PR 10) name the rows they find by the names the rows
+ * already show, through {@link #controlRowTitle} and {@link #settingTitle}.
+ * No Android imports, so the JVM suite tests it (tests/l10n/HubTextTest.java, tests/l10n/HomeTextTest.java,
+ * tests/l10n/HubSearchTextTest.java).
  */
 public final class HubText {
     private HubText() { }
 
-    /**
-     * A page's title, also its link row's name and the back link's target name. Null for a page whose
-     * title arrives later in the plan ({@link HubPages#SEARCH} in PR 10) and for an unknown id.
-     */
+    /** A page's title, also its link row's name and the back link's target name. Null for an unknown id. */
     public static Msg title(String page) {
         if (page == null) return null;
         switch (page) {
@@ -51,6 +51,7 @@ public final class HubText {
             case HubPages.SETTINGS_SCOOTERS: return M.moreSectionScooters();
             case HubPages.SETTINGS_ABOUT: return M.moreSectionAbout();
             case HubPages.SETTINGS_DEVELOPER: return M.moreSectionDeveloper();
+            case HubPages.SEARCH: return M.hubPageSearch();
             default: return null;
         }
     }
@@ -237,9 +238,53 @@ public final class HubText {
     /**
      * The battery tile's label as the Layout Plan's mock-up has it (the contributor's decisions on #383, which replace
      * the drop/gain pair above on Just back): "Battery", the value carrying the signed change ("−18%"). The Battery
-     * subject's short name (hub_subject_battery_short) until part 10 gives Just back a key of its own.
+     * subject's short name (hub_subject_battery_short); Just back now shows {@link #justBackBatteryName()}, its own key.
+     * Kept while HomeTextTest checks it (an existing test a batch part may not edit); unused by the app.
      */
     public static Msg justBackBatteryTile() { return shortTitle(HubPages.BATTERY); }
+    /**
+     * The battery tile's name on Just back, "Battery", with the signed change as its value ("−18%"): Just back's own key
+     * (hub_just_back_battery), so a language can name the change where the subject's short name would not fit or read.
+     */
+    public static Msg justBackBatteryName() { return M.hubJustBackBattery(); }
+
+    /**
+     * The Ride time tile's value as the mock-up writes it, short and without the estimate sign the charging time
+     * carries: "45s" under a minute, "24m" under an hour, then "1h 02m" (minutes always two digits). Whole units,
+     * rounded down, as the Rides page's Duration; a negative time counts as none.
+     */
+    public static Msg justBackRideTimeValue(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        if (seconds < 60) return M.hubJustBackTimeSeconds(Fmt.integer(seconds));
+        long minutes = seconds / 60;
+        if (minutes < 60) return M.hubJustBackTimeMinutes(Fmt.integer(minutes));
+        long rest = minutes % 60;
+        return M.hubJustBackTimeHours(Fmt.integer(minutes / 60), (rest < 10 ? Fmt.integer(0) : "") + Fmt.integer(rest));
+    }
+
+    /**
+     * The Ride time tile's value for screen readers, in words with the same whole units as
+     * {@link #justBackRideTimeValue(long)}, so "20m" is never read as a distance: "45 seconds", "20 minutes", "1 hour",
+     * "1 hour 2 minutes".
+     */
+    public static Msg justBackRideTimeSpoken(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        if (seconds < 60) return M.hubJustBackTimeSpokenSeconds(seconds, seconds);
+        long minutes = seconds / 60;
+        if (minutes < 60) return M.hubJustBackTimeSpokenMinutes(minutes, minutes);
+        long hours = minutes / 60, rest = minutes % 60;
+        Msg spokenHours = M.hubJustBackTimeSpokenHours(hours, hours);
+        return rest == 0 ? spokenHours : M.hubJustBackTimeSpokenHoursMinutes(spokenHours, M.hubJustBackTimeSpokenMinutes(rest, rest));
+    }
+
+    /**
+     * Screen-reader text of the last ride on Clean Home, one whole sentence per language: the ended line first (what
+     * sighted owners read first), then the distance, then what a tap does ("Ride ended 12 minutes ago, 6.2 mi. Opens
+     * the ride."). minutes as {@link #justBackEnded(long)} takes them; distance with its unit.
+     */
+    public static Msg justBackSpoken(long minutes, CharSequence distance) {
+        return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
+    }
 
     // ===== Clean Home's Edit sheet and quick actions =====
 
@@ -290,9 +335,8 @@ public final class HubText {
     /**
      * The one short name one of Clean's own quick actions shows under its circle on Clean Home (the contributor's
      * decisions on #383: "Ride" not "RIDE", "Record", "Alerts"); null for any other action (QuickAccessGrid picks its
-     * short name). Its spoken name stays the full one. Charge done by has no shorter name yet: its short rung is the
-     * whole "Charge done by", which shows as the icon alone where it does not fit whole (QuickActionLayout's ladder)
-     * until part 10 adds Clean's own ("Charge by").
+     * short name). Its spoken name stays the full one. Part 10's shorter names ({@link #quickActionShortName}, such as
+     * "Charge by") come before it in QuickActionLayout's ladder (QuickAccessGrid.roundNames).
      */
     public static Msg quickActionRoundName(String id) {
         // Ride opens riding mode: the Ride controls group's name, "Ride" as riding ("Fahren", "Conduite", "Condução"), not the Ride
@@ -301,6 +345,44 @@ public final class HubText {
         if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
         return null;
     }
+
+    /**
+     * Part 10's one short name for an action's round button on Clean Home and in the Home style pictures (the
+     * contributor's decisions on #383: one short name on one line; "Charge by" for Charge done by, round 3): Record,
+     * Alerts, Charge done by and the controls (QuickAccessActions ids, a control as FEATURE_PREFIX + its feature key).
+     * QuickAccessGrid.roundNames tries it first, at full size, before the names that were there before it
+     * ({@link #quickActionRoundName}, Live Stats' and the short rungs). Null for any other action, Ride included: Ride
+     * keeps the Ride controls group's name, already translated as riding. Its spoken name stays the full one.
+     */
+    public static Msg quickActionShortName(String id) {
+        if (id == null) return null;
+        if (id.startsWith(QuickAccessActions.FEATURE_PREFIX)) {
+            switch (id.substring(QuickAccessActions.FEATURE_PREFIX.length())) {
+                case "cruise_control": return M.hubQaCruiseRound();
+                case "traction_control": return M.hubQaTractionRound();
+                case "energy_recovery": return M.hubQaRecoveryRound();
+                case "overspeed_control": return M.hubQaOverspeedRound();
+                case "hill_descent_control": return M.hubQaDescentRound();
+                default: return null;
+            }
+        }
+        switch (id) {
+            case HomeQuickActions.RECORD: return M.hubQaRecordRound();
+            case HomeQuickActions.CHARGE_ALERTS: return M.hubQaAlertsRound();
+            case "charge_done_by": return M.hubQaChargeDoneByRound();
+            default: return null;
+        }
+    }
+
+    /** Between the names of a short list on one line: Settings › Home style's Quick actions ("Ride, Record, Charge done by, Cruise"). */
+    public static Msg listSeparator() { return M.hubListSeparator(); }
+
+    /**
+     * The Quick access tile that opens search (owner-era item the contributor kept, search-settings-tile): its name,
+     * "Search settings", and its short rung, "Search", where the name does not fit its one line.
+     */
+    public static Msg quickAccessSearch() { return M.hubQaSearchSettings(); }
+    public static Msg quickAccessSearchShort() { return M.hubQaSearchSettingsShort(); }
 
     /** The Record action's value while a ride is being recorded. */
     public static Msg qaRecording() { return M.homeQaRecording(); }
@@ -336,6 +418,11 @@ public final class HubText {
     public static Msg whatsNewChanges(CharSequence version) { return M.homeWhatsNewChanges(version); }
     /** The line above the notes while Volt is not in English: the notes come in English (the update check's line). */
     public static Msg whatsNewNotesInEnglish() { return M.compatUpdateNotesInEnglish(); }
+    /**
+     * The line under the notes when the sheet shows only the first of them (WhatsNewNotes.Notes#cut), above the
+     * link to the release page. Text only here; an ordinary part shows it.
+     */
+    public static Msg whatsNewCut() { return M.hubWhatsNewCut(); }
     /** The link under the notes that opens the release page with the full notes (the update check's button). */
     public static Msg whatsNewReleasePage() { return M.moreUpdateOpen(); }
     /** The message when no browser can open the release page (the update check's). */
@@ -349,4 +436,144 @@ public final class HubText {
     public static Msg whatsNewBackgroundSwitch() { return M.hubRecordingAutoBackground(); }
     /** The link under that notice to Ride › Recording settings, the page that holds the switch (its own title). */
     public static Msg whatsNewRecordingSettings() { return M.hubPageRideRecording(); }
+
+    // ===== Search (hub layout plan 1.12) =====
+
+    /** The hint inside the empty search field. */
+    public static Msg searchHint() { return M.hubSearchHint(); }
+    /** Shown in place of results when nothing matches. */
+    public static Msg searchNone() { return M.hubSearchNone(); }
+    /** The count of results, read out as it changes; count is the number of results. */
+    public static Msg searchCount(long count) { return M.hubSearchCount(count, count); }
+    /** The label above a group of results. */
+    public static Msg searchGroupPages() { return M.hubSearchGroupPages(); }
+    public static Msg searchGroupSettings() { return M.hubSearchGroupSettings(); }
+    public static Msg searchGroupReadings() { return M.hubSearchGroupReadings(); }
+    public static Msg searchGroupRides() { return M.hubSearchGroupRides(); }
+    /** The line under a result naming the subject it lives in; subject is that subject's title. */
+    public static Msg searchIn(CharSequence subject) { return M.hubSearchIn(subject); }
+    /**
+     * Words search matches for the Charge history and recordings page ({@link HubPages#BATTERY_HISTORY}), never shown:
+     * its rows record, export, clear and email charge recordings, which its title alone does not name.
+     */
+    public static Msg batteryHistorySearchWords() { return M.hubSearchBatteryHistory(); }
+    /**
+     * Words search matches for the Line lights and Star lights rows, never shown: the scooter's light zones,
+     * patterns and colours. The existing, already-translated words the controls' own search matched them by
+     * (main_search_zones), so PR 12 gives those entries their words without a catalog reference of its own.
+     */
+    public static Msg lightZonesSearchWords() { return M.mainSearchZones(); }
+
+    /**
+     * The name a hand-built row of the scooter's controls already shows ({@link HubSearchTables#ROWS}: the
+     * row's ScooterMenuLayout id or view tag), for search's results; null for any other id. Feature rows are
+     * named by their feature (ScooterCommands.Feature#label).
+     */
+    public static Msg controlRowTitle(String row) {
+        if (row == null) return null;
+        switch (row) {
+            case HubSearchTables.ROW_HEADLIGHT_INFO: return M.mainRowHeadlight();
+            case HubSearchTables.ROW_CLOCK_SYNC: return M.mainRowClock();
+            case HubSearchTables.ROW_SCHEDULE_TEST: return M.mainScheduleTestRow();
+            case HubSearchTables.ROW_CHARGE_DONE_BY: return M.mainScheduleDoneBy();
+            case HubSearchTables.ROW_CHARGER: return M.mainRowCharger();
+            case HubSearchTables.ROW_CHARGE_ALERT: return M.mainAlertCharge();
+            case HubSearchTables.ROW_LOW_ALERT: return M.mainAlertLow();
+            case HubSearchTables.ROW_CHARGE_LIVE: return M.chargeLiveRow();
+            case HubSearchTables.ROW_SECURITY_LINK: return M.mainRowSecurity();
+            case HubSearchTables.ROW_SCOOTER_NAME: return M.mainRenameTitle();
+            case HubSearchTables.ROW_MAINTENANCE: return M.maintenanceRow();
+            case HubSearchTables.ROW_TOP_SPEED: return M.mainSpeedTitle();
+            default: return null;
+        }
+    }
+
+    /**
+     * The name a settings row already shows, by its view tag ({@link HubSearchTables#SETTINGS}), for search's
+     * results; null for any other tag. The display card's tag stands for its Text size row, the one row in it
+     * with no tag of its own: Language and Units carry theirs, and Haptic feedback has its own
+     * ({@link HubSearchTables#SETTING_HAPTICS}, set on the switch by part 11). The riding-mode boxes for
+     * brightness and night vision are named by their labels.
+     */
+    public static Msg settingTitle(String tag) {
+        if (tag == null) return null;
+        switch (tag) {
+            case HubSearchTables.SETTING_HOME_STYLE: return M.homeStyleTitle();
+            case HubSearchTables.SETTING_UNITS: return M.morePrefsUnits();
+            case HubSearchTables.SETTING_DISPLAY: return M.morePrefsTextSize();
+            case HubSearchTables.SETTING_HAPTICS: return M.morePrefsHaptics();
+            case HubSearchTables.SETTING_LANGUAGE: return M.moreLanguageTitle();
+            case HubSearchTables.SETTING_RIDING_AUTO_OPEN: return M.ridingDisplayAutoOpen();
+            case HubSearchTables.SETTING_RIDING_AUTO_RECORD: return M.morePrefsAutoRecord();
+            case HubSearchTables.SETTING_RIDING_HIDE_STATUS_BAR: return M.ridingDisplayHideStatusBar();
+            case HubSearchTables.SETTING_RIDING_CLOCK_SECONDS: return M.ridingDisplayClockSeconds();
+            case HubSearchTables.SETTING_RIDING_BRIGHTNESS: return M.ridingDisplayBrightness();
+            case HubSearchTables.SETTING_RIDING_NIGHT: return M.ridingNightVision();
+            case HubSearchTables.SETTING_UPDATE_AUTO: return M.moreUpdatesAuto();
+            case HubSearchTables.SETTING_CHECK_UPDATES: return M.moreAboutCheckUpdates();
+            case HubSearchTables.SETTING_BACKUP: return M.moreBackupRestore();
+            case HubSearchTables.SETTING_REPORT_ISSUE: return M.moreReportIssue();
+            case HubSearchTables.SETTING_DEVELOPER: return M.moreSectionDeveloper();
+            default: return null;
+        }
+    }
+
+    // ===== Widgets Home's dock and the wide Home's right pane =====
+
+    /** The dock's handle, what TalkBack reads for the dock's "All" item, and the title of the sheet listing every subject. */
+    public static Msg dockAll() { return M.hubDockAll(); }
+    /**
+     * The right pane's link back to the list of all subjects, and the short label under the dock's "All" item on a
+     * phone (owner's answer 8 on #383: a portrait dock that is not cramped shows fewer icons, each labelled, and
+     * this item opens the rest); read by {@link #dockAll()}. As narrow as the subjects' short names (64 dp at 12 sp).
+     */
+    public static Msg all() { return M.hubAll(); }
+    /** The Service card: its title, and its line when no reminder is set. */
+    public static Msg serviceCardTitle() { return M.hubServiceCardTitle(); }
+    public static Msg serviceCardNone() { return M.hubServiceCardNone(); }
+
+    // ===== Battery & charging, Controls and Ride pages (the Layout Plan's pages) =====
+
+    /** Battery & charging's section labels, shown in capitals: CHARGING over the charging rows, HISTORY over the chart. */
+    public static Msg batterySectionCharging() { return M.hubBatterySectionCharging(); }
+    public static Msg batterySectionHistory() { return M.hubBatterySectionHistory(); }
+    /**
+     * The HISTORY card's line: "Last charge 42% → 90% · 2 h 10 min". span is the start and end battery
+     * (stats_charge_battery_span), duration how long it took (stats_charge_duration_*), or null when not known.
+     */
+    public static Msg batteryLastCharge(CharSequence span, CharSequence duration) {
+        return duration == null ? M.hubBatteryLastChargeSpan(span) : M.hubBatteryLastCharge(span, duration);
+    }
+
+    /** Controls' label over the links to its sub-pages, shown in capitals, and the lines under Assists and Speed limits. */
+    public static Msg controlsMore() { return M.hubControlsMore(); }
+    public static Msg controlsAssistsSub() { return M.hubControlsAssistsSub(); }
+    public static Msg controlsLimitsSub() { return M.hubControlsLimitsSub(); }
+
+    /**
+     * A recent ride's title on the Ride page when it started today or yesterday ("Yesterday, 5:42 pm"); null for an
+     * older ride (or one dated after today), which keeps its day and date. time is the start time formatted for the
+     * language.
+     */
+    public static Msg recentRideTitle(java.time.LocalDate rideDay, java.time.LocalDate today, CharSequence time) {
+        if (rideDay == null || today == null) return null;
+        if (rideDay.equals(today)) return M.hubRideToday(time);
+        if (rideDay.equals(today.minusDays(1))) return M.hubRideYesterday(time);
+        return null;
+    }
+
+    /**
+     * The Record ride tile's shorter name while simulating ("Simulating"), where rides_simulating_exit ("Simulating ·
+     * Exit") does not fit one line. Its own key, not a rung of that ladder-less, already translated one.
+     */
+    public static Msg rideSimulatingShort() { return M.hubRideSimulating(); }
+
+    // ===== Settings page (the Layout Plan's settings mock-up) =====
+
+    /**
+     * Settings' section labels, shown in capitals: SCOOTERS &amp; DATA over My scooters and Back up &amp; restore, ABOUT over
+     * Updates, About &amp; permissions and Developer options.
+     */
+    public static Msg settingsSectionScooters() { return M.hubSettingsSectionScooters(); }
+    public static Msg settingsSectionAbout() { return M.hubSettingsSectionAbout(); }
 }
