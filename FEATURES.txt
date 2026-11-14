@@ -769,28 +769,37 @@ Find My/Find Hub networks remain outside this offline app.
 
 DASHBOARD AND LOCAL HISTORY
 
-No tabs: Home is the hub for seven subjects, each with a summary (Ride,
-Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
-on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
-the tab bar was: the most-used subjects with short names, and All, or swipe
-up, for every subject with its summary). On a wide window (650 dp after
-text size) Clean Home takes two panes: the scooter (header, top area, Lock
-bar, quick actions and a Service card with the next maintenance checks)
-stays put while subjects and their pages open beside it, with All to go back;
-Widgets keeps its wide layouts with the same dock centred, all seven subjects
-with their short names. Large text that keeps the phone layout, tabletop
-posture, or a subject name that would not fit keeps one column. Each is a short page in a fixed, most-used-first
-order with sub-pages for settings set once (Assists, Speed limits, Battery
-modes, Estimates & charger, Line lights, Star lights); every page has a back
-link. The gear in Clean Home's header (beside the connection line), or
-Settings at the top of the dock's All list on Widgets, opens Settings; Home's
-search button (or Search beside Settings in the All list) finds pages, settings and
-controls (Experimental entries included), live readings (with their value) and
-rides, each with its subject, and opens the result's page with the row on
-screen; Back returns to the search as it was. The former arrange-and-hide editor is gone, and settings hidden with
-it show again. Rename the local scooter profile in Settings > My scooters or
-with its widget pencil while editing Home. Maintenance
-(Service > Maintenance, off by default) keeps local reminders by
+Home is the hub for seven subjects, each with a summary (Ride, Battery &
+charging, Controls, Lights & sound, Security, Service, Data). Clean Home lists
+them on the page and has no dock; Widgets Home has a dock, a floating bar at
+the bottom with the most-used subjects under short names and All (or swipe up)
+for a sheet with Search and Settings first, then every subject with its
+summary. The dock steps aside while it would cover the Lock bar (large text on
+a short window) and while Home is being edited. On a wide window (650 dp after
+text size) Clean Home takes two panes: the scooter (header with the gear, top
+area, Lock bar, quick actions and a Service card with the next maintenance
+checks, orange only when one is due, "40 mi left") stays put while search,
+subjects and their pages open beside it, with All to go back; Widgets keeps
+its wide layouts with the same dock centred, all seven subjects under full
+names where they fit on one line, else short names. Large text that keeps the
+phone layout, tabletop posture, or a subject name that would not fit keeps one
+column. Each subject is a short page in a fixed, most-used-first order with
+sub-pages for settings set once (Assists, Speed limits, Battery modes,
+Estimates & charger, Line lights, Star lights); every page has a back link.
+The gear beside the scooter's name in Clean Home's header, or Settings in the
+dock's All sheet on Widgets, opens Settings: one column of plain rows (Home
+style, Appearance, Units, Text size, Language, Haptic feedback; My scooters,
+Back up & restore; Updates, About & permissions, Developer options). Home's
+search button, Search in the All sheet or a Search settings Quick access tile
+opens Search: it finds pages, settings and controls (Experimental entries
+included), live readings (with their value) and rides by their words, accents
+folded, in Pages, Settings, Live readings and Rides groups, each result
+showing its path ("Battery & charging › Battery modes"), and opens the
+result's page with the row on screen; Back returns to the search as it was.
+The former arrange-and-hide editor is gone, and settings hidden with it show
+again. Rename the local scooter profile in Settings > My scooters or, on
+Widgets, with its pencil while editing Home.
+Maintenance (Service > Maintenance, off by default) keeps local reminders by
 distance, time or either, counted from odometer readings the
 scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), an
 orange dot on Home's Service row or dock icon and an optional quiet notification once per due cycle (a daily
@@ -1336,8 +1345,9 @@ Home has two styles, Clean and Widgets, chosen in Settings > Home style, from Ed
 Home (a long-press on Clean's quick actions), or from the Home style row at the
 top of the Layout sheet while editing Widgets. Switching never changes widget
 layouts or saved slots. Clean's four quick actions are round buttons with one
-short name on one line under each (Ride, Record, Cruise), red while on, with no
-value line; each still says its full name and state to a screen reader. Until
+short name on one line under each (Ride, Record, Charge by, Cruise), red while
+on, with no value line (a name too wide gets a little smaller, the four sharing
+one size); each still says its full name and state to a screen reader. Until
 changed they are
 Ride (into riding mode), Record ride, Charge done by where the
 scooter has scheduled charging, else Battery alerts, then the first offered
@@ -1347,7 +1357,9 @@ with neither scheduled charging nor battery alerts, a second offered control
 takes the third place; any place still empty goes to Rides and then Settings.
 There is no drive mode action. Edit Home changes any of the four per scooter;
 the header has no Edit button, a long-press on a quick action opens it.
-What each model offers: see OTHER NAVEE MODELS above. The parked battery card
+What each model offers: see OTHER NAVEE MODELS above. The top area above the
+Lock bar keeps one height while parked, charging and Just back, so the Lock bar
+and quick actions never move between them. The parked battery card
 shows the scooter's photo right of the charge and range. While charging, Clean's
 charging view sits on the page: "Charging to your 90% limit" (or "Charging"),
 the charge centred with the scooter's photo large under and behind it on a red
@@ -1384,8 +1396,9 @@ Choose two to eight ordered shortcuts in the widget options. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders open
 over Home, and so do the quick-control groups (Lights, Ride settings, Battery
 settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
-Shortcuts to whole settings pages open the page: Settings opens Search (every scooter
-setting, with the subjects below), PIN/proximity opens Security, experimental
+Shortcuts to whole settings pages open the page: the Settings shortcut, now
+named Search settings (Search where that does not fit), opens Search (every
+setting, reading and ride, with the subjects listed until you type), PIN/proximity opens Security, experimental
 controls open their test in Service > Experimental controls, app-preference
 shortcuts open their page under Settings, and Data & history opens Data > Data &
 history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Which
