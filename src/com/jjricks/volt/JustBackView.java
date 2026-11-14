@@ -304,7 +304,7 @@ final class JustBackView extends LinearLayout {
             if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 float[] widths = new float[cells.length];
                 for (int i = 0; i < cells.length; i++) widths[i] = cells[i].nameWidthAtFull();
-                float scale = JustBackFit.nameScale(widths, third - first.horizontalPadding() - 1, JustBackFit.NAME_SP, Ui.READABLE_FLOOR_SP);
+                float scale = JustBackFit.nameScale(widths, third - first.horizontalPadding() - 1, first.nameFull, first.nameFloor);
                 for (Cell cell : cells) cell.nameScale(scale);
             }
             int wanted = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
@@ -371,8 +371,8 @@ final class JustBackView extends LinearLayout {
         static final int NAME_LINES = 2;
         private final TextView name, value;
         private final float valueTop, valueFloor;
-        /** The name's full size (px). */
-        private final float nameFull;
+        /** The name's full size and the readable floor (px; the floor is not grown by the app's text size). */
+        private final float nameFull, nameFloor;
         private final android.text.TextPaint measure = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence full = "—", shorter;
 
@@ -388,6 +388,7 @@ final class JustBackView extends LinearLayout {
             name = ui.caption(label.render());
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, JustBackFit.NAME_SP * ui.textScale);
             nameFull = name.getTextSize();
+            nameFloor = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, Ui.READABLE_FLOOR_SP, getResources().getDisplayMetrics());
             name.setMaxLines(NAME_LINES);
             // Only with very large text, where even half a row is too narrow, does a name still end in an ellipsis.
             name.setEllipsize(TextUtils.TruncateAt.END);
