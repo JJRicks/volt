@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
@@ -50,6 +51,8 @@ final class HubDock {
     private final Ui ui;
     private final boolean wide;
     private final BooleanSupplier hidden;
+    /** The view the dock never covers (Widgets' Lock bar), or null; read before every frame. */
+    private Supplier<View> keepClear;
     /** The sheet's Search and Settings rows: open those pages (Home's header buttons on Clean). */
     private final Runnable openSearch, openSettings;
     /** Wide: whether the items show their full names (else their short names, all alike). */
@@ -161,8 +164,26 @@ final class HubDock {
     }
 
     private void applyHidden() {
-        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : View.VISIBLE;
+        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : coversClearView() ? View.INVISIBLE : View.VISIBLE;
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
+    }
+
+    /**
+     * The view the dock must never cover (Widgets' Lock bar): on a short window (725x604 dp at 1.4x text) the bar sits
+     * where the dock floats until the page scrolls. The dock then steps aside (invisible, keeping its place, so it comes
+     * back as soon as the page scrolls the bar above it).
+     */
+    void keepClear(Supplier<View> clear) { keepClear = clear; applyHidden(); }
+
+    /** Whether the dock, where it sits now, is over any visible part of the view it keeps clear. */
+    private boolean coversClearView() {
+        View clear = keepClear == null ? null : keepClear.get();
+        if (clear == null || !clear.isShown() || !clear.isAttachedToWindow() || view.getHeight() == 0) return false;
+        int[] at = new int[2], dock = new int[2];
+        clear.getLocationInWindow(at); view.getLocationInWindow(dock);
+        android.graphics.Rect visible = new android.graphics.Rect();
+        if (!clear.getGlobalVisibleRect(visible)) return false;
+        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[1], dock[1] + view.getHeight());
     }
 
     /**

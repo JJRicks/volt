@@ -108,6 +108,16 @@ public final class HubPages {
     }
 
     /**
+     * Whether a dock from dockTop to dockBottom covers a view from top to bottom of which shownTop to shownBottom is on
+     * screen (window pixels): any overlap of the dock with the shown part. A view scrolled out of sight is never covered.
+     * HubDock steps aside while this holds for Widgets' Lock bar (part 11: a short window at large text).
+     */
+    public static boolean dockCovers(int top, int bottom, int shownTop, int shownBottom, int dockTop, int dockBottom) {
+        int from = Math.max(top, shownTop), to = Math.min(bottom, shownBottom);
+        return to > from && dockBottom > from && dockTop < to;
+    }
+
+    /**
      * Whether a move on the dock is its upward swipe (it opens the All sheet at once): more than twice the touch slop
      * upward, and more up than across. upDp is how far the finger moved up (negative when down), acrossDp how far sideways.
      */
