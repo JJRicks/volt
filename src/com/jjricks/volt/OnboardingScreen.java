@@ -1636,7 +1636,7 @@ public final class OnboardingScreen implements AppScreen {
         if (keyPrompt != null) { if (keyPromptUpdate != null) keyPromptUpdate.run(); return; }
         ScooterProfiles.Profile p = onboardingProfile();
         boolean made = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
-        if (p == null || !MadeKeyPrompt.due(made, p.id, p.identity, p.mac, prefs.getString(MadeKeyPrompt.SHOWN, ""))) return;
+        if (p == null || !MadeKeyPrompt.due(made, p.id, p.identity, p.mac, prefs.getString(MadeKeyPrompt.SHOWN, null))) return;
         showKeyPrompt(p.id, p.identity);
     }
 
