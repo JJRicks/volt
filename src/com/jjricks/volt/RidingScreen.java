@@ -1267,7 +1267,7 @@ final class RidingScreen implements AppScreen {
             case RidingLayout.RIDE_TIME: case RidingLayout.RECORDING_TIME: {
                 boolean ride = content.equals(RidingLayout.RIDE_TIME);
                 s.rungs = ride ? new String[]{T.ridingLabelRideTime(), T.ridingLabelRideTimeShort()}
-                        : new String[]{T.ridingLabelRecordingTime(), T.ridingLabelRecordingTimeShort()};
+                        : recordingRungs();
                 Long ms = ride ? session.rideTimeMs(now) : v.recordingTimeMs(now);
                 if (ms == null) { none(s); break; }
                 s.main = clock(ms);
@@ -3184,4 +3184,7 @@ final class RidingScreen implements AppScreen {
         ui.pressFeedback(button);
         return button;
     }
+
+    /** The recording time's label rungs, "Recording" then "Rec." (French "Enreg.", "REC"); the Ride page's Record ride tile reuses them. */
+    static String[] recordingRungs() { return new String[]{T.ridingLabelRecordingTime(), T.ridingLabelRecordingTimeShort()}; }
 }
