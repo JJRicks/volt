@@ -5,7 +5,7 @@ import java.util.Locale;
 
 /**
  * Riding mode's added chip slots (a tester, Nov 14): Trace's third chip, stacked under its two, and Focus's three chips
- * beside the speed. Every added slot is None by default, so both frames look as they did until the rider picks a reading.
+ * under the speed. Every added slot is None by default, so both frames look as they did until the rider picks a reading.
  */
 public final class RidingChipSlotsTest {
     private static int checks;
@@ -46,7 +46,7 @@ public final class RidingChipSlotsTest {
 
     private static void focus() {
         RidingLayout.Frame f = RidingLayout.frameDef(RidingLayout.FOCUS);
-        check(RidingFrames.FOCUS_CHIPS.size() == 3, "Focus has three chips beside the speed");
+        check(RidingFrames.FOCUS_CHIPS.size() == 3, "Focus has three chips under the speed");
         RidingLayout layout = new RidingLayout();
         for (String spot : RidingFrames.FOCUS_CHIPS) {
             RidingLayout.Spot s = f.spot(spot);
@@ -86,7 +86,7 @@ public final class RidingChipSlotsTest {
         List<RidingLayout.Spot> spots = editor.spots(RidingLayout.FOCUS);
         for (RidingLayout.Spot s : spots) check(s.kind != RidingLayout.Kind.CHIP, "Focus's spots list no chips: " + s.id);
         List<RidingLayout.Spot> beside = RidingEditor.besideChips(RidingLayout.FOCUS);
-        check(beside.size() == 3, "Focus's chips are listed apart, beside the speed");
+        check(beside.size() == 3, "Focus's chips are listed apart, under the speed");
         for (int i = 0; i < 3; i++) {
             check(RidingFrames.FOCUS_CHIPS.get(i).equals(beside.get(i).id), "in order: " + i);
             check(RidingEditor.number(RidingLayout.FOCUS, beside.get(i)) == i + 1, "numbered 1 to 3: " + i);
@@ -96,7 +96,7 @@ public final class RidingChipSlotsTest {
                 "frames with a chips switch list their chips among their spots");
         check(editor.choose("chip_1", RidingLayout.BATTERY_TEMPERATURE), "the editor sets a Focus chip");
         check(RidingLayout.BATTERY_TEMPERATURE.equals(editor.content("chip_1")) && editor.changed(), "and it's a change to save");
-        check("Chips beside the speed".equals(T.ridingEditorBesideSpeed()), "the group's heading");
+        check("Chips under the speed".equals(T.ridingEditorBesideSpeed()), "the group's heading");
 
         RidingEditor trace = new RidingEditor(new RidingLayout());
         check(trace.showFrame(RidingLayout.TRACE), "Trace opens in the editor");

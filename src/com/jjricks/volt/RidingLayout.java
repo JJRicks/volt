@@ -210,7 +210,7 @@ final class RidingLayout {
                 spot("tile_2", Kind.TILE, TRIP),
                 spot("tile_3", Kind.TILE, RIDE_TIME),
                 spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE)},
-                // Up to three chips beside the speed (a tester, Nov 14), none by default, so Focus looks as it did.
+                // Up to three chips under the speed (a tester, Nov 14), none by default, so Focus looks as it did.
                 spot("chip_1", Kind.CHIP, NONE), spot("chip_2", Kind.CHIP, NONE), spot("chip_3", Kind.CHIP, NONE)),
                 new String[]{POWER_BAR, TENTHS}, new boolean[]{true, true}));
         // Halo (concept-a-halo): speed in the ring, range under it, two tiles, a strip and chips.

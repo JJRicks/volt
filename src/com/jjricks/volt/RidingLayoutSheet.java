@@ -61,7 +61,7 @@ final class RidingLayoutSheet {
         }
         content.addView(spots);
 
-        // Focus's chips beside the speed, in a group of their own: each None until the rider picks a reading.
+        // Focus's chips under the speed, in a group of their own: each None until the rider picks a reading.
         List<RidingLayout.Spot> beside = RidingEditor.besideChips(frame);
         if (!beside.isEmpty()) {
             content.addView(ui.sectionLabel(T.ridingEditorBesideSpeed()));
