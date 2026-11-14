@@ -77,7 +77,7 @@ final class ChargeHistoryDialog {
     private void failed() {
         if (!available()) return;
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
-        LinearLayout box = padded(); box.addView(ui.caption(T.statsChargeHistoryFailed()));
+        LinearLayout box = padded(); box.addView(ui.caption(failedText()));
         box.addView(ui.secondaryButton(T.statsChargeHistoryRetry(), this::load)); body.addView(box);
     }
     private void showList() {
@@ -133,6 +133,22 @@ final class ChargeHistoryDialog {
         if (charge == null) return emptyText();
         return span(charge.from, charge.to) + " · " + duration(charge.ms);
     }
+    /**
+     * The HISTORY card's line (ChargeHistoryBars.line) in this dialog's words: the last charge's line, "No saved charge
+     * recordings yet.", "No battery samples" when no recording has one, or "Could not load recordings." for a failed read.
+     */
+    static String historyCardLine(ChargeHistoryBars.Line kind, ChargeHistoryBars.Charge last) {
+        switch (kind) {
+            case FAILED: return failedText();
+            case NO_SAMPLES: return noSamplesText();
+            case LAST: return lastChargeLine(last);
+            default: return emptyText();
+        }
+    }
+    /** "Could not load recordings.": the list's and the HISTORY card's words for a failed read. */
+    private static String failedText() { return T.statsChargeHistoryFailed(); }
+    /** "No battery samples": a recording's and the HISTORY card's words when there is no battery sample. */
+    private static String noSamplesText() { return T.statsChargeNoBatterySamples(); }
     /** "No saved charge recordings yet." */
     private static String emptyText() { return T.statsChargeHistoryEmpty(); }
     /** A recording's battery span, "42% → 90%". */
@@ -148,7 +164,7 @@ final class ChargeHistoryDialog {
         for (ChargeSessionStore.HistoryPoint point : session.points) if (Double.isFinite(point.batteryPercent)) {
             if (first == null) first = point.batteryPercent; last = point.batteryPercent;
         }
-        return first == null ? T.statsChargeNoBatterySamples() : span(first, last);
+        return first == null ? noSamplesText() : span(first, last);
     }
     private String charger(ChargeSessionStore.Charger charger) {
         return charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();

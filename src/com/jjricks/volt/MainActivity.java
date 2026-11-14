@@ -96,6 +96,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private FrameLayout root,pageFrame;
     private ScrollView scroll;
     private AppScreen screen;
+    /** Returns to the app (onResume): Battery & charging's HISTORY card loads again after each (ControlsScreen.refreshHistory). */
+    private int resumes;
     /** First-run setup; while it is showing there is no header or tab bar. */
     private OnboardingScreen onboarding;
     /** Open riding mode (Home's RIDE button): kept across rotations and rebuilds; null when closed. */
@@ -292,7 +294,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
     private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
+        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         if(onTab(HubPages.SETTINGS)){boolean expired=expireMoreSection(true);markMoreActive();if(expired)rebuild();}
         if(onTab(HubPages.DATA)){boolean expired=expireStatsSection(true);markStatsActive();if(expired)rebuild();}
@@ -2149,21 +2151,23 @@ public final class MainActivity extends Activity implements ScreenHost {
         private void refreshHistory(){
             if(history==null||historyLoading)return;
             String profile=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
-            String key=profile+"|"+(scooterService!=null&&scooterService.isChargeRecording());
+            // Each return to the app loads again (resumes): a charge recorded wholly in the background then shows up.
+            String key=profile+"|"+(scooterService!=null&&scooterService.isChargeRecording())+"|"+resumes;
             if(key.equals(historyKey))return;
             if(historyKey==null&&SystemClock.uptimeMillis()<historyRetryAt)return;
             historyKey=key;
-            if(scooterService==null||profile.isEmpty()){showHistory(null);return;}
+            if(scooterService==null||profile.isEmpty()){showHistory(false,null);return;}
             historyLoading=true;
-            // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": forget the key so a later refresh loads again.
-            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;if(sessions==null)historyFailed(key);showHistory(sessions);}))
-                {historyLoading=false;historyFailed(key);showHistory(null);}
+            // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": the card says it
+            // could not load them, as the Charge history dialog does, and forgets the key so a later refresh loads again.
+            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;if(sessions==null)historyFailed(key);showHistory(sessions==null,sessions);}))
+                {historyLoading=false;historyFailed(key);showHistory(true,null);}
         }
         private void historyFailed(String key){if(key.equals(historyKey))historyKey=null;historyRetryAt=SystemClock.uptimeMillis()+5000;}
-        private void showHistory(java.util.List<ChargeSessionStore.HistorySession> sessions){
+        private void showHistory(boolean failed,java.util.List<ChargeSessionStore.HistorySession> sessions){
             ArrayList<ChargeHistoryBars.Charge> charges=new ArrayList<>();
             if(sessions!=null)for(ChargeSessionStore.HistorySession session:sessions)charges.add(ChargeHistoryBars.of(session));
-            String line=ChargeHistoryDialog.lastChargeLine(ChargeHistoryBars.last(charges));
+            String line=ChargeHistoryDialog.historyCardLine(ChargeHistoryBars.line(failed,charges),ChargeHistoryBars.last(charges));
             history.show(charges,line,labelValue(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(),line));
         }
         private void refreshMaintenance(){

@@ -84,6 +84,26 @@ final class ChargeHistoryBars {
         return out;
     }
 
+    /** What the HISTORY card's line under the bars says. */
+    enum Line {
+        /** The last charge's span and duration ("42% → 90% · 2 h 10 min"): last(...) has one. */
+        LAST,
+        /** "No saved charge recordings yet.": the read worked and there are none (or no scooter is chosen). */
+        EMPTY,
+        /** "No battery samples": recordings exist (drawn as bars), none with a battery sample. */
+        NO_SAMPLES,
+        /** "Could not load recordings.", the Charge history dialog's words: the read failed, which is not "none". */
+        FAILED
+    }
+
+    /** The line for a load: failed (no answer), else the last measured charge, else whether there are recordings at all. */
+    static Line line(boolean failed, List<Charge> newestFirst) {
+        if (failed) return Line.FAILED;
+        if (last(newestFirst) != null) return Line.LAST;
+        if (newestFirst != null) for (Charge c : newestFirst) if (c != null) return Line.NO_SAMPLES;
+        return Line.EMPTY;
+    }
+
     /** The charge the summary line describes: the newest one with battery samples, or null (the line says there are none). */
     static Charge last(List<Charge> newestFirst) {
         if (newestFirst == null) return null;
