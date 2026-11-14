@@ -27,8 +27,8 @@ package com.jjricks.volt;
  *       {@link #PERCENT_TINY_SCALE}; nothing is drawn under it.</li>
  * </ol>
  * The readings never go (the contributor's answer 2: the tiles stay): in a slot too short for the
- * percentage even at {@link #PERCENT_TINY_SCALE} over them, the percentage gets smaller still and goes only when the
- * readings fill the slot; a slot shorter than the readings shows them alone, from its top. Nothing that went comes
+ * percentage even at {@link #PERCENT_TINY_SCALE} over them, the percentage gets smaller still while it is at least
+ * {@link #PERCENT_LEAST_DP} tall, and below that it gives way (as the line did) and the readings show alone; a slot shorter than the readings shows them alone, from its top. Nothing that went comes
  * back as the slot shrinks: the percentage never grows and the photo never returns. The photo
  * shows while it is at least {@link #PHOTO_MIN_DP} tall. Every height given is in pixels, every constant in dp scaled
  * by {@code density}. The stage takes any height left over, so the readings end at the slot's bottom.
@@ -58,6 +58,12 @@ final class ChargingFit {
     static final float HALF_SCALE = .5f, PERCENT_MIN_SCALE = .3f;
     /** The least share of its size the percentage takes over the readings once the track has made way (9 sp at 1x, about 13 sp at 1.4x). */
     static final float PERCENT_TINY_SCALE = .15f;
+    /**
+     * The least height (dp) the percentage is drawn at: about an 8.5 sp number, just under the smallest text Volt draws
+     * (the dock's 10 sp captions). Below it, in the very shortest slots, the percentage gives way and the readings show
+     * alone; above it the percentage stays, smaller, as the contributor's answer 2 asks.
+     */
+    static final int PERCENT_LEAST_DP = 10;
 
     private ChargingFit() {}
 
@@ -102,6 +108,11 @@ final class ChargingFit {
     /** A height at a share of its size, rounded down so a shrunk percentage never needs more than planned. */
     static int scaled(int height, float scale) { return (int) Math.floor(height * scale); }
 
+    /** The percentage {@code percentHeight} pixels tall at full size can still be read at this share of it. */
+    static boolean readable(int percentHeight, float scale, float density) {
+        return (int) Math.floor(percentHeight * scale + 1e-3f) >= dp(PERCENT_LEAST_DP, density);
+    }
+
     /**
      * The plan for a slot {@code inner} pixels tall, with the line (as it wraps at the slot's width), its one-line short
      * form, the full-size percentage and the readings row measured at the slot's width.
@@ -139,9 +150,11 @@ final class ChargingFit {
             // the slot shrinks), then smaller down to its least, and smaller still in the very shortest slots. The
             // readings stay (the contributor's answer 2: the tiles stay), and the height never goes back to a photo.
             stage = inner - readingsHeight;
-            scale = share(stage, percentHeight);
-            if (scale >= PERCENT_TINY_SCALE) return new Plan(false, false, true, Math.min(PERCENT_MIN_SCALE, scale), stage, 0, false, true, 0);
-            return new Plan(false, false, stage > 0, Math.min(PERCENT_TINY_SCALE, scale), Math.max(0, stage), 0, false, true, 0);
+            scale = Math.min(PERCENT_MIN_SCALE, share(stage, percentHeight));
+            // Below its least readable height (PERCENT_LEAST_DP) the percentage gives way, as the line did: a number a
+            // few pixels tall is a smudge, not a reading (review of f5540133, finding 1). It does not come back.
+            boolean readable = stage > 0 && readable(percentHeight, scale, density);
+            return new Plan(false, false, readable, readable ? scale : 0, Math.max(0, stage), 0, false, true, 0);
         }
         // 9. Not even the readings fit: they stay, from the slot's top (the percentage, already gone at a slot as tall
         // as they are, does not come back, and no photo or track takes the height).

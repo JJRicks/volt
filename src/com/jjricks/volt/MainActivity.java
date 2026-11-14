@@ -340,7 +340,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
         if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
@@ -589,6 +589,29 @@ public final class MainActivity extends Activity implements ScreenHost {
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
         rebuilding=false;redraw();
         showUpdateCheck();
+        // The one-time What's new sheet about Home styles: checked once per rebuild, never on a telemetry refresh.
+        handler.post(this::maybeShowWhatsNew);
+    }
+    /** The What's new sheet while it shows; closed with the activity. */
+    private AlertDialog whatsNewSheet;
+    /**
+     * Shows the one-time What's new sheet (Joel 6, 10) when HomeStyle.showWhatsNew says so: an updated installation
+     * that never answered it, or one where a restore made the background-recording notice due (HomeStyle.RESTORED_NOTICE_KEY),
+     * on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open, whether or not the owner
+     * already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch). It counts as shown only once
+     * the person answers it (HomeStyle.whatsNewAnswered): onDestroy's dismissal records nothing, so a sheet lost to a
+     * recreation, a relaunch or the process ending shows again on the next clear Home; never two at once (the one showing
+     * is kept here).
+     */
+    private void maybeShowWhatsNew(){
+        if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
+        java.util.Map<String,?> all;
+        try{all=preferences.getAll();}catch(RuntimeException e){return;}
+        Object origin=all.get(HomeStyle.ORIGIN_KEY);
+        // On Home, either style, and not while it is being edited.
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.RESTORED_NOTICE_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
+        whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
      * The screen for a page. Home's pages show Clean Home or the widget dashboard (home_style); the Scooter tab's subject
@@ -598,7 +621,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private AppScreen createScreen(String page,HubNav.Args args){
         // Settings › Home style; while the tab bar remains it opens on the Settings tab.
-        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this);
+        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         switch(HubPages.tabOf(page)){
             // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
             case HubPages.HOME:return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());

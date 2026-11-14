@@ -22,23 +22,41 @@ final class HomeStylePrefs {
 
     /**
      * An owner's explicit pick (Settings, Home's edit sheet, the Layout sheet, setup, What's new): the style, that it
-     * was chosen, and, when the seed left this installation alone (a new install), its origin.
+     * was chosen, and, when no origin is stored, its origin: install for a new install, but update when a style is
+     * already stored without one (restored from an earlier owner's backup, HomeStyle.pickedOrigin(String, boolean)).
      */
     static void markChosen(SharedPreferences prefs, String style) {
-        String origin;
-        try { Object stored = prefs.getAll().get(HomeStyle.ORIGIN_KEY); origin = stored instanceof String ? (String) stored : null; }
-        catch (RuntimeException e) { origin = null; }
+        String origin; boolean styleStored;
+        try { Map<String, ?> all = prefs.getAll(); Object stored = all.get(HomeStyle.ORIGIN_KEY); origin = stored instanceof String ? (String) stored : null; styleStored = all.containsKey(HomeStyle.KEY); }
+        catch (RuntimeException e) { origin = null; styleStored = false; }
         SharedPreferences.Editor edit = prefs.edit().putString(HomeStyle.KEY, HomeStyle.valid(style)).putBoolean(HomeStyle.CHOSEN_KEY, true);
-        if (origin == null) edit.putString(HomeStyle.ORIGIN_KEY, HomeStyle.pickedOrigin(null));
+        if (origin == null) edit.putString(HomeStyle.ORIGIN_KEY, HomeStyle.pickedOrigin(null, styleStored));
         edit.apply();
     }
 
     /**
-     * Setup ending on a new install, finished or skipped (the onboarding part calls it): records origin install when
-     * none is stored, so a later start never mistakes this owner's own setup for an earlier owner. Writes no style.
+     * Setup ending on a new install, skipped (OnboardingScreen, through setupSkipped; finishing records it through
+     * markChosen): records origin install when none is stored, so a later start never mistakes this owner's own setup
+     * for an earlier owner. Writes no style. A style already stored without an origin came from a restore during setup
+     * (an earlier owner's), so that records update instead (HomeStyle.pickedOrigin(String, boolean)).
      */
     static void recordNewInstall(SharedPreferences prefs) {
-        if (!prefs.contains(HomeStyle.ORIGIN_KEY)) prefs.edit().putString(HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL).apply();
+        if (!prefs.contains(HomeStyle.ORIGIN_KEY))
+            prefs.edit().putString(HomeStyle.ORIGIN_KEY, HomeStyle.pickedOrigin(null, prefs.contains(HomeStyle.KEY))).apply();
+    }
+
+    /**
+     * First-run setup skipped (OnboardingScreen; not a rerun): no choice is recorded (home_style_chosen stays false).
+     * The new install's origin is recorded (recordNewInstall), and what HomeStyle.afterSkippedSetup says besides:
+     * Clean when no style is stored yet and the origin is install.
+     */
+    static void setupSkipped(SharedPreferences prefs) {
+        Object stored;
+        try { stored = prefs.getAll().get(HomeStyle.ORIGIN_KEY); } catch (RuntimeException e) { stored = null; }
+        String origin = stored instanceof String ? (String) stored : null;
+        String[] after = HomeStyle.afterSkippedSetup(origin, prefs.contains(HomeStyle.KEY));
+        if (after[1] != null) recordNewInstall(prefs);
+        if (after[0] != null) prefs.edit().putString(HomeStyle.KEY, after[0]).apply();
     }
 
     /**

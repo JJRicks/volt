@@ -21,9 +21,10 @@ import java.util.List;
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
  * bottom: the header (the status line; the scooter's name, which switches scooter, with search and Settings), a top
- * area of fixed height whose content follows the moment (the battery card, or the charging view while charging), the
- * Lock bar, four quick actions and the seven subjects. A long-press on a quick action (TalkBack: its "Edit Home"
- * action) opens the Edit sheet, the style and the four quick actions; the header has no Edit button, as the mock-up.
+ * area of fixed height whose content follows the moment (the battery card, the charging view while charging, or the
+ * last ride for about an hour after it ends: JustBackView), the Lock bar, four quick actions and the seven subjects. A
+ * long-press on a quick action (TalkBack: its "Edit Home" action) opens the Edit sheet, the style and the four quick
+ * actions; the header has no Edit button, as the mock-up.
  *
  * <p>It never reads or writes the widget dashboard's storage: its four quick actions live in
  * {@code home_quick_v1_<profile id>} in app_settings (HomeQuickActions), its moments follow {@code home_moment_*} (HomeMoment). The
@@ -47,6 +48,18 @@ final class CleanHomeScreen implements AppScreen {
     private final LinearLayout view, page, header;
     private final FrameLayout top;
     private final View overview, charging;
+    private final JustBackView justBack;
+    /** The three moments' views, by HomeMoment constant. */
+    private final View[] moments;
+    /** Reads the route of the last ride from its phone journal, off the UI thread; stopped on close. */
+    private final java.util.concurrent.ExecutorService worker = java.util.concurrent.Executors.newSingleThreadExecutor();
+    /** The newest finished ride, or null (none, not read yet, or no ride store). */
+    private RideStore.Summary lastRide;
+    /** When Clean last looked at the saved rides (elapsed realtime), or -1; and whether recording was on then. */
+    private long ridesLooked = -1;
+    private boolean recordingWhenLooked, listing;
+    /** The ride whose route was asked for, so each ride's route is read once. */
+    private String routeAsked;
     private final QuickAccessGrid quick;
     private final CleanSubjects subjects;
     private final List<String> quickIds;
@@ -126,9 +139,13 @@ final class CleanHomeScreen implements AppScreen {
         top.setTag(TAG_TOP);
         overview = parts.overview();
         charging = parts.chargingView();
+        justBack = new JustBackView(host, this::openRide, this::dismissRide);
+        moments = new View[] {overview, charging, justBack};
         top.addView(overview, new FrameLayout.LayoutParams(-1, -1));
         top.addView(charging, new FrameLayout.LayoutParams(-1, -1));
+        top.addView(justBack, new FrameLayout.LayoutParams(-1, -1));
         charging.setVisibility(View.GONE);
+        justBack.setVisibility(View.GONE);
         page.addView(top, new LinearLayout.LayoutParams(-1, topHeight()));
 
         FrameLayout lock = new FrameLayout(host.activity());
@@ -190,13 +207,24 @@ final class CleanHomeScreen implements AppScreen {
             return;
         }
         parts.refresh();
-        // Just back (the last ride) arrives with the next part; until then Clean shows parked or charging.
+        boolean recording = service != null && service.isRecording();
+        lookForRide(service, recording);
+        long now = System.currentTimeMillis();
+        RideStore.Summary ride = lastRide;
+        Object dismissed = stored(HomeMoment.DISMISSED_KEY);
         int next = HomeMoment.choose(HomeMoment.on(stored(HomeMoment.CHARGING_KEY)), parts.charging(),
-                false, false, null, 0, null, System.currentTimeMillis());
+                HomeMoment.on(stored(HomeMoment.RIDE_KEY)), recording, ride == null ? null : ride.id,
+                ride == null ? 0 : ride.shownEndWallMs, dismissed instanceof String ? (String) dismissed : null, now);
+        if (next == HomeMoment.JUST_BACK) {
+            justBack.bind(ride, preferences.getString("units", "mi"), now);
+            loadRoute(service, ride);
+        }
         show(next);
         String name = parts.name().getText().toString();
         parts.name().setContentDescription(HubText.switchScooterDescription(name).render());
         quick.refresh();
+        // The Ride row shows the ride Just back shows as soon as it is found (CleanSubjects.rideFound).
+        subjects.rideFound(ride);
         subjects.refresh();
     }
 
@@ -204,19 +232,21 @@ final class CleanHomeScreen implements AppScreen {
     private void show(int next) {
         if (next == moment) return;
         boolean first = moment < 0;
+        int previous = moment;
         moment = next;
-        boolean chargingNow = next == HomeMoment.CHARGING;
-        parts.chargingShown(chargingNow);
-        View in = chargingNow ? charging : overview, out = chargingNow ? overview : charging;
-        in.animate().cancel();
-        out.animate().cancel();
+        parts.chargingShown(next == HomeMoment.CHARGING);
+        View in = moments[next];
+        for (View view : moments) view.animate().cancel();
         if (first || !Ui.motionEnabled() || !top.isAttachedToWindow()) {
-            in.setAlpha(1);
-            in.setVisibility(View.VISIBLE);
-            out.setVisibility(View.GONE);
-            out.setAlpha(1);
+            for (View view : moments) {
+                view.setAlpha(1);
+                view.setVisibility(view == in ? View.VISIBLE : View.GONE);
+            }
             return;
         }
+        // Only the moment leaving fades out; any other one (a crossfade cut short) goes at once.
+        View out = moments[previous];
+        for (View view : moments) if (view != in && view != out) { view.setVisibility(View.GONE); view.setAlpha(1); }
         in.setAlpha(0);
         in.setVisibility(View.VISIBLE);
         in.animate().alpha(1).setDuration(CROSSFADE_MS).setInterpolator(Motion.STANDARD).start();
@@ -226,10 +256,89 @@ final class CleanHomeScreen implements AppScreen {
         }).start();
     }
 
+    // ===== Just back: the last ride =====
+
+    /**
+     * Keeps lastRide current: the newest finished ride, read from memory on the UI thread (RideStore.listCached); when
+     * a journal would need reading, one list() at a time on the worker, never on the UI thread. Looks again when
+     * recording starts or stops, and every half minute otherwise (HomeMoment.lookAgain).
+     */
+    private void lookForRide(ScooterService service, boolean recording) {
+        RideStore store = service == null ? null : service.rides;
+        if (store == null) { lastRide = null; return; }
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (!HomeMoment.lookAgain(ridesLooked, now, recording != recordingWhenLooked)) return;
+        ridesLooked = now;
+        recordingWhenLooked = recording;
+        java.util.List<RideStore.Summary> cached = store.listCached();
+        if (cached != null) { lastRide = newestFinished(cached); return; }
+        if (listing) return;
+        listing = true;
+        try {
+            worker.execute(() -> {
+                RideStore.Summary found;
+                boolean read;
+                try { found = newestFinished(store.list()); read = true; }
+                catch (java.io.IOException | RuntimeException e) { found = null; read = false; }
+                RideStore.Summary result = found;
+                boolean ok = read;
+                host.activity().runOnUiThread(() -> {
+                    listing = false;
+                    if (closed) return;
+                    if (ok) lastRide = result;
+                    refresh();
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException stopped) {
+            listing = false;
+        }
+    }
+
+    /** The newest ride that is not being recorded (the list is newest first), or null. */
+    private static RideStore.Summary newestFinished(java.util.List<RideStore.Summary> rides) {
+        for (RideStore.Summary ride : rides) if (!ride.active) return ride;
+        return null;
+    }
+
+    /**
+     * Reads the ride's route once, on the worker, from its phone journal's GPS fixes (RidesScreen.readThumb), only
+     * after the phone has finished saving it. A ride without fixes keeps the plain panel.
+     */
+    private void loadRoute(ScooterService service, RideStore.Summary ride) {
+        if (ride == null || ride.id.equals(routeAsked) || service == null || service.phoneSaving()) return;
+        PhoneRideStore phone = service.phoneRides;
+        if (phone == null) return;
+        routeAsked = ride.id;
+        String id = ride.id;
+        try {
+            worker.execute(() -> {
+                float[] outline;
+                try { outline = RidesScreen.readThumb(phone.rawCsv(id)); } catch (RuntimeException invalid) { outline = null; }
+                if (outline == null) return;
+                float[] shown = outline;
+                host.activity().runOnUiThread(() -> { if (!closed) justBack.setRoute(id, shown); });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException stopped) {
+            routeAsked = null;
+        }
+    }
+
+    /** Opens the ride on the Rides page (HubNav.Args.ride names it). */
+    private void openRide(String id) {
+        if (!closed) host.open(HubPages.RIDE_RIDES, HubNav.Args.ride(id));
+    }
+
+    /** The X: this ride's card stays closed (home_just_back_dismissed); a newer ride shows again. */
+    private void dismissRide(String id) {
+        if (closed) return;
+        preferences.edit().putString(HomeMoment.DISMISSED_KEY, id).apply();
+        refresh();
+    }
+
     @Override public void close() {
         closed = true;
-        overview.animate().cancel();
-        charging.animate().cancel();
+        for (View view : moments) view.animate().cancel();
+        worker.shutdownNow();
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
         editSheet = null;
         parts.close();
@@ -269,46 +378,22 @@ final class CleanHomeScreen implements AppScreen {
         if (service != null && service.profiles.active() != null) {
             TextView label = ui.sectionLabel(HubText.editQuickActions().render());
             content.addView(label);
-            LinearLayout card = ui.groupCard();
-            for (int i = 0; i < quickIds.size(); i++) {
-                if (i > 0) ui.divider(card);
-                card.addView(slot(i));
-            }
+            LinearLayout card = HomeQuickEditor.slots(host, quickIds, this::changeSlot);
             content.addView(card, new LinearLayout.LayoutParams(-1, -2));
         }
         editSheet = host.showSheet(content);
     }
 
-    /** One of the four: its icon and name; a tap opens the picker for that position. */
-    private View slot(int index) {
-        String id = quickIds.get(index);
-        QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        CharSequence label = entry == null ? id : entry.label().render();
-        LinearLayout line = row();
-        line.setTag(TAG_SLOT + (index + 1));
-        line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : QuickAccessGrid.roundGlyph(id, entry.icon), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-        TextView name = ui.text(label, 15, false);
-        name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);
-        nameSize.setMarginStart(ui.dp(12));
-        line.addView(name, nameSize);
-        line.addView(ui.icon("chevron", 15, ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
-        line.setContentDescription(HubText.editQuickSlot(index + 1, label).render());
-        line.setClickable(true);
-        line.setFocusable(true);
-        line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
-        line.setOnClickListener(v -> parts.chooseQuickAction(quickIds, index, picked -> {
+    /** A slot of the Edit sheet was tapped (HomeQuickEditor.slot): the picker for that position. */
+    private void changeSlot(int index) {
+        parts.chooseQuickAction(quickIds, index, picked -> {
             ArrayList<String> next = new ArrayList<>(quickIds);
             next.set(index, picked);
             saveQuick(next);
             if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
             // The new four show on the rebuilt Home.
             host.rebuild();
-        }));
-        return line;
+        });
     }
 
     // ===== Sizes and small views =====
