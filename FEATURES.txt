@@ -728,9 +728,9 @@ APP TOOLS AND REMAINING VALIDATION
 
 The app includes local profiles, appearance/text/unit choices, fold-aware
 layouts, charts, ride recording, notes, comparison and exports. Settings is one
-page (Home style, Appearance, display settings; My scooters, Back up & restore;
-Updates, About & permissions, Developer options), and its sections open as
-pages. Security and Experimental controls are subject pages (Security,
+page (Home style, Appearance, Units, Text size, Language, Haptic feedback; My
+scooters, Back up & restore; Updates, About & permissions, Developer options),
+and its sections open as pages; Appearance and Updates open over it. Security and Experimental controls are subject pages (Security,
 Service > Experimental controls). Open sub-pages close back to their subject
 after a minute away from the app or a reboot, while quick returns keep them.
 First-time owner setup stays visible when needed.
