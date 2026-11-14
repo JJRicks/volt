@@ -29,6 +29,8 @@ final class HubBatterySummary implements AppScreen {
     private static final double KM_PER_MILE = 1.609344;
     /** The percent sign beside the large level, relative to the number (as Home's battery card draws it). */
     private static final float SIGN = .44f;
+    /** The space between a reading's name and its value in the right column, dp. */
+    private static final int FACT_GAP_DP = 5;
 
     private final ScreenHost host;
     private final Ui ui;
@@ -52,9 +54,10 @@ final class HubBatterySummary implements AppScreen {
         side = new LinearLayout(host.activity()); side.setOrientation(LinearLayout.VERTICAL);
         // The column reads quietly, names and values alike muted and regular ("Health 97%"), as the plan draws it.
         healthName = ui.text("", 14, false); healthValue = ui.text("", 14, false);
-        healthRow = fact(healthName, healthValue); side.addView(healthRow);
+        // Each line as wide as its own words: the column takes its widest shown line (SideOrStack, BatterySummaryFit.columnWidth).
+        healthRow = fact(healthName, healthValue); side.addView(healthRow, new LinearLayout.LayoutParams(-2, -2));
         packName = ui.text("", 14, false); packValue = ui.text("", 14, false);
-        packRow = fact(packName, packValue); side.addView(packRow);
+        packRow = fact(packName, packValue); side.addView(packRow, new LinearLayout.LayoutParams(-2, -2));
         state = ui.text("", 14, false); state.setTextColor(ui.muted);
         side.addView(state, new LinearLayout.LayoutParams(-2, -2));
         figures.addView(side);
@@ -74,7 +77,7 @@ final class HubBatterySummary implements AppScreen {
         row.setGravity(Gravity.CENTER_VERTICAL);
         name.setTextColor(ui.muted); name.setMaxLines(1);
         row.addView(name, new LinearLayout.LayoutParams(-2, -2));
-        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(5);
+        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(FACT_GAP_DP);
         value.setTextColor(ui.muted); value.setMaxLines(1); row.addView(value, valueParams);
         if (Build.VERSION.SDK_INT >= 28) row.setScreenReaderFocusable(true);
         return row;
@@ -166,13 +169,28 @@ final class HubBatterySummary implements AppScreen {
             boolean stack = false;
             if (column.getVisibility() != GONE && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 int room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
-                column.measure(MeasureSpec.makeMeasureSpec(Math.max(0, room), MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                float need = Layout.getDesiredWidth(level.getText(), level.getPaint()) + level.getPaddingLeft() + level.getPaddingRight();
-                stack = BatterySummaryFit.stacks(room, column.getMeasuredWidth(), ui.dp(12), need);
+                // The column is as wide as its widest shown line, whichever that is (BatterySummaryFit.columnWidth).
+                int width = BatterySummaryFit.columnWidth(Math.max(0, room), lineWidth(healthRow, healthName, healthValue),
+                        lineWidth(packRow, packName, packValue), state.getVisibility() == GONE ? 0 : (int) Math.ceil(textWidth(state)));
+                LayoutParams params = (LayoutParams) column.getLayoutParams();
+                if (params.width != width) { params.width = width; column.setLayoutParams(params); }
+                float need = textWidth(level);
+                stack = BatterySummaryFit.stacks(room, width, ui.dp(12), need);
             }
             arrange(stack);
             fit(stack || column.getVisibility() == GONE ? 0 : firstLineCapTop());
             super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** A text view's one-line width, with its padding. */
+        private float textWidth(TextView words) {
+            return Layout.getDesiredWidth(words.getText(), words.getPaint()) + words.getCompoundPaddingLeft() + words.getCompoundPaddingRight();
+        }
+
+        /** A reading's line in the right column (name, gap, value); 0 while it is hidden. */
+        private int lineWidth(View row, TextView name, TextView value) {
+            if (row.getVisibility() == GONE) return 0;
+            return BatterySummaryFit.factWidth(textWidth(name), ui.dp(FACT_GAP_DP), textWidth(value)) + row.getPaddingLeft() + row.getPaddingRight();
         }
 
         /** The level's margins and the range line's gap (BatterySummaryFit), from the fonts' measured glyphs. */
@@ -211,7 +229,7 @@ final class HubBatterySummary implements AppScreen {
             stacked = stack;
             LayoutParams main = (LayoutParams) getChildAt(0).getLayoutParams(), column = (LayoutParams) getChildAt(1).getLayoutParams();
             main.width = stack ? LayoutParams.MATCH_PARENT : 0; main.weight = stack ? 0 : 1;
-            column.width = LayoutParams.WRAP_CONTENT; column.gravity = Gravity.TOP;
+            column.gravity = Gravity.TOP;
             column.leftMargin = stack ? 0 : ui.dp(12); column.topMargin = stack ? ui.dp(10) : 0;
             setOrientation(stack ? VERTICAL : HORIZONTAL);
         }

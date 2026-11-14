@@ -29,4 +29,20 @@ final class BatterySummaryFit {
      * column's and the gap between them don't fit the room (a narrow screen at large text). The level is never shrunk.
      */
     static boolean stacks(int room, int columnWidth, int gap, float levelWidth) { return room - columnWidth - gap < levelWidth; }
+
+    /**
+     * The right column's width: its widest shown line (a reading's name, the gap and its value, or the state line), so
+     * "Health 97%" is never cut to the width of a shorter state line such as "Charging"; never more than the room.
+     * A line that isn't shown is passed as 0 (or less).
+     */
+    static int columnWidth(int room, int... lineWidths) {
+        int widest = 0;
+        for (int width : lineWidths) widest = Math.max(widest, width);
+        return Math.max(0, Math.min(room, widest));
+    }
+
+    /** A reading's line in the right column: its name, the gap and its value, rounded up so no glyph is clipped. */
+    static int factWidth(float nameWidth, int gap, float valueWidth) {
+        return (int) Math.ceil(nameWidth) + gap + (int) Math.ceil(valueWidth);
+    }
 }
