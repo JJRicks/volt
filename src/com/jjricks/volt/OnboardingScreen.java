@@ -83,6 +83,10 @@ public final class OnboardingScreen implements AppScreen {
             KEY_CREATED = "created_profile_id", KEY_PENDING_NAME = "pending_name",
             KEY_IMPORT_FAILED = "import_failed", KEY_ASKED_NEARBY = "nearby_asked",
             KEY_CONNECT = "connect_requested", KEY_TRIED = "connect_tried", KEY_TICK = "tick_";
+    /** The Home style picked on the last step, held until setup ends (then HomeStylePrefs.markChosen stores it). */
+    static final String KEY_HOME_STYLE = "home_style_pick";
+    /** View tag of the last step's Home style choice. */
+    static final String TAG_HOME_STYLE = "onboarding-home-style";
     /**
      * The scooter profile holding the owner key this setup made ("Make a new owner key"), so Back and Continue reuse it.
      * A profile ID only; the key itself lives in {@link ScooterProfiles} like any other, and whether it was offered, and
@@ -518,7 +522,18 @@ public final class OnboardingScreen implements AppScreen {
 
     private void finish(boolean skipped) {
         homeFor = null;
+        String style = homeStyle();
+        boolean rerun = prefs.getBoolean(KEY_RERUN, false);
         prefs.edit().clear().putBoolean(KEY_DONE, true).commit();
+        // Finishing is an explicit Home style choice (the one shown on the last step, Clean preselected on a new
+        // install), which also records a new install's origin. Skipping first-run setup chooses nothing and only
+        // records the new install (HomeStylePrefs.recordNewInstall, with Clean when no style is stored): the seed
+        // waits while first-run setup is under way, so setup's end must record it (no What's new for it). Skipping
+        // a rerun changes nothing: that installation's history is the seed's. A style a restore stored during setup
+        // (with no origin) is an earlier owner's: both record origin update for it, not install (HomeStyle.pickedOrigin).
+        SharedPreferences app = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        if (!skipped) HomeStylePrefs.markChosen(app, style);
+        else if (!rerun) HomeStylePrefs.setupSkipped(app);
         closed = true;
         if (identityField != null) identityField.setText("");
         if (listener != null) { if (skipped) listener.onSkipped(); else listener.onFinished(); }
@@ -1623,9 +1638,35 @@ public final class OnboardingScreen implements AppScreen {
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10);
             group.addView(revoke, rp);
         }
+        content.addView(homeStyleChoice(), new LinearLayout.LayoutParams(-1, -2));
         homeButton = primary(T.onboardingDoneHome(), this::home);
         homeSpinner = null;
         updaters.add(this::homeCheck);
+    }
+
+    /** The last step's Home style choice: its title, one line and the two styles. Stored when setup finishes. */
+    private View homeStyleChoice() {
+        LinearLayout section = column();
+        section.setTag(TAG_HOME_STYLE);
+        section.setPadding(0, ui.dp(24), 0, ui.dp(8));
+        TextView heading = ui.text(HubText.setupStyleTitle(), 20, true);
+        if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
+        section.addView(heading, new LinearLayout.LayoutParams(-1, -2));
+        TextView body = ui.caption(HubText.setupStyleBody().render());
+        body.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f * ui.textScale);
+        body.setPadding(0, ui.dp(6), 0, ui.dp(12));
+        section.addView(body, new LinearLayout.LayoutParams(-1, -2));
+        section.addView(HomeStylePicker.build(host, homeStyle(), picked -> prefs.edit().putString(KEY_HOME_STYLE, picked).apply()),
+                new LinearLayout.LayoutParams(-1, -2));
+        return section;
+    }
+
+    /** The style the last step shows: the one picked there, else the current one on a rerun or an earlier owner, else Clean. */
+    private String homeStyle() {
+        Object stored;
+        try { stored = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE).getAll().get(HomeStyle.KEY); }
+        catch (RuntimeException e) { stored = null; }
+        return HomeStyle.setupChoice(prefs.getString(KEY_HOME_STYLE, null), prefs.getBoolean(KEY_RERUN, false), stored);
     }
 
     /**

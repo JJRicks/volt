@@ -105,7 +105,7 @@ The browser dependency lock currently contains these runtime packages:
 esbuild 0.28.2 is an MIT-licensed build tool. Neither is shipped as browser runtime
 code. `setup/web/build.mjs` collects the installed @yume-chan packages' license
 texts and the Saira license into `THIRD-PARTY-NOTICES.txt`. Android builds package
-`licenses/` as APK assets. Recheck this inventory whenever dependencies change.
+`licenses/` as APK assets, beside this version's `CHANGELOG.md` section (`whats-new/notes.md`). Recheck this inventory whenever dependencies change.
 
 ## Before calling the release 1.0
 

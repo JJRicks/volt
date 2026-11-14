@@ -166,5 +166,14 @@ public final class HubSummariesTest {
         // Otherwise at the interval.
         require(!HubSummaries.rescanRides(false, false, true, every - 1, every), "Known, within the interval: no look");
         require(HubSummaries.rescanRides(false, false, true, every, every), "Known, the interval passed: look");
+        // Emulator walk on #390: Just back showed a ride saved just then while the Ride row said "No rides yet". The
+        // row takes the ride Clean found when it knows none or an older one, never an older one, not while recording.
+        long saved = 1_700_000_000_000L;
+        require(HubSummaries.takeFoundRide(false, null, saved), "No ride known: the found ride, at once");
+        require(HubSummaries.takeFoundRide(false, saved - 60_000, saved), "An older ride known: the newer found ride");
+        require(!HubSummaries.takeFoundRide(false, saved, saved), "The same ride: nothing to change");
+        require(!HubSummaries.takeFoundRide(false, saved, saved - 60_000), "Never an older ride over the row's own");
+        require(!HubSummaries.takeFoundRide(false, null, null) && !HubSummaries.takeFoundRide(false, saved, null), "Nothing found: the row's own");
+        require(!HubSummaries.takeFoundRide(true, null, saved), "Recording: the row shows the recording");
     }
 }

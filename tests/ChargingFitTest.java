@@ -77,8 +77,12 @@ public final class ChargingFitTest {
             require(ChargingFit.scaled(c.percent, p.percentScale) + under <= p.stageHeight, c.name + ": the track stays under the percentage: " + p);
         if (!p.track) require(!p.photo() && (!p.percent || ChargingFit.scaled(c.percent, p.percentScale) <= p.stageHeight),
                 c.name + ": without the track, the percentage fits the stage and no photo shows: " + p);
-        // The percentage stays while the readings leave it any height (the contributor's pick).
-        require(p.percent || c.inner <= c.readings, c.name + ": the percentage stays while the readings leave room: " + p);
+        // The percentage stays while the readings leave it any height it can be read at (the contributor's pick; below
+        // ChargingFit.PERCENT_LEAST_DP it gives way, review of f5540133, finding 1), and is never drawn smaller.
+        require(p.percent || c.inner - c.readings < ChargingFit.PERCENT_LEAST_DP,
+                c.name + ": the percentage stays while the readings leave room for it: " + p);
+        require(!p.percent || c.percent * p.percentScale + 1e-3f >= ChargingFit.PERCENT_LEAST_DP,
+                c.name + ": the percentage is never drawn below its least readable height: " + p);
         require(!p.shortLine || c.shortLine < c.line, c.name + ": a line already on one line keeps its words: " + p);
     }
 
@@ -185,7 +189,12 @@ public final class ChargingFitTest {
             }
             if (p.line && p.percent) require(p.percentScale >= ChargingFit.HALF_SCALE, "with the line, the percentage is at least half, at " + inner);
             require(p.readings, "the readings stay, at " + inner + ": " + p);
-            require(p.percent || inner <= readings, "while the readings leave room, the percentage shows, at " + inner + ": " + p);
+            // While the readings leave room for it at its least readable height, the percentage shows; below that it
+            // gives way (review of f5540133, finding 1), and whenever it shows it can be read.
+            require(p.percent || inner - readings < ChargingFit.PERCENT_LEAST_DP,
+                    "while the readings leave room for a readable percentage, it shows, at " + inner + ": " + p);
+            if (p.percent) require(percent * p.percentScale + 1e-3f >= ChargingFit.PERCENT_LEAST_DP,
+                    "the percentage is never drawn below its least readable height, at " + inner + ": " + p);
             // Council review 5904036506, finding 6, and the review of 98be0a02: the percentage never grows as the slot
             // shrinks, at every step, and the photo never comes back once the track has made way.
             float scaleNow = p.percent ? p.percentScale : 0;
@@ -205,11 +214,31 @@ public final class ChargingFitTest {
         require(c.plan.readings && c.plan.percent && !c.plan.track && c.plan.percentScale < ChargingFit.PERCENT_MIN_SCALE,
                 "the stacked tiles and a smaller percentage over them: " + c.plan);
         // Too short even for the percentage at its least over the readings: the readings stay, the percentage gets
-        // smaller still, and the freed height never goes to the photo or the track (review of 98be0a02, finding 2).
-        c = new Case("readings fit, percentage does not", 190, 50, 25, 98, 186);
+        // smaller still while it can be read, and the freed height never goes to the photo or the track (review of
+        // 98be0a02, finding 2).
+        c = new Case("readings fit, percentage does not", 200, 50, 25, 98, 186);
         sound(c);
         require(c.plan.percent && c.plan.readings && c.plan.percentScale < ChargingFit.PERCENT_TINY_SCALE
                         && !c.plan.photo() && !c.plan.track, "the readings stay, the percentage smaller still: " + c.plan);
+        // ... and with only 4 px left the percentage gives way (it would be a 4 px smudge): the readings alone.
+        c = new Case("readings fit, 4 px left", 190, 50, 25, 98, 186);
+        sound(c);
+        require(!c.plan.percent && c.plan.readings && !c.plan.photo() && !c.plan.track,
+                "4 px over the readings: the percentage gives way, the readings stay: " + c.plan);
+        // Review of f5540133, finding 1: 3 px left over a 115 px percentage was drawn about 3 px tall (scale 0.026).
+        // Now it gives way below PERCENT_LEAST_DP, at any density, and stays at or above it.
+        for (float density : new float[]{1f, 2.625f, 3f}) {
+            int readingsPx = Math.round(186 * density), percentPx = 115;
+            ChargingFit.Plan smudge = ChargingFit.plan(readingsPx + 3, 50, 25, percentPx, readingsPx, density);
+            require(!smudge.percent && smudge.readings && !smudge.track && !smudge.photo(),
+                    "3 px over a 115 px percentage at density " + density + ": it gives way, the readings stay: " + smudge);
+            int least = Math.round(ChargingFit.PERCENT_LEAST_DP * density);
+            ChargingFit.Plan kept = ChargingFit.plan(readingsPx + least, 50, 25, Math.round(98 * density), readingsPx, density);
+            require(kept.percent && kept.readings && Math.round(98 * density) * kept.percentScale + 1e-3f >= least,
+                    "room for the least readable height at density " + density + ": the percentage stays: " + kept);
+            ChargingFit.Plan under = ChargingFit.plan(readingsPx + least - 1, 50, 25, Math.round(98 * density), readingsPx, density);
+            require(!under.percent && under.readings, "1 px under its least readable height at density " + density + ": it gives way: " + under);
+        }
         // The PR's 1.4x stacked-tile numbers, stepping the slot down past the readings: nothing grows, no photo returns.
         float last = 1;
         for (int inner = 260; inner >= 0; inner--) {
@@ -238,9 +267,12 @@ public final class ChargingFitTest {
         require(ChargingFit.plan(readings + least, line, shortLine, percent, readings, 1f).readings
                         && ChargingFit.plan(readings + least, line, shortLine, percent, readings, 1f).percent,
                 "the readings' height and the percentage at its least keeps both");
-        require(ChargingFit.plan(readings + 1, line, shortLine, percent, readings, 1f).percent
+        require(ChargingFit.plan(readings + ChargingFit.PERCENT_LEAST_DP, line, shortLine, percent, readings, 1f).percent
+                        && ChargingFit.plan(readings + ChargingFit.PERCENT_LEAST_DP, line, shortLine, percent, readings, 1f).readings,
+                "a slot its least readable height taller than the readings: the readings and the percentage, smaller still");
+        require(!ChargingFit.plan(readings + 1, line, shortLine, percent, readings, 1f).percent
                         && ChargingFit.plan(readings + 1, line, shortLine, percent, readings, 1f).readings,
-                "a slot 1 dp taller than the readings: the readings and the percentage, smaller still");
+                "a slot 1 dp taller than the readings: the readings alone (a 1 dp percentage could not be read)");
         require(ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).readings
                         && !ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).photo(),
                 "exactly the readings' height: the readings stay (the tiles stay), no photo takes the height");

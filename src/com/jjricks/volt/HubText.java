@@ -234,6 +234,12 @@ public final class HubText {
     public static Msg justBackBattery(Double batteryDropPercent) {
         return batteryDropPercent != null && batteryDropPercent < 0 ? M.ridesTileBatteryGain() : M.ridesTileBatteryDrop();
     }
+    /**
+     * The battery tile's label as the Layout Plan's mock-up has it (the contributor's decisions on #383, which replace
+     * the drop/gain pair above on Just back): "Battery", the value carrying the signed change ("−18%"). The Battery
+     * subject's short name (hub_subject_battery_short) until part 10 gives Just back a key of its own.
+     */
+    public static Msg justBackBatteryTile() { return shortTitle(HubPages.BATTERY); }
 
     // ===== Clean Home's Edit sheet and quick actions =====
 

@@ -81,6 +81,32 @@ final class QuickActionLayout {
     static float room(float column) { return Math.max(0, column - 2 * SIDE_DP); }
 
     /**
+     * A ladder of names with a one-word name first (the contributor's pick on #383: short names under the circles):
+     * where the first name has more than one word and a later one is a single word, that word moves to the front and
+     * the rest keep their order. So pt-BR cruise control reads "Cruzeiro" (its Setting tile rung) rather than Live
+     * Stats' "Controle de cruzeiro", even in a wide column where the long name would fit (review of #449 f5540133,
+     * finding 3). A ladder whose first name is already one word, or that has no one-word name, is unchanged.
+     */
+    static String[] oneWordFirst(String... names) {
+        if (names.length == 0 || names[0] == null || oneWord(names[0])) return names;
+        for (int i = 1; i < names.length; i++) {
+            if (names[i] == null || names[i].isEmpty() || !oneWord(names[i])) continue;
+            String[] ordered = new String[names.length];
+            ordered[0] = names[i];
+            for (int from = 0, to = 1; from < names.length; from++) if (from != i) ordered[to++] = names[from];
+            return ordered;
+        }
+        return names;
+    }
+
+    /** No space of any kind inside the trimmed name. */
+    private static boolean oneWord(String name) {
+        String trimmed = name.trim();
+        for (int i = 0; i < trimmed.length(); i++) if (Character.isWhitespace(trimmed.charAt(i)) || Character.isSpaceChar(trimmed.charAt(i))) return false;
+        return true;
+    }
+
+    /**
      * The name on one line, never cut: {@code names} in order (the action's name, then shorter names the catalog
      * already has). A shorter word comes before smaller text (the contributor docs' rule for narrow labels): the first
      * name whole at full size; else the largest size, in steps down to {@link #MIN_SCALE}, at which one of them is

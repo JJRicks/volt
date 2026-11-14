@@ -10,6 +10,7 @@ public final class HomeMomentTest {
         window();
         dismissed();
         switches();
+        looking();
         keys();
         System.out.println("HomeMoment: " + checks + " checks passed");
     }
@@ -48,6 +49,17 @@ public final class HomeMomentTest {
         require(HomeMoment.choose(true, false, false, false, "r1", END, null, END + MIN) == HomeMoment.PARKED, "Ride switched off: parked");
         require(HomeMoment.on(null) && HomeMoment.on(Boolean.TRUE) && HomeMoment.on("false"), "Absent or anything but false is on");
         require(!HomeMoment.on(Boolean.FALSE), "Only a stored false is off");
+    }
+
+    /** When Clean looks at the saved rides again (PR 9). */
+    private static void looking() {
+        long t = 5_000_000L;
+        require(HomeMoment.lookAgain(-1, t, false), "The first refresh looks");
+        require(!HomeMoment.lookAgain(t, t + 1_000L, false), "A telemetry refresh soon after does not");
+        require(HomeMoment.lookAgain(t, t + 1_000L, true), "Recording starting or stopping looks at once");
+        require(!HomeMoment.lookAgain(t, t + HomeMoment.RIDES_RECHECK_MS - 1, false), "Not before the half minute");
+        require(HomeMoment.lookAgain(t, t + HomeMoment.RIDES_RECHECK_MS, false), "Then again every half minute");
+        require(HomeMoment.lookAgain(t, t - 1, false), "A clock that went back looks again");
     }
 
     private static void keys() {
