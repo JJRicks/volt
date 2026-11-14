@@ -2810,7 +2810,7 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service();
         boolean simulating = s != null && s.simulating();
         if (developerIndexRow != null) {
-            developerIndexRow.value(simulating ? T.moreDevSimulating() : null);
+            developerIndexRow.value(simulating ? simulatingLabel() : null);
             developerIndexRow.value.setTextColor(ui.orange);
         }
         if (simulationRow != null) {
@@ -3474,4 +3474,7 @@ public final class MoreScreen implements AppScreen {
             return r;
         }
     }
+
+    /** "Simulating": the developer row's value while the simulator runs; the Ride page's Record ride tile's short rung then. */
+    static String simulatingLabel() { return T.moreDevSimulating(); }
 }

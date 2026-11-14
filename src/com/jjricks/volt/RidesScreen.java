@@ -108,6 +108,8 @@ public final class RidesScreen implements AppScreen {
     /** SUMMARY only (the Ride page): the Record ride tile beside Riding mode, and what it shows now. */
     private LinearLayout recordTile; private TextView recordName; private GlyphView recordGlyph;
     private RideRecordTile.Look recordLook = RideRecordTile.Look.START;
+    /** The Record ride tile's rungs for its current look (recordRungs), and whether its full name wraps before a shorter rung. */
+    private String[] recordRungs; private boolean recordWraps;
     /** ALL only: Compare two rides (SUMMARY links to ALL instead). */
     private Row compareRow;
     /** SENSORS only: the Next ride tag shown while a ride records, since a change applies to the next recording. */
@@ -226,6 +228,8 @@ public final class RidesScreen implements AppScreen {
             riding.setContentDescription(HubText.openRiding().render()); riding.setTag("ride-open-riding");
             recordGlyph = new GlyphView(HomeQuickActions.ICON_RECORD, ui.accent);
             recordName = tileName(HubText.quickActionLabel(HomeQuickActions.RECORD), ui.text);
+            // A word too long for the tile takes a shorter rung (fitRecordName), never a hyphen.
+            recordName.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
             recordName.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> fitRecordName());
             recordTile = rideTile(recordGlyph, recordName, ui.surface, Ui.withAlpha(ui.accent, 30), this::tapRecordTile);
             recordTile.setTag("ride-record");
@@ -340,19 +344,29 @@ public final class RidesScreen implements AppScreen {
         int ink = dim ? ui.dim : recordLook == RideRecordTile.Look.SIMULATING ? ui.muted : ui.text;
         recordName.setTextColor(ink);
         recordGlyph.setColor(dim || recordLook == RideRecordTile.Look.SIMULATING ? ink : ui.accent);
-        if (recordLook == RideRecordTile.Look.RECORDING) {
-            String now = HubText.qaRecording().render();
-            if (!now.contentEquals(recordName.getText())) recordName.setText(now);
-            recordTile.setContentDescription(now);
-        } else if (recordLook == RideRecordTile.Look.START) {
-            fitRecordName();
-            // Spoken by its full name, even while the short rung is drawn, so the spoken name holds the visible one.
-            recordTile.setContentDescription(HubText.quickActionLabel(HomeQuickActions.RECORD).render());
-        } else {
-            // "Simulating · Exit" wraps before the dot where it must, never leaving the dot at a line's end.
-            String drawn = RideRecordTile.dotsLead(startLabel);
-            if (!drawn.contentEquals(recordName.getText())) recordName.setText(drawn);
-            recordTile.setContentDescription(startSpoken);
+        // Every look goes through the narrow-label ladder (fitRecordName); each is spoken by its full name, even while a
+        // shorter rung (or the icon alone) is drawn, so the spoken name holds the visible one.
+        String[] rungs = recordRungs(recordLook, startLabel);
+        if (!java.util.Arrays.equals(rungs, recordRungs)) recordRungs = rungs;
+        recordWraps = recordLook != RideRecordTile.Look.START && recordLook != RideRecordTile.Look.RECORDING;
+        fitRecordName();
+        recordTile.setContentDescription(recordLook == RideRecordTile.Look.RECORDING ? HubText.qaRecording().render()
+                : recordLook == RideRecordTile.Look.START ? HubText.quickActionLabel(HomeQuickActions.RECORD).render() : startSpoken);
+    }
+    /**
+     * The Record ride tile's rungs for a look, longest first: "Record ride", then "Record"; "Recording", then the riding
+     * screen's shorter names for it ("Enreg.", "REC" in French); "Simulating · Exit" (wrapping before the dot where it
+     * must), then "Simulating"; the sensors-saving line alone.
+     */
+    private static String[] recordRungs(RideRecordTile.Look look, String startLabel) {
+        switch (look) {
+            case START: return new String[]{HubText.quickActionLabel(HomeQuickActions.RECORD).render(), HubText.quickActionShortLabel(HomeQuickActions.RECORD).render()};
+            case RECORDING: {
+                String[] shorter = RidingScreen.recordingRungs();
+                return new String[]{HubText.qaRecording().render(), shorter[0], shorter[1]};
+            }
+            case SIMULATING: return new String[]{RideRecordTile.dotsLead(startLabel), MoreScreen.simulatingLabel()};
+            default: return new String[]{RideRecordTile.dotsLead(startLabel)};
         }
     }
     /** The tile's tap: only when RideRecordTile.taps allows it (start, or leave simulation), as the button's was. */
@@ -360,16 +374,23 @@ public final class RidesScreen implements AppScreen {
         if (recordLook == RideRecordTile.Look.START || recordLook == RideRecordTile.Look.SIMULATING) toggleRecording();
     }
     /**
-     * The narrow-label ladder on the Record ride tile's name (RideRecordTile.nameRung): "Record ride" while it fits the
-     * tile, else its short rung "Record" (wrapping only if even that does not fit); the text is never shrunk or broken.
+     * The narrow-label ladder on the Record ride tile's name, in every look (RideRecordTile.rung): the full name while it
+     * fits one line, else a shorter rung ("Record ride", then "Record"), wrapping only between words where nothing fits
+     * one line, and the icon alone where even a single word would have to break. The text is never shrunk or broken.
      */
     private void fitRecordName() {
-        if (recordName == null || recordLook != RideRecordTile.Look.START) return;
-        String full = HubText.quickActionLabel(HomeQuickActions.RECORD).render(), brief = HubText.quickActionShortLabel(HomeQuickActions.RECORD).render();
+        String[] rungs = recordRungs;
+        if (recordName == null || rungs == null) return;
         float room = recordName.getWidth() - recordName.getPaddingLeft() - recordName.getPaddingRight();
+        float[] lines = new float[rungs.length], words = new float[rungs.length];
+        for (int i = 0; i < rungs.length; i++) {
+            lines[i] = recordName.getPaint().measureText(rungs[i]);
+            for (String word : RideRecordTile.words(rungs[i])) words[i] = Math.max(words[i], recordName.getPaint().measureText(word));
+        }
         // Before the first layout there is no room yet: the full name, until the layout listener measures it.
-        CharSequence pick = RideRecordTile.nameRung(recordName.getPaint().measureText(full), room) == 0 ? full : brief;
-        if (TileRung.needsSet(pick, recordName.getText())) recordName.post(() -> { if (recordLook == RideRecordTile.Look.START) recordName.setText(pick); });
+        int rung = RideRecordTile.rung(lines, words, room, recordWraps);
+        CharSequence pick = rung < 0 ? "" : rungs[rung];
+        if (TileRung.needsSet(pick, recordName.getText())) recordName.post(() -> { if (java.util.Arrays.equals(recordRungs, rungs)) recordName.setText(pick); });
     }
     /** One of the Ride page's two tiles: an icon over its name, on a rounded fill, the whole tile one button. */
     private LinearLayout rideTile(GlyphView glyph, TextView name, int fill, int ripple, Runnable action) {

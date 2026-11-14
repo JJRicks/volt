@@ -51,6 +51,29 @@ final class RideRecordTile {
     }
 
     /**
+     * The narrow-label ladder for every look of the tile (owner: short forms before anything wraps; never a word broken
+     * or the text shrunk). Rungs run longest first: lines[i] is rung i's one-line width, longestWords[i] the width of
+     * its widest unbreakable part (RideRecordTile.words), both measured in room's units. Before the first layout (room
+     * <= 0) rung 0. Otherwise, unless the look wraps first, the first rung that fits on one line; then the first whose
+     * every word fits, wrapping between words; -1 when none does, where the tile shows its icon alone (its spoken name
+     * stays). wrapsFirst: the full name may wrap between words before a shorter rung is used ("Simulating · Exit",
+     * which wraps before the dot, keeps its way out on the tile).
+     */
+    static int rung(float[] lines, float[] longestWords, float room, boolean wrapsFirst) {
+        if (lines.length == 0) return -1;
+        if (room <= 0) return 0;
+        if (!wrapsFirst) for (int i = 0; i < lines.length; i++) if (lines[i] <= room) return i;
+        for (int i = 0; i < longestWords.length; i++) if (longestWords[i] <= room) return i;
+        return -1;
+    }
+
+    /** The parts a name may wrap between: split at ordinary spaces only (a no-break space, as dotsLead adds, joins). */
+    static String[] words(String name) {
+        if (name == null || name.isEmpty()) return new String[0];
+        return name.split(" +");
+    }
+
+    /**
      * A tile name with a middle dot ("Simulating · Exit") as it may wrap: the space after each " · " no longer breaks,
      * so a narrow tile wraps before the dot ("Simulating" / "· Exit") and never leaves it at a line's end. Text without
      * the dot is unchanged; nothing is reworded.
