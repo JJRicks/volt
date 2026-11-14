@@ -309,6 +309,31 @@ public final class RidingChipWidenTest {
                 check(gpsWidenings <= 1 && tempWidenings <= 1, unit + ": at most one widening per reading: " + gpsWidenings + ", " + tempWidenings);
             }
         }
+        // The column's room: from the widest values, so a widening within them never changes it.
+        int base = 99, size = 234;
+        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{99, 62}) == base,
+                "a GPS chip widened to its widest (±888 ft) fits the room it fitted before: the room stays");
+        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{111, 62}) == 111,
+                "a fix past even the widest (±1000 ft, kept as ±8888 ft) widens the column once to hold it, no follower");
+        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{300, 62}) == size, "never past the row");
+        check(RidingChipFit.columnRoom(base, size, new int[]{140, 62}, new int[]{150, 62}) == base,
+                "a chip whose widest never fitted (Max speed) leaves the room alone: it follows its value, as before");
+        // With the fake font: the GPS chip's tightest widths, from its widest values and with a ±1000 ft fix kept.
+        RidingChipFit.Reserve gps = new RidingChipFit.Reserve();
+        String[][] usual = gpsUsual(), strict = gpsStrict();
+        int fitted = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
+        see(gps, "±150 ft", null, usual, strict);
+        int afterWidest = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
+        check(afterWidest == fitted && RidingChipFit.columnRoom(fitted, size, new int[]{fitted}, new int[]{afterWidest}) == fitted,
+                "±150 ft: the room is the one before widening");
+        see(gps, "±1000 ft", null, usual, strict);
+        int afterKept = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
+        int room = RidingChipFit.columnRoom(fitted, size, new int[]{fitted}, new int[]{afterKept});
+        check(afterKept > fitted && room == afterKept, "±1000 ft: the room grows once to the kept width");
+        see(gps, "±1888 ft", null, usual, strict);
+        check(RidingChipFit.columnRoom(fitted, size, new int[]{fitted},
+                new int[]{Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT])}) == room,
+                "another four-figure fix: the same room, no second move");
     }
 
     /** Fixed widths [rung][chip], the same whatever the name step and size. */
@@ -355,6 +380,7 @@ public final class RidingChipWidenTest {
         check(screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, false),")
                 && screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, true), canStep, room, limit);"),
                 "the column fits from the widest values");
+        check(screen.contains("room = RidingChipFit.columnRoom(room, size, fitted, kept);"), "the column's room widens once for a value past the widest");
         check(screen.contains("if (group.getMinimumWidth() != columnWidth) group.setMinimumWidth(columnWidth);"),
                 "the column keeps its chips' widest width");
         int row = screen.indexOf("private void fitRow("), column = screen.lastIndexOf("/**", screen.indexOf("private void fitColumn("));

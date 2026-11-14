@@ -2409,6 +2409,17 @@ final class RidingScreen implements AppScreen {
                     if (chip.wanted && chip.namesItself)
                         room = Math.max(room, Math.min(size, chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));
                 }
+                // A chip whose widest values fitted, kept since a value past even those (a ±1000 ft fix): the column widens
+                // once to hold it, rather than the chip following its value from then on (RidingChipFit.columnRoom).
+                List<Chip> wanted = wanted(this);
+                int[] fitted = new int[wanted.size()], kept = new int[wanted.size()];
+                for (int i = 0; i < wanted.size(); i++) {
+                    Chip chip = wanted.get(i);
+                    kept[i] = chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, chip.canStep);
+                    fitted[i] = chip.reserve.kept().isEmpty() ? kept[i]
+                            : chip.strictWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, chip.canStep);
+                }
+                room = RidingChipFit.columnRoom(room, size, fitted, kept);
             }
             int limit = Integer.MAX_VALUE;
             if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
@@ -2627,6 +2638,12 @@ final class RidingScreen implements AppScreen {
                 cell[form] = measureWidth(size, rung, step, widestForms[samples]) + 1;
             }
             return cell[form] - 1;
+        }
+        /** The same from the reading's widest values alone, without the values kept past them (ChipColumn's room). */
+        int strictWidthAt(int size, int rung, int step, boolean compactForm) {
+            int samples = compactForm && canStep ? RidingChipFit.FORM_COMPACT : rung == RidingChipFit.TIGHT ? RidingChipFit.FORM_TIGHT
+                    : RidingChipFit.FORM_FULL;
+            return measureWidth(size, rung, step, strictForms[samples]);
         }
         /** The chip's width at a size, rung and name step with the value on show (fitColumn's followValues). */
         int nowWidthAt(int size, int rung, int step, boolean compactForm) {

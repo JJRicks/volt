@@ -483,6 +483,20 @@ final class RidingChipFit {
         }
     }
 
+    /**
+     * Trace's column room: base (its share of the row, or a self-naming chip's widest), widened once for each chip whose
+     * widest values fitted base (fitted[i], its tightest width from them) but which has since kept a value past them
+     * (kept[i], its tightest width with that value), up to size. A usual-room reading going past its usual values changes
+     * neither width, so never the room; a chip whose widest values never fitted (Max speed's 888.8 mph) still follows
+     * its value (fitColumn), as before.
+     */
+    static int columnRoom(int base, int size, int[] fitted, int[] kept) {
+        int room = base;
+        for (int i = 0; i < fitted.length; i++)
+            if (kept[i] > fitted[i] && fitted[i] <= base) room = Math.max(room, Math.min(size, kept[i]));
+        return room;
+    }
+
     /** The text a chip draws in each form ({@link #drawn}), for {@link Reserve#see}. */
     static String[] drawnByForm(String full, String tight, String compact) {
         String[] out = new String[FORMS];
