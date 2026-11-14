@@ -164,7 +164,7 @@ final class RidingLayoutSheet {
         group.addView(row, new LinearLayout.LayoutParams(-1, -2));
         if (!expanded) return;
         String current = editor.content(spot.id);
-        for (String choice : RidingEditor.choices(spot)) {
+        for (String choice : RidingEditor.options(spot)) {
             boolean selected = choice.equals(current);
             LinearLayout option = new LinearLayout(context);
             option.setOrientation(LinearLayout.HORIZONTAL);
@@ -244,6 +244,7 @@ final class RidingLayoutSheet {
             case RidingLayout.TRACE_SPEED_POWER: return T.ridingContentTraceSpeedPower();
             case RidingLayout.TRACE_POWER: return T.ridingContentTracePower();
             case RidingLayout.TRACE_SPEED: return T.ridingContentTraceSpeed();
+            case RidingLayout.NONE: return T.ridingContentNone();
             default: return T.ridingNoValue();
         }
     }

@@ -53,7 +53,10 @@ public final class Ui {
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
     /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
     public final int accentDeep, onAccent, ok, dim;
-    /** The accent for text and line icons on dark cards (the Layout Plan's #FF8A8C); the accent itself on light. */
+    /**
+     * The accent for text, links and line icons on dark cards (the Layout Plan's #FF8A8C, 4.5:1 on cards where the fill
+     * red is not); the accent itself on light.
+     */
     public final int accentText;
     public final float textScale;
     private final float density;
@@ -278,6 +281,16 @@ public final class Ui {
         if (Build.VERSION.SDK_INT >= 28) view.setAccessibilityHeading(true);
         return view;
     }
+    /**
+     * The Layout Plan's EXPERIMENTAL tag: 11 sp semibold capitals, orange on an 18% orange fill, 6 dp corners. In the light
+     * theme the text is a deeper orange, so the small capitals keep 4.5:1 on the fill over a white card.
+     */
+    public void experimentalTag(TextView view) {
+        view.setAllCaps(true); view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11 * textScale); view.setTypeface(SEMIBOLD);
+        view.setTextColor(dark ? orange : Color.parseColor("#8A5000")); view.setLetterSpacing(0.04f);
+        view.setBackground(shape(withAlpha(orange, 46), 6, 0));
+        view.setPaddingRelative(dp(7), dp(2), dp(7), dp(2));
+    }
     /** A card that holds divided rows: tight vertical padding so rows sit edge to edge. */
     public LinearLayout groupCard() {
         LinearLayout layout = card();
@@ -336,6 +349,101 @@ public final class Ui {
         Drawable[] old = label.getCompoundDrawablesRelative();
         label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
         label.setCompoundDrawablePadding(dp(12));
+        IconBalance.watch(label);
+    }
+    /**
+     * A view's measured width without an icon label's balance spacer, for a parent that measures labels to pick a
+     * layout (Stats' StackingRow): the balance then never changes the layout it picks.
+     */
+    static int unbalancedWidth(View view) {
+        if (!(view instanceof TextView)) return view.getMeasuredWidth();
+        TextView label = (TextView) view;
+        Drawable end = label.getCompoundDrawablesRelative()[2];
+        int spacer = end instanceof BalanceSpacer ? end.getBounds().width() : IconLabelBalance.NONE;
+        return IconLabelBalance.unbalanced(label.getMeasuredWidth(), spacer, label.getCompoundDrawablePadding());
+    }
+    /** The invisible end drawable that centres a centred label's text past its start icon (IconLabelBalance). */
+    private static final class BalanceSpacer extends Drawable {
+        BalanceSpacer(int width) { setBounds(0, 0, width, 0); }
+        @Override public void draw(Canvas canvas) {}
+        @Override public void setAlpha(int value) {}
+        @Override public void setColorFilter(ColorFilter value) {}
+        @Override public int getOpacity() { return PixelFormat.TRANSPARENT; }
+    }
+    /**
+     * Balances a decorated label at layout time, when its gravity, padding, gap, icon and width are final: a centred
+     * label gets the widest end spacer (up to the full balance) that keeps its text on one line, and any other label
+     * loses it. It decides before
+     * the frame draws (and lays the label out again first), so the text never jumps. One per label: decorate may
+     * run more than once on the same label, and a caller may swap the start icon (Stats' spinner) in between.
+     */
+    private static final class IconBalance implements View.OnAttachStateChangeListener, android.view.ViewTreeObserver.OnPreDrawListener {
+        private static final java.util.WeakHashMap<TextView, Boolean> WATCHED = new java.util.WeakHashMap<>();
+        private final TextView label;
+        private android.view.ViewTreeObserver observer;
+        private CharSequence measuredText; private float measuredSize, measuredSpacing, measuredWidth; private Typeface measuredFace;
+
+        private IconBalance(TextView label) { this.label = label; }
+
+        static void watch(TextView label) {
+            if (WATCHED.put(label, Boolean.TRUE) != null) return;
+            IconBalance balance = new IconBalance(label);
+            label.addOnAttachStateChangeListener(balance);
+            if (label.isAttachedToWindow()) balance.onViewAttachedToWindow(label);
+        }
+        @Override public void onViewAttachedToWindow(View view) {
+            if (observer != null && observer.isAlive()) return;
+            observer = label.getViewTreeObserver(); observer.addOnPreDrawListener(this);
+        }
+        @Override public void onViewDetachedFromWindow(View view) {
+            if (observer != null && observer.isAlive()) observer.removeOnPreDrawListener(this);
+            observer = null;
+        }
+        @Override public boolean onPreDraw() {
+            if (!label.isLaidOut() || label.isLayoutRequested()) return true;
+            Drawable[] drawables = label.getCompoundDrawablesRelative();
+            Drawable end = drawables[2];
+            if (end != null && !(end instanceof BalanceSpacer)) return true; // the end belongs to the caller
+            int have = end == null ? IconLabelBalance.NONE : end.getBounds().width(), want = wanted(drawables[0]);
+            if (want == have) return true;
+            // A spacer of width 0 still adds its gap: a tight label's partial balance.
+            label.setCompoundDrawablesRelative(drawables[0], drawables[1],
+                    want == IconLabelBalance.NONE ? null : new BalanceSpacer(want), drawables[3]);
+            return false; // lay out again before this frame draws
+        }
+        private int wanted(Drawable icon) {
+            int align = label.getTextAlignment();
+            boolean centred = align == View.TEXT_ALIGNMENT_CENTER || align == View.TEXT_ALIGNMENT_GRAVITY
+                    && (label.getGravity() & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL;
+            // Autosize could shrink the text into the balanced room; such a label keeps today's layout.
+            if (!centred || icon == null || label.getAutoSizeTextType() != TextView.AUTO_SIZE_TEXT_TYPE_NONE) return IconLabelBalance.NONE;
+            return IconLabelBalance.spacer(true, label.getWidth(), label.getPaddingStart(), label.getPaddingEnd(),
+                    icon.getBounds().width(), label.getCompoundDrawablePadding(), textWidth());
+        }
+        /** The shown text's widest line, unwrapped; measured again only when the text or its paint changes. */
+        private float textWidth() {
+            CharSequence shown = label.getText();
+            if (label.getTransformationMethod() != null) shown = label.getTransformationMethod().getTransformation(shown, label);
+            android.text.TextPaint paint = label.getPaint();
+            if (shown != measuredText || paint.getTextSize() != measuredSize || paint.getLetterSpacing() != measuredSpacing
+                    || paint.getTypeface() != measuredFace) {
+                measuredText = shown; measuredSize = paint.getTextSize(); measuredSpacing = paint.getLetterSpacing();
+                measuredFace = paint.getTypeface();
+                measuredWidth = android.text.Layout.getDesiredWidth(shown, paint);
+            }
+            return measuredWidth;
+        }
+    }
+    /**
+     * The Layout Plan's raised icon tile (the Controls pages): a 33 dp square in the raised colour with the glyph in
+     * accent text, instead of {@link #decorate}'s page-coloured 30 dp square. A label without a tile is left alone.
+     */
+    public void raiseIcon(TextView label) {
+        Drawable[] old = label.getCompoundDrawablesRelative();
+        if (!(old[0] instanceof LabelIcon) || !((LabelIcon) old[0]).boxed) return;
+        Drawable symbol = new LabelIcon(label, ((LabelIcon) old[0]).key, true, true);
+        int size = dp(33); symbol.setBounds(0, 0, size, size);
+        label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
     }
     /**
      * Display-only mode cues from the shown text, which must be Telemetry's English label; callers
@@ -405,20 +513,22 @@ public final class Ui {
         return "";
     }
     private final class LabelIcon extends Drawable {
-        private final TextView owner; private final String key; private final boolean boxed;
+        private final TextView owner; private final String key; private final boolean boxed, raisedTile;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int alpha = 255;
-        LabelIcon(TextView owner, String key, boolean boxed) { this.owner = owner; this.key = key; this.boxed = boxed; }
+        LabelIcon(TextView owner, String key, boolean boxed) { this(owner, key, boxed, false); }
+        LabelIcon(TextView owner, String key, boolean boxed, boolean raisedTile) { this.owner = owner; this.key = key; this.boxed = boxed; this.raisedTile = raisedTile; }
         @Override public void draw(Canvas canvas) {
             canvas.save(); canvas.translate(getBounds().left, getBounds().top);
             int color = owner.getCurrentTextColor();
             if (boxed) {
                 // A dark rounded square with a red glyph; disabled or last-seen labels keep a grey glyph.
                 float w = getBounds().width(), h = getBounds().height();
-                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark ? bg : raised, alpha));
+                // The raised tile (raiseIcon) sits above the card instead of reading as a hole in it.
+                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark && !raisedTile ? bg : raised, alpha));
                 canvas.drawRoundRect(new RectF(0, 0, w, h), dp(10), dp(10), paint);
                 boolean quiet = color == muted || color == dim || !owner.isEnabled();
-                color = quiet ? dim : accent;
+                color = quiet ? dim : raisedTile ? accentText : accent;
                 float glyph = w * .56f; canvas.translate((w - glyph) / 2, (h - glyph) / 2);
                 canvas.scale(glyph / 24f, glyph / 24f);
             } else canvas.scale(getBounds().width() / 24f, getBounds().height() / 24f);

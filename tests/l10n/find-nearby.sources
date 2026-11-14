@@ -1,0 +1,5 @@
+# Find it nearby (FindNearby): a saved scooter at a new Bluetooth address, its rules and how the controller and screens use them.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/ConnectionEventLog.java
+src/com/jjricks/volt/FindNearby.java
+tests/l10n/FindNearbyTest.java

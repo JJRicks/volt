@@ -92,12 +92,14 @@ public final class ChargeScheduleValidation extends Instrumentation {
         assertNoRadio();checks.add("Done-by time picker and shortcut save a per-scooter preference offline without radio operations");
     }
     private void verifyOrdering(){main(()->{
-        Object manual=control("timed_charging"),start=control("charge_start");
-        assertImmediatelyAfter((View)field(manual,"card"),(View)field(field(done(false),"row"),"card"));
-        assertImmediatelyAfter((View)field(start,"card"),(View)field(field(done(true),"row"),"card"));
+        // Since the Layout Plan's rows (#452): one Charge done by row right after Charge start; its sheet holds the switch, then the time.
+        Object start=control("charge_start");
+        assertImmediatelyAfter((View)field(start,"card"),summaryCard());
+        assertImmediatelyAfter((View)field(field(done(false),"row"),"card"),(View)field(field(done(true),"row"),"card"));
         require("Charge done by".contentEquals(((TextView)field(field(done(true),"row"),"name")).getText()),"Done time uses a different setting label");
-    });checks.add("Done-by toggle follows Scheduled charging; done-by time follows Charge start in Scooter > Battery");}
-    private void assertImmediatelyAfter(View previous,View next){ViewGroup parent=(ViewGroup)previous.getParent();require(next.getParent()==parent,"Schedule rows have different sections");int i=parent.indexOfChild(previous)+1;while(i<parent.getChildCount()&&parent.getChildAt(i)!=next){View gap=parent.getChildAt(i++);require(!(gap instanceof ViewGroup),"Another control separates related schedule rows");}require(i<parent.getChildCount(),"Done-by setting is not immediately after its matching schedule setting");}
+    });checks.add("Charge done by follows Charge start in Scooter > Battery; its sheet holds the done-by toggle, then the done-by time");}
+    /** Only dividers, or rows not shown (GONE: Charge start's hidden Lab entry on the page since #452), may sit between the two rows. */
+    private void assertImmediatelyAfter(View previous,View next){ViewGroup parent=(ViewGroup)previous.getParent();require(next.getParent()==parent,"Schedule rows have different sections");int i=parent.indexOfChild(previous)+1;while(i<parent.getChildCount()&&parent.getChildAt(i)!=next){View gap=parent.getChildAt(i++);require(!(gap instanceof ViewGroup)||gap.getVisibility()==View.GONE,"Another control separates related schedule rows");}require(i<parent.getChildCount(),"Done-by setting is not immediately after its matching schedule setting");}
     private void verifyUnplugged(){main(()->{
         ChargeScheduleController.View state=service.chargeSchedule();require(!state.chargerConnected&&!state.doneByEnabled,"Unplugged fixture starts armed");
         require("Connect a charger first".equals(state.doneByBlockedReason)&&state.timeBlockedReason==null,"Toggle must require a charger while local time stays editable");
@@ -368,8 +370,26 @@ public final class ChargeScheduleValidation extends Instrumentation {
     private void home(){main(()->invoke(activity,"select",new Class<?>[]{String.class},"home"));settle();}
     /** The control's row on the page now shown, required placed there (a page's ControlsScreen also builds rows it never places). */
     private Object control(String key){return HubTestPages.controlRow(activity,key);}
-    /** A done-by row on the page now shown, required placed there. */
-    private Object done(boolean time){for(Object row:(List<?>)field(HubTestPages.part(activity,"ControlsScreen"),"chargeRows"))if((Boolean)field(row,"time")==time){HubTestPages.requireOnPage(activity,(View)field(field(row,"row"),"card"),"the Charge done by "+(time?"time":"switch")+" row");return row;}throw new IllegalStateException("Missing done-by row");}
+    /** The page's one Charge done by row (tag charge-done-row, card tag charge-done-by), required placed on the page now shown. Main thread. */
+    private View summaryLine(){View line=root().findViewWithTag("charge-done-row");HubTestPages.requireOnPage(activity,line,"the Charge done by row");
+        View card=(View)line.getParent();require(card!=null&&"charge-done-by".equals(card.getTag()),"Charge done by row lost its card tag");return line;}
+    private View summaryCard(){return (View)summaryLine().getParent();}
+    /**
+     * A done-by row (the switch, or the time) in the Charge done by sheet; the page's row is tapped to open the sheet
+     * when it is not open. The rows keep their tags (charge-done-toggle, charge-done-time). Main thread.
+     */
+    private Object done(boolean time){
+        Object sheet=field(activity,"chargeDoneSheet");
+        if(sheet==null||!((AlertDialog)sheet).isShowing()){
+            View line=summaryLine();require(line.performClick(),"Charge done by row did not open its sheet");
+            sheet=field(activity,"chargeDoneSheet");require(sheet!=null&&((AlertDialog)sheet).isShowing(),"Charge done by sheet did not open");
+        }
+        View body=((AlertDialog)sheet).getWindow().getDecorView().findViewWithTag("charge-done-sheet");require(body!=null,"Charge done by sheet missing");
+        for(Object row:(List<?>)field(activity,"doneSheetRows"))if((Boolean)field(row,"time")==time){
+            View line=(View)field(field(row,"row"),"line");
+            require(line.getTag().equals(time?"charge-done-time":"charge-done-toggle")&&body.findViewWithTag(line.getTag())==line,"The Charge done by "+(time?"time":"switch")+" row is not in its sheet");
+            return row;}
+        throw new IllegalStateException("Missing done-by row");}
     private TimePickerDialog picker(){Object dialog=field(activity,"controlDialog");require(dialog instanceof TimePickerDialog&&((TimePickerDialog)dialog).isShowing(),"Native time picker missing");return (TimePickerDialog)dialog;}
     private <T> T find(View view,Class<T> type){if(type.isInstance(view))return type.cast(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){T found=find(((ViewGroup)view).getChildAt(i),type);if(found!=null)return found;}return null;}
     private void admit(){String hw=Build.HARDWARE.toLowerCase(Locale.ROOT);require(hw.contains("ranchu")||hw.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"Refusing physical phone");for(String name:new String[]{"app_settings","profiles","scooter","pending_documents","control_evidence"})require(prefs(name).getAll().isEmpty(),"Refusing existing preferences");File[] files=getTargetContext().getFilesDir().listFiles();require(files!=null&&files.length==0&&getTargetContext().databaseList().length==0,"Refusing existing app data");for(String permission:new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT})require(getTargetContext().checkSelfPermission(permission)==PackageManager.PERMISSION_GRANTED,"Grant emulator Nearby permission");BluetoothManager manager=getTargetContext().getSystemService(BluetoothManager.class);BluetoothAdapter adapter=manager==null?null:manager.getAdapter();require(adapter==null||!adapter.isEnabled(),"Disable emulator Bluetooth first");}

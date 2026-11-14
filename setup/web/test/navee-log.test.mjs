@@ -338,7 +338,7 @@ function javaFeatures(source, catalog) {
 test('the command database matches ScooterCommands.java and Protocol.java exactly; models match ModelRegistry KNOWN', async () => {
   const java = await readFile(new URL('../../../src/com/jjricks/volt/ScooterCommands.java', import.meta.url), 'utf8');
   const protocol = await readFile(new URL('../../../src/com/jjricks/volt/Protocol.java', import.meta.url), 'utf8');
-  assert.match(java, /sensitiveCommand\(int cmd\) \{ return cmd==0x30 \|\| cmd==0x31 \|\| cmd==0x63 \|\| cmd==0x7a; \}/);
+  assert.match(java, /sensitiveCommand\(int cmd\) \{ return cmd==0x30 \|\| cmd==0x31 \|\| cmd==0x63 \|\| cmd==0x7a \|\| cmd==0x50; \}/);
   const features = javaFeatures(java, await englishCatalog()), keyOf = f => [f.cmd, ...f.prefix].map(n => n.toString(16).padStart(2, '0')).join(':');
   assert.equal(features.length, new Set(features.map(f => f.key)).size); assert(features.length >= 39, `parsed ${features.length} Java features`);
   const covered = new Set();

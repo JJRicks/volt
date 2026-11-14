@@ -271,6 +271,11 @@
     <string name="backup_engine_choose_what_restore" volt:screen="Back up and restore" volt:purpose="error">Choose what to restore.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
     <string name="backup_engine_replace_everything_needs_complete" volt:screen="Back up and restore" volt:purpose="error">Replace everything needs a complete backup with every category.</string>
+    <!-- Why Replace everything can't be reviewed: this phone has a scooter set up with an owner key that the chosen
+         backup doesn't hold, and no backup saved on this phone holds it either (KeyBackups). Replacing would delete the
+         only copy Volt has, so the rider backs up this phone first. Engine errors take no argument and stay short. -->
+    <string name="backup_engine_replace_owner_key_unsaved" volt:screen="Back up and restore" volt:purpose="error"
+        volt:safety="owner-key">This backup lacks an owner key only this phone has. Back up this phone first.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->
     <string name="backup_engine_choose_where_each_scooters" volt:screen="Back up and restore" volt:purpose="error">Choose where each scooter\'s data goes.</string>
     <!-- Why the restore cannot be reviewed with these choices. -->

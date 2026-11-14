@@ -8,6 +8,7 @@ public final class HubSummariesTest {
         lights();
         battery();
         batteryCard();
+        batteryFacts();
         controls();
         security();
         service();
@@ -83,6 +84,27 @@ public final class HubSummariesTest {
                 && HubSummaries.card(false, false, null) == null, "A last-seen level: no charging line beside it");
     }
 
+    /** Battery & charging's summary card, right column: health and pack temperature only where the model reports them live. */
+    private static void batteryFacts() {
+        require(Integer.valueOf(97).equals(HubSummaries.health(97.0, true)) && Integer.valueOf(97).equals(HubSummaries.health(96.6, true)),
+                "Live health, in whole percent");
+        require(Integer.valueOf(100).equals(HubSummaries.health(100.0, true)) && Integer.valueOf(1).equals(HubSummaries.health(1.0, true)), "1-100 shows");
+        require(HubSummaries.health(97.0, false) == null, "A last-seen health is not stated as now");
+        require(HubSummaries.health(null, true) == null && HubSummaries.health(null, false) == null,
+                "A model that doesn't report health: no line");
+        require(HubSummaries.health(0.0, true) == null && HubSummaries.health(101.0, true) == null && HubSummaries.health(-3.0, true) == null
+                && HubSummaries.health(Double.NaN, true) == null && HubSummaries.health(Double.POSITIVE_INFINITY, true) == null,
+                "Out-of-range or no number: no line");
+        require(Double.valueOf(23).equals(HubSummaries.packTemperature(23.0, true)) && Double.valueOf(-5).equals(HubSummaries.packTemperature(-5.0, true)),
+                "Live pack temperature, below zero too");
+        require(Double.valueOf(-40).equals(HubSummaries.packTemperature(-40.0, true)) && Double.valueOf(100).equals(HubSummaries.packTemperature(100.0, true)),
+                "The ends of the range show");
+        require(HubSummaries.packTemperature(23.0, false) == null, "A last-seen temperature is not stated as now");
+        require(HubSummaries.packTemperature(null, true) == null, "A model that doesn't report it: no line");
+        require(HubSummaries.packTemperature(-41.0, true) == null && HubSummaries.packTemperature(101.0, true) == null
+                && HubSummaries.packTemperature(Double.NaN, true) == null, "Not a battery temperature: no line");
+    }
+
     private static void controls() {
         require(Boolean.TRUE.equals(HubSummaries.cruise(1)) && Boolean.FALSE.equals(HubSummaries.cruise(0)), "Cruise on and off");
         require(HubSummaries.cruise(null) == null, "Unread cruise");
@@ -144,5 +166,14 @@ public final class HubSummariesTest {
         // Otherwise at the interval.
         require(!HubSummaries.rescanRides(false, false, true, every - 1, every), "Known, within the interval: no look");
         require(HubSummaries.rescanRides(false, false, true, every, every), "Known, the interval passed: look");
+        // Emulator walk on #390: Just back showed a ride saved just then while the Ride row said "No rides yet". The
+        // row takes the ride Clean found when it knows none or an older one, never an older one, not while recording.
+        long saved = 1_700_000_000_000L;
+        require(HubSummaries.takeFoundRide(false, null, saved), "No ride known: the found ride, at once");
+        require(HubSummaries.takeFoundRide(false, saved - 60_000, saved), "An older ride known: the newer found ride");
+        require(!HubSummaries.takeFoundRide(false, saved, saved), "The same ride: nothing to change");
+        require(!HubSummaries.takeFoundRide(false, saved, saved - 60_000), "Never an older ride over the row's own");
+        require(!HubSummaries.takeFoundRide(false, null, null) && !HubSummaries.takeFoundRide(false, saved, null), "Nothing found: the row's own");
+        require(!HubSummaries.takeFoundRide(true, null, saved), "Recording: the row shows the recording");
     }
 }

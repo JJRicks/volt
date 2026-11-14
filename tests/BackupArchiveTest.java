@@ -87,6 +87,9 @@ public final class BackupArchiveTest {
         app.put("theme", "dark"); app.put("units", "mi"); app.put("keep_screen_awake", true); app.put("dashboard_columns", 2);
         app.put("dashboard_v1_" + C, "[{\"id\":\"local\"}]"); app.put("dashboard_slot_v1_" + C + "_1", "local slot"); app.put("range_source_" + C, "scooter"); app.put("charge_charger_" + C, "STOCK");
         app.put("ride_comparison", new LinkedHashSet<>(Collections.singletonList("x"))); app.put("last_page", "home"); app.put("more_away_boot", 9);
+        // This phone saved a backup holding its owner key, so a Replace everything restore may drop it: KeyBackups'
+        // record for C and key 0123456789AB (fingerprint a70f0bfe98fb734c), saved at 1749000000000.
+        app.put("key_backup" + C, "a70f0bfe98fb734c1749000000000");
         p.get("profiles").put("items", "[" + BackupTestStore.profileItem(C, "Phone UT5", "0123456789AB", "SERIAL-A") + "]"); p.get("profiles").put("active", C); p.get("profiles").put("legacy_migrated", true);
         p.get("control_evidence").put(C, "{\"local\":1}"); p.get("onboarding").put("onboarding_done", true);
         s.write(p);

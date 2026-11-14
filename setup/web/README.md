@@ -328,8 +328,8 @@ checksum. BleHandler's notify-description rows are **not** kept: NAVEE logs them
 as a Chinese description followed by separate `Error`/`Update Data`/`CheckSum`
 rows whose payload carries no command byte, and some describe serial or PIN reads.
 Dropped entirely: anything mentioning `authData`/`encryptData`; any NAVEE frame
-header whose command is 0x30, 0x31, 0x63 or 0x7a (Volt's `sensitiveCommand`) in
-any separator style, with or without brackets or `0x`; `cmd=0X30|31|63|7A`; email
+header whose command is 0x30, 0x31, 0x63, 0x7a or 0x50 (Volt's `sensitiveCommand`) in
+any separator style, with or without brackets or `0x`; `cmd=0X30|31|63|7A|50`; email
 addresses; phone-number-like digit runs. Redacted: Bluetooth addresses (also the
 12-hex identifiers NAVEE prints) to `[MAC]`, the device in Connect/DisConnected/
 Bond rows to `[scooter]`, serial-like tokens to `[serial]`. Kept rows are printable

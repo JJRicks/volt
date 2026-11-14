@@ -93,6 +93,12 @@ public final class DashboardConfig {
         return TYPE_NAMES[index].render();
     }
 
+    /**
+     * "Charging" as a noun (the Charging widget's name: "Laden", "Recharge", "Ricarica"), which Battery & charging's
+     * CHARGING section label reuses; the Home hero's "Charging" chip is a status ("Akku lädt", "En recharge").
+     */
+    static String chargingLabel() { return typeName("charging"); }
+
     /** The name of a widget type in the current language; the first type's for an unknown one, as Widget does. */
     public static String typeName(String type) {
         return typeName(Math.max(0, Arrays.asList(TYPES).indexOf(type)));

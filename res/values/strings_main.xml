@@ -145,6 +145,28 @@
         <item quantity="other">%1$d scooters found</item>
     </plurals>
     <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>
+    <!-- Find it nearby: the scan sheet's title while it looks for a saved scooter at a new Bluetooth address. %1$s is
+         the scooter's name (the owner's own name for it). -->
+    <string name="main_find_title" volt:screen="Scanner" volt:purpose="title">Find %1$s nearby</string>
+    <!-- Find it nearby: the chip on the row of the scooter heard at the address Volt has saved. -->
+    <string name="main_find_saved_address" volt:screen="Scanner" volt:purpose="chip">Saved address</string>
+    <!-- Fills %3$s of main_scan_option for that row, right after the signal strength. Keeps its own leading comma. -->
+    <string name="main_find_state_saved_address" volt:screen="Scanner" volt:purpose="screen reader">, saved address</string>
+    <!-- Find it nearby: under the list, how many scooters heard are another model than the saved one, so are not listed.
+         %1$d is that count, 1 or more. -->
+    <plurals name="main_find_hidden" volt:screen="Scanner" volt:purpose="status">
+        <item quantity="one">%1$d other scooter hidden (different model)</item>
+        <item quantity="other">%1$d other scooters hidden (different model)</item>
+    </plurals>
+    <!-- Find it nearby: asked before Volt connects to a scooter at another address than the saved one. %1$s is the
+         saved scooter's name (the owner's own name for it). -->
+    <string name="main_find_confirm_title" volt:screen="Scanner" volt:purpose="title"
+        volt:safety="owner-key">Connect to this scooter as %1$s?</string>
+    <!-- The confirmation's text. The owner key is the saved scooter's key that Volt sends in the owner check; a scooter
+         with no owner (new, or reset in the NAVEE app) keeps the first owner key it is sent. %1$s is the saved
+         scooter's name. Buttons: Connect and Cancel. -->
+    <string name="main_find_confirm_body" volt:screen="Scanner" volt:purpose="explanation"
+        volt:safety="owner-key">Volt will send %1$s\'s owner key to this scooter. A scooter with no owner yet (new, or reset) would take that key, so pick only your own scooter, with your phone right next to it.</string>
 
     <!-- ===== Scooter tab: groups, banners and search ===== -->
     <!-- The group's English is also its stored id (section:Battery); only the shown name translates. -->

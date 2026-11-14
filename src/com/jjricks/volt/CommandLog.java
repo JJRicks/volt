@@ -101,7 +101,7 @@ final class CommandLog {
         final Kind kind;
         /** Who asked (null for a read). */
         final MutationGate.Origin origin;
-        /** A ScooterCommands catalogue key, or clock_sync. */
+        /** A ScooterCommands catalogue key, clock_sync or owner_release. */
         final String key;
         /** The value sent, or null. */
         final Integer value;
@@ -150,12 +150,15 @@ final class CommandLog {
     /** A control key Volt knows (never free text). */
     static boolean control(String key) {
         if ("clock_sync".equals(key)) return true;
+        // Releasing the scooter (OwnerRelease): logged by its key and outcome only, never a value or a frame.
+        if (OwnerRelease.KEY.equals(key)) return true;
         if (key == null || !key.matches("[a-z][a-z0-9_]{0,39}")) return false;
         try { ScooterCommands.find(key); return true; } catch (IllegalArgumentException unknown) { return false; }
     }
     /** Whether a value may be logged for this control: never the PIN, a time or the clock. */
     static boolean valued(String key) {
         if (!control(key) || "clock_sync".equals(key)) return false;
+        if (OwnerRelease.KEY.equals(key)) return false;
         ScooterCommands.Feature f = ScooterCommands.find(key);
         return !f.sensitive && f.type != ScooterCommands.Type.TIME && f.type != ScooterCommands.Type.PIN;
     }

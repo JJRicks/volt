@@ -125,6 +125,32 @@ public final class HubTestPages {
     }
 
     /**
+     * A rider's tap on the shown page's back link ("hub-back", in the page header above the screen), with {@link #tapView}'s
+     * rules, then waits for the page below it on the activity's page stack to be on top (the back link goes there, which is
+     * not {@link HubPages#parent} when the page was opened from elsewhere: Developer options' checker opens Compatibility over
+     * Developer options). Throws when the page has no back link shown, nothing is below it, or the tap leaves another page
+     * on top. Instrumentation thread; returns the page now shown.
+     */
+    public static String back(Instrumentation instrumentation, MainActivity activity) {
+        View[] link = {null};
+        String[] from = {null}, target = {null};
+        onMain(instrumentation, () -> {
+            from[0] = current(activity);
+            List<?> pages = (List<?>) call(field(activity, "nav"), "pages");
+            target[0] = pages.size() > 1 ? (String) pages.get(pages.size() - 2) : null;
+            View root = (View) field(activity, "root");
+            View found = root == null ? null : root.findViewWithTag("hub-back");
+            link[0] = found != null && found.isShown() ? found : null;
+        });
+        if (link[0] == null) throw new IllegalStateException("Page " + from[0] + " has no back link shown");
+        if (target[0] == null) throw new IllegalStateException("Page " + from[0] + " has no page below it to go back to");
+        String name = "the back link on page " + from[0];
+        tap(instrumentation, activity, link[0], name);
+        awaitPage(instrumentation, activity, target[0], name);
+        return target[0];
+    }
+
+    /**
      * Whether a view is placed on the page now shown: attached to the window inside the shown screen's view. A screen
      * builds rows it never places (a ControlsScreen builds every control, and places only its page's), so a row object
      * from the screen says nothing about the page until this holds. Main thread.
@@ -277,39 +303,39 @@ public final class HubTestPages {
         if (dock[0] == null) return false;
         View[] item = {null}, all = {null};
         String[] problem = {null};
-        // On a short window with large text (725x604 dp at 1.4x) the dock steps aside while it would cover the Lock bar
-        // (HubDock.keepClear) and comes back once the page scrolls the bar above it: the rider scrolls Home first.
-        boolean[] aside = {false};
-        onMain(instrumentation, () -> aside[0] = ((View) call(dock[0], "view")).getVisibility() == View.INVISIBLE);
-        if (aside[0]) {
-            onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN));
-            long until = SystemClock.uptimeMillis() + WAIT_MS;
-            while (SystemClock.uptimeMillis() < until && aside[0]) {
-                instrumentation.waitForIdleSync();
-                onMain(instrumentation, () -> aside[0] = ((View) call(dock[0], "view")).getVisibility() == View.INVISIBLE);
-                if (aside[0]) SystemClock.sleep(40);
-            }
-            if (aside[0]) throw new IllegalStateException("Widgets Home's dock stayed aside after scrolling Home to its end");
-        }
-        onMain(instrumentation, () -> {
-            for (View view : descendants((View) call(dock[0], "view"))) {
-                if (!view.isShown()) continue;
-                if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
-                else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
-            }
+        // The dock can move or step aside after it was picked: Home's cards still settle (a tile's value arrives and the Lock
+        // bar moves under the dock), and HubDock.keepClear then lifts or hides it. The rider sees that and scrolls; so does this, once more, but
+        // only when the dock says it stepped aside for the Lock bar (any other hiding still fails).
+        for (int attempt = 1; ; attempt++) {
+            showDock(instrumentation, activity);
+            item[0] = null; all[0] = null; problem[0] = null;
+            onMain(instrumentation, () -> {
+                for (View view : descendants((View) call(dock[0], "view"))) {
+                    if (!view.isShown()) continue;
+                    if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
+                    else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
+                }
+                View pick = item[0] != null ? item[0] : all[0];
+                if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
+                else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
+                else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
+            });
+            if (problem[0] != null) throw new IllegalStateException(problem[0]);
             View pick = item[0] != null ? item[0] : all[0];
-            if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
-            else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
-            else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
-        });
-        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+            String name = item[0] != null ? "the dock item " + item[0].getTag() + " on page " + HubPages.HOME : "the dock's All item on page " + HubPages.HOME;
+            try { tap(instrumentation, activity, pick, name); }
+            catch (IllegalStateException missed) {
+                boolean[] aside = {false};
+                onMain(instrumentation, () -> aside[0] = dockAsideForLockBar(dock[0]));
+                if (attempt >= 2 || !aside[0]) throw missed;
+                continue;
+            }
+            break;
+        }
         if (item[0] != null) {
-            String name = "the dock item " + item[0].getTag() + " on page " + HubPages.HOME;
-            tap(instrumentation, activity, item[0], name);
-            awaitPage(instrumentation, activity, target, name);
+            awaitPage(instrumentation, activity, target, "the dock item " + item[0].getTag() + " on page " + HubPages.HOME);
             return true;
         }
-        tap(instrumentation, activity, all[0], "the dock's All item on page " + HubPages.HOME);
         // The sheet: shown, with its window focused, and exactly one shown row to target in it.
         String rowTag = HubPages.SETTINGS.equals(target) ? "home-settings" : HubPages.SEARCH.equals(target) ? "home-search" : "home-subject-" + target;
         View[] root = {null}, row = {null};
@@ -334,6 +360,60 @@ public final class HubTestPages {
         tapIn(instrumentation, activity, root[0], row[0], name);
         awaitPage(instrumentation, activity, target, name);
         return true;
+    }
+
+    /**
+     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, and still. Where Home's Lock bar sits where the
+     * dock floats, the dock moves up over it (HubDock.keepClear); only on a window too short for that does it step aside,
+     * coming back once the page scrolls the bar above it, so the rider scrolls Home to its end: so does this. Waits until the dock's visibility and place have
+     * held for several reads (Home's cards may still be settling and moving the bar), and throws when the dock is gone
+     * (Home's editor), hidden without the Lock bar under it, or still aside after the scroll. Instrumentation thread; a no-op
+     * on a Home without a dock (Clean Home).
+     */
+    public static void showDock(Instrumentation instrumentation, MainActivity activity) {
+        Object[] dock = {null};
+        onMain(instrumentation, () -> dock[0] = HubPages.HOME.equals(current(activity)) ? field(activity, "dock") : null);
+        if (dock[0] == null) return;
+        String[] state = {null}, last = {null};
+        String[] problem = {null};
+        boolean scrolled = false;
+        int still = 0;
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            instrumentation.waitForIdleSync();
+            onMain(instrumentation, () -> {
+                View view = (View) call(dock[0], "view");
+                int[] at = new int[2]; view.getLocationOnScreen(at);
+                View bar = clearView(dock[0]);
+                int[] barAt = new int[2]; if (bar != null) bar.getLocationOnScreen(barAt);
+                problem[0] = view.getVisibility() == View.GONE ? "Widgets Home's dock is gone (Home is being edited)"
+                        : view.getVisibility() == View.INVISIBLE && !dockAsideForLockBar(dock[0]) ? "Widgets Home's dock is hidden with no Lock bar under it" : null;
+                state[0] = view.getVisibility() + "@" + at[1] + "/" + view.getHeight() + " bar " + (bar == null ? "-" : barAt[1] + "/" + bar.getHeight());
+            });
+            if (problem[0] != null) throw new IllegalStateException(problem[0]);
+            if (state[0].startsWith(View.INVISIBLE + "@")) {
+                if (!scrolled) { onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN)); scrolled = true; }
+                still = 0; last[0] = null; SystemClock.sleep(40); continue;
+            }
+            if (state[0].equals(last[0])) { if (++still >= 3) return; }
+            else still = 0;
+            last[0] = state[0];
+            SystemClock.sleep(60);
+        }
+        throw new IllegalStateException(state[0] != null && state[0].startsWith(View.INVISIBLE + "@")
+                ? "Widgets Home's dock stayed aside after scrolling Home to its end (" + state[0] + ")"
+                : "Widgets Home's dock did not settle (" + state[0] + ")");
+    }
+
+    /** The view Widgets Home's dock keeps clear (the Lock bar), or null. Main thread. */
+    private static View clearView(Object dock) {
+        Object supplier = field(dock, "keepClear");
+        return supplier == null ? null : (View) ((java.util.function.Supplier<?>) supplier).get();
+    }
+
+    /** Whether the dock is aside because it would cover the Lock bar where it floats now (HubDock.coversClearView). Main thread. */
+    private static boolean dockAsideForLockBar(Object dock) {
+        return ((View) call(dock, "view")).getVisibility() == View.INVISIBLE && Boolean.TRUE.equals(call(dock, "coversClearView"));
     }
 
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */

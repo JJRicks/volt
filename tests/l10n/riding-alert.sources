@@ -1,0 +1,6 @@
+# Riding mode's battery alert banner (RidingAlert): when it shows and hides, its titles' ladder rungs, what TalkBack
+# reads, and leaving riding mode with it up. tests/run.sh compiles every path listed in tests/l10n/*.sources.
+src/com/jjricks/volt/RidingAlert.java
+src/com/jjricks/volt/ChargeAlertPolicy.java
+src/com/jjricks/volt/Fmt.java
+tests/l10n/RidingAlertTest.java

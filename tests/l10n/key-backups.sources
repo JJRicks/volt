@@ -1,0 +1,4 @@
+# Owner keys a saved backup holds (KeyBackups): Forget on an owner scooter and a Replace everything restore need one.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/KeyBackups.java
+tests/l10n/KeyBackupsTest.java
