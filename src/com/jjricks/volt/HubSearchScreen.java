@@ -99,17 +99,13 @@ final class HubSearchScreen implements AppScreen {
         view.setOrientation(LinearLayout.VERTICAL);
         search = new EditText(host.activity());
         search.setSingleLine(true);
-        search.setHint(HubText.searchHint());
-        ui.styleSearch(search);
-        // The Layout Plan's field is 45 dp tall; 48 keeps the touch target (the shared style's 52 is for page fields).
-        search.setMinimumHeight(ui.dp(48));
-        search.setPadding(search.getPaddingLeft(), ui.dp(12), search.getPaddingRight(), ui.dp(12));
+        styleField(ui, search);
         // TalkBack names the field as Home's search button does (the field it replaced had its own description).
         search.setContentDescription(HubText.searchDescription());
         search.setTag(TAG_FIELD);
         search.setText(this.query);
         // The long placeholder only where it fits whole; else the short "Search" (HubSearch.longHintFits).
-        search.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> fitHint());
+        search.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> { if (!closed) fitHint(search); });
         // The field at the very top with Cancel beside it, as the Layout Plan's search mock-up.
         LinearLayout top = new LinearLayout(host.activity());
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -171,13 +167,28 @@ final class HubSearchScreen implements AppScreen {
         frame.headerHidden(hidden);
     }
 
-    /** The long placeholder when it fits whole in the field's room for text, else the short one ("Search"). */
-    private void fitHint() {
+    /**
+     * The search field's look, shared with the wide Home's field (HubHomePane), so the field opening the search page
+     * has the same size and placeholder as the one tapped: the long placeholder until it is fitted.
+     */
+    static void styleField(Ui ui, EditText search) {
+        search.setHint(HubText.searchHint());
+        ui.styleSearch(search);
+        // The Layout Plan's field is 45 dp tall; 48 keeps the touch target (the shared style's 52 is for page fields).
+        search.setMinimumHeight(ui.dp(48));
+        search.setPadding(search.getPaddingLeft(), ui.dp(12), search.getPaddingRight(), ui.dp(12));
+    }
+
+    /**
+     * The long placeholder when it fits whole in the field's room for text, else the short one ("Search")
+     * (HubSearch.longHintFits); call from the field's layout listener. Only a change is posted.
+     */
+    static void fitHint(EditText search) {
         int room = search.getWidth() - search.getCompoundPaddingLeft() - search.getCompoundPaddingRight();
         Msg wanted = HubSearch.longHintFits(search.getPaint().measureText(HubText.searchHint().render()), room)
                 ? HubText.searchHint() : HubText.title(HubPages.SEARCH);
         String hint = wanted.render();
-        if (search.getHint() == null || !hint.contentEquals(search.getHint())) search.post(() -> { if (!closed) search.setHint(hint); });
+        if (search.getHint() == null || !hint.contentEquals(search.getHint())) search.post(() -> search.setHint(hint));
     }
 
     @Override public View view() { return view; }

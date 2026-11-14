@@ -267,8 +267,12 @@ public final class HubValidation extends Instrumentation {
      * the field empty and left the header stays hidden (Cancel the one way out) and Cancel goes Home at once.
      */
     private void search() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] != null) keyboardSearch(pane);
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, HubPages.SEARCH);
+        if (pane[0] != null) requireInPage(SEARCH_FIELD, "The search page's field");
         EditText[] field = new EditText[1];
         await(() -> onMain(() -> { field[0] = firstEditText(activity.findViewById(android.R.id.content)); return field[0] != null && field[0].hasFocus(); }),
                 "The search page's field is not focused");
@@ -285,6 +289,9 @@ public final class HubValidation extends Instrumentation {
             int found = resultRows(root().findViewWithTag("hub-search-results"));
             require(found > 0, "Search found nothing for \"batt\" (" + found + " result rows shown)");
         });
+        // On two panes the results show in the page pane, and the scooter pane stays as it was.
+        if (pane[0] != null) requireInPage("hub-search-results", "Search's results");
+        requireSamePane(pane, "Search's results");
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
         main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
@@ -333,6 +340,32 @@ public final class HubValidation extends Instrumentation {
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
+    }
+
+    /** The search page's field (HubSearchScreen.TAG_FIELD). */
+    private static final String SEARCH_FIELD = "hub-search-field";
+
+    /**
+     * The wide Home's search field from a keyboard (#394 early review, finding 1): it takes focus by key, not by touch,
+     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home.
+     */
+    private void keyboardSearch(Object[] pane) throws Exception {
+        // A Tab leaves touch mode, as a keyboard's first key does.
+        sendKeyDownUpSync(KeyEvent.KEYCODE_TAB); settle();
+        main(() -> {
+            View field = root().findViewWithTag("home-search");
+            require(field != null && field.isFocusable() && !field.isFocusableInTouchMode(),
+                    "The wide Home's search field cannot take focus from a keyboard (or a tap would raise the keyboard)");
+            require(field.requestFocus() && field.hasFocus(), "The wide Home's search field did not take the keyboard's focus");
+        });
+        sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER); settle();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, "Search from the keyboard");
+        hideKeyboard();
+        systemBack();
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
     }
 
     /**
