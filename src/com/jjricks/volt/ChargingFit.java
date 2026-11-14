@@ -147,6 +147,42 @@ final class ChargingFit {
         return ChargeTimeReadings.limitSource(scooterTarget, alertsOffered, false) == ChargeTimeReadings.SCOOTER_LIMIT;
     }
 
+    /** A reading tile's inner space at its sides (dp): the Layout Plan's 12 dp, and Widgets' 6 dp in a narrow tile. */
+    static final int TILE_INSET_DP = 12, TILE_NARROW_INSET_DP = 6;
+    /** Widgets' reading tiles are narrow below this width (dp, times the text scale): the icon goes, the inset halves. */
+    static final int TILE_NARROW_DP = 170;
+    /** The least share of its size a Clean charging tile's label takes to stay on one line before it wraps. */
+    static final float TILE_LABEL_MIN_SCALE = .85f;
+
+    /** How a reading tile lays out its label row. */
+    static final class Tile {
+        /** The inset at the tile's sides (dp). */
+        final int insetDp;
+        /** Whether the small icon shows before the label. */
+        final boolean icon;
+        /** The least share of its size the label takes to stay on one line (1: it wraps at its size). */
+        final float labelMinScale;
+
+        Tile(int insetDp, boolean icon, float labelMinScale) {
+            this.insetDp = insetDp; this.icon = icon; this.labelMinScale = labelMinScale;
+        }
+
+        @Override public String toString() { return insetDp + " dp inset" + (icon ? ", icon" : ", no icon") + ", label to " + labelMinScale; }
+    }
+
+    /**
+     * A reading tile {@code widthDp} wide at {@code textScale} (the app's and the system's together). Clean's two
+     * charging tiles ({@code clean}) are the mock-up's: no icon at any width (the contributor's decisions, round 3, on
+     * #383), the 12 dp inset kept at every width and text size, and a label a little too wide gets a little smaller
+     * (down to {@link #TILE_LABEL_MIN_SCALE}) before it wraps. Widgets' tiles are unchanged: below
+     * {@link #TILE_NARROW_DP} dp times the text scale the icon goes and the inset is 6 dp; the label wraps at its size.
+     */
+    static Tile tile(boolean clean, float widthDp, float textScale) {
+        if (clean) return new Tile(TILE_INSET_DP, false, TILE_LABEL_MIN_SCALE);
+        boolean narrow = widthDp < TILE_NARROW_DP * textScale;
+        return new Tile(narrow ? TILE_NARROW_INSET_DP : TILE_INSET_DP, !narrow, 1f);
+    }
+
     private static float share(int room, int height) { return height <= 0 ? 1 : Math.max(0, room) / (float) height; }
 
     private static int dp(int value, float density) { return Math.round(value * density); }

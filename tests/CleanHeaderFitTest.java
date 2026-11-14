@@ -43,7 +43,7 @@ public final class CleanHeaderFitTest {
         String at = window + " dp at " + text + "x" + (wider > 1 ? ", wider text" : "");
         float row = Math.min(window - 36, 560);
         float room = CleanHeaderFit.nameRoomDp(row);
-        if (window == 344) require(room == 160, at + ": the name has 160 dp beside the three buttons, " + room);
+        if (window == 344) require(room == 208, at + ": the name has 208 dp beside the two buttons (search, Settings), " + room);
         CleanHeaderFit.Width w = width(text, wider);
         float status = lineDp(12.5f * text, 1);
         // The status line's tap target: its own band above the name row, which no other view covers.
@@ -70,10 +70,13 @@ public final class CleanHeaderFitTest {
         } else if (text == 1) require(CleanHeaderFit.name("Your scooter", room, w).lines == 1, at + ": Your scooter on one line");
         if (window == 344 && text == 1 && wider == 1) {
             require(CleanHeaderFit.name("Your scooter", room, w).scale == 1, at + ": Your scooter at its full size");
+            // The mock-up's "Midnight Runner" at its full size beside search and Settings (no Edit button).
             CleanHeaderFit.Name midnight = CleanHeaderFit.name("Midnight Runner", room, w);
-            require(midnight.scale < 1, at + ": Midnight Runner a little smaller rather than wrapped: " + midnight);
+            require(midnight.lines == 1 && midnight.scale == 1, at + ": Midnight Runner on one line at its full size, as the mock-up: " + midnight);
             CleanHeaderFit.Name long_ = CleanHeaderFit.name("Segway Ninebot Max G2", room, w);
-            require(long_.lines == 2 && !long_.clipped, at + ": a long name takes two whole lines: " + long_);
+            require(long_.lines == 1 && long_.scale < 1 && !long_.clipped, at + ": a long name a little smaller rather than wrapped: " + long_);
+            CleanHeaderFit.Name longer = CleanHeaderFit.name("Segway Ninebot Kickscooter Max G2", room, w);
+            require(longer.lines == 2 && !longer.clipped, at + ": a longer name takes two whole lines: " + longer);
             float one = CleanHeaderFit.heightDp(lineDp(12.5f, 1), lineDp(23, 1));
             require(one == 100, at + ": one-line header is two 48 dp bands and 4 dp, " + one);
         }
@@ -105,6 +108,8 @@ public final class CleanHeaderFitTest {
         require(CleanHeaderFit.statusTargetDp(80) == 80 + CleanHeaderFit.TOP_DP, "a tall status line keeps the space above it");
         require(CleanHeaderFit.statusTargetDp(12.5f * 1.327f) >= 48, "the 12.5 sp status line has a 48 dp target");
         require(CleanHeaderFit.nameRowDp(10) == 48, "a short name keeps a full target");
+        require(CleanHeaderFit.BUTTONS == 2, "two buttons beside the name, search and Settings, as the mock-up (no Edit)");
+        require(CleanHeaderFit.nameRoomDp(308) == 308 - 2 * 48 - CleanHeaderFit.BUTTON_GAP_DP, "the name's room is the row less two buttons");
     }
 
     private static void require(boolean condition, String message) {

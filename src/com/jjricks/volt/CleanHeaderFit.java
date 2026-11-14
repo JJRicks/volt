@@ -2,17 +2,18 @@ package com.jjricks.volt;
 
 /**
  * Clean Home's header (hub layout plan 1.5, part 8b): the status line on its own band, then the scooter's name with
- * Edit, search and Settings beside it, level with the name, as the mock-up draws it. Pure Java, so the JVM suite checks
+ * search and Settings beside it, level with the name, as the mock-up draws it (no Edit button: the contributor's
+ * decisions, round 3, on #383; the quick actions are edited from a long-press on them). Pure Java, so the JVM suite checks
  * it at the sizes the maintainers check (tests/CleanHeaderFitTest).
  *
  * <p>Both lines are tap targets (the status line opens the connection details, the name switches scooter), and the
- * three buttons keep 48 dp targets around a {@link #DISC_DP} dp disc. The name row is a full {@link #TARGET_DP} dp
+ * two buttons keep 48 dp targets around a {@link #DISC_DP} dp disc. The name row is a full {@link #TARGET_DP} dp
  * band, and so is the status line: a band of its own from the header's top to the name row, its text at the band's
  * foot (at least {@link #TOP_DP} dp under the header's top), so no other view covers any of it. (Margins taken back
  * from padding, as the widget dashboard's header does, would put half of it under the name row, which takes every
  * touch there: Clean's name fills its row.) The header is two 48 dp bands, about 100 dp at 1x.
  *
- * <p>The name shares its row with the three buttons, so it takes, in this order, the first that fits: one line at full
+ * <p>The name shares its row with the two buttons, so it takes, in this order, the first that fits: one line at full
  * size, one line smaller (down to {@link #MIN_NAME_SP} sp of {@link #NAME_SP}), two lines of whole words at full size,
  * two lines smaller; only then is its second line cut. Widths are measured at the full size, in the same unit as
  * {@code room}.
@@ -20,8 +21,8 @@ package com.jjricks.volt;
 final class CleanHeaderFit {
     /** A tap target's least height (and the buttons' size), and a header button's visible disc (the mock-up's ~39 dp). */
     static final int TARGET_DP = 48, DISC_DP = 40;
-    /** Three buttons beside the name (Edit, search, Settings), and the space before the first. */
-    static final int BUTTONS = 3, BUTTON_GAP_DP = 4;
+    /** Two buttons beside the name (search, Settings), and the space before the first. */
+    static final int BUTTONS = 2, BUTTON_GAP_DP = 4;
     /** The least space above the status line's text (inside its band) and under the header (above the top area). */
     static final int TOP_DP = 8, BOTTOM_DP = 4;
     /** The name's text size and the smallest it gets before it wraps (sp, before the text scale). */
@@ -52,7 +53,7 @@ final class CleanHeaderFit {
     /** The smallest share of its size the name gets. */
     static float minScale() { return MIN_NAME_SP / NAME_SP; }
 
-    /** The room for the name (dp) in a header row {@code row} dp wide: the row less the three buttons. */
+    /** The room for the name (dp) in a header row {@code row} dp wide: the row less the two buttons. */
     static float nameRoomDp(float row) {
         return Math.max(0, row - BUTTONS * TARGET_DP - BUTTON_GAP_DP);
     }

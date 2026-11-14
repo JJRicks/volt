@@ -1670,10 +1670,11 @@ public final class DashboardScreen implements AppScreen {
         /** Optional pill beside the value for a short state. */
         TextView tag;
         int heightBudget = Integer.MAX_VALUE;
-        /** Below this width (dp, times the text scale) the label icon hides; Clean's charging tiles keep it longer. */
-        int narrowDp = 170;
-        /** Clean's charging tiles keep the Layout Plan's 12 dp inset when narrow (their value gets smaller instead). */
-        boolean keepInset;
+        /**
+         * Clean's two charging tiles (ChargingFit.tile): no icon, the Layout Plan's 12 dp inset at every width (their
+         * value gets smaller instead). Other tiles lose the icon and half the inset when narrow.
+         */
+        boolean cleanCharging;
         InfoCell(String icon, String full, String normal, String compact) {
             super(host.activity());
             setOrientation(VERTICAL);
@@ -1743,12 +1744,13 @@ public final class DashboardScreen implements AppScreen {
                     : pixels - getChildAt(0).getMeasuredHeight() - ui.dp(10));
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            boolean narrow = MeasureSpec.getSize(widthSpec) < ui.dp(narrowDp * ui.textScale
-                    * getResources().getConfiguration().fontScale);
-            int inset = ui.dp(narrow && !keepInset ? 6 : 12);
+            ChargingFit.Tile fit = ChargingFit.tile(cleanCharging,
+                    MeasureSpec.getSize(widthSpec) / getResources().getDisplayMetrics().density,
+                    ui.textScale * getResources().getConfiguration().fontScale);
+            int inset = ui.dp(fit.insetDp);
             int vertical = ui.dp(heightBudget == Integer.MAX_VALUE ? 10 : 4);
             setPadding(inset, vertical, inset, vertical);
-            showIcons(!narrow);
+            showIcons(fit.icon);
             super.onMeasure(widthSpec, heightSpec);
         }
         /** The label icon hides in a narrow cell, where the caption needs the room. */
@@ -2441,10 +2443,12 @@ public final class DashboardScreen implements AppScreen {
                 // stacked pair would take the percentage's room (ChargingFit). The time tile is fixed (no switching).
                 timeTile.fixed = true;
                 tiles.pairDp = ChargingFit.PAIR_DP;
-                // Their inset stays 12 dp at large text: a label a little too wide gets a little smaller, not wrapped.
+                // The mock-up's tiles (ChargingFit.tile): no icon, the 12 dp inset at large text, and a label a little
+                // too wide gets a little smaller, not wrapped.
                 for (InfoCell cell : new InfoCell[] {powerCell, timeTile}) {
-                    cell.narrowDp = 120; cell.keepInset = true;
-                    for (TextView caption : cell.captions()) ((DashboardCaption) caption).shrinkToOneLine(.85f);
+                    cell.cleanCharging = true;
+                    for (TextView caption : cell.captions())
+                        ((DashboardCaption) caption).shrinkToOneLine(ChargingFit.tile(true, 0, 1).labelMinScale);
                 }
                 for (TextView value : new TextView[] {power, timeTile.values[0], timeTile.values[1]}) {
                     ((FittedValue) value).capAt(Math.round(ChargingFit.VALUE_SP * ui.textScale));

@@ -20,9 +20,10 @@ import java.util.List;
 
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
- * bottom: the header (the status line; the scooter's name, which switches scooter, with Edit, search and Settings), a top
+ * bottom: the header (the status line; the scooter's name, which switches scooter, with search and Settings), a top
  * area of fixed height whose content follows the moment (the battery card, or the charging view while charging), the
- * Lock bar, four quick actions and the seven subjects.
+ * Lock bar, four quick actions and the seven subjects. A long-press on a quick action (TalkBack: its "Edit Home"
+ * action) opens the Edit sheet, the style and the four quick actions; the header has no Edit button, as the mock-up.
  *
  * <p>It never reads or writes the widget dashboard's storage: its four quick actions live in
  * {@code home_quick_v1_<profile id>} in app_settings (HomeQuickActions), its moments follow {@code home_moment_*} (HomeMoment). The
@@ -31,7 +32,7 @@ import java.util.List;
  */
 final class CleanHomeScreen implements AppScreen {
     /** View tags: the header's buttons, the top area, the lock slot, the quick actions and the Edit sheet's slots. */
-    static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings", TAG_EDIT = "home-edit",
+    static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings",
             TAG_NAME = "home-switch-scooter", TAG_TOP = "home-top-area", TAG_LOCK = "home-lock", TAG_QUICK = "home-quick-actions",
             TAG_SLOT = "home-edit-slot-";
     /** One column at most this wide on a wide window, until the wide two-pane Home arrives (plan 1.11). */
@@ -70,12 +71,13 @@ final class CleanHomeScreen implements AppScreen {
         page = column();
         view.addView(page, new LinearLayout.LayoutParams(-1, -2));
 
-        // The plan's header: the status line, then the scooter's name with Edit, search and Settings beside it, level
+        // The plan's header: the status line, then the scooter's name with search and Settings beside it, level
         // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
         // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
         // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
-        // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the three
-        // buttons.
+        // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the two
+        // buttons. There is no Edit button (the contributor's decisions, round 3): a long-press on the quick actions
+        // opens Edit.
         header = column();
         header.setPadding(0, 0, 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
         TextView status = parts.status();
@@ -108,10 +110,9 @@ final class CleanHomeScreen implements AppScreen {
         name.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
         name.setOnClickListener(v -> actions.switchScooter());
         second.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
-        editSize.setMarginStart(ui.dp(CleanHeaderFit.BUTTON_GAP_DP));
-        second.addView(round("pencil", HubText.editTitle(), TAG_EDIT, this::showEdit), editSize);
-        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
+        LinearLayout.LayoutParams searchSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
+        searchSize.setMarginStart(ui.dp(CleanHeaderFit.BUTTON_GAP_DP));
+        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), searchSize);
         second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
@@ -140,6 +141,9 @@ final class CleanHomeScreen implements AppScreen {
         quickIds = loadQuick();
         quick = new QuickAccessGrid(host, quickIds, this::quickAction, HomeQuickActions::entry);
         quick.setTag(TAG_QUICK);
+        // Editing the four: a long-press on any of them opens the Edit sheet (the style, then the four), and TalkBack
+        // offers it as the long-press action named "Edit Home". The header has no Edit button, as the mock-up.
+        quick.editOnLongPress(HubText.editTitle().render(), this::showEdit);
         LinearLayout.LayoutParams quickSize = new LinearLayout.LayoutParams(-1, -2);
         quickSize.topMargin = ui.dp(12);
         page.addView(quick, quickSize);
@@ -245,7 +249,7 @@ final class CleanHomeScreen implements AppScreen {
     private void saveQuick(List<String> ids) {
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-        // Without a scooter there is nowhere to keep them; Edit is not offered then.
+        // Without a scooter there is nowhere to keep them; the Edit sheet does not offer them then.
         if (profile == null) return;
         preferences.edit().putString(HomeQuickActions.key(profile.id), HomeQuickActions.encode(ids)).apply();
     }
