@@ -2220,9 +2220,9 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(sized.size, fit.rung, fit.steps[at], fit.compact[at]);
-                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
                 int width = room == Integer.MAX_VALUE ? -2 : filled[shown];
+                chip.useRung(sized.size, fit.rung, fit.steps[at], fit.compact[at], width);
+                LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
                 if (p.width != width) p.width = width;
                 // The gaps go by what's shown, not by slot: if an earlier chip stepped aside, the first one left starts at the edge.
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, false);
@@ -2255,7 +2255,7 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at]);
+                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], room == Integer.MAX_VALUE ? -1 : room);
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, true);
                 shown++;
             }
@@ -2320,6 +2320,9 @@ final class RidingScreen implements AppScreen {
                 for (int i = 0; i < getChildCount(); i++)
                     if (getChildAt(i) instanceof Chip) tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
                 limit = RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height);
+                // Trace's two chips stay whatever the height, as they always have (RidingChipChoicesValidation's
+                // split-screen half): only a chip past them steps aside for a short column.
+                limit = Math.max(limit, Math.min(2, getChildCount()));
             }
             fitColumn(this, room, limit);
             super.onMeasure(widthSpec, heightSpec);
@@ -2363,6 +2366,12 @@ final class RidingScreen implements AppScreen {
         /** A GPS state's dash, shown in place of its words when in full the chip would step aside (fitChips); null otherwise. */
         String compact;
         private boolean compactShown;
+        /**
+         * True when the fit planned this chip's compact form (its widest state's words don't fit), with the width it has:
+         * a state whose own words fit that width shows them, a longer one its dash (GpsAccuracyValidation). The chip's
+         * place in the row never changes with the state; only its text does.
+         */
+        private boolean compactPlanned;
         private int rung = RidingChipFit.FULL, size = RidingChipFit.SIZE_NORMAL;
         /** The widest values, every figure the widest: in full, on the tightest rung, and in compact form. */
         private String[] fullSamples = new String[0], tightSamples = new String[0], compactSamples = new String[0];
@@ -2495,9 +2504,12 @@ final class RidingScreen implements AppScreen {
             return cell[form] - 1;
         }
         private int measureWidth(int size, int rung, int step, boolean compactForm) {
+            return measureWidth(size, rung, step, compactForm && canStep ? compactSamples : rung == RidingChipFit.TIGHT ? tightSamples : fullSamples);
+        }
+        /** The chip's width at a size, rung and name step with the widest of these values. */
+        private int measureWidth(int size, int rung, int step, String[] values) {
             sized(probe, valuePx * scale(size));
             probe.setLetterSpacing(mode && rung == RidingChipFit.FULL ? MODE_SPACING : 0);
-            String[] values = compactForm && canStep ? compactSamples : rung == RidingChipFit.TIGHT ? tightSamples : fullSamples;
             int value = 0;
             for (String v : values) value = Math.max(value, measured(probe, v));
             int padding = rung == RidingChipFit.TIGHT ? ui.dp(TIGHT_PADDING_DP) * 2 : ui.dp(START_PADDING_DP) + ui.dp(END_PADDING_DP);
@@ -2519,12 +2531,13 @@ final class RidingScreen implements AppScreen {
         /** The name step this chip last took, beside its rung (-1 before its first fit, or with no name). */
         int shownStep = -1;
         /** Shows this chip at a size, RidingChipFit rung and name step. Setting the same again changes nothing, so measuring settles. */
-        void useRung(int size, int rung, int step, boolean compactForm) {
+        void useRung(int size, int rung, int step, boolean compactForm, int room) {
             this.rung = rung;
             shownStep = step;
-            compactShown = compactForm;
+            compactPlanned = compactForm;
             useSize(size);
-            CharSequence shown = textAt(rung, compactForm);
+            compactShown = compactForm && (room < 0 || full == null || measureWidth(size, rung, step, new String[]{full}) > room);
+            CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);
             if (mode) text.setLetterSpacing(rung == RidingChipFit.FULL ? MODE_SPACING : 0);
             boolean iconShown, nameShown;
@@ -2669,7 +2682,10 @@ final class RidingScreen implements AppScreen {
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
             if (s.seconds) value = s.main.toString();
+            String was = full;
             full = value;
+            // A planned compact form shows a state's words where they fit: a new state works that out again.
+            if (RidingChipFit.refitsCompact(compactPlanned, was, full)) requestLayout();
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
             // The dash in place of a state's words, where the fit asked for it; a reading in figures shows as it is.
             compact = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
