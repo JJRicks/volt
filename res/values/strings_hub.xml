@@ -291,4 +291,9 @@
     <string name="hub_settings_section_scooters" volt:screen="Settings page" volt:purpose="section label">Scooters &amp; data</string>
     <!-- Label above the card with Updates, About & permissions and Developer options. Shown in capitals. -->
     <string name="hub_settings_section_about" volt:screen="Settings page" volt:purpose="section label">About</string>
+    <!-- ===== Battery &amp; charging: the Charge done by sheet (its title stays main_schedule_done_by, "Charge done by") ===== -->
+    <!-- The sheet's switch row: turns Charge done by on or off (a verb, as on a switch; the sheet's title says what it enables). -->
+    <string name="hub_done_by_enable" volt:screen="Charge done by sheet (Battery &amp; charging)" volt:purpose="switch row name" volt:safety="charge">Enable</string>
+    <!-- The sheet's time row: the time the charge should be finished by; the row shows that time ("7:30 am") and opens the picker. -->
+    <string name="hub_done_by_finish" volt:screen="Charge done by sheet (Battery &amp; charging)" volt:purpose="row name" volt:safety="charge">Finish charging by</string>
 </resources>

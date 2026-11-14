@@ -127,6 +127,25 @@ public final class JustBackFitTest {
                     if (size[0] == 344 && text > 1 && wider == 1) require(scale < 1, at + ": Avg speed a little smaller, on one line: " + scale);
                     System.out.println("  names " + at + ": scale " + scale + " (widest " + Math.round(widest) + " of " + Math.round(room) + ")");
                 }
+        // The council's second review of part 9, finding 3: Swedish in a short split-screen window, 344x560 dp at 1x. Its
+        // top area is 208 dp (TopArea); less the ended line (48), the distance at its floor (28 sp x 1.16, about 32) and the
+        // tiles' gap (8), about 120 dp are left for the tiles. As measured on the emulator, two rows of tiles take 144 dp; with
+        // the tight padding (4 dp above and below instead of 9, no gap above the value) 28 dp less, 116 dp: they fit, so
+        // "Medelhastighet" stays whole on two tight rows instead of breaking inside the word three across.
+        java.awt.Font floor = saira.deriveFont(12f);
+        String[] swedish = {"Tripptid", "Medelhastighet", "Batteri"};
+        java.util.function.ToDoubleFunction<String> sv = name -> floor.getStringBounds(name, context).getWidth();
+        int area = TopArea.heightDp(560, false, 1f), room344 = area - 48 - Math.round(28 * 1.16f) - 8;
+        float third344 = (308 - 2 * 8) / 3f - 20;
+        require(area == 208 && room344 == 120, "344x560 at 1x: a 208 dp area leaves 120 dp for the tiles: " + area + ", " + room344);
+        require(TileFit.columns(swedish, sv, third344, 2) == 2, "Medelhastighet (" + Math.round(sv.applyAsDouble("Medelhastighet")) + " dp at 12 sp) does not fit a third (" + third344 + ")");
+        require(TileFit.layout(swedish, sv, third344, 2, 144, 144 - 2 * (2 * (9 - 4) + 4), room344) == TileFit.TWO_TIGHT, "344x560 Swedish: two tight rows, the name whole");
+        require(TileFit.nameLines("Medelhastighet", sv, (308 - 8) / 2f - 20, 2) == 2, "and half a row holds it whole");
+        // Full-size windows keep their layouts: 344x882 two rows at 1x and 1.4x (room to spare), 725x604 the same.
+        int room882 = TopArea.heightDp(882, false, 1f) - 48 - 32 - 8;
+        require(TileFit.layout(swedish, sv, third344, 2, 144, 116, room882) == TileFit.TWO, "344x882 Swedish: two rows as before (room " + room882 + ")");
+        int roomWide = TopArea.heightDp(604, true, 1f) - 48 - 32 - 8;
+        require(TileFit.layout(swedish, sv, (330 - 16) / 3f - 20, 2, 144, 116, roomWide) == TileFit.TWO, "725x604 Swedish: two rows (room " + roomWide + ")");
         // The rule alone.
         require(JustBackFit.nameScale(new float[]{50, 70}, 70, 12.5f, 12) == 1, "fits: full size");
         require(JustBackFit.nameScale(new float[]{50, 80}, 70, 17.5f, 12) == .87f, "a little wide: the largest share, in hundredths");

@@ -8,6 +8,8 @@ public final class HomeStyleTest {
         stored();
         seed();
         whatsNew();
+        answered();
+        restoredNotice();
         picker();
         setup();
         keys();
@@ -220,13 +222,79 @@ public final class HomeStyleTest {
                 && HomeStyle.whatsNewSections(false, false, false).isEmpty(), "Only what the sheet holds");
     }
 
+    /**
+     * The council's second review of part 9, finding 2 (the rule 1.13.2's recording note follows): the sheet counts as
+     * shown only once the person answers it. Closing it themselves (a button, its X, Back, a tap outside) or acting in it
+     * (the background switch, a style choice) answers it; Volt's own dismissal (a rebuild, the activity going away, a
+     * service rebind) does not, so it stays due and shows on the next clear Home.
+     */
+    private static void answered() {
+        String u = HomeStyle.ORIGIN_UPDATE;
+        require(HomeStyle.whatsNewAnswered(true, false), "Closed by the person (a button, its X, Back, a tap outside): answered");
+        require(HomeStyle.whatsNewAnswered(false, true), "Acted in (the switch, a style choice): answered, a later dismissal by Volt doesn't undo it");
+        require(HomeStyle.whatsNewAnswered(true, true), "Both: answered");
+        require(!HomeStyle.whatsNewAnswered(false, false), "Dismissed by Volt (recreation, onDestroy, a rebind): not answered");
+        // Not answered leaves the key unset, so the update's sheet is still due and shows on the next clear Home.
+        require(HomeStyle.whatsNewUpdateDue(u, false) && HomeStyle.showWhatsNew(u, false, false, false, true, true),
+                "Lost unread: due again on the next clear Home");
+        require(!HomeStyle.whatsNewUpdateDue(u, true) && !HomeStyle.showWhatsNew(u, true, false, false, true, true), "Answered: never again");
+        require(!HomeStyle.whatsNewUpdateDue(HomeStyle.ORIGIN_INSTALL, false) && !HomeStyle.whatsNewUpdateDue(null, false), "Only an update is ever due the update's sheet");
+    }
+
+    /**
+     * The council's second review of part 9, finding 1: restoring a backup made before the background switch, with Record
+     * rides automatically on, makes the notice due on any installation (origin install after setup was skipped or
+     * finished, as well as the welcome screen's restore); the sheet shows it without an offer to someone not due one.
+     * And #383's 1.13.2 note: an owner who already closed 1.13.2's recording note is not told again on the update.
+     */
+    private static void restoredNotice() {
+        String u = HomeStyle.ORIGIN_UPDATE, i = HomeStyle.ORIGIN_INSTALL;
+        require(HomeStyle.restoreMarksNotice(true, false, true, null), "A pre-Hub backup without the switch, Record rides automatically on: due");
+        require(HomeStyle.restoreMarksNotice(true, false, true, false), "background switch stored off: due");
+        require(!HomeStyle.restoreMarksNotice(true, false, false, null) && !HomeStyle.restoreMarksNotice(true, false, null, null),
+                "Record rides automatically off or absent: nothing to tell");
+        require(!HomeStyle.restoreMarksNotice(true, true, true, false), "A backup that holds the switch (1.13.2 and later): already lived with it");
+        require(!HomeStyle.restoreMarksNotice(false, false, true, null), "A Hub backup: not due");
+        require(!HomeStyle.restoreMarksNotice(true, false, true, true), "Background starts on after the restore: nothing to tell");
+        require(!HomeStyle.restoreMarksNotice(true, false, "true", null), "A wrong-typed switch counts as off");
+        // Shown whatever the origin: after setup was skipped or finished (install), at the welcome screen (update, set by setup's end).
+        for (String origin : new String[]{i, u, null})
+            require(HomeStyle.showWhatsNew(origin, true, true, false, false, true, true), "A restore's notice shows on Home for origin " + origin + ", even after the update's sheet");
+        require(!HomeStyle.showWhatsNew(i, false, false, false, false, true, true), "Without it, an install never sees the sheet");
+        require(!HomeStyle.showWhatsNew(i, false, true, true, false, true, true) && !HomeStyle.showWhatsNew(i, false, true, false, true, true, true)
+                && !HomeStyle.showWhatsNew(i, false, true, false, false, false, true) && !HomeStyle.showWhatsNew(i, false, true, false, false, true, false),
+                "Not during setup, riding mode, off Home or while paused");
+        require(HomeStyle.whatsNewBackgroundNotice(i, true, null, true) && HomeStyle.whatsNewBackgroundNotice(null, true, null, true),
+                "The restore's notice shows on an install too");
+        require(!HomeStyle.whatsNewBackgroundNotice(i, false, null, true), "unless Record rides automatically was turned off since");
+        require(!HomeStyle.whatsNewBackgroundNotice(i, true, null, false), "An install without a restore's mark gets none");
+        // Not offered a switch: the offer belongs to the update's sheet (WhatsNewSheet: offer = update due && offerSwitch).
+        require(!(HomeStyle.whatsNewUpdateDue(i, false) && HomeStyle.offerSwitch(false, HomeStyle.WIDGETS)), "An install restoring an old backup is not offered Clean");
+        require(!(HomeStyle.whatsNewUpdateDue(u, true) && HomeStyle.offerSwitch(false, HomeStyle.WIDGETS)), "nor an update that already answered the sheet");
+        // The sheet then holds the notice alone (noticeOnly: no offer, no notes); with Record rides automatically off since, it settles.
+        require(HomeStyle.whatsNewShows(true, false, true, false) && HomeStyle.whatsNewSections(false, true, false).equals(java.util.Collections.singletonList(HomeStyle.SECTION_NOTICE)),
+                "A restore's sheet holds the notice alone");
+        require(HomeStyle.whatsNewSettled(true, false) && !HomeStyle.whatsNewShows(true, false, false, false), "No notice left: settled, nothing shown");
+        // 1.13.2's own note (AutoStartPolicy.BACKGROUND_NOTICE_KEY): an owner who closed it is not told again on the update.
+        require(!HomeStyle.whatsNewBackgroundNotice(u, true, AutoStartPolicy.NOTICE_DONE, false), "1.13.2's note closed: not told again");
+        require(HomeStyle.whatsNewBackgroundNotice(u, true, AutoStartPolicy.NOTICE_DUE, false), "1.13.2's note still due: told here");
+        require(HomeStyle.whatsNewBackgroundNotice(u, true, null, false) && HomeStyle.whatsNewBackgroundNotice(u, true, 7, false),
+                "From 1.13.1 or earlier (no note) or an unreadable value: told");
+        require(HomeStyle.whatsNewBackgroundNotice(u, true, AutoStartPolicy.NOTICE_DONE, true), "A later restore of an old backup tells them again (a new reason)");
+        require(HomeStyle.whatsNewBackgroundNotice(u, true) == HomeStyle.whatsNewBackgroundNotice(u, true, null, false)
+                && HomeStyle.whatsNewBackgroundNotice(i, true) == HomeStyle.whatsNewBackgroundNotice(i, true, null, false), "The two-argument rule is the same without the extras");
+    }
+
     private static void keys() {
-        String[] keys = {HomeStyle.KEY, HomeStyle.CHOSEN_KEY, HomeStyle.ORIGIN_KEY, HomeStyle.WHATS_NEW_SHOWN_KEY};
+        String[] keys = {HomeStyle.KEY, HomeStyle.CHOSEN_KEY, HomeStyle.ORIGIN_KEY, HomeStyle.WHATS_NEW_SHOWN_KEY, HomeStyle.RESTORED_NOTICE_KEY,
+                AutoStartPolicy.BACKGROUND_NOTICE_KEY};
         for (String key : keys) require(BackupRegistry.rule("app_settings", key) != null, key + " is registered");
         require(BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings", HomeStyle.KEY))
                 && BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings", HomeStyle.CHOSEN_KEY)), "The style and the explicit choice travel together");
         require(BackupRegistry.rule("app_settings", HomeStyle.ORIGIN_KEY).excluded()
-                && BackupRegistry.rule("app_settings", HomeStyle.WHATS_NEW_SHOWN_KEY).excluded(), "This installation's history stays on this phone");
+                && BackupRegistry.rule("app_settings", HomeStyle.WHATS_NEW_SHOWN_KEY).excluded()
+                && BackupRegistry.rule("app_settings", HomeStyle.RESTORED_NOTICE_KEY).excluded()
+                && BackupRegistry.rule("app_settings", AutoStartPolicy.BACKGROUND_NOTICE_KEY).excluded(), "This installation's history stays on this phone");
     }
 
     private static void require(boolean condition, String message) {

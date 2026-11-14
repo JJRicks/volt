@@ -576,4 +576,11 @@ public final class HubText {
      */
     public static Msg settingsSectionScooters() { return M.hubSettingsSectionScooters(); }
     public static Msg settingsSectionAbout() { return M.hubSettingsSectionAbout(); }
+
+    /**
+     * The Charge done by sheet (Battery &amp; charging's Charge done by row opens it; its title stays "Charge done by",
+     * T.mainScheduleDoneBy()): the switch row's name "Enable" and the time row's name "Finish charging by".
+     */
+    public static Msg doneByEnable() { return M.hubDoneByEnable(); }
+    public static Msg doneByFinish() { return M.hubDoneByFinish(); }
 }
