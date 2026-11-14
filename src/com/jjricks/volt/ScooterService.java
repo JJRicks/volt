@@ -108,6 +108,8 @@ public final class ScooterService extends Service {
      * Both render when shown (plan R2); alertTitle and alertText stay the empty text shown before any alert fired.
      */
     private AlertShown alertShown,pendingChargeAlert;
+    /** The alert riding mode's banner shows (RidingAlert): when it took it, whether the alarm sounded then, and its number. */
+    private AlertShown ridingAlert;private long ridingAlertSinceMs,ridingAlertId;private boolean ridingAlertSounded;
     /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
     private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
@@ -1236,6 +1238,38 @@ public final class ScooterService extends Service {
     /** An alert that fired in sight, for MainActivity's dialog (out of sight it is a notification). */
     public String[] pendingChargeAlert(){AlertShown alert=pendingChargeAlert;return alert==null?null:new String[]{alert.title(),alert.text()};}
     public void chargeAlertShown(){pendingChargeAlert=null;}
+    /**
+     * Riding mode takes the pending alert as its banner (RidingAlert) instead of a dialog; the caller then marks it
+     * shown with chargeAlertShown, as the dialog does. A newer alert replaces the one showing. False with none pending.
+     */
+    public boolean showChargeAlertInRiding(long nowMs){
+        AlertShown alert=pendingChargeAlert;if(alert==null)return false;
+        ridingAlert=alert;ridingAlertSinceMs=nowMs;ridingAlertSounded=alarmPlaying();ridingAlertId++;
+        return true;
+    }
+    /** Riding mode's banner while it shows, else null; one whose time has passed is dropped, so it never shows again. */
+    public RidingAlert ridingAlert(long nowMs){
+        AlertShown alert=ridingAlert;if(alert==null)return null;
+        RidingAlert shown=new RidingAlert(alert.event,alert.level,ridingAlertId,ridingAlertSinceMs,ridingAlertSounded,alert.text());
+        if(shown.shown(nowMs,alarmPlaying()))return shown;
+        ridingAlert=null;return null;
+    }
+    /** The banner's Stop sound or close: it goes and the alarm ends. A close meant for an older banner leaves a newer one. */
+    public void closeRidingAlert(long id){
+        if(ridingAlert==null||id!=ridingAlertId)return;
+        ridingAlert=null;stopChargeAlarm();
+    }
+    /**
+     * Riding mode closed with its banner up: the alert counts as shown (no dialog follows) and the alarm keeps its own
+     * timeout. So the sound can still be stopped, the alert's notice carries Stop while it sounds, as out of sight;
+     * where Android shows Volt no notice, nothing could stop it, so it ends now.
+     */
+    public void ridingModeClosed(){
+        boolean showing=ridingAlert!=null;ridingAlert=null;
+        if(destroyed)return;
+        RidingAlert.Leave leave=RidingAlert.leave(showing,alarmPlaying(),alertNotificationsAllowed());
+        if(leave==RidingAlert.Leave.NOTICE)alertNotice(false);else if(leave==RidingAlert.Leave.STOP)stopChargeAlarm();
+    }
     /** Stop watching: no charge alert for the rest of this charge; the alert stays on for the next one. */
     public void skipChargeAlert(){
         ensureAlertPolicy();if(alertPolicy==null)return;

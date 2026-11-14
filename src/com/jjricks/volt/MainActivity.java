@@ -337,6 +337,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
+        if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -762,7 +764,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void riderClosedRiding(){if(riding!=null&&scooterService!=null)scooterService.autoStart.riderLeftRidingMode();closeRiding();}
     private void closeRiding(){
         if(riding==null)return;
-        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);transitionRebuild(0);
+        riding.close();riding=null;ridingRestore=false;showPage(HubPages.HOME);if(scooterService!=null)scooterService.ble.telemetry.followSpeed(null);
+        // Its battery alert banner goes with it, counted as shown (ScooterService.ridingModeClosed).
+        if(scooterService!=null)scooterService.ridingModeClosed();
+        transitionRebuild(0);
     }
     /** A recording that ended by itself closes the riding mode that was open for it, with no auto-open hold. True when it did. */
     private boolean dropAutoEndedRiding(){
@@ -770,7 +775,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropRiding();return true;
     }
     /** Closes to Home with no auto-open hold: Volt's decision, not the rider's. */
-    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);}
+    private void dropRiding(){riding.close();riding=null;ridingRestore=false;ridingResume=null;showPage(HubPages.HOME);scooterService.ble.telemetry.followSpeed(null);
+        scooterService.ridingModeClosed();
+    }
     private void clearDashboardLock(){for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();dashboardLocks.clear();if(lockControl!=null)lockControl.stopMotion();lockTitle=null;lockControl=null;connectionTitle=null;connectionAction=null;offlineTitle=null;offlineDetail=null;lockReady=null;lockOffline=null;compactLock=false;}
     private LinearLayout makeHeader(){
         if(!selectedPage.equals(HubPages.HOME))return makeCompactHeader();
@@ -2828,9 +2835,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             catch(android.content.ActivityNotFoundException|SecurityException missing){toast(T.mainAlertOpenSettings());}
         }
     }
-    /** An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. */
+    /**
+     * An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. In riding
+     * mode it is riding mode's banner instead (RidingAlertBanner), so nothing covers the speed mid-ride.
+     */
     private void maybeShowChargeAlert(){
         if(scooterService==null||!resumed||onboarding!=null||chargeAlertDialog!=null&&chargeAlertDialog.isShowing())return;
+        if(riding!=null||ridingRestore){showChargeAlertInRiding();return;}
         String[] alert=scooterService.pendingChargeAlert();if(alert==null)return;
         boolean sounding=scooterService.chargeAlarmPlaying();
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(alert[0]).setMessage(alert[1])
@@ -2838,6 +2849,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.setOnDismissListener(d->{if(scooterService!=null)scooterService.stopChargeAlarm();if(chargeAlertDialog==dialog)chargeAlertDialog=null;});
         chargeAlertDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
         scooterService.chargeAlertShown();
+    }
+    /** Riding mode open (or about to be restored): the pending alert waits for riding mode's screen, then shows as its banner. */
+    private void showChargeAlertInRiding(){
+        if(riding==null||rebuilding||!(screen instanceof RidingScreen))return;
+        if(!scooterService.showChargeAlertInRiding(SystemClock.elapsedRealtime()))return;
+        scooterService.chargeAlertShown();
+        screen.refresh();
     }
     private boolean chargeDoneOffered(){
         return scooterService==null||scooterService.ble==null
