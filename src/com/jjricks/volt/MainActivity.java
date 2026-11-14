@@ -3306,24 +3306,29 @@ public final class MainActivity extends Activity implements ScreenHost {
         doneSheetRows.clear();
         for(boolean time:new boolean[]{false,true}){
             if(time)design.divider(card);
-            ChargeDoneRow row=new ChargeDoneRow(time);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
+            ChargeDoneRow row=new ChargeDoneRow(time,false,true);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
         }
         AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
         dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
     }
-    /** "Charge done by": the rows' name, the time picker's and the sheet's title. */
+    /** "Charge done by": the page's row, the time picker's and the sheet's title (the sheet's own rows are Enable and Finish charging by). */
     private String doneByTitle(){return T.mainScheduleDoneBy();}
     /**
      * Local charge planning uses the same row and picker language as scooter-owned settings. A row is the on/off switch,
      * the finish time, or (summary) Battery & charging's one Charge done by row (the Layout Plan: "Charge done by
      * 7:30 am ›"): the finish time while it is on, Off, or the measuring minutes (PageRows.doneBy); a tap opens the
-     * sheet that holds the other two. Same preferences and schedule.
+     * sheet that holds the other two. Same preferences and schedule. In that sheet (inSheet, under its "Charge done by"
+     * title; the contributor's decision, 14 Nov) the switch row reads "Enable" and the time row "Finish charging by"
+     * (HubText.doneByEnable, doneByFinish); the switch's spoken name keeps the sheet's title in front ("Charge done by,
+     * Enable"), so it makes sense alone. Elsewhere (the Quick actions sheets) both rows keep "Charge done by".
      */
     private final class ChargeDoneRow {
-        final SettingLine row;final Switch toggle;final boolean time,summary;final View spinner;
-        ChargeDoneRow(boolean time){this(time,false);}
-        ChargeDoneRow(boolean time,boolean summary){
-            this.time=time;this.summary=summary;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
+        final SettingLine row;final Switch toggle;final boolean time,summary,inSheet;final View spinner;
+        ChargeDoneRow(boolean time){this(time,false,false);}
+        ChargeDoneRow(boolean time,boolean summary){this(time,summary,false);}
+        ChargeDoneRow(boolean time,boolean summary,boolean inSheet){
+            this.time=time;this.summary=summary;this.inSheet=inSheet&&!summary;
+            row=new SettingLine("clock",this.inSheet?(time?HubText.doneByFinish():HubText.doneByEnable()):M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
             row.line.setTag(summary?"charge-done-row":time?"charge-done-time":"charge-done-toggle");
             spinner=new Spinner();spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());
             if(summary){toggle=null;row.chevron(MainActivity.this::showChargeDoneSheet);}
@@ -3331,13 +3336,23 @@ public final class MainActivity extends Activity implements ScreenHost {
             else{
                 row.value.setVisibility(View.GONE);
                 toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));
-                toggle.setMinimumWidth(design.dp(54));design.styleSwitch(toggle);toggle.setContentDescription(T.mainScheduleDoneBy());
+                toggle.setMinimumWidth(design.dp(54));design.styleSwitch(toggle);toggle.setContentDescription(spokenName());
                 toggle.setOnClickListener(v->{toggle.setChecked(scooterService!=null&&scooterService.chargeSchedule().doneByEnabled);toggleChargeDoneBy(false);});
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.leftMargin=design.dp(10);row.line.addView(toggle,p);
                 row.line.setClickable(true);row.line.setFocusable(true);row.line.setBackground(rowRipple());
                 row.line.setOnClickListener(v->toggleChargeDoneBy());
             }
         }
+        /**
+         * The row's name for TalkBack: in the sheet the switch row is "Charge done by, Enable" and the time row "Finish
+         * charging by"; elsewhere "Charge done by" and "Charge done by time".
+         */
+        String spokenName(){
+            if(inSheet)return time?HubText.doneByFinish().render():labelValue(doneByTitle(),HubText.doneByEnable().render());
+            return time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy();
+        }
+        /** A name and its value (or a name and what it enables) as TalkBack reads them: "Charge done by, Off". */
+        private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
         void refresh(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
             // The summary row is held back only without a scooter (as the time row is); its sheet says why for each row.
@@ -3352,9 +3367,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!time&&!summary)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
             row.name.setTextColor(blocked==null?design.text:design.muted);row.value.setText(value);
             row.line.setAlpha(blocked==null?1f:.5f);row.line.setEnabled(true);
-            row.line.setContentDescription(blocked==null?T.mainLabelValue(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value):T.mainLabelValueDetail(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value,blocked));
+            row.line.setContentDescription(blocked==null?labelValue(spokenName(),value):T.mainLabelValueDetail(spokenName(),value,blocked));
             boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending&&!summary?View.VISIBLE:View.GONE);
-            if(toggle!=null){toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
+            if(toggle!=null){toggle.setChecked(on);toggle.setContentDescription(spokenName());toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
         }
     }
     private final class ControlRow {
