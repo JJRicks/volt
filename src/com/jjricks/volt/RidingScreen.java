@@ -2561,8 +2561,11 @@ final class RidingScreen implements AppScreen {
      * same one for the same layout. On a wide screen's unit line (ChipsHead) they're one row, as wide as its chips.
      */
     private final class ChipRows extends ViewGroup {
-        private int[] rowOf = new int[0];
+        private RidingChipRows split;
         private List<Chip> placed = new ArrayList<>();
+        /** Each placed chip's width, and whether it shows now (in a row, with something to say). */
+        private int[] widths = new int[0];
+        private boolean[] showing = new boolean[0];
         private int rowHeight;
         /** True on the unit line: as wide as the chips shown, so the head can set the row at the right edge. */
         boolean hug;
@@ -2593,57 +2596,49 @@ final class RidingScreen implements AppScreen {
             for (Chip chip : all()) tallest = Math.max(tallest, chip.heightAt(RidingChipFit.SIZE_NORMAL));
             return tallest;
         }
-        /** The chips' rows for a width and the most height they may take: lays them out and returns their height. */
+        /**
+         * The chips' rows for a width and the most height they may take: lays them out and returns their height. Split and
+         * sized from every chip picked, a drive-mode chip waiting for its mode included, so the rows, their height and the
+         * number above depend only on the room, the text size, the units and the chips picked, never on a reading: a mode
+         * that arrives or goes stale only shows or hides its chip, and the chips after it on its row close up (the council
+         * on #496). It used to split only the chips with something to show, so a waiting mode chip could take its row
+         * away and the number grew, then shrank when the mode came back.
+         */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int room = MeasureSpec.getSize(widthSpec);
             int most = MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED ? Integer.MAX_VALUE : MeasureSpec.getSize(heightSpec);
-            List<Chip> wanted = wanted(this);
+            List<Chip> picked = all();
             int gap = ui.dp(CHIP_GAP_DP), normal = RidingChipFit.SIZE_NORMAL;
-            rowHeight = 0;
-            for (Chip chip : wanted) rowHeight = Math.max(rowHeight, chip.heightAt(normal));
+            rowHeight = chipHeight();
             int rows = Math.max(0, RidingChipFit.stackable(rowHeight, gap, most));
-            RidingChipRows split = split(wanted, room, rows);
-            rowOf = split.row;
-            placed = wanted;
-            for (int i = 0; i < getChildCount(); i++) {
-                View child = getChildAt(i);
-                if (!(child instanceof Chip)) continue;
-                Chip chip = (Chip) child;
-                int at = wanted.indexOf(chip);
-                boolean shown = at >= 0 && split.row[at] >= 0;
-                if (shown) {
-                    int width = chip.widthAt(normal, split.rung, split.step[at], split.compact[at]);
-                    chip.useRung(normal, split.rung, split.step[at], split.compact[at], width);
-                    chip.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
+            split = split(picked, room, rows);
+            placed = picked;
+            int n = picked.size();
+            widths = new int[n];
+            showing = new boolean[n];
+            for (int i = 0; i < n; i++) {
+                Chip chip = picked.get(i);
+                boolean inRow = split.row[i] >= 0;
+                if (inRow) {
+                    widths[i] = chip.widthAt(normal, split.rung, split.step[i], split.compact[i]);
+                    chip.useRung(normal, split.rung, split.step[i], split.compact[i], widths[i]);
+                    chip.measure(MeasureSpec.makeMeasureSpec(widths[i], MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
                 }
-                if (chip.getVisibility() != (shown ? VISIBLE : GONE)) chip.setVisibility(shown ? VISIBLE : GONE);
+                showing[i] = inRow && chip.wanted;
+                if (chip.getVisibility() != (showing[i] ? VISIBLE : GONE)) chip.setVisibility(showing[i] ? VISIBLE : GONE);
             }
-            int height = split.rows == 0 ? 0 : split.rows * rowHeight + (split.rows - 1) * gap;
-            int across = room;
-            if (hug) {
-                // The widest row, chips and gaps.
-                int[] used = new int[Math.max(1, split.rows)];
-                across = 0;
-                for (int i = 0; i < wanted.size(); i++) {
-                    int row = split.row[i];
-                    if (row < 0) continue;
-                    used[row] += (used[row] == 0 ? 0 : gap) + wanted.get(i).getMeasuredWidth();
-                    across = Math.max(across, used[row]);
-                }
-            }
-            setMeasuredDimension(across, height);
+            // On the unit line, as wide as the chips showing, so the row's right end stays at the line's right edge.
+            setMeasuredDimension(hug ? split.across(widths, showing, gap) : room, split.height(rowHeight, gap));
         }
         @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            if (split == null) return;
             int gap = ui.dp(CHIP_GAP_DP);
-            int[] x = new int[placed.size() + 1];
+            int[] left = split.lefts(widths, showing, gap);
             for (int i = 0; i < placed.size(); i++) {
+                if (left[i] < 0) continue;
                 Chip chip = placed.get(i);
-                int row = rowOf[i];
-                if (row < 0 || chip.getVisibility() == GONE) continue;
-                int top = row * (rowHeight + gap);
-                int left = x[row] == 0 ? 0 : x[row] + gap;
-                chip.layout(left, top, left + chip.getMeasuredWidth(), top + chip.getMeasuredHeight());
-                x[row] = left + chip.getMeasuredWidth();
+                int top = split.row[i] * (rowHeight + gap);
+                chip.layout(left[i], top, left[i] + chip.getMeasuredWidth(), top + chip.getMeasuredHeight());
             }
         }
     }
