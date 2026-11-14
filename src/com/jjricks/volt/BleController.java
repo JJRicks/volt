@@ -456,7 +456,12 @@ public final class BleController {
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
     public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
-    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
+    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;String address=connectAddress(p);if(address.isEmpty())scan();else connect(p,address);}
+    /**
+     * Where connectLast() goes without a scan: the saved scooter, else the scooter a key Volt made is tied to, whose link
+     * dropped before its address was saved (NewOwnerKey.connectAddress). "" means a scan, with the chooser (MainActivity.connect).
+     */
+    public String connectAddress(ScooterProfiles.Profile p){return NewOwnerKey.connectAddress(p==null?null:p.mac,p==null?null:OnboardingScreen.madeKeyRecord(context,p.id));}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
         String mac=result.getDevice().getAddress();AdvertisedIdentity.Result id=advertised.get(mac);if(id==null&&result.getScanRecord()!=null)id=AdvertisedIdentity.parse(result.getScanRecord().getBytes());
@@ -596,15 +601,31 @@ public final class BleController {
     };
     private void discover(BluetoothGatt g){if(simulating())return;if(g!=gatt||discovered)return;if(!workAllowed()){suspend();return;}discovered=true;if(!g.discoverServices())failed(M.bleFailedConnection(),true,ConnectionEventLog.Reason.SERVICE_DISCOVERY_FAILED,-1);}
     private void authenticate(){if(simulating())return;if(!workAllowed()){suspend();return;}if(profile==null||++authRounds>3){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}
-        // Hardware saved under another profile is refused before it is offered this profile's owner key, as remember()
-        // refuses it after the owner check: an unowned (reset) scooter would take the key and drop the saved profile's.
-        // No reconnect, and an advertised model ID read for this address is dropped (null; a new scan result resets its address).
-        if(gatt!=null){ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,gatt.getDevice().getAddress(),null);if(saved!=null){wanted=false;identifying=false;pendingAdvertised=null;telemetry.clear();
-            failed(M.bleFailedOtherSaved(saved.name),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}}
+        if(gatt==null||!mayOffer(gatt.getDevice().getAddress()))return;
         state=State.AUTHENTICATING;message=M.bleStatusCheckingOwner();authenticated=false;challengePending=false;changed();
-        // A key setup made counts as offered from here on, whatever started this connection: the scooter may take it.
-        OnboardingScreen.keyOffered(context,profile.id);
         send(Protocol.auth(Protocol.fromHex(profile.identity),1,profile.role));}
+    /**
+     * Whether this profile's owner key may go to the scooter at address; if not, the link has failed with no reconnect.
+     * Hardware saved under another profile is refused first, as remember() refuses it after the owner check: an unowned
+     * (reset) scooter would take the key and drop the saved profile's. Then a key Volt made is tied to the first scooter
+     * offered it, on disk before the frame (OnboardingScreen.keyOffered): another scooter is refused while the tie stands,
+     * and a tie that can't be saved sends nothing. An advertised model ID read for this address is dropped (null; a new
+     * scan result resets its address).
+     */
+    private boolean mayOffer(String address){
+        ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,address,null);
+        Msg refused=saved!=null?M.bleFailedOtherSaved(saved.name):null;
+        if(refused==null)switch(OnboardingScreen.keyOffered(context,profile.id,address)){
+            case ELSEWHERE:refused=M.bleFailedNewKeyElsewhere();break;
+            case UNSAVED:refused=M.bleFailedNewKeyUnsaved();break;
+            default:return true;
+        }
+        wanted=false;identifying=false;pendingAdvertised=null;telemetry.clear();
+        failed(refused,false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return false;
+    }
+    /** This link's scooter refused this profile's owner key: a made key tied to it is untied (OnboardingScreen.keyRefused), then the link fails. */
+    private void ownerRefused(int code){ownerRefused(gatt==null?null:gatt.getDevice().getAddress(),code);}
+    private void ownerRefused(String address,int code){OnboardingScreen.keyRefused(context,profile.id,address);failed(OWNER_REJECTED,false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,code);}
     private void send(byte[] frame){send(frame,null);}
     /** A read for the connected notice alone (ReadPolicy.noticeBattery): marked quiet unless the same read is already queued. */
     private void sendQuietly(byte[] frame){quietReads.add(frame);send(frame);boolean queued=false;for(byte[] q:queue)queued|=q==frame;if(!queued)quietReads.remove(frame);}
@@ -671,7 +692,7 @@ public final class BleController {
             lastFrameMs=now();frameSleptMs=cadence.slept();if(f.flag!=0){failed(M.bleFailedUnsupportedFirmware(),false,ConnectionEventLog.Reason.UNSUPPORTED_RESPONSE,-1);return;}
             if(!ScooterCommands.sensitiveCommand(f.cmd))event(String.format(Locale.ROOT,"Receive 0x%02X · status %d · %d bytes",f.cmd,f.error(),f.data.length-1));
             if(f.cmd==0x30){
-                if(f.error()!=0){failed(OWNER_REJECTED,false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,f.error());return;}
+                if(f.error()!=0){ownerRefused(f.error());return;}
                 if(f.data.length>1){authVariant=CompatibilityReport.authVariant(f.data.length,f.data[1]&255);try{send(Protocol.challengeResponse(f,1));challengePending=true;}catch(Exception e){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}}
                 else if(!authenticated){authenticated=true;challengePending=false;if(authVariant.isEmpty())authVariant="challenge_free";event("Owner authenticated locally");message=M.bleStatusConnecting();policy();send(Protocol.frame(0x74,null));send(Protocol.frame(0x70,null));refresh(true);poll(generation);}
             }else if(f.cmd==0x31&&challengePending){if(f.error()!=0){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,f.error());return;}int s=generation;handler.postDelayed(()->{if(s==generation)authenticate();},150);}
