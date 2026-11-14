@@ -285,7 +285,7 @@ final class CleanHomeScreen implements AppScreen {
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setMinimumHeight(ui.dp(56));
         line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : entry.icon, 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+        line.addView(ui.icon(entry == null ? "tune" : QuickAccessGrid.roundGlyph(id, entry.icon), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
         TextView name = ui.text(label, 15, false);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);

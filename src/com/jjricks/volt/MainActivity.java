@@ -64,6 +64,8 @@ import org.json.JSONObject;
 
 /** Native adaptive shell. The foreground service owns Bluetooth and recordings. */
 public final class MainActivity extends Activity implements ScreenHost {
+    /** "Lock state unknown": the Home lock row's state while no lock state is known (also spoken by Clean's round Lock action). */
+    static String lockUnknownText(){return T.mainLockStateUnknown();}
     private static final int BLUETOOTH_PERMISSION=101, NOTIFICATION_PERMISSION=102, ENABLE_BLUETOOTH=103,
             RIDE_LOCATION_PERMISSION=104, IMPORT_OWNER=201, SAVE_DOCUMENT=202, IMPORT_LAYOUTS=203;
     private static final long BODY_REFRESH_MS=1000;
@@ -813,7 +815,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         lockControl=new LockControl();lockControl.compact=true;lockReady=lockControl;
         View square=design.iconSquare("lock",design.dim);
         LinearLayout words=column();
-        offlineTitle=design.text(T.mainLockStateUnknown(),16,true);offlineTitle.setTypeface(design.semibold());
+        offlineTitle=design.text(lockUnknownText(),16,true);offlineTitle.setTypeface(design.semibold());
         offlineDetail=design.text("",13,false);offlineDetail.setTextColor(design.muted);offlineDetail.setVisibility(View.GONE);
         for(TextView line:new TextView[]{offlineTitle,offlineDetail}){
             // Saira's tall metrics need no extra spacing. The detail stays one line under a one-word state.

@@ -284,9 +284,9 @@ public final class HubText {
     /**
      * The one short name one of Clean's own quick actions shows under its circle on Clean Home (the contributor's
      * decisions on #383: "Ride" not "RIDE", "Record", "Alerts"); null for any other action (QuickAccessGrid picks its
-     * short name). Its spoken name stays the full one. Charge done by has no one-word name yet: its short rung is the
-     * whole "Charge done by", which ends in an ellipsis at the row's size until part 10 adds
-     * home_qa_charge_done_by_short ("Done by").
+     * short name). Its spoken name stays the full one. Charge done by has no shorter name yet: its short rung is the
+     * whole "Charge done by", which shows as the icon alone where it does not fit whole (QuickActionLayout's ladder)
+     * until part 10 adds Clean's own ("Charge by").
      */
     public static Msg quickActionRoundName(String id) {
         if (HomeQuickActions.RIDING.equals(id)) return shortTitle(HubPages.RIDE);
