@@ -2385,10 +2385,12 @@ final class RidingScreen implements AppScreen {
                     if (getChildAt(i) instanceof Chip) tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
                 limit = RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height);
                 // Trace's two chips stay whatever the height, as they always have (RidingChipChoicesValidation's
-                // split-screen half): only a chip past them steps aside for a short column.
-                limit = Math.max(limit, Math.min(2, getChildCount()));
+                // split-screen half): only its third steps aside for a short column. Focus's chips are new, so every
+                // one of them hides when the column is short.
+                if (against == null) limit = Math.max(limit, Math.min(2, getChildCount()));
             }
-            fitColumn(this, room, limit, true);
+            // Only Trace's follow a value too wide to fit steadily, as they did before; Focus's hide.
+            fitColumn(this, room, limit, against == null);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
