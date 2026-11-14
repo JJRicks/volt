@@ -37,15 +37,18 @@ final class HomeQuickEditor {
         preferences.edit().putString(HomeQuickActions.key(profile.id), HomeQuickActions.encode(ids)).apply();
     }
 
-    /** The name an action shows under its round button on Clean ("Cruise" for cruise control), or its id if unknown. */
+    /**
+     * An action's name in the Quick actions row ("Cruise" for cruise control, "Charge done by" whole: the row has the
+     * room Clean's circles lack, QuickAccessGrid.listName), or its id if unknown.
+     */
     static String roundName(String id) {
         QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        return entry == null ? id : QuickAccessGrid.roundName(entry);
+        return entry == null ? id : QuickAccessGrid.listName(entry);
     }
 
     /**
-     * The four names as Clean shows them, in order: "Ride, Record, Charge by, Cruise", joined by the language's list
-     * separator (HubText.listSeparator).
+     * The four names in order: "Ride, Record, Charge done by, Cruise", joined by the language's list separator
+     * (HubText.listSeparator).
      */
     static String summary(List<String> ids) {
         List<String> names = new ArrayList<>();
