@@ -343,7 +343,7 @@ public final class Ui {
         if (!(view instanceof TextView)) return view.getMeasuredWidth();
         TextView label = (TextView) view;
         Drawable end = label.getCompoundDrawablesRelative()[2];
-        int spacer = end instanceof BalanceSpacer ? end.getBounds().width() : 0;
+        int spacer = end instanceof BalanceSpacer ? end.getBounds().width() : IconLabelBalance.NONE;
         return IconLabelBalance.unbalanced(label.getMeasuredWidth(), spacer, label.getCompoundDrawablePadding());
     }
     /** The invisible end drawable that centres a centred label's text past its start icon (IconLabelBalance). */
@@ -356,7 +356,8 @@ public final class Ui {
     }
     /**
      * Balances a decorated label at layout time, when its gravity, padding, gap, icon and width are final: a centred
-     * label whose text still fits on one line gets the end spacer, and any other label loses it. It decides before
+     * label gets the widest end spacer (up to the full balance) that keeps its text on one line, and any other label
+     * loses it. It decides before
      * the frame draws (and lays the label out again first), so the text never jumps. One per label: decorate may
      * run more than once on the same label, and a caller may swap the start icon (Stats' spinner) in between.
      */
@@ -387,9 +388,11 @@ public final class Ui {
             Drawable[] drawables = label.getCompoundDrawablesRelative();
             Drawable end = drawables[2];
             if (end != null && !(end instanceof BalanceSpacer)) return true; // the end belongs to the caller
-            int have = end == null ? 0 : end.getBounds().width(), want = wanted(drawables[0]);
+            int have = end == null ? IconLabelBalance.NONE : end.getBounds().width(), want = wanted(drawables[0]);
             if (want == have) return true;
-            label.setCompoundDrawablesRelative(drawables[0], drawables[1], want == 0 ? null : new BalanceSpacer(want), drawables[3]);
+            // A spacer of width 0 still adds its gap: a tight label's partial balance.
+            label.setCompoundDrawablesRelative(drawables[0], drawables[1],
+                    want == IconLabelBalance.NONE ? null : new BalanceSpacer(want), drawables[3]);
             return false; // lay out again before this frame draws
         }
         private int wanted(Drawable icon) {
@@ -397,7 +400,7 @@ public final class Ui {
             boolean centred = align == View.TEXT_ALIGNMENT_CENTER || align == View.TEXT_ALIGNMENT_GRAVITY
                     && (label.getGravity() & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL;
             // Autosize could shrink the text into the balanced room; such a label keeps today's layout.
-            if (!centred || icon == null || label.getAutoSizeTextType() != TextView.AUTO_SIZE_TEXT_TYPE_NONE) return 0;
+            if (!centred || icon == null || label.getAutoSizeTextType() != TextView.AUTO_SIZE_TEXT_TYPE_NONE) return IconLabelBalance.NONE;
             return IconLabelBalance.spacer(true, label.getWidth(), label.getPaddingStart(), label.getPaddingEnd(),
                     icon.getBounds().width(), label.getCompoundDrawablePadding(), textWidth());
         }
