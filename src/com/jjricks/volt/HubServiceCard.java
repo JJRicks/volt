@@ -145,6 +145,8 @@ final class HubServiceCard {
         // The body's tag remembers the placement set last (none before the first call).
         if (Boolean.valueOf(beside).equals(body.getTag())) return;
         body.setTag(beside);
+        // Side by side, the smaller status shares the name's first baseline, as the mock-up's "Due in 40 mi" does.
+        body.setBaselineAligned(beside);
         body.setOrientation(beside ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
         LinearLayout.LayoutParams nameSize = beside ? new LinearLayout.LayoutParams(0, -2, 1) : new LinearLayout.LayoutParams(-1, -2);
         LinearLayout.LayoutParams statusSize = new LinearLayout.LayoutParams(beside ? -2 : -1, -2);

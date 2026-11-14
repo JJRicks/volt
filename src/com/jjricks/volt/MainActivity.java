@@ -667,14 +667,21 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private void buildPanes(LinearLayout content,HubNav.Args args){
         clearDashboardLock();profileTitle=null;connectionTitle=null;liveStatsTitle=null;
-        homeScreen=new CleanHomeScreen(this,homeActions(),true);
+        // The Simulation banner above the panes takes window height the top area must leave for the quick actions.
+        int aboveDp=simulationNotice!=null&&simulationNotice.getVisibility()==View.VISIBLE?bannerHeightDp(simulationNotice):0;
+        homeScreen=new CleanHomeScreen(this,homeActions(),true,aboveDp);
         paneLocks=dashboardLocks.size();
         ScrollView left=new ScrollView(this);left.setTag(TAG_SCOOTER_PANE);left.setFillViewport(true);left.setClipToPadding(false);
+        // No scroll bar over the cards' edges: the pane scrolls only with large text, and the mock-up draws none.
+        left.setVerticalScrollBarEnabled(false);
         left.setPadding(0,design.dp(6),0,design.dp(16));
         View home=homeScreen.view();if(home.getParent() instanceof ViewGroup)((ViewGroup)home.getParent()).removeView(home);
         left.addView(home,new ScrollView.LayoutParams(-1,-2));
         FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
         rightPage=column();right.addView(rightPage,new FrameLayout.LayoutParams(-1,-1));
+        // The page pane starts level with the scooter pane's status line ("Connected · Sport"), as the wide mock-ups
+        // line up the search field with it; its end keeps the scroll bar's room (PANE_BAR_DP), taken from the window's 24 dp.
+        rightPage.setPaddingRelative(0,homeScreen.statusTextTop(),0,0);
         // The last rung of the subjects' narrow-label ladder: one pane at this size, text size and language from now on.
         // The key is this layout's, taken now; the posted callback is dropped once these panes are gone or the window
         // changed (a fold, a resize, a text-size change), so it never marks a size that did not fail.
@@ -687,10 +694,18 @@ public final class MainActivity extends Activity implements ScreenHost {
                     onePaneHomeAt=key;rebuild();
                 });
         built[0]=panes;
-        panes.setPadding(design.dp(24),0,design.dp(24),0);
+        panes.setPaddingRelative(design.dp(24),0,design.dp(24-PANE_BAR_DP),0);
         content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         pageFrame=right;
         fillPagePane(args);
+    }
+    /** The page pane's scroll bar room at its end (dp): the bar sits beside the cards, not over their edges. */
+    private static final int PANE_BAR_DP=8;
+    /** A banner's height (dp) at this window's width, before layout. */
+    private int bannerHeightDp(View banner){
+        int width=getResources().getDisplayMetrics().widthPixels;
+        banner.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+        return (int)Math.ceil(banner.getMeasuredHeight()/getResources().getDisplayMetrics().density);
     }
     /** View tags of the wide Home's panes. */
     static final String TAG_SCOOTER_PANE="hub-scooter-pane",TAG_PAGE_PANE="hub-page-pane";
@@ -710,7 +725,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // gives its column on a phone, so it lines up with the header and with every other page (#394 early review, 5).
             View column=scroll.getChildCount()>0?scroll.getChildAt(0):null;
             if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
-        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(0,design.dp(6),0,design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+            scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_BAR_DP),scroll.getPaddingBottom());
+        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_BAR_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The bar draws in the scroller's end padding, beside the cards (on a phone it sits in the page margin).
+        scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;
         rightPage.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     }
@@ -1404,7 +1422,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * subjects"); a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
      */
     private LinearLayout makePaneHeader(){
-        LinearLayout header=column();header.setPadding(0,design.dp(2),0,design.dp(6));
+        // In the page pane, the header keeps the scroll bar's room at its end too, so it ends where the cards end.
+        LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_BAR_DP),design.dp(6));
         String parent=nav.size()>1?nav.pages().get(nav.size()-2):HubPages.HOME;
         header.addView(HubPages.HOME.equals(parent)?backLink(HubText.all(),HubText.backTo(HubText.dockAll())):backLink(parent),new LinearLayout.LayoutParams(-2,-2));
         addPageTitle(header);

@@ -71,6 +71,10 @@ final class CleanHomeScreen implements AppScreen {
     private final HubServiceCard serviceCard;
     /** The wide Home's scooter pane (pane mode). */
     private final boolean pane;
+    /** What the window shows above this Home (dp), left out of the top area's share of the window. */
+    private final int aboveDp;
+    /** From the header's top to its status line's text (px): the wide Home's page pane starts level with it. */
+    private int statusTextTop;
     private final List<String> quickIds;
     /** The scooter's model as known when this Home was built; the default quick actions follow it. */
     private final String modelIdentity;
@@ -83,13 +87,18 @@ final class CleanHomeScreen implements AppScreen {
     private boolean closed;
     private android.app.AlertDialog editSheet;
 
-    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) { this(host, actions, false); }
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions) { this(host, actions, false, 0); }
 
-    /** pane: the wide Home's scooter pane (see the class comment); false is the one-pane Home. */
-    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions, boolean pane) {
+    /**
+     * pane: the wide Home's scooter pane (see the class comment); false is the one-pane Home. aboveDp: what the window
+     * shows above the panes (the Simulation banner), which the top area leaves out of the window's height so the quick
+     * actions still show whole on first view.
+     */
+    CleanHomeScreen(ScreenHost host, DashboardScreen.Actions actions, boolean pane, int aboveDp) {
         this.host = host;
         this.actions = actions;
         this.pane = pane;
+        this.aboveDp = Math.max(0, aboveDp);
         ui = host.ui();
         preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         parts = DashboardScreen.cleanParts(host, actions);
@@ -111,6 +120,7 @@ final class CleanHomeScreen implements AppScreen {
         status.setGravity(Gravity.BOTTOM | Gravity.START);
         status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
         status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
+        statusTextTop = Math.max(0, Math.max(ui.dp(CleanHeaderFit.TARGET_DP), ui.dp(CleanHeaderFit.TOP_DP) + status.getLineHeight()) - status.getLineHeight());
         header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
         float nameFull = name.getTextSize();
@@ -198,6 +208,13 @@ final class CleanHomeScreen implements AppScreen {
     }
 
     @Override public View view() { return view; }
+
+    /**
+     * How far below the header's top its status line's text starts (px): the status band keeps its 48 dp target with the
+     * text at its foot. The wide Home's page pane starts this much lower, so the search field (or a page's back link)
+     * lines up with "Connected" as in the Layout Plan's wide mock-ups.
+     */
+    int statusTextTop() { return statusTextTop; }
 
     /**
      * Tabletop posture: the header and the top area move to the pane above the hinge, as the widget dashboard's
@@ -423,7 +440,7 @@ final class CleanHomeScreen implements AppScreen {
     private int topHeight() {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        return TopArea.heightPx(configuration.screenHeightDp - aboveDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */
