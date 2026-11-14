@@ -64,6 +64,8 @@ public final class CapabilityResolver {
         public int[] values(){return choices.clone();}
         public String[] labels(){String[] out=new String[choices.length];for(int i=0;i<choices.length;i++)out[i]=label(choices[i]);return out;}
         public String label(int v){return variant==null?Integer.toString(v):variant.label(v);}
+        /** The model's setting labelled Off (data), or null where its mapped choices have none (energy recovery's Low, Medium and High only). */
+        public Integer offValue(){if(choices==null)return null;for(int v:choices)if("Off".equals(label(v)))return v;return null;}
         /** Another model's variant label (never the UT5 MAX catalogue's), else null; speeds keep the rider's units. */
         public String oemLabel(int v){
             if(variant==null||variant.decode==FeatureVariant.Decode.UT5_FEATURE)return null;

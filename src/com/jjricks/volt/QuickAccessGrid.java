@@ -195,7 +195,7 @@ final class QuickAccessGrid extends ViewGroup {
             else if (clean && doneBy && charge != null && !unmapped) look = QuickActionLayout.schedule(charge.doneByEnabled, featureLive);
             else if (clean && feature != null && !toggle && !feature.sensitive && !chargeControl
                     && (feature.type == ScooterCommands.Type.CHOICE || feature.type == ScooterCommands.Type.TOGGLE)
-                    && QuickActionLayout.offValue(feature.optionValues, feature.options) != null)
+                    && feature.offValue() != null)
                 look = QuickActionLayout.setting(value, offValue(feature, decision), featureLive);
             boolean lockUnknown = look != null && look.look == QuickActionLayout.Look.UNKNOWN;
             // The lock's spoken state on Clean (its circle has no value line): Locked, Unlocked or Lock state unknown.
@@ -704,9 +704,8 @@ final class QuickAccessGrid extends ViewGroup {
      * as energy recovery's Low, Medium and High), else the catalog's.
      */
     private static Integer offValue(ScooterCommands.Feature feature, CapabilityResolver.Decision decision) {
-        if (decision != null && decision.variant != null && decision.values().length > 0)
-            return QuickActionLayout.offValue(decision.values(), decision.labels());
-        return QuickActionLayout.offValue(feature.optionValues, feature.options);
+        if (decision != null && decision.variant != null && decision.values().length > 0) return decision.offValue();
+        return feature.offValue();
     }
 
     /** The model's mapped choices include this value (no choices known means nothing to judge it by). */

@@ -166,16 +166,6 @@ final class QuickActionLayout {
     }
 
     /**
-     * The value labelled Off among a control's settings ({@code values} with their English {@code labels}, data), or
-     * null where it has none.
-     */
-    static Integer offValue(int[] values, String[] labels) {
-        if (values == null || labels == null) return null;
-        for (int i = 0; i < Math.min(values.length, labels.length); i++) if ("Off".equals(labels[i])) return values[i];
-        return null;
-    }
-
-    /**
      * Charge done by's circle: on while the schedule is armed ({@code armed}, Volt's saved schedule), connected or not;
      * dimmed while the scooter is not connected (the schedule then waits for it).
      */

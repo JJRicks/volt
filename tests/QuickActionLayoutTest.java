@@ -221,8 +221,7 @@ public final class QuickActionLayoutTest {
             // A setting with an Off among others (council review 5904426594, finding 1): energy recovery is on at Low,
             // Medium and High, from the setting read now or last known (dimmed), off at Off; a model with no Off is on
             // at every level; an unread setting is plain and dimmed.
-            Integer offRaw = QuickActionLayout.offValue(new int[]{0, 30, 60, 90}, new String[]{"Off", "Low", "Medium", "High"});
-            require(offRaw != null && offRaw == 0, "energy recovery's Off is 0");
+            Integer offRaw = 0; // ScooterCommands.Feature.offValue for energy recovery (ScooterCommandsTest)
             for (int level : new int[]{30, 60, 90}) {
                 QuickActionLayout.State on = QuickActionLayout.setting(level, offRaw, live);
                 require(on.look == QuickActionLayout.Look.ON && on.dimmed == !live, at + ": recovery at " + level + ": on: " + on);
@@ -233,13 +232,9 @@ public final class QuickActionLayoutTest {
             QuickActionLayout.State unread = QuickActionLayout.setting(null, offRaw, live);
             require(unread.look == QuickActionLayout.Look.OFF && unread.dimmed, at + ": recovery never read: plain, dimmed: " + unread);
             // A light's Off / On / Follow headlight: on unless Off.
-            Integer lightOff = QuickActionLayout.offValue(new int[]{0, 1, 2}, new String[]{"Off", "On", "Follow headlight"});
+            Integer lightOff = 0;
             require(QuickActionLayout.setting(2, lightOff, live).look == QuickActionLayout.Look.ON
                     && QuickActionLayout.setting(0, lightOff, live).look == QuickActionLayout.Look.OFF, at + ": a light following the headlight is on");
-            // A choice with no Off (acceleration's Eco and Turbo, a maximum speed) has no Off value: the grid keeps its plain circle.
-            require(QuickActionLayout.offValue(new int[]{3, 5}, new String[]{"Eco", "Turbo"}) == null
-                    && QuickActionLayout.offValue(null, null) == null && QuickActionLayout.offValue(new int[]{0}, new String[0]) == null,
-                    "no Off among the settings: none");
 
             QuickActionLayout.State armed = QuickActionLayout.schedule(true, live), idle = QuickActionLayout.schedule(false, live);
             require(armed.look == QuickActionLayout.Look.ON && armed.dimmed == !live, at + ": an armed Charge done by is on: " + armed);
