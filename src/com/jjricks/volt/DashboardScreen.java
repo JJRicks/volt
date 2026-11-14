@@ -2352,6 +2352,12 @@ public final class DashboardScreen implements AppScreen {
         final LinearLayout rows;
         /** The model has a photo; there is room for it (always on Widgets; Clean's slot can be too small). */
         boolean photoKnown, photoRoom = true;
+        /**
+         * Clean: the track shows (ChargingFit.Plan.track), and where its zone ends in the stage (0: the stage's bottom;
+         * with no photo the percentage and the track are centred together, ChargingFit.noPhotoTop).
+         */
+        boolean trackShown = true;
+        int trackEnd;
         /** Clean: the percentage's full text size in pixels (ChargingFit shrinks it from there). */
         float percentFullPx;
         /** Clean: the photo's side in the stage (the square picture, centred under the percentage); 0 while it does not show. */
@@ -2585,6 +2591,19 @@ public final class DashboardScreen implements AppScreen {
                 size.topMargin = plan.photoHeight - photoSide;
             }
             showPhoto();
+            // No photo for this model: the percentage and the track centred together in the stage (whose height the
+            // top area fixes), rather than an empty photo-sized band between them.
+            if (trackShown != plan.track) stage.invalidate();
+            trackShown = plan.track;
+            int under = ui.dp(ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP), top = 0;
+            if (!photoKnown && plan.track && plan.percent) {
+                percent.measure(free, free);
+                top = ChargingFit.noPhotoTop(plan.stageHeight, percent.getMeasuredHeight(), under);
+            }
+            FrameLayout.LayoutParams percentAt = (FrameLayout.LayoutParams) percent.getLayoutParams();
+            if (percentAt.topMargin != top) percentAt.topMargin = top;
+            int end = top > 0 ? top + percent.getMeasuredHeight() + under : 0;
+            if (trackEnd != end) { trackEnd = end; stage.invalidate(); }
             super.onMeasure(widthSpec, heightSpec);
         }
 
@@ -2630,6 +2649,8 @@ public final class DashboardScreen implements AppScreen {
                 percent.setContentDescription(T.dashboardBatteryPercent(Math.round(level), Math.round(level)));
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
+            // Clean places the percentage and the track by whether there is a photo (onMeasure).
+            if (clean && photoKnown != known) requestLayout();
             photoKnown = known;
             showPhoto();
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
@@ -2708,7 +2729,8 @@ public final class DashboardScreen implements AppScreen {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
-                    drawTrack(canvas, w, getHeight());
+                    // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
+                    if (trackShown) drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
                     return;
                 }
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
