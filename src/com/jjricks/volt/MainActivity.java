@@ -624,13 +624,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(scooterService==null)return new LoadingScreen();
         switch(page){
-            case HubPages.DATA:return new StatsScreen(this);
+            case HubPages.DATA:return new StatsScreen(this,false,args==null?null:args.reading);
             case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
             case HubPages.RIDE_RIDES:{
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);
                 // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
                 String ride=args==null?null:args.ride;
-                if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride);});
+                // A search result's ride: closing its details goes back past All rides, to the search.
+                Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen==rides)navigateBack(false);}):null;
+                if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride,closed);});
                 return rides;
             }
             case HubPages.RIDE_RECORDING:return new HubPageScreen(this,new MoreScreen(this,MoreScreen.RECORDING_SECTION,true),new RidesScreen(this,RidesScreen.SENSORS));
@@ -688,8 +690,16 @@ public final class MainActivity extends Activity implements ScreenHost {
      * rules as their pages (searchGates), so search never lists one the model doesn't offer.
      */
     private AppScreen searchPage(){
-        return new HubSearchScreen(this,searchGates(),searchQuery,query->searchQuery=query,this::openSearchResult);
+        return new HubSearchScreen(this,searchGates(),searchQuery,query->searchQuery=query,this::openSearchResult,new HubSearchScreen.Frame(){
+            @Override public CharSequence cancel(){return cancelLabel();}
+            // As the header's back link: leaves at once (HubNav.linkSkipsPageBack), the query with it.
+            @Override public void leave(){navigateBack(true);}
+            // The field at the very top while searching: the header (back link, status line, title) steps aside.
+            @Override public void headerHidden(boolean hidden){if(pageHeader!=null)pageHeader.setVisibility(hidden?View.GONE:View.VISIBLE);}
+        });
     }
+    /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */
+    private static String cancelLabel(){return T.commonCancel();}
     /** The scooter pages' rules for search: a row shows where its page would show it, a Lab try as Experimental. */
     private HubSearch.Gates searchGates(){
         return new HubSearch.Gates(){
@@ -737,12 +747,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             case READING:{
                 // As Service's Diagnostics row: a deliberate route wins over Live Stats' expired return state.
                 expireStatsSection(true);markStatsActive();
-                // The reading's key, not its shown name: a stored query stays locale-independent, and Live Stats' filter matches row keys.
-                preferences.edit().putString("stats_section","Readings").putString("stats_query",entry.anchor).apply();
+                // The reading by its key as a one-shot page argument: Readings shows that row alone on this visit, and the
+                // owner's own saved Readings search (stats_query) stays as it was (#393 review, finding 4).
+                preferences.edit().putString("stats_section","Readings").apply();
                 scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
-                open(HubPages.DATA);return;
+                open(HubPages.DATA,HubNav.Args.reading(entry.anchor));return;
             }
-            case RIDE:open(entry.page,HubNav.Args.ride(entry.anchor));return;
+            // Back from the ride's details returns to the search, as from any other result (#393 emulator check).
+            case RIDE:open(entry.page,HubNav.Args.rideAndBack(entry.anchor));return;
             case INSPECT:open(entry.page,HubNav.Args.inspect(entry.anchor));return;
             default:open(entry.page,entry.anchor==null?null:HubNav.Args.anchor(entry.anchor));
         }
@@ -1238,7 +1250,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null||scooterService.profiles.active()==null){toast(T.mainRenameFirst());return;}ScooterProfiles.Profile profile=scooterService.profiles.active();EditText input=new EditText(this);input.setSingleLine(true);input.setText(profile.name);input.setSelectAllOnFocus(true);input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(48)});
         design.styleSearch(input);input.setCompoundDrawablesRelative(null,null,null,null);input.setBackground(design.shape(design.raised,14,design.outline));input.setContentDescription(T.mainRenameTitle());
         FrameLayout field=new FrameLayout(this);field.setPadding(design.dp(24),design.dp(8),design.dp(24),design.dp(4));field.addView(input,new FrameLayout.LayoutParams(-1,-2));
-        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainRenameTitle())).setView(field).setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainRenameSave(),null).create();controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{String name=input.getText().toString().trim();if(name.isEmpty()){input.setError(T.mainRenameEmpty());return;}profile.name=name;profile.nameDefault=false;scooterService.profiles.update(profile);dialog.dismiss();rebuild();});
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainRenameTitle())).setView(field).setNegativeButton(cancelLabel(),null).setPositiveButton(T.mainRenameSave(),null).create();controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{String name=input.getText().toString().trim();if(name.isEmpty()){input.setError(T.mainRenameEmpty());return;}profile.name=name;profile.nameDefault=false;scooterService.profiles.update(profile);dialog.dismiss();rebuild();});
     }
     /** Every page but Home: its back link, a tappable connection line and the page's title. The lock lives on Home. */
     private LinearLayout makeCompactHeader(){

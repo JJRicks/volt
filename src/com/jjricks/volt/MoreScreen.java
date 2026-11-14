@@ -970,7 +970,10 @@ public final class MoreScreen implements AppScreen {
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
-        preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Its one home in the Hub: search's Record rides automatically result opens this page and finds the switch by its tag
+        // (HubSearchTables.SETTING_RIDING_AUTO_RECORD, as on riding mode's own menu; #393 review, finding 3).
+        Row autoRecordRow = preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        autoRecordRow.view.setTag(HubSearchTables.SETTING_RIDING_AUTO_RECORD);
         // Off by default, absent is off (owner's answer 18 on #383): lets that switch also start a ride while Volt is in the
         // background, where Android gives Volt no location, so the note under it says such a ride has no GPS route. It only
         // counts while Record rides automatically is on, so it waits greyed and drawn off until then, keeping its stored value
