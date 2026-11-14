@@ -187,6 +187,11 @@ STEPS += [
     inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
     inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The charging pictures (the UT5 MAX and Ultra X wire, five folded stills) on Widgets and Clean Home: the percentage on
+    # each picture as the prototype draws it, the takeover's height while it opens, and the cable's clipping (simulator).
+    inst('charge-pictures-344', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-344-14', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-725', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
