@@ -2703,25 +2703,31 @@ public final class DashboardScreen implements AppScreen {
             // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
             if (trackShown != plan.track) stage.invalidate();
             trackShown = plan.track;
-            if (picture != null && photoRoom) {
+            if (picture != null) {
                 // The picture's percentage sits a little higher (into the line's gap; only while the line shows above it).
-                int lift = plan.line ? ui.dp(ChargePicture.PERCENT_LIFT_DP) : 0;
-                ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift;
+                int lift = plan.line && photoRoom ? ui.dp(ChargePicture.PERCENT_LIFT_DP) : 0;
                 // Its tyres stand the picture's gap above the track (ChargingFit's track and its tick at the stage's foot);
                 // the number and the picture keep the prototype's relationship (ChargePictureFit): the number no larger
                 // than the picture allows at 1.0x text, growing with a larger Text size up to its 1.0x size; the picture
-                // smaller and lower where the number must stay larger.
-                float full = percent.getTextSize();
-                pictureFloorPx = pictureFloor(plan.stageHeight);
-                fit = ChargePictureFit.clean(width, pictureFloorPx, -lift + percent.getPaddingTop(), baselineShare(), full,
-                        full / Math.max(1, ui.textScale), ui.textScale, getResources().getDisplayMetrics().density);
-                if (fit.text != full) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fit.text);
-                // And a little left of the centre, as the prototype's (its halo stays centred).
-                percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
-                picture.size(width, pictureFloorPx, fit.box);
-                if (trackEnd != 0) { trackEnd = 0; stage.invalidate(); }
-                super.onMeasure(widthSpec, heightSpec);
-                return;
+                // smaller and lower where the number must stay larger. A slot too short for the picture keeps ChargingFit's
+                // placement, the number no larger than over the smallest picture and never larger than in a taller slot
+                // (ChargePictureFit.cleanSlot).
+                float density = getResources().getDisplayMetrics().density;
+                ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
+                        fullPercent, rows.getMeasuredHeight(), width, plan.stageHeight - pictureFloor(plan.stageHeight),
+                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, ui.textScale, density).fit;
+                if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
+                if (photoRoom) {
+                    ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift;
+                    fit = planned;
+                    pictureFloorPx = pictureFloor(plan.stageHeight);
+                    // And a little left of the centre, as the prototype's (its halo stays centred).
+                    percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
+                    picture.size(width, pictureFloorPx, fit.box);
+                    if (trackEnd != 0) { trackEnd = 0; stage.invalidate(); }
+                    super.onMeasure(widthSpec, heightSpec);
+                    return;
+                }
             }
             percent.setTranslationX(0);
             fit = null;

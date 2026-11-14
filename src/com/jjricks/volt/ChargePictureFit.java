@@ -84,6 +84,56 @@ final class ChargePictureFit {
     }
 
     /**
+     * Clean with a picture model, in a slot ChargingFit plans by #449's rules (the line, the tiles that always stay, the
+     * percentage that never grows as the slot shrinks, the track that makes way). The slot's heights are ChargingFit's
+     * ({@code inner}, the line, its short form, the percentage at full size, the readings); {@code textSize} is the
+     * percentage's full size at this Text size; {@code foot}: the tyres' height above the stage's foot; {@code lift}:
+     * how far the percentage moves up into the line's gap while the line shows over a picture; {@code padTop}: its
+     * view's top padding. Returns the fit and the plan it was made on ({@link SlotFit}).
+     * <ul>
+     *   <li>Where the plan has a photo, the picture takes its place and {@link #clean} sizes the two together on the
+     *       plan's stage (the approved look).</li>
+     *   <li>Where it has none (a slot too short for even the smallest photo), the picture does not show and the
+     *       percentage keeps the plan's place, no larger than over the smallest picture the plan shows
+     *       ({@link ChargingFit#photoStage}).</li>
+     *   <li>Either way the percentage is never larger than in any taller slot: where the plan's stage grows as the slot
+     *       shrinks (the gap over the readings closing, the line shortening or going), the picture may grow with it
+     *       but the number keeps the size it had just above (#449: the percentage never grows as the slot shrinks).</li>
+     * </ul>
+     */
+    static SlotFit cleanSlot(int inner, int line, int shortLine, int percent, int readings, float width, float foot, float lift,
+                             float padTop, float baselineShare, float textSize, float textScale, float density) {
+        ChargingFit.Plan plan = ChargingFit.plan(inner, line, shortLine, percent, readings, density);
+        Fit fit = onPlan(plan, width, foot, lift, padTop, baselineShare, textSize, textScale, density);
+        // Every stage a taller slot can have that is not already larger than this one's lies within this reach: the
+        // line, its gap and the gap over the readings that closes (a slot that much taller has a taller stage).
+        int reach = Math.max(0, line) + Math.round((ChargingFit.LINE_GAP_DP + ChargingFit.READINGS_GAP_DP) * density) + 1;
+        float least = fit.text;
+        for (int taller = inner + 1; taller <= inner + reach; taller++) {
+            ChargingFit.Plan above = ChargingFit.plan(taller, line, shortLine, percent, readings, density);
+            if (above.percent) least = Math.min(least, onPlan(above, width, foot, lift, padTop, baselineShare, textSize, textScale, density).text);
+        }
+        if (least < fit.text) fit = new Fit(least, fit.box, fit.percentTop, fit.floor);
+        return new SlotFit(plan, fit);
+    }
+
+    /** A slot's plan (ChargingFit) and the fit on it. */
+    static final class SlotFit {
+        final ChargingFit.Plan plan;
+        final Fit fit;
+        SlotFit(ChargingFit.Plan plan, Fit fit) { this.plan = plan; this.fit = fit; }
+    }
+
+    /** The fit on one plan: the picture's with a photo, else the percentage no larger than over the smallest picture. */
+    static Fit onPlan(ChargingFit.Plan plan, float width, float foot, float lift, float padTop, float baselineShare,
+                      float textSize, float textScale, float density) {
+        float full = textSize * plan.percentScale, oneX = full / Math.max(1, textScale);
+        if (plan.photo()) return clean(width, plan.stageHeight - foot, padTop - (plan.line ? lift : 0), baselineShare, full, oneX, textScale, density);
+        float least = clean(width, ChargingFit.photoStage(density) - foot, padTop, baselineShare, full, oneX, textScale, density).text;
+        return new Fit(Math.min(full, least), 0, padTop, 0);
+    }
+
+    /**
      * Widgets' stage, whose height follows the picture: the box as large as the width allows (at most
      * {@link #WIDGETS_BOX_MAX_DP}), the number at its share (grown by the Text size as on Clean), its baseline the overlap
      * below the box's top. Returns the floor; the stage is {@link #WIDGETS_FOOT_DP} taller.

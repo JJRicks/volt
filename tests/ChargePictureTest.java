@@ -16,6 +16,7 @@ public final class ChargePictureTest {
         cutoff();
         largeText();
         fit();
+        withPlan();
         shadeFromBox();
         layers();
         clipping();
@@ -209,6 +210,81 @@ public final class ChargePictureTest {
         near(ChargePictureFit.text(100, 60, 60, 1), ChargePictureFit.TEXT_PER_BOX * 100, 1e-3, "1.0x: the share");
         near(ChargePictureFit.text(1000, 60, 60, 1), 60, 0, "a large box: the full size");
     }
+
+    // ---- the two fits together: ChargingFit's plan (#449) and the picture's fit (this part) ----
+
+    /** The tyres' height above the stage's foot: the track's tick, the prototype's 8 dp track and the picture's gap. */
+    private static final float FOOT = (float) ((ChargingFit.TICK_DP + 8 + ChargeWireModels.UT5_MAX.tyreGapDp) * D);
+
+    /** Clean's slot at a window, in pixels (3 per dp), estimated as ChargingFitTest does: {inner, line, short line, percent, readings, width}. */
+    private static int[] slot(int width, int height, float text) {
+        boolean wide = WideLayout.wide(width, text);
+        int inner = TopArea.heightDp(height, wide, text);
+        int across = Math.min(width - 36, 560);
+        int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f);
+        int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
+        int percent = Math.round(ChargingFit.PERCENT_SP * text * 1.17f);
+        float tile = 20 + 12 * text * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP * text, ChargingFit.VALUE_SP * text * 1.33f);
+        int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);
+        return new int[] {(int) (inner * D), (int) (line * D), (int) (oneLine * D), (int) (percent * D), (int) (readings * D), (int) (across * D)};
+    }
+
+    /**
+     * 344x882 and 725x604 dp at 1.0x and 1.4x, with a picture (the UT5 MAX, the folded models) and without one (the
+     * XT5 Pro): #449's rules for the line, the tiles, the percentage and the track hold, and the picture keeps its fit.
+     */
+    private static void withPlan() {
+        for (int[] window : new int[][] {{344, 882}, {725, 604}})
+            for (float text : new float[] {1f, 1.4f}) {
+                String name = window[0] + "x" + window[1] + " at " + text + "x";
+                int[] s = slot(window[0], window[1], text);
+                ChargingFit.Plan plan = ChargingFit.plan(s[0], s[1], s[2], s[3], s[4], D);
+                float full = 60 * D * text * plan.percentScale;
+                require(plan.readings && plan.percent && plan.track && plan.photo(), name + ": the tiles, the percentage, the track and room for the picture: " + plan);
+                // With a picture: the picture's own fit on the plan's stage (the pictures as approved), the number no
+                // larger than in a taller slot.
+                float lift = plan.line ? ChargePicture_LIFT * D : 0;
+                ChargePictureFit.SlotFit slotFit = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * text, text, D);
+                ChargePictureFit.Fit f = slotFit.fit;
+                ChargePictureFit.Fit direct = ChargePictureFit.clean(s[5], plan.stageHeight - FOOT, -lift, SHARE, full, full / text, text, D);
+                require(slotFit.plan.toString().equals(plan.toString()), name + ": the plan is ChargingFit's");
+                require(f.box == direct.box && f.text <= direct.text, name + ": the picture's fit on the plan's stage: " + f);
+                // The maintainers' phone and wide window at 1.0x and the phone at 1.4x: the approved fit unchanged.
+                if (!(window[0] == 725 && text > 1)) require(f.text == direct.text, name + ": the number as the picture's fit: " + f);
+                require(f.box > 40 * D && f.text <= full + .01f && f.text >= 30 * D, name + ": a fair picture under a readable number: " + f);
+                // The number stays inside the stage with its lift; the picture's top never above the stage.
+                require(f.floor - f.box >= -.01f, name + ": the picture inside the stage");
+                // Without a picture (the XT5 Pro): #449's noPhotoTop, the percentage and the track centred in the stage.
+                int under = (int) ((ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP) * D);
+                int percentHeight = Math.round(ChargingFit.scaled(s[3], plan.percentScale));
+                int top = ChargingFit.noPhotoTop(plan.stageHeight, percentHeight, under);
+                require(top >= 0 && Math.abs(top - (plan.stageHeight - top - percentHeight - under)) <= 1,
+                        name + ": no picture: the percentage and the track centred (top " + top / D + " dp of " + plan.stageHeight / D + ")");
+                System.out.println("  " + name + ": " + plan + " / picture " + f + " (on the plan alone " + direct.text + ") / no picture: top " + top);
+            }
+        // A slot getting shorter one pixel at a time with a picture: the number never grows (#449's rule), including
+        // where the slot becomes too short for the picture (the picture goes, the number stays no larger).
+        for (float text : new float[] {1f, 1.4f}) {
+            int[] s = slot(344, 882, text);
+            float last = Float.MAX_VALUE;
+            boolean pictureGone = false, trackGone = false;
+            for (int inner = s[0]; inner >= 0; inner--) {
+                ChargingFit.Plan plan = ChargingFit.plan(inner, s[1], s[2], s[3], s[4], D);
+                ChargePictureFit.Fit f = ChargePictureFit.cleanSlot(inner, s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * text, text, D).fit;
+                float now = plan.percent ? f.text : 0;
+                require(now <= last + .01f, text + "x, inner " + inner + ": the number never grows (" + now / D + " after " + last / D + "): " + plan);
+                require(plan.readings, text + "x, inner " + inner + ": the tiles stay");
+                if (!plan.photo()) { pictureGone = true; require(f.box == 0, "no photo in the plan, no picture"); }
+                if (!plan.track) trackGone = true;
+                require(!trackGone || !plan.photo(), text + "x, inner " + inner + ": the picture never comes back once the track has made way");
+                last = now;
+            }
+            require(pictureGone && trackGone, text + "x: the picture and the track went in the shortest slots");
+        }
+    }
+
+    /** ChargePicture.PERCENT_LIFT_DP (ChargePicture itself needs Android). */
+    private static final float ChargePicture_LIFT = 10;
 
     private static ChargePictureFit.Fit fitOf(Object[] c) {
         float scale = (Float) c[3];

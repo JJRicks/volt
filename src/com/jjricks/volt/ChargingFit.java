@@ -159,6 +159,14 @@ final class ChargingFit {
         return Math.max(0, (stage - percent - under) / 2);
     }
 
+    /**
+     * The shortest stage that still shows a photo (its least height over the track zone), in pixels: a picture model's
+     * percentage over a stage without one is never larger than over a picture this small (ChargePictureFit.cleanPlan).
+     */
+    static int photoStage(float density) {
+        return dp(PHOTO_MIN_DP, density) + dp(TRACK_DP + TICK_DP + PHOTO_GAP_DP, density);
+    }
+
     /** A stage of this height with the percentage at this share: the photo fills it down to the track zone. */
     private static Plan plan(boolean line, boolean shortLine, float scale, int stage, int under, int photoMin,
                              boolean readings, int gap) {
