@@ -120,4 +120,50 @@ final class ChargeWirePulses {
         }
         return Math.min(1, energy);
     }
+
+    // ---- the glow ----
+
+    /**
+     * The glow's rings, outermost first, in sigmas outside the glow stroke's edge: the prototype blurs a stroke of
+     * width w by a Gaussian of sigma; the view draws it as nested solid strokes, each a little narrower and each adding
+     * its share, so the cross-section steps through the blurred stroke's profile.
+     */
+    static final double[] GLOW_Z = {2.2, 1.5, 0.8, 0.2, -0.4, -1.0, -1.6};
+
+    /**
+     * The glow's nested strokes for a stroke {@code width} wide blurred by {@code sigma}: each ring's half-width into
+     * half[] and the blurred profile across the band just inside it into profile[] (both as long as GLOW_Z); returns how
+     * many rings there are (the inner ones narrower than half a pixel are left out).
+     */
+    static int glowRings(double width, double sigma, double[] half, double[] profile) {
+        int n = 0;
+        for (double z : GLOW_Z) {
+            double h = width / 2 + sigma * z;
+            if (h < .5) break;
+            half[n++] = h;
+        }
+        for (int k = 0; k < n; k++) {
+            double inner = k + 1 < n ? half[k + 1] : 0, mid = (half[k] + inner) / 2;
+            profile[k] = blurred(mid, width, sigma);
+        }
+        return n;
+    }
+
+    /** A stroke {@code width} wide blurred by sigma: its opacity at distance d from its centre line (1 = solid). */
+    static double blurred(double d, double width, double sigma) {
+        return ChargePercentShade.phi((width / 2 - d) / sigma) - ChargePercentShade.phi((-width / 2 - d) / sigma);
+    }
+
+    /**
+     * Each ring's opacity, into alpha[], so that drawn over each other (each over the band it covers and every band
+     * inside it) they build {@code peak} times the blurred profile in every band.
+     */
+    static void glowAlphas(double peak, double[] profile, int n, double[] alpha) {
+        double below = 0;
+        for (int k = 0; k < n; k++) {
+            double target = Math.max(below, Math.min(1, peak * profile[k]));
+            alpha[k] = below >= 1 ? 0 : 1 - (1 - target) / (1 - below);
+            below = target;
+        }
+    }
 }

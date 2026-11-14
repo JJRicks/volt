@@ -2357,11 +2357,16 @@ public final class DashboardScreen implements AppScreen {
         /** Clean: the photo's side in the stage (the square picture, centred under the percentage); 0 while it does not show. */
         int photoSide;
         /**
-         * Clean: the model's animated charging picture (ChargeWireModels; the contributor's charging animation, 14 Nov
-         * 2026), drawn in the photo's place under the percentage; null for every other model, which keeps its photo.
-         * The photo view stays (it keeps its place for TalkBack) but draws nothing while the picture shows.
+         * Clean: the model's charging picture (ChargePicture: the animated wire or the folded still; the contributor's
+         * charging pictures, 14 Nov 2026), drawn in the photo's place under the percentage; null for every other
+         * model, which keeps its photo. The photo view stays (it keeps its place for TalkBack) but draws nothing while
+         * the picture shows.
          */
-        ChargeWireView wire;
+        ChargePicture picture;
+        /** The last photo key that has no charging picture (not looked up again). */
+        String missingPicture;
+        /** The percentage's shade over the picture (the wire's halo or the folded picture's cut-off). */
+        final ChargePicture.Shade shade = new ChargePicture.Shade();
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2498,13 +2503,13 @@ public final class DashboardScreen implements AppScreen {
             if (!run) {
                 android.animation.ValueAnimator old = pulse;
                 pulse = null; old.cancel();
-                if (wire != null) wire.stop();
+                if (picture != null) picture.stop();
                 if (glow != 1) { glow = 1; stage.invalidate(); }
                 return;
             }
-            if (wire != null) wire.start();
+            if (picture != null) picture.start();
             pulse = android.animation.ValueAnimator.ofFloat(0, 1);
-            pulse.setDuration(wire != null ? 4400 : 3200);
+            pulse.setDuration(picture != null ? 4400 : 3200);
             pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
             pulse.setInterpolator(new android.view.animation.LinearInterpolator());
             final android.animation.ValueAnimator owner = pulse;
@@ -2513,7 +2518,7 @@ public final class DashboardScreen implements AppScreen {
                 if (!Ui.motionEnabled() || closed) { updatePulse(); return; }
                 glow = (float) (.5 + .5 * Math.cos(2 * Math.PI * a.getAnimatedFraction()));
                 stage.invalidate();
-                if (wire != null) wire.live.invalidate();
+                if (picture != null) picture.invalidateLive();
             });
             pulse.start();
         }
@@ -2594,13 +2599,17 @@ public final class DashboardScreen implements AppScreen {
                 size.topMargin = plan.photoHeight - photoSide;
             }
             showPhoto();
-            if (wire != null) {
+            if (picture != null) {
                 // The picture's percentage sits a little higher (into the line's gap; only while the line shows above it).
-                ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = plan.line ? -ui.dp(wire.model.percentLiftDp) : 0;
-                // Its tyres stand the model's gap above the track (ChargingFit's track and its tick at the stage's foot).
-                wire.size(width, Math.round(plan.stageHeight - ui.dp(ChargingFit.TRACK_DP + ChargingFit.TICK_DP)
-                        - ui.dp((float) wire.model.tyreGapDp)));
-            } else ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = 0;
+                ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = plan.line ? -ui.dp(ChargePicture.PERCENT_LIFT_DP) : 0;
+                // And a little left of the centre, as the prototype's (its halo stays centred).
+                percent.setTranslationX(-ChargePercentShade.percentLeft(percent.getTextSize()));
+                // Its tyres stand the picture's gap above the track (ChargingFit's track and its tick at the stage's foot).
+                picture.size(width, pictureFloor(plan.stageHeight));
+            } else {
+                ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = 0;
+                percent.setTranslationX(0);
+            }
             super.onMeasure(widthSpec, heightSpec);
         }
 
@@ -2619,30 +2628,39 @@ public final class DashboardScreen implements AppScreen {
         private void showPhoto() {
             int visibility = photoKnown && photoRoom ? View.VISIBLE : View.GONE;
             if (photo.getVisibility() != visibility) photo.setVisibility(visibility);
-            if (wire != null) for (View layer : new View[] {wire.picture, wire.live}) if (layer.getVisibility() != visibility) layer.setVisibility(visibility);
+            if (picture != null) for (View layer : picture.layers()) if (layer.getVisibility() != visibility) layer.setVisibility(visibility);
         }
 
         /**
-         * Clean: shows this model's animated charging picture in the photo's place (null: the photo, as before). The
-         * percentage moves up a little for it (ChargeWireModels.Model.percentLiftDp) and the floor glow follows its
-         * wheels; the photo view keeps its place and description but draws nothing.
+         * Clean: where the picture's tyres stand in a stage this tall: the prototype's gap above its 8 dp track, measured
+         * from the track's foot (the app's track is 7 dp, its tick reaching below it to the stage's foot).
          */
-        private void wirePicture(ChargeWireModels.Model model) {
-            android.graphics.Bitmap cut = model == null ? null : ChargeWireView.cut(getResources(), model);
-            if (cut == null) model = null;
-            if (wire == null ? model == null : wire.model == model) return;
-            if (wire != null) {
-                wire.stop();
-                stage.removeView(wire.picture);
-                stage.removeView(wire.live);
-                wire = null;
+        private int pictureFloor(int stageHeight) {
+            return Math.round(stageHeight - ui.dp(ChargingFit.TICK_DP) - ui.dp(ChargePicture.TRACK_DP + ChargePicture.tyreGapDp()));
+        }
+
+        /**
+         * Clean: shows the charging picture for this photo key in the photo's place (ChargePicture; null: the photo, as
+         * before). The percentage moves up a little over it and gets its shade, and the floor glow follows its tyres;
+         * the photo view keeps its place and description but draws nothing.
+         */
+        private void showPicture(String key) {
+            String shown = key == null ? null : ChargePicture.shownKey(key);
+            if (picture == null ? shown == null || shown.equals(missingPicture) : picture.key.equals(shown)) return;
+            ChargePicture next = shown == null ? null : ChargePicture.create(host.activity(), ui, key);
+            // A key with no picture (or one that cannot be decoded) is not tried again on every refresh.
+            missingPicture = next == null ? shown : null;
+            if (picture == null && next == null) return;
+            if (picture != null) {
+                picture.stop();
+                for (View layer : picture.layers()) stage.removeView(layer);
             }
-            if (model != null) {
-                wire = new ChargeWireView(host.activity(), ui, model, cut);
-                stage.addView(wire.picture, 0, new FrameLayout.LayoutParams(-1, -1));
-                stage.addView(wire.live, 1, new FrameLayout.LayoutParams(-1, -1));
+            picture = next;
+            if (picture != null) {
+                View[] layers = picture.layers();
+                for (int i = 0; i < layers.length; i++) stage.addView(layers[i], i, new FrameLayout.LayoutParams(-1, -1));
             }
-            photo.setImageAlpha(wire != null ? 0 : 255);
+            photo.setImageAlpha(picture != null ? 0 : 255);
             // The glow's breathing follows the picture's (4.4 s) or the photo's (3.2 s): restart it.
             if (pulse != null) { android.animation.ValueAnimator old = pulse; pulse = null; old.cancel(); }
             requestLayout();
@@ -2674,8 +2692,8 @@ public final class DashboardScreen implements AppScreen {
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
             photoKnown = known;
-            if (clean) wirePicture(known ? ChargeWireModels.forKey(ModelRegistry.photo(activeModel())) : null);
-            if (wire != null) { wire.watts(estimate.inputWatts); wire.live.invalidate(); }
+            if (clean) showPicture(known ? ModelRegistry.photo(activeModel()) : null);
+            if (picture != null) { picture.watts(estimate.inputWatts); picture.invalidateLive(); }
             showPhoto();
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
@@ -2786,7 +2804,7 @@ public final class DashboardScreen implements AppScreen {
             /**
              * Clean: the mock-up's red glow, a wide soft ellipse under the scooter's wheels (about 286 x 60 dp on a 344 dp
              * phone, at most 1.7 times the photo's side on a wide window), centred under the photo; it breathes with
-             * {@link #glow} while charging is on screen.
+             * {@link #glow} while charging is on screen. With a charging picture it is the picture's.
              */
             private void drawCleanGlow(Canvas canvas, float w) {
                 float cx = w / 2, floor = photo.getBottom() - photoSide * .04f;
@@ -2794,12 +2812,12 @@ public final class DashboardScreen implements AppScreen {
                 float rx = Math.min(w * .46f, photoSide * .85f);
                 float ry = Math.max(ui.dp(10), Math.min(ui.dp(30), photoSide * .2f));
                 float alpha = .72f + .28f * glow;
-                if (wire != null) {
-                    // The charging picture's floor glow, as the prototype draws it under the tyres (129 x 34 dp round a
-                    // point 10 dp left of the 283.6 x 136.3 dp picture's centre, at its foot), breathing a little
-                    // (0.85 at rest, 0.74 to 0.88 while it runs).
-                    ChargeWireModels.Placement at = wire.placement();
-                    float pw = at.width(wire.model), ph = at.height(wire.model);
+                if (picture != null) {
+                    // The charging picture's floor glow, as the prototype draws it under the tyres for every model (129 x
+                    // 34 dp round a point 10 dp left of the 283.6 x 136.3 dp wire picture's centre, at its foot),
+                    // breathing a little (0.85 at rest, 0.74 to 0.88 while it runs).
+                    ChargeWireModels.Placement at = picture.glowPlacement((int) w, pictureFloor(getHeight()));
+                    float pw = at.width(ChargeWireModels.UT5_MAX), ph = at.height(ChargeWireModels.UT5_MAX);
                     if (pw <= 0) return;
                     cx = at.left + pw * .4644f; floor = at.top + ph * .9956f;
                     rx = pw * .4549f; ry = ph * .2494f;
@@ -2815,7 +2833,7 @@ public final class DashboardScreen implements AppScreen {
                 }
                 canvas.save();
                 canvas.translate(cx, floor);
-                canvas.scale(wire != null ? 1 : .94f + .06f * glow, ry / rx);
+                canvas.scale(picture != null ? 1 : .94f + .06f * glow, ry / rx);
                 paint.setStyle(Paint.Style.FILL);
                 paint.setShader(glowShader);
                 paint.setAlpha(Math.round(255 * alpha));
@@ -2827,6 +2845,11 @@ public final class DashboardScreen implements AppScreen {
 
             /** Clean: a soft dark fade behind the number, drawn over the photo and under the number (the mock-up's). */
             @Override protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+                if (clean && child == percent && picture != null && photo.getVisibility() == View.VISIBLE) {
+                    // Over a charging picture: its own shade (the wire's halo, the folded picture's cut-off).
+                    shade.draw(canvas, percent, picture.shade(), ui.bg, ui.dark);
+                    return super.drawChild(canvas, child, drawingTime);
+                }
                 if (clean && child == percent && percent.getVisibility() == View.VISIBLE && photo.getVisibility() == View.VISIBLE
                         && percent.getWidth() > 0) {
                     float cx = (percent.getLeft() + percent.getRight()) / 2f, cy = (percent.getTop() + percent.getBottom()) / 2f;

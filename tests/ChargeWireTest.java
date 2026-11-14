@@ -17,15 +17,25 @@ public final class ChargeWireTest {
         modes();
         timing();
         landing();
+        glow();
         System.out.println("ChargeWire: " + checks + " checks passed");
     }
 
     private static void models() {
         ChargeWireModels.Model m = ChargeWireModels.forKey("ut5max");
         require(m == ChargeWireModels.UT5_MAX, "the UT5 MAX has the picture");
+        ChargeWireModels.Model x = ChargeWireModels.forKey("ut5ultrax");
+        require(x == ChargeWireModels.UT5_ULTRA_X, "the UT5 Ultra X has the picture");
+        // The Ultra X is the MAX's body with its gold pieced in: exactly the same geometry and place.
+        require(x.width == m.width && x.height == m.height && x.wire == m.wire && x.cells == m.cells
+                && x.panelAbove == m.panelAbove && x.panelBelow == m.panelBelow && x.panelRight == m.panelRight
+                && x.panelLeftTop == m.panelLeftTop && x.panelLeftBottom == m.panelLeftBottom && x.panelRadius == m.panelRadius
+                && x.cableWidth == m.cableWidth && x.widthShare == m.widthShare && x.centreShare == m.centreShare
+                && x.tyreGapDp == m.tyreGapDp && x.percentLiftDp == m.percentLiftDp, "the Ultra X: the MAX's geometry");
+        require(ChargeWireModels.all().length == 2, "two animated pictures");
         require(ChargeWireModels.forKey(null) == null && ChargeWireModels.forKey("") == null, "no model, no picture");
-        for (String other : new String[] {"n65i", "st3pro", "gt5max", "gt3max", "xt5ultra", "UT5 MAX"})
-            require(ChargeWireModels.forKey(other) == null, other + " keeps its photo");
+        for (String other : new String[] {"n65i", "st3pro", "gt5max", "gt3max", "xt5ultra", "UT5 MAX", "ut5ultra"})
+            require(ChargeWireModels.forKey(other) == null, other + " has no animated picture");
         for (ChargeWireModels.Model each : ChargeWireModels.all()) {
             require(each.width > 0 && each.height > 0, each.key + ": a size");
             require(each.wire.length >= 1, each.key + ": a cable");
@@ -40,8 +50,13 @@ public final class ChargeWireTest {
             require(c[0] < c[2] && c[1] < c[3] && c[0] >= 0 && c[2] <= each.width && c[3] <= each.height, each.key + ": the cells inside the picture");
             require(each.widthShare > 0 && each.widthShare <= 1 && each.centreShare > 0 && each.centreShare < 1, each.key + ": a place");
         }
-        // Each key is a bundled photo key (ModelRegistry.photo), so the model's identity picks it as it picks the photo.
-        require(ModelRegistryKeys.contains(m.key), "ut5max is a photo key");
+        // Each key is a bundled photo key (ModelRegistry.photo), so the model's identity picks it as it picks the photo,
+        // and its cut-out is bundled at the table's size.
+        for (ChargeWireModels.Model each : ChargeWireModels.all()) {
+            require(ModelRegistryKeys.contains(each.key), each.key + " is a photo key with a cut-out");
+            int[] size = WebpSize.of("res/drawable-nodpi/" + each.key + "_charge.webp");
+            require(size[0] == each.width && size[1] == each.height, each.key + ": the cut-out is the table's size");
+        }
     }
 
     /** The prototype's phone: 344 dp, 18 dp padding, the picture 283.6 dp wide from 39.3 dp, its tyres 9.4 dp over the track. */
@@ -214,6 +229,28 @@ public final class ChargeWireTest {
         require(ChargeWirePulses.cells(s, ChargeWirePulses.STOCK, levels) == 0 && levels[3] == 0, "no landings: grey");
     }
 
+    /** The glow's nested strokes build the prototype's blurred stroke (44 px wide, blurred by 11) band by band. */
+    private static void glow() {
+        for (double width : new double[] {44, 44 * 0.55}) {
+            double[] half = new double[ChargeWirePulses.GLOW_Z.length], profile = new double[half.length], alpha = new double[half.length];
+            int n = ChargeWirePulses.glowRings(width, 11, half, profile);
+            require(n >= 5, width + ": enough rings for a smooth blur");
+            near(half[0], width / 2 + 11 * 2.2, 1e-9, width + ": the outermost ring 2.2 sigmas out");
+            for (int k = 1; k < n; k++) require(half[k] < half[k - 1] && profile[k] > profile[k - 1], width + ": rings narrower, brighter inwards");
+            for (double peak : new double[] {1, .46, .1}) {
+                ChargeWirePulses.glowAlphas(peak, profile, n, alpha);
+                double covered = 0;
+                for (int k = 0; k < n; k++) {
+                    require(alpha[k] >= 0 && alpha[k] <= 1, width + ": an opacity");
+                    covered = covered + (1 - covered) * alpha[k];
+                    near(covered, peak * profile[k], 1e-9, width + " at " + peak + ": band " + k + " as blurred");
+                }
+            }
+        }
+        near(ChargeWirePulses.blurred(0, 44, 11), 2 * ChargePercentShade.phi(2) - 1, 1e-12, "the blurred stroke's middle");
+        require(ChargeWirePulses.blurred(22 + 33, 44, 11) < .002, "nothing 3 sigmas past its edge");
+    }
+
     private static void near(double actual, double expected, double tolerance, String message) {
         require(Math.abs(actual - expected) <= tolerance, message + ": " + actual + " (expected " + expected + ")");
     }
@@ -221,6 +258,19 @@ public final class ChargeWireTest {
     private static void require(boolean condition, String message) {
         checks++;
         if (!condition) throw new AssertionError(message);
+    }
+
+    /** A bundled WebP's canvas size (its VP8X header), read without Android. */
+    static final class WebpSize {
+        static int[] of(String path) {
+            try {
+                byte[] b = java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path));
+                if (b.length < 30 || !new String(b, 12, 4, "US-ASCII").equals("VP8X")) return new int[] {-1, -1};
+                int w = 1 + ((b[24] & 255) | (b[25] & 255) << 8 | (b[26] & 255) << 16);
+                int h = 1 + ((b[27] & 255) | (b[28] & 255) << 8 | (b[29] & 255) << 16);
+                return new int[] {w, h};
+            } catch (java.io.IOException missing) { return new int[] {-1, -1}; }
+        }
     }
 
     /** The bundled photo keys (ScooterPhotos.resource), read without Android. */

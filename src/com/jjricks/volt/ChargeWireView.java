@@ -1,13 +1,10 @@
 package com.jjricks.volt;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
@@ -18,8 +15,6 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.animation.AnimationUtils;
 import android.widget.ScrollView;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Clean Home's animated charging picture for a model in ChargeWireModels (the contributor's charging animation, 14 Nov
@@ -32,7 +27,7 @@ import java.util.Map;
  * scale and offset (ChargeWireModels.place), so the animation's geometry is built once (ChargeWire) and a frame
  * allocates nothing. The layers are decorative: accessibility services skip them (the stage speaks the charge).
  */
-final class ChargeWireView {
+final class ChargeWireView extends ChargePicture {
     /**
      * Design tour only (android-tests): a frozen moment of the animation, in seconds, drawn whether or not it runs
      * (the tour's emulator has animations off), and the charging power its mode follows (null: the reported one).
@@ -41,42 +36,44 @@ final class ChargeWireView {
     static volatile double tourSeconds = Double.NaN;
     static volatile Double tourWatts;
 
-    private static final Map<String, Bitmap> CUTS = new HashMap<>();
-
     /** The bundled cut-out for each model in ChargeWireModels. */
-    private static int resource(String key) {
+    static int resource(String key) {
         switch (key) {
             case "ut5max": return R.drawable.ut5max_charge;
+            case "ut5ultrax": return R.drawable.ut5ultrax_charge;
             default: return 0;
         }
     }
 
-    /** The model's cut-out, decoded once; null when it has none or it cannot be decoded. */
-    static synchronized Bitmap cut(Resources resources, ChargeWireModels.Model model) {
-        Bitmap cached = CUTS.get(model.key);
-        if (cached != null) return cached;
-        int id = resource(model.key);
-        if (id == 0) return null;
-        try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inScaled = false;
-            Bitmap decoded = BitmapFactory.decodeResource(resources, id, options);
-            if (decoded == null || decoded.getWidth() != model.width || decoded.getHeight() != model.height) return null;
-            decoded.setHasMipMap(true);
-            CUTS.put(model.key, decoded);
-            return decoded;
-        } catch (RuntimeException | OutOfMemoryError unavailable) { return null; }
-    }
-
-    /** One layer of a pulse: a stroke along the cable, brightest at the head and fading out down its tail. */
+    /**
+     * One layer of a pulse: a stroke along the cable, brightest at the head and fading out down its tail, drawn as
+     * {@link #pieces} solid strokes each in its stretch's colour (see drawPulses: no shader on a stroke).
+     */
     private static final class Layer {
         final boolean glow, head;
         /** Its width in cut-out pixels; its length: a share of the lit trail, or a number of head lengths. */
         final float width;
         final double length;
-        final LinearGradient[] gradients = new LinearGradient[ChargeWirePulses.SLOTS];
-        Layer(boolean glow, boolean head, float width, double length) {
-            this.glow = glow; this.head = head; this.width = width; this.length = length;
+        final int pieces;
+        /** Its colour (with opacity) from the head (0) to the tail's end (GRADIENT_STOPS). */
+        final int[] colors = new int[GRADIENT_STOPS + 1];
+        /** A glow's nested strokes (ChargeWirePulses.glowRings): their count, half-widths and the profile inside each. */
+        final int rings;
+        final double[] half = new double[ChargeWirePulses.GLOW_Z.length], profile = new double[ChargeWirePulses.GLOW_Z.length];
+        Layer(boolean glow, boolean head, float width, double length, int pieces) {
+            this.glow = glow; this.head = head; this.width = width; this.length = length; this.pieces = pieces;
+            rings = glow ? ChargeWirePulses.glowRings(width, BLUR, half, profile) : 0;
+        }
+        /** The colour at u (0 head to 1 tail), between the table's stops. */
+        int colorAt(double u) {
+            double f = Math.max(0, Math.min(1, u)) * GRADIENT_STOPS;
+            int i = Math.min(GRADIENT_STOPS - 1, (int) f);
+            float t = (float) (f - i);
+            int a = colors[i], b = colors[i + 1];
+            return Color.argb(Math.round(Color.alpha(a) + (Color.alpha(b) - Color.alpha(a)) * t),
+                    Math.round(Color.red(a) + (Color.red(b) - Color.red(a)) * t),
+                    Math.round(Color.green(a) + (Color.green(b) - Color.green(a)) * t),
+                    Math.round(Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t));
         }
     }
 
@@ -98,7 +95,6 @@ final class ChargeWireView {
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path panel = new Path(), cable = new Path(), comet = new Path();
     private final RectF oval = new RectF();
-    private final Matrix matrix = new Matrix();
     private final float[] point = new float[2];
     private final ChargeWirePulses.State state = new ChargeWirePulses.State();
     private final float[] levels = new float[ChargeWire.HALF_COLUMNS];
@@ -115,6 +111,7 @@ final class ChargeWireView {
     private float edge = Float.NaN;
 
     ChargeWireView(Context context, Ui ui, ChargeWireModels.Model model, Bitmap cut) {
+        super(model.key);
         this.model = model;
         this.cut = cut;
         this.dark = ui.dark;
@@ -125,11 +122,11 @@ final class ChargeWireView {
         cableCore = Color.parseColor(dark ? "#CBCBC9" : "#A5A7A2");
         float cableWidth = (float) model.cableWidth;
         layers = new Layer[] {
-                new Layer(true, false, HALO, 0.55),               // wide glow, strongest round the head
-                new Layer(true, false, HALO * 0.55f, 0.85),       // narrower glow down more of the tail
-                new Layer(false, false, cableWidth, 1),            // the cable itself, lit green
-                new Layer(false, true, cableWidth * 1.22f, 2.4),   // the head's bright body, a little fuller than the cable
-                new Layer(false, true, cableWidth * 0.8f, 1.5),    // near-white core
+                new Layer(true, false, HALO, 0.55, 16),               // wide glow, strongest round the head
+                new Layer(true, false, HALO * 0.55f, 0.85, 16),       // narrower glow down more of the tail
+                new Layer(false, false, cableWidth, 1, 24),            // the cable itself, lit green
+                new Layer(false, true, cableWidth * 1.22f, 2.4, 8),   // the head's bright body, a little fuller than the cable
+                new Layer(false, true, cableWidth * 0.8f, 1.5, 6),    // near-white core
         };
         // Brightness along each layer: {peak, fade exponent}; colours per theme (the prototype's in dark).
         double[][] fades = {{.46, 1.1}, {.50, 1.25}, {.90, 1.5}, {.92, 1.15}, {1, 1.2}};
@@ -140,17 +137,12 @@ final class ChargeWireView {
         int core = dark ? Color.parseColor("#F4FFF6") : mix(green, Color.WHITE, .85f);
         float glowShare = dark ? 1 : .7f;
         for (int j = 0; j < layers.length; j++) {
-            int[] colors = new int[GRADIENT_STOPS + 1];
-            float[] stops = new float[GRADIENT_STOPS + 1];
             for (int k = 0; k <= GRADIENT_STOPS; k++) {
                 float u = k / (float) GRADIENT_STOPS;
                 int base = j < 2 ? glowGreen : j == 2 ? litCable : j == 3 ? mix(bodyHead, bodyTail, Math.min(1, u * 2)) : core;
                 double alpha = fades[j][0] * ChargeWirePulses.easeOut(u, fades[j][1]) * (j < 2 ? glowShare : 1);
-                colors[k] = Ui.withAlpha(base, (int) Math.round(255 * alpha));
-                stops[k] = u;
+                layers[j].colors[k] = Ui.withAlpha(base, (int) Math.round(255 * alpha));
             }
-            for (int i = 0; i < ChargeWirePulses.SLOTS; i++)
-                layers[j].gradients[i] = new LinearGradient(0, 0, 1, 0, colors, stops, Shader.TileMode.CLAMP);
         }
         stroke.setStyle(Paint.Style.STROKE);
         fill.setStyle(Paint.Style.FILL);
@@ -160,6 +152,7 @@ final class ChargeWireView {
             @Override protected void onDraw(Canvas canvas) { drawPicture(canvas); }
             @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) { replace(); }
             @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); unclip(this); }
+            @Override protected void onDetachedFromWindow() { reclip(); super.onDetachedFromWindow(); }
         };
         live = new View(context) {
             @Override protected void onDraw(Canvas canvas) { drawLive(canvas); }
@@ -232,11 +225,17 @@ final class ChargeWireView {
         for (int i = w.after(w.cableStart); i < w.count; i++) cable.lineTo(w.xs[i], w.ys[i]);
     }
 
-    /** The reported charging power (W), which picks the pulses' mode; null while unknown. */
-    void watts(Double value) { watts = value; }
+    @Override View[] layers() { return new View[] {picture, live}; }
 
-    /** Runs the animation from its start (each frame then needs live.invalidate()). */
-    void start() {
+    @Override int shade() { return ChargePercentShade.HALO; }
+
+    @Override void invalidateLive() { live.invalidate(); }
+
+    /** The reported charging power (W), which picks the pulses' mode; null while unknown. */
+    @Override void watts(Double value) { watts = value; }
+
+    /** Runs the animation from its start (each frame then needs invalidateLive()). */
+    @Override void start() {
         if (running) return;
         running = true;
         startMs = AnimationUtils.currentAnimationTimeMillis();
@@ -244,7 +243,7 @@ final class ChargeWireView {
     }
 
     /** Stops it: the picture rests (grey cable and cells, no pulses). */
-    void stop() {
+    @Override void stop() {
         if (!running) return;
         running = false;
         live.invalidate();
@@ -258,7 +257,7 @@ final class ChargeWireView {
     private int width, floor;
 
     /** The stage's width and where the tyres stand in it, in pixels from its top. */
-    void size(int stageWidth, int tyres) {
+    @Override void size(int stageWidth, int tyres) {
         if (width == stageWidth && floor == tyres) return;
         width = stageWidth; floor = tyres;
         replace();
@@ -274,15 +273,31 @@ final class ChargeWireView {
         }
     }
 
+    /** The parents {@link #unclip} let the layers draw past, to clip again when the picture goes. */
+    private final java.util.ArrayList<ViewGroup> unclipped = new java.util.ArrayList<>();
+
     /**
-     * The cable runs off the screen's edge, past the stage: every parent up to the nearest scroller lets the layers
-     * draw outside their bounds (the scroller's own bounds still clip them, so nothing reaches another pane).
+     * The cable runs off the screen's edge, past the stage: every parent up to the nearest scroller (the scroller
+     * included, so its content column's margins do not clip) lets the layers draw outside its bounds while the picture
+     * is attached; the scroller's own parent still clips it, so nothing reaches past the scroller or into another pane.
+     * Without a scroller nothing changes.
      */
-    private static void unclip(View layer) {
+    private void unclip(View layer) {
+        reclip();
+        java.util.ArrayList<ViewGroup> path = new java.util.ArrayList<>();
         for (ViewParent p = layer.getParent(); p instanceof ViewGroup; p = p.getParent()) {
-            ((ViewGroup) p).setClipChildren(false);
-            if (p instanceof ScrollView) break;
+            path.add((ViewGroup) p);
+            if (p instanceof ScrollView) {
+                for (ViewGroup g : path) if (g.getClipChildren()) { g.setClipChildren(false); unclipped.add(g); }
+                return;
+            }
         }
+    }
+
+    /** Clips again what {@link #unclip} opened. */
+    private void reclip() {
+        for (ViewGroup g : unclipped) g.setClipChildren(true);
+        unclipped.clear();
     }
 
     /** The scroller's right edge in the layers' pixels, or NaN when there is none. */
@@ -437,50 +452,89 @@ final class ChargeWireView {
 
     /**
      * Each pulse as one comet along the cable: every layer a stroke of the path from the head down its length, its
-     * gradient sliding with the head (the cable only runs left to right, so a horizontal gradient follows it). The glow
-     * layers stand in for the prototype's blur with three strokes, wider and fainter outwards.
+     * colour and opacity fading from the head to the tail's end as the prototype's gradient does (by x: the cable only
+     * runs left to right), its front end round. The glow layers are the prototype's blurred strokes, drawn as nested
+     * solid strokes that step through the blur's profile (ChargeWirePulses.glowRings).
+     *
+     * <p>Each layer is drawn as a few solid strokes, one per stretch in that stretch's colour, never as one stroke with
+     * a gradient shader: a long thin stroke with a shader crashed the Android emulator's GPU translation (swiftshader;
+     * found by drawing each layer alone in the design tour), and solid strokes are the plainest path on every GPU. The
+     * stretches meet end to end (butt ends: an overlap would double the faint glow into seams across it); the front's
+     * round cap is a half disc ahead of the head.
      */
     private void drawPulses(Canvas canvas, ChargeWirePulses.Mode mode) {
         ChargeWire w = wire;
         double length = w.length, trail = ChargeWirePulses.trail(length, mode);
-        stroke.setStrokeCap(Paint.Cap.ROUND);
+        stroke.setShader(null);
         stroke.setStrokeJoin(Paint.Join.ROUND);
-        stroke.setColor(Color.WHITE);
+        stroke.setStrokeCap(Paint.Cap.BUTT);
+        fill.setShader(null);
         for (int p = 0; p < state.pulses; p++) {
             double progress = state.progress[p];
-            int slot = ChargeWirePulses.slot(state.number[p]);
             double head = ChargeWirePulses.head(length, progress), visible = ChargeWirePulses.headVisible(progress);
             for (Layer layer : layers) {
                 double len = layer.head ? HEAD * layer.length : trail * layer.length;
                 double a = Math.max(0, head), b = Math.min(length, head + len);
                 if (b - a <= 0.01 || (layer.head && visible <= 0)) continue;
-                comet.rewind();
-                w.point(a, point);
-                comet.moveTo(point[0], point[1]);
-                for (int i = w.after(a); i < w.count && i * w.step < b; i++) comet.lineTo(w.xs[i], w.ys[i]);
-                w.point(b, point);
-                comet.lineTo(point[0], point[1]);
-                float x1 = w.xAt(head), x2 = w.xAt(head + len);
-                matrix.setScale(Math.max(.01f, x2 - x1), 1);
-                matrix.postTranslate(x1, 0);
-                LinearGradient gradient = layer.gradients[slot];
-                gradient.setLocalMatrix(matrix);
-                stroke.setShader(gradient);
-                int alpha = layer.head ? (int) Math.round(255 * visible) : 255;
-                if (layer.glow) {
-                    stroke.setAlpha(Math.round(alpha * .42f));
-                    for (int k = 0; k < 3; k++) {
-                        stroke.setStrokeWidth(k == 0 ? layer.width + 2.5f * BLUR : k == 1 ? layer.width + BLUR : Math.max(1, layer.width - BLUR * .5f));
-                        canvas.drawPath(comet, stroke);
+                float x1 = w.xAt(head), span = Math.max(.01f, w.xAt(head + len) - x1);
+                float fade = layer.head ? (float) visible : 1;
+                for (int k = 0; k < layer.pieces; k++) {
+                    double s0 = Math.max(a, head + len * k / layer.pieces), s1 = Math.min(b, head + len * (k + 1) / layer.pieces);
+                    if (s1 - s0 <= 0.01) continue;
+                    int color = layer.colorAt((w.xAt((s0 + s1) / 2) - x1) / span);
+                    double peak = Color.alpha(color) / 255.0 * fade;
+                    if (peak <= .002) continue;
+                    stretch(s0, s1);
+                    // The front end (the head's, where the comet starts) is round: a half disc ahead of it.
+                    boolean front = s0 <= a + 0.01 && a > 0;
+                    if (front) { w.point(a, point); frontX = point[0]; frontY = point[1]; w.point(Math.min(length, a + 2), point);
+                        frontAngle = (float) Math.toDegrees(Math.atan2(frontY - point[1], frontX - point[0])); }
+                    if (layer.glow) {
+                        ChargeWirePulses.glowAlphas(peak, layer.profile, layer.rings, ringAlpha);
+                        // A blurred stroke's end is half as bright as along it: the glow's round front at half.
+                        if (front) ChargeWirePulses.glowAlphas(peak / 2, layer.profile, layer.rings, capAlpha);
+                        for (int g = 0; g < layer.rings; g++) {
+                            int alpha = (int) Math.round(255 * ringAlpha[g]);
+                            if (alpha > 0) piece(canvas, color, alpha, (float) (2 * layer.half[g]));
+                            if (front && (alpha = (int) Math.round(255 * capAlpha[g])) > 0) cap(canvas, color, alpha, (float) layer.half[g]);
+                        }
+                    } else {
+                        int alpha = (int) Math.round(255 * peak);
+                        piece(canvas, color, alpha, layer.width);
+                        if (front) cap(canvas, color, alpha, layer.width / 2);
                     }
-                } else {
-                    stroke.setStrokeWidth(layer.width);
-                    stroke.setAlpha(alpha);
-                    canvas.drawPath(comet, stroke);
                 }
             }
         }
-        stroke.setShader(null);
         stroke.setAlpha(255);
+        fill.setAlpha(255);
+    }
+
+    private final double[] ringAlpha = new double[ChargeWirePulses.GLOW_Z.length], capAlpha = new double[ChargeWirePulses.GLOW_Z.length];
+    private float frontX, frontY, frontAngle;
+
+    /** One stretch ({@link #comet}) as a solid stroke. */
+    private void piece(Canvas canvas, int color, int alpha, float width) {
+        stroke.setColor(Ui.withAlpha(color, alpha));
+        stroke.setStrokeWidth(width);
+        canvas.drawPath(comet, stroke);
+    }
+
+    /** The comet's round front: a half disc of radius r ahead of its head. */
+    private void cap(Canvas canvas, int color, int alpha, float r) {
+        oval.set(frontX - r, frontY - r, frontX + r, frontY + r);
+        fill.setColor(Ui.withAlpha(color, alpha));
+        canvas.drawArc(oval, frontAngle - 90, 180, true, fill);
+    }
+
+    /** The cable's path from arc length s0 to s1, into {@link #comet}. */
+    private void stretch(double s0, double s1) {
+        ChargeWire w = wire;
+        comet.rewind();
+        w.point(s0, point);
+        comet.moveTo(point[0], point[1]);
+        for (int i = w.after(s0); i < w.count && i * w.step < s1; i++) comet.lineTo(w.xs[i], w.ys[i]);
+        w.point(s1, point);
+        comet.lineTo(point[0], point[1]);
     }
 }

@@ -64,6 +64,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFi
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeTimeReadings.java")
 # Clean Home's animated charging picture (UT5 MAX): its model table, geometry and pulse timing (the contributor's animation, 14 Nov).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeWireModels.java" "$APP_DIR/src/com/jjricks/volt/ChargeWire.java" "$APP_DIR/src/com/jjricks/volt/ChargeWirePulses.java" "$TEST_DIR/ChargeWireTest.java")
+# The folded charging pictures and the percentage's shade per picture type (the contributor's charging pictures).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeFolded.java" "$APP_DIR/src/com/jjricks/volt/ChargePercentShade.java" "$TEST_DIR/ChargePictureTest.java")
 # Clean Home's round quick actions: columns, circle and one short name on one line (decisions on #383, part 8b).
 sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/QuickActionLayoutTest.java")
 # Clean Home's header: 48 dp targets at about the mock-up's height, the name smaller before it wraps (part 8b).
@@ -182,6 +184,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeWireTest)
+(cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargePictureTest)
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"

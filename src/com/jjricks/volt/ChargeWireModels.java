@@ -4,7 +4,8 @@ package com.jjricks.volt;
  * The animated charging picture's per-model table (Clean Home's charging view, the contributor's charging animation
  * of 14 Nov 2026 on #383): which models have one, and each one's measured picture. Pure Java; the view
  * (DashboardScreen.ChargingHero with ChargeWireView) picks the bundled cut-out by {@link Model#key} and draws the rest
- * from these numbers, so another model is one more entry here plus its cut-out.
+ * from these numbers, so another model is one more entry here plus its cut-out. Models whose picture is a still folded
+ * photo are in ChargeFolded.
  *
  * <p>Every coordinate is in the cut-out's own pixels (x to the right, y down), as measured on the source render: the
  * cable's centre line as two cubic Bézier segments from the charging plug's tip to the picture's right edge, the
@@ -54,6 +55,13 @@ final class ChargeWireModels {
             this.cableWidth = cableWidth; this.widthShare = widthShare; this.centreShare = centreShare;
             this.tyreGapDp = tyreGapDp; this.percentLiftDp = percentLiftDp;
         }
+
+        /** Another model with exactly this one's picture geometry (its own cut-out over the same body). */
+        Model(String key, Model same) {
+            this(key, same.width, same.height, same.wire, same.cells, same.panelAbove, same.panelBelow, same.panelRight,
+                    same.panelLeftTop, same.panelLeftBottom, same.panelRadius, same.cableWidth, same.widthShare,
+                    same.centreShare, same.tyreGapDp, same.percentLiftDp);
+        }
     }
 
     /**
@@ -70,8 +78,15 @@ final class ChargeWireModels {
             10.4, 2, 1, 1.8, 6, 2, 7.6,
             283.6 / 308, (21.3 + 283.6 / 2) / 308, 9.4, 10);
 
+    /**
+     * The UT5 Ultra X: the UT5 MAX's cut-out with the Ultra X render's gold parts pieced in (registered onto the MAX's
+     * render), so the same geometry, cable, bay, cells and layout; its alpha (the stem fade included) is the MAX's byte
+     * for byte, and the gold dims toward the page along the stem so it fades out where the MAX's stem does.
+     */
+    static final Model UT5_ULTRA_X = new Model("ut5ultrax", UT5_MAX);
+
     /** Each model with an animated picture, by its photo key. */
-    private static final Model[] ALL = {UT5_MAX};
+    private static final Model[] ALL = {UT5_MAX, UT5_ULTRA_X};
 
     /** The model's picture, or null when it keeps the plain photo. */
     static Model forKey(String key) {

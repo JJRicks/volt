@@ -84,7 +84,7 @@ source licence does not grant rights to the photo or NAVEE marks shown in it.
 
 UT5 MAX CHARGING PICTURE
 
-Clean Home's animated charging picture for the UT5 MAX is bundled at:
+The animated charging picture for the UT5 MAX is bundled at:
   res/drawable-nodpi/ut5max_charge.webp
 
 It is made from a NAVEE UT5 MAX marketing render (1600 x 833): the scooter was
@@ -96,6 +96,44 @@ not been established. Like the model photos, it is a placeholder pending an
 original replacement or verified permission. It is separate from the
 MIT-licensed application source; the source licence does not grant rights to
 the image or NAVEE marks shown in it.
+
+UT5 ULTRA X CHARGING PICTURE
+
+The animated charging picture for the UT5 Ultra X is bundled at:
+  res/drawable-nodpi/ut5ultrax_charge.webp
+
+It is made from two NAVEE marketing renders: the UT5 MAX charging picture above,
+with the gold parts of a NAVEE UT5 Ultra X render registered onto it and pieced
+in; its transparency (the faded stem included) is the UT5 MAX picture's, and the
+gold is dimmed along the stem so it fades out as the UT5 MAX's does. It is
+1438 x 691 pixels, encoded as WebP with alpha, with metadata removed. Volt draws
+the battery panel, the cells, the cable and the animation over it.
+Redistribution permission has not been established. Like the model photos, it is
+a placeholder pending an original replacement or verified permission. It is
+separate from the MIT-licensed application source; the source licence does not
+grant rights to the image or NAVEE marks shown in it.
+
+FOLDED CHARGING PICTURES
+
+The contributor supplied five NAVEE product photos of folded scooters on
+14 November 2026, shown still under the charging percentage and bundled at:
+  res/drawable-nodpi/st3pro_folded.webp     (ST3 Pro, 1062 x 477)
+  res/drawable-nodpi/n65i_folded.webp       (N65i, 718 x 352)
+  res/drawable-nodpi/gt3max_folded.webp     (GT3 Max, 1100 x 483)
+  res/drawable-nodpi/gt5max_folded.webp     (GT5 Max, 1100 x 538)
+  res/drawable-nodpi/xt5ultra_folded.webp   (XT5 Ultra, 1100 x 526)
+
+Each was trimmed to the scooter on a transparent background and encoded as WebP
+with alpha, with metadata removed. The ST3 Pro photo was on white: it was cut out
+and its floor reflection removed. The N65i photo keeps its own transparency, with
+the white it was rendered on taken out of its edges. The GT3 Max photo keeps its
+transparency and colour as supplied, downscaled. The GT5 Max and XT5 Ultra photos
+were downscaled with their baked-in floor shadows made transparent. The XT5 Ultra
+photo's decal reads XT5 PRO; the contributor chose it for the XT5 Ultra.
+Redistribution permission has not been established. Like the model photos, they
+are placeholders pending original replacements or verified permission. They are
+separate from the MIT-licensed application source; the source licence does not
+grant rights to the photos or NAVEE marks shown in them.
 
 SAIRA TYPEFACE (VOLT DESIGN)
 
