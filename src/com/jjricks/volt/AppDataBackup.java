@@ -70,6 +70,10 @@ public final class AppDataBackup {
     public static Map<String,String> localScooters(Context context)throws IOException {
         Map<String,String> result=new LinkedHashMap<>();for(BackupProfiles.Profile p:BackupArchive.profiles(new AndroidStorage(context).preferences()))result.put(p.id,p.name);return result;
     }
+    /** This phone's saved scooters, for KeyBackups: what a backup of Scooters & setup keys holds. */
+    static List<BackupProfiles.Profile> localProfiles(Context context)throws IOException {
+        return BackupArchive.profiles(new AndroidStorage(context).preferences());
+    }
     /** A complete backup of every category. */
     public static synchronized void write(Context context,OutputStream destination,char[] password)throws IOException {write(context,destination,password,CATEGORIES);}
     public static synchronized void write(Context context,OutputStream destination,char[] password,Collection<String> categories)throws IOException {
