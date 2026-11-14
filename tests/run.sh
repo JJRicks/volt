@@ -61,8 +61,13 @@ sources+=("$APP_DIR/src/com/jjricks/volt/IconLabelBalance.java" "$TEST_DIR/IconL
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6).
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
-# Clean Home's charging view: what shows in its slot, the readings last to give way (council review 5886927849).
+# Clean Home's charging view: what shows in its slot as the Layout Plan draws it, nothing dropped (decisions on #383).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeTimeReadings.java")
+# Clean Home's round quick actions: columns, circle and one short name on one line (decisions on #383, part 8b).
+sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/QuickActionLayoutTest.java")
+# Clean Home's header: 48 dp targets at about the mock-up's height, the name smaller before it wraps (part 8b).
+sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
 # Reading tiles: the last tile spans a part-filled row (ReadingSpan).
 sources+=("$APP_DIR/src/com/jjricks/volt/ReadingSpan.java" "$TEST_DIR/ReadingSpanTest.java")
@@ -177,6 +182,8 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/c
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
+java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest "$APP_DIR/res/font/saira_regular.ttf"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest

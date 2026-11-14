@@ -53,6 +53,8 @@ public final class Ui {
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
     /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
     public final int accentDeep, onAccent, ok, dim;
+    /** The accent for text and line icons on dark cards (the Layout Plan's #FF8A8C); the accent itself on light. */
+    public final int accentText;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -70,6 +72,7 @@ public final class Ui {
         dim = Color.parseColor(dark ? "#878982" : "#7A7C76");
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
+        accentText = dark ? Color.parseColor("#FF8A8C") : accent;
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");
@@ -1278,6 +1281,12 @@ public final class Ui {
             } else if (key.equals("lights")) {
                 p.moveTo(13, 5); p.cubicTo(21, 4, 22, 20, 13, 19); p.close(); canvas.drawPath(p, paint);
                 canvas.drawLine(3, 6, 9, 8, paint); canvas.drawLine(2, 12, 9, 12, paint); canvas.drawLine(3, 18, 9, 16, paint);
+            } else if (key.equals("bulb")) {
+                // A light bulb (Lights & sound in the Layout Plan): a round glass on a neck, over a two-line base.
+                p.moveTo(9, 16.5f); p.cubicTo(9, 13.8f, 5.5f, 12.6f, 5.5f, 9); p.cubicTo(5.5f, 5.3f, 8.4f, 2.5f, 12, 2.5f);
+                p.cubicTo(15.6f, 2.5f, 18.5f, 5.3f, 18.5f, 9); p.cubicTo(18.5f, 12.6f, 15, 13.8f, 15, 16.5f); p.close();
+                canvas.drawPath(p, paint);
+                canvas.drawLine(9.5f, 19.5f, 14.5f, 19.5f, paint); canvas.drawLine(10.5f, 22, 13.5f, 22, paint);
             } else if (key.equals("stats") || key.equals("chart") || key.equals("analytics")) {
                 canvas.drawLine(4, 3, 4, 20, paint); canvas.drawLine(4, 20, 21, 20, paint);
                 p.moveTo(7, 15); p.lineTo(11, 10); p.lineTo(15, 13); p.lineTo(21, 5); canvas.drawPath(p, paint);
@@ -1368,6 +1377,17 @@ public final class Ui {
                 p.moveTo(20, 3.5f); p.lineTo(20, 9); p.lineTo(14.5f, 9); p.moveTo(4, 20.5f); p.lineTo(4, 15); p.lineTo(9.5f, 15); canvas.drawPath(p, paint);
             } else if (key.equals("shield")) {
                 p.moveTo(12, 2); p.lineTo(21, 6); p.lineTo(19, 15); p.quadTo(17, 20, 12, 22); p.quadTo(7, 20, 5, 15); p.lineTo(3, 6); p.close(); canvas.drawPath(p, paint);
+            } else if (key.equals("bars")) {
+                // Four rising bars (Controls).
+                canvas.drawLine(4, 20, 4, 16, paint); canvas.drawLine(9, 20, 9, 12, paint);
+                canvas.drawLine(14, 20, 14, 8, paint); canvas.drawLine(19, 20, 19, 4, paint);
+            } else if (key.equals("wrench")) {
+                // A wrench (Service): an open-jawed head at the top right on a handle to the bottom left.
+                canvas.save(); canvas.rotate(45, 12, 12);
+                canvas.drawArc(new RectF(7.5f, 1.5f, 16.5f, 10.5f), -55, 290, false, paint);
+                p.moveTo(9.4f, 2.3f); p.lineTo(10.6f, 5.2f); p.lineTo(13.4f, 5.2f); p.lineTo(14.6f, 2.3f); canvas.drawPath(p, paint);
+                canvas.drawRoundRect(new RectF(10.3f, 10.2f, 13.7f, 22.5f), 1.7f, 1.7f, paint);
+                canvas.restore();
             } else {
                 canvas.drawCircle(12, 12, 9, paint); canvas.drawLine(12, 11, 12, 17, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 7, 1, paint);
             }

@@ -63,6 +63,11 @@ public final class ScooterCommands {
 
         /** The group's name in the current language; group stays the English id (followUpReads, sections). */
         public Msg groupLabel() { return ScooterCommands.groupLabel(group); }
+        /** The setting whose (English, data) option is Off, or null where the control has no Off (a choice of levels, a number). */
+        public Integer offValue() {
+            for (int i = 0; i < Math.min(options.length, optionValues.length); i++) if ("Off".equals(options[i])) return optionValues[i];
+            return null;
+        }
 
         /** Option i's label in the current language; options keep the English. */
         public Msg optionLabel(int index) { return shown(options[index]); }
