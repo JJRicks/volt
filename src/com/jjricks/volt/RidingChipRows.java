@@ -4,19 +4,23 @@ package com.jjricks.volt;
  * Focus's chips in rows under its big number (the owner, Nov 14: "in a horizontal row right above range at this pace,
  * and then if any of them spill over they can spill into a second row just fine").
  *
- * In slot order, the first row takes as many chips as fit beside each other at any rung, at the widest rung that fits
- * them (RidingChipFit.row, so names shorten before a chip moves down); the chips left over start the next row, fitted the
- * same way. A chip too wide for a row even on its own is hidden, as is any chip past the most rows the height allows.
- * The widths are each chip's widest value, so the split never changes while riding.
+ * Every row shares one rung, chosen before the chips are split, so the names read alike from row to row: row 1 never
+ * shows icons while row 2 spells "Voltage" out. At each rung, in slot order, a chip that doesn't fit beside the ones
+ * before it starts the next row, and a chip too wide for a row even on its own is hidden. The rung kept is the one that
+ * shows the most chips, then needs the fewest rows (names shorten before a chip moves down), then reads widest. Chips
+ * past the most rows the height allows are hidden. The widths are each chip's widest value, so the split never changes
+ * while riding.
  */
 final class RidingChipRows {
-    /** Each chip's row (-1: hidden), its row's rung, its name step and whether it shows its compact form. */
-    final int[] row, rung, step;
+    /** Each chip's row (-1: hidden), its name step and whether it shows its compact form. */
+    final int[] row, step;
     final boolean[] compact;
+    /** The rung every row uses. */
+    final int rung;
     /** How many rows hold a chip. */
     final int rows;
 
-    private RidingChipRows(int[] row, int[] rung, int[] step, boolean[] compact, int rows) {
+    private RidingChipRows(int[] row, int rung, int[] step, boolean[] compact, int rows) {
         this.row = row;
         this.rung = rung;
         this.step = step;
@@ -34,42 +38,62 @@ final class RidingChipRows {
      */
     static RidingChipRows split(String[][] marks, String[] contents, RidingChipFit.Widths full, RidingChipFit.Widths compact,
                                 boolean[] canStep, int gap, int room, int most) {
+        RidingChipRows best = null;
+        for (int rung = RidingChipFit.FULL; rung < RidingChipFit.RUNGS; rung++) {
+            RidingChipRows at = at(marks, contents, full, compact, canStep, gap, room, most, rung);
+            if (best == null || shown(at) > shown(best) || (shown(at) == shown(best) && at.rows < best.rows)) best = at;
+        }
+        return best;
+    }
+
+    private static int shown(RidingChipRows r) {
+        int n = 0;
+        for (int x : r.row) if (x >= 0) n++;
+        return n;
+    }
+
+    /** The split at one rung. */
+    private static RidingChipRows at(String[][] marks, String[] contents, RidingChipFit.Widths full,
+                                     RidingChipFit.Widths compact, boolean[] canStep, int gap, int room, int most, int rung) {
         int of = marks.length;
-        int[] row = new int[of], rung = new int[of], step = new int[of];
+        // The chips that fit a row on their own; a chip that steps aside frees its marks, so the rest are tried again.
+        boolean[] set = new boolean[of];
+        java.util.Arrays.fill(set, true);
         boolean[] small = new boolean[of];
-        java.util.Arrays.fill(row, -1);
-        java.util.Arrays.fill(step, -1);
-        // First, the chips too wide for a row even on their own: they're hidden, and the rest close up.
-        int[] order = new int[of];
-        int kept = 0;
-        for (int i = 0; i < of; i++) {
-            final int one = i;
-            RidingChipFit alone = RidingChipFit.stepping(new String[][]{marks[i]}, new String[]{contents[i]},
-                    (chip, r, st) -> full.at(one, r, st), (chip, r, st) -> compact.at(one, r, st),
-                    new boolean[]{canStep != null && canStep[i]}, false, gap, room);
-            if (alone.count > 0) order[kept++] = i;
-        }
-        int next = 0, rows = 0;
-        while (next < kept && rows < most) {
-            // The chips not yet placed, in slot order.
-            final int[] left = java.util.Arrays.copyOfRange(order, next, kept);
-            String[][] m = new String[left.length][];
-            String[] c = new String[left.length];
-            boolean[] s = new boolean[left.length];
-            for (int i = 0; i < left.length; i++) { m[i] = marks[left[i]]; c[i] = contents[left[i]]; s[i] = canStep != null && canStep[left[i]]; }
-            RidingChipFit fit = RidingChipFit.stepping(m, c,
-                    (chip, r, st) -> full.at(left[chip], r, st), (chip, r, st) -> compact.at(left[chip], r, st), s, false, gap, room);
-            if (fit.count == 0) break;
-            for (int i = 0; i < left.length; i++) {
-                if (!fit.shown[i]) continue;
-                row[left[i]] = rows;
-                rung[left[i]] = fit.rung;
-                step[left[i]] = fit.steps[i];
-                small[left[i]] = fit.compact[i];
+        int[] steps;
+        boolean changed;
+        do {
+            changed = false;
+            steps = RidingChipFit.steps(marks, contents, set, rung);
+            for (int i = 0; i < of; i++) {
+                if (!set[i]) continue;
+                small[i] = false;
+                if (full.at(i, rung, steps[i]) <= room) continue;
+                if (canStep != null && canStep[i] && compact.at(i, rung, steps[i]) <= room) { small[i] = true; continue; }
+                set[i] = false;
+                changed = true;
             }
-            next += fit.count;
-            rows++;
+        } while (changed);
+        // In slot order, a chip that doesn't fit beside the ones before it starts the next row.
+        int[] row = new int[of];
+        java.util.Arrays.fill(row, -1);
+        int rows = 0;
+        long used = 0;
+        for (int i = 0; i < of; i++) {
+            if (!set[i]) continue;
+            int width = small[i] ? compact.at(i, rung, steps[i]) : full.at(i, rung, steps[i]);
+            if (rows == 0 || used + gap + width > room) {
+                if (rows == most) { set[i] = false; continue; }
+                rows++;
+                used = width;
+            } else {
+                used += gap + width;
+            }
+            row[i] = rows - 1;
         }
+        // The chips past the last row hold no marks; the rest keep their places (a freed mark only narrows a chip).
+        int[] step = RidingChipFit.steps(marks, contents, set, rung);
+        for (int i = 0; i < of; i++) if (!set[i]) small[i] = false;
         return new RidingChipRows(row, rung, step, small, rows);
     }
 }

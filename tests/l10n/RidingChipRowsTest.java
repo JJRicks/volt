@@ -17,8 +17,10 @@ public final class RidingChipRowsTest {
         hidden();
         most();
         names();
+        oneStyle();
+        compactAlone();
         System.out.println("RidingChipRowsTest: " + checks + " checks passed (one row, a spill to a second row, a row each, "
-                + "a chip too wide, the most rows, names shortening before a spill)");
+                + "a chip too wide, the most rows, names shortening before a spill, one name style for every row, a GPS chip in its compact form)");
     }
 
     /** Widths that don't change with the rung or name step. */
@@ -64,6 +66,30 @@ public final class RidingChipRowsTest {
         // Names shorten before a chip moves down: at a tighter rung the two fit one row.
         RidingChipFit.Widths ladder = (chip, rung, step) -> chip == 0 ? 300 - rung * 40 : 280 - rung * 40;
         RidingChipRows r = RidingChipRows.split(new String[2][], new String[2], ladder, ladder, new boolean[2], GAP, 450, 3);
-        check(r.rows == 1 && r.rung[0] == r.rung[1] && r.rung[0] > RidingChipFit.FULL, "a tighter rung keeps them on one row");
+        check(r.rows == 1 && r.rung > RidingChipFit.FULL, "a tighter rung keeps them on one row");
+    }
+
+    private static void oneStyle() {
+        // Three chips that need two rows at any rung: the first two share a row only from rung 2, the third is the same
+        // width at every rung. Fitted row by row, the second row would read in full while the first shows short names;
+        // every row takes rung 2.
+        RidingChipFit.Widths ladder = (chip, rung, step) -> chip == 0 ? 300 - rung * 40 : chip == 1 ? 280 - rung * 40 : 400;
+        RidingChipRows r = RidingChipRows.split(new String[3][], new String[3], ladder, ladder, new boolean[3], GAP, 450, 3);
+        check(r.rows == 2 && r.row[0] == 0 && r.row[1] == 0 && r.row[2] == 1, "two rows, the third chip below");
+        check(r.rung == RidingChipFit.SHORT_NAMES, "one rung for both rows, the widest at which the first two share a row");
+        // Names: the rung's name step reaches every chip, whichever row it is on.
+        String[][] marks = {{"Average speed", "Avg", "\u0000icon:avg"}, {"Max speed", "Max", "\u0000icon:max"}, {"Voltage", "Volt", "\u0000icon:v"}};
+        String[] contents = {"average_speed", "max_speed", "voltage"};
+        RidingChipFit.Widths named = (chip, rung, step) -> (chip == 2 ? 400 : step == RidingChipFit.NAME_FULL ? 300 : step == RidingChipFit.NAME_SHORT ? 200 : 120);
+        RidingChipRows n = RidingChipRows.split(marks, contents, named, named, new boolean[3], GAP, 450, 3);
+        check(n.step[0] == n.step[1] && n.step[1] == n.step[2] && n.step[0] == RidingChipFit.NAME_SHORT,
+                "row 2's chip takes the same short name as row 1's, not its full one");
+    }
+
+    private static void compactAlone() {
+        // A GPS chip too wide in full for a row of its own shows its compact dash rather than hiding.
+        RidingChipFit.Widths full = fixed(300, 600), dash = fixed(300, 90);
+        RidingChipRows r = RidingChipRows.split(new String[2][], new String[2], full, dash, new boolean[]{false, true}, GAP, 450, 3);
+        check(r.row[1] == 0 && r.compact[1] && !r.compact[0], "the GPS chip shows compact beside the first");
     }
 }

@@ -2433,8 +2433,8 @@ final class RidingScreen implements AppScreen {
                 int at = wanted.indexOf(chip);
                 boolean shown = at >= 0 && split.row[at] >= 0;
                 if (shown) {
-                    int width = chip.widthAt(normal, split.rung[at], split.step[at], split.compact[at]);
-                    chip.useRung(normal, split.rung[at], split.step[at], split.compact[at], width);
+                    int width = chip.widthAt(normal, split.rung, split.step[at], split.compact[at]);
+                    chip.useRung(normal, split.rung, split.step[at], split.compact[at], width);
                     chip.measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
                 }
                 if (chip.getVisibility() != (shown ? VISIBLE : GONE)) chip.setVisibility(shown ? VISIBLE : GONE);
@@ -2817,6 +2817,10 @@ final class RidingScreen implements AppScreen {
             String value = s.spoken != null ? s.spoken : s.main.toString();
             // The clock with seconds shows its time to the second; a screen reader still hears the minute.
             if (s.seconds) value = s.main.toString();
+            // No reading yet: the dash keeps the reading's unit beside it ("— Wh/mi"), dim like the dash, so a pill sized for
+            // its widest value reads as a reading waiting for a value rather than an empty pill. Its size never changes: the
+            // unit and dash are always narrower than the widest value.
+            if (s.spoken == null && !mode && !s.seconds) value = emptyValue(value, units);
             String was = full;
             full = value;
             // A planned compact form shows a state's words where they fit: a new state works that out again.
@@ -2840,6 +2844,12 @@ final class RidingScreen implements AppScreen {
             }
             String spokenName = s.rungs.length > 0 ? s.name() : s.main.toString();
             setContentDescription(spokenReading(spokenName, s.spoken == null ? null : s.spokenFull()));
+        }
+        /** The no-reading dash with the unit the reading's values end in, or the dash alone for one without. */
+        private String emptyValue(String dash, String units) {
+            for (Shown x : samples(content, units, false))
+                if (x.spoken != null && x.suffix.length() > 0 && (Character.isWhitespace(x.suffix.charAt(0)) || Character.isSpaceChar(x.suffix.charAt(0)))) return dash + x.suffix;
+            return dash;
         }
         @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
             super.onInitializeAccessibilityNodeInfo(info);
