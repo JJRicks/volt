@@ -15,10 +15,12 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.EditText;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +42,8 @@ import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
+import com.jjricks.volt.PhoneRideStore;
+import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
 import com.jjricks.volt.WideLayout;
@@ -61,7 +66,8 @@ import com.jjricks.volt.WideLayout;
  *   reminders on top of the search; Back returns to the search with its query and results intact, Back again clears
  *   the query (the subjects show again), and Back once more returns to Home.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
- *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown, and
+ *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
+ *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -298,6 +304,9 @@ public final class HubValidation extends Instrumentation {
         Object clean = onMain(() -> twoPanes() ? field(activity, "homeScreen") : field(activity, "screen"));
         main(() -> homeScroll().scrollTo(0, 0));
         settle();
+        // The scroll bar a scroll shows fades on its own; every moment is pictured without it.
+        SystemClock.sleep(ViewConfiguration.getScrollDefaultDelay() + ViewConfiguration.getScrollBarFadeDuration() + 100);
+        settle();
         main(() -> require(homeScroll().getScrollY() == 0, "Clean Home did not scroll back to its top"));
         int[] parked = placeIn(clean, 0, "the battery card");
         screenshot("moment-parked");
@@ -314,32 +323,85 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 0; }), "Clean Home did not return to the battery card");
         int[] back = placeIn(clean, 0, "the battery card");
         require(Arrays.equals(parked, back), "The Lock bar or the scooter name moved back from the charging view: " + describe(parked) + " -> " + describe(back));
-        // Just back needs a ride saved in the last hour; its card is shown directly here, for the layout only (no ride).
-        // Clean Home's own refresh (once a second) puts the parked card back, so the place counts only if it was measured
-        // while Just back was still the moment shown, its crossfade over; else the card is shown and measured again.
-        int[] justBack = null;
-        for (int attempt = 0; attempt < JUST_BACK_TRIES && justBack == null; attempt++) {
-            main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 2));
-            justBack = placeWhile(clean, 2, 1500);
-        }
-        require(justBack != null, "Clean Home's refresh replaced the Just back card before it could be measured, " + JUST_BACK_TRIES + " times");
-        // Its picture, taken the same way, once a frame drawn after the measurement is on screen (screenshot): kept only
-        // when Just back was still the moment after it was taken (only the walk shows Just back, so it was shown the whole
-        // time); a discarded try's picture and census are deleted, and the step fails if no picture holds.
-        boolean pictured = false;
-        for (int attempt = 0; attempt < JUST_BACK_TRIES && !pictured; attempt++) {
-            main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 2));
-            int[] before = placeWhile(clean, 2, 1500);
-            if (before == null) continue;
-            require(Arrays.equals(parked, before), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(before));
-            screenshot("moment-just-back");
-            if (onMain(() -> ((Integer) field(clean, "moment")) == 2)) { pictured = true; continue; }
-            discardScreenshot(screenshots.remove(screenshots.size() - 1));
-        }
-        require(pictured, "No Just back picture while the card was still shown, " + JUST_BACK_TRIES + " times");
-        main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 0)); settle();
+        // Just back for a real ride: one finished ride saved now, 20 min and 10 km (6.2 mi) long, 80 % to 62 %, with the
+        // phone's GPS loop for its route, so Clean Home's own refresh (HomeMoment.choose, the ride moment on by default)
+        // picks it and binds the card: the ended line, the distance, the three tiles and the route, as an owner sees it.
+        String ride = seedFinishedRide();
+        main(() -> { setField(clean, "ridesLooked", -1L); activity.redraw(); });
+        await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 2; }), "Clean Home does not show Just back for a ride that just ended");
+        Object card = onMain(() -> field(clean, "justBack"));
+        main(() -> require(ride.equals(invoke(card, "rideId", new Class<?>[0])), "Just back shows another ride than the one just saved"));
+        // The route is read on a worker once the card is bound.
+        await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back drew no route for the ride's GPS fixes");
+        int[] justBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
-        checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back; each pictured at that scroll");
+        main(() -> {
+            for (String name : new String[]{"saved", "distance"}) {
+                TextView text = (TextView) field(card, name);
+                require(shown(text) && text.getText().length() > 0 && !"—".contentEquals(text.getText()), "Just back's " + name + " line is empty: \"" + text.getText() + "\"");
+                require(text.getLineCount() == 1, "Just back's " + name + " line \"" + text.getText() + "\" takes " + text.getLineCount() + " lines");
+            }
+            require(((TextView) field(card, "saved")).getText().toString().startsWith("Ride ended"), "Just back's ended line reads \"" + ((TextView) field(card, "saved")).getText() + "\"");
+            for (String name : new String[]{"time", "speed", "battery"}) {
+                TextView value = (TextView) field(field(card, name), "value");
+                require(value.getText().length() > 0 && !"—".contentEquals(value.getText()), "Just back's " + name + " tile shows no value: \"" + value.getText() + "\"");
+            }
+            TextView time = (TextView) field(field(card, "time"), "value");
+            require("20m".contentEquals(time.getText()), "Just back's Ride time reads \"" + time.getText() + "\" for a 20 min ride");
+        });
+        screenshot("moment-just-back");
+        // Still Just back after the picture, at the place measured (only a closed card or a newer ride would change it).
+        int[] afterJustBack = placeIn(clean, 2, "the Just back card");
+        require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
+        checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
+                + " (a ride saved just now: its ended line, distance, tiles and route shown); each pictured at that scroll");
+    }
+
+    /**
+     * One finished ride in the service's own stores, ended a few seconds ago: 20 min, 10 km, 80 % to 62 %, with a GPS
+     * loop in its phone journal (as the design tour's). Nothing reaches the scooter; the recording is closed at once.
+     */
+    private String seedFinishedRide() {
+        return onMain(() -> {
+            ScooterService service = activity.service();
+            long end = System.currentTimeMillis() - 5_000L, start = end - 20 * 60_000L;
+            // The ride's own monotonic clock, as the design tour's: a fresh emulator may have been up for less than 20 min.
+            long mono = 100_000L, monoEnd = mono + 20 * 60_000L;
+            int steps = 60;
+            long step = (monoEnd - mono) / steps;
+            try {
+                ScooterProfiles.Profile active = service.profiles.active();
+                require(active != null, "No scooter profile for the synthetic ride");
+                String profile = active.id;
+                RideStore rides = service.rides;
+                String id = rides.start(profile, "Synthetic Hub ride", start, mono);
+                rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
+                for (int i = 0; i <= steps; i++) {
+                    long at = mono + i * step;
+                    Map<String, RideStore.Sample> s = new LinkedHashMap<>();
+                    s.put("battery_percent", new RideStore.Sample(80d - 18d * i / steps, at));
+                    s.put("voltage_v", new RideStore.Sample(52d - 3d * i / steps, at));
+                    s.put("current_a", new RideStore.Sample(i == 0 || i == steps ? 0.5 : 9d + (i % 7), at));
+                    s.put("speed_kmh", new RideStore.Sample(i == 0 || i == steps ? 0d : 27d + (i % 5), at));
+                    s.put("odometer_km", new RideStore.Sample(1200d + 10d * i / steps, at));
+                    rides.sample(start + i * step, at, s);
+                }
+                rides.stop(end, monoEnd);
+                PhoneRideStore phone = service.phoneRides;
+                require(phone != null, "The service has no phone ride store");
+                phone.start(id, start, mono);
+                StringBuilder rows = new StringBuilder();
+                for (int i = 0; i <= 120; i++) {
+                    double t = i / 120.0 * 2 * Math.PI;
+                    double lat = 43.8200 + 0.012 * Math.sin(t) + 0.004 * Math.sin(3 * t), lon = -111.7800 + 0.018 * (1 - Math.cos(t)) - 0.003 * Math.sin(2 * t);
+                    rows.append(PhoneRideStore.row("GPS", start + i * 10_000L, mono + i * 10_000L, lat, lon, 4, 8, 0.2, 1500, 4));
+                }
+                phone.appendBatch(id, rows.toString(), "");
+                phone.stop(id, end, monoEnd);
+                require(!service.isRecording(), "The synthetic ride is still recording");
+                return id;
+            } catch (java.io.IOException error) { throw new IllegalStateException(error); }
+        });
     }
 
     /** Widgets Home: the dock, each of its items, and its All sheet. */
@@ -688,8 +750,6 @@ public final class HubValidation extends Instrumentation {
     /** App text size times Android's font size, at least 1 (HubDock's scale). */
     private float textScale() { return Math.max(1f, activity.ui().textScale * activity.getResources().getConfiguration().fontScale); }
 
-    /** How often the walk shows the Just back card again when Clean Home's refresh replaced it before it was measured. */
-    private static final int JUST_BACK_TRIES = 20;
 
     /**
      * The Lock bar's place in the window and its size, the top area's height, and the scooter name's (home-switch-scooter)
@@ -836,17 +896,20 @@ public final class HubValidation extends Instrumentation {
         require(drawn, "No frame was drawn within 3 s for a screenshot");
         SystemClock.sleep(150);
     }
-    /** Deletes a screenshot that was not kept, with the census files written next to it. */
-    private static void discardScreenshot(String path) {
-        File file = new File(path), folder = file.getParentFile();
-        String base = file.getName().replaceFirst("\\.png$", "");
-        file.delete(); new File(folder, base + ".census.tsv").delete(); new File(folder, base + ".census-error.txt").delete();
-    }
 
     // ===== Plumbing =====
 
     private View root() { return activity.getWindow().getDecorView(); }
     private static boolean shown(View view) { return view != null && view.isShown() && view.getWidth() > 0 && view.getHeight() > 0; }
+    /** The number on the search's shown count line ("12 settings", English), 0 for none or "No matching settings". */
+    private static int resultCount(View view) {
+        if (view instanceof TextView && view.isShown()) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d+) settings?").matcher(((TextView) view).getText());
+            if (m.matches()) return Integer.parseInt(m.group(1));
+        }
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { int found = resultCount(((ViewGroup) view).getChildAt(i)); if (found > 0) return found; }
+        return 0;
+    }
     private static EditText firstEditText(View view) {
         if (view instanceof EditText && view.isShown()) return (EditText) view;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { EditText found = firstEditText(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
@@ -876,6 +939,11 @@ public final class HubValidation extends Instrumentation {
     private void require(boolean condition, String message) { assertions++; if (!condition) throw new IllegalStateException(message); }
     private Object field(Object target, String name) {
         try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch (NoSuchFieldException next) { type = type.getSuperclass(); } }
+            throw new NoSuchFieldException(name);
+        } catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private void setField(Object target, String name, Object value) {
+        try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); f.set(target, value); return; } catch (NoSuchFieldException next) { type = type.getSuperclass(); } }
             throw new NoSuchFieldException(name);
         } catch (Exception error) { throw new IllegalStateException(error); }
     }
