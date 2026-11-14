@@ -74,7 +74,7 @@ public final class Protocol {
      * refusing 0x50, so no generic path can send it, and BleController sends it only as the admitted mutation.
      */
     public static byte[] ownerRelease() {
-        return encode(OwnerRelease.CMD, new byte[] {1}, true, 0);
+        return encode(0x50, new byte[] {1}, true, 0); // OwnerRelease.CMD; a literal so the capture-guard build needs no OwnerRelease
     }
 
     /** Identity is the existing owner's six-byte OEM account identity; role 0 is owner. */
