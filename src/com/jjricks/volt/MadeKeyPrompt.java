@@ -31,6 +31,31 @@ final class MadeKeyPrompt {
         return !profileId.equals(shownFor);
     }
 
+    /** What Go to Home (and Back) on setup's last page does: {@link #home}. */
+    static final int HOME_NOW = 0, HOME_WAIT = 1, HOME_AFTER_PROMPT = 2;
+    /** How long Go to Home waits for the profile before finishing setup without it. */
+    static final long HOME_WAIT_MS = 4000;
+
+    /**
+     * Whether a made key's popup may still be owed before its profile can be read: setup made a key on the new-key
+     * route ({@code generatedId}) and the rider hasn't dismissed its popup. Finishing setup clears setup's preferences,
+     * this record among them, so while it holds, Go to Home first waits for the profile (home).
+     */
+    static boolean mayBeOwed(boolean newKeyRoute, String generatedId, String shownFor, boolean dismissedHere) {
+        return newKeyRoute && !dismissedHere && generatedId != null && !generatedId.isEmpty() && !generatedId.equals(shownFor);
+    }
+
+    /**
+     * Go to Home (and Back) on setup's last page. With the profile loaded: the popup first when it is due, and setup
+     * finishes once it is dismissed; otherwise at once. Before that (the service not bound yet, after Volt reopened), a
+     * popup that may be owed makes it wait, up to {@link #HOME_WAIT_MS}; after that, or when none can be owed, setup
+     * finishes as it does when no profile exists. Never a wait with nothing owed, so no other setup waits at all.
+     */
+    static int home(boolean profileLoaded, boolean due, boolean mayBeOwed, long waitedMs) {
+        if (profileLoaded) return due ? HOME_AFTER_PROMPT : HOME_NOW;
+        return mayBeOwed && Math.max(0, waitedMs) < HOME_WAIT_MS ? HOME_WAIT : HOME_NOW;
+    }
+
     /** Whole seconds Done still waits after {@code elapsedMs} on screen: WAIT_SECONDS down to 0. */
     static int secondsLeft(long elapsedMs) {
         long left = WAIT_SECONDS * 1000L - Math.max(0, elapsedMs);
