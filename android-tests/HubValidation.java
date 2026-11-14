@@ -83,7 +83,8 @@ import com.jjricks.volt.WideLayout;
  *   pane's Clean Home's), and every page it opens must leave the scooter pane the same view (never rebuilt by
  *   browsing). Battery & charging › Estimates & charger must hold the usable-energy panel and Settings › Home style
  *   both style previews inside the page pane, no wider than it. With -e wide true, Clean Home must take two panes
- *   every time Home shows; with -e wide false, one.</li>
+ *   every time Home shows where the window gets the wide layout at its text size (WideLayout.wide), and one where large
+ *   text keeps the phone layout (725x604 dp at 1.4x, hub-725-large); with -e wide false, one.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
@@ -179,7 +180,7 @@ public final class HubValidation extends Instrumentation {
     private void cleanSubjects() throws Exception {
         requireHome("CleanHomeScreen");
         main(() -> require(field(activity, "dock") == null, "Clean Home shows the dock"));
-        if (Boolean.parseBoolean(arguments.getString("wide", "false")))
+        if (panesExpected())
             main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
                     "Clean Home on a wide window did not take two panes"));
         Object[] pane = scooterPane();
@@ -629,12 +630,21 @@ public final class HubValidation extends Instrumentation {
                 "Home is not " + screenClass);
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
-        // -e wide true or false: Clean Home takes two panes on the wide window and one on the phone, every time it shows.
+        // -e wide true or false: Clean Home takes two panes where the window gets the wide layout at this text size, and
+        // one pane on the phone and on a wide window whose large text keeps the phone layout, every time it shows.
         if ("CleanHomeScreen".equals(screenClass) && arguments.containsKey("wide")) {
-            boolean wide = Boolean.parseBoolean(arguments.getString("wide"));
+            boolean wide = panesExpected();
             main(() -> require(twoPanes() == wide && shown(root().findViewWithTag("hub-scooter-pane")) == wide && shown(root().findViewWithTag("hub-page-pane")) == wide,
-                    wide ? "Clean Home on a wide window did not take two panes" : "Clean Home on a phone took two panes"));
+                    wide ? "Clean Home on a wide window did not take two panes" : "Clean Home took two panes on a window whose layout is the phone's ("
+                            + widthDp() + " dp, " + textScale() + "x text)"));
         }
+    }
+    /**
+     * Two panes are expected with -e wide true on a window that gets the wide layout at this text size (WideLayout.wide):
+     * at 725x604 dp and 1x; not at 1.4x, where 725 / 1.4 < 650 keeps the phone layout (hub-725-large).
+     */
+    private boolean panesExpected() {
+        return Boolean.parseBoolean(arguments.getString("wide", "false")) && WideLayout.wide(widthDp(), textScale());
     }
     private Object dock() {
         Object dock = field(activity, "dock");
