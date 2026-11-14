@@ -82,8 +82,12 @@ public final class UpdateCheckValidation extends Instrumentation {
             main(() -> updatesRow[0] = HubTestPages.shownTag(activity, "settings-updates"));
             require(updatesRow[0] != null, "Settings has no Updates row");
             HubTestPages.tapView(this, activity, updatesRow[0], "Settings' Updates row");
-            await(() -> updatesSheet() != null && tag("check-updates") != null && tag("check-updates").isShown() && tag("update_auto") != null && tag("update_auto").isShown(),
-                    "Check for updates is not in Settings' Updates sheet");
+            // Read on the main thread (tag() walks MoreScreen's dialog list and each dialog's views); updatesSheet() posts there itself.
+            await(() -> {
+                AtomicReference<Boolean> ok = new AtomicReference<>(false);
+                main(() -> { View check = tag("check-updates"), auto = tag("update_auto"); ok.set(check != null && check.isShown() && auto != null && auto.isShown()); });
+                return ok.get() && updatesSheet() != null;
+            }, "Check for updates is not in Settings' Updates sheet");
             sheet = updatesSheet();
 
             reply.set(release("v9.9.9", PAGE));
@@ -202,7 +206,7 @@ public final class UpdateCheckValidation extends Instrumentation {
         return found.get();
     }
     private MoreScreen more() { return (MoreScreen) field(activity, "screen"); }
-    /** A tagged view in the activity's window or, since Check for updates sits in the Updates sheet (part 11), in a showing dialog. */
+    /** A tagged view in the activity's window or, since Check for updates sits in the Updates sheet (part 11), in a showing dialog. Main thread. */
     private View tag(String tag) {
         View found = activity.getWindow().getDecorView().findViewWithTag(tag);
         if (found != null || !(field(activity, "screen") instanceof MoreScreen)) return found;

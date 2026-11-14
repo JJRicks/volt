@@ -126,25 +126,28 @@ public final class HubTestPages {
 
     /**
      * A rider's tap on the shown page's back link ("hub-back", in the page header above the screen), with {@link #tapView}'s
-     * rules, then waits for the page's parent ({@link HubPages#parent}) to be on top. Throws when the page has no back link
-     * shown or the tap leaves another page on top. Instrumentation thread; returns the page now shown.
+     * rules, then waits for the page below it on the activity's page stack to be on top (the back link goes there, which is
+     * not {@link HubPages#parent} when the page was opened from elsewhere: Developer options' checker opens Compatibility over
+     * Developer options). Throws when the page has no back link shown, nothing is below it, or the tap leaves another page
+     * on top. Instrumentation thread; returns the page now shown.
      */
     public static String back(Instrumentation instrumentation, MainActivity activity) {
         View[] link = {null};
-        String[] from = {null};
+        String[] from = {null}, target = {null};
         onMain(instrumentation, () -> {
             from[0] = current(activity);
+            List<?> pages = (List<?>) call(field(activity, "nav"), "pages");
+            target[0] = pages.size() > 1 ? (String) pages.get(pages.size() - 2) : null;
             View root = (View) field(activity, "root");
             View found = root == null ? null : root.findViewWithTag("hub-back");
             link[0] = found != null && found.isShown() ? found : null;
         });
         if (link[0] == null) throw new IllegalStateException("Page " + from[0] + " has no back link shown");
-        String parent = HubPages.parent(from[0]);
-        if (parent == null) throw new IllegalStateException("Page " + from[0] + " has no parent to go back to");
+        if (target[0] == null) throw new IllegalStateException("Page " + from[0] + " has no page below it to go back to");
         String name = "the back link on page " + from[0];
         tap(instrumentation, activity, link[0], name);
-        awaitPage(instrumentation, activity, parent, name);
-        return parent;
+        awaitPage(instrumentation, activity, target[0], name);
+        return target[0];
     }
 
     /**
@@ -300,8 +303,8 @@ public final class HubTestPages {
         if (dock[0] == null) return false;
         View[] item = {null}, all = {null};
         String[] problem = {null};
-        // The dock can step aside after it was picked: Home's cards still settle (a tile's value arrives and the Lock bar moves
-        // under the dock), and HubDock.keepClear then hides it. The rider sees that and scrolls; so does this, once more, but
+        // The dock can move or step aside after it was picked: Home's cards still settle (a tile's value arrives and the Lock
+        // bar moves under the dock), and HubDock.keepClear then lifts or hides it. The rider sees that and scrolls; so does this, once more, but
         // only when the dock says it stepped aside for the Lock bar (any other hiding still fails).
         for (int attempt = 1; ; attempt++) {
             showDock(instrumentation, activity);
@@ -360,9 +363,9 @@ public final class HubTestPages {
     }
 
     /**
-     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, and still. On a short window or with large text
-     * the dock steps aside while Home's Lock bar sits where it floats (HubDock.keepClear) and comes back once the page scrolls
-     * the bar above it, so the rider scrolls Home to its end: so does this. Waits until the dock's visibility and place have
+     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, and still. Where Home's Lock bar sits where the
+     * dock floats, the dock moves up over it (HubDock.keepClear); only on a window too short for that does it step aside,
+     * coming back once the page scrolls the bar above it, so the rider scrolls Home to its end: so does this. Waits until the dock's visibility and place have
      * held for several reads (Home's cards may still be settling and moving the bar), and throws when the dock is gone
      * (Home's editor), hidden without the Lock bar under it, or still aside after the scroll. Instrumentation thread; a no-op
      * on a Home without a dock (Clean Home).
