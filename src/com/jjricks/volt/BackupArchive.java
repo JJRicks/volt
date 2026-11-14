@@ -648,6 +648,13 @@ final class BackupArchive {
             result.get("app_settings").put(HomeStyle.KEY, HomeStyle.WIDGETS);
             result.get("app_settings").remove(HomeStyle.CHOSEN_KEY);
         }
+        // The background-recording notice (council's second review of part 9, finding 1): a backup made before the background
+        // switch that brings Record rides automatically back on stops its background starts, after setup as well as at the
+        // welcome screen, so the restore marks the notice due on this installation; What's new shows it whatever the origin.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES))
+                && HomeStyle.restoreMarksNotice(preHub, backedUp.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
+                        result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_KEY), result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY)))
+            result.get("app_settings").put(HomeStyle.RESTORED_NOTICE_KEY, true);
         // Clean Home's moment switches (HomeMoment): a backup made before them carries neither (nor home_style); restoring
         // it keeps this phone's switches as they are instead of dropping them (absent means on). One that has them applies them.
         if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && preHub

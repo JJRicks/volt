@@ -30,6 +30,13 @@ final class AutoStartPolicy {
      * an install or a backup from before the switch starts rides only while Volt is on screen.
      */
     static final String AUTO_RECORD_BACKGROUND_KEY = "auto_record_background";
+    /**
+     * Volt 1.13.2's one-time What's new note about background starts (release/1.13 only; this branch never writes it): a
+     * String in app_settings, NOTICE_DUE or NOTICE_DONE, decided at that version's first start. An installation updated
+     * from 1.13.2 still holds it; HomeStyle.whatsNewBackgroundNotice reads it so an owner who already closed that note is
+     * not told again. It belongs to that installation, so BackupRegistry leaves it out.
+     */
+    static final String BACKGROUND_NOTICE_KEY = "auto_record_background_notice", NOTICE_DUE = "due", NOTICE_DONE = "done";
     /** The Rides GPS route switch, on by default. */
     static final String PHONE_GPS_KEY = "phone_gps";
     /** Set while the rider's last answer to auto-record's location offer stands as a decline. A grant leaves it unset, so one that later ends can be offered again. Belongs to this phone's permission, so BackupRegistry leaves it out. */

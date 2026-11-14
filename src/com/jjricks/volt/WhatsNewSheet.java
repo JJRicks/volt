@@ -20,7 +20,13 @@ import android.widget.TextView;
  * with the switch to turn them on (owner's answer on #403) comes first, above the offer, since either offer button
  * closes the sheet (council early review of part 9); then this version's changelog with a link to the
  * full release notes (owner's answers 9, 10 and 12 on #383). A sheet that would hold none of these is not shown.
- * It records itself as shown (committed) just before it appears, so a crash or rotation never shows it again.
+ * A restore of a backup made before the background switch, with Record rides automatically on, makes the notice due
+ * on any installation (HomeStyle.RESTORED_NOTICE_KEY, council's second review of part 9): the sheet then shows it
+ * alone when the update's sheet is not due too, with no offer and no notes.
+ * It counts as shown only once the person answers it (HomeStyle.whatsNewAnswered): closing it themselves (a button,
+ * its X, Back, a tap outside) or acting in it (the background switch, a style choice) records it, committed. A rebuild,
+ * a service rebind or the activity going away (MainActivity.onDestroy dismisses it) records nothing, so it shows again
+ * on the next clear Home, never two at once.
  * Text from HubText only; the notes are the bundled CHANGELOG.md section, in English.
  */
 final class WhatsNewSheet {
@@ -38,31 +44,41 @@ final class WhatsNewSheet {
     private WhatsNewSheet() { }
 
     /**
-     * Shows the sheet over the current screen and returns it, so the activity can close it when it goes away; records
-     * it as shown first. Returns null, showing nothing, when it would hold nothing (HomeStyle.whatsNewShows): for a
-     * chosen style and no notice it records the sheet as shown (HomeStyle.whatsNewSettled); for no offer, no notice and
-     * no bundled notes it records nothing, so it is decided again.
+     * Shows the sheet over the current screen and returns it, so the activity can close it when it goes away. Records
+     * nothing as it appears: the person's answer records it (answered). Returns null, showing nothing, when it would hold
+     * nothing (HomeStyle.whatsNewShows): when that is final (HomeStyle.whatsNewSettled: a chosen style, or only a
+     * restore's notice, with no notice to show) it records the sheet as answered; for no offer, no notice and no bundled
+     * notes it records nothing, so it is decided again.
      */
     static AlertDialog show(ScreenHost host, SharedPreferences preferences) {
         Ui ui = host.ui();
         java.util.Map<String, ?> all;
         try { all = preferences.getAll(); } catch (RuntimeException e) { return null; }
-        boolean offer = HomeStyle.offerSwitch(Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY)), all.get(HomeStyle.KEY));
         Object origin = all.get(HomeStyle.ORIGIN_KEY);
-        Object autoRecord = all.get(AutoStartPolicy.AUTO_RECORD_KEY);
-        boolean notice = HomeStyle.whatsNewBackgroundNotice(origin instanceof String ? (String) origin : null, Boolean.TRUE.equals(autoRecord));
+        String originName = origin instanceof String ? (String) origin : null;
+        boolean updateDue = HomeStyle.whatsNewUpdateDue(originName, Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)));
+        boolean restored = Boolean.TRUE.equals(all.get(HomeStyle.RESTORED_NOTICE_KEY));
         boolean chosen = Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY));
-        // An owner who already chose a style sees nothing without the notice: no need to read the notes then, and the
-        // decision is final for them, so it is recorded (HomeStyle.whatsNewSettled).
-        if (HomeStyle.whatsNewSettled(chosen, notice)) {
-            preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).apply();
+        // The offer and this version's notes belong to the update's sheet; a restore's notice alone carries neither.
+        boolean offer = updateDue && HomeStyle.offerSwitch(chosen, all.get(HomeStyle.KEY));
+        boolean notice = HomeStyle.whatsNewBackgroundNotice(originName, Boolean.TRUE.equals(all.get(AutoStartPolicy.AUTO_RECORD_KEY)),
+                all.get(AutoStartPolicy.BACKGROUND_NOTICE_KEY), restored);
+        boolean noticeOnly = chosen || !updateDue;
+        // An owner who already chose a style, or one due only a restore's notice, sees nothing without the notice: no need
+        // to read the notes then, and the decision is final, so it is recorded (HomeStyle.whatsNewSettled).
+        if (HomeStyle.whatsNewSettled(noticeOnly, notice)) {
+            answered(preferences);
             return null;
         }
-        if (!HomeStyle.whatsNewShows(chosen, offer, notice, false) && !HomeStyle.whatsNewShows(chosen, offer, notice, true)) return null;
-        WhatsNewNotes.Notes notes = WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity()));
-        if (!HomeStyle.whatsNewShows(chosen, offer, notice, notes != null)) return null;
+        if (!HomeStyle.whatsNewShows(noticeOnly, offer, notice, false) && !HomeStyle.whatsNewShows(noticeOnly, offer, notice, updateDue)) return null;
+        WhatsNewNotes.Notes notes = updateDue ? WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity())) : null;
+        if (!HomeStyle.whatsNewShows(noticeOnly, offer, notice, notes != null)) return null;
         AlertDialog[] shown = new AlertDialog[1];
-        Runnable close = () -> { if (shown[0] != null) shown[0].dismiss(); };
+        // Every way the person closes it themselves answers it; Volt's own dismissal (shown[0].dismiss elsewhere) does not.
+        Runnable close = () -> {
+            answered(preferences);
+            if (shown[0] != null) shown[0].dismiss();
+        };
         // Without the offer the notes' heading (this version) titles the sheet; their own heading is then left out.
         // With the notice above the offer, the offer's sentence moves down to the pictures it introduces.
         boolean bodyWithOffer = offer && notice;
@@ -76,9 +92,18 @@ final class WhatsNewSheet {
             else if (HomeStyle.SECTION_OFFER.equals(section)) addOffer(host, ui, content, preferences, close, bodyWithOffer);
             else addNotes(host, ui, content, notes, offer || notice, offer);
         }
-        preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).commit();
         shown[0] = host.showSheet(content);
+        // Back and a tap outside cancel the sheet: the person closed it (HomeStyle.whatsNewAnswered).
+        if (shown[0] != null) shown[0].setOnCancelListener(dialog -> { if (HomeStyle.whatsNewAnswered(true, false)) answered(preferences); });
         return shown[0];
+    }
+
+    /**
+     * The person answered the sheet (HomeStyle.whatsNewAnswered): it counts as shown, and a restore's notice is told.
+     * Committed, so a process ending right after it cannot bring the sheet back.
+     */
+    static void answered(SharedPreferences preferences) {
+        preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).remove(HomeStyle.RESTORED_NOTICE_KEY).commit();
     }
 
     /**
@@ -188,12 +213,17 @@ final class WhatsNewSheet {
             return;
         }
         String origin;
+        Object legacy, restored;
         try {
-            origin = preferences.getString(HomeStyle.ORIGIN_KEY, null);
-        } catch (ClassCastException wrongType) {
-            origin = null;
+            java.util.Map<String, ?> all = preferences.getAll();
+            Object stored = all.get(HomeStyle.ORIGIN_KEY);
+            origin = stored instanceof String ? (String) stored : null;
+            legacy = all.get(AutoStartPolicy.BACKGROUND_NOTICE_KEY);
+            restored = all.get(HomeStyle.RESTORED_NOTICE_KEY);
+        } catch (RuntimeException unreadable) {
+            return;
         }
-        if (!HomeStyle.whatsNewBackgroundNotice(origin, autoRecord)) return;
+        if (!HomeStyle.whatsNewBackgroundNotice(origin, autoRecord, legacy, Boolean.TRUE.equals(restored))) return;
         LinearLayout box = new LinearLayout(host.activity());
         box.setOrientation(LinearLayout.VERTICAL);
         box.setTag(TAG_BACKGROUND);
@@ -202,7 +232,11 @@ final class WhatsNewSheet {
         notice.setLineSpacing(ui.dp(2), 1);
         box.addView(notice, new LinearLayout.LayoutParams(-1, -2));
         View toggle = ui.toggleRow(HubText.whatsNewBackgroundSwitch().render(), "walk", null, background, true,
-                enabled -> preferences.edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply());
+                enabled -> {
+                    preferences.edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply();
+                    // Acting in the sheet answers it (HomeStyle.whatsNewAnswered): a later dismissal by Volt doesn't bring it back.
+                    if (HomeStyle.whatsNewAnswered(false, true)) answered(preferences);
+                });
         toggle.setTag(TAG_BACKGROUND_SWITCH);
         LinearLayout.LayoutParams toggleSpace = new LinearLayout.LayoutParams(-1, -2);
         toggleSpace.topMargin = ui.dp(10);

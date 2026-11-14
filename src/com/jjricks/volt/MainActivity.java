@@ -596,9 +596,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog whatsNewSheet;
     /**
      * Shows the one-time What's new sheet (Joel 6, 10) when HomeStyle.showWhatsNew says so: an updated installation
-     * that never saw it, on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open,
-     * whether or not the owner already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch).
-     * The sheet records itself as shown (committed) before it appears, so a crash or rotation never shows it again.
+     * that never answered it, or one where a restore made the background-recording notice due (HomeStyle.RESTORED_NOTICE_KEY),
+     * on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open, whether or not the owner
+     * already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch). It counts as shown only once
+     * the person answers it (HomeStyle.whatsNewAnswered): onDestroy's dismissal records nothing, so a sheet lost to a
+     * recreation, a relaunch or the process ending shows again on the next clear Home; never two at once (the one showing
+     * is kept here).
      */
     private void maybeShowWhatsNew(){
         if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
@@ -607,7 +610,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
         // On Home, either style, and not while it is being edited.
         boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
-        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.RESTORED_NOTICE_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
