@@ -137,7 +137,8 @@ final class HubSearchTables {
         switch (tag) {
             case SETTING_HOME_STYLE: return "home style clean widgets dashboard layout";
             case SETTING_UNITS: return "units miles kilometres kilometers km mi temperature celsius fahrenheit";
-            case SETTING_DISPLAY: return "text size font large display haptic haptics vibration vibrate feedback";
+            case SETTING_DISPLAY: return "text size font large display";
+            case SETTING_HAPTICS: return "haptic haptics feedback vibration vibrate vibrations";
             case SETTING_LANGUAGE: return "language translation locale";
             case SETTING_RIDING_AUTO_OPEN: return "riding mode open automatically auto start";
             case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record";
