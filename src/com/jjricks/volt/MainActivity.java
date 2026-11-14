@@ -375,6 +375,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         return super.dispatchTouchEvent(event);
     }
     @Override public void onBackPressed(){navigateBack(false);}
+    /** The system Back. Validations call it by name (AutoStart, Dashboard, Locale, UiOrganization), so it keeps its signature. */
+    private void navigateBack(){navigateBack(false);}
     /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
     private void navigateBack(boolean link){
         if(startupRedirect || enteringMaintenance)return;

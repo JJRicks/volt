@@ -737,8 +737,8 @@ public final class MoreScreen implements AppScreen {
         words.addView(r.sub); r.sub(sub);
         r.view.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
         r.value = ui.text("", 13.5f, false); r.value.setTextColor(ui.muted); r.value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        r.value.setMaxLines(2); r.value.setMaxWidth(ui.dp(140));
-        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(-2, -2); vp.leftMargin = ui.dp(10);
+        r.value.setMaxLines(2); r.value.setMaxWidth(ui.dp(SettingsRows.VALUE_MAX_DP));
+        LinearLayout.LayoutParams vp = new LinearLayout.LayoutParams(-2, -2); vp.leftMargin = ui.dp(SettingsRows.VALUE_GAP_DP);
         r.view.addView(r.value, vp); r.value(null);
         if (action != null) {
             r.chevron = ui.icon("chevron", 15, ui.muted);
@@ -1161,19 +1161,27 @@ public final class MoreScreen implements AppScreen {
         holder.removeView(language);
         View divider = new View(host.activity());
         divider.setBackgroundColor(ui.raised);
+        // The plan's value beside the title ("English ›") when the language fits there on one line in the room the row
+        // really has (SettingsRows.valueRoom: the row less its padding, the title, the gap and the chevron); a longer
+        // one (for example "System default (English)" at large text on a 344 dp phone) goes under the title instead of
+        // being cut. Until the row has a width, the value column's 140 dp stands in; a new width places it again.
+        Runnable placeValue = () -> {
+            if (!LanguageSheet.offered(host.activity())) return;
+            String value = LanguageSheet.value(host.activity());
+            int inner = language.getWidth() - language.getPaddingLeft() - language.getPaddingRight();
+            float room = inner > 0 ? SettingsRows.valueRoom(inner, row.title.getPaint().measureText(row.title.getText().toString()),
+                    ui.dp(SettingsRows.VALUE_GAP_DP), ui.dp(SettingsRows.CHEVRON_DP)) : ui.dp(SettingsRows.VALUE_MAX_DP);
+            boolean beside = SettingsRows.valueBeside(row.value.getPaint().measureText(value), room);
+            if (beside) { row.value.setMaxLines(1); row.value.setMaxWidth((int) Math.ceil(room)); }
+            row.value(beside ? value : null);
+            row.sub(beside ? null : value);
+        };
+        language.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft && !closed) v.post(placeValue);
+        });
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity());
-            // The current language goes under the title, as Android's own language setting shows it: the
-            // trailing value column is capped at 140 dp and two lines, which cut "System default (English)"
-            // at large text sizes.
-            if (offered) {
-                // The plan's value column ("English ›") when the language fits there on one line; a longer one (for
-                // example "System default (English)" at large text) goes under the title instead of being cut.
-                String value = LanguageSheet.value(host.activity());
-                boolean beside = SettingsRows.valueBeside(row.value.getPaint().measureText(value), ui.dp(SettingsRows.VALUE_MAX_DP));
-                row.value(beside ? value : null);
-                row.sub(beside ? null : value);
-            }
+            placeValue.run();
             placeLanguageRow(display, language, divider, offered, ui.dp(1), hapticsRow);
         });
     }
@@ -1246,9 +1254,8 @@ public final class MoreScreen implements AppScreen {
         // The selector's own caption repeats the title the dialog already shows.
         if (appearanceBox.getChildCount() > 0) appearanceBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(appearanceBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = doneDialog(box);
-        dialog.setOnDismissListener(d -> box.removeView(appearanceBox));
-        show(dialog);
+        // show() owns the dialog's dismiss listener (it forgets the dialog there), so the clean-up goes through it.
+        show(doneDialog(box), () -> box.removeView(appearanceBox));
     }
     /** Updates over Settings: the automatic check's switch and Check for updates (updates()), as the index had them. */
     private void updatesSheet() {
@@ -1258,9 +1265,7 @@ public final class MoreScreen implements AppScreen {
         // updates() opens with its section label, which the dialog's title replaces.
         if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
-        AlertDialog dialog = doneDialog(box);
-        dialog.setOnDismissListener(d -> { box.removeView(updatesBox); refresh(); });
-        show(dialog);
+        show(doneDialog(box), () -> { box.removeView(updatesBox); if (!closed) refresh(); });
     }
     private boolean batteryUnrestricted() {
         try {

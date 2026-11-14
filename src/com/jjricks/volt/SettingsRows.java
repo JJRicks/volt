@@ -10,8 +10,12 @@ final class SettingsRows {
     static final int MIN_HEIGHT_DP = 48;
     /** The space above and below a row's words (dp). */
     static final int PAD_DP = 8;
-    /** The value column's widest (dp), as MoreScreen's rows cap it. */
+    /** The value column's widest (dp), as MoreScreen's rows cap it; Language's too until its row has been measured. */
     static final int VALUE_MAX_DP = 140;
+    /** The gap between a row's title and its value (dp): the value's left margin. */
+    static final int VALUE_GAP_DP = 10;
+    /** A row's chevron with its left margin (dp): 15 dp glyph, 8 dp margin. */
+    static final int CHEVRON_DP = 23;
 
     private SettingsRows() {}
 
@@ -23,6 +27,14 @@ final class SettingsRows {
     static int languageIndex(int before, int childCount) {
         int count = Math.max(0, childCount);
         return before < 0 || before > count ? count : before;
+    }
+
+    /**
+     * The room a row really has for its value on one line beside its title: the row's width inside its padding, less the
+     * title's own width, the gap before the value and the chevron (all in one unit, pixels or dp). Never negative.
+     */
+    static float valueRoom(float rowInner, float title, float gap, float chevron) {
+        return Math.max(0f, rowInner - Math.max(0f, title) - Math.max(0f, gap) - Math.max(0f, chevron));
     }
 
     /**

@@ -29,12 +29,19 @@ public final class MoreTreeTest {
         check(build.contains("holder.removeView(language);"), "the row leaves its holder before it is placed");
         check(count(build, "removeView") == 1, "languageRow() removes only the row from its holder");
         check(build.contains("valueRefreshers.add("), "languageRow() places the row on refresh");
-        // The plan's "English ›" in the value column only when it fits there on one line (SettingsRows.valueBeside);
-        // otherwise under the title, so the capped column never cuts it.
-        check(build.contains("boolean beside = SettingsRows.valueBeside(row.value.getPaint().measureText(value), ui.dp(SettingsRows.VALUE_MAX_DP));")
+        // The plan's "English ›" beside the title only when it fits there on one line (SettingsRows.valueBeside) in the room
+        // the row really has (SettingsRows.valueRoom: the row less its padding, the title, the gap and the chevron; the
+        // 140 dp column until the row has a width), and then held to one line in that room; otherwise under the title,
+        // so the value is never cut. Placed on every refresh and again when the row's width changes.
+        check(build.contains("boolean beside = SettingsRows.valueBeside(row.value.getPaint().measureText(value), room);")
+                && build.contains("SettingsRows.valueRoom(inner, row.title.getPaint().measureText(row.title.getText().toString()),")
+                && build.contains("ui.dp(SettingsRows.VALUE_GAP_DP), ui.dp(SettingsRows.CHEVRON_DP)) : ui.dp(SettingsRows.VALUE_MAX_DP);")
+                && build.contains("if (beside) { row.value.setMaxLines(1); row.value.setMaxWidth((int) Math.ceil(room)); }")
                 && build.contains("row.value(beside ? value : null);") && build.contains("row.sub(beside ? null : value);")
                 && count(build, "row.value(") == 1 && count(build, "row.sub(") == 1,
-                "the language shows beside the title only when it fits, else under it, never cut in the capped value column");
+                "the language shows beside the title only when it fits the row's room on one line, else under it, never cut");
+        check(build.contains("addOnLayoutChangeListener(") && build.contains("v.post(placeValue)") && build.contains("placeValue.run();"),
+                "the language's place is decided on refresh and again when the row's width changes");
         check(build.contains("placeLanguageRow(display, language, divider, offered, ui.dp(1), hapticsRow)"), "the refresher places the row by offered");
 
         String place = body(source, "private static void placeLanguageRow(LinearLayout display, View language, View divider, boolean offered, int line, View before)");
