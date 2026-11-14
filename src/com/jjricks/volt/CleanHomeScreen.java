@@ -265,7 +265,8 @@ final class CleanHomeScreen implements AppScreen {
         String name = parts.name().getText().toString();
         parts.name().setContentDescription(HubText.switchScooterDescription(name).render());
         quick.refresh();
-        // The Ride row shows the ride Just back shows as soon as it is found (CleanSubjects.rideFound).
+        // The Ride row shows the ride Just back shows as soon as it is found (CleanSubjects.rideFound); on two panes the
+        // subjects are the page pane's (HubHomePane reads foundRide after this refresh).
         if (subjects != null) {
             subjects.rideFound(ride);
             subjects.refresh();
@@ -338,6 +339,12 @@ final class CleanHomeScreen implements AppScreen {
             listing = false;
         }
     }
+
+    /**
+     * The newest finished ride the top area found (the one Just back shows), or null: on two panes the page pane's
+     * subjects take it (HubHomePane), as the one-pane Home's own do (CleanSubjects.rideFound).
+     */
+    RideStore.Summary foundRide() { return closed ? null : lastRide; }
 
     /** The newest ride that is not being recorded (the list is newest first), or null. */
     private static RideStore.Summary newestFinished(java.util.List<RideStore.Summary> rides) {

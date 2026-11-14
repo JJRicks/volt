@@ -17,9 +17,16 @@ import android.widget.LinearLayout;
 final class HubHomePane implements AppScreen {
     private final LinearLayout view;
     private final CleanSubjects subjects;
+    /** The ride the scooter pane's Just back shows (CleanHomeScreen.foundRide), or null. */
+    private final java.util.function.Supplier<RideStore.Summary> foundRide;
     private boolean closed;
 
-    HubHomePane(ScreenHost host, Runnable openSearch) {
+    /**
+     * foundRide: the scooter pane's newest finished ride, so the Ride row shows the ride Just back shows as soon as it is
+     * found (CleanSubjects.rideFound); MainActivity refreshes the scooter pane before this one.
+     */
+    HubHomePane(ScreenHost host, Runnable openSearch, java.util.function.Supplier<RideStore.Summary> foundRide) {
+        this.foundRide = foundRide;
         Ui ui = host.ui();
         view = new LinearLayout(host.activity());
         view.setOrientation(LinearLayout.VERTICAL);
@@ -68,7 +75,11 @@ final class HubHomePane implements AppScreen {
 
     @Override public View view() { return view; }
 
-    @Override public void refresh() { if (!closed) subjects.refresh(); }
+    @Override public void refresh() {
+        if (closed) return;
+        subjects.rideFound(foundRide == null ? null : foundRide.get());
+        subjects.refresh();
+    }
 
     @Override public void close() {
         closed = true;

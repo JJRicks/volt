@@ -444,8 +444,10 @@ public final class HubValidation extends Instrumentation {
             }
         });
         // Part 9: the Ride row under it shows the ride Just back shows (CleanSubjects.rideFound), not "No rides yet": the
-        // seeded ride's 6.2 mi.
-        Object subjects = onMain(() -> field(clean, "subjects"));
+        // seeded ride's 6.2 mi. On two panes the subjects are the page pane's (HubHomePane), which takes the scooter
+        // pane's found ride (part 13).
+        Object subjects = onMain(() -> twoPanes() ? field(field(activity, "screen"), "subjects") : field(clean, "subjects"));
+        require(subjects != null, "Home's subject list was not found" + (twoPanes() ? " in the page pane" : ""));
         String none = HubText.rideNone().render();
         String[] rideLine = {null};
         await(() -> onMain(() -> {

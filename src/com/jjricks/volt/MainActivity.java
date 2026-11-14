@@ -782,7 +782,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
         // The wide Home's page pane at Home: the search field and the subjects (the scooter pane is beside it).
-        if(HubPages.HOME.equals(page)&&paneHosted)return new HubHomePane(this,()->{open(HubPages.SEARCH);focusPageSearch();});
+        if(HubPages.HOME.equals(page)&&paneHosted)return new HubHomePane(this,()->{open(HubPages.SEARCH);focusPageSearch();},()->homeScreen==null?null:homeScreen.foundRide());
         if(HubPages.HOME.equals(page))return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
         if(HubPages.SEARCH.equals(page))return searchPage();
         switch(HubPages.subjectOf(page)){
