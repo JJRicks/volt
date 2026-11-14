@@ -22,7 +22,7 @@ import java.util.Locale;
  * as a stand-in before a model is known), the scooter's name,
  * and sample readings formatted in the owner's units. Clean shows its header with the search and Settings buttons,
  * the battery card (charge, range, photo, bar, odometer), the Lock bar, the owner's four quick actions (this scooter's
- * defaults until they change them; the red RIDE pill first, with their real names and icons), the subject rows with
+ * defaults until they change them; round buttons with the short names Clean shows under them), the subject rows with
  * their names and the tab bar. Widgets follows the default phone Home: its header with the RIDE pill, the overview
  * card, the Lock bar, reading tiles (power, temperature, battery health), this model's Setting tiles, the Ride
  * recorder and the tab bar.
@@ -86,7 +86,7 @@ final class HomeStylePreview extends View {
         String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
         for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-            if (entry != null) quick.add(new String[] {entry.icon, entry.label().render(), id});
+            if (entry != null) quick.add(new String[] {entry.icon, QuickAccessGrid.roundName(entry), id});
         }
         for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
@@ -157,14 +157,14 @@ final class HomeStylePreview extends View {
     // ===== Clean =====
 
     private void drawClean(Canvas c) {
-        // Header: the connection line, search and Settings; the scooter's name and Edit.
+        // Header as Clean draws it (part 8b): the connection line, then the scooter's name with Edit, search and Settings.
         paint.setColor(ui.ok);
         c.drawCircle(20, 24, 4, paint);
         bar(c, 30, 21, 128, 6);
-        roundButton(c, 252, 24, "search");
-        roundButton(c, 288, 24, "gear");
-        title(c, 16, 70, 220, 22);
-        roundButton(c, 288, 62, "pencil");
+        title(c, 16, 70, 160, 22);
+        roundButton(c, 216, 62, "pencil");
+        roundButton(c, 252, 62, "search");
+        roundButton(c, 288, 62, "gear");
         // The top area: the battery card.
         card(c, 16, 90, 304, 262, 20, ui.surface);
         text(c, charge, 30, 140, 140, 40, ui.text, true);
@@ -177,17 +177,15 @@ final class HomeStylePreview extends View {
         bar(c, 164, 243, 64, 8, ui.text);
         // The Lock bar.
         lockBar(c, 16, 274, 304, 326);
-        // The four quick actions: the red RIDE pill into riding mode, then the round grey ones.
+        // The four quick actions as Clean's round buttons (part 8b): a grey circle, one short name under it.
         float cell = (288 - 24) / 4f;
         for (int i = 0; i < Math.min(4, quick.size()); i++) {
             String[] action = quick.get(i);
             float x = 16 + i * (cell + 8);
-            boolean ride = HomeQuickActions.RIDING.equals(action[2]);
-            card(c, x, 338, x + cell, 404, ride ? 33 : 12, ride ? ui.accent : ui.raised);
-            ui.drawIcon(c, action[0], ride ? ui.onAccent : ui.accent, x + cell / 2, 360, 20);
-            words.setLetterSpacing(ride ? .06f : 0);
-            centred(c, action[1], x + cell / 2, 392, cell - 8, 11, ride ? ui.onAccent : ui.text, ride);
-            words.setLetterSpacing(0);
+            paint.setColor(ui.raised);
+            c.drawCircle(x + cell / 2, 362, 22, paint);
+            ui.drawIcon(c, action[0], ui.text, x + cell / 2, 362, 20);
+            centred(c, action[1], x + cell / 2, 401, cell + 4, 11, ui.muted, false);
         }
         // The subjects: icon, name, a summary line and the chevron.
         card(c, 16, 418, 304, VIRTUAL_HEIGHT + 20, 18, ui.surface);

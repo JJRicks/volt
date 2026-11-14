@@ -19,6 +19,8 @@ final class JustBackFit {
     static final float DISTANCE_SP = 60, DISTANCE_UNIT_RATIO = .4f;
     /** How much large text may grow the distance (it is already large; the route and the tiles need the height). */
     static final float DISTANCE_MAX_GROWTH = 1.15f;
+    /** The least height (dp) the route panel shows at: lower, a route drawn inside its inset is too flat to read. */
+    static final int MIN_ROUTE_DP = 56;
     /** A tile value's size at 1x (sp, the mock-up's 21 sp) and its unit's share of it. */
     static final float VALUE_SP = 21, VALUE_UNIT_RATIO = .62f;
 
@@ -65,14 +67,17 @@ final class JustBackFit {
     /**
      * How the height left between the ended line and the tiles is shared (any unit, px in JustBackView): the distance
      * keeps its full box first and the route panel takes the rest; when that rest is under minRoute the panel goes
-     * (0, with its gap) and the distance alone takes the room, down to distanceFloor. Returns {distance box, route
+     * (0, with its gap) and the distance's box alone takes the room (its text at most full size, centred), down to
+     * distanceFloor. Returns {distance box, route
      * panel, route gap}. So the fixed top area never overflows: on a short window with large text the route goes
      * first, then the distance gets smaller; the ended line, the X and the three tiles stay.
      */
     static int[] split(int room, int distanceFull, int distanceFloor, int minRoute, int routeGap) {
         int left = Math.max(0, room);
         if (left - distanceFull - routeGap >= minRoute) return new int[] {distanceFull, left - distanceFull - routeGap, routeGap};
-        return new int[] {Math.max(Math.min(distanceFull, distanceFloor), Math.min(distanceFull, left)), 0, 0};
+        // Without the route the distance's box takes all of it (its text stays at most full size, centred in the box),
+        // so no blank band opens between the distance and the tiles.
+        return new int[] {Math.max(Math.min(distanceFull, distanceFloor), left), 0, 0};
     }
 
     /**

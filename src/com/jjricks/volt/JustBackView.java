@@ -39,7 +39,7 @@ final class JustBackView extends LinearLayout {
     /** View tags: the card itself (it opens the ride), its X and the route panel. */
     static final String TAG = "home-just-back", TAG_CLOSE = "home-just-back-close", TAG_ROUTE = "home-just-back-route";
     /** Below this height the route panel is not worth drawing; the words and tiles keep the space. */
-    private static final int MIN_ROUTE_DP = 40;
+    private static final int MIN_ROUTE_DP = JustBackFit.MIN_ROUTE_DP;
     /** The gaps above the route panel and above the tiles, and the X's disc inside its 48 dp target. */
     private static final int ROUTE_GAP_DP = 6, TILES_GAP_DP = 8, CLOSE_DISC_DP = 30;
     /** The distance's line box, as a share of its text size, and the smallest text it shrinks to on a short area. */
@@ -70,8 +70,18 @@ final class JustBackView extends LinearLayout {
         setFocusable(true);
         setOnClickListener(v -> { if (rideId != null) open.accept(rideId); });
 
-        // The ended line centred over the distance, the X at the right on the same line.
-        first = new FrameLayout(host.activity());
+        // The ended line centred over the distance, the X at the right on the same line. A line too long to stay
+        // centred clear of the X (large text, long languages) starts at the left edge instead of being cut early.
+        first = new FrameLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) saved.getLayoutParams();
+                int x = ui.dp(48), room = MeasureSpec.getSize(widthSpec) - 2 * x;
+                boolean centred = saved.getPaint().measureText(String.valueOf(saved.getText())) <= room;
+                int start = centred ? x : 0;
+                if (size.getMarginStart() != start) size.setMarginStart(start);
+                super.onMeasure(widthSpec, heightSpec);
+            }
+        };
         saved = ui.caption("");
         saved.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f * ui.textScale);
         saved.setMaxLines(1);
@@ -445,7 +455,7 @@ final class JustBackView extends LinearLayout {
                 ui.drawIcon(canvas, "route", Ui.withAlpha(Color.WHITE, 90), getWidth() / 2f, getHeight() / 2f, ui.dp(22));
                 return;
             }
-            float inset = ui.dp(18), w = getWidth() - 2 * inset, h = getHeight() - 2 * inset;
+            float inset = Math.min(ui.dp(18), getHeight() / 5f), w = getWidth() - 2 * inset, h = getHeight() - 2 * inset;
             if (w <= 0 || h <= 0) return;
             float scale = Math.min(w / Math.max(1e-4f, route[0]), h / Math.max(1e-4f, route[1]));
             if (route[0] < 1e-4f && route[1] < 1e-4f) scale = 0;
@@ -466,14 +476,16 @@ final class JustBackView extends LinearLayout {
             paint.setStyle(Paint.Style.FILL);
             // As the mock-up: a green start dot and a white end dot, each ringed in the panel's colour.
             int panel = ui.dark ? ui.surface : Color.rgb(0x1f, 0x22, 0x27);
+            // A loop ends where it started: the end's white dot then rings the start's smaller green one.
+            boolean together = Math.hypot(ex - sx, ey - sy) < ui.dp(10);
             paint.setColor(panel);
             canvas.drawCircle(sx, sy, ui.dp(7), paint);
             canvas.drawCircle(ex, ey, ui.dp(7), paint);
-            // The panel is dark in both themes, so the start keeps the dark theme's green.
-            paint.setColor(ui.dark ? ui.ok : Color.rgb(0x5f, 0xcb, 0x7e));
-            canvas.drawCircle(sx, sy, ui.dp(5), paint);
             paint.setColor(Color.WHITE);
             canvas.drawCircle(ex, ey, ui.dp(5), paint);
+            // The panel is dark in both themes, so the start keeps the dark theme's green.
+            paint.setColor(ui.dark ? ui.ok : Color.rgb(0x5f, 0xcb, 0x7e));
+            canvas.drawCircle(sx, sy, ui.dp(together ? 3 : 5), paint);
         }
     }
 }

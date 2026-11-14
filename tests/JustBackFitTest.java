@@ -67,7 +67,8 @@ public final class JustBackFitTest {
     }
 
     private static void split() {
-        int full = 70, floor = 33, minRoute = 40, gap = 6;
+        int full = 70, floor = 33, minRoute = JustBackFit.MIN_ROUTE_DP, gap = 6;
+        require(minRoute == 56, "a route panel under 56 dp is too flat to read");
         // 344x882 at 1x: area 304 dp, ended line 48, tiles 8 + 66: 182 left; the route gets 106.
         int[] phone = JustBackFit.split(304 - 48 - 74, full, floor, minRoute, gap);
         require(phone[0] == full && phone[1] == 106 && phone[2] == gap, "344x882 1x: full distance, a 106 dp route");
@@ -83,8 +84,11 @@ public final class JustBackFitTest {
         int[] tiny = JustBackFit.split(10, 80, 46, minRoute, gap);
         require(tiny[0] == 46 && tiny[1] == 0, "never below the distance's floor");
         require(JustBackFit.split(-5, 80, 46, minRoute, gap)[0] == 46, "a negative room is none");
-        require(JustBackFit.split(80 + gap + 39, 80, 46, minRoute, gap)[1] == 0, "a route under 40 dp is not drawn");
-        require(JustBackFit.split(80 + gap + 40, 80, 46, minRoute, gap)[1] == 40, "40 dp is");
+        require(JustBackFit.split(80 + gap + 55, 80, 46, minRoute, gap)[1] == 0, "a route under 56 dp is not drawn");
+        require(JustBackFit.split(80 + gap + 56, 80, 46, minRoute, gap)[1] == 56, "56 dp is");
+        // 344x882 at 1.4x as measured on the emulator: about 44 dp would be left, too flat: the route goes.
+        require(JustBackFit.split(80 + gap + 44, 80, 46, minRoute, gap)[1] == 0 && JustBackFit.split(80 + gap + 44, 80, 46, minRoute, gap)[0] == 130,
+                "344x882 1.4x: no flat route; the distance's box takes the room, no blank band");
         for (int room = 0; room < 400; room++) {
             int[] r = JustBackFit.split(room, 80, 46, minRoute, gap);
             require(r[0] + r[1] + r[2] <= Math.max(room, 46), "never more than the room (or the floor): " + room);
