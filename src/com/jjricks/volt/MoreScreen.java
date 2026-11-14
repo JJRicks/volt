@@ -1117,6 +1117,15 @@ public final class MoreScreen implements AppScreen {
         });
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
         ui.decorate(forget, "trash"); box.addView(forget);
+        if (OwnerRelease.offered(p.role)) {
+            TextView release = ui.dangerButton(T.moreScootersRelease(), () -> {
+                if (!releaseReady(id)) return;
+                dialog.dismiss(); releaseScooter(id);
+            });
+            release.setTag(OwnerRelease.KEY);
+            release.setContentDescription(T.moreScootersReleaseNamed(p.displayName()));
+            box.addView(release);
+        }
         show(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             ScooterProfiles.Profile target = findScooter(id); if (closed || target == null) { dialog.dismiss(); return; }
@@ -1135,18 +1144,47 @@ public final class MoreScreen implements AppScreen {
         box.addView(backup);
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
             if (!canChangeScooter()) return;
-            ScooterService s = service(); ScooterProfiles.Profile target = findScooter(id), selected = active();
-            if (target == null) { dialog.dismiss(); return; }
-            boolean current = selected != null && selected.id.equals(id);
-            if (current && s.simulating()) s.setSimulation(false);
-            if (current) s.ble.disconnect();
-            s.profiles.remove(id);
-            if (s.maintenance != null) s.maintenance.forget(id);
-            s.forgetEvidence(id);
-            if (current) s.ble.profileSelected();
+            if (findScooter(id) == null) { dialog.dismiss(); return; }
+            service().forgetScooter(id);
             dialog.dismiss(); host.redraw();
         });
         show(dialog);
+    }
+    /**
+     * Release this scooter (OwnerRelease): owner profiles only, offered in the edit dialog under Forget. It needs this
+     * scooter connected as the owner, parked, with no recording or change in flight; a tap that can't go says why.
+     */
+    private boolean releaseReady(String id) {
+        if (!canChangeScooter()) return false;
+        ScooterService s = service(); ScooterProfiles.Profile connected = s.ble.profile();
+        boolean thisScooter = s.ble.ready() && !s.simulating() && connected != null && id.equals(connected.id);
+        if (!thisScooter) { host.toast(T.moreScootersReleaseConnectFirst()); return false; }
+        CapabilityResolver.Decision decision = s.ble.releaseDecision();
+        if (!decision.available()) { host.toast(decision.reasonMessage().toString()); return false; }
+        return true;
+    }
+    private void releaseScooter(String id) {
+        ScooterProfiles.Profile p = findScooter(id); if (closed || p == null || !releaseReady(id)) return;
+        LinearLayout box = dialogBox(T.moreScootersReleaseTitle(p.displayName()), T.moreScootersReleaseBody());
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
+        dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersReleaseAction(), () -> {
+            if (!releaseReady(id)) return;
+            dialog.dismiss();
+            service().releaseScooter(id, this::releaseEnded);
+            host.redraw();
+        });
+        show(dialog);
+    }
+    /** The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). */
+    private void releaseEnded(OwnerRelease.Outcome outcome) {
+        if (closed) return;
+        switch (outcome) {
+            case RELEASED: host.toast(T.moreScootersReleased()); break;
+            case REJECTED: host.toast(T.moreScootersReleaseRefused()); break;
+            case NOT_CONFIRMED: host.toast(T.moreScootersReleaseUnconfirmed()); break;
+            default: host.toast(T.moreScootersReleaseNotSent()); break;
+        }
+        host.redraw();
     }
 
     // ---- App preferences ----------------------------------------------------------------

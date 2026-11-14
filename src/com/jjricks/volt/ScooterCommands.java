@@ -304,7 +304,8 @@ public final class ScooterCommands {
         return new int[]{0x70};
     }
 
-    public static boolean sensitiveCommand(int cmd) { return cmd==0x30 || cmd==0x31 || cmd==0x63 || cmd==0x7a; }
+    /** Owner traffic kept out of the event log and raw-frame views: authentication, the PIN and releasing the scooter (0x50). */
+    public static boolean sensitiveCommand(int cmd) { return cmd==0x30 || cmd==0x31 || cmd==0x63 || cmd==0x7a || cmd==OwnerRelease.CMD; }
 
     public static byte[] readPin(boolean ownerAuthenticated) {
         require(ownerAuthenticated,M.controlsRefusalPinOwner());

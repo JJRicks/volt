@@ -68,6 +68,15 @@ public final class Protocol {
         return encode(cmd, data, true, 0);
     }
 
+    /**
+     * Release this scooter (OwnerRelease): 0x50 with one data byte 1, as the official app sends it over its
+     * owner-authenticated link to make the scooter forget its owner code. Only this builder makes it: frame() keeps
+     * refusing 0x50, so no generic path can send it, and BleController sends it only as the admitted mutation.
+     */
+    public static byte[] ownerRelease() {
+        return encode(OwnerRelease.CMD, new byte[] {1}, true, 0);
+    }
+
     /** Identity is the existing owner's six-byte OEM account identity; role 0 is owner. */
     public static byte[] auth(byte[] identity6, int keyIndex, int role) {
         return auth(identity6, keyIndex, role, false);
