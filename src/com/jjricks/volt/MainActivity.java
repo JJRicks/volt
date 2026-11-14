@@ -573,7 +573,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
-            // The dock never covers the Lock bar: on a short window it steps aside until the page scrolls the bar above it.
+            // The dock never covers the Lock bar: where the bar sits under it, it floats 10 dp above the bar (or, with no room, steps aside) until the page scrolls the bar above it.
             dock.keepClear(()->dashboardLock);
             scroll.setClipToPadding(false);
             scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());

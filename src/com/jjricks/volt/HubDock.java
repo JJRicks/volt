@@ -164,26 +164,59 @@ final class HubDock {
     }
 
     private void applyHidden() {
-        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : coversClearView() ? View.INVISIBLE : View.VISIBLE;
+        int visibility = View.VISIBLE;
+        float lift = 0;
+        if (hidden != null && hidden.getAsBoolean()) visibility = View.GONE;
+        else if (coversClearView()) {
+            int offset = liftOverClearView();
+            if (offset == HubPages.DOCK_STEP_ASIDE) visibility = View.INVISIBLE;
+            else lift = offset;
+        }
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
+        if (view.getTranslationY() != lift) view.setTranslationY(lift);
     }
 
     /**
-     * The view the dock must never cover (Widgets' Lock bar): on a short window (725x604 dp at 1.4x text) the bar sits
-     * where the dock floats until the page scrolls. The dock then steps aside (invisible, keeping its place, so it comes
-     * back as soon as the page scrolls the bar above it).
+     * The view the dock must never cover (Widgets' Lock bar). When the bar sits where the dock floats (the Shortcuts card
+     * pushes it down on a 344 or 412 dp phone; a 725x604 dp window at 1.4x text), the dock moves up to float 10 dp above
+     * the bar (HubPages.dockLift), so Home always shows its navigation, and drops back to its place once the page scrolls
+     * the bar above it. Only where moving up would take it above the page's top does it step aside (invisible, keeping its
+     * place, so it comes back as soon as the page scrolls the bar clear).
      */
     void keepClear(Supplier<View> clear) { keepClear = clear; applyHidden(); }
 
-    /** Whether the dock, where it sits now, is over any visible part of the view it keeps clear. */
+    /** The dock's top and bottom in the window where it sits unmoved (its translation taken off). */
+    private int[] restingSpan() {
+        int[] dock = new int[2];
+        view.getLocationInWindow(dock);
+        int top = dock[1] - Math.round(view.getTranslationY());
+        return new int[] {top, top + view.getHeight()};
+    }
+
+    /** Whether the dock, in its own place (unmoved), is over any visible part of the view it keeps clear. */
     private boolean coversClearView() {
         View clear = keepClear == null ? null : keepClear.get();
         if (clear == null || !clear.isShown() || !clear.isAttachedToWindow() || view.getHeight() == 0) return false;
-        int[] at = new int[2], dock = new int[2];
-        clear.getLocationInWindow(at); view.getLocationInWindow(dock);
+        int[] at = new int[2];
+        clear.getLocationInWindow(at);
+        int[] dock = restingSpan();
         android.graphics.Rect visible = new android.graphics.Rect();
         if (!clear.getGlobalVisibleRect(visible)) return false;
-        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[1], dock[1] + view.getHeight());
+        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[0], dock[1]);
+    }
+
+    /** HubPages.dockLift for the view kept clear: the offset that floats the dock 10 dp above it, or DOCK_STEP_ASIDE. */
+    private int liftOverClearView() {
+        View clear = keepClear.get();
+        int[] at = new int[2];
+        clear.getLocationInWindow(at);
+        // The highest the dock may go: the top of the page frame it floats in (under the status bar and any banner).
+        int[] frame = new int[2];
+        View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
+        if (parent != null) parent.getLocationInWindow(frame);
+        int minTop = frame[1] + (parent == null ? 0 : parent.getPaddingTop());
+        int[] dock = restingSpan();
+        return HubPages.dockLift(at[1], dock[0], dock[1], minTop, ui.dp(BOTTOM_DP));
     }
 
     /**
