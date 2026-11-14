@@ -85,6 +85,9 @@ public final class HubPagesTest {
         require(icons.size() == HubPages.SUBJECTS.size(), "Subject icons differ");
         require(HubPages.icon(HubPages.SETTINGS).equals("gear") && HubPages.icon(HubPages.SEARCH).equals("search"), "Header icons");
         require(HubPages.icon(HubPages.SERVICE_MAINTENANCE).equals(HubPages.icon(HubPages.SERVICE)), "A sub-page has its subject's icon");
+        // The Layout Plan's glyphs: Battery & charging a bolt, Controls rising bars, Lights & sound a bulb, Service a wrench (part 8b).
+        require(HubPages.icon(HubPages.BATTERY).equals("bolt") && HubPages.icon(HubPages.CONTROLS).equals("bars")
+                && HubPages.icon(HubPages.LIGHTS).equals("bulb") && HubPages.icon(HubPages.SERVICE).equals("wrench"), "The plan's subject icons");
     }
 
     private static void hub() {

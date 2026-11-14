@@ -109,8 +109,8 @@ public final class ShortcutPicker {
         }
         // Volt's own battery shortcuts (the charge schedule's, charge alerts) carry the Battery group.
         if (ScooterCommands.GROUP_BATTERY.equals(entry.group)) return BATTERY;
-        // Clean Home's own actions (HomeQuickActions, never in the catalog): riding mode and Record with the ride's
-        // controls, charge alerts with the battery's.
+        // Clean Home's own actions (HomeQuickActions; Ride and Record never in the catalog): riding mode and Record with the
+        // ride's controls, charge alerts (Clean's and the catalog's, one id) with the battery's.
         if (QuickAccessActions.CHARGE_ALERTS_ID.equals(entry.id)) return BATTERY;
         if (HomeQuickActions.RIDING.equals(entry.id) || HomeQuickActions.RECORD.equals(entry.id)) return RIDE;
         if (entry.id.equals("stats") || entry.id.equals("rides")) return PAGES;

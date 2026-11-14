@@ -271,7 +271,7 @@ final class MaintenanceScreen {
     private View manual(MaintenanceStore.Settings s) {
         LinearLayout box = column();
         ScooterService service = service(); ScooterProfiles.Profile p = service == null || service.profiles == null ? null : service.profiles.active();
-        String model = p == null ? "" : ModelRegistry.modelName(p.savedDescriptor());
+        String model = p == null ? "" : ModelRegistry.modelName(service.modelDescriptor(p));
         MaintenanceDefaults.Result result = MaintenanceDefaults.forModel(model);
         box.addView(ui.sectionLabel(model.isEmpty() ? T.maintenanceManualTitleUnknown() : T.maintenanceManualTitle(model)));
         if (result.kind != MaintenanceDefaults.Kind.LISTED) {

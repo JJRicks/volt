@@ -27,6 +27,16 @@ public final class ChargeTimeReadingsTest {
         check(limitSource(0d, false) == NO_LIMIT && limitSource(-5d, false) == NO_LIMIT && limitSource(Double.NaN, false) == NO_LIMIT,
                 "a zero, negative or unknown limit is no limit");
         check(limitSource(150d, true) == ALERT_LEVEL, "an out-of-range limit never counts");
+        check(limitSource(80d, true, true) == ALERT_LEVEL && limitSource(80d, true, false) == NO_LIMIT,
+                "a model that offers charge alerts has no native limit: its limit-like reading never replaces the alert");
+        check(limitSource(80d, false, true) == SCOOTER_LIMIT && limitSource(80d, false, false) == SCOOTER_LIMIT,
+                "a model without charge alerts: its limit below 100% is the scooter's own");
+        // The one reading's name follows its value (review of #445): a rejected limit-like target names 100%.
+        check(oneReadingTarget(80d, limitSource(80d, true, false)) == 100d, "a limit the guard rejects names the one reading 100%, not 80%");
+        check(oneReadingTarget(100d, NO_LIMIT) == 100d && oneReadingTarget(null, NO_LIMIT) == null,
+                "a 100% cutoff stays 100%, an unknown one stays unknown");
+        check(oneReadingTarget(80d, SCOOTER_LIMIT) == 80d && oneReadingTarget(80d, ALERT_LEVEL) == 80d,
+                "two readings keep the estimate's target for the limit face");
     }
 
     private static void choice() {

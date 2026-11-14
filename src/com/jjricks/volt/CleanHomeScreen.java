@@ -20,9 +20,11 @@ import java.util.List;
 
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
- * bottom: the header (status line, search and Settings; the scooter's name, which switches scooter, and Edit), a top
+ * bottom: the header (the status line; the scooter's name, which switches scooter, with search and Settings), a top
  * area of fixed height whose content follows the moment (the battery card, the charging view while charging, or the
- * last ride for about an hour after it ends: JustBackView), the Lock bar, four quick actions and the seven subjects.
+ * last ride for about an hour after it ends: JustBackView), the Lock bar, four quick actions and the seven subjects. A
+ * long-press on a quick action (TalkBack: its "Edit Home" action) opens the Edit sheet, the style and the four quick
+ * actions; the header has no Edit button, as the mock-up.
  *
  * <p>It never reads or writes the widget dashboard's storage: its four quick actions live in
  * {@code home_quick_v1_<profile id>} in app_settings (HomeQuickActions), its moments follow {@code home_moment_*} (HomeMoment). The
@@ -31,7 +33,7 @@ import java.util.List;
  */
 final class CleanHomeScreen implements AppScreen {
     /** View tags: the header's buttons, the top area, the lock slot, the quick actions and the Edit sheet's slots. */
-    static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings", TAG_EDIT = "home-edit",
+    static final String TAG_SEARCH = "home-search", TAG_SETTINGS = "home-settings",
             TAG_NAME = "home-switch-scooter", TAG_TOP = "home-top-area", TAG_LOCK = "home-lock", TAG_QUICK = "home-quick-actions",
             TAG_SLOT = "home-edit-slot-";
     /** One column at most this wide on a wide window, until the wide two-pane Home arrives (plan 1.11). */
@@ -82,29 +84,49 @@ final class CleanHomeScreen implements AppScreen {
         page = column();
         view.addView(page, new LinearLayout.LayoutParams(-1, -2));
 
+        // The plan's header: the status line, then the scooter's name with search and Settings beside it, level
+        // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
+        // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
+        // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
+        // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the two
+        // buttons. There is no Edit button (the contributor's decisions, round 3): a long-press on the quick actions
+        // opens Edit.
         header = column();
-        header.setPadding(0, ui.dp(4), 0, ui.dp(10));
-        LinearLayout first = row();
-        first.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(0, 0, 0, ui.dp(CleanHeaderFit.BOTTOM_DP));
         TextView status = parts.status();
-        first.addView(status, new LinearLayout.LayoutParams(0, -2, 1));
-        first.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        first.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-        header.addView(first, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout second = row();
-        second.setGravity(Gravity.CENTER_VERTICAL);
+        status.setGravity(Gravity.BOTTOM | Gravity.START);
+        status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
+        status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
+        header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
+        float nameFull = name.getTextSize();
+        android.graphics.Paint namePaint = new android.graphics.Paint(name.getPaint());
+        namePaint.setTextSize(nameFull);
+        int buttons = ui.dp(CleanHeaderFit.BUTTONS * CleanHeaderFit.TARGET_DP + CleanHeaderFit.BUTTON_GAP_DP);
+        LinearLayout second = new LinearLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                // Fit the name to the room the buttons leave, at its full size first (CleanHeaderFit.name).
+                float room = Math.max(0, MeasureSpec.getSize(widthSpec) - buttons);
+                CleanHeaderFit.Name fit = CleanHeaderFit.name(String.valueOf(name.getText()), room, namePaint::measureText);
+                float size = nameFull * fit.scale;
+                if (Math.abs(name.getTextSize() - size) > .5f) name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
+                super.onMeasure(widthSpec, heightSpec);
+            }
+        };
+        second.setOrientation(LinearLayout.HORIZONTAL);
+        second.setGravity(Gravity.BOTTOM);
         name.setTag(TAG_NAME);
         name.setClickable(true);
         name.setFocusable(true);
-        name.setMinHeight(ui.dp(48));
+        name.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
         name.setGravity(Gravity.CENTER_VERTICAL);
         name.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
         name.setOnClickListener(v -> actions.switchScooter());
         second.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams editSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
-        editSize.setMarginStart(ui.dp(8));
-        second.addView(round("pencil", HubText.editTitle(), TAG_EDIT, this::showEdit), editSize);
+        LinearLayout.LayoutParams searchSize = new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48));
+        searchSize.setMarginStart(ui.dp(CleanHeaderFit.BUTTON_GAP_DP));
+        second.addView(round("search", HubText.searchDescription(), TAG_SEARCH, actions::openSearch), searchSize);
+        second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
@@ -136,6 +158,9 @@ final class CleanHomeScreen implements AppScreen {
         quickIds = loadQuick();
         quick = new QuickAccessGrid(host, quickIds, this::quickAction, HomeQuickActions::entry);
         quick.setTag(TAG_QUICK);
+        // Editing the four: a long-press on any of them opens the Edit sheet (the style, then the four), and TalkBack
+        // offers it as the long-press action named "Edit Home". The header has no Edit button, as the mock-up.
+        quick.editOnLongPress(HubText.editTitle().render(), this::showEdit);
         LinearLayout.LayoutParams quickSize = new LinearLayout.LayoutParams(-1, -2);
         quickSize.topMargin = ui.dp(12);
         page.addView(quick, quickSize);
@@ -331,7 +356,7 @@ final class CleanHomeScreen implements AppScreen {
     private void saveQuick(List<String> ids) {
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
-        // Without a scooter there is nowhere to keep them; Edit is not offered then.
+        // Without a scooter there is nowhere to keep them; the Edit sheet does not offer them then.
         if (profile == null) return;
         preferences.edit().putString(HomeQuickActions.key(profile.id), HomeQuickActions.encode(ids)).apply();
     }
@@ -347,46 +372,22 @@ final class CleanHomeScreen implements AppScreen {
         if (service != null && service.profiles.active() != null) {
             TextView label = ui.sectionLabel(HubText.editQuickActions().render());
             content.addView(label);
-            LinearLayout card = ui.groupCard();
-            for (int i = 0; i < quickIds.size(); i++) {
-                if (i > 0) ui.divider(card);
-                card.addView(slot(i));
-            }
+            LinearLayout card = HomeQuickEditor.slots(host, quickIds, this::changeSlot);
             content.addView(card, new LinearLayout.LayoutParams(-1, -2));
         }
         editSheet = host.showSheet(content);
     }
 
-    /** One of the four: its icon and name; a tap opens the picker for that position. */
-    private View slot(int index) {
-        String id = quickIds.get(index);
-        QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        CharSequence label = entry == null ? id : entry.label().render();
-        LinearLayout line = row();
-        line.setTag(TAG_SLOT + (index + 1));
-        line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : entry.icon, 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-        TextView name = ui.text(label, 15, false);
-        name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);
-        nameSize.setMarginStart(ui.dp(12));
-        line.addView(name, nameSize);
-        line.addView(ui.icon("chevron", 15, ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
-        line.setContentDescription(HubText.editQuickSlot(index + 1, label).render());
-        line.setClickable(true);
-        line.setFocusable(true);
-        line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
-        line.setOnClickListener(v -> parts.chooseQuickAction(quickIds, index, picked -> {
+    /** A slot of the Edit sheet was tapped (HomeQuickEditor.slot): the picker for that position. */
+    private void changeSlot(int index) {
+        parts.chooseQuickAction(quickIds, index, picked -> {
             ArrayList<String> next = new ArrayList<>(quickIds);
             next.set(index, picked);
             saveQuick(next);
             if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
             // The new four show on the rebuilt Home.
             host.rebuild();
-        }));
-        return line;
+        });
     }
 
     // ===== Sizes and small views =====
@@ -408,13 +409,13 @@ final class CleanHomeScreen implements AppScreen {
         try { return preferences.getAll().get(key); } catch (RuntimeException e) { return null; }
     }
 
-    /** A round icon button: a disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
+    /** A round icon button: a 40 dp disc inside a 48 dp target, with its name for screen readers and a long-press tooltip. */
     private View round(String icon, Msg label, String tag, Runnable action) {
         FrameLayout target = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable();
         disc.setShape(GradientDrawable.OVAL);
         disc.setColor(ui.dark ? ui.surface : ui.raised);
-        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp(6)), null));
+        target.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)), new InsetDrawable(disc, ui.dp((48 - CleanHeaderFit.DISC_DP) / 2)), null));
         target.addView(ui.icon(icon, 18, ui.text), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
         String spoken = label.render();
         target.setContentDescription(spoken);

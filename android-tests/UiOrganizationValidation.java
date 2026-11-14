@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.Fmt;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.PhoneRideStore;
@@ -83,17 +84,31 @@ public final class UiOrganizationValidation extends Instrumentation {
             check("All five destinations are reachable; navigation targets remain visible");
             screenshot("more-index-dark");
 
+            // The Hub layout (#385) made the Scooter tab an index of subject pages: its RIDE, BATTERY and PROFILE groups
+            // became Controls, Battery & charging and Lights & sound pages, and Rename (the Profile group) left the Scooter
+            // pages for More › My scooters. The same rows are checked on the pages that hold them now.
             clickDescription("Scooter");
-            requireScreenText("RIDE"); requireScreenText("BATTERY"); requireScreenText("PROFILE");
-            requireVisibleControl("start_speed"); requireVisibleControl("energy_recovery");
             main(() -> {
-                require(topSpeedShown(), "Top speed card missing from the Scooter page");
-                // Every control has a row, hidden unless offered; Maximum speed's row shows only where another model's map replaces the card.
-                require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "Maximum speed must live only in the top speed card");
-                for (String key : visibleFeatures()) require(!key.startsWith("line_") && !key.startsWith("star_"), "Line and star zones belong to the Lights page");
-                require(findText(root(), "Line & star lights") != null, "Lights group must link to the line and star zones");
+                require(HubPages.SCOOTER.equals(HubTestPages.current(activity)), "The Scooter tab did not open its index");
+                for (String subject : new String[]{HubPages.BATTERY, HubPages.CONTROLS, HubPages.LIGHTS, HubPages.SECURITY, HubPages.SERVICE})
+                    require(tagShown("hub-row-" + subject), "The Scooter index has no " + subject + " row");
+                require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "The index shows rows before a search");
             });
             screenshot("scooter-dark");
+            clickTag("hub-row-" + HubPages.CONTROLS);
+            requireVisibleControl("energy_recovery");
+            main(() -> {
+                require(HubPages.CONTROLS.equals(HubTestPages.current(activity)), "The index's Controls row did not open Controls");
+                require(topSpeedShown(), "Top speed card missing from the Controls page");
+                // Every control has a row, hidden unless offered; Maximum speed's row shows only where another model's map replaces the card.
+                require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "Maximum speed must live only in the top speed card");
+                for (String key : visibleFeatures()) require(!isLight(key), "Lighting rows belong to Lights & sound, not Controls");
+            });
+            screenshot("controls-dark");
+            clickTag("hub-link-" + HubPages.CONTROLS_ASSISTS);
+            requireVisibleControl("start_speed");
+            main(() -> require(HubPages.CONTROLS_ASSISTS.equals(HubTestPages.current(activity)), "Controls' Assists link did not open its page"));
+            clickDescription("Scooter");
             main(() -> first(root(), EditText.class).setText("speed"));
             main(() -> {
                 Set<String> visible = visibleFeatures();
@@ -101,35 +116,51 @@ public final class UiOrganizationValidation extends Instrumentation {
                 require(!visible.contains("energy_recovery"), "Speed search did not hide an unrelated setting");
                 for (String key : visible) require(!isLight(key), "Speed search should hide lighting settings");
                 require(findText(root(), "LIGHTS") == null, "Speed search should hide the empty Lights group");
+                require(!tagShown("hub-row-" + HubPages.BATTERY), "Speed search left the subject list shown");
             });
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(topSpeedShown() && "".equals(field(field(activity, "screen"), "query")), "Back did not clear the settings search"));
-            requireScreenText("BATTERY");
-            check("Scooter page shows the top speed card and every group; search hides empty groups and Back clears it without control writes");
+            main(() -> require(!topSpeedShown() && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")), "Back did not clear the settings search"));
+            main(() -> require(tagShown("hub-row-" + HubPages.BATTERY), "Back did not bring back the subject list"));
+            check("Scooter index lists its subjects; Controls shows the top speed card; search hides empty groups and Back clears it without control writes");
 
-            main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "lights")); waitForIdleSync();
+            // The Lights page's HEADLIGHTS, LINE LIGHTS and STAR LIGHTS groups are Lights & sound and its Line lights and
+            // Star lights pages since the Hub layout (#385); the search over every row is the index's.
+            clickTag("hub-row-" + HubPages.LIGHTS);
             main(() -> {
                 Set<String> expected = new HashSet<>(Arrays.asList("headlight", "auto_sensor", "line_light", "line_pattern",
                         "line_color", "line_boost_color", "star_light", "star_pattern", "star_color", "star_boost_color"));
                 require(allFeatures().containsAll(expected), "Scooter must retain all lighting settings");
-                require(visibleFeatures().equals(expected), "A lighting zone is hidden without a search");
+                require(lightFeatures().equals(new HashSet<>(Arrays.asList("headlight", "auto_sensor"))), "Lights & sound shows lighting rows " + lightFeatures());
                 require(!topSpeedShown(), "The Lights page should not show the top speed card");
-                require(findText(root(), "HEADLIGHTS") != null && findText(root(), "LINE LIGHTS") != null
-                        && findText(root(), "STAR LIGHTS") != null, "Lights page groups are missing");
-                require(findDescription(root(), "Back to Scooter settings") != null, "Lights page has no way back to Scooter");
+                require(tagShown("hub-link-" + HubPages.LIGHTS_LINE) && tagShown("hub-link-" + HubPages.LIGHTS_STAR), "Lights page has no Line lights and Star lights links");
+                require(tagShown("hub-back"), "Lights page has no way back to Scooter");
             });
             screenshot("lights-dark");
+            for (String[] family : new String[][]{{HubPages.LIGHTS_LINE, "line_light", "line_pattern", "line_color", "line_boost_color"},
+                    {HubPages.LIGHTS_STAR, "star_light", "star_pattern", "star_color", "star_boost_color"}}) {
+                clickTag("hub-link-" + family[0]);
+                main(() -> {
+                    require(family[0].equals(HubTestPages.current(activity)), "The " + family[0] + " link did not open its page");
+                    require(lightFeatures().equals(new HashSet<>(Arrays.asList(family).subList(1, family.length))), family[0] + ": a lighting zone is hidden: " + lightFeatures());
+                    require(!topSpeedShown() && tagShown("hub-back"), family[0] + " shows the top speed card or has no way back");
+                });
+                screenshot(family[0].replace('.', '-') + "-dark");
+                main(() -> invoke(activity, "navigateBack"));
+                main(() -> require(HubPages.LIGHTS.equals(HubTestPages.current(activity)), "Back from " + family[0] + " did not return to Lights & sound"));
+            }
+            main(() -> invoke(activity, "navigateBack"));
+            main(() -> require(HubPages.SCOOTER.equals(HubTestPages.current(activity)) && tagShown("hub-row-" + HubPages.BATTERY) && settings.getString("scooter_section", "").isEmpty(),
+                    "Back from Lights did not return to the Scooter index"));
             main(() -> first(root(), EditText.class).setText("boost"));
             main(() -> require(visibleFeatures().equals(new HashSet<>(Arrays.asList("line_boost_color", "star_boost_color", "parking_assist"))),
                     "Global scooter search should find both Boost colors and Power Assist"));
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(topSpeedShown() && findText(root(), "LINE LIGHTS") == null && settings.getString("scooter_section", "").isEmpty(),
-                    "Back from Lights did not return to the Scooter page"));
-            check("Lights page groups headlights, line and star zones; search covers all settings; Back returns to Scooter");
+            main(() -> require(HubPages.SCOOTER.equals(HubTestPages.current(activity)) && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")),
+                    "Back did not clear the boost search"));
+            check("Lights & sound links Line lights and Star lights, which hold the zones; the index search covers all settings; Back returns to Scooter");
 
             clickDescription("More"); clickText(root(), "App preferences");
-            requireScreenText("Connect automatically"); screenshot("preferences-dark");
+            requireScreenText(APP_PREFERENCES_ROW); screenshot("preferences-dark");
             main(() -> invoke(activity, "navigateBack"));
             if (wideMore()) {
                 // Wide menu-submenu layout: Back leaves the tab like Home; the menu is there on return.
@@ -377,17 +408,22 @@ public final class UiOrganizationValidation extends Instrumentation {
         try { if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Tile queue fixture timed out"); }
         catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
     }
+    /**
+     * A row that shows App preferences is open. It was Connect automatically until the Hub layout (#389) moved the
+     * connection rows to More › My scooters; Haptic feedback stays in App preferences.
+     */
+    private static final String APP_PREFERENCES_ROW = "Haptic feedback";
     private void verifyMoreReturn(SharedPreferences settings) {
         clickText(root(), "App preferences");
         clickDescription("Home"); clickDescription("More");
-        requireScreenText("Connect automatically");
+        requireScreenText(APP_PREFERENCES_ROW);
         main(() -> activity.rebuild()); waitForIdleSync();
-        requireScreenText("Connect automatically");
+        requireScreenText(APP_PREFERENCES_ROW);
         main(() -> {
             require(!settings.contains("more_away_elapsed"), "Active More must not have an absence timer");
             invoke(activity, "expireMoreSection", new Class<?>[]{boolean.class, long.class}, true, Long.MAX_VALUE);
         });
-        requireScreenText("Connect automatically");
+        requireScreenText(APP_PREFERENCES_ROW);
         require(settings.getString("more_section", "").equals("App"), "Reading a submenu must not expire it");
 
         clickDescription("Home");
@@ -407,7 +443,7 @@ public final class UiOrganizationValidation extends Instrumentation {
         main(() -> callActivityOnPause(activity));
         require(settings.contains("more_away_elapsed"), "Pausing on More did not start retention");
         main(() -> callActivityOnResume(activity)); waitForIdleSync();
-        requireScreenText("Connect automatically");
+        requireScreenText(APP_PREFERENCES_ROW);
         require(!settings.contains("more_away_elapsed"), "Resuming More did not end the absence");
 
         // A different boot invalidates a persisted monotonic timestamp without a long test sleep.
@@ -423,17 +459,28 @@ public final class UiOrganizationValidation extends Instrumentation {
         long originalLeft = settings.getLong("more_away_elapsed", -1);
         main(() -> { callActivityOnPause(activity); callActivityOnResume(activity); });
         require(settings.getLong("more_away_elapsed", -2) == originalLeft, "Backgrounding another tab extended More's absence timer");
+        // Security left More for Scooter › Security in the Hub layout (#387): More's own deliberate shortcut is Settings'
+        // (Quick access "more:App"), which must still win over an expired More index; the Security shortcut opens its page.
         main(() -> {
             settings.edit().putInt("more_away_boot", -2).commit();
-            invoke(activity, "openMoreSection", new Class<?>[]{String.class}, "Security");
+            invoke(activity, "quickAction", new Class<?>[]{String.class}, "more:App");
         }); waitForIdleSync();
-        require(settings.getString("more_section", "").equals("Security"), "Security shortcut was replaced by an expired More index");
-        requireScreenText("Handlebar PIN");
+        require(settings.getString("more_section", "").equals("App"), "Settings shortcut was replaced by an expired More index");
+        requireScreenText(APP_PREFERENCES_ROW);
         main(() -> invoke(activity, "navigateBack"));
         if (wideMore()) main(() -> require("home".equals(field(activity, "selectedPage"))
-                && settings.getString("more_section", "").equals("Security"), "Wide More Back must leave the tab and keep its submenu"));
+                && settings.getString("more_section", "").equals("App"), "Wide More Back must leave the tab and keep its submenu"));
         else requireScreenText("App preferences");
-        check("More handles brief and expired background returns, preserves an earlier tab-away time, and honors the Security shortcut");
+        clickDescription("Home");
+        main(() -> {
+            settings.edit().putInt("more_away_boot", -2).commit();
+            invoke(activity, "quickAction", new Class<?>[]{String.class}, "section:Security");
+        }); waitForIdleSync();
+        main(() -> require(HubPages.SECURITY.equals(HubTestPages.current(activity)), "Security shortcut opened " + HubTestPages.current(activity)));
+        requireScreenText("Handlebar PIN");
+        main(() -> invoke(activity, "navigateBack"));
+        main(() -> require("home".equals(field(activity, "selectedPage")), "Back from the Security shortcut did not return Home"));
+        check("More handles brief and expired background returns, preserves an earlier tab-away time, and honors the Settings and Security shortcuts");
     }
 
     private void requireFreshEmulator() {
@@ -499,12 +546,17 @@ public final class UiOrganizationValidation extends Instrumentation {
             }
         });
     }
-    private boolean topSpeedShown() { return ((View)field(field(field(activity, "screen"), "topSpeed"), "card")).isShown(); }
+    /** The shown Scooter page's rows: a ControlsScreen, alone or a part of the page (the index, Battery & charging). */
+    private Object controls() { return HubTestPages.part(activity, "ControlsScreen"); }
+    private boolean topSpeedShown() { return ((View)field(field(controls(), "topSpeed"), "card")).isShown(); }
+    private Set<String> lightFeatures() { Set<String> keys = new HashSet<>(); for (String key : visibleFeatures()) if (isLight(key)) keys.add(key); return keys; }
+    private boolean tagShown(String tag) { View view = root().findViewWithTag(tag); return view != null && view.isShown(); }
+    private void clickTag(String tag) { View[] view = {null}; main(() -> view[0] = root().findViewWithTag(tag)); require(view[0] != null && view[0].isShown(), "Missing " + tag); click(view[0]); }
     private void requireVisibleControl(String key) { main(() -> require(visibleFeatures().contains(key), "Missing visible control " + key)); }
     private Set<String> allFeatures() { return features(false); }
     private Set<String> visibleFeatures() { return features(true); }
     private Set<String> features(boolean visible) {
-        Set<String> keys = new HashSet<>(); Object screen = field(activity, "screen");
+        Set<String> keys = new HashSet<>(); Object screen = controls();
         for (Object row : (List<?>)field(screen, "rows")) {
             View card = (View)field(row, "card");
             if (!visible || card.isShown()) keys.add(((ScooterCommands.Feature)field(row, "feature")).key);

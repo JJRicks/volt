@@ -28,7 +28,25 @@ final class ChargeTimeReadings {
         return alertCountdown ? ALERT_LEVEL : NO_LIMIT;
     }
 
+    /**
+     * The same, with the model's evidence: a model that offers charge alerts has no native charge limit
+     * (ChargeAlertPolicy.offered), so a limit-like reading from it is not one and never replaces the alert's
+     * countdown. The rule ScooterService.chargeLiveFacts uses for the same reading.
+     */
+    static int limitSource(Double scooterTarget, boolean alertsOffered, boolean alertCountdown) {
+        return limitSource(alertsOffered ? null : scooterTarget, alertCountdown);
+    }
+
     static boolean two(int limitSource) { return limitSource == SCOOTER_LIMIT || limitSource == ALERT_LEVEL; }
+
+    /**
+     * The cutoff the one reading is named for: the same answer as its value (review of #445). With no limit the one
+     * reading is the time to 100%, so a limit-like target that limitSource did not take (a model that offers charge
+     * alerts has no native limit) names 100%, never "Time to 80%" over the time to full. An unknown cutoff stays unknown.
+     */
+    static Double oneReadingTarget(Double estimateTarget, int limitSource) {
+        return limitSource == NO_LIMIT && estimateTarget != null && !estimateTarget.isNaN() && estimateTarget < 100 ? Double.valueOf(100) : estimateTarget;
+    }
 
     /** A missing, old or damaged value is the default: the limit reading. */
     static int preferred(String stored) { return FULL_CHOICE.equals(stored) ? FULL : LIMIT; }

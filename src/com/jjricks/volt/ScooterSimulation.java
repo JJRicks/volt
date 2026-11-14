@@ -9,7 +9,6 @@ import java.util.Map;
 public final class ScooterSimulation {
     private final LinkedHashMap<String, Integer> features = new LinkedHashMap<>();
     private final LinkedHashMap<String, Sample> fixed = new LinkedHashMap<>();
-    private boolean charging;
     private long chargeStart;
     /** Synthetic advertised model ID; "" is the default UT5 MAX simulator. Never stored or exported. */
     private String model = "";
@@ -17,6 +16,42 @@ public final class ScooterSimulation {
     static final String RIDING = "riding", STOPPED = "stopped", DROPOUT = "dropout", LOW_AMBER = "low_amber",
             LOW_RED = "low_red", WARNING = "warning", UNSIGNED_REGEN = "unsigned_regen";
     private String script = "";
+
+    /**
+     * Developer scenes (Developer options › Scene): what the simulated scooter is doing. Memory only, like
+     * everything here. A riding-mode script above, when set, still wins over Parked (the screenshot validations).
+     */
+    public enum Scene {
+        PARKED("parked"), RIDING("riding"), CHARGING("charging");
+        public final String id;
+        Scene(String id) { this.id = id; }
+        /** The scene with this id; Parked for null or an unknown id. */
+        public static Scene of(String id) { for (Scene s : values()) if (s.id.equals(id)) return s; return PARKED; }
+    }
+    private Scene scene = Scene.PARKED;
+    /** The generic drive-mode codes: Walk, the low mode (Eco or Drive by model) and Sport, for a model with no named codes. */
+    static final int WALK = 11, LOW_MODE = 2, SPORT = 3;
+    private static final int[] DRIVE_MODES = {WALK, LOW_MODE, SPORT};
+    /** The codes the simulated model names (SimulatorModels.driveModes); the generic three until the caller says. */
+    private int[] driveModes = DRIVE_MODES.clone();
+    private int driveMode = SPORT;
+    /**
+     * The model facts readings depend on, decided by the caller from the registry (BleController): whether the model has
+     * a native charge limit, whether it signs its current (PowerSign: a GT3 Max reports 254 and an unsigned magnitude)
+     * and whether the stock and high-speed chargers differ for it (the UT5 MAX references). The defaults are the UT5 MAX.
+     */
+    private boolean chargeLimitModel = true, signedCurrent = true, chargerFamilies = true, fastCharger;
+    // The scenes' own state: carried from scene to scene so Parked after Riding shows the ride's battery, trip and odometer.
+    private double battery = 78, trip = 4.26, tripMinutes = 18.5, odometer = 248.36, tripMax = 32, rideClock;
+    /** Minutes spent moving this trip: the average speed counts these (18.4 km/h at the sample's 4.26 km). */
+    private double movingMinutes = 4.26 / 18.4 * 60;
+    private long lastTickMs = -1;
+    /** The UT5 MAX pack (ModelRegistry.ratedWh: 716.04 Wh, 15.3 Ah at 46.8 V); one pack for every simulated model. */
+    static final double RATED_AH = 15.3, NOMINAL_V = 46.8;
+    /** Range the sample shows per battery percent (38.4 km at 78 %). */
+    private static final double KM_PER_PERCENT = 38.4 / 78;
+    /** One riding loop: pull away, cruise, slow down, stand. Seconds. */
+    static final double LOOP_S = 60, ACCELERATE_S = 8, CRUISE_END_S = 38, BRAKE_END_S = 48;
 
     private static final class Sample {
         final String text;
@@ -58,8 +93,8 @@ public final class ScooterSimulation {
         sample("energy_throughput_wh", "14280 Wh", 14280);
         sample("capacity_throughput_ah", "282.40 Ah", 282.4);
         sample("deep_discharge", "2", 2);
-        sample("rated_capacity_ah", "19.80 Ah", 19.8);
-        sample("health_adjusted_capacity_ah", "19.21 Ah", 19.206);
+        sample("rated_capacity_ah", "15.30 Ah", RATED_AH);
+        sample("health_adjusted_capacity_ah", "14.84 Ah", RATED_AH * .97);
         text("battery_manufactured", "Simulation · 2026-01-15");
         text("high_temperature_duration", "Simulation · 0 y 0 mo 0 d 2 h 15 min 0 s");
         sample("speed_kmh", "0.0 km/h", 0);
@@ -138,7 +173,10 @@ public final class ScooterSimulation {
         chargeStart = local;
     }
 
-    /** Developer model choice. Keeps every catalogue value: the UI hides or greys controls by decision. */
+    /**
+     * Developer model choice: the model ID only. The caller (BleController) then brings the settings to the model's own
+     * choices with {@link #conform}, which needs the region too.
+     */
     public void setModel(String advertisedPid) {
         String pid = advertisedPid == null ? "" : advertisedPid;
         if (!pid.isEmpty() && !pid.matches("[1-9][0-9]{0,4}"))
@@ -153,21 +191,140 @@ public final class ScooterSimulation {
     }
     public String script() { return script; }
 
-    public boolean charging() { return charging; }
-    public void setCharging(boolean value) { charging = value; }
+    public boolean charging() { return scene == Scene.CHARGING; }
+    /** The older on/off charging switch: on is the Charging scene, off leaves Charging for Parked (a script keeps its place). */
+    public void setCharging(boolean value) {
+        if (value) changeScene(Scene.CHARGING);
+        else if (scene == Scene.CHARGING) changeScene(Scene.PARKED);
+    }
+
+    public Scene scene() { return scene; }
+    /** Switches at once: the next tick rewrites every scene reading, so no ride reading survives into Charging. Clears a script. */
+    public void setScene(Scene next) {
+        script = "";
+        changeScene(next == null ? Scene.PARKED : next);
+    }
+    private void changeScene(Scene next) {
+        if (next == scene) return;
+        scene = next;
+        // A ride starts from a standstill.
+        rideClock = 0;
+    }
+
+    /** The generic drive-mode codes (Walk, the low mode, Sport), for a model whose codes Volt doesn't name. */
+    public static int[] genericDriveModes() { return DRIVE_MODES.clone(); }
+    /** The drive-mode codes this simulated model offers. */
+    public int[] driveModes() { return driveModes.clone(); }
+    /**
+     * The model's own named codes (SimulatorModels.driveModes; the generic three when empty). A drive mode the new model
+     * doesn't name becomes its Sport (3, which every table names), else its last code.
+     */
+    public void setDriveModes(int[] codes) {
+        driveModes = codes == null || codes.length == 0 ? DRIVE_MODES.clone() : codes.clone();
+        if (!offersDriveMode(driveMode)) driveMode = offersDriveMode(SPORT) ? SPORT : driveModes[driveModes.length - 1];
+    }
+    public boolean offersDriveMode(int code) { for (int mode : driveModes) if (mode == code) return true; return false; }
+    public int driveMode() { return driveMode; }
+    public void setDriveMode(int code) {
+        if (!offersDriveMode(code)) throw new IllegalArgumentException("Unavailable simulation setting");
+        driveMode = code;
+    }
+
+    /**
+     * Brings every simulated setting to a value this model and region offer, as the screens read its choices: the
+     * ordinary rule's variant (CapabilityResolver.decide) and the Experimental controls try rule's (decideTry). A value
+     * either of them offers is kept (kick-start 0 set through Experimental controls on a UT5 MAX (EU) stays when the
+     * entry is picked again); another becomes the nearest value the ordinary variant offers, else the try's (the lower
+     * one on a tie). A control the model doesn't have keeps its value, which no screen shows. Memory only, like
+     * everything here.
+     */
+    public void conform(DeviceDescriptor d) {
+        for (Map.Entry<String, Integer> entry : features.entrySet()) {
+            FeatureVariant ordinary = ordinaryVariant(entry.getKey(), d), tried = tryVariant(entry.getKey(), d);
+            FeatureVariant v = ordinary != null ? ordinary : tried;
+            Integer value = entry.getValue();
+            if (v == null || value != null && (ordinary != null && ordinary.allows(value) || tried != null && tried.allows(value))) continue;
+            Integer next = nearest(v, value);
+            if (next != null) entry.setValue(next);
+        }
+    }
+    /** The variant whose choices a screen offers for this control on this model, or null where it has none. */
+    static FeatureVariant offeredVariant(String key, DeviceDescriptor d) {
+        FeatureVariant ordinary = ordinaryVariant(key, d);
+        return ordinary != null ? ordinary : tryVariant(key, d);
+    }
+    /** The ordinary rule's variant (the control's own row), or null. */
+    static FeatureVariant ordinaryVariant(String key, DeviceDescriptor d) {
+        CapabilityResolver.Decision decision = CapabilityResolver.decide(key, d, StatusFields.NONE, null);
+        return decision.support == CapabilityResolver.Support.KNOWN_ENCODING ? decision.variant : null;
+    }
+    /** The Experimental controls try rule's variant, or null. */
+    static FeatureVariant tryVariant(String key, DeviceDescriptor d) {
+        CapabilityResolver.Decision decision = CapabilityResolver.decideTry(key, d, StatusFields.NONE, null);
+        return decision.support == CapabilityResolver.Support.KNOWN_ENCODING ? decision.variant : null;
+    }
+    /** The offered value nearest to this one (a slider's range clamped and stepped), or null when none is offered. */
+    private static Integer nearest(FeatureVariant v, Integer value) {
+        int[] candidates = v.values;
+        int min = v.min, max = v.max, step = Math.max(1, v.step);
+        if (candidates.length == 0 && v.decode == FeatureVariant.Decode.UT5_FEATURE) {
+            ScooterCommands.Feature f = ScooterCommands.find(v.feature);
+            candidates = f.optionValues; min = f.min; max = f.max; step = Math.max(1, f.step);
+        }
+        int target = value == null ? Integer.MIN_VALUE : value;
+        if (candidates.length > 0) {
+            Integer best = null;
+            for (int c : candidates) {
+                if (!v.allows(c)) continue;
+                if (best == null || value != null && Math.abs((long) c - target) < Math.abs((long) best - target)) best = c;
+            }
+            return best;
+        }
+        if (min > max) return null;
+        long clamped = Math.max(min, Math.min(max, (long) target));
+        int stepped = (int) (min + (clamped - min) / step * step);
+        for (int c = stepped; c >= min; c -= step) if (v.allows(c)) return c;
+        return null;
+    }
+    /**
+     * A setting the simulated model doesn't offer, as a scooter changed elsewhere can report one, for the validations
+     * that check how a screen shows such a value (Home's unreadable dash). Memory only; no screen calls it.
+     */
+    void setUnoffered(String key, int value) {
+        if (!features.containsKey(key)) throw new IllegalArgumentException("Unavailable simulation setting");
+        features.put(key, value);
+    }
+
+    /** The registry's facts for the simulated model (see the fields); BleController sets them with the model. */
+    public void setModelFacts(boolean chargeLimit, boolean signed, boolean chargers) {
+        chargeLimitModel = chargeLimit; signedCurrent = signed; chargerFamilies = chargers;
+    }
+    public boolean chargeLimitModel() { return chargeLimitModel; }
+    public boolean signedCurrent() { return signedCurrent; }
+    /** The charger plugged in for the Charging scene: the high-speed one, or the stock one. Only the UT5 MAX tells them apart. */
+    public void setFastCharger(boolean fast) { fastCharger = fast; }
+    public boolean fastCharger() { return fastCharger && chargerFamilies; }
+    /**
+     * What the Automatic charger choice finds while simulating, where charger detection never runs: the charger the
+     * Charging scene has plugged in (true for the high-speed one) on a model whose chargers Volt tells apart, else null
+     * (no charge, or a model with one charger family, where real detection finds nothing either).
+     */
+    public Boolean detectedFastCharger() { return charging() && chargerFamilies ? fastCharger() : null; }
+    /** The scene's battery level, for tests. */
+    double battery() { return battery; }
 
     /** Replaces every catalog reading with clearly synthetic source=-1 data; no wire bytes exist. */
     public void tick(Telemetry telemetry, long elapsedMs) {
         if (telemetry == null || elapsedMs < 0) throw new IllegalArgumentException("Invalid simulation clock");
         if (!telemetry.frames().isEmpty() || !telemetry.statuses().isEmpty())
             throw new IllegalArgumentException("Clear real telemetry before simulating");
-        boolean riding = !script.isEmpty() && !charging;
+        boolean scripted = !script.isEmpty() && scene == Scene.PARKED;
+        if (!scripted) advance(elapsedMs); else lastTickMs = elapsedMs;
+        Readings out = new Readings(elapsedMs);
         for (Telemetry.Metric metric : telemetry.metrics()) {
-            // A script's ride sets speed below at this same time: one reading per tick, as a real report has.
-            if (riding && metric.key.equals(RidingValues.SPEED_KEY)) continue;
             Sample value = fixed.get(metric.key);
-            telemetry.putSimulationSample(metric.key,
-                    value == null ? "Simulation · no real response" : value.text,
+            out.putSimulationSample(metric.key,
+                    value == null ? NO_RESPONSE : value.text,
                     value == null ? null : value.number, elapsedMs);
         }
         // Feature readback fields can be shared bit-packed status values. Compose
@@ -181,36 +338,212 @@ public final class ScooterSimulation {
                     | ((value << feature.readbackShift) & feature.readbackMask));
         }
         for (Map.Entry<String, Integer> field : fields.entrySet())
-            telemetry.putSimulationSample(field.getKey(), field.getValue() + " (simulation)",
+            out.putSimulationSample(field.getKey(), field.getValue() + SIMULATION,
                     field.getValue().doubleValue(), elapsedMs);
-        telemetry.putSimulationSample("lock_status", features.get("lock") == 0
+        out.putSimulationSample("lock_status", features.get("lock") == 0
                 ? "Unlocked (simulation)" : "Locked (simulation)", features.get("lock").doubleValue(), elapsedMs);
-        telemetry.putSimulationSample("charge_limit_percent", features.get("charge_limit") + " %",
+        // A model without a native charge limit has no limit reading: it charges to full (ChargeAlertPolicy.offered).
+        if (chargeLimitModel) out.putSimulationSample("charge_limit_percent", features.get("charge_limit") + " %",
                 features.get("charge_limit").doubleValue(), elapsedMs);
-        telemetry.putSimulationSample("scheduled_charge_time_raw", chargeStart == 0
-                ? "No schedule (simulation)" : chargeStart + " (simulation)", (double) chargeStart, elapsedMs);
-
+        else out.putSimulationSample("charge_limit_percent", NO_RESPONSE, null, elapsedMs);
+        out.putSimulationSample("scheduled_charge_time_raw", chargeStart == 0
+                ? "No schedule (simulation)" : chargeStart + SIMULATION, (double) chargeStart, elapsedMs);
+        out.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
         double phase = elapsedMs / 1000.0;
-        double volts = 50.4 + .08 * Math.sin(phase / 19);
-        double amps = charging ? -(2.8 + .12 * Math.sin(phase / 8))
-                : .36 + .08 * Math.sin(phase / 7);
-        quantity(telemetry, "voltage_v", volts, "V", 2, elapsedMs);
-        quantity(telemetry, "current_a", amps, "A", 2, elapsedMs);
-        quantity(telemetry, "power_w", volts * amps, "W", 1, elapsedMs);
-        quantity(telemetry, "temperature_c", 23.5 + .5 * Math.sin(phase / 37), "°C", 1, elapsedMs);
-        telemetry.putSimulationSample("charging_state", charging ? "Charging (simulation)" : "Not charging (simulation)",
-                charging ? 1.0 : 0.0, elapsedMs);
-        telemetry.putSimulationSample("current_sign_state", charging ? "1 (simulation)" : "0 (simulation)",
-                charging ? 1.0 : 0.0, elapsedMs);
-        telemetry.putSimulationSample("temperature_sign_state", "0 (simulation)", 0.0, elapsedMs);
-        if (riding) ride(telemetry, elapsedMs, phase);
+        quantity(out, "temperature_c", 23.5 + .5 * Math.sin(phase / 37), "°C", 1, elapsedMs);
+        if (scripted) {
+            // The riding-mode screenshot scripts keep their fixed readings (parked electrical samples beneath them).
+            double volts = 50.4 + .08 * Math.sin(phase / 19), amps = .36 + .08 * Math.sin(phase / 7);
+            quantity(out, "voltage_v", volts, "V", 2, elapsedMs);
+            quantity(out, "current_a", amps, "A", 2, elapsedMs);
+            quantity(out, "power_w", volts * amps, "W", 1, elapsedMs);
+            charging(out, false, elapsedMs);
+            signState(out, false, elapsedMs);
+            ride(out, elapsedMs, phase);
+        } else scene(out, elapsedMs, phase);
+        out.flush(telemetry);
+    }
+
+    /**
+     * One tick's readings, written to Telemetry together at the tick's time. A key written twice in a tick (the catalog's
+     * fixed sample, then the scene's or the script's own) keeps only the last: one reading per key per tick, as a real
+     * report has. Telemetry passes every speed it takes to riding mode's Max and Avg (RidingSpeed), which drops a second
+     * reading at the same time, so a fixed 0 sent first would have hidden the scene's speed from them.
+     */
+    private static final class Readings {
+        private final LinkedHashMap<String, Object[]> pending = new LinkedHashMap<>();
+        private final long time;
+        Readings(long time) { this.time = time; }
+        /** One reading at the tick's own time. */
+        void putSimulationSample(String key, String value, Double number, long elapsedMs) {
+            if (elapsedMs != time) throw new IllegalArgumentException();
+            pending.put(key, new Object[]{value, number});
+        }
+        void flush(Telemetry telemetry) {
+            for (Map.Entry<String, Object[]> e : pending.entrySet())
+                telemetry.putSimulationSample(e.getKey(), (String) e.getValue()[0], (Double) e.getValue()[1], time);
+        }
+    }
+
+    private static final String SIMULATION = " (simulation)";
+    private static final String NO_RESPONSE = "Simulation · no real response";
+
+    /** Moves the scene on by the time since the last tick (at most 5 s, so a paused screen doesn't jump). */
+    private void advance(long elapsedMs) {
+        double dt = lastTickMs < 0 ? 0 : Math.max(0, Math.min(5000, elapsedMs - lastTickMs)) / 1000.0;
+        lastTickMs = elapsedMs;
+        for (double left = dt; left > 1e-9; ) {
+            double step = Math.min(.25, left); left -= step;
+            if (scene == Scene.RIDING && !locked()) {
+                double before = rideSpeed(rideClock);
+                rideClock += step;
+                double speed = rideSpeed(rideClock), km = (before + speed) / 2 * step / 3600;
+                trip += km; odometer += km; tripMinutes += step / 60;
+                if (speed > .05) movingMinutes += step / 60;
+                tripMax = Math.max(tripMax, speed);
+                battery = clampBattery(battery - ridePower(rideClock) * step / 3600 / (RATED_AH * NOMINAL_V) * 100);
+            } else if (scene == Scene.CHARGING) {
+                // Above a lowered limit the charger has stopped (0 A): the level stays where it is.
+                double amps = chargeAmps();
+                if (amps > 0) battery = Math.min(chargeTarget(), battery + amps * step / 3600 / RATED_AH * 100);
+            }
+        }
+    }
+    private static double clampBattery(double value) { return Math.max(3, Math.min(100, value)); }
+    private boolean locked() { Integer lock = features.get("lock"); return lock != null && lock != 0; }
+
+    /** Where charging stops: the charge limit on a model with one, else full. */
+    private double chargeTarget() {
+        Integer limit = features.get("charge_limit");
+        return chargeLimitModel && limit != null && limit > 0 && limit <= 100 ? limit : 100;
+    }
+    /** Battery-side charging current at the scene's level: 0 at the target (the charger has stopped). */
+    double chargeAmps() {
+        if (battery >= chargeTarget() - 1e-9) return 0;
+        double bulk, taperFrom, end;
+        if (fastCharger()) { bulk = 10.09; taperFrom = 72; end = 2.0; }      // Ut5MaxFastChargeReference: ~10.09 A, taper from 72 %
+        else if (chargerFamilies) { bulk = 2.3; taperFrom = 89; end = 1.0; } // Ut5MaxStockVoltageReference: ~2.3 A until 89 %
+        else { bulk = 3.0; taperFrom = 85; end = .8; }
+        if (battery <= taperFrom) return bulk;
+        return Math.max(end, bulk - (bulk - end) * (battery - taperFrom) / (100 - taperFrom));
+    }
+
+    /** Pack voltage at rest for a battery level (50.4 V at the sample's 78 %; about 0.124 V per percent, as UT5 MAX charges show). */
+    static double restVolts(double percent) { return 50.4 + .124 * (percent - 78); }
+
+    /** The riding loop's cruise speed: by drive mode (Walk, the low mode, or a Sport code: 3, or 5 on the GT5 Max family), under the simulated top speed. */
+    private double cruise() {
+        double speed = driveMode == WALK ? 6 : driveMode == LOW_MODE ? 19 : 27;
+        Integer top = features.get("maximum_speed");
+        // The cruise wanders by up to 1.2 km/h: stay that far under the top speed.
+        return top != null && top > 2 ? Math.min(speed, top - 1.5) : speed;
+    }
+    /** Speed (km/h) at a time into the loop: pull away, cruise with a little wander, slow down, stand. */
+    double rideSpeed(double seconds) {
+        double c = seconds % LOOP_S, cruise = cruise();
+        if (c < ACCELERATE_S) return cruise * (1 - Math.cos(Math.PI * c / ACCELERATE_S)) / 2;
+        if (c < CRUISE_END_S) return Math.max(0, cruise + (driveMode == WALK ? .2 : 1.2) * Math.sin(c * .9));
+        if (c < BRAKE_END_S) return cruise * (1 + Math.cos(Math.PI * (c - CRUISE_END_S) / (BRAKE_END_S - CRUISE_END_S))) / 2;
+        return 0;
+    }
+    /**
+     * A chart point for the scene's story so far: the reading {@code secondsBefore} the latest one ({@code base}),
+     * {@code fraction} of the way along the chart (0 the oldest point). Parked keeps the first simulator's gentle
+     * shapes; Riding replays the loop and counts back distance and battery; Charging counts the battery back down.
+     */
+    public double historyValue(String key, double base, double fraction, double secondsBefore) {
+        double hours = secondsBefore / 3600;
+        if (scene == Scene.RIDING && !locked()) {
+            double at = rideClock - secondsBefore, loop = ((at % LOOP_S) + LOOP_S) % LOOP_S;
+            switch (key) {
+                case "speed_kmh": return rideSpeed(loop);
+                case "power_w": { double w = ridePower(loop); return signedCurrent ? w : Math.abs(w); }
+                case "current_a": { double a = ridePower(loop) / restVolts(battery); return signedCurrent ? a : Math.abs(a); }
+                // Battery and distance count back at the loop's average draw (about a third of its peak) and speed.
+                case "battery_percent": return Math.min(100, base + 140 * hours / (RATED_AH * NOMINAL_V) * 100);
+                case "odometer_km": return Math.max(0, base - .6 * cruise() * hours);
+                case "trip_km": return Math.max(0, base - .6 * cruise() * hours);
+                default: break;
+            }
+        } else if (scene == Scene.CHARGING) {
+            double amps = Math.max(chargeAmps(), fastCharger() ? 10.09 : chargerFamilies ? 2.3 : 3.0);
+            switch (key) {
+                case "battery_percent": return Math.max(5, base - amps * hours / RATED_AH * 100);
+                case "voltage_v": return Math.max(restVolts(5), base - .124 * amps * hours / RATED_AH * 100);
+                case "current_a": case "power_w": return base;
+                default: break;
+            }
+        }
+        if (key.equals("power_w")) return base + 5 * Math.sin(fraction * 24);
+        if (key.equals("voltage_v")) return base + .15 * Math.sin(fraction * 18);
+        if (key.equals("temperature_c")) return base + .6 * Math.sin(fraction * 8);
+        if (key.equals("battery_health_percent")) return Math.min(100, base + 1 - fraction);
+        if (key.equals("battery_percent")) return Math.min(100, base + 8 * (1 - fraction));
+        if (key.equals("odometer_km")) return Math.max(0, base - 3 * (1 - fraction));
+        return base;
+    }
+
+    /** Signed power (W) at a time into the loop: draw pulling away and cruising, regeneration while slowing (with energy recovery on). */
+    double ridePower(double seconds) {
+        double c = seconds % LOOP_S, v = rideSpeed(seconds), walk = driveMode == WALK ? .25 : 1;
+        if (c < ACCELERATE_S) return walk * (180 + 30 * v);
+        if (c < CRUISE_END_S) return walk * (90 + 11 * v);
+        if (c < BRAKE_END_S) {
+            Integer recovery = features.get("energy_recovery");
+            if (recovery == null || recovery <= 0) return 12;
+            return -walk * (40 + 9 * v) * Math.max(.4, Math.min(1, recovery / 90.0));
+        }
+        return 18;
+    }
+
+    /** The scene's readings, written in one tick: every key any scene writes, so a switch leaves nothing behind. */
+    private void scene(Readings telemetry, long time, double phase) {
+        boolean riding = scene == Scene.RIDING && !locked(), charging = scene == Scene.CHARGING;
+        double speed = riding ? rideSpeed(rideClock) : 0, volts, amps;
+        if (riding) {
+            double watts = ridePower(rideClock), rest = restVolts(battery);
+            amps = watts / rest; volts = rest - .08 * amps;
+        } else if (charging) {
+            double charge = chargeAmps();
+            volts = Math.min(54.6, restVolts(battery) + (charge > 0 ? .45 + .4 * charge : 0));
+            amps = -charge;
+        } else {
+            // Parked: the sample's standby draw (about 0.36 A), as before.
+            volts = restVolts(battery) + .08 * Math.sin(phase / 19);
+            amps = .36 + .08 * Math.sin(phase / 7);
+        }
+        // A model that doesn't sign its current reports a magnitude only (PowerSign); its sign state reads 254.
+        if (!signedCurrent) amps = Math.abs(amps);
+        quantity(telemetry, "voltage_v", volts, "V", 2, time);
+        quantity(telemetry, "current_a", amps, "A", 2, time);
+        quantity(telemetry, "power_w", volts * amps, "W", 1, time);
+        charging(telemetry, charging && chargeAmps() > 0, time);
+        signState(telemetry, charging, time);
+        reading(telemetry, "speed_kmh", speed, 1, Telemetry.SUFFIX_KMH, time);
+        reading(telemetry, "battery_percent", Math.floor(battery), 0, Telemetry.SUFFIX_PERCENT, time);
+        reading(telemetry, "remaining_range_km", Math.floor(battery) * KM_PER_PERCENT, 1, Telemetry.SUFFIX_RANGE, time);
+        reading(telemetry, "trip_km", trip, 2, Telemetry.SUFFIX_KM, time);
+        reading(telemetry, "trip_minutes", tripMinutes, 1, Telemetry.SUFFIX_MINUTE, time);
+        reading(telemetry, "odometer_km", odometer, 2, Telemetry.SUFFIX_KM, time);
+        reading(telemetry, "maximum_speed_kmh", tripMax, 1, Telemetry.SUFFIX_KMH, time);
+        reading(telemetry, "average_speed_kmh", Math.min(tripMax, trip / (movingMinutes / 60)), 1, Telemetry.SUFFIX_KMH, time);
+        int moving = speed > .05 ? 1 : 0;
+        if (scene == Scene.RIDING) telemetry.putSimulationSample("driving_status", moving + SIMULATION, (double) moving, time);
+        telemetry.putSimulationSample("driving_mode", driveMode + SIMULATION, (double) driveMode, time);
+    }
+    private static void charging(Readings telemetry, boolean on, long time) {
+        telemetry.putSimulationSample("charging_state", on ? "Charging (simulation)" : "Not charging (simulation)", on ? 1.0 : 0.0, time);
+    }
+    private void signState(Readings telemetry, boolean charging, long time) {
+        if (!signedCurrent) telemetry.putSimulationSample("current_sign_state", 254 + SIMULATION, 254.0, time);
+        else telemetry.putSimulationSample("current_sign_state", charging ? "1 (simulation)" : "0 (simulation)", charging ? 1.0 : 0.0, time);
     }
 
     /**
      * A scooter that doesn't sign its current (a GT3 Max answers 0x79 with 254): always a positive
      * reading, with a repeating pull-away, cruise and brake where the voltage rises. Regen inference only.
      */
-    private void unsignedRegenRide(Telemetry telemetry, long time, double phase) {
+    private void unsignedRegenRide(Readings telemetry, long time, double phase) {
         double cycle = phase % 32, volts = 50.4, amps, speed;
         if (cycle < 6) { speed = 6 + 4 * cycle; amps = 16; volts -= 16 * .08; }
         else if (cycle < 14) { speed = 30; amps = .45; }
@@ -228,7 +561,7 @@ public final class ScooterSimulation {
     }
 
     /** A ride for riding mode's screenshots: speed and power that swing into regen, a growing trip. */
-    private void ride(Telemetry telemetry, long time, double phase) {
+    private void ride(Readings telemetry, long time, double phase) {
         if (script.equals(UNSIGNED_REGEN)) { unsignedRegenRide(telemetry, time, phase); return; }
         boolean moving = !script.equals(STOPPED);
         double speed = moving ? 24.3 + 5.5 * Math.sin(phase / 9) : 0;
@@ -251,11 +584,11 @@ public final class ScooterSimulation {
         if (script.equals(WARNING)) telemetry.putSimulationSample("warning_code", Telemetry.format(14, 0), 14.0, time);
     }
 
-    private static void reading(Telemetry telemetry, String key, double number, int decimals, String suffix, long time) {
+    private static void reading(Readings telemetry, String key, double number, int decimals, String suffix, long time) {
         telemetry.putSimulationSample(key, Telemetry.format(number, decimals) + suffix, number, time);
     }
 
-    private static void quantity(Telemetry telemetry, String key, double number,
+    private static void quantity(Readings telemetry, String key, double number,
             String unit, int decimals, long time) {
         telemetry.putSimulationSample(key, String.format(Locale.US, "%." + decimals + "f %s", number, unit), number, time);
     }

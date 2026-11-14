@@ -16,6 +16,13 @@ final class QuickAccessGrid extends ViewGroup {
     private final ScreenHost host;
     private final Ui ui;
     private final boolean editing, tiles;
+    /**
+     * Clean Home's four (HomeQuickActions), as the Layout Plan draws them (the contributor's decisions on #383): equal
+     * circles in one row and one short name on one line under each circle, no value line; an action that is on fills
+     * its circle red, and its state is spoken (QuickActionLayout). Their buttons keep their own side padding. Widgets
+     * never uses it.
+     */
+    private final boolean clean;
     private final ArrayList<Cell> cells = new ArrayList<>();
     private int budget, columns = 1, rowHeight, fittedWidth = -1, fittedBudget = -1;
     private boolean iconsOnly, tileLabels = true, tileCompact;
@@ -34,7 +41,7 @@ final class QuickAccessGrid extends ViewGroup {
 
     /** {@code tiles} selects the Setting tiles presentation; callers normalize its one-to-four ids. */
     QuickAccessGrid(ScreenHost host, List<String> ids, boolean editing, Consumer<String> action, boolean tiles) {
-        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find);
+        this(host, tiles ? ids : QuickAccessActions.normalize(ids), editing, action, tiles, QuickAccessActions::find, false);
     }
 
     /**
@@ -42,13 +49,13 @@ final class QuickAccessGrid extends ViewGroup {
      * outside the catalog (its own Ride and Record), as round buttons.
      */
     QuickAccessGrid(ScreenHost host, List<String> ids, Consumer<String> action, java.util.function.Function<String, QuickAccessActions.Entry> entries) {
-        this(host, ids, false, action, false, entries);
+        this(host, ids, false, action, false, entries, true);
     }
 
     private QuickAccessGrid(ScreenHost host, List<String> shown, boolean editing, Consumer<String> action, boolean tiles,
-                            java.util.function.Function<String, QuickAccessActions.Entry> entries) {
+                            java.util.function.Function<String, QuickAccessActions.Entry> entries, boolean clean) {
         super(host.activity());
-        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles;
+        this.host = host; this.ui = host.ui(); this.editing = editing; this.tiles = tiles; this.clean = clean;
         setTag(tiles ? "setting-tiles" : "quick-access-grid");
         for (String id : shown) {
             QuickAccessActions.Entry entry = entries.apply(id);
@@ -58,6 +65,24 @@ final class QuickAccessGrid extends ViewGroup {
             cells.add(cell); addView(cell);
         }
         refresh();
+    }
+
+    /**
+     * Clean Home's four: a long-press on any of them runs {@code edit} (the Edit sheet), and TalkBack offers it as the
+     * long-press action named {@code label}. A tap still runs the action.
+     */
+    void editOnLongPress(CharSequence label, Runnable edit) {
+        View.AccessibilityDelegate named = new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View view, android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(view, info);
+                info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                        android.view.accessibility.AccessibilityNodeInfo.ACTION_LONG_CLICK, label));
+            }
+        };
+        for (Cell cell : cells) {
+            cell.setOnLongClickListener(v -> { edit.run(); return true; });
+            cell.setAccessibilityDelegate(named);
+        }
     }
 
     void fitHeight(int height) { budget = Math.max(0, height); }
@@ -83,6 +108,10 @@ final class QuickAccessGrid extends ViewGroup {
             // model with a built-in charge limit has none (the tile stays, muted, as an unmapped control's does).
             boolean alerts = QuickAccessActions.CHARGE_ALERTS_ID.equals(cell.entry.id);
             boolean alertsMissing = alerts && (service == null || !service.chargeAlertsOffered());
+            // Why, as the tap says it (ChargeAlertPolicy.missing): "Identify model first" on a scooter not yet identified,
+            // "not on this model" only for a model with its own charge limit.
+            CapabilityResolver.Reason alertsReason = !alertsMissing ? null
+                    : service == null ? CapabilityResolver.Reason.NOT_CONNECTED : service.chargeAlertsMissing();
             boolean featureLive = feature != null && live && (feature.type == ScooterCommands.Type.TIME
                     ? service.readingFresh("scheduled_charge_time_raw") : service.featureFresh(feature.key));
             Integer value = feature == null || feature.sensitive ? null : values.get(feature.key);
@@ -138,10 +167,18 @@ final class QuickAccessGrid extends ViewGroup {
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
+            String shortValue = null;
             if (alerts) {
-                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, service == null ? null : service.chargeAlerts());
-                state = level == null ? NO_VALUE : level == 0 ? off : ChargeAlertPolicy.levelText(level);
+                ChargeAlertPolicy.Settings alertSettings = service == null ? null : service.chargeAlerts();
+                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
+                // The tile reflects both alerts: the charge alert's level while it is on, else the low alert's ("Low 20%").
+                Integer low = ChargeAlertPolicy.shortcutLow(!alertsMissing, alertSettings);
+                state = level == null ? NO_VALUE : low != null ? T.dashboardModelTileLowAt(T.fmtPercent(Fmt.integer(low)))
+                        : level == 0 ? off : ChargeAlertPolicy.levelText(level);
                 featureLive = level != null;
+                // A Setting tile too narrow for "Low 20%" at the smallest size shows the shorter whole value "On", never
+                // an ellipsis (measureTile); the description keeps the full value.
+                if (level != null && low != null) shortValue = T.commonOn();
             }
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
@@ -150,11 +187,15 @@ final class QuickAccessGrid extends ViewGroup {
             if (tiles) {
                 // A page or menu shortcut has no value; its name takes the value line instead.
                 String shownValue = state.isEmpty() ? tileLabel(cell.entry) : state;
-                if (!shownValue.contentEquals(cell.value.getText())) {
+                // Compared with the full value, not the view's text, which measureTile may have set to the short value.
+                if (!shownValue.equals(cell.fullValue) || !java.util.Objects.equals(shortValue, cell.shortValue)) {
+                    cell.fullValue = shownValue; cell.shortValue = shortValue;
                     cell.value.setText(shownValue);
                     fittedWidth = -1;
                     // Whether a lock word drops is decided while measuring, and a text of the same height requests no layout.
                     if (wasLockState || cell.lockState) cell.requestLayout();
+                    // So are the value's size and a short value: any other change of the value is measured again too.
+                    else cell.requestLayout();
                 }
                 cell.label.setTag(state.isEmpty() ? "" : tileLabel(cell.entry));
                 // The lead tile's accent fill would make an unmapped control look active; it stays muted.
@@ -183,9 +224,14 @@ final class QuickAccessGrid extends ViewGroup {
                     if (cell.lockState) cell.requestLayout();
                 }
                 ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));
-                cell.value.setVisibility(iconsOnly || state.isEmpty() ? GONE : VISIBLE);
+                // A round action drawn with the speedometer that is not Ride gets the speedometer's max marker (glyph).
+                if (clean && "speed".equals(cell.entry.icon)) ui.setIcon(cell.icon, cell.glyph(cell.entry.icon));
+                // A round action has no value line: its state is the circle's fill and what it says (below).
+                cell.value.setVisibility(clean || iconsOnly || state.isEmpty() ? GONE : VISIBLE);
                 cell.value.setTag(state);
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
+                // A round action is filled while it is on: a control switched on, or Record while a ride records.
+                if (clean) selected |= HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording();
                 if (cell.isSelected() != selected) { cell.setSelected(selected); cell.updateBackground(); }
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
                 if (alerts && !featureLive) cell.setAlpha(.65f);
@@ -193,7 +239,9 @@ final class QuickAccessGrid extends ViewGroup {
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
-                    + (unmapped || alertsMissing ? (unmapped && decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                            : alertsMissing ? (alertsReason == null || alertsReason == CapabilityResolver.Reason.MODEL_EXCLUDED ? T.dashboardModelTileDescModel()
+                                    : T.dashboardModelTileDescPart(CapabilityResolver.message(alertsReason)))
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
@@ -259,14 +307,18 @@ final class QuickAccessGrid extends ViewGroup {
         final TextView label, value;
         boolean highlighted, toggle, lockState;
         /**
-         * Clean Home's way into riding mode (owner's answer 6 on #383): it reads as entering another mode, not as a
-         * shortcut to a settings menu, so it takes the Widgets header's RIDE pill look: accent fill, a pill shape,
-         * the speedometer and the word in onAccent, letter-spaced. Only Clean holds this id; Widgets' pill is untouched.
+         * The glyph a cell shows. Round: Ride keeps the speedometer, and any other action drawn with it (cruise control,
+         * maximum speed) gets the speedometer with its max marker, so no two of the four look the same.
          */
-        final boolean ride;
+        String glyph(String icon) {
+            return clean && "speed".equals(icon) && !HomeQuickActions.RIDING.equals(entry.id) ? "speed_max" : icon;
+        }
+        /** Round only: the circle the icon sits in (filled while the action is on). */
+        FrameLayout circle;
+        /** Setting tiles only: the value the tile states, and a shorter whole value for a tile too narrow for it (or null). */
+        String fullValue, shortValue;
         Cell(QuickAccessActions.Entry entry) {
             super(host.activity()); this.entry = entry; toggle = entry.directToggle();
-            ride = !tiles && HomeQuickActions.RIDING.equals(entry.id);
             // Keep the fill, pressed ripple and clipping on the same rounded boundary.
             // Narrow rows must not depend on a device-specific RippleDrawable outline
             // when their pressed/selected state or dimensions change.
@@ -309,14 +361,37 @@ final class QuickAccessGrid extends ViewGroup {
             setTag("quick-action:" + entry.id);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setMinimumHeight(ui.dp(48));
-            icon = ui.icon(entry.icon, 20, ride ? ui.onAccent : ui.accent);
+            if (clean) {
+                // The plan's round button: the icon in a circle, one short name on one line under it, outside the circle.
+                // The whole column is the one touch target (at least 48 dp each way) and is spoken once, with its full
+                // name and its state (the value line is gone: on is the circle's red fill).
+                setGravity(Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+                circle = new FrameLayout(host.activity());
+                circle.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                icon = ui.icon(glyph(entry.icon), 22, ui.text);
+                circle.addView(icon, new FrameLayout.LayoutParams(ui.dp(22), ui.dp(22), Gravity.CENTER));
+                int side = ui.dp(QuickActionLayout.CIRCLE_DP);
+                addView(circle, new LinearLayout.LayoutParams(side, side));
+                label = ui.text(roundName(entry), QuickActionLayout.NAME_SP, false);
+                label.setTextColor(ui.muted);
+                label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
+                label.setMaxLines(1); label.setSingleLine(true);
+                label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+                LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(-1, -2);
+                nameSize.topMargin = ui.dp(QuickActionLayout.NAME_GAP_DP);
+                addView(label, nameSize);
+                // Kept for the shared refresh (its text is the spoken state); never shown on a round action.
+                value = ui.text("", 11, false);
+                value.setVisibility(GONE);
+                setTooltipText(entry.label()); updateBackground();
+                for (View child : new View[]{icon, label, value})
+                    child.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                return;
+            }
+            icon = ui.icon(entry.icon, 20, ui.accent);
             addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
             label = ui.text(entry.label(), 12, false);
             label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
-            if (ride) {
-                label.setTypeface(label.getTypeface(), android.graphics.Typeface.BOLD);
-                label.setTextColor(ui.onAccent); label.setLetterSpacing(.06f);
-            }
             label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
             addView(label, new LinearLayout.LayoutParams(-1, -2));
             value = ui.text("", 11, false); value.setTypeface(ui.medium());
@@ -344,9 +419,16 @@ final class QuickAccessGrid extends ViewGroup {
                         ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
-            if (ride) {
-                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.onAccent, 40)),
-                        ui.shape(ui.accent, radius, 0), ui.shape(android.graphics.Color.WHITE, radius, 0)));
+            if (clean) {
+                // Raised while off, filled with the accent while on (a control switched on, a ride recording).
+                boolean on = isSelected();
+                android.graphics.drawable.GradientDrawable disc = new android.graphics.drawable.GradientDrawable();
+                disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                disc.setColor(on ? ui.accent : ui.raised);
+                circle.setBackground(disc);
+                ui.setIcon(icon, null, on ? ui.onAccent : ui.text);
+                setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), null,
+                        ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
             }
             setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
@@ -354,8 +436,7 @@ final class QuickAccessGrid extends ViewGroup {
                             isSelected() ? Ui.withAlpha(ui.accent, 100) : 0),
                     ui.shape(android.graphics.Color.WHITE, radius, 0)));
         }
-        /** The RIDE action is a pill: its radius is clamped to half the shorter side by the drawable and the outline. */
-        private float cornerRadius() { return tiles ? 20 : ride ? 100 : 12; }
+        private float cornerRadius() { return tiles ? 20 : 12; }
         int blendAccent() {
             float a = ui.dark ? .14f : .08f;
             int from = ui.surface, to = ui.accent;
@@ -390,11 +471,25 @@ final class QuickAccessGrid extends ViewGroup {
                 icon.setVisibility(GONE);
                 text += icon.getLayoutParams().width + ui.dp(6);
             }
+            // Fit the full value first; a short value shown at the last fit is put back.
+            if (fullValue != null && !fullValue.contentEquals(value.getText())) value.setText(fullValue);
             value.setTextSize(size);
             while (size > floor && (value.getPaint().measureText(value.getText().toString()) > text
                     || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
                 size -= .5f;
                 value.setTextSize(size);
+            }
+            // Still too wide at the smallest size: the shorter whole value ("On" for "Low 20%"), never an ellipsis.
+            if (shortValue != null && value.getPaint().measureText(value.getText().toString()) > text) {
+                value.setText(shortValue);
+                // Sized on its own, as large as it fits, like any other short value (not left at the long one's floor).
+                size = 18 * ui.textScale;
+                value.setTextSize(size);
+                while (size > floor && (value.getPaint().measureText(shortValue) > text
+                        || value.getPaint().getFontMetricsInt().descent - value.getPaint().getFontMetricsInt().ascent > room)) {
+                    size -= .5f;
+                    value.setTextSize(size);
+                }
             }
             // At the floor already: an ellipsis could make the two states read alike, so the word gives way to the padlock.
             if (DisplayUnits.lockWordDrops(lockState, value.getPaint().measureText(value.getText().toString()), text)) {
@@ -410,11 +505,50 @@ final class QuickAccessGrid extends ViewGroup {
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
         }
+        /**
+         * Round: the circle at its size for this column and the one short name on one line under it, a little smaller
+         * only where it does not fit at full size (QuickActionLayout).
+         */
+        void measureRound(int width) {
+            float density = getResources().getDisplayMetrics().density;
+            int side = ui.dp(QuickActionLayout.circleDp(width / density));
+            LinearLayout.LayoutParams circleSize = (LinearLayout.LayoutParams) circle.getLayoutParams();
+            if (circleSize.width != side) { circleSize.width = circleSize.height = side; }
+            int pad = ui.dp(QuickActionLayout.SIDE_DP);
+            setPadding(pad, ui.dp(2), pad, ui.dp(4));
+            float room = width - 2 * pad;
+            // Measured at the full size on a copy of the paint, so the view's size changes only when the choice does.
+            QuickActionLayout.Name name = QuickActionLayout.name(roundName(entry), room,
+                    fullSize(label, QuickActionLayout.NAME_SP)::measureText);
+            label.setVisibility(name.text == null ? GONE : VISIBLE);
+            if (name.text != null) {
+                float size = QuickActionLayout.NAME_SP * ui.textScale * name.scale;
+                if (Math.abs(label.getTextSize() - android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                        size, getResources().getDisplayMetrics())) > .5f) label.setTextSize(size);
+                if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
+                // A smaller name keeps the line height of its full size, centred in it, so the four names share a line.
+                android.graphics.Paint.FontMetricsInt line = fullSize(label, QuickActionLayout.NAME_SP).getFontMetricsInt();
+                int box = name.scale < 1 ? line.descent - line.ascent : 0;
+                if (label.getMinHeight() != box) label.setMinHeight(box);
+            }
+            measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        }
+        /** A copy of a text's paint at {@code sp} times the app's text scale (and the system's, as sp is). */
+        private android.text.TextPaint fullSize(TextView text, float sp) {
+            android.text.TextPaint paint = new android.text.TextPaint(text.getPaint());
+            paint.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                    sp * ui.textScale, getResources().getDisplayMetrics()));
+            return paint;
+        }
         void measureContent(int width, boolean compact) {
             label.setVisibility(iconsOnly ? GONE : VISIBLE);
             icon.setAlpha(editing && iconsOnly ? .22f : 1f);
             value.setVisibility(iconsOnly || "".equals(value.getTag()) ? GONE : VISIBLE);
-            setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));
+            // Quick access: 3 dp each side, so a name has 66 dp per line at the 72 dp minimum (dashboard_model_qa_*).
+            // Clean Home's quick actions keep 4 dp: their look was decided on its own (home_qa_* stay 64dp@12sp*2).
+            if (clean) setPadding(ui.dp(4), ui.dp(compact ? 3 : 7), ui.dp(4), ui.dp(compact ? 3 : 7));
+            else setPadding(ui.dp(3), ui.dp(compact ? 3 : 7), ui.dp(3), ui.dp(compact ? 3 : 7));
             int side = ui.dp(compact ? 18 : 20);
             icon.getLayoutParams().width = icon.getLayoutParams().height = side;
             ((LinearLayout.LayoutParams)label.getLayoutParams()).topMargin = ui.dp(compact ? 2 : 4);
@@ -436,6 +570,7 @@ final class QuickAccessGrid extends ViewGroup {
 
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         if (tiles) { measureTiles(MeasureSpec.getSize(widthSpec)); return; }
+        if (clean) { measureRound(MeasureSpec.getSize(widthSpec)); return; }
         int width = MeasureSpec.getSize(widthSpec), gap = ui.dp(6);
         iconsOnly = width < ui.dp(100);
         columns = Math.min(Math.min(4, cells.size()), Math.max(1,
@@ -490,6 +625,21 @@ final class QuickAccessGrid extends ViewGroup {
         setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
     }
 
+    /** Clean's round actions: four equal columns while each holds its circle and words (QuickActionLayout), else two. */
+    private void measureRound(int width) {
+        int gap = ui.dp(QuickActionLayout.GAP_DP), count = cells.size();
+        if (count == 0) { setMeasuredDimension(width, 0); return; }
+        float density = getResources().getDisplayMetrics().density;
+        columns = QuickActionLayout.columns(width / density, count);
+        int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
+        int rows = (count + columns - 1) / columns;
+        rowHeight = ui.dp(48);
+        for (Cell cell : cells) { cell.measureRound(cellWidth); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
+        for (Cell cell : cells) cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
+        setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
+    }
+
     private int measureTileCells(int width, boolean refit, int rowLimit) {
         int height = ui.dp(48);
         for (Cell cell : cells) { cell.measureTile(width, refit, rowLimit); height = Math.max(height, cell.getMeasuredHeight()); }
@@ -519,6 +669,23 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
+    /**
+     * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): its
+     * round name where it has one (HubText.quickActionRoundName, part 10's text: Clean's own, Charge by and the
+     * controls); else, for cruise control, traction control and energy recovery, Live Stats' one-word name
+     * (StatsLabels.row); else the control's short rung.
+     */
+    static String roundName(QuickAccessActions.Entry entry) {
+        Msg own = HubText.quickActionRoundName(entry.id);
+        if (own != null) return own.render();
+        if (ROUND_STATS_NAMES.contains(entry.featureKey)) return StatsLabels.row(entry.featureKey);
+        return tileLabel(entry);
+    }
+
+    /** Controls whose Live Stats row name is their one-word short name (feature keys, data). */
+    private static final java.util.Set<String> ROUND_STATS_NAMES =
+            new java.util.HashSet<>(java.util.Arrays.asList("cruise_control", "traction_control", "energy_recovery"));
+
     /** Setting tiles show short names: "Max. speed" (the abbreviated rung of Maximum speed), "Charge sched.", a control's TileShortLabels rung, else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();

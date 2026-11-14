@@ -208,6 +208,14 @@ public final class ModelRegistryTest {
         }
         // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
         check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
+        // Settings byte 1 is the acceleration setting (Eco 3, Turbo 5), never the drive mode: the ACCELERATION prefixes,
+        // groups D and O, and the GT3 Max (its owner's byte sat at Eco 3). The UT5 MAX and models without it keep the byte.
+        for(String pid:new String[]{"23452","27141","25091","25462","25451","26191","24182"})
+            check(ModelRegistry.settingsByteIsAcceleration(advertised(pid)),"Settings byte 1 is the acceleration setting: "+pid);
+        for(String pid:new String[]{"22131","24162","24181","25471","24431"})
+            check(!ModelRegistry.settingsByteIsAcceleration(advertised(pid)),"Settings byte 1 stays the drive mode: "+pid);
+        check(!ModelRegistry.settingsByteIsAcceleration(serial("Q2538ZZ9US7777777"))&&!ModelRegistry.settingsByteIsAcceleration(null)
+            &&!ModelRegistry.settingsByteIsAcceleration(advertised("")),"The UT5 MAX, no descriptor and no model ID keep the byte as the mode");
         // Version 18: the owner's recording showed the official app sending traction control; it is an ordinary OEM-mapped row (not verified).
         ModelRegistry.Rule tcs=ModelRegistry.rule("traction_control",gt3,null,null);
         check(tcs.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcs.reason==CapabilityResolver.Reason.NONE&&tcs.evidence==CapabilityResolver.Evidence.OEM_MAPPED
@@ -319,9 +327,21 @@ public final class ModelRegistryTest {
             &&ModelRegistry.rule("start_speed",none,null,null).variant.id.equals("start_speed.ut5")&&!ModelRegistry.rule("start_speed",none,null,null).oemNote.isEmpty()
             &&!ModelRegistry.rule("headlight",none,null,null).oemNote.isEmpty()&&ModelRegistry.rule("display_units",none,null,null).oemNote.isEmpty(),
             "No-region UT5 MAX keeps today's controls, with the OEM's strictest notes");
-        for(DeviceDescriptor sim:new DeviceDescriptor[]{DeviceDescriptor.simulated("",0),DeviceDescriptor.simulated("",0,"DE")})
-            check(sim.region==null&&ModelRegistry.rule("maximum_speed",sim,null,null).variant.id.equals("maximum_speed.ut5")
-                &&ModelRegistry.rule("start_speed",sim,null,null).variant.id.equals("start_speed.ut5"),"The UT5 MAX simulator never takes a region: Top speed and 0–5 km/h stay");
+        DeviceDescriptor simNone=DeviceDescriptor.simulated("",0);
+        check(simNone.region==null&&ModelRegistry.rule("maximum_speed",simNone,null,null).variant.id.equals("maximum_speed.ut5")
+            &&ModelRegistry.rule("start_speed",simNone,null,null).variant.id.equals("start_speed.ut5"),"The default UT5 MAX simulator (no region) keeps Top speed and 0–5 km/h");
+        // The UT5 MAX simulator takes a region (Developer options' UT5 MAX (US) and (EU)) and then decides as a real UT5 MAX of that region.
+        for(String area:new String[]{"US","DE","FR","CN"}){
+            DeviceDescriptor sim=DeviceDescriptor.simulated("",0,area),real=serial("Q2538ZZ9"+area+"7777777");
+            for(String f:new String[]{"maximum_speed","start_speed","cruise_control","charge_limit"}){
+                ModelRegistry.Rule s=ModelRegistry.rule(f,sim,null,null),r=ModelRegistry.rule(f,real,null,null);
+                check(area.equals(sim.region)&&s.support==r.support&&s.reason==r.reason&&(s.variant==null?r.variant==null:r.variant!=null&&s.variant.id.equals(r.variant.id)),
+                    "The UT5 MAX simulator in "+area+" decides "+f+" as a real "+area+" UT5 MAX: "+s.reason+" vs "+r.reason);
+            }
+        }
+        check(ModelRegistry.rule("maximum_speed",DeviceDescriptor.simulated("",0,"DE"),null,null).reason==CapabilityResolver.Reason.REGION_RULE
+            &&ModelRegistry.rule("start_speed",DeviceDescriptor.simulated("",0,"DE"),null,null).variant.id.equals("start_speed.ut5_3_5"),
+            "A DE UT5 MAX simulator: no Top speed and 3–5 km/h, as the real one");
         check(ModelRegistry.rule("maximum_speed",serial("Q2538ZZ9us7777777"),null,null).reason==CapabilityResolver.Reason.REGION_RULE,
             "Lowercase us is not the OEM's USA bucket (its area is NA)");
         ModelRegistry.Rule lock=ModelRegistry.rule("lock",advertised("39991"),null,null);

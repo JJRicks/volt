@@ -614,8 +614,6 @@
     <string name="main_report_email_next">Als Nächstes öffnet sich deine E-Mail-App, damit du den Bericht zuerst lesen kannst.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Wähle deinen Scooter oder „Nicht sicher“ und dann „Senden“.</string>
-    <!-- src:de6cef2b4552f44f2a6b09081b292b1469368909 -->
-    <string name="main_report_diagnostics_note">Eine Diagnosedatei wird angehängt: App- und Scooter-Details sowie die letzten Verbindungs- und Steuerungsereignisse. Niemals enthalten: dein Besitzerschlüssel, deine PIN, Seriennummer, Standort oder Namen.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">E-Mail an Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

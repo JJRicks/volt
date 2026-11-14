@@ -29,9 +29,10 @@ public final class RidingConfigTest {
 
     public static void main(String[] args) {
         storage();
+        simulatedScale();
         backup();
         burnIn();
-        System.out.println("RidingConfigTest: " + checks + " checks passed (per-scooter layout and scale, backup rules, burn-in drift)");
+        System.out.println("RidingConfigTest: " + checks + " checks passed (per-scooter layout and scale, simulated scale never saved, backup rules, burn-in drift)");
     }
 
     private static void storage() {
@@ -60,6 +61,59 @@ public final class RidingConfigTest {
             RidingValues.PowerScale s = b.powerScale();
             check(s.drawW >= 1000 && s.drawW <= RidingValues.PowerScale.DRAW_CAP_W && s.regenW >= 500 && s.regenW <= RidingValues.PowerScale.REGEN_CAP_W, "a damaged scale is safe: " + bad);
         }
+    }
+
+    /**
+     * Simulation never changes the real scooter's saved data (#431 review): the scale a simulated high-speed charge grows
+     * shows on screen but is never saved, and is gone once simulation ends. The steps are RidingScreen.refresh()'s.
+     */
+    private static void simulatedScale() {
+        Prefs prefs = new Prefs();
+        RidingConfig config = new RidingConfig(prefs, "ut5-1");
+        config.save(new RidingValues.PowerScale(1250, 500));
+        String saved = prefs.map.get("riding_power_scale_v1_ut5-1").toString();
+        RidingValues values = new RidingValues(config.powerScale());
+        values.setNominalIntervals(1000, 2000);
+        long[] t = {0};
+        // Real readings first: a 1,400 W pull grows the draw scale, and that is saved.
+        refresh(values, config, false, () -> { values.sample("current_sign_state", 0, 0x79, t[0]); values.sample("power_w", 1400, 0x72, t[0]); });
+        check("{\"draw\":1500,\"regen\":500}".equals(prefs.map.get("riding_power_scale_v1_ut5-1")), "a real reading's scale is saved: " + prefs.map.get("riding_power_scale_v1_ut5-1"));
+        saved = prefs.map.get("riding_power_scale_v1_ut5-1").toString();
+        // Simulation on: the UT5 MAX Charging scene with the high-speed charger, below 74 %: about -700 W, signed.
+        for (int i = 0; i < 5; i++) {
+            t[0] += 2000;
+            refresh(values, config, true, () -> { values.sample("current_sign_state", 1, 0x79, t[0]); values.sample("power_w", -705, 0x72, t[0]); });
+        }
+        check(values.scale().regenW == 750 && values.scale().drawW == 1500, "the simulated scene grows the scale it shows: " + values.scale().regenW + " / " + values.scale().drawW);
+        check(saved.equals(prefs.map.get("riding_power_scale_v1_ut5-1")), "but nothing it grew is saved: " + prefs.map.get("riding_power_scale_v1_ut5-1"));
+        // Simulation off: the screen shows the real saved scale again, and a later real reading never saves the simulated growth.
+        t[0] += 2000;
+        refresh(values, config, false, () -> { values.sample("current_sign_state", 0, 0x79, t[0]); values.sample("power_w", 300, 0x72, t[0]); });
+        check(values.scale().drawW == 1500 && values.scale().regenW == 500, "after simulation the scale is the saved one: " + values.scale().drawW + " / " + values.scale().regenW);
+        check(saved.equals(prefs.map.get("riding_power_scale_v1_ut5-1")), "and stays saved as it was");
+        t[0] += 2000;
+        refresh(values, config, false, () -> { values.sample("current_sign_state", 1, 0x79, t[0]); values.sample("power_w", -600, 0x72, t[0]); });
+        check("{\"draw\":1500,\"regen\":750}".equals(prefs.map.get("riding_power_scale_v1_ut5-1")), "a real regen after simulation grows and saves from the real scale only: " + prefs.map.get("riding_power_scale_v1_ut5-1"));
+        // A riding mode opened while simulating (the scale read from the saved one) never saves either.
+        RidingValues opened = new RidingValues(config.powerScale());
+        saved = prefs.map.get("riding_power_scale_v1_ut5-1").toString();
+        refresh(opened, config, true, () -> { opened.sample("current_sign_state", 0, 0x79, 50_000); opened.sample("power_w", 3100, 0x72, 50_000); });
+        check(opened.scale().drawW == 3250 && saved.equals(prefs.map.get("riding_power_scale_v1_ut5-1")), "a riding mode opened in simulation saves nothing it grows");
+        // RidingScreen.refresh() follows the simulator before the feed and saves only after it.
+        String screen;
+        try { screen = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/RidingScreen.java")), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        int follow = screen.indexOf("session.values.followSimulation(service.simulating(), config::powerScale);"), feed = screen.indexOf("session.feed(ble.telemetry.metrics()"),
+                save = screen.indexOf("if (session.values.takeScaleChanged()) config.save(session.values.scale());");
+        check(follow > 0 && follow < feed && feed < save, "RidingScreen follows the simulator, then feeds, then saves");
+        check(screen.split("values\\.scale\\(\\)\\)", -1).length == 2, "and saves the scale nowhere else");
+    }
+
+    /** One RidingScreen.refresh(): follow the simulator, take the readings, save a grown scale. */
+    private static void refresh(RidingValues values, RidingConfig config, boolean simulating, Runnable readings) {
+        values.followSimulation(simulating, config::powerScale);
+        readings.run();
+        if (values.takeScaleChanged()) config.save(values.scale());
     }
 
     private static void backup() {

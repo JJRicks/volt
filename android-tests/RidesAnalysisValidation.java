@@ -34,12 +34,22 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(() -> { invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen) field(activity, "screen"); }); settle();
             verifyRideNaming();
             if (args.getString("start_only", "false").equals("true")) { result.putString("result", "PASS"); return; }
-            main(() -> invoke(screen, "phoneOptions", new Class[0])); settle();
-            AlertDialog optionsDialog = (AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1);
-            main(() -> { View options = optionsDialog.getWindow().getDecorView(); check(text(options, "Phone sensors") != null, "Phone options test targets its own sheet"); check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors sheet has no placement choice"); optionsDialog.dismiss(); });
-            settle(); check(!optionsDialog.isShowing(), "Phone options sheet closed before reading the ride");
-            if (!Boolean.TRUE.equals(field(screen, "wide"))) main(() -> invoke(screen, "showDetails", new Class[]{String.class}, id));
-            settle();
+            // The Rides tab's Phone sensors sheet became Ride › Recording settings' phone sensors card in the Hub layout (#389),
+            // which nothing opens the sheet from any more: the same no-placement-choice check runs on the card.
+            HubTestPages.reach(this, activity, "ride.recording"); settle();
+            main(() -> { View options = ((RidesScreen) HubTestPages.part(activity, "RidesScreen")).view(); check(caseText(options, "Phone sensors") != null, "Phone options test targets its own card");
+                HubTestPages.requireShown(activity, caseText(options, "Phone sensors"), "the Phone sensors card's title");
+                check(find(options, SegmentedSelector.class) == null && text(options, "Mounted") == null && text(options, "Pocket") == null, "Phone sensors card has no placement choice"); });
+            // The ride as a rider opens it: Ride › All rides & compare (since the Hub's part 5 the Rides tab is the Ride summary,
+            // which is always compact), then its history row, by touch. A wide window must show the two panes with the ride in
+            // the right one (725 dp at 1x); a compact one its details dialog (344 dp, and 360 dp at 1.4x). #414 review: the
+            // step used to open the summary, so at 725 dp it silently read the compact dialog and never the wide pane.
+            String title = activity.service().rides.get(id).label;
+            boolean wide = HubTestPages.openRideDetails(this, activity, id, title);
+            main(() -> screen = (RidesScreen) field(activity, "screen")); settle();
+            check(screen.view().isAttachedToWindow() && Boolean.valueOf(wide).equals(field(screen, "wide")) && ((List<?>)field(screen, "dialogs")).size() == (wide ? 0 : 1),
+                    "Ride details open " + (wide ? "in the wide right pane, with no dialog" : "in one compact dialog"));
+            result.putString("ride_details", wide ? "wide two panes" : "compact dialog");
             check(text(screen.view(), "Energy direction") == null, "Redundant current-direction selection removed");
             View root = root(); check(find(root, RideChartView.class) != null, "Unified chart exists");
             check(find(root, RouteMapView.class) != null, "Map at top of same overview");
@@ -54,7 +64,13 @@ public final class RidesAnalysisValidation extends Instrumentation {
             verifyBasemapControls(root);
             Object panel = ancestor(find(root, RideChartView.class), "ChartPanel");
             Set<?> selected = (Set<?>) field(panel, "chosen"); check(selected.size() == 2 && selected.contains("power_w") && selected.contains("speed_kmh"), "Power and speed selected by default");
-            List<?> data = (List<?>)field(panel, "data"); check(data.size() == 8, "Eight graph series");
+            // The lines the graph offers come from the app (RideChartData.forRide): build()'s readings in KEYS order, then
+            // GPS accuracy (#427/#428), off unless chosen. Counted from there, so a new line can't strand a fixed number here.
+            List<?> data = (List<?>)field(panel, "data"); List<String> offered = new ArrayList<>();
+            for (Object series : data) offered.add(((RideChartData.Series)series).key);
+            List<String> expected = new ArrayList<>(Arrays.asList(RideChartData.KEYS)); expected.add(GpsAccuracy.KEY);
+            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy: " + offered);
+            check(!selected.contains(GpsAccuracy.KEY), "GPS accuracy stays off until chosen");
             main(() -> { View inline = find(root, RideChartView.class); inline.requestRectangleOnScreen(new android.graphics.Rect(0,0,inline.getWidth(),inline.getHeight()+activity.ui().dp(90)),true); }); settle();
             main(() -> verifyInspection((RideChartView)find(root, RideChartView.class))); settle(); screenshot("inline-inspection");
             main(() -> {
@@ -84,8 +100,9 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(chart::reset); check(Math.abs((double)field(chart, "to") - (double)field(chart, "duration")) < .01, "Fit time restores all samples");
             main(() -> { Object expanded = ancestor(chart, "ChartPanel"); ViewGroup choices = (ViewGroup)field(expanded, "choices");
                 for(int i=0;i<choices.getChildCount();i++){CheckBox box=(CheckBox)choices.getChildAt(i); if(!box.isChecked())box.performClick();}
-                check(((List<?>)field(chart,"series")).size()==8,"Every series can be overlaid together");
-                ((CheckBox)choices.getChildAt(4)).performClick(); check(((List<?>)field(chart,"series")).size()==7,"Hiding a series removes its Y axis");
+                int offeredCount=((List<?>)field(expanded,"data")).size();
+                check(choices.getChildCount()==offeredCount&&((List<?>)field(chart,"series")).size()==offeredCount,"Every series can be overlaid together");
+                ((CheckBox)choices.getChildAt(4)).performClick(); check(((List<?>)field(chart,"series")).size()==offeredCount-1,"Hiding a series removes its Y axis");
             });
             main(() -> ((AlertDialog)((List<?>)field(screen, "dialogs")).get(((List<?>)field(screen, "dialogs")).size() - 1)).dismiss()); settle();
             main(() -> {
@@ -194,9 +211,8 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(() -> {
                 for (Object dialog : new ArrayList<>((List<?>)field(screen, "dialogs"))) ((AlertDialog)dialog).dismiss();
                 invoke(activity, "select", new Class[]{String.class}, "rides"); screen = (RidesScreen)field(activity, "screen");
-                // Expanded layouts use their real detail pane; opening a compact-only dialog here
-                // left an extra window under the next Phone sensors sheet.
-                if (Boolean.TRUE.equals(field(screen, "wide"))) invoke(screen, "selectRide", new Class[]{String.class}, id);
+                // The Ride page is compact at every width (only All rides & compare has the wide panes), so nothing is selected
+                // here: the main pass opens the ride from All rides & compare by touch.
             }); settle();
         }
         check(!service.ble.connected() && !service.isRecording(), "Immediate-start fixture leaves no connection or capture running");
@@ -877,6 +893,8 @@ public final class RidesAnalysisValidation extends Instrumentation {
             setField(map, "provider", instance);
         } catch (Exception failure) { throw new IllegalStateException("Synthetic map provider", failure); }
     }
+    /** A TextView whose text matches, ignoring case (a section label may show in capitals). */
+    TextView caseText(View view, String label) { if (view instanceof TextView && ((TextView) view).getText().toString().equalsIgnoreCase(label)) return (TextView) view; if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = caseText(((ViewGroup) view).getChildAt(i), label); if (found != null) return found; } return null; }
     TextView text(View view, String label) { if(view instanceof TextView && label.contentEquals(((TextView)view).getText()))return (TextView)view; if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){TextView item=text(((ViewGroup)view).getChildAt(i),label);if(item!=null)return item;}return null; }
     void seed() throws Exception {
         ScooterService service = activity.service(); long wall = System.currentTimeMillis() - 240000;

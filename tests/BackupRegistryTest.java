@@ -35,6 +35,8 @@ public final class BackupRegistryTest {
         check(BackupRegistry.rule("app_settings","ride_auto_stop")!=null&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings","ride_auto_stop")),"ride_auto_stop is registered with App preferences");
         for(String key:new String[]{"auto_record_rides","riding_auto_open","auto_record_background"})check(BackupRegistry.rule("app_settings",key)!=null&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings",key)),key+" is backed up with App preferences");
         for(String key:new String[]{"ride_auto_export_route_csv","ride_auto_export_json"})check(BackupRegistry.rule("app_settings",key)!=null&&BackupRegistry.rule("app_settings",key).type==Boolean.class&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings",key)),key+" is registered with App preferences");
+        check(BackupRegistry.rule("app_settings","charge_auto_record")!=null&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings","charge_auto_record")),"Record charges automatically is backed up with App preferences");
+        check(BackupRegistry.rule("app_settings","charge_auto_record_hold")!=null&&BackupRegistry.rule("app_settings","charge_auto_record_hold").excluded(),"a hand stop's hold stays on this phone");
         check(BackupRegistry.rule("app_settings","auto_record_location_asked")!=null&&BackupRegistry.rule("app_settings","auto_record_location_asked").excluded(),"the location offer's answer stays on this phone, so a restore on another phone asks again");
         for(String key:new String[]{"ride_auto_export_folder","ride_auto_export_pending","ride_auto_export_problem"})check(BackupRegistry.rule("app_settings",key)!=null&&BackupRegistry.rule("app_settings",key).excluded(),key+" never leaves this phone");
         check(BackupRegistry.rule("app_settings","update_auto_check")!=null&&BackupRegistry.rule("app_settings","update_auto_check").type.isInstance(Boolean.TRUE)&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings","update_auto_check")),"the automatic update check switch is registered with App preferences");
@@ -85,6 +87,7 @@ public final class BackupRegistryTest {
         check(BackupRegistry.SCOOTER_PREFERENCES.equals(BackupRegistry.category("control_evidence","p")),"control evidence travels with Scooter preferences");
         check(BackupRegistry.RIDES.equals(BackupRegistry.root("files/rides"))&&BackupRegistry.HISTORY.equals(BackupRegistry.root("databases/telemetry-history.db"))&&BackupRegistry.root("files/pending-export-123")==null&&BackupRegistry.root("cache/map-tiles")==null,"storage roots are classified");
         check(BackupRegistry.root("no_backup/compat-tests")==null&&BackupRegistry.root("no_backup/compat-tests.tmp")==null,"guided-test records stay device-local (D4)");
+        check(BackupRegistry.root("no_backup/charge-evidence")==null&&BackupRegistry.root("no_backup/charge-evidence/0b0c5e9e-2d1f-4c3a-9a51-7f5b2e8d1c00.tmp")==null&&BackupRegistry.root("no_backup/command-events")==null,"report diagnostics stay device-local, never in a backup");
         checks++;try{BackupRegistry.root("files/surprise");throw new AssertionError("unclassified root accepted");}catch(IllegalArgumentException expected){}
     }
 
