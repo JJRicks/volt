@@ -66,7 +66,8 @@ final class JustBackFit {
 
     /**
      * How the height left between the ended line and the tiles is shared (any unit, px in JustBackView): the distance
-     * keeps its full box first and the route panel takes the rest; when that rest is under minRoute the panel goes
+     * keeps its full box first and the route panel takes the rest; when that rest is under minRoute the distance gets
+     * smaller (down to distanceFloor) so the route keeps minRoute; when even that does not fit, the panel goes
      * (0, with its gap) and the distance's box alone takes the room (its text at most full size, centred), down to
      * distanceFloor. Returns {distance box, route
      * panel, route gap}. So the fixed top area never overflows: on a short window with large text the route goes
@@ -75,6 +76,8 @@ final class JustBackFit {
     static int[] split(int room, int distanceFull, int distanceFloor, int minRoute, int routeGap) {
         int left = Math.max(0, room);
         if (left - distanceFull - routeGap >= minRoute) return new int[] {distanceFull, left - distanceFull - routeGap, routeGap};
+        // Short of that, the distance gets smaller (down to its floor) so the route keeps its least height.
+        if (left - distanceFloor - routeGap >= minRoute) return new int[] {left - routeGap - minRoute, minRoute, routeGap};
         // Without the route the distance's box takes all of it (its text stays at most full size, centred in the box),
         // so no blank band opens between the distance and the tiles.
         return new int[] {Math.max(Math.min(distanceFull, distanceFloor), left), 0, 0};

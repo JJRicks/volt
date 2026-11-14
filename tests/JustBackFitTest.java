@@ -84,11 +84,16 @@ public final class JustBackFitTest {
         int[] tiny = JustBackFit.split(10, 80, 46, minRoute, gap);
         require(tiny[0] == 46 && tiny[1] == 0, "never below the distance's floor");
         require(JustBackFit.split(-5, 80, 46, minRoute, gap)[0] == 46, "a negative room is none");
-        require(JustBackFit.split(80 + gap + 55, 80, 46, minRoute, gap)[1] == 0, "a route under 56 dp is not drawn");
-        require(JustBackFit.split(80 + gap + 56, 80, 46, minRoute, gap)[1] == 56, "56 dp is");
-        // 344x882 at 1.4x as measured on the emulator: about 44 dp would be left, too flat: the route goes.
-        require(JustBackFit.split(80 + gap + 44, 80, 46, minRoute, gap)[1] == 0 && JustBackFit.split(80 + gap + 44, 80, 46, minRoute, gap)[0] == 130,
-                "344x882 1.4x: no flat route; the distance's box takes the room, no blank band");
+        // Short of the full distance plus 56 dp, the distance gets smaller so the route keeps 56 dp.
+        int[] squeezed = JustBackFit.split(80 + gap + 55, 80, 46, minRoute, gap);
+        require(squeezed[1] == 56 && squeezed[0] == 79, "the distance gives 1 dp so the route keeps 56");
+        require(JustBackFit.split(80 + gap + 56, 80, 46, minRoute, gap)[1] == 56, "56 dp with the full distance");
+        // 344x882 at 1.4x as measured on the emulator: about 44 dp would be left beside the full distance.
+        int[] measured = JustBackFit.split(80 + gap + 44, 80, 46, minRoute, gap);
+        require(measured[1] == 56 && measured[0] == 68, "344x882 1.4x: the distance gets smaller, the route stays");
+        // Below the floor plus the route: the route goes and the distance's box takes the room (no blank band).
+        int[] none = JustBackFit.split(46 + gap + 55, 80, 46, minRoute, gap);
+        require(none[1] == 0 && none[0] == 107, "no room for both: the route goes, the box takes the room");
         for (int room = 0; room < 400; room++) {
             int[] r = JustBackFit.split(room, 80, 46, minRoute, gap);
             require(r[0] + r[1] + r[2] <= Math.max(room, 46), "never more than the room (or the floor): " + room);

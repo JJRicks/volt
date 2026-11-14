@@ -71,7 +71,8 @@ final class JustBackView extends LinearLayout {
         setOnClickListener(v -> { if (rideId != null) open.accept(rideId); });
 
         // The ended line centred over the distance, the X at the right on the same line. A line too long to stay
-        // centred clear of the X (large text, long languages) starts at the left edge instead of being cut early.
+        // centred clear of the X (large text, long languages) starts at the left edge, on two lines if it must, instead
+        // of being cut early.
         first = new FrameLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) saved.getLayoutParams();
@@ -79,6 +80,10 @@ final class JustBackView extends LinearLayout {
                 boolean centred = saved.getPaint().measureText(String.valueOf(saved.getText())) <= room;
                 int start = centred ? x : 0;
                 if (size.getMarginStart() != start) size.setMarginStart(start);
+                // Still too long beside the X: a second line rather than an early cut.
+                boolean one = centred || saved.getPaint().measureText(String.valueOf(saved.getText())) <= room + x;
+                if (saved.getMaxLines() != (one ? 1 : 2)) saved.setMaxLines(one ? 1 : 2);
+                saved.setGravity(centred ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL);
                 super.onMeasure(widthSpec, heightSpec);
             }
         };
