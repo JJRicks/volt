@@ -46,7 +46,22 @@ The done page reminds the owner that the key is only on this phone and to back V
   - the identity parser reads each key back unchanged as an owner (role 0), and the owner check carries it as bytes 7 to 12 of a 17-byte `0x30` frame with role 0;
   - the removal rules above, including "accepted, later refused: kept".
 - `bash build.sh`; `python3 tools/l10n/gen_catalog.py --check`; `python3 tools/l10n/ship_check.py --aapt required`.
-- **Emulator:** renders of the route list, the new-key page, the refusal and the done note, at a normal phone size and on an unfolded Fold. A real owner check needs a scooter, so the emulator can't show acceptance.
+- **Emulator:** `NewOwnerKeyValidation`, 51 assertions, passed at each of:
+  - 412 × 915 dp, dark and light;
+  - 412 × 915 dp at 130% system text;
+  - 344 × 882 dp (Fold cover screen);
+  - 673 × 841 dp (unfolded Fold);
+  - 725 × 604 dp, light, at 140% app text.
+
+  It drives the real setup screens and stores on a disposable emulator with Bluetooth off:
+  - the new route sits second, after the recommended one, and the new-key page makes nothing;
+  - Continue makes one key of the right shape, marks it sent at Connect, and Back and Continue reuse it;
+  - the owner check's rejection, injected into the real connection controller, shows the refusal, and **Set up another way** deletes that key;
+  - after a timeout, the key stays and **Set up another way** is hidden;
+  - a typed key saved afterwards leaves the made key in place, and coming back to the new route reuses the made key and drops the typed one;
+  - the done page shows the backup note above **Back up Volt**.
+
+  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding. The release sweep now runs this harness at each of its sizes.
 - **Physical:** none yet.
 
 ## Hardware test plan (UT5 MAX)

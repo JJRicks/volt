@@ -1244,13 +1244,14 @@ public final class OnboardingScreen implements AppScreen {
         String name = nameField == null ? "" : nameField.getText().toString().trim();
         try {
             ScooterProfiles.Profile profile = generatedProfile();
+            // A profile this flow made from a typed key goes, as saveIdentity replaces it; never an owner's own, and
+            // never the made key itself (a typed key saved after a made key was kept leaves both).
+            ScooterProfiles.Profile earlier = find(store, prefs.getString(KEY_CREATED, ""));
+            if (earlier != null && (profile == null || !earlier.id.equals(profile.id))) store.remove(earlier.id);
             if (profile != null) {
                 if (!name.isEmpty()) { profile.name = name; profile.nameDefault = false; }
                 store.update(profile); store.select(profile.id);
             } else {
-                // A profile this flow made from a typed key goes, as saveIdentity replaces it; never an owner's own.
-                ScooterProfiles.Profile earlier = find(store, prefs.getString(KEY_CREATED, ""));
-                if (earlier != null) store.remove(earlier.id);
                 profile = store.create(name, NewOwnerKey.generate(), 0);
                 prefs.edit().putString(KEY_GENERATED, profile.id).remove(KEY_GENERATED_SENT).apply();
             }
