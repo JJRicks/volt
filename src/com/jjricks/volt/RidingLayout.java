@@ -202,7 +202,11 @@ final class RidingLayout {
                 spot("tile_1", Kind.TILE, BATTERY),
                 spot("tile_2", Kind.TILE, TRIP),
                 spot("tile_3", Kind.TILE, RIDE_TIME),
-                spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE)},
+                spot("tile_4", Kind.TILE, BATTERY_TEMPERATURE),
+                // Up to three chips beside the speed (a tester, Nov 14), none by default, so Focus looks as it did.
+                spot("chip_1", Kind.CHIP, NONE),
+                spot("chip_2", Kind.CHIP, NONE),
+                spot("chip_3", Kind.CHIP, NONE)},
                 new String[]{POWER_BAR, TENTHS}, new boolean[]{true, true}));
         // Halo (concept-a-halo): speed in the ring, range under it, two tiles, a strip and chips.
         FRAME_DEFS.put(HALO, new Frame(HALO, new Spot[]{
@@ -227,7 +231,9 @@ final class RidingLayout {
                 spot("tile_2", Kind.TILE, BATTERY),
                 spot("trace", Kind.TRACE, TRACE_SPEED_POWER),
                 spot("chip_1", Kind.CHIP, DRIVE_MODE),
-                spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE)},
+                spot("chip_2", Kind.CHIP, BATTERY_TEMPERATURE),
+                // A third chip under the two (a tester, Nov 14), none by default, so Trace looks as it did.
+                spot("chip_3", Kind.CHIP, NONE)},
                 new String[]{POWER_BAR, CHIPS, TENTHS}, new boolean[]{true, true, true}));
     }
 

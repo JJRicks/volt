@@ -346,7 +346,7 @@ final class RidingScreen implements AppScreen {
             // Speed and the power readout share the left column, so each reading on the right keeps a large number.
             LinearLayout out = row();
             LinearLayout speed = column();
-            speed.addView(big, new LinearLayout.LayoutParams(-1, 0, 2.3f));
+            speed.addView(focusHead(), new LinearLayout.LayoutParams(-1, 0, 2.3f));
             divider(speed);
             speed.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1f));
             out.addView(speed, new LinearLayout.LayoutParams(0, -1, 1.1f));
@@ -362,7 +362,7 @@ final class RidingScreen implements AppScreen {
             return out;
         }
         LinearLayout readings = column();
-        readings.addView(big, new LinearLayout.LayoutParams(-1, 0, 3.4f));
+        readings.addView(focusHead(), new LinearLayout.LayoutParams(-1, 0, 3.4f));
         divider(readings);
         readings.addView(highlight, new LinearLayout.LayoutParams(-1, 0, 1.5f));
         divider(readings);
@@ -372,6 +372,25 @@ final class RidingScreen implements AppScreen {
         divider(readings);
         readings.addView(stoppedOver(power, false), new LinearLayout.LayoutParams(-1, 0, 1.3f));
         return readings;
+    }
+
+    /**
+     * Focus's big number, with the chips the rider picked for beside it stacked at its side (a tester, Nov 14). With
+     * every one None, as by default, it's the big number alone, as it always was.
+     */
+    private View focusHead() {
+        List<String> spots = filled(RidingFrames.FOCUS_CHIPS);
+        if (spots.isEmpty()) return big;
+        LinearLayout head = row();
+        head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
+        LinearLayout beside = new ChipColumn(big);
+        beside.setGravity(Gravity.END | Gravity.TOP);
+        // The column sets each chip's top gap by what's shown (fitColumn).
+        for (String spot : spots) beside.addView(chip(spot), new LinearLayout.LayoutParams(-2, -2));
+        LinearLayout.LayoutParams besideSize = new LinearLayout.LayoutParams(-2, -1);
+        besideSize.setMarginStart(ui.dp(10));
+        head.addView(beside, besideSize);
+        return head;
     }
 
     /**
@@ -461,7 +480,7 @@ final class RidingScreen implements AppScreen {
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
         List<String> besideSpots = filled(RidingFrames.TRACE_CHIPS);
         if (layout.on(RidingLayout.CHIPS) && !besideSpots.isEmpty()) {
-            LinearLayout beside = new ChipColumn();
+            LinearLayout beside = new ChipColumn(null);
             beside.setGravity(Gravity.END | Gravity.TOP);
             // The column sets each chip's top gap by what's shown (fitColumn).
             for (int i = 0; i < besideSpots.size(); i++)
@@ -1884,16 +1903,36 @@ final class RidingScreen implements AppScreen {
         private float top(float w, float h) {
             if (growSamples == null || growSamples.isEmpty()) return maxPx;
             if (topPx > 0 && topW == w && topH == h) return topPx;
-            float unitShare = unitBelow ? .30f : .42f, fractionShare = .46f;
             // Measured in figures of one width, as a grown number draws, so no time of day or reading is wider than these.
+            float[] per = perPx(growSamples, "tnum");
+            topPx = RidingHighlightSize.px(per[0], per[1], w - ui.dp(2), h - ui.dp(4), maxPx, growCapPx);
+            topW = w;
+            topH = h;
+            return topPx;
+        }
+        /**
+         * The widest of samples' width, px, at the size this number draws in its height (never past maxPx; maxPx before
+         * it has a height): what chips beside it must leave it (Focus).
+         */
+        float widestWidth(List<Shown> samples) {
+            if (samples == null || samples.isEmpty()) return 0;
+            boolean grows = growSamples != null && !growSamples.isEmpty();
+            float[] per = perPx(samples, grows ? "tnum" : big.getFontFeatureSettings());
+            float size = maxPx;
+            if (getHeight() > 0) size = Math.min(size, (getHeight() - ui.dp(4)) / Math.max(1e-3f, per[1]));
+            return per[0] * size + ui.dp(2);
+        }
+        /** The widest sample's width and the tallest's height per px of number size, drawn with these font features. */
+        private float[] perPx(List<Shown> samples, String features) {
+            float unitShare = unitBelow ? .30f : .42f, fractionShare = .46f;
             Paint b = new Paint(big), u = new Paint(small), f = new Paint(big);
-            b.setFontFeatureSettings("tnum");
-            f.setFontFeatureSettings("tnum");
+            b.setFontFeatureSettings(features);
+            f.setFontFeatureSettings(features);
             b.setTextSize(100);
             u.setTextSize(100 * unitShare);
             f.setTextSize(100 * fractionShare);
             float widest = 0, tallest = 0;
-            for (Shown s : growSamples) {
+            for (Shown s : samples) {
                 float suffixWidth = u.measureText(s.suffix, 0, s.suffix.length());
                 boolean spaced = s.suffix.length() > 0 && Character.isLetter(s.suffix.charAt(0));
                 float width = u.measureText(s.prefix, 0, s.prefix.length()) + b.measureText(s.main, 0, s.main.length())
@@ -1903,10 +1942,7 @@ final class RidingScreen implements AppScreen {
                 widest = Math.max(widest, width / 100);
                 tallest = Math.max(tallest, height / 100);
             }
-            topPx = RidingHighlightSize.px(widest, tallest, w - ui.dp(2), h - ui.dp(4), maxPx, growCapPx);
-            topW = w;
-            topH = h;
-            return topPx;
+            return new float[]{widest, tallest};
         }
         /** Figures of one width for the clock with seconds, and for any number drawn larger than its designed size. */
         private void figures(float w, float h) {
@@ -2292,19 +2328,34 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Trace's chips, stacked beside the big number (fitColumn). They take at most CHIP_COLUMN_SHARE of the row, so a long
+     * Chips stacked beside the big number (fitColumn). Trace's take at most CHIP_COLUMN_SHARE of the row, so a long
      * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
      * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
-     * A column too short for every chip shows the first ones that fit.
+     * Focus's (against its big number) take what the speed's widest value leaves at the size it draws. A column too short
+     * for every chip shows the first ones that fit.
      */
     private final class ChipColumn extends LinearLayout {
-        ChipColumn() {
+        /** The big number the column sits beside and must leave room for (Focus); null for Trace's share. */
+        private final Cell against;
+        /** The big number's height the room was worked out with. */
+        private int againstHeight = -1;
+        ChipColumn(Cell against) {
             super(host.activity());
+            this.against = against;
             setOrientation(VERTICAL);
+        }
+        @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
+            super.onLayout(changed, l, t, r, b);
+            // The big number is laid out first in the row: once its height is known, or changes, work the room out again.
+            if (against != null && against.number.getHeight() != againstHeight) post(this::requestLayout);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int room = Integer.MAX_VALUE;
-            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && against != null) {
+                againstHeight = against.number.getHeight();
+                float speed = against.number.widestWidth(widest(against.content, units()));
+                room = Math.max(0, MeasureSpec.getSize(widthSpec) - (int) Math.ceil(speed));
+            } else if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 int size = MeasureSpec.getSize(widthSpec);
                 room = (int) (size * CHIP_COLUMN_SHARE);
                 for (int i = 0; i < getChildCount(); i++) {
