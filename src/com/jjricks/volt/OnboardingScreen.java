@@ -1484,11 +1484,15 @@ public final class OnboardingScreen implements AppScreen {
 
     private void done() {
         scaffold(false);
-        content.addView(new Hero(true), new LinearLayout.LayoutParams(-1, ui.dp(250)));
+        ScooterProfiles.Profile p = onboardingProfile();
+        boolean madeKey = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
+        // A made key pins its note and Back up Volt above Go to Home, so in a short window the hero gives up height
+        // (at most a third of the window) to keep the heading above them. Taller windows keep the full hero.
+        int hero = madeKey ? Math.min(250, host.activity().getResources().getConfiguration().screenHeightDp / 3) : 250;
+        content.addView(new Hero(true), new LinearLayout.LayoutParams(-1, ui.dp(hero)));
         View gap = new View(host.activity());
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
         heading(T.onboardingDoneTitle(), true, true);
-        ScooterProfiles.Profile p = onboardingProfile();
         paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.displayName()), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
@@ -1501,7 +1505,7 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2); bp.bottomMargin = ui.dp(10);
         // A key Volt made exists only on this phone, so the backup matters more than usual: say why, above the button,
         // and pin both above Go to Home so neither scrolls out of sight in a short window or at large text.
-        if (NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p)) {
+        if (madeKey) {
             TextView note = ui.text(T.onboardingDoneNewKeyNote(), 13, false);
             note.setTextColor(ui.muted); note.setLineSpacing(ui.dp(2), 1); note.setGravity(Gravity.CENTER_HORIZONTAL);
             LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.topMargin = ui.dp(6); np.bottomMargin = ui.dp(12);
