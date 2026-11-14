@@ -2892,7 +2892,7 @@ final class RidingScreen implements AppScreen {
             // A mode chip with no mode would be an empty red badge: it steps aside until the scooter says.
             boolean want = !(mode && s.spoken == null);
             if (want != wanted) { wanted = want; requestLayout(); }
-            if (!(getParent() instanceof ChipRow) && !(getParent() instanceof ChipColumn)) {
+            if (!(getParent() instanceof ChipRow) && !(getParent() instanceof ChipColumn) && !(getParent() instanceof ChipLine)) {
                 int visible = want ? VISIBLE : GONE;
                 if (getVisibility() != visible) setVisibility(visible);
             }
