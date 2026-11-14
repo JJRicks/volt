@@ -220,6 +220,17 @@ public final class ChargingFitTest {
             require(!t.plan.photo() || t.plan.track, "stacked tiles: no photo without the track, at " + inner + ": " + t.plan);
             last = now;
         }
+        // Council review 5904426594, finding 2: readings 230 px, percentage 98 px; the slot going from 231 to 230 to 229 px
+        // never makes the number bigger (it was 0.3 at 230 and full size at 229).
+        float before = 1;
+        for (int inner = 240; inner >= 220; inner--) {
+            Case t = new Case("readings 230, inner " + inner, inner, 20, 20, 98, 230);
+            sound(t);
+            float now = t.plan.percent ? t.plan.percentScale : 0;
+            require(now <= before + 1e-6f && now <= ChargingFit.PERCENT_TINY_SCALE, "readings 230 px: no jump at " + inner + ": " + t.plan);
+            require(t.plan.readings && !t.plan.photo() && !t.plan.track, "readings 230 px: the readings alone under it at " + inner + ": " + t.plan);
+            before = now;
+        }
         // A model with no photo: the percentage and the track are centred together in the stage (finding 9).
         require(ChargingFit.noPhotoTop(200, 70, 19) == 55 && ChargingFit.noPhotoTop(89, 70, 19) == 0 && ChargingFit.noPhotoTop(50, 70, 19) == 0,
                 "no photo: the percentage and the track centred in the stage, never above its top");
