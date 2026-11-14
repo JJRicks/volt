@@ -41,6 +41,12 @@ public final class DashboardScreen implements AppScreen {
         /** Opens the connection dialog (details plus Connect or Disconnect). */
         void connectionDetails();
 
+        /** Find it nearby (FindNearby): the scan sheet in find mode for the active scooter. */
+        default void findNearby() { }
+
+        /** Whether Home offers Find it nearby now (FindNearby.offerHome, and no recording). */
+        default boolean findNearbyOffered() { return false; }
+
         /** Clean Home's search button. */
         default void openSearch() { }
 
@@ -80,6 +86,9 @@ public final class DashboardScreen implements AppScreen {
     private final TextView status, profileName;
     private final View add, layoutButton;
     private final ChargingHero chargingHero;
+    /** Home's Find it nearby card (FindNearby, entry A), under the header; hidden unless offered. */
+    private LinearLayout findCard;
+    private TextView findText;
     private final Context dialogContext;
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
@@ -221,6 +230,10 @@ public final class DashboardScreen implements AppScreen {
         view.addView(tools);
         chargingHero = new ChargingHero(false);
         view.addView(chargingHero, new LinearLayout.LayoutParams(-1, -2));
+        findCard = newFindCard();
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.bottomMargin = ui.dp(12);
+        view.addView(findCard, findSize);
         grid = new Grid();
         view.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         render();
@@ -253,7 +266,40 @@ public final class DashboardScreen implements AppScreen {
         status = statusLine();
         profileName = nameLine();
         chargingHero = new ChargingHero(true);
+        findCard = newFindCard();
     }
+
+    /**
+     * Find it nearby (entry A): a card with what happened and a secondary button that opens the scan sheet in find mode.
+     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address, nothing else going on).
+     */
+    private LinearLayout newFindCard() {
+        TextView words = ui.text("", 14, false);
+        findText = words;
+        LinearLayout card = column();
+        card.setTag(FIND_CARD);
+        card.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
+        card.setBackground(ui.shape(ui.surface, 18, ui.outline));
+        LinearLayout line = row();
+        line.setGravity(Gravity.CENTER_VERTICAL);
+        line.addView(ui.icon("bluetooth", 18, ui.orange), new LinearLayout.LayoutParams(ui.dp(18), ui.dp(18)));
+        words.setTextColor(ui.text);
+        LinearLayout.LayoutParams wordsSize = new LinearLayout.LayoutParams(0, -2, 1);
+        wordsSize.setMarginStart(ui.dp(12));
+        line.addView(words, wordsSize);
+        card.addView(line, new LinearLayout.LayoutParams(-1, -2));
+        TextView find = ui.secondaryButton(T.dashboardFindNearby(), () -> { if (!editing) actions.findNearby(); });
+        ui.decorate(find, "search");
+        find.setTag(FIND_BUTTON);
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.topMargin = ui.dp(12);
+        card.addView(find, findSize);
+        card.setVisibility(View.GONE);
+        return card;
+    }
+
+    /** Home's Find it nearby card and its button (view tags). */
+    static final String FIND_CARD = "home_find_nearby", FIND_BUTTON = "home_find_nearby_button";
 
     /** Clean Home's parts, from a parts-only instance (see the constructor above). */
     static CleanParts cleanParts(ScreenHost host, Actions actions) {
@@ -325,6 +371,8 @@ public final class DashboardScreen implements AppScreen {
 
         TextView status() { return status; }
         TextView name() { return profileName; }
+        /** Find it nearby's card (entry A); refresh() shows it only while it is offered. */
+        View findCard() { return findCard; }
         View overview() { return overview; }
         View chargingView() { return chargingHero; }
 
@@ -965,6 +1013,9 @@ public final class DashboardScreen implements AppScreen {
         // Keep the same age reference while editing even though its status line is hidden.
         // Revealing duplicate card footers would resize their content beneath the edit handles.
         headerSeenMs = !ready && !connecting ? lastConnected : 0;
+        boolean find = !editing && profile != null && actions.findNearbyOffered();
+        if (find) findText.setText(T.dashboardFindNearbyText(profile.shownName()));
+        findCard.setVisibility(find ? View.VISIBLE : View.GONE);
         // Done, undo/redo, the jiggle and the edit tools already show edit mode.
         status.setVisibility(editing ? View.GONE : View.VISIBLE);
         if (editing) {

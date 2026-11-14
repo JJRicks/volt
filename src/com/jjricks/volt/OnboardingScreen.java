@@ -317,7 +317,7 @@ public final class OnboardingScreen implements AppScreen {
             case CONNECT:
                 stopConnecting();
                 go(hasPermission() ? importStep() : NEARBY); return true;
-            case DONE: finish(false); return true;
+            case DONE: home(); return true;
             default: go(step - 1); return true;
         }
     }
@@ -517,6 +517,7 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     private void finish(boolean skipped) {
+        homeFor = null;
         prefs.edit().clear().putBoolean(KEY_DONE, true).commit();
         closed = true;
         if (identityField != null) identityField.setText("");
@@ -1622,8 +1623,69 @@ public final class OnboardingScreen implements AppScreen {
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10);
             group.addView(revoke, rp);
         }
-        primary(T.onboardingDoneHome(), () -> finish(false));
+        homeButton = primary(T.onboardingDoneHome(), this::home);
+        homeSpinner = null;
+        updaters.add(this::homeCheck);
     }
+
+    /**
+     * Go to Home, and Back on this page. Finishing clears setup's preferences, and with them what a made key's popup
+     * needs, so a popup that may still be owed comes first (MadeKeyPrompt.home): before the service binds (Volt
+     * reopened with the popup due, or back from a cancelled save) Go to Home waits for the profile with a spinner,
+     * then shows the popup if it is due and finishes once it's dismissed, or finishes at once if it isn't. If the
+     * profile doesn't load in a few seconds it finishes as it does with no profile. Only setup's preferences go then:
+     * the made key's records (madeKeys) and its profile stay.
+     */
+    private void home() {
+        if (closed) return;
+        homeFor = prefs.getString(KEY_GENERATED, "");
+        homeCheck();
+    }
+
+    /** Carries out a Go to Home that is waiting (home()): on every refresh, and again when its wait runs out. */
+    private void homeCheck() {
+        if (closed || step != DONE || homeFor == null) return;
+        String generated = prefs.getString(KEY_GENERATED, "");
+        if (!homeFor.equals(generated)) { homeFor = null; return; }
+        // The popup is up: its dismissal finishes setup (dismissKeyPrompt).
+        if (keyPrompt != null && keyPrompt.isShowing()) return;
+        ScooterProfiles store = profiles();
+        boolean due = store != null && !keyPromptDismissed && keyPromptDue(onboardingProfile());
+        boolean owed = MadeKeyPrompt.mayBeOwed(NEW_KEY.equals(path()), generated,
+                prefs.getString(MadeKeyPrompt.SHOWN, null), keyPromptDismissed);
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (homeWaitStart == 0) homeWaitStart = now;
+        root.removeCallbacks(homeRecheck);
+        switch (MadeKeyPrompt.home(store != null, due, owed, now - homeWaitStart)) {
+            case MadeKeyPrompt.HOME_WAIT:
+                if (homeSpinner == null && homeButton != null) homeSpinner = spinnerOn(homeButton);
+                if (homeSpinner != null) homeSpinner.setVisibility(View.VISIBLE);
+                if (homeButton != null) homeButton.setEnabled(false);
+                root.postDelayed(homeRecheck, Math.max(50, MadeKeyPrompt.HOME_WAIT_MS - (now - homeWaitStart)));
+                return;
+            case MadeKeyPrompt.HOME_AFTER_PROMPT:
+                if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
+                if (homeButton != null) homeButton.setEnabled(true);
+                keyPrompt();
+                // Never stranded: a popup that didn't come up leaves Go to Home to finish.
+                if (keyPrompt != null && keyPrompt.isShowing()) return;
+                finish(false);
+                return;
+            default:
+                finish(false);
+        }
+    }
+
+    /**
+     * The made key (KEY_GENERATED) whose setup Go to Home is finishing (home()), or null. Static: when the service
+     * binds, the activity draws a new setup screen, which carries the tap on; finish() clears it.
+     */
+    private static String homeFor;
+    /** When this screen's Go to Home began waiting for the profile (elapsedRealtime), or 0. */
+    private long homeWaitStart;
+    private TextView homeButton;
+    private View homeSpinner;
+    private final Runnable homeRecheck = () -> { if (!closed) homeCheck(); };
 
     // ---------------------------------------------------------------- write down your owner key
 
@@ -1635,9 +1697,14 @@ public final class OnboardingScreen implements AppScreen {
         if (closed || step != DONE || keyPromptDismissed) return;
         if (keyPrompt != null) { if (keyPromptUpdate != null) keyPromptUpdate.run(); return; }
         ScooterProfiles.Profile p = onboardingProfile();
-        boolean made = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
-        if (p == null || !MadeKeyPrompt.due(made, p.id, p.identity, p.mac, prefs.getString(MadeKeyPrompt.SHOWN, null))) return;
+        if (!keyPromptDue(p)) return;
         showKeyPrompt(p.id, p.identity);
+    }
+
+    /** MadeKeyPrompt.due for setup's profile (null before the service binds: not due yet). */
+    private boolean keyPromptDue(ScooterProfiles.Profile p) {
+        boolean made = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
+        return p != null && MadeKeyPrompt.due(made, p.id, p.identity, p.mac, prefs.getString(MadeKeyPrompt.SHOWN, null));
     }
 
     private void showKeyPrompt(String profileId, String identity) {
@@ -1664,10 +1731,7 @@ public final class OnboardingScreen implements AppScreen {
         card.addView(write, lp);
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.topMargin = ui.dp(16);
         words.addView(card, cp);
-        // The words scroll in a short window or at large text; the buttons stay pinned below them.
-        ScrollView scroll = new ScrollView(c);
-        scroll.addView(words);
-        box.addView(scroll, new LinearLayout.LayoutParams(-1, -2, 1));
+        box.addView(words);
         // The save Forget's "Save backup first" uses: Back up with Scooters & setup keys, which KeyBackups records
         // once its file is saved, and which setup's Restore a backup reads back.
         TextView save = ui.button(T.onboardingKeySave(), () -> host.dataBackup(false, BackupRegistry.SCOOTERS));
@@ -1675,7 +1739,12 @@ public final class OnboardingScreen implements AppScreen {
         ui.decorate(save, "download");
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
         box.addView(save, sp);
-        AlertDialog dialog = new AlertDialog.Builder(c).setView(box).create();
+        // One scroll for the whole popup, buttons below the key: when it fits, nothing moves; in a short window or at
+        // large text the buttons scroll with the words, so they can never squeeze the key out of sight, and the key
+        // is always on screen or a scroll away before Done (or Back) can close the popup.
+        ScrollView scroll = new ScrollView(c);
+        scroll.addView(box);
+        AlertDialog dialog = new AlertDialog.Builder(c).setView(scroll).create();
         long shownAt = android.os.SystemClock.elapsedRealtime();
         boolean[] saved = {false};
         // A disabled button takes no tap, but a click can still reach it another way (performClick): it waits too.
@@ -1732,6 +1801,8 @@ public final class OnboardingScreen implements AppScreen {
         keyPromptDismissed = true;
         prefs.edit().putString(MadeKeyPrompt.SHOWN, profileId).commit();
         dialog.dismiss();
+        // A Go to Home that waited for this popup finishes now (home()).
+        if (!closed && homeFor != null && homeFor.equals(prefs.getString(KEY_GENERATED, ""))) finish(false);
     }
 
     /** A backup holding this key reached its file on this phone (KeyBackups), the record Forget's guard reads. */

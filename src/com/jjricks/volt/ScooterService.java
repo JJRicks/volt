@@ -1978,7 +1978,7 @@ public final class ScooterService extends Service {
         if(maintenance!=null)maintenance.forget(id);
         if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?null:forgotten.serial);
         forgetEvidence(id);
-        if(current)ble.profileSelected();
+        if(current)ble.scooterSwitched();
     }
     /**
      * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
