@@ -187,7 +187,7 @@ public final class HubValidation extends Instrumentation {
             for (String child : children(subject)) {
                 reach(child, Arrays.asList("hub-link-" + child, "hub-row-" + child));
                 arrived(child, HubPages.HOME, subject, child);
-                tapTag("hub-back");
+                HubTestPages.back(this, activity);
                 arrived(subject, HubPages.HOME, subject);
             }
             systemBack();
@@ -207,7 +207,7 @@ public final class HubValidation extends Instrumentation {
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
-        tapTag("hub-back");
+        HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
         for (String page : mayRoute) require(routed.contains(page), page + " is listed as routed for model \"" + simulatedModel + "\" but the walk never reached it");
@@ -274,7 +274,7 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText("batt")); settle();
         hideKeyboard();
-        tapTag("hub-back");
+        HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once");
