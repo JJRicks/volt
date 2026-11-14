@@ -333,11 +333,14 @@ public final class HubText {
     }
 
     /**
-     * The one short name an action shows under its round button on Clean Home, in Settings › Home style's Quick actions
-     * line and in the Home style pictures (the contributor's decisions on #383: one short name on one line; "Ride", not
-     * "RIDE"; "Charge by" for Charge done by, round 3). Clean's own actions (HomeQuickActions) and the catalog's Charge
-     * done by and controls (QuickAccessActions ids, a control as FEATURE_PREFIX + its feature key) that have a round
-     * name; null for any other action (QuickAccessGrid then picks its short rung). Its spoken name stays the full one.
+     * The one short name an action tries first under its round button on Clean Home, in Settings › Home style's Quick
+     * actions line and in the Home style pictures (the contributor's decisions on #383: one short name on one line; "Ride",
+     * not "RIDE"; "Charge by" for Charge done by, round 3). Ride is named as riding by the Ride controls group's name
+     * ("Ride", "Fahren", "Condução"), not the Ride subject's short title, which some languages give as the rides list
+     * ("Fahrten", "Viagens"); Record, Alerts, Charge done by and the controls by part 10's own keys (QuickAccessActions
+     * ids, a control as FEATURE_PREFIX + its feature key). Null for any other action. QuickAccessGrid.roundNames tries it
+     * first, then the existing names (quickActionExistingRoundName, Live Stats' and the short rungs) where it does not fit
+     * whole at full size. Its spoken name stays the full one.
      */
     public static Msg quickActionRoundName(String id) {
         if (id == null) return null;
@@ -352,12 +355,23 @@ public final class HubText {
             }
         }
         switch (id) {
-            case HomeQuickActions.RIDING: return M.hubQaRideRound();
+            case HomeQuickActions.RIDING: return ScooterCommands.groupLabel(ScooterCommands.GROUP_RIDE);
             case HomeQuickActions.RECORD: return M.hubQaRecordRound();
             case HomeQuickActions.CHARGE_ALERTS: return M.hubQaAlertsRound();
             case "charge_done_by": return M.hubQaChargeDoneByRound();
             default: return null;
         }
+    }
+
+    /**
+     * The already-translated name one of Clean's own quick actions falls back to under its circle (#449): Ride as the
+     * Ride controls group's name, Record and Alerts by their short rungs; null for any other action, whose fallbacks
+     * QuickAccessGrid.roundNames takes from Live Stats and the catalog's short rungs.
+     */
+    public static Msg quickActionExistingRoundName(String id) {
+        if (HomeQuickActions.RIDING.equals(id)) return ScooterCommands.groupLabel(ScooterCommands.GROUP_RIDE);
+        if (HomeQuickActions.RECORD.equals(id) || HomeQuickActions.CHARGE_ALERTS.equals(id)) return quickActionShortLabel(id);
+        return null;
     }
 
     /** Between the names of a short list on one line: Settings › Home style's Quick actions ("Ride, Record, Charge by, Cruise"). */

@@ -68,6 +68,10 @@ final class BackupRegistry {
         // Record charges automatically: the switch travels; a hand stop's hold belongs to this phone and the charge it was in.
         add(app, ChargeAutoRecordPolicy.KEY, Boolean.class, PREFERENCES);
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
+        // An owner release that wasn't confirmed (ReleaseHolds): the scooters held from reconnecting and the questions
+        // still owed belong to this phone. Never exported; a restore keeps this phone's, so it never creates or ends one.
+        exclude(app, ReleaseHolds.HELD, Set.class, DEVICE);
+        exclude(app, ReleaseHolds.OWED, Set.class, DEVICE);
         add(app, "ride_auto_export_route_csv", Boolean.class, PREFERENCES);
         add(app, "ride_auto_export_json", Boolean.class, PREFERENCES);
         exclude(app, "ride_auto_export_folder", String.class, PERMISSION);
@@ -154,6 +158,16 @@ final class BackupRegistry {
         // a restored copy could repeat or silence the next reminder.
         prefix(app, "maintenance_v1_", String.class, SCOOTER_PREFERENCES, true);
         RULES.add(new Rule(app, "maintenance_seen_", true, String.class, null, DEVICE, true, false, false));
+        // Which owner keys a backup saved on this phone holds (KeyBackups): only this phone knows the file exists.
+        RULES.add(new Rule(app, KeyBackups.PREFIX, true, String.class, null, DEVICE, true, false, false));
+        // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, travel with its profile, as
+        // its key does. BackupArchive restores it with the profile it describes, never loosening this phone's record.
+        prefix(app, NewOwnerKey.PREFIX, String.class, SCOOTERS, true);
+        // Each scooter's lifetime odometer record (OdometerCarry): what it last read and what a reset carried over travel
+        // with the profile. BackupArchive restores it onto the same profile ID only, keeping the record read more recently.
+        prefix(app, OdometerCarry.PREFIX, String.class, SCOOTERS, true);
+        // A forgotten scooter's odometer record, kept by serial for setting it up again (OdometerCarry.Keeper.forget): only this phone.
+        RULES.add(new Rule(app, OdometerCarry.KEPT_PREFIX, true, String.class, null, DEVICE, false, false, false));
         RULES.add(new Rule(app, "dashboard_restore_undo_v1_", true, String.class, null, "Short-lived undo; removed when that scooter's dashboard is restored", true, false, false));
         exclude(app, "notification_prompted", Boolean.class, PERMISSION);
         exclude(app, "owner_import_applied", String.class, PENDING);
@@ -176,6 +190,10 @@ final class BackupRegistry {
         for (String key : "rerun import_failed connect_requested connect_tried".split(" ")) exclude("onboarding", key, Boolean.class, WIZARD);
         exclude("onboarding", "nearby_asked", Boolean.class, PERMISSION);
         exclude("onboarding", "step", Integer.class, WIZARD);
+        // Setup's own owner key (Make a new owner key): which profile holds it, so Back and Continue reuse it.
+        exclude("onboarding", "generated_profile_id", String.class, WIZARD);
+        // Whose made key "Write down your owner key" has shown (MadeKeyPrompt.SHOWN), so it shows once.
+        exclude("onboarding", "made_key_shown", String.class, WIZARD);
         for (String key : "path profile_id created_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
         // The Home style picked on setup's last step, until setup finishes (OnboardingScreen.KEY_HOME_STYLE).
         exclude("onboarding", "home_style_pick", String.class, WIZARD);

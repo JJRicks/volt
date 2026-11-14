@@ -89,7 +89,12 @@ public final class DisplayUnits {
     static String lockStateText(ScooterCommands.Feature feature, int value, String language) {
         if (!"tr".equals(language) && !"pl".equals(language)) return null;
         if (!feature.key.equals("lock") || (value != 0 && value != 1)) return null;
-        return value == 1 ? T.mainLockLocked() : T.mainLockUnlocked();
+        return lockWord(value == 1);
+    }
+
+    /** The lock's state word, "Locked" or "Unlocked" (the Home lock row's), in the shown language. */
+    public static String lockWord(boolean locked) {
+        return locked ? T.mainLockLocked() : T.mainLockUnlocked();
     }
 
     /**

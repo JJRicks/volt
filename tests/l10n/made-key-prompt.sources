@@ -1,0 +1,7 @@
+# Write down your owner key (MadeKeyPrompt): when setup shows a made key, Done's wait, the written form, and that the
+# parser reads the written form back. tests/run.sh compiles every path listed in tests/l10n/*.sources.
+src/com/jjricks/volt/MadeKeyPrompt.java
+src/com/jjricks/volt/NewOwnerKey.java
+src/com/jjricks/volt/OwnerIdentityParser.java
+src/com/jjricks/volt/Protocol.java
+tests/l10n/MadeKeyPromptTest.java

@@ -39,6 +39,8 @@ public final class BackupActivity extends Activity {
     private ProgressBar progress;
     private boolean busy, terminal, restore, waitingForPicker, hasData, exportedComplete;
     private String preselect;
+    /** KeyBackups records of the backup being saved (key → fingerprint), written once its file is saved. */
+    private volatile Map<String,String> exportedKeys=Collections.emptyMap();
     private final LinkedHashMap<String,CheckBox> boxes=new LinkedHashMap<>();
     private Map<String,long[]> inventory;
     private Uri picked;
@@ -253,6 +255,8 @@ public final class BackupActivity extends Activity {
             File file=null;
             try{file=File.createTempFile("volt-encrypted-",".voltbackup",getCacheDir());
                 try(OutputStream out=new FileOutputStream(file)){AppDataBackup.write(this,out,secret,categories);}
+                Map<String,String> keys=categories.contains(BackupRegistry.SCOOTERS)?heldKeys():Collections.emptyMap();
+                runOnUiThread(()->exportedKeys=keys);
                 File ready=file;runOnUiThread(()->{if(isDestroyed()||isFinishing()){ready.delete();return;}exported=ready;busy=false;progress.setVisibility(View.GONE);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);launchSave();});
             }catch(Exception failure){if(file!=null)file.delete();show(()->{for(Map.Entry<String,CheckBox> e:boxes.entrySet())e.getValue().setEnabled(hasItems(e.getKey()));if(all!=null)all.setEnabled(true);retry(M.backupFailed());});}
             finally{Arrays.fill(secret,'\0');}
@@ -301,7 +305,18 @@ public final class BackupActivity extends Activity {
         try(OutputStream out=destination;InputStream in=new FileInputStream(ready)){
             if(out==null)throw new IOException();byte[] buffer=new byte[65536];int count;while((count=in.read(buffer))!=-1)out.write(buffer,0,count);out.flush();
         }catch(Exception failure){show(()->retry(M.backupSaveFailed()));return;}
-        ready.delete();show(()->{exported=null;done(M.backupSaved());});
+        ready.delete();recordKeys();show(()->{exported=null;done(M.backupSaved());});
+    }
+    /** The owner keys the backup being written holds; none if the saved scooters can't be read (the backup failed then too). */
+    private Map<String,String> heldKeys(){
+        try{return KeyBackups.held(AppDataBackup.localProfiles(this));}catch(IOException unreadable){return Collections.emptyMap();}
+    }
+    /** On the worker, once the backup's file is saved: Forget and Replace everything may now let these keys go (KeyBackups). */
+    private void recordKeys(){
+        Map<String,String> keys=exportedKeys;if(keys.isEmpty())return;long now=System.currentTimeMillis();
+        android.content.SharedPreferences.Editor edit=getSharedPreferences("app_settings",MODE_PRIVATE).edit();
+        for(Map.Entry<String,String> e:keys.entrySet())edit.putString(e.getKey(),KeyBackups.value(e.getValue(),now));
+        edit.commit();
     }
     /** A file refused before any password: a password step left from an earlier file would blame the password. */
     private void refuseFile(CharSequence message){if(password!=null)restoreForm();retry(message);}

@@ -168,11 +168,12 @@ final class QuickAccessGrid extends ViewGroup {
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             String shortValue = null;
+            Integer level = null, low = null;
             if (alerts) {
                 ChargeAlertPolicy.Settings alertSettings = service == null ? null : service.chargeAlerts();
-                Integer level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
+                level = ChargeAlertPolicy.shortcutLevel(!alertsMissing, alertSettings);
                 // The tile reflects both alerts: the charge alert's level while it is on, else the low alert's ("Low 20%").
-                Integer low = ChargeAlertPolicy.shortcutLow(!alertsMissing, alertSettings);
+                low = ChargeAlertPolicy.shortcutLow(!alertsMissing, alertSettings);
                 state = level == null ? NO_VALUE : low != null ? T.dashboardModelTileLowAt(T.fmtPercent(Fmt.integer(low)))
                         : level == 0 ? off : ChargeAlertPolicy.levelText(level);
                 featureLive = level != null;
@@ -180,8 +181,26 @@ final class QuickAccessGrid extends ViewGroup {
                 // an ellipsis (measureTile); the description keeps the full value.
                 if (level != null && low != null) shortValue = T.commonOn();
             }
+            // Clean's round circles that show a saved or last known state (QuickActionLayout): the lock (never guessed:
+            // an unread state has its own look), Battery alerts and an armed Charge done by (Volt's own saved settings,
+            // shown on and offline), and a control whose setting is not a plain on/off but has an Off (energy
+            // recovery's levels: on at any level but Off, the last known one dimmed). A direct on/off toggle is on only
+            // while it is switched on and live; a setting with no Off (a choice, a number, a time) keeps the plain circle.
+            QuickActionLayout.State look = null;
+            boolean isLock = feature != null && feature.key.equals("lock");
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
+            if (clean && isLock) look = QuickActionLayout.lock(unmapped || unreadable ? null : value, featureLive);
+            else if (clean && alerts) look = QuickActionLayout.alerts(level, low);
+            else if (clean && doneBy && charge != null && !unmapped) look = QuickActionLayout.schedule(charge.doneByEnabled, featureLive);
+            else if (clean && feature != null && !toggle && !feature.sensitive && !chargeControl
+                    && (feature.type == ScooterCommands.Type.CHOICE || feature.type == ScooterCommands.Type.TOGGLE)
+                    && feature.offValue() != null)
+                look = QuickActionLayout.setting(value, offValue(feature, decision), featureLive);
+            boolean lockUnknown = look != null && look.look == QuickActionLayout.Look.UNKNOWN;
+            // The lock's spoken state on Clean (its circle has no value line): Locked, Unlocked or Lock state unknown.
+            if (clean && isLock && !pending)
+                state = lockUnknown ? MainActivity.lockUnknownText() : DisplayUnits.lockWord(value == 1);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
             boolean selected = toggle && value != null && value == 1 && featureLive;
             if (tiles) {
@@ -232,9 +251,14 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.value.setTextColor(featureLive ? ui.text : ui.muted);
                 // A round action is filled while it is on: a control switched on, or Record while a ride records.
                 if (clean) selected |= HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording();
-                if (cell.isSelected() != selected) { cell.setSelected(selected); cell.updateBackground(); }
+                if (look != null) selected = look.look == QuickActionLayout.Look.ON;
+                if (cell.isSelected() != selected || cell.unknown != lockUnknown) {
+                    cell.setSelected(selected); cell.unknown = lockUnknown; cell.updateBackground();
+                }
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
                 if (alerts && !featureLive) cell.setAlpha(.65f);
+                // Clean's circles that show a saved or last known state are dimmed only while it is a last known one.
+                if (look != null) cell.setAlpha(look.dimmed ? .65f : 1f);
             }
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
@@ -243,7 +267,7 @@ final class QuickAccessGrid extends ViewGroup {
                             : alertsMissing ? (alertsReason == null || alertsReason == CapabilityResolver.Reason.MODEL_EXCLUDED ? T.dashboardModelTileDescModel()
                                     : T.dashboardModelTileDescPart(CapabilityResolver.message(alertsReason)))
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
-                            : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
+                            : feature != null && !featureLive && !lockUnknown ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
             // The RIDE action is spoken as the RIDE pill is ("Open riding mode"), not as a shortcut that opens a menu.
             Msg spoken = tiles ? null : HubText.quickActionDescription(cell.entry.id);
@@ -306,12 +330,14 @@ final class QuickAccessGrid extends ViewGroup {
         View padlock;
         final TextView label, value;
         boolean highlighted, toggle, lockState;
+        /** Round only: the lock's state is not known (QuickActionLayout.Look.UNKNOWN): no disc, a dashed ring, a muted padlock. */
+        boolean unknown;
         /**
          * The glyph a cell shows. Round: Ride keeps the speedometer, and any other action drawn with it (cruise control,
          * maximum speed) gets the speedometer with its max marker, so no two of the four look the same.
          */
         String glyph(String icon) {
-            return clean && "speed".equals(icon) && !HomeQuickActions.RIDING.equals(entry.id) ? "speed_max" : icon;
+            return clean ? roundGlyph(entry.id, icon) : icon;
         }
         /** Round only: the circle the icon sits in (filled while the action is on). */
         FrameLayout circle;
@@ -372,7 +398,7 @@ final class QuickAccessGrid extends ViewGroup {
                 circle.addView(icon, new FrameLayout.LayoutParams(ui.dp(22), ui.dp(22), Gravity.CENTER));
                 int side = ui.dp(QuickActionLayout.CIRCLE_DP);
                 addView(circle, new LinearLayout.LayoutParams(side, side));
-                label = ui.text(roundName(entry), QuickActionLayout.NAME_SP, false);
+                label = ui.text(roundNames(entry)[0], QuickActionLayout.NAME_SP, false);
                 label.setTextColor(ui.muted);
                 label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
                 label.setMaxLines(1); label.setSingleLine(true);
@@ -420,13 +446,17 @@ final class QuickAccessGrid extends ViewGroup {
                 return;
             }
             if (clean) {
-                // Raised while off, filled with the accent while on (a control switched on, a ride recording).
-                boolean on = isSelected();
+                // Raised while off, filled with the accent while on (a control switched on, a ride recording). The lock
+                // with no known state: no disc, a dashed ring and a muted padlock, unlike either state.
+                boolean on = isSelected() && !unknown;
                 android.graphics.drawable.GradientDrawable disc = new android.graphics.drawable.GradientDrawable();
                 disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-                disc.setColor(on ? ui.accent : ui.raised);
+                if (unknown) {
+                    disc.setColor(android.graphics.Color.TRANSPARENT);
+                    disc.setStroke(ui.dp(1.5f), ui.muted, ui.dp(4), ui.dp(3));
+                } else disc.setColor(on ? ui.accent : ui.raised);
                 circle.setBackground(disc);
-                ui.setIcon(icon, null, on ? ui.onAccent : ui.text);
+                ui.setIcon(icon, null, on ? ui.onAccent : unknown ? ui.muted : ui.text);
                 setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), null,
                         ui.shape(android.graphics.Color.WHITE, radius, 0)));
                 return;
@@ -507,7 +537,8 @@ final class QuickAccessGrid extends ViewGroup {
         }
         /**
          * Round: the circle at its size for this column and the one short name on one line under it, a little smaller
-         * only where it does not fit at full size (QuickActionLayout).
+         * only where it does not fit at full size, else a shorter name, else the icon alone (QuickActionLayout). The
+         * circles stay on one line across the row: each column's circle is at its top.
          */
         void measureRound(int width) {
             float density = getResources().getDisplayMetrics().density;
@@ -517,14 +548,19 @@ final class QuickAccessGrid extends ViewGroup {
             int pad = ui.dp(QuickActionLayout.SIDE_DP);
             setPadding(pad, ui.dp(2), pad, ui.dp(4));
             float room = width - 2 * pad;
-            // Measured at the full size on a copy of the paint, so the view's size changes only when the choice does.
-            QuickActionLayout.Name name = QuickActionLayout.name(roundName(entry), room,
-                    fullSize(label, QuickActionLayout.NAME_SP)::measureText);
+            // Measured at each size it may take, as it is drawn, on a copy of the paint, so the view's size changes only
+            // when the choice does. A pixel is kept in hand so a name the rule keeps whole is never ellipsized by rounding.
+            android.text.TextPaint sized = new android.text.TextPaint(label.getPaint());
+            QuickActionLayout.Name name = QuickActionLayout.name(room - 1, (text, share) -> {
+                sized.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                        QuickActionLayout.NAME_SP * ui.textScale * share, getResources().getDisplayMetrics()));
+                return sized.measureText(text);
+            }, roundNames(entry));
             label.setVisibility(name.text == null ? GONE : VISIBLE);
             if (name.text != null) {
-                float size = QuickActionLayout.NAME_SP * ui.textScale * name.scale;
-                if (Math.abs(label.getTextSize() - android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
-                        size, getResources().getDisplayMetrics())) > .5f) label.setTextSize(size);
+                // Always set: the size chosen is the one measured (a 5% step can be under half a pixel on a small
+                // screen); TextView requests a layout only when the size really changes.
+                label.setTextSize(QuickActionLayout.NAME_SP * ui.textScale * name.scale);
                 if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
                 // A smaller name keeps the line height of its full size, centred in it, so the four names share a line.
                 android.graphics.Paint.FontMetricsInt line = fullSize(label, QuickActionLayout.NAME_SP).getFontMetricsInt();
@@ -663,6 +699,15 @@ final class QuickAccessGrid extends ViewGroup {
         }
     }
 
+    /**
+     * A control's Off value on this model: the mapped variant's setting labelled Off (none where the model has no Off,
+     * as energy recovery's Low, Medium and High), else the catalog's.
+     */
+    private static Integer offValue(ScooterCommands.Feature feature, CapabilityResolver.Decision decision) {
+        if (decision != null && decision.variant != null && decision.values().length > 0) return decision.offValue();
+        return feature.offValue();
+    }
+
     /** The model's mapped choices include this value (no choices known means nothing to judge it by). */
     private static boolean offers(CapabilityResolver.Decision decision, int value) {
         int[] choices = decision.values(); if (choices.length == 0) return true;
@@ -670,17 +715,57 @@ final class QuickAccessGrid extends ViewGroup {
         return false;
     }
     /**
-     * A round action's one short name on Clean (the contributor's decisions on #383: "Cruise" for Cruise control): its
-     * round name where it has one (HubText.quickActionRoundName, part 10's text: Clean's own, Charge by and the
-     * controls); else, for cruise control, traction control and energy recovery, Live Stats' one-word name
-     * (StatsLabels.row); else the control's short rung.
+     * A round action's names on Clean, for QuickActionLayout's ladder (the contributor's decisions on #383: one short
+     * name on one line, "Cruise" for Cruise control, "Charge by" for Charge done by). First part 10's one short name
+     * (HubText.quickActionRoundName: Ride as riding, Record, Alerts, Charge by and the controls' one-word names), tried
+     * whole at full size before any other. Then the names that were there before it: for Clean's own actions the
+     * already-translated one (HubText.quickActionExistingRoundName); for cruise control, traction control and energy
+     * recovery, Live Stats' one-word name (StatsLabels.row); for the electronic lock, the reading's one-word compact name
+     * ("Lock", ScooterReadingLabels.compact), with "Electronic lock" as its next rung; else the control's short rung.
+     * Then the shorter names the catalog already has for it (a control's Setting tile rung, such as pt-BR "Cruzeiro",
+     * and its short rung), for a column too narrow for the first; the ladder skips any that is not narrower. Where Live
+     * Stats' name has more than one word in the language shown, a one-word name from the others comes before it
+     * (QuickActionLayout.oneWordFirst).
      */
-    static String roundName(QuickAccessActions.Entry entry) {
+    static String[] roundNames(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
-        if (own != null) return own.render();
-        if (ROUND_STATS_NAMES.contains(entry.featureKey)) return StatsLabels.row(entry.featureKey);
-        return tileLabel(entry);
+        Msg existing = HubText.quickActionExistingRoundName(entry.id);
+        String[] names;
+        if (existing != null) {
+            names = new String[]{existing.render()};
+        } else {
+            String first = ROUND_STATS_NAMES.contains(entry.featureKey) ? StatsLabels.row(entry.featureKey)
+                    : LOCK_KEY.equals(entry.featureKey) ? ScooterReadingLabels.compact("lock_status", tileLabel(entry)) : tileLabel(entry);
+            Msg rung = TileShortLabels.forFeature(entry.featureKey);
+            names = new String[]{first, rung == null ? null : rung.render(), entry.shortLabel().render()};
+            // Live Stats' row name is one word in English ("Cruise") but not in every language (pt-BR "Controle de
+            // cruzeiro"): there an existing one-word name comes first (QuickActionLayout.oneWordFirst).
+            if (ROUND_STATS_NAMES.contains(entry.featureKey)) names = QuickActionLayout.oneWordFirst(names);
+        }
+        if (own == null) return names;
+        // Part 10's short name first (the contributor's pick: "Charge by" whole rather than the icon alone).
+        String[] ladder = new String[names.length + 1];
+        ladder[0] = own.render();
+        System.arraycopy(names, 0, ladder, 1, names.length);
+        return ladder;
     }
+
+    /** A round action's first name (roundNames), the one Clean shows at full size where it fits: for lists and previews. */
+    static String roundName(QuickAccessActions.Entry entry) {
+        return roundNames(entry)[0];
+    }
+
+    /**
+     * The glyph Clean draws for one of its quick actions, on Home and in the Edit Home sheet alike: Ride keeps the
+     * speedometer, any other action drawn with it (cruise control, maximum speed) gets the speedometer with its max
+     * marker, so no two of the four look the same.
+     */
+    static String roundGlyph(String id, String icon) {
+        return "speed".equals(icon) && !HomeQuickActions.RIDING.equals(id) ? "speed_max" : icon;
+    }
+
+    /** The electronic lock's feature key (data): its round name is the lock reading's compact name. */
+    private static final String LOCK_KEY = "lock";
 
     /** Controls whose Live Stats row name is their one-word short name (feature keys, data). */
     private static final java.util.Set<String> ROUND_STATS_NAMES =

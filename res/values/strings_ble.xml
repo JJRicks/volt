@@ -36,6 +36,17 @@
     <string name="ble_status_checking_compatibility" volt:screen="Connection state" volt:purpose="status">Checking compatibility…</string>
     <!-- Volt is setting the scooter's clock to this phone's time. -->
     <string name="ble_status_setting_clock" volt:screen="Connection state" volt:purpose="status">Setting the scooter\'s clock from this phone…</string>
+    <!-- Volt is asking the connected scooter to forget its owner key (More › Scooters › Edit scooter ›
+         Release this scooter), so it can be added again like a new or reset scooter. -->
+    <string name="ble_status_releasing" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="owner-key">Releasing the scooter…</string>
+    <!-- A release was sent but not confirmed, so Volt doesn't reconnect to this scooter by itself until the rider
+         chooses Remove from Volt or Reconnect (the release sheet). Never say it was released. -->
+    <string name="ble_release_held" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="owner-key">Release not confirmed · not reconnecting</string>
+    <!-- The connection line's shorter form of ble_release_held, for a header too narrow for the full line. -->
+    <string name="ble_release_held_short" volt:screen="Narrow connection line" volt:purpose="status"
+        volt:safety="owner-key">Release not confirmed</string>
     <!-- An Experimental controls try reads the control's current value first. %1$s is the control's
          name in lower case, in English until the controls batch gives control names their translation
          (for example "headlight"); a language that cannot use it mid-sentence may write
@@ -92,6 +103,29 @@
          scooter's name (the owner's own name for it). "My scooters" is the section of the More screen
          that lists saved scooters: use that section title's translation. -->
     <string name="ble_failed_other_saved" volt:screen="Connection state" volt:purpose="error">This is %1$s. Select it in My scooters, or scan for your new scooter.</string>
+    <!-- An owner key Volt made ("Make a new owner key") was first sent to another scooter, which may have kept it
+         although the link dropped before Volt saved that scooter. Volt never sends the same new key to a second
+         scooter, so it stopped before sending it to this one. "That scooter" is the first one. -->
+    <string name="ble_failed_new_key_elsewhere" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">This new key went to another scooter first. Turn that scooter on nearby and try again.</string>
+    <!-- Volt couldn't save which scooter it was about to send the owner key it made to (usually full storage), so it
+         sent nothing. -->
+    <string name="ble_failed_new_key_unsaved" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">Couldn\'t save setup, so Volt didn\'t send the new key. Free up some storage and try again.</string>
+    <!-- Find it nearby: the scooter Volt reached at a new Bluetooth address answered with another serial number than
+         the saved scooter's, so it is another scooter. Volt saved nothing and doesn't try that address again. %1$s is the
+         saved scooter's name (the owner's own name for it). -->
+    <string name="ble_failed_find_mismatch" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">This isn\'t %1$s: its serial number is different. Nothing was saved.</string>
+    <!-- Find it nearby: the link to the scooter at the new Bluetooth address ended before Volt could compare its serial
+         number with the saved scooter's (the connection dropped or timed out, or the scooter didn't give its serial).
+         Volt saved nothing and goes back to the saved address. %1$s is the saved scooter's name (the owner's own name
+         for it). "Find it nearby" is the name of the Home button (dashboard_find_nearby). -->
+    <string name="ble_failed_find_unchecked" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">Couldn\'t check %1$s at that address. Nothing was saved. Try Find it nearby again.</string>
+    <!-- Find it nearby: the scooter at the new Bluetooth address is the saved one (its serial number matched), and Volt
+         saved the new address. %1$s is the scooter's name (the owner's own name for it). -->
+    <string name="ble_found_new_address" volt:screen="Connection state" volt:purpose="notice">Found %1$s at a new Bluetooth address</string>
     <!-- The scooter stopped answering. -->
     <string name="ble_failed_signal_lost" volt:screen="Connection state" volt:purpose="error">Signal lost</string>
     <!-- A setting change got no confirmation from the scooter in time; the connection is then

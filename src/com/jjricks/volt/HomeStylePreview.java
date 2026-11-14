@@ -59,7 +59,10 @@ final class HomeStylePreview extends View {
     private final String name;
     /** Sample values in the owner's units. */
     private final String charge, range, odometer, power, temperature, health;
-    /** Clean's four quick actions for this scooter (icon, name, id), and the icons of the Widgets Home's Setting tiles. */
+    /**
+     * Clean's four quick actions for this scooter (icon, id, then its name ladder: QuickAccessGrid.roundNames), and the
+     * icons of the Widgets Home's Setting tiles.
+     */
     private final List<String[]> quick = new ArrayList<>();
     private final List<String> settingTiles = new ArrayList<>();
     /** The subjects' names, in Clean's order. */
@@ -91,7 +94,13 @@ final class HomeStylePreview extends View {
         String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
         for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
             QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-            if (entry != null) quick.add(new String[] {entry.icon, QuickAccessGrid.roundName(entry), id});
+            if (entry != null) {
+                String[] names = QuickAccessGrid.roundNames(entry), action = new String[names.length + 2];
+                action[0] = QuickAccessGrid.roundGlyph(id, entry.icon);
+                action[1] = id;
+                System.arraycopy(names, 0, action, 2, names.length);
+                quick.add(action);
+            }
         }
         for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
@@ -192,7 +201,14 @@ final class HomeStylePreview extends View {
             paint.setColor(ui.raised);
             c.drawCircle(x + cell / 2, 362, 22, paint);
             ui.drawIcon(c, action[0], ui.text, x + cell / 2, 362, 20);
-            centred(c, action[1], x + cell / 2, 401, cell + 4, 11, ui.muted, false);
+            // The first name of the ladder (QuickAccessGrid.roundNames) whole on one line, else the icon alone, as
+            // Clean shows it on this width; never a cut name (the contributor's decision on round quick actions).
+            words.setTypeface(ui.medium());
+            words.setTextSize(11);
+            String name = null;
+            for (int n = 2; n < action.length && name == null; n++)
+                if (action[n] != null && !action[n].isEmpty() && words.measureText(action[n]) <= cell + 4) name = action[n];
+            if (name != null) centred(c, name, x + cell / 2, 401, Float.MAX_VALUE, 11, ui.muted, false);
         }
         // The subjects: icon, name, a summary line and the chevron.
         card(c, 16, 418, 304, VIRTUAL_HEIGHT + 20, 18, ui.surface);
