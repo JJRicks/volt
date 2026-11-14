@@ -40,6 +40,14 @@
     <string name="maps_consent_message">O fornecedor vê o teu IP e a área do mapa. As viagens ficam no telemóvel.</string>
     <!-- src:bb9ac0845ace7f8b7f2e08bf11f66831ce335172 -->
     <string name="maps_consent_enable">Ativar mapa de fundo</string>
+    <!-- src:c9dc1435baa9620357d46a0caf1f11fa013ef00d -->
+    <string name="maps_switch_osm_title">Mudar para o OpenStreetMap?</string>
+    <!-- src:e49695ad97d399af4c9827a1a50280ff4a474126 -->
+    <string name="maps_switch_osm_message">O USGS Topo só cobre os Estados Unidos. Se mudares, a área do teu mapa é pedida aos servidores do OpenStreetMap, que veem o teu IP. As viagens ficam no telemóvel.</string>
+    <!-- src:d3bd34137a139d6e6ffd870d657824ccb3ad6798 -->
+    <string name="maps_switch_osm_switch">Mudar</string>
+    <!-- src:af0034bdd4b2be28601406264786ea00b3ac9127 -->
+    <string name="maps_switch_osm_keep">Manter USGS</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="maps_online_map">Mapa online</string>
     <!-- src:8313b012a080d4dcd5f6c9669f3f1c6faeb4a920 -->
@@ -118,6 +126,12 @@
     <string name="maps_route_power_not_measured">Potência não medida</string>
     <!-- src:3281a1893eb01bb50fa336c241fed1eb7054f268 -->
     <string name="maps_route_grade">≈%1$s%% de inclinação</string>
+    <!-- src:ac3e5c58ce402d6688465d0f288ca20c010d471e -->
+    <string name="maps_route_accel">Aceleração do GPS: %1$s m/s²</string>
+    <!-- src:6eb13380f96267f1d689bbcffd87bb0463239d1a -->
+    <string name="maps_route_elevation_ft">Altitude %1$s ft</string>
+    <!-- src:1aa79056ad978918fe0c57fc2f278724c1e42893 -->
+    <string name="maps_route_elevation_m">Altitude %1$s m</string>
     <!-- src:80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a -->
     <string name="maps_chart_ride">Gráfico da viagem</string>
     <!-- src:b77c503c54be648b7df6a02be88206ec789e2829 -->

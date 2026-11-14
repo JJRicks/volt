@@ -45,7 +45,16 @@ final class HubPanes extends LinearLayout {
         setBaselineAligned(false);
         first = left;
         second = right;
-        gutter = new View(context);
+        // The Layout Plan's wide mock-ups draw a hairline down the gutter's middle between the two panes.
+        gutter = new View(context) {
+            private final android.graphics.Paint line = new android.graphics.Paint();
+            @Override protected void onDraw(android.graphics.Canvas canvas) {
+                line.setColor(ui.raised);
+                float x = getWidth() / 2f, half = Math.max(1, ui.dp(1)) / 2f;
+                canvas.drawRect(x - half, 0, x + half, getHeight(), line);
+            }
+        };
+        gutter.setWillNotDraw(false);
         minLeft = ui.dp(minLeftDp);
         minRight = ui.dp(minRightDp);
         gap = ui.dp(20);

@@ -46,6 +46,11 @@ final class HubSearchTables {
     static final String SETTING_HOME_STYLE = "home-style-menu";
     static final String SETTING_UNITS = "preference-units-menu";
     static final String SETTING_DISPLAY = "preference-display-options";
+    /**
+     * The Haptic feedback switch in the display card: a tag of its own, so search names it apart from Text size.
+     * Part 11 sets it on the switch in MoreScreen (a code change this text part cannot carry).
+     */
+    static final String SETTING_HAPTICS = "preference_haptics";
     static final String SETTING_LANGUAGE = "preference_language";
     static final String SETTING_RIDING_AUTO_OPEN = "preference_riding_auto_open";
     static final String SETTING_RIDING_AUTO_RECORD = "preference_riding_auto_record";
@@ -61,7 +66,7 @@ final class HubSearchTables {
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
-            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_LANGUAGE,
+            SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_HAPTICS, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
             SETTING_REPORT_ISSUE, SETTING_DEVELOPER,
@@ -132,7 +137,8 @@ final class HubSearchTables {
         switch (tag) {
             case SETTING_HOME_STYLE: return "home style clean widgets dashboard layout";
             case SETTING_UNITS: return "units miles kilometres kilometers km mi temperature celsius fahrenheit";
-            case SETTING_DISPLAY: return "text size font large display haptic haptics vibration vibrate feedback";
+            case SETTING_DISPLAY: return "text size font large display";
+            case SETTING_HAPTICS: return "haptic haptics feedback vibration vibrate vibrations";
             case SETTING_LANGUAGE: return "language translation locale";
             case SETTING_RIDING_AUTO_OPEN: return "riding mode open automatically auto start";
             case SETTING_RIDING_AUTO_RECORD: return "record rides automatically auto record";

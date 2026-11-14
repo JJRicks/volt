@@ -85,6 +85,9 @@ public final class HubPagesTest {
         require(icons.size() == HubPages.SUBJECTS.size(), "Subject icons differ");
         require(HubPages.icon(HubPages.SETTINGS).equals("gear") && HubPages.icon(HubPages.SEARCH).equals("search"), "Header icons");
         require(HubPages.icon(HubPages.SERVICE_MAINTENANCE).equals(HubPages.icon(HubPages.SERVICE)), "A sub-page has its subject's icon");
+        // The Layout Plan's glyphs: Battery & charging a bolt, Controls rising bars, Lights & sound a bulb, Service a wrench (part 8b).
+        require(HubPages.icon(HubPages.BATTERY).equals("bolt") && HubPages.icon(HubPages.CONTROLS).equals("bars")
+                && HubPages.icon(HubPages.LIGHTS).equals("bulb") && HubPages.icon(HubPages.SERVICE).equals("wrench"), "The plan's subject icons");
     }
 
     private static void hub() {
@@ -123,6 +126,43 @@ public final class HubPagesTest {
         require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
                 "Large text: fewer, still comfortable: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f));
         require(HubPages.dockSubjects(HubPages.dockRoom(600), 1f).size() == 7, "A wide phone shows all seven");
+        // The dock HubValidation expects in each window of the sweep's hub steps (344x882 and 725x604 dp, at 1x and 1.4x
+        // text): the 725 dp window gets the wide layout (all seven) at 1x, and the phone layout at 1.4x (725 / 1.4 < 650),
+        // whose dock still holds all seven in 689 dp of room; a 344 dp phone never gets the wide layout.
+        require(!WideLayout.wide(344, 1f) && !WideLayout.wide(344, 1.4f), "344 dp is a phone at any text size");
+        require(WideLayout.wide(725, 1f) && !WideLayout.wide(725, 1.4f), "725 dp: wide at 1x, the phone layout at 1.4x");
+        require(HubPages.dockRoom(725) == 689 && HubPages.dockSubjects(HubPages.dockRoom(725), 1.4f).equals(HubPages.SUBJECTS),
+                "725 dp at 1.4x: the phone dock holds all seven: " + HubPages.dockSubjects(HubPages.dockRoom(725), 1.4f));
+        require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.4f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
+                "344 dp at 1.4x: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.4f));
+        // A wide dock (#392 early review): full names only when every one fits on one line, else every short name.
+        // 725 dp less 24 dp each side gives 677 dp, eight items of about 83.6 dp, captions of about 79.6 dp.
+        float[] fits = {40, 70, 60, 79};
+        require(HubPages.wideDockNames(fits, 677, 8, 96, 4), "Every name fits: full names");
+        float[] oneWraps = {40, 90, 60, 50};
+        require(!HubPages.wideDockNames(oneWraps, 677, 8, 96, 4), "One name would wrap (Battery & charging at 725 dp): short names");
+        // With room to spare an item is capped at 96 dp: 92 dp captions.
+        require(HubPages.wideDockNames(new float[] {92}, 2000, 8, 96, 4), "The cap's caption: 92 dp fits");
+        require(!HubPages.wideDockNames(new float[] {92.5f}, 2000, 8, 96, 4), "Past the cap's caption: short names");
+        require(!HubPages.wideDockNames(new float[] {10}, 677, 0, 96, 4), "No items: short names");
+        require(!HubPages.wideDockNames(new float[] {Float.NaN}, 677, 8, 96, 4), "An unmeasured name: short names");
+        // The dock's upward swipe: past twice the slop upward and more up than across; a quick flick counts on its first move.
+        require(HubPages.dockSwipe(17, 0, 8), "17 dp up past a 8 dp slop: a swipe");
+        require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
+        require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
+        // The dock never covers the Lock bar (part 11), in dp at 3 px per dp as the emulator draws them. 725x604 dp at
+        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it steps aside); scrolled 130 dp, the bar
+        // (431-489) is above the dock (it shows). 725x604 at 1x: the bar ends at 422 dp, the dock starts at 460 dp.
+        // 344x882 dp at 1x and 1.4x: the bar sits well above a dock at 790 dp.
+        require(HubPages.dockCovers(561 * 3, 615 * 3, 561 * 3, 604 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x: the dock is over the Lock bar");
+        require(!HubPages.dockCovers(431 * 3, 489 * 3, 431 * 3, 489 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x, scrolled: the bar is clear of the dock");
+        require(!HubPages.dockCovers(372 * 3, 422 * 3, 372 * 3, 422 * 3, 460 * 3, 530 * 3), "725x604 at 1x: the dock is under the bar");
+        for (float text : new float[]{1f, 1.4f})
+            require(!HubPages.dockCovers(Math.round(420 * text), Math.round(474 * text), Math.round(420 * text), Math.round(474 * text), 790, 862), "344x882 at " + text + "x: clear");
+        require(!HubPages.dockCovers(-200, -10, 0, 0, 0, 70), "a bar scrolled out of sight is never covered");
+        require(HubPages.dockCovers(100, 160, 100, 160, 159, 200) && !HubPages.dockCovers(100, 160, 100, 160, 160, 200), "one pixel of overlap counts; touching does not");
+        require(!HubPages.dockCovers(500, 560, 500, 520, 530, 600), "only the bar's shown part counts");
+        require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 
     private static void riding() {

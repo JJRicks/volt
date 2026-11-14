@@ -15,6 +15,9 @@ final class DashboardCaption extends TextView {
     private String normalLabel, shortLabel;
     private final Drawable fallbackIcon;
     private boolean oneLine, iconBeside;
+    /** The caption's own size (px), and the least share of it a label may take to stay on one line (1: never). */
+    private final float fullPx;
+    private float oneLineFloor = 1f;
 
     DashboardCaption(Context context, Ui ui, String fullName, String normalLabel,
             String shortLabel, Drawable icon) {
@@ -25,6 +28,7 @@ final class DashboardCaption extends TextView {
             fallbackIcon.setBounds(0, 0, size, size);
         }
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 12 * ui.textScale);
+        fullPx = getTextSize();
         setTextColor(ui.muted);
         setTypeface(ui.regular());
         setIncludeFontPadding(false);
@@ -46,6 +50,16 @@ final class DashboardCaption extends TextView {
         oneLine = true;
         setMaxLines(1);
         setEllipsize(android.text.TextUtils.TruncateAt.END);
+        requestLayout();
+    }
+
+    /**
+     * A label too wide for one line takes its shorter rung first, then a little smaller text, down to {@code floor}
+     * of its size, before it wraps (Clean's charging tiles, whose inset stays at the Layout Plan's 12 dp). Wider than
+     * that, it wraps as usual.
+     */
+    void shrinkToOneLine(float floor) {
+        oneLineFloor = Math.max(.5f, Math.min(1f, floor));
         requestLayout();
     }
 
@@ -75,8 +89,27 @@ final class DashboardCaption extends TextView {
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
         boolean unbounded = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED;
+        String oneLineText = null;
+        if (oneLineFloor < 1f) {
+            // On one line, the first that fits: the normal label, then the shorter rung, at full size; then each a
+            // little smaller, down to the floor. Neither fits: the full size, and the usual wrap below.
+            float px = fullPx;
+            if (!unbounded) {
+                if (fits(normalLabel, width, 1, fullPx)) oneLineText = normalLabel;
+                else if (fits(shortLabel, width, 1, fullPx)) oneLineText = shortLabel;
+                else {
+                    for (String label : new String[] {normalLabel, shortLabel}) {
+                        for (float scale = .95f; oneLineText == null && scale >= oneLineFloor - 1e-4f; scale -= .05f) {
+                            if (fits(label, width, 1, fullPx * scale)) { px = fullPx * scale; oneLineText = label; }
+                        }
+                        if (oneLineText != null) break;
+                    }
+                }
+            }
+            if (Math.abs(getTextSize() - px) > .5f) setTextSize(TypedValue.COMPLEX_UNIT_PX, px);
+        }
         // One line falls to the icon as two lines do; only a caption with no icon at all keeps its short label cut.
-        String shown = unbounded || fits(normalLabel, width) ? normalLabel
+        String shown = oneLineText != null ? oneLineText : unbounded || fits(normalLabel, width) ? normalLabel
                 : fits(shortLabel, width) || oneLine && fallbackIcon == null && !iconBeside ? shortLabel : null;
         Drawable icon = shown == null && !iconBeside ? fallbackIcon : null;
         // No fitting text with a missing icon is still accessible, without rendering
@@ -89,16 +122,26 @@ final class DashboardCaption extends TextView {
     }
 
     private boolean fits(String text, int width) {
+        return fits(text, width, oneLine ? 1 : 2, getTextSize());
+    }
+
+    /** Whether {@code text} fits {@code width} in at most {@code lines} lines of whole words at {@code px}. */
+    private boolean fits(String text, int width, int lines, float px) {
         if (text.isEmpty()) return true;
         if (width <= 0) return false;
-        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), getPaint(), width)
+        android.text.TextPaint paint = getPaint();
+        if (Math.abs(paint.getTextSize() - px) > .01f) {
+            paint = new android.text.TextPaint(paint);
+            paint.setTextSize(px);
+        }
+        StaticLayout layout = StaticLayout.Builder.obtain(text, 0, text.length(), paint, width)
                 .setIncludePad(getIncludeFontPadding())
                 .setLineSpacing(getLineSpacingExtra(), getLineSpacingMultiplier())
                 .setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE)
                 .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
                 .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
                 .build();
-        if (layout.getLineCount() > (oneLine ? 1 : 2)) return false;
+        if (layout.getLineCount() > lines) return false;
         // A shipped language's own line-break rules decide where a caption may wrap (between words,
         // or between characters in a language written without spaces). English keeps the check below.
         BreakIterator lineBreaks = Fmt.legacy() ? null : BreakIterator.getLineInstance(Fmt.displayLocale());

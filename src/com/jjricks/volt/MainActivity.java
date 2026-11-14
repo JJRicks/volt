@@ -76,6 +76,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
     private static final long STATS_RETENTION_MS=10000L;
+    /** Home's Lock bar as last built (HubDock keeps it clear on Widgets); null before any. */
+    private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
     /**
@@ -189,6 +191,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void onServiceConnected(ComponentName name,IBinder binder){
             if(destroyed || enteringMaintenance || startupRedirect)return;
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
+            releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
             // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
@@ -231,7 +234,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
         setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
         super.onCreate(saved);
-        if(Build.VERSION.SDK_INT>=33){systemBack=this::navigateBack;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
+        if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
         String stagedExport=documents.getString("path",null);
         if(stagedExport!=null&&!documents.getBoolean("ready",false)&&!preparingExports.contains(stagedExport)){
@@ -326,7 +329,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onPause(){
         connectionHaptics.cancel();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
-        markAway();
+        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
+        long now=SystemClock.elapsedRealtime();
+        if(HubNav.awayClockStarts(OwnDialogs.showing(),launchedAt,now))markAway();
+        launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
@@ -341,8 +347,34 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
+        if(isChangingConfigurations()&&bound&&scooterService!=null&&scooterService.simulating())holdServiceAcrossRecreation();
+        else if(!isChangingConfigurations())releaseRecreationHold(getApplicationContext());
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
         scooterService=null;bound=binding=false;super.onDestroy();
+    }
+    /**
+     * The developer simulator lives only in ScooterService, which ten seconds after Volt leaves the screen stops being a
+     * started service (its usual idle stop): from then on this activity's binding alone keeps it. A recreation (dark
+     * mode, text size, also one Android defers until Volt is shown again) unbinds the old activity before the new one
+     * binds, so across that gap the application holds a binding of its own, released once the new activity connects.
+     */
+    private static ServiceConnection recreationHold;
+    private void holdServiceAcrossRecreation(){
+        if(recreationHold!=null)return;
+        Context app=getApplicationContext();
+        ServiceConnection hold=new ServiceConnection(){
+            @Override public void onServiceConnected(ComponentName name,IBinder binder){}
+            @Override public void onServiceDisconnected(ComponentName name){}
+        };
+        recreationHold=hold;
+        boolean held;
+        try{held=app.bindService(new Intent(app,ScooterService.class),hold,Context.BIND_AUTO_CREATE);}catch(RuntimeException unavailable){held=false;}
+        if(!held)releaseRecreationHold(app);
+    }
+    private static void releaseRecreationHold(Context app){
+        ServiceConnection hold=recreationHold;if(hold==null)return;
+        recreationHold=null;
+        try{app.unbindService(hold);}catch(IllegalArgumentException notBound){}
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
@@ -358,18 +390,28 @@ public final class MainActivity extends Activity implements ScreenHost {
             ((DashboardScreen) screen).onUserTouch();
         return super.dispatchTouchEvent(event);
     }
-    @Override public void onBackPressed(){navigateBack();}
-    private void navigateBack(){
+    @Override public void onBackPressed(){navigateBack(false);}
+    /** The system Back. Validations call it by name (AutoStart, Dashboard, Locale, UiOrganization), so it keeps its signature. */
+    private void navigateBack(){navigateBack(false);}
+    /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
+    private void navigateBack(boolean link){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
-        if(screen!=null&&screen.back())return;
+        if(screen!=null&&!(link&&nav.size()>1&&HubNav.linkSkipsPageBack(selectedPage))&&screen.back())return;
         if(nav.size()>1){goBack();return;}
         finish();
     }
     @Override public void onConfigurationChanged(Configuration next){super.onConfigurationChanged(next);rebuild();fitTallSheet();}
+    /** When Volt last started an activity (elapsed realtime; -1 for none): HubNav.awayClockStarts. */
+    private long launchedAt=-1;
+    @Override public void startActivityForResult(Intent intent,int requestCode,Bundle options){
+        launchedAt=SystemClock.elapsedRealtime();
+        super.startActivityForResult(intent,requestCode,options);
+    }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
+        if(focused&&searchKeyboard!=null){EditText field=searchKeyboard;searchKeyboard=null;showSearchKeyboard(field);}
         // Returning to the app (or dismissing a dialog) is not a new scooter connection.
         observeConnectionFeedback(true);
     }
@@ -416,9 +458,14 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     @Override public int contentWidthDp(){
         int width=getResources().getConfiguration().screenWidthDp;
-        if(!paneHosted&&rightPage==null)return width;
+        if(!paneHosted&&rightPage==null)return width-2*pageSideDp();
         int row=width-2*24;
         return HubSplit.split(row,20,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,HubSplit.centreLeft(width,20,24),0,0,8).right(row)+2*18;
+    }
+    /** The space (dp) each side of the shown page's column on one pane (PageColumn): 0 on a phone, on Home and in the page pane. */
+    private int pageSideDp(){
+        if(!PageColumn.capped(selectedPage))return 0;
+        return PageColumn.sideDp(getResources().getConfiguration().screenWidthDp,design.textScale*getResources().getConfiguration().fontScale);
     }
     @Override public ScooterService service(){return scooterService;}
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}
@@ -462,10 +509,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
         if (chargeLiveSheet != null) chargeLiveSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
-        boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
         // Riding mode always keeps the screen on: it's a handlebar display (riding-mode plan).
-        awake|=resumed&&riding!=null&&screen instanceof RidingScreen;
-        if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        boolean awake=KeepScreenOn.wanted(resumed,preferences.getBoolean("keep_screen_awake",true),scooterService!=null&&scooterService.isRecording(),riding!=null&&screen instanceof RidingScreen);
+        // Only a change: every flags call makes Android lay the window out again, even when the flag is already as asked.
+        int change=KeepScreenOn.change(awake,getWindow().getAttributes().flags);
+        if(change>0)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else if(change<0)getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
     /** Rebuild under a crossfade from the current window; a direction (+1 deeper, -1 back) brings the new page in from that side. */
     private void transitionRebuild(int direction){
@@ -535,6 +583,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Wide Clean Home: the scooter pane beside the page pane, which shows every page (hub layout plan 1.11, PR 13).
         if(twoPaneHome())buildPanes(content,args);
         else{
+        // A one-column page keeps to a readable width on a wide window, centred with its header (PageColumn).
+        int side=design.dp(pageSideDp());content.setPadding(side,0,side,0);
         LinearLayout header=makeHeader();
         if(horizontalHinge()){
             ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
@@ -556,8 +606,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
-            dock=new HubDock(this,expanded,dashboard::editing);
+            // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
+            dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
+            // The dock never covers the Lock bar: on a short window it steps aside until the page scrolls the bar above it.
+            dock.keepClear(()->dashboardLock);
             scroll.setClipToPadding(false);
             scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());
         }
@@ -586,7 +639,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{all=preferences.getAll();}catch(RuntimeException e){return;}
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
         // On Home, either style, and not while it is being edited.
-        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        // The wide Clean Home counts too: its page pane shows Home (HubHomePane) beside the scooter pane (#394 early review, 4).
+        boolean homeShown=screen instanceof DashboardScreen||screen instanceof CleanHomeScreen?!screen.busy():screen instanceof HubHomePane&&homeScreen!=null&&!homeScreen.busy();
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&homeShown;
         if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
@@ -612,14 +667,21 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private void buildPanes(LinearLayout content,HubNav.Args args){
         clearDashboardLock();profileTitle=null;connectionTitle=null;liveStatsTitle=null;
-        homeScreen=new CleanHomeScreen(this,homeActions(),true);
+        // The Simulation banner above the panes takes window height the top area must leave for the quick actions.
+        int aboveDp=simulationNotice!=null&&simulationNotice.getVisibility()==View.VISIBLE?bannerHeightDp(simulationNotice):0;
+        homeScreen=new CleanHomeScreen(this,homeActions(),true,aboveDp);
         paneLocks=dashboardLocks.size();
         ScrollView left=new ScrollView(this);left.setTag(TAG_SCOOTER_PANE);left.setFillViewport(true);left.setClipToPadding(false);
+        // No scroll bar over the cards' edges: the pane scrolls only with large text, and the mock-up draws none.
+        left.setVerticalScrollBarEnabled(false);
         left.setPadding(0,design.dp(6),0,design.dp(16));
         View home=homeScreen.view();if(home.getParent() instanceof ViewGroup)((ViewGroup)home.getParent()).removeView(home);
         left.addView(home,new ScrollView.LayoutParams(-1,-2));
         FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
         rightPage=column();right.addView(rightPage,new FrameLayout.LayoutParams(-1,-1));
+        // The page pane starts level with the scooter pane's status line ("Connected · Sport"), as the wide mock-ups
+        // line up the search field with it; its end keeps the scroll bar's room (PANE_BAR_DP), taken from the window's 24 dp.
+        rightPage.setPaddingRelative(0,homeScreen.statusTextTop(),0,0);
         // The last rung of the subjects' narrow-label ladder: one pane at this size, text size and language from now on.
         // The key is this layout's, taken now; the posted callback is dropped once these panes are gone or the window
         // changed (a fold, a resize, a text-size change), so it never marks a size that did not fail.
@@ -632,10 +694,18 @@ public final class MainActivity extends Activity implements ScreenHost {
                     onePaneHomeAt=key;rebuild();
                 });
         built[0]=panes;
-        panes.setPadding(design.dp(24),0,design.dp(24),0);
+        panes.setPaddingRelative(design.dp(24),0,design.dp(24-PANE_BAR_DP),0);
         content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         pageFrame=right;
         fillPagePane(args);
+    }
+    /** The page pane's scroll bar room at its end (dp): the bar sits beside the cards, not over their edges. */
+    private static final int PANE_BAR_DP=8;
+    /** A banner's height (dp) at this window's width, before layout. */
+    private int bannerHeightDp(View banner){
+        int width=getResources().getDisplayMetrics().widthPixels;
+        banner.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+        return (int)Math.ceil(banner.getMeasuredHeight()/getResources().getDisplayMetrics().density);
     }
     /** View tags of the wide Home's panes. */
     static final String TAG_SCOOTER_PANE="hub-scooter-pane",TAG_PAGE_PANE="hub-page-pane";
@@ -650,9 +720,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){
             scroll=(ScrollView)screenView;
-            // A page with its own scroller pads its content as on a phone: the header lines up with it.
-            if(header!=null)header.setPaddingRelative(design.dp(18),header.getPaddingTop(),design.dp(18),header.getPaddingBottom());
-        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(0,design.dp(6),0,design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+            // Every page sits flush with the pane's edges, as the Layout Plan's page pane (the pane already keeps the
+            // window's 24 dp and the gutter): a page with its own scroller (Settings, Data) drops the side padding it
+            // gives its column on a phone, so it lines up with the header and with every other page (#394 early review, 5).
+            View column=scroll.getChildCount()>0?scroll.getChildAt(0):null;
+            if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
+            scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_BAR_DP),scroll.getPaddingBottom());
+        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_BAR_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The bar draws in the scroller's end padding, beside the cards (on a phone it sits in the page margin).
+        scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;
         rightPage.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
     }
@@ -673,6 +749,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(args!=null&&args.anchor!=null)revealAnchor(screen,scroll,args.anchor);
         redraw();
         showUpdateCheck();
+        // Back on Home in the page pane: the one-time What's new sheet may show now, as after a rebuild onto Home.
+        if(HubPages.HOME.equals(selectedPage))handler.post(this::maybeShowWhatsNew);
     }
     /** Closes the wide Home's scooter pane, if this layout has one. */
     private void closeHomePane(){
@@ -685,7 +763,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      * storage page, Settings and its sub-pages each have a screen. args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
-        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this);
+        if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
         // The wide Home's page pane at Home: the search field and the subjects (the scooter pane is beside it).
         if(HubPages.HOME.equals(page)&&paneHosted)return new HubHomePane(this,()->{open(HubPages.SEARCH);focusPageSearch();});
@@ -746,7 +824,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
-            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded&&!paneHosted);
+            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded&&!paneHosted,expanded);
             return new AppScreen(){
                 @Override public View view(){return maintenance.view();}
                 @Override public void refresh(){maintenance.refresh();}
@@ -863,7 +941,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
-        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return dashboardLock=makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return dashboardLock=makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+            public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
+            public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
             // The search page (HubSearchScreen) with its field focused; Clean's and the Widgets header's search button.
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
@@ -876,7 +956,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
+    }
+    /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
+    private EditText searchKeyboard;
+    private void showSearchKeyboard(EditText field){
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow()&&field.hasFocus())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
     }
     private static EditText firstEditText(View view){
         if(view instanceof EditText)return (EditText)view;
@@ -1336,7 +1422,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * subjects"); a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
      */
     private LinearLayout makePaneHeader(){
-        LinearLayout header=column();header.setPadding(0,design.dp(2),0,design.dp(6));
+        // In the page pane, the header keeps the scroll bar's room at its end too, so it ends where the cards end.
+        LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_BAR_DP),design.dp(6));
         String parent=nav.size()>1?nav.pages().get(nav.size()-2):HubPages.HOME;
         header.addView(HubPages.HOME.equals(parent)?backLink(HubText.all(),HubText.backTo(HubText.dockAll())):backLink(parent),new LinearLayout.LayoutParams(-2,-2));
         addPageTitle(header);
@@ -1354,7 +1441,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         backRow.addView(design.icon("back",16,design.accent),new LinearLayout.LayoutParams(design.dp(16),design.dp(16)));
         TextView backText=design.text(name,13.5f,false);backText.setTypeface(design.medium());backText.setTextColor(design.accent);backText.setPadding(design.dp(4),0,design.dp(10),0);backRow.addView(backText);
         backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(spoken);backRow.setBackground(rowRipple());
-        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack());
+        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack(true));
         return backRow;
     }
     /**
@@ -1362,47 +1449,17 @@ public final class MainActivity extends Activity implements ScreenHost {
      * so every route uses Home's page stack. Home closes every page above it.
      */
     private void select(String page){open(page,null);}
-    // The floating tab bar and the side rail the Hub replaced (parts 1-10). Not shown since part 11, but kept, unused, until
-    // the owner has used the Hub and says they can go (owner's answer 8 on #383): Hub layout part 14 leaves them in place too.
-    // Volt order: Scooter was the raised centre button of the floating tab bar. Each tab opened its root page (HubPages.TABS).
-    private final String[] pages=HubPages.TABS.toArray(new String[0]);
-    private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
-    /** The tab names as shown; names above are ids, in the same order. */
-    private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
-    /** The rail's one-line tab captions when a full name does not fit (Ui.nav); the screen reader keeps the full name. */
-    private String[] navShortNames(){return new String[]{T.mainNavHomeShort(),T.mainNavStatsShort(),T.mainNavScooterShort(),T.mainNavRidesShort(),T.mainNavMoreShort()};}
-    private final String[] icons={"home","stats","scooter","rides","more"};
-    private static final int NAV_CENTER=2;
-    /** The Scooter tab (the phone's raised button, or the rail item) for the maintenance dot, and whether it is the raised button. */
-    private View scooterTab;private boolean scooterTabCorner;
-    private int navFrom = -1;
-    /** Whether the shown page belongs to this tab (HubPages.tabOf). */
-    private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
-    private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
-    /** The phone's floating tab bar as it was added over the page (unused since part 11; HubDock took its place). */
-    private View floatingTabBar(){
-        View bar=design.floatingNav(navNames(),icons,tabIndex(selectedPage),navFrom,NAV_CENTER,i->select(pages[i]));
-        scooterTab=((ViewGroup)bar).getChildCount()>1?((ViewGroup)bar).getChildAt(1):null;scooterTabCorner=true;
-        return bar;
-    }
-    /** The wide window's side rail (92 dp wide) as it was (unused since part 11), or the plain bar when rail is false. */
-    private View navigation(boolean rail){
-        LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
-        View selected=null;
-        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],onTab(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(onTab(page))selected=item;}
-        if(rail){scooterTab=nav.getChildAt(java.util.Arrays.asList(pages).indexOf(HubPages.SCOOTER));scooterTabCorner=false;}
-        if(!rail)return nav;
-        // App text and Android font size compound. Let two-line captions determine each
-        // item's height, and keep every destination reachable in a short or large-text rail.
-        ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);scroller.setVerticalScrollBarEnabled(false);scroller.addView(nav,new ScrollView.LayoutParams(-1,-2));
-        View current=selected;if(current!=null)scroller.post(()->current.requestRectangleOnScreen(new Rect(0,0,current.getWidth(),current.getHeight()),true));
-        return scroller;
-    }
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){
         String target=HubPages.canonical(page);
-        if(target.equals(selectedPage)){pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
+        if(target.equals(selectedPage)){
+            // Already shown. With arguments (a ride to open, a row to bring on screen, a control to try) it shows again
+            // with them: the wide Home's scooter pane stays beside its own open page, so Just back can be tapped again
+            // over All rides (#394 early review, 7). Without, it scrolls to its top.
+            if(args!=null){captureScroll();pageArgs=args;arrived(selectedPage);return;}
+            pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;
+        }
         String from=selectedPage;
         captureScroll();leaving(from,target);
         // Search opened afresh (Home's button) starts empty; Back to it from a result keeps the query.
@@ -1510,6 +1567,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         String scooterName=active==null?T.mainLockYourScooter():active.name;
         pumpLockQueue(ble,ready,shownLock,pending);
         if(active!=null)scooterName=active.shownName();
+        // While simulating, the headers name the simulated model (display only; the profile's stored name is untouched).
+        String simulatedName=ble==null?null:ble.simulationName();if(simulatedName!=null)scooterName=simulatedName;
         for(int lockIndex=dashboardLocks.isEmpty()?-1:0;lockIndex<dashboardLocks.size();lockIndex++){
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
         if(lockTitle!=null){
@@ -1547,13 +1606,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
             String state=ready?T.bleStatusConnected():connecting?T.mainLockConnecting():T.bleStatusDisconnected();
-            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
+            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,simulatedName!=null?simulatedName:active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
         }
         updateConnectionAction(ready,connecting);
-        ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
+        ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
     }
     /**
      * Sends a waiting lock tap once the scooter takes writes, or puts the switch back with the reason. The gate is the
@@ -1951,6 +2010,55 @@ public final class MainActivity extends Activity implements ScreenHost {
     private static CharSequence inSentence(ScooterCommands.Feature f){return Fmt.legacy()?f.label.toLowerCase(Locale.ROOT):f.label();}
     /** A short state word inside a sentence, on the same terms as inSentence. */
     private static String lowerInEnglish(String word){return Fmt.legacy()?word.toLowerCase(Locale.ROOT):word;}
+    /** Quick access's refusals, the rows' "Stop to change" and the choice sheet's firmware note; the charging bar says them too. */
+    private static String quickRefusal(ChargeBarDrag.Gate gate){
+        switch(gate){
+            case NO_SERVICE:return T.mainQuickConnectFirst();
+            case NOT_CONNECTED:return T.mainQuickConnectChange();
+            case BUSY:return T.mainQuickWaitChange();
+            case NOT_FRESH:return T.mainQuickNoFresh();
+            case PARKED:return T.mainRowStopToChange();
+            case NO_CHOICES:return T.mainEditNotOnFirmware();
+            default:return null;
+        }
+    }
+    /** A change that did not hold, as its chip says it: "Rejected" when the scooter said so, else "Not confirmed". */
+    private static String failureWords(String evidence){return evidence!=null&&evidence.startsWith("Rejected")?T.mainChipRejected():T.mainChipNotConfirmed();}
+    private static String chargeAlertName(){return T.mainAlertCharge();}
+    /** A settings row's spoken parts (also the charging bar's): name, value and state; "confirming"; a state note. */
+    private static String labelValueState(String label,String value,String state){return T.mainLabelValueState(label,value,state);}
+    private static String rowConfirmingPart(){return T.mainRowConfirmingPart();}
+    private static String rowStateNote(String note){return T.mainRowStateNote(lowerInEnglish(note));}
+    private static String rowUnconfirmed(){return T.mainRowUnconfirmed();}
+    /**
+     * A setting row's note (SettingRow.rowNote) and Home's charging bar's, from this one place so they cannot drift:
+     * the resolver's reason when the control is unavailable for a reason the row doesn't already show, else "Unconfirmed
+     * here" where an owner saw this model keep its old value, else "Untested here" for an OEM-mapped control on another
+     * model. None on the UT5 MAX.
+     */
+    static String controlNote(BleController ble,CapabilityResolver.Decision d,boolean parked,String key){
+        if(ble==null||d==null||!ble.ready())return null;
+        if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
+                &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
+        if(ModelRegistry.unconfirmed(ble.descriptor(),key))return rowUnconfirmed();
+        return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
+    }
+    /** A row's detail and note joined ("85% · Untested here"); either alone when the other is missing. */
+    private static String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
+    /** The charging bar's words: its controls' own (Quick access, the Charge limit row, its choice sheet, the alert row). */
+    private final ChargeBar.Words chargeBarWords=new ChargeBar.Words(){
+        @Override public String refusal(ChargeBarDrag.Gate gate){return quickRefusal(gate);}
+        @Override public String failure(String evidence){return failureWords(evidence);}
+        @Override public String name(boolean alert){ScooterCommands.Feature f=ScooterCommands.find(ChargeBar.KEY);return alert?chargeAlertName():f==null?"":shortLabel(f);}
+        @Override public String note(ScooterService service){
+            BleController ble=service==null?null:service.ble;CapabilityResolver.Decision d=ble==null?null:ble.decision(ChargeBar.KEY);
+            return controlNote(ble,d,d!=null&&d.blockedByRide(),ChargeBar.KEY);
+        }
+        @Override public String withNote(String value,String note){return joinNote(value,note);}
+        @Override public String confirming(){return rowConfirmingPart();}
+        @Override public String stateNote(String note){return rowStateNote(note);}
+        @Override public String spoken(String name,String value,String note){return labelValueState(name,value,note);}
+    };
     /** The decided variant when it is another model's (not the UT5 MAX catalogue), else null. */
     private FeatureVariant oemVariant(String key){
         if(scooterService==null)return null;CapabilityResolver.Decision d=scooterService.ble.decision(key);
@@ -1965,12 +2073,32 @@ public final class MainActivity extends Activity implements ScreenHost {
      * Sends at once, or first asks where the official app asks on that model (an OEM-mapped control off the
      * UT5 MAX). The UT5 MAX keeps today's direct controls.
      */
-    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send){
+    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send){confirmChange(feature,value,send,()->{});}
+    /** The same, telling cancelled when nothing is sent: Cancel, Back, or the caution closing (Home's charging bar puts its mark back). */
+    private void confirmChange(ScooterCommands.Feature feature,int value,Runnable send,Runnable cancelled){
+        boolean[] done={false};
         String caution=scooterService==null?null:ModelRegistry.caution(scooterService.ble.decision(feature.key),value);
         if(caution==null){send.run();return;}
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(shortLabel(feature)).setMessage(caution)
-                .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(scooterService!=null)send.run();}).create();
+                .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(done[0])return;done[0]=true;if(scooterService!=null)send.run();else cancelled.run();}).create();
+        dialog.setOnDismissListener(d->{if(!done[0]){done[0]=true;cancelled.run();}});
         dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    /**
+     * Home's charging bar released a charge limit (ChargeBar): the Charge limit control's gates in Quick access's order
+     * and its choice sheet's (an offered value, not the current one), said in their words; then its caution and write.
+     * accepted(true) once the scooter was sent the change; ChargeBar watches the readback as the choice sheet does.
+     */
+    private void chargeLimitFromBar(int value,java.util.function.Consumer<Boolean> accepted){
+        ScooterService service=scooterService;
+        ScooterCommands.Feature feature=ScooterCommands.find(ChargeBar.KEY);
+        ChargeBarDrag.Gate gate=ChargeBarDrag.limitGate(ChargeBar.limitState(service),value);
+        if(feature==null||gate!=ChargeBarDrag.Gate.OK){String why=ChargeBar.limitMessage(gate,service,chargeBarWords);if(why!=null)toast(why);accepted.accept(false);return;}
+        confirmChange(feature,value,()->{
+            boolean sent=scooterService!=null&&scooterService.ble.set(feature.key,value);
+            if(!sent&&scooterService!=null)toast(scooterService.ble.displayMessage());
+            accepted.accept(sent);redraw();
+        },()->accepted.accept(false));
     }
     private TextView metricLine(LinearLayout parent,String label){LinearLayout line=row();line.setGravity(Gravity.CENTER_VERTICAL);TextView labelView=design.caption(label);line.addView(labelView,new LinearLayout.LayoutParams(0,-2,1));TextView value=design.text("—",16,true);value.setGravity(Gravity.RIGHT);line.addView(value);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=design.dp(8);p.bottomMargin=design.dp(8);parent.addView(line,p);return value;}
     private final class LoadingScreen implements AppScreen {
@@ -2332,17 +2460,20 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockLine.value.setTextColor(chip!=null&&!accepted?design.danger:design.muted);
             clockLine.line.setContentDescription(clockPending?T.mainRowClockSending():accepted?T.mainRowClockSent(DisplayTime.clock(MainActivity.this,preferences,sent)):chip!=null?T.mainRowClockChip(chip):T.mainRowClock());
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();nameValue.setText(profile==null?T.mainRowNameNotSet():profile.name);
-            boolean chargerEditable=profile!=null&&!scooterService.isChargeRecording();
+            boolean chargerEditable=profile!=null&&scooterService.chargerChoosable();
             if(profile!=null)nameValue.setText(profile.shownName());
             chargerLine.line.setEnabled(chargerEditable);chargerLine.name.setTextColor(chargerEditable?design.text:design.muted);
             // Name the family estimates actually use, and why when it is not the saved choice.
             ScooterService.ChargerBasis basis=scooterService==null?ScooterService.ChargerBasis.UNKNOWN:scooterService.chargerBasis();
             ChargeSessionStore.Charger effective=scooterService==null?null:scooterService.effectiveChargeCharger();
             String family=effective==ChargeSessionStore.Charger.HIGH_SPEED?T.mainRowHighSpeed():T.mainRowStock();
-            chargerLine.value.setText(effective==null?T.mainRowAutomatic():basis==ScooterService.ChargerBasis.DETECTED?T.mainRowAutoFamily(family):family);
-            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING?T.mainRowRecordingLabel()
-                    :basis==ScooterService.ChargerBasis.DETECTED?T.mainRowDetected()
-                    :scooterService!=null&&scooterService.isChargeRecording()?T.mainRowStopRecording():null);
+            // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
+            boolean chargerLocked=scooterService!=null&&!scooterService.chargerChoosable();
+            boolean detectedFamily=basis==ScooterService.ChargerBasis.DETECTED||basis==ScooterService.ChargerBasis.RECORDING&&!chargerLocked;
+            chargerLine.value.setText(effective==null?T.mainRowAutomatic():detectedFamily?T.mainRowAutoFamily(family):family);
+            chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING&&chargerLocked?T.mainRowRecordingLabel()
+                    :detectedFamily?T.mainRowDetected()
+                    :chargerLocked?T.mainRowStopRecording():null);
             if(choiceSheet!=null)choiceSheet.refresh();
         }
     }
@@ -2408,16 +2539,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Dashboard actions reuse the normal control dispatch and its live-state safety checks. */
     private void quickAction(String id) {
         QuickAccessActions.Entry entry = QuickAccessActions.find(id);
-        // Clean Home's own (HomeQuickActions; never in the Quick access catalog). Recording has Home's meaning:
+        // Clean Home's own (HomeQuickActions; Ride and Record are never in the Quick access catalog). Recording has Home's meaning:
         // it stops a recording ride or starts one, never leaves simulation, and says why a start is refused.
         if (HomeQuickActions.RECORD.equals(id)) { RideRecordingControl rec = RideRecordingApp.of(this); if (rec.recording()) rec.stop(); else rec.start(); return; }
-        // Battery alerts, in place of Charge done by on models without scheduled charging (owner's answer 11).
-        if (HomeQuickActions.CHARGE_ALERTS.equals(id)) {
-            // A stored or restored four can keep charge alerts after the model turns out not to offer them:
-            // open the Battery page (which shows what this scooter has) instead of ignoring the tap.
-            if (scooterService != null && scooterService.profiles.active() != null && !chargeAlertsOffered()) { openRoute(HubPages.BATTERY, null); return; }
-            showChargeAlerts(); return;
-        }
+        // Battery alerts: one id and one tap for both Homes (Clean's quick action, in place of Charge done by on models
+        // without scheduled charging, owner's answer 11; and the Widgets shortcut, owner's decision of Nov 12 2026 on #383).
+        // A stored or restored four can keep charge alerts after the model turns out not to offer them: the tap says why, never nothing.
+        if (QuickAccessActions.CHARGE_ALERTS_ID.equals(id)) { chargeAlertsShortcut(); return; }
         boolean ridingMode = HomeQuickActions.RIDING.equals(id);
         if (entry == null && !ridingMode) return;
         if (id.equals("stats") || id.equals("rides")) { openRoute(HubRoutes.pageFor(id), null); return; }
@@ -2425,7 +2553,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (id.equals("charge_done_time")) { showChargeDoneTime(); return; }
         if (id.equals("feature:timed_charging")) { toggleManualCharge(); return; }
         if (id.equals("feature:charge_start")) { showChargingTime(); return; }
-        if (scooterService == null) { toast(T.mainQuickConnectFirst()); return; }
+        if (scooterService == null) { toast(quickRefusal(ChargeBarDrag.Gate.NO_SERVICE)); return; }
         if (ridingMode) { openRiding(); return; }
         // A quick-control group keeps its pop-up sheet; a shortcut to a whole settings page opens that page (HubRoutes).
         String sheet = HubRoutes.sheetFor(id);
@@ -2448,14 +2576,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         String securityPage = HubRoutes.forFeature(feature, false);
         if (securityPage != null) { openRoute(securityPage, null); return; }
         BleController ble = scooterService.ble;
-        if (!ble.ready()) { toast(T.mainQuickConnectChange()); return; }
-        if (ble.pending() != null) { toast(T.mainQuickWaitChange()); return; }
+        if (!ble.ready()) { toast(quickRefusal(ChargeBarDrag.Gate.NOT_CONNECTED)); return; }
+        if (ble.pending() != null) { toast(quickRefusal(ChargeBarDrag.Gate.BUSY)); return; }
         boolean fresh = feature.type == ScooterCommands.Type.TIME
                 ? scooterService.readingFresh("scheduled_charge_time_raw")
                 : scooterService.featureFresh(feature.key);
         Integer actual = ble.featureValue(feature.key);
         if (!fresh || (feature.type != ScooterCommands.Type.TIME && actual == null)) {
-            toast(T.mainQuickNoFresh()); return;
+            toast(quickRefusal(ChargeBarDrag.Gate.NOT_FRESH)); return;
         }
         if (entry.directToggle(decision)) {
             int target = actual == 1 ? 0 : 1;
@@ -2532,7 +2660,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Saved results from earlier launches feed Command evidence only; chips are for this session's changes.
         if(at<=0)return null;
         if(ble.ready()&&System.currentTimeMillis()-ble.statusAge()>at+RESULT_CHIP_MS)return null;
-        return evidence.startsWith("Rejected")?T.mainChipRejected():T.mainChipNotConfirmed();
+        return failureWords(evidence);
     }
     private LinearLayout.LayoutParams rowSpinnerSize(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(20),design.dp(20));p.setMarginStart(design.dp(10));return p;}
     /** A small red chip for a failed change; it sits on the row just before the value or switch. */
@@ -2664,7 +2792,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!value.contentEquals(row.value.getText()))row.value.setText(value);
             String subKind=sub!=null&&on&&chargeAlertBlocked(a)==null?WATCHING:null;
             row.setSub(sub);row.sub.setTextColor(sub!=null&&!WATCHING.equals(subKind)?design.danger:design.muted);
-            row.line.setContentDescription(sub==null?T.mainLabelValue(low?T.mainAlertLow():T.mainAlertCharge(),value):T.mainLabelValueDetail(low?T.mainAlertLow():T.mainAlertCharge(),value,sub));
+            row.line.setContentDescription(sub==null?T.mainLabelValue(low?T.mainAlertLow():chargeAlertName(),value):T.mainLabelValueDetail(low?T.mainAlertLow():T.mainAlertCharge(),value,sub));
         }
     }
     /** Scooter › Battery › Live charging: On or Off, and why the card can't show when notifications are off. */
@@ -2748,6 +2876,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             lock.setAlpha(on?1f:0.5f);
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
+    }
+    /** Home's Charge alerts shortcut: the Battery page's sheet, for the selected scooter; a model with a charge limit says why not. */
+    private void chargeAlertsShortcut(){
+        // Says why in the resolver's words: "Not on this model" only where the model has its own charge limit.
+        if(scooterService!=null&&scooterService.profiles.active()!=null&&!chargeAlertsOffered()){toast(CapabilityResolver.message(scooterService.chargeAlertsMissing()));return;}
+        closeQuickMenu();showChargeAlerts();
     }
     private ChargeAlertSheet chargeAlertSheet;
     private void showChargeAlerts(){
@@ -3103,7 +3237,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 toggle.setContentDescription(shortLabel(feature));
                 toggle.setOnClickListener(v->{if(scooterService!=null){if(feature.key.equals("timed_charging")){toggle.setChecked(scooterService.chargeSchedule().manualEnabled);toggleManualCharge(false);return;}int target=toggle.isChecked()?1:0;Integer old=scooterService.ble.featureValue(feature.key);toggle.setChecked(old!=null&&old==1);confirmChange(feature,target,()->{scooterService.ble.set(feature.key,target);redraw();});}});
                 LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-2,-2);tp.leftMargin=design.dp(10);row.line.addView(toggle,tp);
-                row.line.setFocusable(true);row.line.setBackground(rowRipple());row.line.setOnClickListener(v->{if(feature.key.equals("timed_charging"))toggleManualCharge();else if(parkedBlocked)toast(T.mainRowStopToChange());else if(toggle.isEnabled())toggle.performClick();});
+                row.line.setFocusable(true);row.line.setBackground(rowRipple());row.line.setOnClickListener(v->{if(feature.key.equals("timed_charging"))toggleManualCharge();else if(parkedBlocked)toast(quickRefusal(ChargeBarDrag.Gate.PARKED));else if(toggle.isEnabled())toggle.performClick();});
             }else if(inline){
                 toggle=null;value.setVisibility(View.GONE);
                 if(feature.key.endsWith("_pattern")){
@@ -3180,7 +3314,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             spinner.setVisibility(pending?View.VISIBLE:View.GONE);
             result.setText(chip==null?"":chip);result.setVisibility(chip==null?View.GONE:View.VISIBLE);
             // TalkBack reads the name and value, plus any short state.
-            action.setContentDescription(T.mainLabelValueState(shortLabel(feature),shown,pending?T.mainRowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?T.mainRowStateNote(lowerInEnglish(note)):""));
+            action.setContentDescription(labelValueState(shortLabel(feature),shown,pending?rowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?rowStateNote(note):""));
             if(toggle!=null){toggle.setVisibility(pending?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
         }
         private void refreshChargeSchedule(){
@@ -3207,13 +3341,7 @@ public final class MainActivity extends Activity implements ScreenHost {
          * already shows), else "Unconfirmed here" where an owner saw this model keep its old value, else
          * "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
          */
-        private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){
-            if(ble==null||d==null||!ble.ready())return null;
-            if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
-                    &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
-            if(ModelRegistry.unconfirmed(ble.descriptor(),feature.key))return T.mainRowUnconfirmed();
-            return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
-        }
+        private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){return controlNote(ble,d,parked,feature.key);}
         /** UT5 MAX swatches never change; colours beyond them (another model's table) show only while that model offers them. */
         private void extraSwatches(CapabilityResolver.Decision decision){
             int[] offered=decision==null||decision.variant==null||decision.variant.decode==FeatureVariant.Decode.UT5_FEATURE?new int[0]:decision.values();
@@ -3234,7 +3362,6 @@ public final class MainActivity extends Activity implements ScreenHost {
                 boolean shown=false;for(int v:offered)shown|=v==option.getKey();option.getValue().setVisibility(shown?View.VISIBLE:View.GONE);
             }
         }
-        private String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
         private void restorePatternSelection(boolean animate){
             Integer actual=scooterService==null?null:scooterService.ble.featureValue(feature.key);
             if(actual==null&&scooterService!=null)actual=scooterService.displayFeatures().get(feature.key);
@@ -3732,11 +3859,23 @@ public final class MainActivity extends Activity implements ScreenHost {
         int bytes=bundle.getBytes(StandardCharsets.UTF_8).length;
         String size=bytes<1024?T.mainReportSizeBytes(bytes,bytes):T.mainReportSizeKb(Fmt.decimal(Locale.ROOT, bytes / 1024.0, 1));
         LinearLayout content=sheetContent(T.mainReportDiagnosticsTitle(),T.mainReportPreviewBody(DiagnosticsProvider.NAME,size),()->{if(self[0]!=null)self[0].dismiss();});
-        ScrollView scroll=new ScrollView(this);scroll.setTag("diagnostics-preview-scroll");scroll.setBackground(design.shape(design.surface,16,0));
-        TextView text=design.text(bundle,12,false);text.setTypeface(android.graphics.Typeface.MONOSPACE);text.setTextIsSelectable(true);
-        text.setPadding(design.dp(12),design.dp(12),design.dp(12),design.dp(12));text.setTag("diagnostics-preview-text");
-        scroll.addView(text,new ScrollView.LayoutParams(-1,-2));
-        content.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        // A recycled list of 40-line blocks (DiagnosticsBundle.previewBlocks): only the blocks on screen are laid out, so a
+        // worst-case file opens without stalling. Joined with line breaks, the blocks are the exact file.
+        final java.util.List<String> blocks=DiagnosticsBundle.previewBlocks(bundle);
+        android.widget.ListView list=new android.widget.ListView(this);list.setTag("diagnostics-preview-list");list.setBackground(design.shape(design.surface,16,0));
+        list.setDivider(null);list.setDividerHeight(0);list.setSelector(new android.graphics.drawable.ColorDrawable(0));list.setItemsCanFocus(true);
+        list.setPadding(design.dp(12),design.dp(12),design.dp(12),design.dp(12));list.setClipToPadding(false);list.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+        list.setAdapter(new android.widget.BaseAdapter(){
+            @Override public int getCount(){return blocks.size();}
+            @Override public Object getItem(int position){return blocks.get(position);}
+            @Override public long getItemId(int position){return position;}
+            @Override public View getView(int position,View recycled,android.view.ViewGroup parent){
+                TextView block=recycled instanceof TextView?(TextView)recycled:design.text("",12,false);
+                if(recycled==null){block.setTypeface(android.graphics.Typeface.MONOSPACE);block.setTextIsSelectable(true);block.setTag("diagnostics-preview-block");}
+                block.setText(blocks.get(position));return block;
+            }
+        });
+        content.addView(list,new LinearLayout.LayoutParams(-1,0,1));
         Dialog dialog=showTallSheet(content);self[0]=dialog;diagnosticsPreview=dialog;
         dialog.setOnDismissListener(d->{if(diagnosticsPreview==dialog)diagnosticsPreview=null;});
     }
@@ -3774,6 +3913,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{startActivity(Intent.createChooser(send,T.mainReportChooser()));return true;}catch(RuntimeException none){return false;}
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        OwnDialogs.track(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));
         TextView message=dialog.findViewById(android.R.id.message);
@@ -3986,7 +4126,7 @@ public final class MainActivity extends Activity implements ScreenHost {
 
     /** Local per-scooter estimate preference: never sends a charger command or starts capture. */
     private void showChargerEstimateChoice(){
-        if(scooterService==null||scooterService.profiles.active()==null||scooterService.isChargeRecording())return;
+        if(scooterService==null||scooterService.profiles.active()==null||!scooterService.chargerChoosable())return;
         String profile=scooterService.profiles.active().id;
         final AlertDialog[] sheet=new AlertDialog[1];
         LinearLayout content=sheetContent(T.mainRowCharger(),
@@ -4097,7 +4237,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private ChoiceSheet choiceSheet;
     private void showChoice(ScooterCommands.Feature feature){
         if(scooterService==null||!scooterService.ble.ready()||scooterService.ble.pending()!=null)return;
-        int[] choices=scooterService.ble.featureChoices(feature.key);if(choices.length==0){toast(T.mainEditNotOnFirmware());return;}
+        int[] choices=scooterService.ble.featureChoices(feature.key);if(choices.length==0){toast(quickRefusal(ChargeBarDrag.Gate.NO_CHOICES));return;}
         if(feature.key.equals("range_algorithm")) {
             int[] withFollow=new int[choices.length+1]; withFollow[0]=-1;
             System.arraycopy(choices,0,withFollow,1,choices.length); choices=withFollow;

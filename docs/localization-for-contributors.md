@@ -218,7 +218,7 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 | Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
 | `tests/run.sh`, `build.sh`, `android-tests/build.sh`, `.github/workflows/`, `tools/l10n/` and every existing file under `tests/l10n/` except `characterization/`, `golden/` and top-level `*.sources` | May change | Must not change, not even by an added statement. Exceptions: a new `tests/l10n/<Name>.java`, and a `.sources` file |
 | Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May only gain whole statements |
-| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`) |
+| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`). If that commit only adds rows to an existing `.tsv` listing (for example, a new shortcut's row), the proof skips running the tests there and checks that no existing row changed; the new rows are left to the tests at head |
 | `T.` or `M.` calls, catalog strings | Not possible; adding them makes it a `batch` | Yes |
 
 MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `batch`.
@@ -329,18 +329,18 @@ python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 bash build.sh
 ```
 
-`build.sh` also compares the catalog with what the resource tool stored and guards the release APK. CI can't run this. `bash android-tests/build.sh` builds the Android validations, which are optional for contributors; see [Running an emulator check yourself](building.md#running-an-emulator-check-yourself).
+`build.sh` also compares the catalog with what the resource tool stored and guards the release APK. CI runs it too, in the `android-build` job. `bash android-tests/build.sh` builds the Android validations, which are optional for contributors; see [Running an emulator check yourself](building.md#running-an-emulator-check-yourself).
 
 | | Runs |
 |---|---|
-| CI | Everything in that first list; the website job separately |
-| Not in CI | `build.sh`, `android-tests`, pseudo-locale checks, the screen-text census, `prove-english.sh` |
+| CI | Everything in that first list; `build.sh`, the pseudo-locale build, `android-tests/build.sh` and `ship_check.py --aapt required` (`android-build`); `prove-english.sh <base> --pseudo` (`english-proof`); the website job separately |
+| Not in CI | Running the `android-tests` validations and the screen-text census (they need an emulator) |
 
 Say in your PR what you ran, and what you couldn't run.
 
 ### The `prove-english.sh` caveat
 
-`tools/l10n/prove-english.sh` is a local proof for moving old text. It isn't in CI, and a feature PR doesn't need it. If you run it on an ordinary PR, expect false alarms: at this writing it fails `G1` on any new or changed non-id literal and `G8` on grown baselines, even when `ci_gates.py` passes. `ci_gates.py` is the authority. A catalog-only PR with no new data literals passes it.
+`tools/l10n/prove-english.sh` is the proof for moving old text. CI runs it on every pull request (`english-proof`, with `--pseudo`), so you don't need to run it yourself. On an ordinary PR it applies the rules `ci_gates.py` gives that kind: `G1` and `G5` read `not applied` and a golden change reads REPORT, so its summary there is not a proof that English is unchanged.
 
 ## See your text in the pseudo-locale build
 

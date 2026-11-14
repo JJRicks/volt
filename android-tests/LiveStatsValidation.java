@@ -359,7 +359,7 @@ public final class LiveStatsValidation extends Instrumentation {
     private void main(Runnable action) {
         java.util.concurrent.atomic.AtomicReference<Throwable> failure = new java.util.concurrent.atomic.AtomicReference<>();
         runOnMainSync(() -> { try { action.run(); } catch (Throwable error) { failure.set(error); } });
-        if (failure.get() != null) throw new IllegalStateException("UI assertion failed", failure.get());
+        if (failure.get() != null) throw new IllegalStateException("UI assertion failed: " + failure.get(), failure.get());
     }
     /** A long read on the main thread, where the app writes it. */
     private long mainLong(java.util.function.LongSupplier read) {

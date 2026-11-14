@@ -70,6 +70,7 @@ final class Motion {
     static void present(Dialog dialog, int kind) {
         Window window = dialog == null ? null : dialog.getWindow();
         if (window == null) return;
+        OwnDialogs.track(dialog); // leaving Volt over it keeps its page (HubNav.awayClockStarts)
         window.setWindowAnimations(kind == SHEET ? R.style.VoltMotion_Sheet
                 : kind == PAGE ? R.style.VoltMotion_Page : R.style.VoltMotion_Dialog);
         dialog.create(); // builds the content now so its scrollers can be quieted before they attach

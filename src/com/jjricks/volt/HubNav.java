@@ -92,6 +92,31 @@ final class HubNav {
         return now < awayAt || now - awayAt >= RETENTION_MS || awayBoot != boot;
     }
 
+    /** How soon after Volt itself opened another app (an email, a file picker) leaving still counts as that app's. */
+    static final long LAUNCH_GRACE_MS = 2_000;
+
+    /**
+     * Whether leaving starts the away clock that closes sub-pages after RETENTION_MS (#392 early review). Not while one of
+     * Volt's own dialogs or sheets is showing (an editor such as a ride's notes may hold unsaved text, and the rebuild on
+     * return would dismiss it): ownDialogShowing comes from OwnDialogs, so a window that is not Volt's (the notification
+     * shade, the other app in split screen) never counts. Not when a page itself sent the owner to another app just
+     * before (an email to send, a file to save or pick): launchedAt is when Volt last started an activity (negative for
+     * none), and the page they were using is kept for their return. A clock that went backwards does not count.
+     */
+    static boolean awayClockStarts(boolean ownDialogShowing, long launchedAt, long now) {
+        boolean launched = launchedAt >= 0 && now >= launchedAt && now - launchedAt <= LAUNCH_GRACE_MS;
+        return !ownDialogShowing && !launched;
+    }
+
+    /**
+     * The page header's link (it names the page below and is read "Back to <page>") goes there. It skips a page's own
+     * first Back step only where that step keeps the page: Search's, which clears a typed query (#392 early review); the
+     * system Back keeps both steps.
+     */
+    static boolean linkSkipsPageBack(String page) {
+        return HubPages.SEARCH.equals(HubPages.canonical(page));
+    }
+
     /** The transition's direction from one page to another: +1 deeper, -1 shallower, 0 at the same depth. */
     static int direction(String from, String to) {
         return Integer.signum(HubPages.depth(HubPages.canonical(to)) - HubPages.depth(HubPages.canonical(from)));

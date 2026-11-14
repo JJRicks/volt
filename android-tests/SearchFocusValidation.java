@@ -85,13 +85,15 @@ public final class SearchFocusValidation extends Instrumentation {
         }
     }
     private void controlsChecks(String theme) {
-        clickDescription("Scooter"); Object controls = screen(); EditText search = (EditText)field(controls, "search");
+        // The Scooter tab is the subjects index since the Hub layout (#385): its search is a ControlsScreen part of the page.
+        clickDescription("Scooter"); Object page = screen(); Object controls = HubTestPages.part(activity, "ControlsScreen");
+        EditText search = (EditText)field(controls, "search");
         showKeyboard(search, activity.getWindow(), "speed"); tap((View)field(controls, "results"), activity.getWindow());
         assertDismissed(search, activity.getWindow(), "speed", "Outside results tap");
-        require(screen() == controls, "An inert outside tap navigated away from settings");
+        require(screen() == page, "An inert outside tap navigated away from settings");
         showKeyboard(search, activity.getWindow(), "speed"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, activity.getWindow(), "speed", "System Back");
-        require(screen() == controls, "Hiding the keyboard also navigated away");
+        require(screen() == page, "Hiding the keyboard also navigated away");
         showKeyboard(search, activity.getWindow(), "speed"); tap(findDescription(root(), "Live Stats"), activity.getWindow());
         await(() -> screen() instanceof StatsScreen && !imeVisible(activity.getWindow()), 4000,
                 "Outside navigation tap was swallowed or left the keyboard open");

@@ -74,10 +74,10 @@ public final class DeveloperSettingsValidation extends Instrumentation {
             seed(); launch();
             main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
             verifyBrandAndLocationSettings(); checks.add("Installed app and About use Volt; Location opens this app's public Android settings intent without launching or changing system settings");
-            verifySelectors(); checks.add("Rounded preference tracks retain readable labels, 48dp targets, radio semantics, selected indication and existing preference keys");
+            verifySelectors(); checks.add("Rounded preference tracks retain readable labels, 48dp targets, radio semantics, selected indication and existing preference keys; Appearance is a Settings row with its value whose choice opens over Settings");
             verifyControlArtwork(); checks.add("On/off switch tracks remain opaque and contrast against both themes; notification artwork is a transparent bolt silhouette");
             verifyFeedbackSwitches(); checks.add("Switch thumb drags count like taps: Haptic feedback saves a swipe and keeps it through a redraw; one click in the dragged direction, none for a cancelled drag or code");
-            verifyDeveloperVisible(); checks.add("Developer options are always in the menu, ignore a stored unlock flag and the version line takes no taps");
+            verifyDeveloperVisible(); checks.add("Developer options are always on Settings, ignore a stored unlock flag and the version line takes no taps; the checker opens as its own page and Back returns to Developer options");
             if (!"preferences".equals(arguments.getString("mode", "all"))) {
                 verifySimulation();
                 checks.add("Simulation supplies every telemetry field and ephemeral charts; local controls never create GATT/scans/command queues, recording or persisted sample data");
@@ -245,36 +245,121 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     }
     private void verifySelectors() throws Exception {
         main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "App")); settle();
-        String[] keys = {"theme", "stats_density", "units", "temperature_unit", "time_format"};
-        String[][] values = {{"dark", "system", "light"}, {"comfortable", "dense"}, {"mi", "km", "dual"}, {"c", "f"}, {"system", "12h", "24h"}};
+        main(() -> require("settings".equals(HubTestPages.current(activity)), "App preferences are not Settings' index"));
+        // Appearance is a Settings row with its value since part 11 (the contributor's pick on #383); its three-way choice
+        // opens over Settings and gets every selector check there (verifyAppearance).
+        verifyAppearance();
+        // Live Stats detail (stats_density) left App preferences for Live Stats › Data & history in the Hub layout (#389);
+        // its selector gets the same checks on that page below.
+        String[] keys = {"units", "temperature_unit", "time_format"};
+        String[][] values = {{"mi", "km", "dual"}, {"c", "f"}, {"system", "12h", "24h"}};
         for (int group = 0; group < keys.length; group++) {
             final String key = keys[group];
             if (key.equals("units")) {
+                View[] units = {null};
                 main(() -> {
-                    View selector = selector("stats_density"), groupView = root().findViewWithTag("preference-display-options");
-                    require(groupView.getTop() - selector.getBottom() >= activity.ui().dp(16), "Display submenu touches final selector");
-                    require(!selector("units").isShown() && !selector("temperature_unit").isShown(), "Unit controls still crowd App preferences");
-                    View units = root().findViewWithTag("preference-units-menu");
-                    require(units != null && units.isShown(), "Units submenu is missing"); units.performClick();
-                }); settle();
+                    View appearance = HubTestPages.shownTag(activity, "preference-appearance"), groupView = HubTestPages.shownTag(activity, "preference-display-options");
+                    require(appearance.getParent() == groupView, "Appearance left the display card");
+                    // Deliberately the built-but-hidden selectors: Settings must not show them until the Units page opens.
+                    require(!builtSelector("units").isShown() && !builtSelector("temperature_unit").isShown(), "Unit controls still crowd Settings");
+                    units[0] = HubTestPages.shownTag(activity, "preference-units-menu");
+                    require(units[0].getHeight() >= activity.ui().dp(48), "The Units row is under 48 dp");
+                });
+                HubTestPages.tapView(this, activity, units[0], "the Units row"); settle();
+                main(() -> require("settings.units".equals(HubTestPages.current(activity)), "The Units row did not open its page"));
             }
-            main(() -> assertSelector(key));
-            for (int choice : new int[]{values[group].length - 1, 0}) {
-                final int selected = choice; final String expected = values[group][choice];
-                main(() -> { View previousSelector = selector(key); choices(key).get(selected).performClick();
-                    if (!Ui.motionEnabled()) require(field(field(previousSelector, "track"), "animation") == null,
-                            "Preference selection animated with system animations disabled"); }); settle();
-                main(() -> { require(settings().getString(key, "").equals(expected), "Selector changed the wrong preference key"); assertSelector(key); });
-            }
+            verifySelectorChoices(key, values[group]);
         }
         screenshot("units");
         main(() -> {
             require("Units".equals(field(more(), "selectedSection")), "Unit changes lost submenu navigation");
-            require(((MoreScreen)more()).back(), "Back did not leave Units");
-            require("App".equals(field(more(), "selectedSection")), "Units back skipped App preferences");
+            // Units is a page of its own since part 11: Back is the page stack's, and returns to Settings.
+            require(!more().back(), "The Units page kept Back for itself");
+            activity.onBackPressed();
         }); settle();
-        main(() -> require(selector("theme").isShown() && !selector("units").isShown(), "Back did not restore App preferences"));
+        main(() -> require("settings".equals(HubTestPages.current(activity)), "Units back skipped Settings"));
+        main(() -> require(HubTestPages.shownTag(activity, "preference-appearance").isShown() && !builtSelector("units").isShown(), "Back did not restore Settings"));
         screenshot("preferences");
+        HubTestPages.reach(this, activity, "data.storage"); settle();
+        verifySelectorChoices("stats_density", new String[]{"comfortable", "dense"});
+        screenshot("stats-density");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "settings")); settle();
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "App")); settle();
+    }
+    /**
+     * Appearance on Settings: a 48 dp row with a spoken name whose value names the theme; no inline selector on the page.
+     * Its row opens the three-way choice over Settings, which gets every selector check (readable, 48 dp, radio semantics,
+     * selected indication). Each end choice saves its own value under theme, applies at once (the dialog closes with the
+     * redraw) and the row's value then names it; reopened, the choice shows it selected.
+     */
+    private void verifyAppearance() throws Exception {
+        String[] names = new String[3];
+        String[] values = {"dark", "system", "light"};
+        View row = openAppearance();
+        main(() -> {
+            List<TextView> choices = choices("theme");
+            require(choices.size() == values.length, "Appearance offers " + choices.size() + " choices");
+            for (int i = 0; i < names.length; i++) names[i] = choices.get(i).getText().toString();
+            assertSelector("theme");
+        });
+        windowScreenshot("appearance", appearanceDialog().getWindow().getDecorView());
+        main(() -> appearanceDialog().dismiss()); settle();
+        for (int choice : new int[]{values.length - 1, 0}) {
+            final int selected = choice; final String expected = values[choice];
+            openAppearance();
+            AtomicReference<AlertDialog> picked = new AtomicReference<>();
+            main(() -> { View previousSelector = selector("theme"); picked.set(appearanceDialog()); choices("theme").get(selected).performClick();
+                if (!Ui.motionEnabled()) require(field(field(previousSelector, "track"), "animation") == null,
+                        "Preference selection animated with system animations disabled"); }); settle();
+            main(() -> {
+                require(settings().getString("theme", "").equals(expected), "Selector changed the wrong preference key");
+                require(activity.ui().dark == !"light".equals(expected), "The picked theme did not apply");
+                require(!picked.get().isShowing() && openDialog() == null, "The Appearance choice stayed open over the redrawn Settings");
+                require(names[selected].contentEquals(appearanceValue()), "The Appearance row reads " + appearanceValue() + ", not " + names[selected]);
+            });
+            openAppearance();
+            main(() -> { assertSelector("theme"); require(choices("theme").get(selected).isSelected(), "The reopened choice does not show " + expected); });
+            main(() -> appearanceDialog().dismiss()); settle();
+        }
+        checks.add("Appearance: a Settings row whose value names the theme; its dialog's choices are readable 48dp radios and each saves and applies its theme");
+    }
+    /** Taps Settings' Appearance row as a rider does and returns it, with its choice open over Settings. */
+    private View openAppearance() throws Exception {
+        View[] row = {null};
+        main(() -> {
+            require("settings".equals(HubTestPages.current(activity)), "Not on Settings");
+            View theme = root().findViewWithTag("preference-selector-theme");
+            require(theme == null || !theme.isShown(), "Appearance's selector is inline on Settings");
+            row[0] = HubTestPages.shownTag(activity, "preference-appearance");
+            require(row[0].getHeight() >= activity.ui().dp(48) && row[0].isClickable() && row[0].isFocusable(), "The Appearance row is not a 48 dp tappable row");
+            CharSequence title = ((TextView)field(field(row[0], "row"), "title")).getText();
+            require("Appearance".contentEquals(title), "The Appearance row reads " + title);
+            require(appearanceValue().length() > 0, "The Appearance row shows no value");
+        });
+        HubTestPages.tapView(this, activity, row[0], "the Appearance row"); settle();
+        main(() -> require(appearanceDialog().isShowing(), "The Appearance row did not open its choice"));
+        return row[0];
+    }
+    private CharSequence appearanceValue() { TextView value = (TextView)field(field(HubTestPages.shownTag(activity, "preference-appearance"), "row"), "value"); return value.isShown() ? value.getText() : ""; }
+    /** Settings' open dialog, or null. */
+    @SuppressWarnings("unchecked") private AlertDialog openDialog() {
+        Object screen = field(activity, "screen");
+        if (!(screen instanceof MoreScreen)) return null;
+        AlertDialog open = null;
+        for (AlertDialog dialog : (List<AlertDialog>)field(screen, "dialogs")) if (dialog.isShowing()) open = dialog;
+        return open;
+    }
+    private AlertDialog appearanceDialog() { AlertDialog dialog = openDialog(); require(dialog != null, "No Appearance choice is open"); return dialog; }
+    /** A preference selector: readable and targetable, and each end choice saves its own value under the key. */
+    private void verifySelectorChoices(String key, String[] values) {
+        main(() -> assertSelector(key));
+        for (int choice : new int[]{values.length - 1, 0}) {
+            final int selected = choice; final String expected = values[choice];
+            main(() -> { View previousSelector = selector(key); choices(key).get(selected).performClick();
+                if (!Ui.motionEnabled()) require(field(field(previousSelector, "track"), "animation") == null,
+                        "Preference selection animated with system animations disabled"); }); settle();
+            main(() -> { require(settings().getString(key, "").equals(expected), "Selector changed the wrong preference key"); assertSelector(key); });
+        }
     }
     /** Real touch sequences, not performClick: Android commits a thumb drag with setChecked and cancels the click. */
     private void verifyFeedbackSwitches() throws Exception {
@@ -345,7 +430,15 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         finally { event.recycle(); }
     }
     @SuppressWarnings("unchecked") private List<TextView> choices(String key) { return (List<TextView>)field(field(selector(key), "track"), "choices"); }
-    private View selector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
+    /** The selector for key, required shown on the page now shown (every check that reads or taps it). */
+    private View selector(String key) {
+        // Appearance's choice is in its dialog over Settings (part 11), not on the page.
+        if (key.equals("theme")) { View found = appearanceDialog().getWindow().getDecorView().findViewWithTag("preference-selector-theme");
+            require(found != null && found.isShown(), "Appearance's dialog has no shown theme selector"); return found; }
+        return HubTestPages.requireShown(activity, builtSelector(key), "the " + key + " selector");
+    }
+    /** The selector for key as built, shown or not: only for checks that it is hidden. */
+    private View builtSelector(String key) { View found = root().findViewWithTag("preference-selector-" + key); require(found != null, "Missing selector " + key); return found; }
     private void assertSelector(String key) {
         View selector = selector(key); Object track = field(selector, "track");
         require(selector instanceof HorizontalScrollView && selector.isShown() && selector.getWidth() > 0, "Selector lost its bounded readable track");
@@ -376,36 +469,43 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     private void verifyDeveloperVisible() {
         main(() -> {
             require(!settings().getBoolean("developer_options", false), "Fixture started with the retired flag on");
+            require("settings".equals(HubTestPages.current(activity)), "Not on Settings");
             View menu = root().findViewWithTag("developer-options-menu");
-            require(menu != null && menu.getVisibility() == View.VISIBLE, "Developer options row is not always in the menu");
+            require(menu != null && menu.isShown(), "Developer options row is not always on Settings");
             require(field(more(), "compatibilityPanel") != null, "Compatibility panel missing without a stored flag");
             invoke(more(), "selectSection", new Class<?>[]{String.class}, "About");
         }); settle();
         main(() -> {
-            View version = root().findViewWithTag("about-version"); require(version != null, "Version line missing");
+            require("settings.about".equals(HubTestPages.current(activity)), "About did not open its page");
+            View version = root().findViewWithTag("about-version"); require(version != null && version.isShown(), "Version line missing");
             require(!version.isClickable(), "Version line still takes taps");
             settings().edit().putBoolean("developer_options", false).commit(); activity.redraw();
         }); settle();
+        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "")); settle();
         main(() -> {
+            require("settings".equals(HubTestPages.current(activity)), "About's way back did not return to Settings");
             View menu = root().findViewWithTag("developer-options-menu");
-            require(menu != null && menu.getVisibility() == View.VISIBLE, "A stored false flag hid Developer options");
+            require(menu != null && menu.isShown(), "A stored false flag hid Developer options");
             require(root().findViewWithTag("developer-hide-options") == null, "Hide developer options row is still there");
-            invoke(more(), "selectSection", new Class<?>[]{String.class}, "");
+            invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer");
         }); settle();
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Developer")); settle();
-        main(() -> require("Developer".equals(field(more(), "selectedSection")) && root().findViewWithTag("developer-simulation-toggle") != null,
-                "Developer options did not open without a stored flag"));
+        main(() -> require("settings.developer".equals(HubTestPages.current(activity)) && "Developer".equals(field(more(), "selectedSection"))
+                && root().findViewWithTag("developer-simulation-toggle") != null, "Developer options did not open without a stored flag"));
+        View[] checker = {null};
+        main(() -> { checker[0] = root().findViewWithTag("developer-compatibility-check"); require(checker[0] != null && checker[0].isShown(), "Compatibility checker is missing from Developer options"); });
+        HubTestPages.tapView(this, activity, checker[0], "the compatibility checker row"); settle();
         main(() -> {
-            View checker = root().findViewWithTag("developer-compatibility-check");
-            require(checker != null && checker.isShown(), "Compatibility checker is missing from Developer options");
-            checker.performClick();
+            // The checker is Service › Compatibility's page since part 11; its header's back link names the page below.
+            require("service.compatibility".equals(HubTestPages.current(activity))
+                    && "HubCompatibilityPage".equals(field(activity, "screen").getClass().getSimpleName()), "Developer checker did not open");
+            // The page header (MainActivity's, above the page's own view) holds the back link.
+            View back = root().findViewWithTag("hub-back"); require(back != null && back.isShown(), "The checker page has no back link");
+            ArrayList<View> named = new ArrayList<>(); back.findViewsWithText(named, "Developer options", View.FIND_VIEWS_WITH_TEXT);
+            require(!named.isEmpty() && String.valueOf(back.getContentDescription()).contains("Developer options"), "Checker back link does not name its parent");
+            activity.onBackPressed();
         }); settle();
-        main(() -> {
-            require("Compatibility".equals(field(more(), "selectedSection")), "Developer checker did not open");
-            require("Developer options".contentEquals(((TextView)field(more(), "sectionBackLabel")).getText()), "Checker back link does not name its parent");
-            require(more().back(), "Checker did not handle Back");
-        }); settle();
-        main(() -> require("Developer".equals(field(more(), "selectedSection")), "Checker Back did not return to Developer options"));
+        main(() -> require("settings.developer".equals(HubTestPages.current(activity)) && "Developer".equals(field(more(), "selectedSection")),
+                "Checker Back did not return to Developer options"));
     }
     private void verifySimulation() throws Exception {
         flushHistory(); final String databaseBefore = databaseSnapshot();
@@ -496,16 +596,17 @@ public final class DeveloperSettingsValidation extends Instrumentation {
     }
     /** Display-state injection stays inside the emulator's disconnected simulator; no GATT is made. */
     @SuppressWarnings("unchecked") private void verifyScooterSelectors() throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "lights")); settle();
-        main(() -> {
-            BleController ble=activity.service().ble;
-            Map<String,Integer> values=(Map<String,Integer>)field(field(ble,"simulation"),"features");
-            Map<String,String> results=(Map<String,String>)field(ble,"commandResults");
-            // The row shows a result chip only for this session's results, which carry a time.
-            Map<String,Long> resultTimes=(Map<String,Long>)field(ble,"resultTimes");
-            for(String key:new String[]{"line_pattern","star_pattern"}){
+        // Line and star patterns are on Lights & sound › Line lights and Star lights since the Hub layout (#385).
+        for(String key:new String[]{"line_pattern","star_pattern"}){
+            HubTestPages.reach(this, activity, key.startsWith("line_")?"lights.line":"lights.star"); settle();
+            main(() -> {
+                BleController ble=activity.service().ble;
+                Map<String,Integer> values=(Map<String,Integer>)field(field(ble,"simulation"),"features");
+                Map<String,String> results=(Map<String,String>)field(ble,"commandResults");
+                // The row shows a result chip only for this session's results, which carry a time.
+                Map<String,Long> resultTimes=(Map<String,Long>)field(ble,"resultTimes");
                 SegmentedSelector selector=(SegmentedSelector)root().findViewWithTag("scooter-selector-"+key);
-                require(selector!=null,"Missing lighting selector "+key);Object row=control(key);invoke(row,"refresh");
+                require(selector!=null,"Missing lighting selector "+key);HubTestPages.requireShown(activity,selector,"the "+key+" selector");Object row=control(key);invoke(row,"refresh");
                 int before=values.get(key),next=(before+1)%3;
                 selectorChoices(selector).get(next).performClick();invoke(row,"refresh");
                 require(values.get(key)==next&&selected(selector)==next,"Confirmed simulated pattern not displayed: "+key+" actual="+values.get(key)+" selected="+selected(selector)+" enabled="+selector.isEnabled()+" fresh="+activity.service().featureFresh(key)+" message="+ble.message());
@@ -524,13 +625,13 @@ public final class DeveloperSettingsValidation extends Instrumentation {
                 require(selected(selector)==before&&!selector.isEnabled(),"Failed write left optimistic pattern selected");
                 setField(ble,"state",BleController.State.READY);invoke(row,"refresh");results.remove(key);resultTimes.remove(key);
                 values.put(key,next);invoke(row,"refresh");require(selected(selector)==next,"New readback did not move the highlight");
-            }
-            assertTransportIdle();activity.redraw();
-            View pattern=root().findViewWithTag("scooter-selector-line_pattern");
-            pattern.requestRectangleOnScreen(new Rect(0,0,pattern.getWidth(),pattern.getHeight()),true);
-            android.view.ViewParent parent=pattern.getParent();while(parent!=null&&!(parent instanceof android.widget.ScrollView))parent=parent.getParent();
-            if(parent instanceof android.widget.ScrollView)((android.widget.ScrollView)parent).scrollBy(0,activity.ui().dp(180));
-        });settle();windowScreenshot("light-selectors",activity.getWindow().getDecorView());
+                assertTransportIdle();activity.redraw();
+            });settle();
+            main(() -> {
+                View pattern=root().findViewWithTag("scooter-selector-"+key);
+                pattern.requestRectangleOnScreen(new Rect(0,0,pattern.getWidth(),pattern.getHeight()),true);
+            });settle();windowScreenshot(key.startsWith("line_")?"light-selectors":"star-light-selectors",activity.getWindow().getDecorView());
+        }
         for(String key:new String[]{"energy_recovery","display_units","charge_limit","lock_expiry","prompt_tone"}){
             main(() -> {
                 invoke(activity,"showChoice",new Class<?>[]{ScooterCommands.Feature.class},ScooterCommands.find(key));
@@ -557,7 +658,8 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         main(() -> {((AlertDialog)field(field(activity,"choiceSheet"),"dialog")).dismiss();assertTransportIdle();});
         checks.add("Lighting and short fixed scooter choices use readable tracks, retain confirmed state while pending/rejected, clear unknown values, and close only after confirmed readback");
     }
-    private Object control(String key){for(Object row:(List<?>)field(field(activity,"screen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing control "+key);}
+    /** The control's row on the page now shown, required shown there. */
+    private Object control(String key){return HubTestPages.shownControlRow(activity,key);}
     @SuppressWarnings("unchecked") private List<TextView> selectorChoices(SegmentedSelector selector){return (List<TextView>)field(field(selector,"track"),"choices");}
     private int selected(SegmentedSelector selector){return ((Number)field(field(selector,"track"),"selected")).intValue();}
     private void assertChoiceTargets(SegmentedSelector selector){
