@@ -54,8 +54,9 @@ final class DashboardCaption extends TextView {
     }
 
     /**
-     * A label a little too wide for one line gets a little smaller, down to {@code floor} of its size, before it
-     * wraps (Clean's charging tiles, whose inset stays at the Layout Plan's 12 dp). Wider than that, it wraps as usual.
+     * A label too wide for one line takes its shorter rung first, then a little smaller text, down to {@code floor}
+     * of its size, before it wraps (Clean's charging tiles, whose inset stays at the Layout Plan's 12 dp). Wider than
+     * that, it wraps as usual.
      */
     void shrinkToOneLine(float floor) {
         oneLineFloor = Math.max(.5f, Math.min(1f, floor));
@@ -88,18 +89,27 @@ final class DashboardCaption extends TextView {
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
         boolean unbounded = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED;
+        String oneLineText = null;
         if (oneLineFloor < 1f) {
-            // The largest step that keeps the normal label on one line, else the full size (it wraps).
+            // On one line, the first that fits: the normal label, then the shorter rung, at full size; then each a
+            // little smaller, down to the floor. Neither fits: the full size, and the usual wrap below.
             float px = fullPx;
-            if (!unbounded && !fits(normalLabel, width, 1, fullPx)) {
-                for (float scale = .95f; scale >= oneLineFloor - 1e-4f; scale -= .05f) {
-                    if (fits(normalLabel, width, 1, fullPx * scale)) { px = fullPx * scale; break; }
+            if (!unbounded) {
+                if (fits(normalLabel, width, 1, fullPx)) oneLineText = normalLabel;
+                else if (fits(shortLabel, width, 1, fullPx)) oneLineText = shortLabel;
+                else {
+                    for (String label : new String[] {normalLabel, shortLabel}) {
+                        for (float scale = .95f; oneLineText == null && scale >= oneLineFloor - 1e-4f; scale -= .05f) {
+                            if (fits(label, width, 1, fullPx * scale)) { px = fullPx * scale; oneLineText = label; }
+                        }
+                        if (oneLineText != null) break;
+                    }
                 }
             }
             if (Math.abs(getTextSize() - px) > .5f) setTextSize(TypedValue.COMPLEX_UNIT_PX, px);
         }
         // One line falls to the icon as two lines do; only a caption with no icon at all keeps its short label cut.
-        String shown = unbounded || fits(normalLabel, width) ? normalLabel
+        String shown = oneLineText != null ? oneLineText : unbounded || fits(normalLabel, width) ? normalLabel
                 : fits(shortLabel, width) || oneLine && fallbackIcon == null && !iconBeside ? shortLabel : null;
         Drawable icon = shown == null && !iconBeside ? fallbackIcon : null;
         // No fitting text with a missing icon is still accessible, without rendering
