@@ -2055,10 +2055,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             linksBody=cardBodies.size()>1?cardBodies.get(cardBodies.size()-1):null;
             // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
             if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:cardBodies)
-                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.bare();}
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLine(body.getChildAt(i));if(line!=null)line.bare();}
             // The Controls pages' tiles are the plan's raised squares with an accent-text glyph.
             if(ControlsPages.raisedTiles(spec.page))for(LinearLayout body:cardBodies)
-                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.raise();}
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLine(body.getChildAt(i));if(line!=null)line.raise();}
             emphasizeLimit();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
@@ -2499,14 +2499,22 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** "Label, value" as a row is spoken. */
     private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
-    /** Each SettingLine by its card, so a page can restyle the rows it places (ControlsScreen: icon tiles). */
-    private final java.util.WeakHashMap<View,SettingLine> settingLines=new java.util.WeakHashMap<>();
+    /**
+     * A SettingLine's card, which carries its own row, so a page can restyle the rows it places (ControlsScreen: icon
+     * tiles). The record lives on the view, not in a map the activity keeps: a closed page's rows go with its views.
+     */
+    private static final class SettingCard extends LinearLayout {
+        SettingLine line;
+        SettingCard(Context context){super(context);setOrientation(VERTICAL);}
+    }
+    /** The SettingLine whose card this is, or null. */
+    private static SettingLine settingLine(View card){return card instanceof SettingCard?((SettingCard)card).line:null;}
     /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
     private final class SettingLine {
-        final LinearLayout card=column(),line=row(),words=column();
+        final LinearLayout card=new SettingCard(MainActivity.this),line=row(),words=column();
         final TextView name,sub,value;
         SettingLine(String icon,CharSequence label,CharSequence detail){
-            settingLines.put(card,this);
+            ((SettingCard)card).line=this;
             line.setGravity(Gravity.CENTER_VERTICAL);line.setBaselineAligned(false);line.setMinimumHeight(design.dp(60));line.setPadding(0,design.dp(8),0,design.dp(8));
             name=design.text(label,15,false);name.setMaxLines(2);design.decorate(name,icon);
             value=design.text("",14,false);value.setTextColor(design.muted);value.setGravity(Gravity.END);value.setMaxLines(1);
