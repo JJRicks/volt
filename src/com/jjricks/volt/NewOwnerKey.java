@@ -43,12 +43,12 @@ final class NewOwnerKey {
     // ------------------------------------------------------------------ the made key's record
 
     /**
-     * Every key Volt makes has a record on this phone, app_settings {@code PREFIX + profile ID}, written before its
-     * profile exists and kept outside setup's own preferences, so it outlives setup (finished, skipped or started again
-     * with Add a scooter). BackupRegistry keeps it on this phone. Its value is one of:
-     * {@link #MADE} (never offered), {@link #OFFERED} (offered, tied to no scooter: the one it was tied to refused it),
-     * or a scooter address: offered to that scooter, and tied to it. Only made keys have a record; a typed, imported
-     * or captured key never does, so none of the rules below touch them.
+     * Every key Volt makes has a record, app_settings {@code PREFIX + profile ID}, written before its profile exists and
+     * kept outside setup's own preferences, so it outlives setup (finished, skipped or started again with Add a scooter).
+     * It travels with its profile in backups (Scooters & setup keys; BackupRegistry, BackupArchive's {@link #merged}).
+     * Its value is one of: {@link #MADE} (never offered), {@link #OFFERED} (offered, tied to no scooter: the one it was
+     * tied to refused it), or a scooter address: offered to that scooter, and tied to it. Only made keys have a record;
+     * a typed, imported or captured key never does, so none of the rules below touch them.
      */
     static final String PREFIX = "made_owner_key";
     static final String MADE = "made", OFFERED = "offered";
@@ -63,7 +63,7 @@ final class NewOwnerKey {
 
     /** What the connection controller does with a made key's record just before an owner check to {@code address}. */
     enum Offer {
-        /** Send the owner check: not a made key, or a made key already tied to this scooter. */
+        /** Send the owner check: not a made key, a saved scooter's key, or a made key already tied to this scooter. */
         SEND,
         /** Commit the tie to this scooter (and with it the offer) in one write, then send; if the write fails, send nothing. */
         TIE,
@@ -77,10 +77,13 @@ final class NewOwnerKey {
      * Once a made key is offered to the scooter at one address, it is offered to no other address until that scooter
      * refuses it ({@link #afterRefusal}): an unowned scooter keeps the first owner key it hears, so a second scooter
      * taking the same key would leave two scooters on one key in one profile, and forgetting or releasing one would
-     * lock the other out. With no address to tie to, nothing is sent.
+     * lock the other out. With no address to tie to, nothing is sent. The tie governs only while the profile has no
+     * saved scooter address ({@code savedMac}): once a scooter accepted the key and its serial checked (remember()),
+     * the profile's saved address and serial govern, as for any key, so a scooter whose Bluetooth address changed
+     * still reconnects and remember() follows it on a serial match. The record stays (it still marks a made key).
      */
-    static Offer offer(String record, String address) {
-        if (record == null) return Offer.SEND;
+    static Offer offer(String record, String savedMac, String address) {
+        if (record == null || (savedMac != null && !savedMac.isEmpty())) return Offer.SEND;
         if (address == null || address.isEmpty()) return Offer.ELSEWHERE;
         String tie = tie(record);
         if (tie.isEmpty()) return Offer.TIE;
@@ -98,10 +101,64 @@ final class NewOwnerKey {
     }
 
     /**
-     * Where a connection for this profile goes without a scan: its saved scooter, else the scooter its made key is
-     * tied to (a link that dropped before the address was saved). "" means scan and let the owner choose.
+     * The record a restore keeps for one profile whose key is the same here and in the backup (BackupArchive): a
+     * restore never loosens what this phone knows. A record that says the key may be on a scooter (offered, or tied)
+     * wins over one that says it never was, or over none; between two such records this phone's stays, since it
+     * governs this phone's connections; otherwise whichever exists. An older backup with no record changes nothing
+     * here, and adds no record where there is none.
      */
-    static String connectAddress(String savedMac, String record) {
-        return savedMac != null && !savedMac.isEmpty() ? savedMac : tie(record);
+    static String merged(String here, String incoming) {
+        if (offered(here)) return here;
+        if (offered(incoming)) return incoming;
+        return here != null ? here : incoming;
+    }
+
+    // ------------------------------------------------------------------ writing the record
+
+    /**
+     * The made keys' records as Android's SharedPreferences holds them: an edit changes the in-memory map first, then
+     * commit() reports whether it reached the disk, so after a failed write the next read still sees the new value.
+     */
+    interface Records {
+        String get(String key);
+        /** put (value non-null) or remove (null), then commit(): whether it reached the disk. Memory changes either way. */
+        boolean write(String key, String value);
+    }
+
+    /**
+     * Writes {@code value} over {@code before} (what {@link Records#get} just read). If the write fails (false, or a
+     * throw), puts {@code before} back in memory with a second write, whose own result doesn't matter (memory is
+     * restored either way; the disk never took the new value), so nothing reads a value the disk doesn't hold. Only
+     * ever writes {@code value} or {@code before}.
+     */
+    static boolean save(Records records, String key, String before, String value) {
+        boolean saved;
+        try { saved = records.write(key, value); } catch (RuntimeException failed) { saved = false; }
+        if (!saved) try { records.write(key, before); } catch (RuntimeException ignored) { }
+        return saved;
+    }
+
+    /**
+     * Just before an owner check for {@code profileId} to {@code address} ({@link #offer}): a TIE is written, and
+     * becomes SEND only once it is on disk, else UNSAVED with the old record back in memory, so a retry ties again (and
+     * again sends nothing if that fails), never SEND on a tie only memory holds. A read that throws reaches the caller.
+     */
+    static Offer offerTo(Records records, String profileId, String savedMac, String address) {
+        String key = key(profileId), record = records.get(key);
+        Offer offer = offer(record, savedMac, address);
+        if (offer != Offer.TIE) return offer;
+        return save(records, key, record, address) ? Offer.SEND : Offer.UNSAVED;
+    }
+
+    /** The scooter at {@code address} refused {@code profileId}'s owner check ({@link #afterRefusal}); false if that write failed. */
+    static boolean refusedBy(Records records, String profileId, String address) {
+        String key = key(profileId), record = records.get(key), after = afterRefusal(record, address);
+        return after == null || after.equals(record) || save(records, key, record, after);
+    }
+
+    /** The record of a key about to be made under a new profile ID: {@link #MADE}, on disk, or nothing at all. */
+    static boolean recordNew(Records records, String profileId) {
+        String key = key(profileId);
+        return save(records, key, records.get(key), MADE);
     }
 }

@@ -380,8 +380,10 @@ or NAVEE account is needed. The NAVEE app can't add the scooter while it has
 Volt's key; release it in Volt first. Once the key has been offered to a
 scooter, setup keeps it, even after a refusal or a timeout, so a scooter is
 never left with an owner key nobody holds; forget it later from My scooters.
-The key goes to that one scooter only (Try again reconnects to it directly)
-until that scooter refuses it. A scooter already saved in Volt is refused before
+Until that scooter is saved, the key goes to it only (Try again shows the
+scooter list; another scooter is refused before it hears the key), unless it
+refuses the key. Once saved, it reconnects like any scooter, even at a new
+Bluetooth address after a repair. Backups carry the key with this record. A scooter already saved in Volt is refused before
 it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
 tried on a real scooter. See docs/validation/new-scooter-setup.md.
 

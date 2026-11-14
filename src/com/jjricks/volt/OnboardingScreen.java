@@ -198,32 +198,41 @@ public final class OnboardingScreen implements AppScreen {
     /**
      * BleController calls this just before it queues an owner check (0x30) for {@code profileId} to the scooter at
      * {@code address}, on every round and reconnect, whatever started the connection (setup, ScooterService's own
-     * reconnect, My scooters, a scan). For a key Volt made ({@link NewOwnerKey}'s record), the first offer ties the key
-     * to that scooter and marks it offered in one commit(), on disk before the frame can leave: an unowned scooter may
-     * take it, so setup must never delete it after this (NewOwnerKey.removable), and no other scooter is offered it
-     * while the tie stands. Returns SEND, ELSEWHERE (tied to another scooter) or UNSAVED (the write failed or anything
-     * threw): the controller sends the owner check only on SEND. One in-memory read for any other key.
+     * reconnect, My scooters, a scan). For a key Volt made ({@link NewOwnerKey}'s record) whose profile has no saved
+     * scooter address ({@code savedMac}), the first offer ties the key to that scooter and marks it offered in one
+     * commit(), on disk before the frame can leave: an unowned scooter may take it, so setup must never delete it after
+     * this (NewOwnerKey.removable), and no other scooter is offered it while the tie stands. Returns SEND, ELSEWHERE
+     * (tied to another scooter) or UNSAVED (the write failed, with the old record back in memory, or anything threw):
+     * the controller sends the owner check only on SEND. One in-memory read for any other key.
      */
-    static NewOwnerKey.Offer keyOffered(Context context, String profileId, String address) {
-        try {
-            SharedPreferences p = madeKeys(context);
-            NewOwnerKey.Offer offer = NewOwnerKey.offer(p.getString(NewOwnerKey.key(profileId), null), address);
-            if (offer != NewOwnerKey.Offer.TIE) return offer;
-            return p.edit().putString(NewOwnerKey.key(profileId), address).commit() ? NewOwnerKey.Offer.SEND : NewOwnerKey.Offer.UNSAVED;
-        } catch (RuntimeException failed) { return NewOwnerKey.Offer.UNSAVED; }
+    static NewOwnerKey.Offer keyOffered(Context context, String profileId, String savedMac, String address) {
+        try { return NewOwnerKey.offerTo(madeKeyRecords(context), profileId, savedMac, address); }
+        catch (RuntimeException failed) { return NewOwnerKey.Offer.UNSAVED; }
     }
 
     /**
      * BleController calls this when the scooter at {@code address} refuses {@code profileId}'s owner check: a made key
      * tied to that scooter is untied (it doesn't hold the key) and stays offered (NewOwnerKey.afterRefusal). A failed
-     * write keeps the tie, which only ever keeps the key away from other scooters. Never throws into the BLE path.
+     * write puts the tie back in memory too, which only ever keeps the key away from other scooters. Never throws into
+     * the BLE path.
      */
     static void keyRefused(Context context, String profileId, String address) {
-        try {
-            SharedPreferences p = madeKeys(context);
-            String record = p.getString(NewOwnerKey.key(profileId), null), after = NewOwnerKey.afterRefusal(record, address);
-            if (after != null && !after.equals(record)) p.edit().putString(NewOwnerKey.key(profileId), after).commit();
-        } catch (RuntimeException ignored) { }
+        try { NewOwnerKey.refusedBy(madeKeyRecords(context), profileId, address); } catch (RuntimeException ignored) { }
+    }
+
+    /**
+     * Made keys' records as NewOwnerKey writes them: SharedPreferences changes its in-memory map before the disk
+     * write, so a failed commit() still shows the new value until NewOwnerKey.save puts the old one back.
+     */
+    private static NewOwnerKey.Records madeKeyRecords(Context context) {
+        SharedPreferences p = madeKeys(context);
+        return new NewOwnerKey.Records() {
+            @Override public String get(String key) { return p.getString(key, null); }
+            @Override public boolean write(String key, String value) {
+                SharedPreferences.Editor edit = p.edit();
+                return (value == null ? edit.remove(key) : edit.putString(key, value)).commit();
+            }
+        };
     }
 
     /** The made key's record for this profile (NewOwnerKey), or null for any other key; unreadable counts as offered. */
@@ -1388,7 +1397,8 @@ public final class OnboardingScreen implements AppScreen {
 
     /** The record of a key about to be made under this new profile ID: never offered (NewOwnerKey.MADE), on disk. */
     private boolean recordMade(String id) {
-        try { return madeKeys(host.activity()).edit().putString(NewOwnerKey.key(id), NewOwnerKey.MADE).commit(); }
+        // A failed write leaves no record in memory either (NewOwnerKey.save): the key is never made.
+        try { return NewOwnerKey.recordNew(madeKeyRecords(host.activity()), id); }
         catch (RuntimeException failed) { return false; }
     }
 

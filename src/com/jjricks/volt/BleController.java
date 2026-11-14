@@ -456,12 +456,7 @@ public final class BleController {
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
     public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
-    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;String address=connectAddress(p);if(address.isEmpty())scan();else connect(p,address);}
-    /**
-     * Where connectLast() goes without a scan: the saved scooter, else the scooter a key Volt made is tied to, whose link
-     * dropped before its address was saved (NewOwnerKey.connectAddress). "" means a scan, with the chooser (MainActivity.connect).
-     */
-    public String connectAddress(ScooterProfiles.Profile p){return NewOwnerKey.connectAddress(p==null?null:p.mac,p==null?null:OnboardingScreen.madeKeyRecord(context,p.id));}
+    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
         String mac=result.getDevice().getAddress();AdvertisedIdentity.Result id=advertised.get(mac);if(id==null&&result.getScanRecord()!=null)id=AdvertisedIdentity.parse(result.getScanRecord().getBytes());
@@ -609,13 +604,14 @@ public final class BleController {
      * Hardware saved under another profile is refused first, as remember() refuses it after the owner check: an unowned
      * (reset) scooter would take the key and drop the saved profile's. Then a key Volt made is tied to the first scooter
      * offered it, on disk before the frame (OnboardingScreen.keyOffered): another scooter is refused while the tie stands,
-     * and a tie that can't be saved sends nothing. An advertised model ID read for this address is dropped (null; a new
-     * scan result resets its address).
+     * and a tie that can't be saved sends nothing. The tie governs only until a scooter address is saved on the profile
+     * (remember()); after that the saved address and serial govern, as for any key. An advertised model ID read for
+     * this address is dropped (null; a new scan result resets its address).
      */
     private boolean mayOffer(String address){
         ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,address,null);
         Msg refused=saved!=null?M.bleFailedOtherSaved(saved.name):null;
-        if(refused==null)switch(OnboardingScreen.keyOffered(context,profile.id,address)){
+        if(refused==null)switch(OnboardingScreen.keyOffered(context,profile.id,profile.mac,address)){
             case ELSEWHERE:refused=M.bleFailedNewKeyElsewhere();break;
             case UNSAVED:refused=M.bleFailedNewKeyUnsaved();break;
             default:return true;

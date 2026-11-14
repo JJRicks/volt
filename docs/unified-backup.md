@@ -22,7 +22,7 @@ Stable IDs go in the manifest. Labels are UI copy.
 
 | ID | Label | Contents | Profile link |
 |---|---|---|---|
-| `scooters` | Scooters & setup keys | `profiles.*`, legacy `scooter.*`, `onboarding.onboarding_done` | defines profiles |
+| `scooters` | Scooters & setup keys | `profiles.*`, legacy `scooter.*`, `onboarding.onboarding_done`, `made_owner_key<pid>` | defines profiles; a made key's record (`<pid>` suffix) goes with its profile |
 | `dashboards` | Dashboards | `dashboard_v1_<pid>`, `dashboard_slot_v1_<pid>_<n>`, `dashboard_empty_example_v1_<pid>`, `dashboard_columns` | per scooter (`<pid>` suffix) |
 | `preferences` | App preferences | Global durable `app_settings` keys: units, appearance, text size, haptics, connection and recording options, map choice and provider, favourites, chart and selector choices, `developer_options`, `range_learned_intro_seen`, `last_ride_label` | none |
 | `rides` | Rides | `files/rides/<uuid>.csv`, `files/phone-rides/<uuid>-{phone,motion}.csv` as one group per ride; `ride_comparison`, `ride_selected` | START record profile |
