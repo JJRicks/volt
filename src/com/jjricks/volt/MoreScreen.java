@@ -1124,6 +1124,8 @@ public final class MoreScreen implements AppScreen {
             });
             release.setTag(OwnerRelease.KEY);
             release.setContentDescription(T.moreScootersReleaseNamed(p.displayName()));
+            // Cycle arrows: the scooter goes back to new. Matches Forget's trash so the two red buttons line up.
+            ui.decorate(release, "restore");
             box.addView(release);
         }
         show(dialog);
