@@ -121,9 +121,9 @@ public final class ChargePictureValidation extends Instrumentation {
                 hero.requestLayout();
                 // At rest the wire picture's cable runs off the screen's edge (its parents open up to the scroller); a
                 // folded picture keeps every parent clipping.
-                require(clipsAll() == !(picture instanceof ChargeWireView && runsOff()), "Widgets " + key + ": clipping at rest: " + clipsAll());
+                require(clipsAll() == !(picture instanceof ChargeWireView && opens()), "Widgets " + key + ": clipping at rest: " + clipsAll());
                 // The takeover clips to its padding (its own width) unless the cable runs off: then that opens too.
-                require(((ViewGroup) hero).getClipToPadding() == !(picture instanceof ChargeWireView && runsOff()), "Widgets " + key + ": the takeover's padding clip at rest: " + ((ViewGroup) hero).getClipToPadding());
+                require(((ViewGroup) hero).getClipToPadding() == !(picture instanceof ChargeWireView && opens()), "Widgets " + key + ": the takeover's padding clip at rest: " + ((ViewGroup) hero).getClipToPadding());
             });
             settle();
             shot("widgets-" + key);
@@ -138,7 +138,7 @@ public final class ChargePictureValidation extends Instrumentation {
         main(() -> require(clipsAll() && ((ViewGroup) hero()).getClipToPadding(), "Widgets: editing left a parent unclipped"));
         main(() -> invoke(screen, "toggleEditing"));
         redraw();
-        main(() -> require(!clipsAll() || !runsOff(), "Widgets: leaving edit mode did not open the cable's parents again"));
+        main(() -> require(!clipsAll() || !opens(), "Widgets: leaving edit mode did not open the cable's parents again"));
         // Charging stopping clips again.
         main(() -> { service.ble.setSimulationCharging(false); service.ble.tickSimulation(); });
         redraw();
@@ -174,7 +174,7 @@ public final class ChargePictureValidation extends Instrumentation {
             }
             main(() -> ((ValueAnimator) field(hero(), "reveal")).end());
             settle();
-            main(() -> require(field(hero(), "reveal") == null && (!clipsAll() || !runsOff()), "Opened: the cable's parents did not open"));
+            main(() -> require(field(hero(), "reveal") == null && (!clipsAll() || !opens()), "Opened: the cable's parents did not open"));
         } finally { scale("0"); }
         checks.add(label + " Widgets opening (animations on, held at 35% and 70%): the stage at most its least height, every parent clipping");
     }
@@ -189,7 +189,7 @@ public final class ChargePictureValidation extends Instrumentation {
                 TextView percent = (TextView) field(hero, "percent");
                 require(percent.getParent() == stage, "Clean " + key + ": the percentage is not in the stage");
                 requireFit(key, hero, stage, percent, true);
-                require(clipsAll() == !(picture instanceof ChargeWireView && runsOff()), "Clean " + key + ": clipping at rest: " + clipsAll());
+                require(clipsAll() == !(picture instanceof ChargeWireView && opens()), "Clean " + key + ": clipping at rest: " + clipsAll());
             });
             shot("clean-" + key);
             requireCableAtEdge("Clean " + key);
@@ -324,6 +324,22 @@ public final class ChargePictureValidation extends Instrumentation {
     }
     private static boolean near(int a, int b) {
         return Math.abs(((a >> 16) & 255) - ((b >> 16) & 255)) <= 30 && Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) <= 30 && Math.abs((a & 255) - (b & 255)) <= 30;
+    }
+
+    /**
+     * The wire picture's parents open at rest here: its cable runs off the screen's edge, or fades out past the edge a
+     * parent clips it at (Clean's column on a wide portrait window; review of #483, P3-2). There the fade must still end
+     * inside the scroller.
+     */
+    private boolean opens() {
+        ChargePicture p = picture();
+        if (!(p instanceof ChargeWireView)) return false;
+        if (runsOff()) return true;
+        if (!(boolean) field(p, "fadesPastClip")) return false;
+        ChargeWireModels.Placement at = (ChargeWireModels.Placement) field(p, "placement");
+        double end = at.left + (double) field(p, "fadeEnd") * at.scale;
+        require(end < (float) field(p, "edge"), "The cable's fade ends past the screen's edge: " + end);
+        return true;
     }
 
     /** The wire picture's cable runs off the screen's edge here (not faded out short of it on a wide window). */

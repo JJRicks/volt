@@ -99,6 +99,8 @@ final class ChargeWireView extends ChargePicture {
     private float edge = Float.NaN;
     /** The nearest edge a parent below the scroller clips the layers at (layer pixels; infinite: none). */
     private float clipped = Float.POSITIVE_INFINITY;
+    /** The cable fades out past that edge: at rest the parents open up to the scroller (ChargePictureFit.needsRoom). */
+    private boolean fadesPastClip;
     /** The cable's end needs working out again (a new placement). */
     private boolean cableStale = true;
     /** The cable's fade along x in cut-out pixels (both infinite: it runs off the edge). */
@@ -263,7 +265,8 @@ final class ChargeWireView extends ChargePicture {
     private final java.util.ArrayList<ViewGroup> unclipped = new java.util.ArrayList<>(), unpadded = new java.util.ArrayList<>();
 
     /**
-     * At rest (ChargePictureFit.atRest) and where the cable runs off the screen's edge, every parent up to the
+     * At rest (ChargePictureFit.atRest) and where the cable runs off the screen's edge, or fades out past the edge a
+     * parent clips it at (Clean's centred column on a wide portrait window; ChargePictureFit.needsRoom), every parent up to the
      * nearest scroller (the scroller included, so its content column's margins do not clip) lets the layers draw
      * outside its bounds and its padding (Widgets' takeover clips to its padding, which would cut the cable at the
      * content column's edge); the scroller's own parent still clips it, so nothing reaches past the scroller or into
@@ -273,7 +276,7 @@ final class ChargeWireView extends ChargePicture {
     @Override void clip(boolean atRest) {
         if (placement.scale <= 0) atRest = false;
         updateCable();
-        boolean open = ChargePictureFit.unclipped(atRest && picture.isAttachedToWindow(), Double.isInfinite(fadeEnd) && !Float.isNaN(edge));
+        boolean open = ChargePictureFit.unclipped(atRest && picture.isAttachedToWindow(), Double.isInfinite(fadeEnd) && !Float.isNaN(edge) || fadesPastClip);
         if (open == !(unclipped.isEmpty() && unpadded.isEmpty())) return;
         if (!open) { reclip(); return; }
         for (ViewParent p = picture.getParent(); p instanceof ViewGroup; p = p.getParent()) {
@@ -334,7 +337,8 @@ final class ChargeWireView extends ChargePicture {
         float e = scrollerEdge(), c = clipEdge();
         if (!cableStale && (e == edge || (Float.isNaN(e) && Float.isNaN(edge))) && c == clipped) return;
         edge = e; clipped = c; cableStale = false;
-        ChargePictureFit.cableEnd(placement.left + model.width * s, e, c, density, ends);
+        ChargePictureFit.cableEnd(placement.left + model.width * s, e, density, ends);
+        fadesPastClip = !Float.isInfinite(ends[1]) && ChargePictureFit.needsRoom(ends, c);
         double start = Double.isInfinite(ends[0]) ? Double.POSITIVE_INFINITY : (ends[0] - placement.left) / s;
         double end = Double.isInfinite(ends[1]) ? Double.POSITIVE_INFINITY : (ends[1] - placement.left) / s;
         // The run: past the edge by 40 px, or past the fade's end.
