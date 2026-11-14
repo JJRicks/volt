@@ -225,11 +225,10 @@ public final class MoreScreen implements AppScreen {
         // permissions, Developer options). Rows have no icon tiles; each row's tag is unchanged.
         onboarding();
         preferences();
-        // The plan's headings ("Scooters & data", "About") have no text yet (listed for part 10's follow-up): until then
-        // the nearest existing names, My scooters' and About & permissions' (SECTION_LABEL_IDS).
-        label(sectionLabel(1));
+        // The plan's headings over the second and third cards, part 10's text (HubText.settingsSection*).
+        label(HubText.settingsSectionScooters().render()).setTag("settings-heading-scooters");
         LinearLayout scooterGroup = group();
-        label(sectionLabel(5));
+        label(HubText.settingsSectionAbout().render()).setTag("settings-heading-about");
         LinearLayout laterGroup = group();
         // Updates: one row with its automatic check's state; the switch and the manual check open over it (updatesSheet).
         updatesBox = column();
