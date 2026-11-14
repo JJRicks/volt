@@ -55,6 +55,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/GpsAccuracy.java" "$TEST_DIR/GpsAccurac
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
+# Icon labels: a centred label's text centres on the whole label, never at the cost of its text (IconLabelBalance).
+sources+=("$APP_DIR/src/com/jjricks/volt/IconLabelBalance.java" "$TEST_DIR/IconLabelBalanceTest.java")
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6).
@@ -178,6 +180,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
@@ -185,7 +188,7 @@ for name in HomeStyle TopArea HomeMoment HomeQuickActions; do java -cp "$TEST_BU
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeWireTest)
 (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargePictureTest)
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
+java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest

@@ -116,6 +116,10 @@ final class CleanHomeScreen implements AppScreen {
         second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
+        // Find it nearby (FindNearby): hidden unless offered, under the header so the top area and Lock bar keep their place.
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.bottomMargin = ui.dp(12);
+        page.addView(parts.findCard(), findSize);
 
         // The top area: one height for every moment, so the Lock bar and the quick actions never move.
         top = new FrameLayout(host.activity());
@@ -285,7 +289,7 @@ final class CleanHomeScreen implements AppScreen {
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setMinimumHeight(ui.dp(56));
         line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
-        line.addView(ui.icon(entry == null ? "tune" : entry.icon, 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+        line.addView(ui.icon(entry == null ? "tune" : QuickAccessGrid.roundGlyph(id, entry.icon), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
         TextView name = ui.text(label, 15, false);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams nameSize = new LinearLayout.LayoutParams(0, -2, 1);

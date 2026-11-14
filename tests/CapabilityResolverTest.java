@@ -275,6 +275,8 @@ public final class CapabilityResolverTest {
         check(Arrays.equals(decide("energy_recovery",q,s,parked()).values(),new int[]{0,30,60,90}),"2585 offers Off");
         CapabilityResolver.Decision noOff=decide("energy_recovery",sGroup,s,parked());
         check(Arrays.equals(noOff.values(),new int[]{30,60,90})&&noOff.variant.id.equals("energy_recovery.levels_no_off")&&!noOff.allows(0),"S has no Off");
+        // Clean's round action fills at any setting but Off (QuickActionLayout.setting): the model's Off, or none.
+        check(Integer.valueOf(0).equals(decide("energy_recovery",q,s,parked()).offValue())&&noOff.offValue()==null,"Energy recovery's Off: 0 on 2585, none on S");
         for(String pid:new String[]{"27011","25431","24021","24421","26191","23451","24411","26111","25451","27821"})
             check(decide("energy_recovery",ModelRegistryTest.both("Q"+pid.substring(0,4)+"ZZ9US7777777",pid),s,parked()).allows(0),"Off for "+pid);
         for(String pid:new String[]{"27141","27041","23451","24031"}){
