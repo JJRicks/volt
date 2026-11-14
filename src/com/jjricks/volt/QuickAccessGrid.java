@@ -722,7 +722,8 @@ final class QuickAccessGrid extends ViewGroup {
      * name ("Lock", ScooterReadingLabels.compact), with "Electronic lock" as its next rung; else the control's short
      * rung. Then the shorter names
      * the catalog already has for it (a control's Setting tile rung, such as pt-BR "Cruzeiro", and its short rung),
-     * for a column too narrow for the first; the ladder skips any that is not narrower.
+     * for a column too narrow for the first; the ladder skips any that is not narrower. Where Live Stats' name has more
+     * than one word in the language shown, a one-word name from the others comes first (QuickActionLayout.oneWordFirst).
      */
     static String[] roundNames(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
@@ -730,7 +731,10 @@ final class QuickAccessGrid extends ViewGroup {
                 : ROUND_STATS_NAMES.contains(entry.featureKey) ? StatsLabels.row(entry.featureKey)
                 : LOCK_KEY.equals(entry.featureKey) ? ScooterReadingLabels.compact("lock_status", tileLabel(entry)) : tileLabel(entry);
         Msg rung = own != null ? null : TileShortLabels.forFeature(entry.featureKey);
-        return new String[]{first, rung == null ? null : rung.render(), own != null ? null : entry.shortLabel().render()};
+        String[] names = {first, rung == null ? null : rung.render(), own != null ? null : entry.shortLabel().render()};
+        // Live Stats' row name is one word in English ("Cruise") but not in every language (pt-BR "Controle de
+        // cruzeiro"): there an existing one-word name comes first (QuickActionLayout.oneWordFirst).
+        return own == null && ROUND_STATS_NAMES.contains(entry.featureKey) ? QuickActionLayout.oneWordFirst(names) : names;
     }
 
     /** A round action's first name (roundNames), the one Clean shows at full size where it fits: for lists and previews. */
