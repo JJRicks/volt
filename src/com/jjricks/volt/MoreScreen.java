@@ -1129,13 +1129,14 @@ public final class MoreScreen implements AppScreen {
             dialog.dismiss(); forgetScooter(id);
         });
         forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
+        ui.decorate(forget, "trash"); box.addView(forget);
         // Find it nearby (FindNearby, entry B): only with a saved address and serial; it makes this scooter the current one.
+        // Last, under Forget: the owner wants Release as the top option (2026-11-13).
         if (FindNearby.offerRow(p.mac, p.serial)) {
             TextView find = ui.secondaryButton(T.moreScootersFindNewAddress(), () -> { dialog.dismiss(); findAtNewAddress(id); });
             find.setTag("scooter_find" + id); find.setContentDescription(T.moreScootersFindNewAddressNamed(p.displayName()));
             ui.decorate(find, "search"); box.addView(find);
         }
-        ui.decorate(forget, "trash"); box.addView(forget);
         if (OwnerRelease.offered(p.role)) {
             // Owner, 2026-11-13: Release is the way to part with a scooter, so it sits above Forget as the filled red main
             // action, and Forget is the grey secondary one (his pick, style B, from the renders): forgetting leaves the

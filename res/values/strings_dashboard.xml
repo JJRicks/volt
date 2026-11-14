@@ -67,7 +67,7 @@
     <string name="dashboard_your_scooter" volt:screen="Home header" volt:purpose="title">Your scooter</string>
     <!-- Find it nearby: a card under the header after the scooter didn't answer twice at its saved Bluetooth address.
          %1$s is the scooter's name (the owner's own name for it). -->
-    <string name="dashboard_find_nearby_text" volt:screen="Home" volt:purpose="explanation">%1$s isn\'t answering at its saved Bluetooth address.</string>
+    <string name="dashboard_find_nearby_text" volt:screen="Home" volt:purpose="explanation">%1$s isn\'t answering. If it\'s on and close by, it may have a new Bluetooth address.</string>
     <!-- The card's button: opens the scan sheet to look for the scooter at a new address. -->
     <string name="dashboard_find_nearby" volt:screen="Home" volt:purpose="button">Find it nearby</string>
     <!-- Spoken for the pencil beside the scooter's name while editing the dashboard. -->
