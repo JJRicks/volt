@@ -79,7 +79,13 @@ final class JustBackView extends LinearLayout {
                 int x = ui.dp(48), room = MeasureSpec.getSize(widthSpec) - 2 * x;
                 boolean centred = saved.getPaint().measureText(String.valueOf(saved.getText())) <= room;
                 int start = centred ? x : 0;
-                if (size.getMarginStart() != start) size.setMarginStart(start);
+                // The resolved side margin too: a margin set on the params after they were resolved is otherwise only
+                // read at the next layout-direction change, and the line stayed centred and cut (emulator, 1.4x text).
+                boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+                if (size.getMarginStart() != start || (rtl ? size.rightMargin : size.leftMargin) != start) {
+                    size.setMarginStart(start);
+                    if (rtl) size.rightMargin = start; else size.leftMargin = start;
+                }
                 // Still too long beside the X: a second line rather than an early cut.
                 boolean one = centred || saved.getPaint().measureText(String.valueOf(saved.getText())) <= room + x;
                 if (saved.getMaxLines() != (one ? 1 : 2)) saved.setMaxLines(one ? 1 : 2);

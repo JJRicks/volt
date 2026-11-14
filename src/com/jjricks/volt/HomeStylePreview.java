@@ -157,12 +157,12 @@ final class HomeStylePreview extends View {
     // ===== Clean =====
 
     private void drawClean(Canvas c) {
-        // Header as Clean draws it (part 8b): the connection line, then the scooter's name with Edit, search and Settings.
+        // Header as Clean draws it (part 8b): the connection line, then the scooter's name with search and Settings (no
+        // Edit button: a long-press on the quick actions edits them).
         paint.setColor(ui.ok);
         c.drawCircle(20, 24, 4, paint);
         bar(c, 30, 21, 128, 6);
-        title(c, 16, 70, 160, 22);
-        roundButton(c, 216, 62, "pencil");
+        title(c, 16, 70, 196, 22);
         roundButton(c, 252, 62, "search");
         roundButton(c, 288, 62, "gear");
         // The top area: the battery card.
