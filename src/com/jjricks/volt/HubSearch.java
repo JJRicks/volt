@@ -386,6 +386,37 @@ final class HubSearch {
     }
 
     /**
+     * A result's caption from its page titles, joined with " › ". With two or more titles each title's own spaces become
+     * no-break spaces, and so does the space before "›", so a caption too long for one line (344 dp at 1.4x text) wraps
+     * only after a "›" and never inside a page's name ("Battery & charging ›" over "Battery modes", not "... › Battery"
+     * over "modes"); a single title wraps as usual. Null for no titles.
+     */
+    static String captionText(List<String> titles) {
+        StringBuilder text = new StringBuilder();
+        boolean path = titles.size() > 1;
+        for (String title : titles) {
+            if (title == null || title.isEmpty()) continue;
+            if (text.length() > 0) text.append("\u00a0\u203a ");
+            text.append(path ? title.replace(' ', '\u00a0') : title);
+        }
+        return text.length() == 0 ? null : text.toString();
+    }
+
+    /**
+     * Whether a result's value is drawn as a reading's (bold, in the text colour: "50.48 V" in the Layout Plan's mock-up)
+     * or as quiet detail (a ride's date and distance: muted and regular, under the caption, so it never reads as a live
+     * value; the mock-up's ride row has none of its own).
+     */
+    static boolean valueStrong(Kind kind) { return kind == Kind.READING; }
+
+    /**
+     * Whether the result count shows as a line under the field. The Layout Plan's mock-up has none: the groups follow the
+     * field at once, which in a short window with the keyboard up (725 x 604 dp) is one more row of results. Only "No
+     * matches" is shown, where there is nothing else to see; the count is still spoken (HubSearchScreen).
+     */
+    static boolean countShown(int found) { return found == 0; }
+
+    /**
      * The pages a result's caption names, from its subject down (the Layout Plan's search mock-up: "Battery & charging ›
      * Modes", "Data", "Ride › ..."): the page that holds it and the pages above it under Home; for a page result, the
      * pages above it only, so a subject page (and Settings) has none.

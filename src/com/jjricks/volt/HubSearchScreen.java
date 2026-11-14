@@ -99,6 +99,9 @@ final class HubSearchScreen implements AppScreen {
         search.setSingleLine(true);
         search.setHint(HubText.searchHint());
         ui.styleSearch(search);
+        // The Layout Plan's field is 45 dp tall; 48 keeps the touch target (the shared style's 52 is for page fields).
+        search.setMinimumHeight(ui.dp(48));
+        search.setPadding(search.getPaddingLeft(), ui.dp(12), search.getPaddingRight(), ui.dp(12));
         // TalkBack names the field as Home's search button does (the field it replaced had its own description).
         search.setContentDescription(HubText.searchDescription());
         search.setTag(TAG_FIELD);
@@ -231,10 +234,19 @@ final class HubSearchScreen implements AppScreen {
         subjects.view().setVisibility(searching ? View.GONE : View.VISIBLE);
         results.setVisibility(searching ? View.VISIBLE : View.GONE);
         count.setVisibility(searching ? View.VISIBLE : View.GONE);
-        if (!searching) { count.setText(""); return; }
+        if (!searching) {
+            count.setText("");
+            if (android.os.Build.VERSION.SDK_INT >= 30) search.setStateDescription(null);
+            return;
+        }
         offeredKey = offered();
         List<HubSearch.Entry> found = HubSearch.search(index(), query);
-        count.setText(found.isEmpty() ? HubText.searchNone() : HubText.searchCount(found.size()));
+        CharSequence counted = found.isEmpty() ? HubText.searchNone() : HubText.searchCount(found.size());
+        count.setText(counted);
+        // The mock-up has no count line: only "No matches" shows; a count is spoken with the field (HubSearch.countShown).
+        count.setVisibility(HubSearch.countShown(found.size()) ? View.VISIBLE : View.GONE);
+        if (android.os.Build.VERSION.SDK_INT >= 30) search.setStateDescription(found.isEmpty() ? null : counted);
+        else if (!found.isEmpty()) search.announceForAccessibility(counted);
         HubSearch.Kind group = null;
         LinearLayout card = null;
         for (HubSearch.Entry entry : found) {
@@ -293,7 +305,8 @@ final class HubSearchScreen implements AppScreen {
             words.addView(caption, new LinearLayout.LayoutParams(-1, -2));
         }
         // The value under the name: used when it is too wide to sit beside it (HubSearch.valueBelow).
-        line.below = value();
+        boolean strong = HubSearch.valueStrong(entry.kind);
+        line.below = value(strong);
         line.below.setMaxLines(3);
         line.below.setEllipsize(TextUtils.TruncateAt.END);
         line.below.setPadding(0, ui.dp(3), 0, 0);
@@ -306,7 +319,7 @@ final class HubSearchScreen implements AppScreen {
         line.note.setVisibility(View.GONE);
         words.addView(line.note, new LinearLayout.LayoutParams(-1, -2));
         line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-        line.beside = value();
+        line.beside = value(strong);
         line.beside.setMaxLines(2);
         line.beside.setGravity(Gravity.END);
         LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-2, -2);
@@ -335,11 +348,14 @@ final class HubSearchScreen implements AppScreen {
     /** The row's spacing (dp): the gap before the value, the chevron and the gap before it. */
     private static final int VALUE_GAP_DP = 10, CHEVRON_DP = 15, CHEVRON_GAP_DP = 8;
 
-    /** A result's value: bold, in the text colour (a saved reading's muted), as the mock-up's readings. */
-    private TextView value() {
-        TextView value = ui.text("", 14, false);
-        value.setTypeface(ui.semibold());
-        value.setTextColor(ui.text);
+    /**
+     * A result's value: a reading's bold, in the text colour (a saved reading's muted), as the mock-up's readings; a
+     * ride's date and distance quiet, muted and regular like the caption (HubSearch.valueStrong).
+     */
+    private TextView value(boolean strong) {
+        TextView value = ui.text("", strong ? 14 : 13, false);
+        value.setTypeface(strong ? ui.semibold() : ui.regular());
+        value.setTextColor(strong ? ui.text : ui.muted);
         value.setVisibility(View.GONE);
         return value;
     }
@@ -395,14 +411,13 @@ final class HubSearchScreen implements AppScreen {
      * for a subject page itself.
      */
     private static String path(HubSearch.Entry entry) {
-        StringBuilder text = new StringBuilder();
+        List<String> titles = new ArrayList<>();
         for (String page : HubSearch.captionPages(entry)) {
             Msg title = HubText.title(page);
-            if (title == null) continue;
-            if (text.length() > 0) text.append(" \u203a ");
-            text.append(title.render());
+            if (title != null) titles.add(title.render());
         }
-        return text.length() == 0 ? null : text.toString();
+        // Wraps only after a "›", never inside a page's name (HubSearch.captionText).
+        return HubSearch.captionText(titles);
     }
 
     /** Writes each shown result's value as it is now (a live reading's value changes while the results show). */

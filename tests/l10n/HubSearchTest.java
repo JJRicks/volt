@@ -489,6 +489,17 @@ public final class HubSearchTest {
                     if (!HubSearch.valueBelow(value, content)) check(content - value >= content * 0.6f, "the name keeps 60% at " + content + " dp");
         }
         check(!HubSearch.valueBelow(500, 0), "a row not measured yet keeps its value beside");
+        // Captions wrap only after a "›" (seen at 344 dp and 1.4x: "Battery & charging › Battery" over "modes").
+        String nb = " ";
+        check(("Battery" + nb + "&" + nb + "charging" + nb + "› Battery" + nb + "modes").equals(HubSearch.captionText(Arrays.asList("Battery & charging", "Battery modes"))), "a path breaks only after its separator");
+        check("Battery & charging".equals(HubSearch.captionText(Arrays.asList("Battery & charging"))), "a single title wraps as usual");
+        check(HubSearch.captionText(Arrays.asList()) == null && HubSearch.captionText(Arrays.asList("", null)) == null, "no titles, no caption");
+        String twoLines = HubSearch.captionText(Arrays.asList("Ride", "All rides & compare"));
+        check(twoLines.indexOf(' ') == twoLines.indexOf("›") + 1 && twoLines.indexOf(' ') == twoLines.lastIndexOf(' '), "the one break opportunity is after the separator");
+        // Value styles: a reading's bold; a ride's date and distance quiet (no mock-up value of its own).
+        check(HubSearch.valueStrong(HubSearch.Kind.READING) && !HubSearch.valueStrong(HubSearch.Kind.RIDE), "readings bold, rides quiet");
+        // The count line: only "No matches" shows (the mock-up has none; one more row above the keyboard at 725 x 604).
+        check(HubSearch.countShown(0) && !HubSearch.countShown(1) && !HubSearch.countShown(29), "only No matches shows");
         // The header: hidden while the field has the cursor or holds a query, at any size; back when both go.
         check(HubSearch.headerHidden(true, "") && HubSearch.headerHidden(false, "batt") && HubSearch.headerHidden(true, "batt"), "hidden while searching");
         check(!HubSearch.headerHidden(false, "") && !HubSearch.headerHidden(false, "   "), "shown when the field is empty and left");
