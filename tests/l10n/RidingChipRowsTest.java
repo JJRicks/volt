@@ -18,9 +18,10 @@ public final class RidingChipRowsTest {
         most();
         names();
         oneStyle();
+        priority();
         compactAlone();
         System.out.println("RidingChipRowsTest: " + checks + " checks passed (one row, a spill to a second row, a row each, "
-                + "a chip too wide, the most rows, names shortening before a spill, one name style for every row, a GPS chip in its compact form)");
+                + "a chip too wide, the most rows, names shortening before a spill, one name style for every row, the earlier chip kept, a GPS chip in its compact form)");
     }
 
     /** Widths that don't change with the rung or name step. */
@@ -84,6 +85,16 @@ public final class RidingChipRowsTest {
         RidingChipRows n = RidingChipRows.split(marks, contents, named, named, new boolean[3], GAP, 450, 3);
         check(n.step[0] == n.step[1] && n.step[1] == n.step[2] && n.step[0] == RidingChipFit.NAME_SHORT,
                 "row 2's chip takes the same short name as row 1's, not its full one");
+    }
+
+    private static void priority() {
+        // Chip 1 is too wide for a row at the widest rungs and fits from rung 3; with room for two rows, a wide rung would
+        // show chips 0 and 2, and rung 3 shows chips 0 and 1. The earlier chip in slot order wins: the same chip (the last)
+        // always hides.
+        RidingChipFit.Widths w = (chip, rung, step) -> chip == 1 ? (rung < RidingChipFit.ICON_NAMES ? 700 : 450) : chip == 0 ? 500 : 465;
+        RidingChipRows r = RidingChipRows.split(new String[3][], new String[3], w, w, new boolean[3], GAP, 639, 2);
+        check(r.row[0] == 0 && r.row[1] == 1 && r.row[2] == -1, "a tighter rung that keeps the earlier chip beats a wider one that swaps in a later one");
+        check(r.rung == RidingChipFit.ICON_NAMES, "at the widest rung where chip 1 fits");
     }
 
     private static void compactAlone() {

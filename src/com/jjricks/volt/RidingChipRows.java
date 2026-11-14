@@ -7,7 +7,8 @@ package com.jjricks.volt;
  * Every row shares one rung, chosen before the chips are split, so the names read alike from row to row: row 1 never
  * shows icons while row 2 spells "Voltage" out. At each rung, in slot order, a chip that doesn't fit beside the ones
  * before it starts the next row, and a chip too wide for a row even on its own is hidden. The rung kept is the one that
- * shows the most chips, then needs the fewest rows (names shorten before a chip moves down), then reads widest. Chips
+ * shows the most chips, then the earliest in slot order, then needs the fewest rows (names shorten before a chip moves
+ * down), then reads widest. Chips
  * past the most rows the height allows are hidden. The widths are each chip's widest value, so the split never changes
  * while riding.
  */
@@ -41,9 +42,21 @@ final class RidingChipRows {
         RidingChipRows best = null;
         for (int rung = RidingChipFit.FULL; rung < RidingChipFit.RUNGS; rung++) {
             RidingChipRows at = at(marks, contents, full, compact, canStep, gap, room, most, rung);
-            if (best == null || shown(at) > shown(best) || (shown(at) == shown(best) && at.rows < best.rows)) best = at;
+            if (best == null || better(at, best)) best = at;
         }
         return best;
+    }
+
+    /**
+     * More chips shown; then, between as many, the one that keeps the earlier chip in slot order (so a tighter rung that
+     * lets an earlier chip show beats a wider one that shows a later chip in its place); then fewer rows. A tie keeps the
+     * wider rung, tried first.
+     */
+    private static boolean better(RidingChipRows a, RidingChipRows b) {
+        if (shown(a) != shown(b)) return shown(a) > shown(b);
+        for (int i = 0; i < a.row.length; i++)
+            if ((a.row[i] >= 0) != (b.row[i] >= 0)) return a.row[i] >= 0;
+        return a.rows < b.rows;
     }
 
     private static int shown(RidingChipRows r) {
