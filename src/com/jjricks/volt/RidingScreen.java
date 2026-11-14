@@ -1246,7 +1246,8 @@ final class RidingScreen implements AppScreen {
                         ? new String[]{T.ridingLabelOdometer(), T.ridingLabelOdometerShort()} : new String[]{T.ridingLabelCurrent()};
                 RidingValues.Reading r = v.reading(volts ? "voltage_v" : odometer ? "odometer_km" : "current_a", now);
                 if (r == null) { none(s); break; }
-                double value = odometer ? RidingFocus.distance(r.value, units) : r.value;
+                // The odometer as Home shows it: the raw reading plus anything carried over from before a reset (OdometerCarry).
+                double value = odometer ? RidingFocus.distance(service == null ? r.value : service.shownOdometerKm(r.value), units) : r.value;
                 split(s, Fmt.quantity(Fmt.decimalNumber(Locale.US, value, 1),
                         Fmt.unit(volts ? UnitCode.VOLT : odometer ? distanceUnit(units) : UnitCode.AMP)));
                 if (r.stale) dim(s);

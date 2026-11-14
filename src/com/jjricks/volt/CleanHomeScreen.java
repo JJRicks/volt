@@ -129,6 +129,10 @@ final class CleanHomeScreen implements AppScreen {
         second.addView(round("gear", HubText.settingsDescription(), TAG_SETTINGS, actions::openSettings), new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         header.addView(second, new LinearLayout.LayoutParams(-1, -2));
         page.addView(header, new LinearLayout.LayoutParams(-1, -2));
+        // Find it nearby (FindNearby): hidden unless offered, under the header so the top area and Lock bar keep their place.
+        LinearLayout.LayoutParams findSize = new LinearLayout.LayoutParams(-1, -2);
+        findSize.bottomMargin = ui.dp(12);
+        page.addView(parts.findCard(), findSize);
 
         // The top area: one height for every moment, so the Lock bar and the quick actions never move.
         top = new FrameLayout(host.activity());
