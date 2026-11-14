@@ -44,8 +44,8 @@ final class HubSearchScreen implements AppScreen {
 
     /**
      * What the page around the search does for it (MainActivity's page; part 13's pane may pass none): the Cancel beside
-     * the field and where it goes, and the page header that gets out of the way while the owner searches
-     * (HubSearch.headerHidden), so the field sits at the very top as the Layout Plan draws it.
+     * the field and where it goes, and the page header that gets out of the way (always with Cancel; without it while
+     * the owner searches: HubSearch.headerHidden), so the field sits at the very top as the Layout Plan draws it.
      */
     interface Frame {
         /** Cancel's label (the existing common Cancel); null for no Cancel. */
@@ -62,6 +62,8 @@ final class HubSearchScreen implements AppScreen {
     private final Consumer<String> remember;
     private final Opener opener;
     private final Frame frame;
+    /** Whether Cancel shows beside the field (the frame names one): the page header then stays hidden. */
+    private final boolean hasCancel;
     private final LinearLayout view, results;
     /** Named like the other search fields (validations find a screen's field by this name). */
     private final EditText search;
@@ -114,6 +116,7 @@ final class HubSearchScreen implements AppScreen {
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
         CharSequence cancelLabel = frame == null ? null : frame.cancel();
+        hasCancel = cancelLabel != null;
         if (cancelLabel != null) {
             TextView cancel = ui.text(cancelLabel, 15, false);
             cancel.setTypeface(ui.medium());
@@ -162,7 +165,7 @@ final class HubSearchScreen implements AppScreen {
     private Boolean headerHidden;
     private void showHeader() {
         if (frame == null || closed) return;
-        boolean hidden = HubSearch.headerHidden(search.hasFocus(), query);
+        boolean hidden = HubSearch.headerHidden(hasCancel, search.hasFocus(), query);
         if (headerHidden != null && headerHidden == hidden) return;
         headerHidden = hidden;
         frame.headerHidden(hidden);
@@ -253,6 +256,9 @@ final class HubSearchScreen implements AppScreen {
             if (entry.kind != group) {
                 group = entry.kind;
                 TextView label = ui.sectionLabel(groupTitle(group).render());
+                // The first label sits under the field, whose 12 dp bottom margin already parts them: a 2 dp top here
+                // makes field-to-label the same 14 dp as between groups, as the mock-up spaces them (#393 review).
+                if (results.getChildCount() == 0) label.setPaddingRelative(ui.dp(4), ui.dp(2), ui.dp(4), ui.dp(6));
                 if (android.os.Build.VERSION.SDK_INT >= 28) label.setAccessibilityHeading(true);
                 results.addView(label);
                 card = ui.groupCard();
@@ -295,9 +301,9 @@ final class HubSearchScreen implements AppScreen {
         name.setMaxLines(2);
         name.setEllipsize(TextUtils.TruncateAt.END);
         words.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        String where = path(entry);
-        if (where != null) {
-            TextView caption = ui.caption(where);
+        List<String> where = path(entry);
+        if (HubSearch.captionText(where, title -> true) != null) {
+            TextView caption = new PathCaption(where);
             caption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13 * ui.textScale);
             caption.setMaxLines(2);
             caption.setEllipsize(TextUtils.TruncateAt.END);
@@ -408,16 +414,46 @@ final class HubSearchScreen implements AppScreen {
     /**
      * The result's path, as the Layout Plan's mock-up captions it: the page titles from its subject down to the page
      * that holds it ("Battery & charging › Modes", "Data", "Settings"), joined with "›" (HubSearch.captionPages); null
-     * for a subject page itself.
+     * for a subject page itself. The titles; the caption joins them (PathCaption, HubSearch.captionText).
      */
-    private static String path(HubSearch.Entry entry) {
+    private static List<String> path(HubSearch.Entry entry) {
         List<String> titles = new ArrayList<>();
         for (String page : HubSearch.captionPages(entry)) {
             Msg title = HubText.title(page);
             if (title != null) titles.add(title.render());
         }
-        // Wraps only after a "›", never inside a page's name (HubSearch.captionText).
-        return HubSearch.captionText(titles);
+        return titles;
+    }
+
+    /**
+     * A result's caption (HubSearch.captionText): its titles joined with " › ", each title that fits on one line kept
+     * whole, measured at the width the row gives it, so a long translated title still wraps between its words.
+     */
+    private final class PathCaption extends TextView {
+        private final List<String> titles;
+        private int measuredRoom = -1;
+
+        PathCaption(List<String> titles) {
+            super(host.activity());
+            this.titles = titles;
+            // As Ui.caption: muted regular text, no font padding, Ui.text's line spacing and direction.
+            setTextColor(ui.muted);
+            setTypeface(ui.regular());
+            setIncludeFontPadding(false);
+            setLineSpacing(ui.dp(3), 1);
+            setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
+            setText(HubSearch.captionText(titles, title -> true));
+        }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && room > 0 && room != measuredRoom) {
+                measuredRoom = room;
+                String text = HubSearch.captionText(titles, title -> getPaint().measureText(title) <= room);
+                if (!TextUtils.equals(getText(), text)) setText(text);
+            }
+            super.onMeasure(widthSpec, heightSpec);
+        }
     }
 
     /** Writes each shown result's value as it is now (a live reading's value changes while the results show). */

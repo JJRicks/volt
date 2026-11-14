@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -367,12 +368,13 @@ final class HubSearch {
 
     /**
      * Whether the page header (back link, status line, title) gets out of the way so the field sits at the very top
-     * (the Layout Plan's search mock-up): while the field has the cursor or holds a query, at every size. In a short
-     * window (725 x 604 dp, a phone held sideways) that is what leaves room for results above the keyboard (#393
-     * emulator check); the header comes back when the field is empty and left.
+     * (the Layout Plan's search mock-up). On a page with Cancel beside the field it is always hidden, empty or not, so
+     * there is one way out (Cancel) and the subjects start right under the field (#393 review: checklist 8's empty
+     * state is "the field at the top and Cancel"). Without Cancel (part 13's pane) it steps aside only while the field
+     * has the cursor or holds a query, which in a short window (725 x 604 dp) leaves room for results above the keyboard.
      */
-    static boolean headerHidden(boolean fieldFocused, String query) {
-        return fieldFocused || !normalize(query).isEmpty();
+    static boolean headerHidden(boolean hasCancel, boolean fieldFocused, String query) {
+        return hasCancel || fieldFocused || !normalize(query).isEmpty();
     }
 
     /**
@@ -386,18 +388,20 @@ final class HubSearch {
     }
 
     /**
-     * A result's caption from its page titles, joined with " › ". With two or more titles each title's own spaces become
-     * no-break spaces, and so does the space before "›", so a caption too long for one line (344 dp at 1.4x text) wraps
-     * only after a "›" and never inside a page's name ("Battery & charging ›" over "Battery modes", not "... › Battery"
-     * over "modes"); a single title wraps as usual. Null for no titles.
+     * A result's caption from its page titles, joined with " › ". With two or more titles, a title that fits on one
+     * caption line with its " ›" (fitsOneLine, measured by the caption) has its own spaces made no-break, and so has the
+     * space before "›", so a caption too long for one line (344 dp at 1.4x text) wraps after a "›" rather than inside a
+     * page's name ("Battery & charging ›" over "Battery modes", not "... › Battery" over "modes"). A title wider than one
+     * line keeps its spaces breakable, so it wraps between words and is never cut mid-word (#393 review: Italian
+     * "Cronologia ricariche e registrazioni"). A single title wraps as usual. Null for no titles.
      */
-    static String captionText(List<String> titles) {
+    static String captionText(List<String> titles, Predicate<String> fitsOneLine) {
         StringBuilder text = new StringBuilder();
         boolean path = titles.size() > 1;
         for (String title : titles) {
             if (title == null || title.isEmpty()) continue;
             if (text.length() > 0) text.append("\u00a0\u203a ");
-            text.append(path ? title.replace(' ', '\u00a0') : title);
+            text.append(path && fitsOneLine.test(title + " \u203a") ? title.replace(' ', '\u00a0') : title);
         }
         return text.length() == 0 ? null : text.toString();
     }

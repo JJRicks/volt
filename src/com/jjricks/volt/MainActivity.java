@@ -694,7 +694,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             @Override public CharSequence cancel(){return cancelLabel();}
             // As the header's back link: leaves at once (HubNav.linkSkipsPageBack), the query with it.
             @Override public void leave(){navigateBack(true);}
-            // The field at the very top while searching: the header (back link, status line, title) steps aside.
+            // The field at the very top with Cancel: the header (back link, status line, title) stays hidden (HubSearch.headerHidden).
             @Override public void headerHidden(boolean hidden){if(pageHeader!=null)pageHeader.setVisibility(hidden?View.GONE:View.VISIBLE);}
         });
     }

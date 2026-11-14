@@ -491,18 +491,28 @@ public final class HubSearchTest {
         check(!HubSearch.valueBelow(500, 0), "a row not measured yet keeps its value beside");
         // Captions wrap only after a "›" (seen at 344 dp and 1.4x: "Battery & charging › Battery" over "modes").
         String nb = " ";
-        check(("Battery" + nb + "&" + nb + "charging" + nb + "› Battery" + nb + "modes").equals(HubSearch.captionText(Arrays.asList("Battery & charging", "Battery modes"))), "a path breaks only after its separator");
-        check("Battery & charging".equals(HubSearch.captionText(Arrays.asList("Battery & charging"))), "a single title wraps as usual");
-        check(HubSearch.captionText(Arrays.asList()) == null && HubSearch.captionText(Arrays.asList("", null)) == null, "no titles, no caption");
-        String twoLines = HubSearch.captionText(Arrays.asList("Ride", "All rides & compare"));
+        check(("Battery" + nb + "&" + nb + "charging" + nb + "› Battery" + nb + "modes").equals(HubSearch.captionText(Arrays.asList("Battery & charging", "Battery modes"), t -> true)), "a path breaks only after its separator");
+        check("Battery & charging".equals(HubSearch.captionText(Arrays.asList("Battery & charging"), t -> true)), "a single title wraps as usual");
+        check(HubSearch.captionText(Arrays.asList(), t -> true) == null && HubSearch.captionText(Arrays.asList("", null), t -> true) == null, "no titles, no caption");
+        String twoLines = HubSearch.captionText(Arrays.asList("Ride", "All rides & compare"), t -> true);
         check(twoLines.indexOf(' ') == twoLines.indexOf("›") + 1 && twoLines.indexOf(' ') == twoLines.lastIndexOf(' '), "the one break opportunity is after the separator");
+        // A title wider than one caption line keeps its spaces, so it wraps between words, never mid-word (Italian
+        // "Cronologia ricariche e registrazioni" at 344 dp and 1.4x); a title that fits is still kept whole.
+        java.util.List<String> asked = new java.util.ArrayList<>();
+        String long2 = HubSearch.captionText(Arrays.asList("Batteria e ricarica", "Cronologia ricariche e registrazioni"),
+                t -> { asked.add(t); return !t.startsWith("Cronologia"); });
+        check(("Batteria" + nb + "e" + nb + "ricarica" + nb + "› Cronologia ricariche e registrazioni").equals(long2), "a title too wide for one line keeps its spaces");
+        check(asked.contains("Batteria e ricarica ›") && asked.contains("Cronologia ricariche e registrazioni ›"), "each title is measured with its separator");
+        check("Cronologia ricariche e registrazioni".equals(HubSearch.captionText(Arrays.asList("Cronologia ricariche e registrazioni"), t -> false)), "a single title is left as is");
         // Value styles: a reading's bold; a ride's date and distance quiet (no mock-up value of its own).
         check(HubSearch.valueStrong(HubSearch.Kind.READING) && !HubSearch.valueStrong(HubSearch.Kind.RIDE), "readings bold, rides quiet");
         // The count line: only "No matches" shows (the mock-up has none; one more row above the keyboard at 725 x 604).
         check(HubSearch.countShown(0) && !HubSearch.countShown(1) && !HubSearch.countShown(29), "only No matches shows");
         // The header: hidden while the field has the cursor or holds a query, at any size; back when both go.
-        check(HubSearch.headerHidden(true, "") && HubSearch.headerHidden(false, "batt") && HubSearch.headerHidden(true, "batt"), "hidden while searching");
-        check(!HubSearch.headerHidden(false, "") && !HubSearch.headerHidden(false, "   "), "shown when the field is empty and left");
+        check(HubSearch.headerHidden(false, true, "") && HubSearch.headerHidden(false, false, "batt") && HubSearch.headerHidden(false, true, "batt"), "hidden while searching");
+        check(!HubSearch.headerHidden(false, false, "") && !HubSearch.headerHidden(false, false, "   "), "without Cancel, shown when the field is empty and left");
+        // With Cancel beside the field (the search page), always hidden: one way out, the field at the very top.
+        check(HubSearch.headerHidden(true, false, "") && HubSearch.headerHidden(true, false, "   ") && HubSearch.headerHidden(true, true, "batt"), "with Cancel, always hidden");
         // The placeholder: "Search settings, readings and rides" is about 232 dp at 14 sp and 1.0x; the field's room for
         // text is its width less 16 dp padding at each end and the 20 dp magnifier with its 10 dp gap.
         float hint = 232;
