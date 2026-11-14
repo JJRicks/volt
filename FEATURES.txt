@@ -1337,8 +1337,17 @@ the charge centred with the scooter's photo large under and behind it on a red
 glow, the track with a tick at the limit, then two fixed tiles: Charging power
 and Time to 90% (Time to full without a limit). Where the view is too small,
 nothing is dropped: the line shortens, the photo and then the charge get
-smaller, and only then the line goes; the tiles stay. The Ride row shows a
+smaller, and only then the line goes; the tiles stay. For about an hour after
+a recorded ride, Just back sits on the page in the same area: "Ride ended 12
+minutes ago" with a small X, the distance large, the route on a plain dark
+panel (green start, white end) and three tiles: Ride time, Avg speed (from
+distance and time when the ride saved no average) and Battery with the signed
+change ("-18%"); on a short area the route goes first, then the distance gets
+smaller. The Ride row shows a
 running recording and its time while a ride records, else the last ride.
+Settings > Home style shows the two styles side by side, a Quick actions row
+naming Clean's four (opening the same picker as Edit Home) and the two moment
+switches, both on by default.
 Setup's last step offers the choice (Clean selected on a new install), each
 style drawn in detail with the scooter's photo and sample readings. Owners
 updating from a Volt without Clean (or a new phone restoring App preferences
@@ -1347,7 +1356,8 @@ one-time What's new sheet: first, for owners who had Record rides
 automatically on, a notice that background starts are now off, with the Start
 recording in the background switch and a link to Recording settings; then
 Switch to Clean or Keep Widgets (left out once they chose a style or Home is
-already Clean); then the installed version's changelog, bundled in the APK,
+already Clean; an owner who already chose sees the sheet only for the notice);
+then the installed version's changelog, bundled in the APK,
 with a link to its release page.
 
 QUICK ACCESS
