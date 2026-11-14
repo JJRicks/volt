@@ -230,8 +230,10 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * The header's search, as far as part 11 has it: its field focused, the subjects listed, typing hides them; Back
-     * clears the query before it leaves, the page's back link leaves at once. Search's results arrive with part 12.
+     * The header's search (Hub layout part 12): its field focused at the very top, the page header stepped aside while
+     * the owner searches, the subjects listed until typing; a result opens over the search and Back returns to it with
+     * its query and results; Back then clears the query, then leaves. Cancel leaves at once with a query typed; the
+     * page's back link, shown again once the field is empty and left, goes Home at once.
      */
     private void search() throws Exception {
         tapTag("home-search");
@@ -241,12 +243,27 @@ public final class HubValidation extends Instrumentation {
                 "The search page's field is not focused");
         main(() -> {
             for (String subject : HubPages.SUBJECTS) require(shown(root().findViewWithTag("home-subject-" + subject)), "Search does not list " + subject + " while empty");
+            require(!shown(root().findViewWithTag("hub-back")), "The page header did not step aside while the field has the cursor");
+            require(shown(root().findViewWithTag("hub-search-cancel")), "Search has no Cancel beside its field");
         });
         main(() -> field[0].setText("maintenance")); settle();
         main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while a query is typed"));
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
+        main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
         screenshot("search-typed");
+        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
+        String reminders = "hub-search-setting-" + HubPages.SERVICE_MAINTENANCE;
+        tapTag(reminders);
+        arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
+        systemBack();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            require(now != null && "maintenance".contentEquals(now.getText()), "Back from a result lost the search's query");
+            require(shown(root().findViewWithTag(reminders)), "Back from a result lost the search's results");
+        });
+        hideKeyboard();
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         main(() -> {
@@ -257,15 +274,22 @@ public final class HubValidation extends Instrumentation {
         systemBack();
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        // The page's link ("Back to Home") goes there at once, query or not (HubNav.linkSkipsPageBack).
+        // Cancel leaves at once, query and all.
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText("maintenance")); settle();
         hideKeyboard();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        // The page's link ("Back to Home"), shown once the field is empty and left, goes there at once (HubNav.linkSkipsPageBack).
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
         tapTag("hub-back");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused with the subjects listed; typing hides them; Back clears the query, then returns to Home; the back link returns to Home at once");
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing hides them; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel and the back link return to Home at once");
     }
 
     /**
@@ -584,14 +608,19 @@ public final class HubValidation extends Instrumentation {
         settle();
     }
 
-    /** The page shown is page, the stack is exactly stack, and a non-Home page has its back link. */
+    /**
+     * The page shown is page, the stack is exactly stack, and a non-Home page has its back link: shown, except on Search
+     * while its field has the cursor or a query, where the page header steps aside (part 12, HubSearch.headerHidden).
+     */
     private void arrived(String page, String... stack) {
         await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), () -> "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
         settle();
         requireStack(stack);
         if (!HubPages.HOME.equals(page)) main(() -> {
             View back = root().findViewWithTag("hub-back");
-            require(shown(back), page + " has no back link");
+            EditText search = HubPages.SEARCH.equals(page) ? firstEditText(activity.findViewById(android.R.id.content)) : null;
+            boolean aside = search != null && (search.hasFocus() || search.getText().toString().trim().length() > 0);
+            require(back != null && (shown(back) || aside), page + " has no back link");
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
         });
     }
