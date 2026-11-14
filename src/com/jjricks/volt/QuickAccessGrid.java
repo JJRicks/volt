@@ -183,18 +183,24 @@ final class QuickAccessGrid extends ViewGroup {
             }
             // Clean's round circles that show a saved or last known state (QuickActionLayout): the lock (never guessed:
             // an unread state has its own look), Battery alerts and an armed Charge done by (Volt's own saved settings,
-            // shown on and offline). Any other round action is on only while it is switched on and live.
+            // shown on and offline), and a control whose setting is not a plain on/off but has an Off (energy
+            // recovery's levels: on at any level but Off, the last known one dimmed). A direct on/off toggle is on only
+            // while it is switched on and live; a setting with no Off (a choice, a number, a time) keeps the plain circle.
             QuickActionLayout.State look = null;
             boolean isLock = feature != null && feature.key.equals("lock");
+            // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
+            boolean toggle = cell.entry.directToggle(decision);
             if (clean && isLock) look = QuickActionLayout.lock(unmapped || unreadable ? null : value, featureLive);
             else if (clean && alerts) look = QuickActionLayout.alerts(level, low);
             else if (clean && doneBy && charge != null && !unmapped) look = QuickActionLayout.schedule(charge.doneByEnabled, featureLive);
+            else if (clean && feature != null && !toggle && !feature.sensitive && !chargeControl
+                    && (feature.type == ScooterCommands.Type.CHOICE || feature.type == ScooterCommands.Type.TOGGLE)
+                    && QuickActionLayout.offValue(feature.optionValues, feature.options) != null)
+                look = QuickActionLayout.setting(value, offValue(feature, decision), featureLive);
             boolean lockUnknown = look != null && look.look == QuickActionLayout.Look.UNKNOWN;
             // The lock's spoken state on Clean (its circle has no value line): Locked, Unlocked or Lock state unknown.
             if (clean && isLock && !pending)
                 state = lockUnknown ? MainActivity.lockUnknownText() : DisplayUnits.lockWord(value == 1);
-            // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
-            boolean toggle = cell.entry.directToggle(decision);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
             boolean selected = toggle && value != null && value == 1 && featureLive;
             if (tiles) {
@@ -552,9 +558,9 @@ final class QuickAccessGrid extends ViewGroup {
             }, roundNames(entry));
             label.setVisibility(name.text == null ? GONE : VISIBLE);
             if (name.text != null) {
-                float size = QuickActionLayout.NAME_SP * ui.textScale * name.scale;
-                if (Math.abs(label.getTextSize() - android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
-                        size, getResources().getDisplayMetrics())) > .5f) label.setTextSize(size);
+                // Always set: the size chosen is the one measured (a 5% step can be under half a pixel on a small
+                // screen); TextView requests a layout only when the size really changes.
+                label.setTextSize(QuickActionLayout.NAME_SP * ui.textScale * name.scale);
                 if (TileRung.needsSet(name.text, label.getText())) label.setText(name.text);
                 // A smaller name keeps the line height of its full size, centred in it, so the four names share a line.
                 android.graphics.Paint.FontMetricsInt line = fullSize(label, QuickActionLayout.NAME_SP).getFontMetricsInt();
@@ -691,6 +697,16 @@ final class QuickAccessGrid extends ViewGroup {
             if (rtl) x = getWidth() - x - width;
             cells.get(i).layout(x, y, x + width, y + rowHeight);
         }
+    }
+
+    /**
+     * A control's Off value on this model: the mapped variant's setting labelled Off (none where the model has no Off,
+     * as energy recovery's Low, Medium and High), else the catalog's.
+     */
+    private static Integer offValue(ScooterCommands.Feature feature, CapabilityResolver.Decision decision) {
+        if (decision != null && decision.variant != null && decision.values().length > 0)
+            return QuickActionLayout.offValue(decision.values(), decision.labels());
+        return QuickActionLayout.offValue(feature.optionValues, feature.options);
     }
 
     /** The model's mapped choices include this value (no choices known means nothing to judge it by). */

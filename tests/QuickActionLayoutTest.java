@@ -12,8 +12,9 @@ package com.jjricks.volt;
  * (HubText.quickActionRoundName, StatsLabels.row and the short rungs) in English and, for the long ones, in German and
  * Brazilian Portuguese (res/values-de, res/values-pt-rBR).
  *
- * <p>The owner's ladder for narrow labels (council review 5904036506, finding 3): the whole name (down to 75% of its
- * size), then a shorter name the catalog already has, then the icon alone; never a cut word.
+ * <p>The ladder for narrow labels (council reviews 5904036506, finding 3, and 5904426594, findings 6 and 7): a shorter
+ * word before smaller text. The first name whole at full size, else the largest size down to 75% at which one of them is
+ * whole, else the icon alone; never a cut word.
  */
 public final class QuickActionLayoutTest {
     private static int checks;
@@ -107,7 +108,11 @@ public final class QuickActionLayoutTest {
         QuickActionLayout.Name name = QuickActionLayout.name(60, w, "Abcdefghijkl", "Abcde");
         require("Abcde".equals(name.text) && name.scale == 1, "too wide even at 75%: the shorter name: " + name);
         name = QuickActionLayout.name(60, w, "Abcdefg", "Abc");
-        require("Abcdefg".equals(name.text) && name.scale < 1, "a little too wide: the name a little smaller, before a shorter name: " + name);
+        require("Abc".equals(name.text) && name.scale == 1, "a shorter word before smaller text: the shorter name at full size: " + name);
+        name = QuickActionLayout.name(60, w, "Abcdefg", "Abcdefgh");
+        require("Abcdefg".equals(name.text) && name.scale < 1, "no shorter name: the name a little smaller: " + name);
+        name = QuickActionLayout.name(60, w, "Abcdefgh", "Abcdefg");
+        require("Abcdefg".equals(name.text) && name.scale == .85f, "none fits at full size: the largest size at which one fits: " + name);
         name = QuickActionLayout.name(60, w, "Abcdefghijkl", "Abcdefghijk");
         require(name.iconOnly(), "no name fits whole: the icon alone: " + name);
         name = QuickActionLayout.name(60, w, "Abcdefghijkl", null, "", "Abcdefghijklmn", "Abcdef");
@@ -136,6 +141,23 @@ public final class QuickActionLayoutTest {
             QuickActionLayout.Name cruise = QuickActionLayout.name(room, names, "Controle de cruzeiro", "Cruzeiro", "Cruzeiro");
             whole(cruise, room, names, at);
             require("Cruzeiro".equals(cruise.text), at + ": pt-BR cruise control: Cruzeiro, whole: " + cruise);
+            // The long Live Stats name is tried first but the short Setting tile name wins at full size, never the long
+            // one shrunk (council review 5904426594, finding 6), at every width that has to choose.
+            for (int window : new int[]{344, 412}) {
+                QuickActionLayout.Name pt = QuickActionLayout.name(room(window), names, "Controle de cruzeiro", "Cruzeiro", "Cruzeiro");
+                require("Cruzeiro".equals(pt.text) && pt.scale == 1, window + " dp at " + text + "x: Cruzeiro at full size: " + pt);
+            }
+            // The electronic lock's round name is the lock reading's compact name (council review of 98be0a02,
+            // findings 1 and 3): "Lock" at full size, never "Electronic lock" shrunk or the icon alone.
+            QuickActionLayout.Name lock = QuickActionLayout.name(room, names, "Lock", "Electronic lock", "Electronic lock");
+            require("Lock".equals(lock.text) && lock.scale == 1, at + ": Lock at full size: " + lock);
+            // de "Sperre", fr "Verrou", pt-BR "Bloqueio" (readings_lock_status_compact) are shown whole too (pt-BR a
+            // little smaller at 1.4x), never the long name.
+            for (String word : new String[]{"Sperre", "Verrou", "Bloqueio"}) {
+                QuickActionLayout.Name fit = QuickActionLayout.name(room, names, word, "Elektronische Sperre");
+                whole(fit, room, names, at);
+                require(word.equals(fit.text) && (fit.scale == 1 || text > 1), at + ": " + word + " whole: " + fit);
+            }
             QuickActionLayout.Name tempomat = QuickActionLayout.name(room, names, "Tempomat", "Tempomat", "Tempomat");
             require("Tempomat".equals(tempomat.text), at + ": de Tempomat whole: " + tempomat);
             System.out.println("  " + at + ": Traktionskontrolle -> " + traction + ", Controle de cruzeiro -> " + cruise + ", Tempomat -> " + tempomat);
@@ -195,6 +217,29 @@ public final class QuickActionLayoutTest {
             require(both.look == QuickActionLayout.Look.ON, "both alerts: on");
             require(off.look == QuickActionLayout.Look.OFF && !off.dimmed, "both off: off, not dimmed (a setting Volt has)");
             require(none.look == QuickActionLayout.Look.OFF && none.dimmed, "no battery alerts on this model: off, dimmed");
+
+            // A setting with an Off among others (council review 5904426594, finding 1): energy recovery is on at Low,
+            // Medium and High, from the setting read now or last known (dimmed), off at Off; a model with no Off is on
+            // at every level; an unread setting is plain and dimmed.
+            Integer offRaw = QuickActionLayout.offValue(new int[]{0, 30, 60, 90}, new String[]{"Off", "Low", "Medium", "High"});
+            require(offRaw != null && offRaw == 0, "energy recovery's Off is 0");
+            for (int level : new int[]{30, 60, 90}) {
+                QuickActionLayout.State on = QuickActionLayout.setting(level, offRaw, live);
+                require(on.look == QuickActionLayout.Look.ON && on.dimmed == !live, at + ": recovery at " + level + ": on: " + on);
+                require(QuickActionLayout.setting(level, null, live).look == QuickActionLayout.Look.ON, at + ": no Off on the model: on at " + level);
+            }
+            QuickActionLayout.State recoveryOff = QuickActionLayout.setting(0, offRaw, live);
+            require(recoveryOff.look == QuickActionLayout.Look.OFF && recoveryOff.dimmed == !live, at + ": recovery Off: off: " + recoveryOff);
+            QuickActionLayout.State unread = QuickActionLayout.setting(null, offRaw, live);
+            require(unread.look == QuickActionLayout.Look.OFF && unread.dimmed, at + ": recovery never read: plain, dimmed: " + unread);
+            // A light's Off / On / Follow headlight: on unless Off.
+            Integer lightOff = QuickActionLayout.offValue(new int[]{0, 1, 2}, new String[]{"Off", "On", "Follow headlight"});
+            require(QuickActionLayout.setting(2, lightOff, live).look == QuickActionLayout.Look.ON
+                    && QuickActionLayout.setting(0, lightOff, live).look == QuickActionLayout.Look.OFF, at + ": a light following the headlight is on");
+            // A choice with no Off (acceleration's Eco and Turbo, a maximum speed) has no Off value: the grid keeps its plain circle.
+            require(QuickActionLayout.offValue(new int[]{3, 5}, new String[]{"Eco", "Turbo"}) == null
+                    && QuickActionLayout.offValue(null, null) == null && QuickActionLayout.offValue(new int[]{0}, new String[0]) == null,
+                    "no Off among the settings: none");
 
             QuickActionLayout.State armed = QuickActionLayout.schedule(true, live), idle = QuickActionLayout.schedule(false, live);
             require(armed.look == QuickActionLayout.Look.ON && armed.dimmed == !live, at + ": an armed Charge done by is on: " + armed);

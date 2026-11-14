@@ -82,9 +82,10 @@ final class QuickActionLayout {
 
     /**
      * The name on one line, never cut: {@code names} in order (the action's name, then shorter names the catalog
-     * already has), the first that is whole at full size or a little smaller (the largest step down to
-     * {@link #MIN_SCALE}); none of them: the icon alone. Null and empty names, and a name no narrower than one already
-     * tried, are skipped.
+     * already has). A shorter word comes before smaller text (the contributor docs' rule for narrow labels): the first
+     * name whole at full size; else the largest size, in steps down to {@link #MIN_SCALE}, at which one of them is
+     * whole (at the same size, the earlier name); none of them: the icon alone. Null and empty names, and a name no
+     * narrower than one already tried, are skipped.
      */
     static Name name(float room, Width width, String... names) {
         return name(room, (text, scale) -> width.of(text) * scale, names);
@@ -92,6 +93,7 @@ final class QuickActionLayout {
 
     /** As {@link #name(float, Width, String...)}, each size measured as it is drawn. */
     static Name name(float room, ScaledWidth width, String... names) {
+        java.util.ArrayList<String> ladder = new java.util.ArrayList<>();
         float tried = Float.MAX_VALUE;
         for (String name : names) {
             if (name == null || name.isEmpty()) continue;
@@ -99,10 +101,11 @@ final class QuickActionLayout {
             if (wide >= tried) continue;
             tried = wide;
             if (wide <= room) return new Name(name, 1);
-            for (int step = 1; 1 - step * SCALE_STEP >= MIN_SCALE - 1e-4f; step++) {
-                float scale = Math.round((1 - step * SCALE_STEP) * 100) / 100f;
-                if (width.of(name, scale) <= room) return new Name(name, scale);
-            }
+            ladder.add(name);
+        }
+        for (int step = 1; 1 - step * SCALE_STEP >= MIN_SCALE - 1e-4f; step++) {
+            float scale = Math.round((1 - step * SCALE_STEP) * 100) / 100f;
+            for (String name : ladder) if (width.of(name, scale) <= room) return new Name(name, scale);
         }
         return new Name(null, 1);
     }
@@ -147,6 +150,29 @@ final class QuickActionLayout {
     static State alerts(Integer level, Integer low) {
         if (level == null) return new State(Look.OFF, true, false);
         return new State(level > 0 || low != null ? Look.ON : Look.OFF, false, false);
+    }
+
+    /**
+     * A control whose setting is not a plain on/off but has an Off among its settings (energy recovery's Off, Low,
+     * Medium and High; a light's Off, On and Follow headlight; an on/off control that is not a direct toggle on this
+     * model): on whenever its setting is anything but Off, read now or last known ({@code value}, the scooter's raw
+     * value; null: never read or unreadable), dimmed while it is the last known one or not known at all.
+     * {@code off} is the model's Off value; null where the model offers no Off (energy recovery's Low, Medium and High
+     * only), so every setting is on.
+     */
+    static State setting(Integer value, Integer off, boolean live) {
+        if (value == null) return new State(Look.OFF, true, false);
+        return new State(off == null || value.intValue() != off.intValue() ? Look.ON : Look.OFF, !live, false);
+    }
+
+    /**
+     * The value labelled Off among a control's settings ({@code values} with their English {@code labels}, data), or
+     * null where it has none.
+     */
+    static Integer offValue(int[] values, String[] labels) {
+        if (values == null || labels == null) return null;
+        for (int i = 0; i < Math.min(values.length, labels.length); i++) if ("Off".equals(labels[i])) return values[i];
+        return null;
     }
 
     /**
