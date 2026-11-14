@@ -78,7 +78,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
     private static final long STATS_RETENTION_MS=10000L;
-    /** Home's Lock bar as last built (HubDock keeps it clear on Widgets); null before any. */
+    /** Home's Lock bar as last built; null before any. Validations scroll it clear of Widgets' pinned dock. */
     private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
@@ -584,15 +584,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
-            // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
+            // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
-            // The dock never covers the Lock bar: where the bar sits under it, it floats 10 dp above the bar (or, with no room, steps aside) until the page scrolls the bar above it.
-            dock.keepClear(()->dashboardLock);
-            scroll.setClipToPadding(false);
-            scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());
+            // Pinned to the bottom (the contributor's decision, 14 Nov): it never moves for the Lock bar, one of the rider's own
+            // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
+            dock.padScroller(scroll,scroll.getPaddingBottom());
         }
         Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();
         styleSystemBars();
