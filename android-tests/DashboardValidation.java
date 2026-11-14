@@ -2197,7 +2197,7 @@ public final class DashboardValidation extends Instrumentation {
      * The navigation a rider has on the page shown, all fully on screen, 48 dp tall and with uncut captions. The tab bar's
      * five targets went in part 11 (#392): on Home they are Widgets Home's dock (its items and its All item, after the
      * rider scrolls the dock clear of the Lock bar where it stepped aside: HubTestPages.showDock); on every other page the
-     * page's back link.
+     * page's back link, and on Search, whose header steps aside for its field (part 12), Cancel beside the field.
      */
     private void assertNavigationFits() {
         boolean[] home = {false};
@@ -2215,6 +2215,8 @@ public final class DashboardValidation extends Instrumentation {
                 View all = root().findViewWithTag("hub-dock-handle"); require(all != null && all.isShown(), "Missing navigation: the dock's All item");
             } else {
                 View back = root().findViewWithTag("hub-back");
+                // Search's header steps aside for its field (part 12, #393): Cancel beside the field is then its way back.
+                if (HubPages.SEARCH.equals(HubTestPages.current(activity)) && (back == null || !back.isShown())) back = root().findViewWithTag("hub-search-cancel");
                 require(back != null && back.isShown(), "Missing navigation: page " + HubTestPages.current(activity) + " has no back link");
                 targets.add(back);
             }
