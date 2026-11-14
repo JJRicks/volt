@@ -122,7 +122,6 @@ public final class MoreScreen implements AppScreen {
     private static boolean subjectSection(String section) {
         return "Security".equals(section) || "Lab".equals(section) || "Data".equals(section);
     }
-    private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
     /** More › Developer options › Compatibility; the Scooter page's Review opens it as the recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
     private boolean compatibilityRecovery;
@@ -581,14 +580,6 @@ public final class MoreScreen implements AppScreen {
     private TextView footnote(String value) {
         TextView text = ui.caption(value); text.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(12));
         cardDestination.addView(text); return text;
-    }
-    private void badge(TextView value, String text) {
-        value.setText(text); value.setVisibility(View.VISIBLE);
-        value.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 10.5f * ui.textScale);
-        value.setTypeface(ui.bold()); value.setLetterSpacing(0.08f); value.setTextColor(ui.orange);
-        value.setPadding(ui.dp(7), ui.dp(2), ui.dp(7), ui.dp(2)); value.setMaxLines(1);
-        value.setBackground(ui.shape(Color.TRANSPARENT, 6, Ui.withAlpha(ui.orange, 120)));
-        value.setContentDescription(T.moreLabBadgeDescription());
     }
 
     /**
