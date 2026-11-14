@@ -86,9 +86,17 @@ final class KeyBackups {
             if (!guarded(p.role) || !p.configured()) continue;
             boolean kept = false;
             for (BackupProfiles.Profile q : incoming)
-                if (guarded(q.role) && q.configured() && q.identity.equalsIgnoreCase(p.identity) && (q.id.equals(p.id) || p.sameScooter(q))) { kept = true; break; }
+                if (guarded(q.role) && q.configured() && q.identity.equalsIgnoreCase(p.identity) && (q.id.equals(p.id) || p.sameScooter(q) || sameAddress(p, q))) { kept = true; break; }
             if (!kept) result.add(p);
         }
         return result;
+    }
+    /**
+     * The same scooter address with no conflicting serial: sameScooter() needs both serials once either is known, but a
+     * backup made before its phone learned the serial still names the scooter by address.
+     */
+    private static boolean sameAddress(BackupProfiles.Profile p, BackupProfiles.Profile q) {
+        boolean serialsAgree = p.serial.isEmpty() || q.serial.isEmpty() || p.serial.equalsIgnoreCase(q.serial);
+        return !p.mac.isEmpty() && p.mac.equalsIgnoreCase(q.mac) && serialsAgree;
     }
 }

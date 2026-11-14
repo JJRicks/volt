@@ -88,6 +88,11 @@ public final class KeyBackupsTest {
         check(KeyBackups.dropped(live(phone), otherScooter).size() == 1, "the same key held only for another scooter doesn't keep this one");
         List<BackupProfiles.Profile> unknownScooter = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789ab\",\"role\":0}]");
         check(KeyBackups.dropped(live(phone), unknownScooter).size() == 1, "nor for a profile that can't be told to be this scooter");
+        // A backup made before its phone learned the serial still names the scooter by address.
+        List<BackupProfiles.Profile> sameAddress = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789ab\",\"role\":0,\"mac\":\"02:00:00:00:00:C0\"}]");
+        check(KeyBackups.dropped(live(phone), sameAddress).isEmpty(), "the same address with no serial yet keeps it");
+        List<BackupProfiles.Profile> addressOtherSerial = BackupProfiles.parse("[{\"id\":\"x1\",\"identity\":\"0123456789ab\",\"role\":0,\"mac\":\"02:00:00:00:00:c0\",\"serial\":\"SERIAL-D\"}]");
+        check(KeyBackups.dropped(live(phone), addressOtherSerial).size() == 1, "but not when the serials disagree");
         List<BackupProfiles.Profile> asShared = BackupProfiles.parse("[{\"id\":\"" + ID + "\",\"identity\":\"0123456789AB\",\"role\":1}]");
         check(KeyBackups.dropped(live(phone), asShared).size() == 1, "the key held only as a shared profile still loses the owner's access");
         check(KeyBackups.dropped(live("[{broken"), none).isEmpty(), "unreadable saved scooters: Replace everything stays the way out");

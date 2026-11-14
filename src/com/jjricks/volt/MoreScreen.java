@@ -1207,6 +1207,11 @@ public final class MoreScreen implements AppScreen {
     private void releaseScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null || !releaseReady(id)) return;
         LinearLayout box = dialogBox(T.moreScootersReleaseTitle(p.displayName()), T.moreScootersReleaseBody());
+        // Off the UT5 MAX, Release is known only from the NAVEE app's mapping, so it reads Untested here like every such
+        // control (MainActivity.controlNote); the owner's hardware check covers the UT5 MAX alone.
+        CapabilityResolver.Decision decision = service().ble.releaseDecision();
+        if (decision.layer != ModelRegistry.Layer.UT5_MAX && decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED)
+            note(box, T.mainRowUntested());
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersReleaseAction(), () -> {
             if (!releaseReady(id)) return;
