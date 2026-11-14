@@ -1640,14 +1640,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         scooterService.ble.releaseAsked(id);
         final AlertDialog[] self=new AlertDialog[1];
         LinearLayout body=sheetContent(T.moreScootersReleaseHeldTitle(held.displayName()),T.moreScootersReleaseHeldBody(),()->{if(self[0]!=null)self[0].dismiss();});
-        body.setTag("release-held-sheet");
+        body.setTag("release_held_sheet");
         TextView remove=design.button(T.moreScootersReleaseHeldRemove(),()->{if(self[0]!=null)self[0].dismiss();removeHeldRelease(id);});
-        remove.setTag("release-held-remove");design.decorate(remove,"trash");
+        remove.setTag("release_held_remove");design.decorate(remove,"trash");
         LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=design.dp(14);body.addView(remove,rp);
         TextView again=design.secondaryButton(T.moreScootersReleaseHeldReconnect(),()->{if(self[0]!=null)self[0].dismiss();reconnectHeldRelease(id);});
-        again.setTag("release-held-reconnect");design.decorate(again,"bluetooth");
+        again.setTag("release_held_reconnect");design.decorate(again,"bluetooth");
         LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,-2);ap.topMargin=design.dp(10);body.addView(again,ap);
-        TextView note=design.caption(T.moreScootersReleaseHeldReconnectNote());note.setTag("release-held-reconnect-note");
+        TextView note=design.caption(T.moreScootersReleaseHeldReconnectNote());note.setTag("release_held_reconnect_note");
         note.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(note);
         AlertDialog dialog=showSheet(body);self[0]=dialog;releaseHoldSheet=dialog;
         dialog.setOnDismissListener(d->{if(releaseHoldSheet==dialog)releaseHoldSheet=null;});
