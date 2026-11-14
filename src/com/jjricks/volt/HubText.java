@@ -567,4 +567,13 @@ public final class HubText {
      * Exit") does not fit one line. Its own key, not a rung of that ladder-less, already translated one.
      */
     public static Msg rideSimulatingShort() { return M.hubRideSimulating(); }
+
+    // ===== Settings page (the Layout Plan's settings mock-up) =====
+
+    /**
+     * Settings' section labels, shown in capitals: SCOOTERS &amp; DATA over My scooters and Back up &amp; restore, ABOUT over
+     * Updates, About &amp; permissions and Developer options.
+     */
+    public static Msg settingsSectionScooters() { return M.hubSettingsSectionScooters(); }
+    public static Msg settingsSectionAbout() { return M.hubSettingsSectionAbout(); }
 }

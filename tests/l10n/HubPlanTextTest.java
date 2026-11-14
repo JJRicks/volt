@@ -14,8 +14,8 @@ import java.util.Locale;
  * (the contributor's decisions on #383). Clean Home's one-line round quick-action names ("Charge by" for Charge done
  * by), Just back's Battery tile name, short ride time and one spoken sentence, Home style's list separator, the
  * Quick access "Search settings" tile and its short rung, Battery &amp; charging's section labels and "Last charge"
- * line, Controls' "More controls" heading and its two sub-lines, the Ride page's "Today" / "Yesterday" ride titles
- * and the Record tile's short rung while simulating. In English and under a key-echo text source (each line is one
+ * line, Controls' "More controls" heading and its two sub-lines, the Ride page's "Today" / "Yesterday" ride titles,
+ * the Record tile's short rung while simulating, and Settings' "Scooters &amp; data" and "About" section labels. In English and under a key-echo text source (each line is one
  * whole catalog string, never glued from pieces).
  *
  * <p>The round names also fit their one line under the circles at the maintainers' sizes, 344x882 dp and 725x604 dp
@@ -159,6 +159,8 @@ public final class HubPlanTextTest {
         check(HubText.recentRideTitle(today.plusDays(1), today, "x") == null, "a ride dated after today keeps its date");
         check(HubText.recentRideTitle(null, today, "x") == null && HubText.recentRideTitle(today, null, "x") == null, "no date, no title");
         equal("Simulating", HubText.rideSimulatingShort().render(), "Record tile's short rung while simulating");
+        equal("Scooters & data", HubText.settingsSectionScooters().render(), "Settings: SCOOTERS & DATA label");
+        equal("About", HubText.settingsSectionAbout().render(), "Settings: ABOUT label");
     }
 
     private static float em(char c) {
@@ -220,6 +222,8 @@ public final class HubPlanTextTest {
             equal("⟦hub_ride_today⟧", HubText.recentRideTitle(today, today, "t").render(), "echo: today");
             equal("⟦hub_ride_yesterday⟧", HubText.recentRideTitle(today.minusDays(1), today, "t").render(), "echo: yesterday");
             equal("⟦hub_ride_simulating⟧", HubText.rideSimulatingShort().render(), "echo: simulating short");
+            equal("⟦hub_settings_section_scooters⟧", HubText.settingsSectionScooters().render(), "echo: Settings, scooters & data");
+            equal("⟦hub_settings_section_about⟧", HubText.settingsSectionAbout().render(), "echo: Settings, about");
         } finally {
             T.install(null);
         }
