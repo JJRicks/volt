@@ -53,7 +53,10 @@ public final class Ui {
     public final int bg, surface, text, muted, accent, blue, orange, outline, danger, raised;
     /** Deeper red for gradients and pressed states, white text on red, confirmed-good green, faint last-seen grey. */
     public final int accentDeep, onAccent, ok, dim;
-    /** The accent for text and line icons on dark cards (the Layout Plan's #FF8A8C); the accent itself on light. */
+    /**
+     * The accent for text, links and line icons on dark cards (the Layout Plan's #FF8A8C, 4.5:1 on cards where the fill
+     * red is not); the accent itself on light.
+     */
     public final int accentText;
     public final float textScale;
     private final float density;
@@ -278,6 +281,16 @@ public final class Ui {
         if (Build.VERSION.SDK_INT >= 28) view.setAccessibilityHeading(true);
         return view;
     }
+    /**
+     * The Layout Plan's EXPERIMENTAL tag: 11 sp semibold capitals, orange on an 18% orange fill, 6 dp corners. In the light
+     * theme the text is a deeper orange, so the small capitals keep 4.5:1 on the fill over a white card.
+     */
+    public void experimentalTag(TextView view) {
+        view.setAllCaps(true); view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11 * textScale); view.setTypeface(SEMIBOLD);
+        view.setTextColor(dark ? orange : Color.parseColor("#8A5000")); view.setLetterSpacing(0.04f);
+        view.setBackground(shape(withAlpha(orange, 46), 6, 0));
+        view.setPaddingRelative(dp(7), dp(2), dp(7), dp(2));
+    }
     /** A card that holds divided rows: tight vertical padding so rows sit edge to edge. */
     public LinearLayout groupCard() {
         LinearLayout layout = card();
@@ -422,6 +435,17 @@ public final class Ui {
         }
     }
     /**
+     * The Layout Plan's raised icon tile (the Controls pages): a 33 dp square in the raised colour with the glyph in
+     * accent text, instead of {@link #decorate}'s page-coloured 30 dp square. A label without a tile is left alone.
+     */
+    public void raiseIcon(TextView label) {
+        Drawable[] old = label.getCompoundDrawablesRelative();
+        if (!(old[0] instanceof LabelIcon) || !((LabelIcon) old[0]).boxed) return;
+        Drawable symbol = new LabelIcon(label, ((LabelIcon) old[0]).key, true, true);
+        int size = dp(33); symbol.setBounds(0, 0, size, size);
+        label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
+    }
+    /**
      * Display-only mode cues from the shown text, which must be Telemetry's English label; callers
      * that know the mode pass it to {@link #styleDriveMode(TextView, DriveMode, boolean)} instead.
      */
@@ -489,20 +513,22 @@ public final class Ui {
         return "";
     }
     private final class LabelIcon extends Drawable {
-        private final TextView owner; private final String key; private final boolean boxed;
+        private final TextView owner; private final String key; private final boolean boxed, raisedTile;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int alpha = 255;
-        LabelIcon(TextView owner, String key, boolean boxed) { this.owner = owner; this.key = key; this.boxed = boxed; }
+        LabelIcon(TextView owner, String key, boolean boxed) { this(owner, key, boxed, false); }
+        LabelIcon(TextView owner, String key, boolean boxed, boolean raisedTile) { this.owner = owner; this.key = key; this.boxed = boxed; this.raisedTile = raisedTile; }
         @Override public void draw(Canvas canvas) {
             canvas.save(); canvas.translate(getBounds().left, getBounds().top);
             int color = owner.getCurrentTextColor();
             if (boxed) {
                 // A dark rounded square with a red glyph; disabled or last-seen labels keep a grey glyph.
                 float w = getBounds().width(), h = getBounds().height();
-                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark ? bg : raised, alpha));
+                // The raised tile (raiseIcon) sits above the card instead of reading as a hole in it.
+                paint.setStyle(Paint.Style.FILL); paint.setColor(withAlpha(dark && !raisedTile ? bg : raised, alpha));
                 canvas.drawRoundRect(new RectF(0, 0, w, h), dp(10), dp(10), paint);
                 boolean quiet = color == muted || color == dim || !owner.isEnabled();
-                color = quiet ? dim : accent;
+                color = quiet ? dim : raisedTile ? accentText : accent;
                 float glyph = w * .56f; canvas.translate((w - glyph) / 2, (h - glyph) / 2);
                 canvas.scale(glyph / 24f, glyph / 24f);
             } else canvas.scale(getBounds().width() / 24f, getBounds().height() / 24f);

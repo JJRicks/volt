@@ -28,6 +28,22 @@ final class ControlsPages {
     /** The live charging row (ChargeLiveRow); it has no menu id of its own. */
     static final String CHARGE_LIVE = "charge_live";
     /**
+     * Battery & charging's one Charge done by row (the Layout Plan: "Charge done by  7:30 am ›"): its value is the
+     * finish time, or Off, and it opens a sheet with the on/off switch and the time (ChargeDoneSummary). Same
+     * preferences and schedule as the two rows it replaced, which Quick access's charge_done_by and charge_done_time
+     * still open directly.
+     */
+    static final String CHARGE_DONE = "charge_done";
+    /**
+     * Battery & charging's HISTORY card: the recent charges as small bars and the last one's summary line
+     * (ChargeHistoryBars); it opens Charge history & recordings, so it stands in for that page's link.
+     */
+    static final String CHARGE_HISTORY = "charge_history";
+    /** A row named Usable ride energy, with the Experimental tag, that opens Estimates & charger (where its panel is). */
+    static final String USABLE_ENERGY = "usable_energy";
+    /** Rows drawn as a card of their own, which ends the card before them (cards()). */
+    static final List<String> OWN_CARD = Collections.unmodifiableList(Arrays.asList(CHARGE_HISTORY));
+    /**
      * Sub-pages a page links to that another screen builds, not these rows (hub layout plan, PR 4): Battery's
      * Charge history & recordings is MoreScreen's Charging section.
      */
@@ -84,6 +100,18 @@ final class ControlsPages {
     static boolean isLink(String id) { return id != null && id.startsWith(LINK); }
     /** The page a link row opens; null for any other row. */
     static String linkTarget(String id) { return isLink(id) ? id.substring(LINK.length()) : null; }
+    /** The page a row opens: a link's target, or the page a card stands in for (the HISTORY card: Charge history & recordings). */
+    static String opens(String id) {
+        if (CHARGE_HISTORY.equals(id)) return HubPages.BATTERY_HISTORY;
+        if (USABLE_ENERGY.equals(id)) return HubPages.BATTERY_ESTIMATES;
+        return linkTarget(id);
+    }
+    /** Whether a page has a row that opens the given page (a link to it, or a card that stands in for one). */
+    static boolean linksTo(Spec spec, String page) {
+        if (spec == null || page == null) return false;
+        for (String id : spec.rows) if (page.equals(opens(id))) return true;
+        return false;
+    }
 
     static {
         put(HubPages.SCOOTER, false, true);
@@ -92,11 +120,14 @@ final class ControlsPages {
                 link(HubPages.CONTROLS_ASSISTS), link(HubPages.CONTROLS_LIMITS));
         put(HubPages.CONTROLS_ASSISTS, false, false, "parking_assist", "hill_start_assist", "hill_descent_control", "start_speed");
         put(HubPages.CONTROLS_LIMITS, false, false, "speed_limit", "drive_speed_limit", "overspeed_control");
+        // The Layout Plan's order (the contributor's pick, #383): CHARGING (limit, schedule, done by, alerts, live card),
+        // HISTORY (its own card), then Range estimate and Usable ride energy with the sub-pages' links.
         put(HubPages.BATTERY, false, false,
-                "timed_charging", "charge_start", "charge_limit", CHARGE_LIVE, ScooterMenuLayout.CHARGE_ALERT, ScooterMenuLayout.LOW_ALERT,
-                link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES), link(HubPages.BATTERY_HISTORY));
+                "charge_limit", "timed_charging", "charge_start", CHARGE_DONE, ScooterMenuLayout.CHARGE_ALERT, ScooterMenuLayout.LOW_ALERT, CHARGE_LIVE,
+                CHARGE_HISTORY,
+                "range_algorithm", USABLE_ENERGY, link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES));
         put(HubPages.BATTERY_MODES, false, false, "low_power", "long_range_mode");
-        put(HubPages.BATTERY_ESTIMATES, false, false, ScooterMenuLayout.CHARGER, "range_algorithm", ScooterMenuLayout.SCHEDULE_TEST);
+        put(HubPages.BATTERY_ESTIMATES, false, false, ScooterMenuLayout.CHARGER, ScooterMenuLayout.SCHEDULE_TEST);
         ArrayList<String> lights = new ArrayList<>(Arrays.asList(ScooterMenuLayout.HEADLIGHT_INFO, "headlight", "auto_sensor"));
         for (ScooterCommands.Feature f : ScooterCommands.oemOnly()) lights.add(f.key);
         lights.addAll(Arrays.asList(link(HubPages.LIGHTS_LINE), link(HubPages.LIGHTS_STAR),
@@ -158,6 +189,58 @@ final class ControlsPages {
             if (target != null ? linkShown(target, shown, seen) : shown.test(id)) return true;
         }
         return false;
+    }
+
+    /**
+     * Where a page's links to its sub-pages start their own card (the owner's Layout Plan: the rows in one card, then
+     * "More controls", Battery modes and the other sub-pages in a second card under it): the index in spec.rows from
+     * which every row is a link. rows.size() keeps one card: no trailing links, links in the middle of the rows (Lights
+     * & sound's Line and Star lights), or a page of links only.
+     */
+    static int linksCardFrom(Spec spec) {
+        if (spec == null) return 0;
+        int from = spec.rows.size();
+        while (from > 0 && isLink(spec.rows.get(from - 1))) from--;
+        return from == 0 ? spec.rows.size() : from;
+    }
+
+    /**
+     * The page's cards, each a run of row ids in the order shown. A row in {@link #OWN_CARD} is a card of its own and
+     * ends the card before it (Battery & charging: CHARGING, HISTORY, then Range estimate, Usable ride energy and
+     * the links). A page without one keeps {@link #linksCardFrom}'s split: the rows, then the trailing links. Empty
+     * runs are left out; the index and no spec have no cards.
+     */
+    static List<List<String>> cards(Spec spec) {
+        List<List<String>> out = new ArrayList<>();
+        if (spec == null || spec.rows.isEmpty()) return out;
+        boolean own = false;
+        for (String id : spec.rows) own |= OWN_CARD.contains(id);
+        if (!own) {
+            int from = linksCardFrom(spec);
+            if (from > 0) out.add(Collections.unmodifiableList(new ArrayList<>(spec.rows.subList(0, from))));
+            if (from < spec.rows.size()) out.add(Collections.unmodifiableList(new ArrayList<>(spec.rows.subList(from, spec.rows.size()))));
+            return Collections.unmodifiableList(out);
+        }
+        ArrayList<String> run = new ArrayList<>();
+        for (String id : spec.rows) {
+            if (OWN_CARD.contains(id)) {
+                if (!run.isEmpty()) out.add(Collections.unmodifiableList(run));
+                out.add(Collections.singletonList(id)); run = new ArrayList<>();
+            } else run.add(id);
+        }
+        if (!run.isEmpty()) out.add(Collections.unmodifiableList(run));
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * Whether a page's rows carry their icon tiles. The Layout Plan draws them on the Controls rows and leaves them off
+     * the Battery & charging page (its CHARGING card and the links under it).
+     */
+    static boolean iconTiles(String page) { return !HubPages.BATTERY.equals(page); }
+
+    /** Whether a page's icon tiles are the Layout Plan's raised ones (Controls, Assists and Speed limits), not main's. */
+    static boolean raisedTiles(String page) {
+        return HubPages.CONTROLS.equals(page) || HubPages.CONTROLS_ASSISTS.equals(page) || HubPages.CONTROLS_LIMITS.equals(page);
     }
 
     /** The page that shows a row (a "Done by" row's parent decides for it); null when no page does. */

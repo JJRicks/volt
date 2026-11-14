@@ -84,6 +84,26 @@ final class HubSummaries {
     }
 
     /**
+     * Battery & charging's summary card, right column: the reported battery health in whole percent, only from a live
+     * reading ({@link #live}) in 1-100, else null and the line hides. A model that doesn't report health never has a
+     * number here, so the line shows only where the model reports it; a last-seen value is never stated as now.
+     */
+    static Integer health(Double number, boolean live) {
+        Double value = live(number, live);
+        if (value == null || value <= 0 || value > 100) return null;
+        return (int) Math.round(value);
+    }
+
+    /**
+     * Battery & charging's summary card, right column: the pack temperature in degrees Celsius, only from a live
+     * reading within -40 to 100 (anything outside is not a battery temperature), else null and the line hides.
+     */
+    static Double packTemperature(Double celsius, boolean live) {
+        Double value = live(celsius, live);
+        return value == null || value < -40 || value > 100 ? null : value;
+    }
+
+    /**
      * A setting's value as its row reads it, or null when the row shows it as unknown: a value outside the variant's
      * settings, such as the OEM charge limit's 0 ("Default (80%)", a sentinel Volt treats as unknown). Without a variant
      * (a profile that has never connected: catalogue rows, unavailable) the value passes as it is.

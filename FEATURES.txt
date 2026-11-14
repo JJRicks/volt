@@ -479,8 +479,7 @@ Useful details:
   lamp output. A separate manual main-headlight command has not been verified;
   use the scooter's power button. The OEM says manually changing the headlight
   temporarily suspends automatic control until the scooter restarts.
-- Scooter > Battery & charging > Estimates & charger > Range estimate >
-  Scooter's estimate enables drive-mode following, choosing a supported
+- Scooter > Battery & charging > Range estimate > Scooter's estimate enables drive-mode following, choosing a supported
   firmware estimator while fresh status confirms the scooter is stationary.
   Firmware without Eco support uses D-mode for Eco/Walk. Automatic attempts
   remain bounded across reconnects. This changes the scooter's prediction, not
@@ -1133,7 +1132,7 @@ history does not extend the fixed ten-second idle background deadline.
 
 RANGE LEARNED FROM YOUR RIDES
 
-Scooter > Battery & charging > Estimates & charger > Range estimate offers
+Scooter > Battery & charging > Range estimate offers
 Scooter's estimate (default, following drive mode) or Volt's estimate
 (learned), saved separately for each scooter. Volt's
 estimate uses only that profile's completed ride recordings on this phone;

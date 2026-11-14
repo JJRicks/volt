@@ -12,6 +12,8 @@ import java.util.*;
 
 /** A local, editable dashboard. Widget movement never shares gestures with scooter controls. */
 public final class DashboardScreen implements AppScreen {
+    /** The capacity tile's title, "Usable ride energy"; Battery & charging's row of that name uses it too. */
+    static String usableEnergyTitle() { return T.dashboardUsableEnergy(); }
     /**
      * What an idle recorder disc says: Home's, and riding mode's Record, which never connects, so its
      * disabled "Connect to scooter" is only the reason it can't start.
@@ -1218,6 +1220,18 @@ public final class DashboardScreen implements AppScreen {
      * (HubBatterySummary) speaks its range in this form too, so its spoken and drawn lines agree with Home's card.
      */
     static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }
+
+    /**
+     * The battery overview card's drawn range line, "about 31 mi left" from {@link #aboutRange}'s figure. Battery &
+     * charging's summary card draws its range line with it too.
+     */
+    static String rangeLeft(CharSequence distance) { return T.dashboardRangeLeft(distance); }
+
+    /**
+     * A reading spoken by its full name with its value, "Battery temperature, 23 °C", as Home's charging cards speak
+     * theirs. Battery & charging's summary card speaks its right column's compact-named rows with it.
+     */
+    static String readingSpoken(CharSequence name, CharSequence value) { return T.dashboardChargingDescription(name, value); }
 
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
@@ -2933,27 +2947,14 @@ public final class DashboardScreen implements AppScreen {
 
             /**
              * A full rounded track along the bottom, red to the charge, with a light tick at the limit. Clean's
-             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too.
+             * charging view draws it; nothing here is Clean's own, so the widget dashboard can use it too, and
+             * Battery & charging's summary card draws the same track (ChargeTrack).
              */
             private void drawTrack(Canvas canvas, float w, float h) {
-                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TICK_DP).
-                float thick = ui.dp(ChargingFit.TRACK_DP), r = thick / 2, reach = ui.dp(ChargingFit.TICK_DP);
-                h -= reach;
-                float top = h - thick;
-                paint.setShader(null);
-                paint.setAlpha(255);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(ui.raised);
-                canvas.drawRoundRect(0, top, w, h, r, r, paint);
-                if (!Double.isNaN(level) && level > 0) {
-                    paint.setColor(ui.accent);
-                    canvas.drawRoundRect(0, top, Math.max(thick, w * (float) (level / 100)), h, r, r, paint);
-                }
-                if (limit < 100) {
-                    float x = w * (float) (limit / 100);
-                    paint.setColor(Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
-                    canvas.drawRect(x - ui.dp(1), top - reach, x + ui.dp(1), h + reach, paint);
-                }
+                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TRACK_DP, TICK_DP).
+                float reach = ui.dp(ChargingFit.TICK_DP);
+                ChargeTrack.draw(canvas, paint, ui, w, h - reach, level, limit, ui.accent, Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255),
+                        ui.dp(ChargingFit.TRACK_DP), reach, reach);
             }
         }
     }
@@ -4224,7 +4225,7 @@ public final class DashboardScreen implements AppScreen {
                 if (!shown.toString().contentEquals(percent.getText())) percent.setText(shown);
                 percent.setTextColor(live ? ui.text : ui.muted);
                 String distance = rangeText(values.get("remaining_range_km"));
-                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : T.dashboardRangeLeft(distance);
+                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : rangeLeft(distance);
                 if (!line.contentEquals(range.getText())) range.setText(line);
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
@@ -4722,7 +4723,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = detail.isEmpty() ? T.dashboardChargingDescription(label, value.getText())
+            String description = detail.isEmpty() ? readingSpoken(label, value.getText())
                     : T.dashboardChargingDescriptionDetail(label, value.getText(), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.
@@ -5228,7 +5229,7 @@ public final class DashboardScreen implements AppScreen {
                         : T.dashboardEnergyCaveat()));
                 if (capacityUnavailable != null) details.addView(caveat(capacityUnavailable));
             }
-            show(T.dashboardUsableEnergy(), details);
+            show(usableEnergyTitle(), details);
         }
 
         private LinearLayout detailRow(String label, String value) {
