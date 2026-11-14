@@ -740,6 +740,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // The search page with its field focused (the full search arrives in PR 12).
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
+            // A What's new notice that came due while Widgets was being edited (a restore meanwhile) shows as editing ends, not
+            // at the next rebuild (council review 5907254138 on #390, P3-2); maybeShowWhatsNew never opens a second sheet.
+            public void editingEnded(){handler.post(MainActivity.this::maybeShowWhatsNew);}
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
             public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
     }
