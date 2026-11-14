@@ -409,9 +409,9 @@ final class JustBackView extends LinearLayout {
             super(host.activity());
             Ui ui = host.ui();
             padding = ui.dp(9);
-            tightPadding = ui.dp(5);
+            tightPadding = ui.dp(4);
             valueGap = ui.dp(4);
-            tightValueGap = ui.dp(2);
+            tightValueGap = 0;
             setOrientation(VERTICAL);
             // From the top, the value at the bottom: a row's names and values line up whatever a name's line count.
             setGravity(Gravity.TOP);
