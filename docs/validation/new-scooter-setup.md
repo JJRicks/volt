@@ -40,13 +40,13 @@ The done page reminds the owner that the key is only on this phone and to back V
 
 ## Checks run
 
-- `bash tests/run.sh`: `NewOwnerKeyTest`
+- `bash tests/run.sh`: `NewOwnerKeyTest` (from `tests/l10n/new-owner-key.sources`)
   - 200 seeded keys are twelve upper-case hex digits starting `88`; all-zero and all-`FF` tails are kept as made;
   - 500 `SecureRandom` keys all differ, and each of the five random bytes varies;
   - the identity parser reads each key back unchanged as an owner (role 0), and the owner check carries it as bytes 7 to 12 of a 17-byte `0x30` frame with role 0;
   - the removal rules above, including "accepted, later refused: kept".
 - `bash build.sh`; `python3 tools/l10n/gen_catalog.py --check`; `python3 tools/l10n/ship_check.py --aapt required`.
-- **Emulator:** `NewOwnerKeyValidation`, 51 assertions, passed at each of:
+- **Emulator:** `NewOwnerKeyValidation`, 51 assertions, passed on this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
   - 412 × 915 dp, dark and light;
   - 412 × 915 dp at 130% system text;
   - 344 × 882 dp (Fold cover screen);
@@ -61,7 +61,7 @@ The done page reminds the owner that the key is only on this phone and to back V
   - a typed key saved afterwards leaves the made key in place, and coming back to the new route reuses the made key and drops the typed one;
   - the done page shows the backup note above **Back up Volt**.
 
-  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding. The release sweep now runs this harness at each of its sizes.
+  Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding.
 - **Physical:** none yet.
 
 ## Hardware test plan (UT5 MAX)
