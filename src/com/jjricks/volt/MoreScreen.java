@@ -1263,7 +1263,25 @@ public final class MoreScreen implements AppScreen {
         // updates() opens with its section label, which the dialog's title replaces.
         if (updatesBox.getChildCount() > 0) updatesBox.getChildAt(0).setVisibility(View.GONE);
         box.addView(updatesBox, new LinearLayout.LayoutParams(-1, -2));
-        show(doneDialog(box), () -> { box.removeView(updatesBox); if (!closed) refresh(); });
+        View title = box.getChildAt(0);
+        updatesSheetTitle = title;
+        show(doneDialog(box), () -> {
+            if (updatesSheetTitle == title) updatesSheetTitle = null;
+            box.removeView(updatesBox); if (!closed) refresh();
+        });
+    }
+    /** The open Updates sheet's title, or null: hidden while GitHub's consent opens over the sheet (showOverUpdates). */
+    private View updatesSheetTitle;
+    /**
+     * Shows a dialog that opens from the Updates sheet's switch or Check for updates. The sheet stays open under it, and
+     * the dialog sits a little lower than the sheet's top, so its edge would cut through the sheet's "Updates" title:
+     * the title is hidden (keeping its place) while the dialog shows, and comes back when it closes.
+     */
+    private void showOverUpdates(AlertDialog dialog) {
+        View title = updatesSheetTitle;
+        boolean hide = title != null && title.isShown();
+        if (hide) title.setVisibility(View.INVISIBLE);
+        show(dialog, hide ? () -> title.setVisibility(View.VISIBLE) : null);
     }
     private boolean batteryUnrestricted() {
         try {
@@ -2483,7 +2501,7 @@ public final class MoreScreen implements AppScreen {
                 T.moreUpdateAskBody());
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> { dialog.dismiss(); enable.run(); });
-        show(dialog);
+        showOverUpdates(dialog);
     }
     /** Android 13 and later: the notice needs the notification permission; Android asks only if it may still ask. */
     private void askNotificationPermission() {
@@ -2505,7 +2523,7 @@ public final class MoreScreen implements AppScreen {
         dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreUpdateCheck(), () -> {
             settings.edit().putBoolean(UpdateCheck.CONSENT, true).apply(); dialog.dismiss(); runUpdateCheck();
         });
-        show(dialog);
+        showOverUpdates(dialog);
     }
     private void runUpdateCheck() {
         String installed = AppVersion.name(host.activity());
