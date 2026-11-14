@@ -52,6 +52,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -82,12 +83,20 @@ public final class OnboardingScreen implements AppScreen {
             KEY_CREATED = "created_profile_id", KEY_PENDING_NAME = "pending_name",
             KEY_IMPORT_FAILED = "import_failed", KEY_ASKED_NEARBY = "nearby_asked",
             KEY_CONNECT = "connect_requested", KEY_TRIED = "connect_tried", KEY_TICK = "tick_";
+    /**
+     * The scooter profile holding the owner key this setup made ("Make a new owner key"), so Back and Continue reuse it.
+     * A profile ID only; the key itself lives in {@link ScooterProfiles} like any other, and whether it was offered, and
+     * to which scooter, is its record outside these preferences ({@link #keyOffered}), which outlives this setup.
+     */
+    private static final String KEY_GENERATED = "generated_profile_id";
     /** MainActivity's private staging file for a picked owner file awaiting the service. */
     private static final String PENDING_OWNER_FILE = "pending-owner-import.json";
 
     static final int WELCOME = 0, PATH = 1, PREPARE = 2, USB = 3, COMPUTER = 4, HELPER = 5,
             IMPORT = 6, IDENTITY = 7, NEARBY = 8, CONNECT = 9, DONE = 10;
     private static final String CAPTURE = "capture", WEBADB = "webadb", BACKUP = "backup", RESTORE = "restore", TYPED = "identity", SHIZUKU = "shizuku";
+    /** Setup's own owner key for a scooter with no owner yet (NewOwnerKey). */
+    private static final String NEW_KEY = "new_key";
     private static final String WEBADB_URL = "https://pairscooter.jjricks.com/";
     private static final String PLATFORM_TOOLS_URL = "https://developer.android.com/tools/releases/platform-tools";
     private static final String SOURCE_URL = "https://github.com/JJRicks/volt/releases/latest";
@@ -186,6 +195,58 @@ public final class OnboardingScreen implements AppScreen {
         prefs(context).edit().clear().putBoolean(KEY_DONE, true).commit();
     }
 
+    /**
+     * BleController calls this just before it queues an owner check (0x30) for {@code profileId} to the scooter at
+     * {@code address}, on every round and reconnect, whatever started the connection (setup, ScooterService's own
+     * reconnect, My scooters, a scan). For a key Volt made ({@link NewOwnerKey}'s record) whose profile has no saved
+     * scooter address ({@code savedMac}), the first offer ties the key to that scooter and marks it offered in one
+     * commit(), on disk before the frame can leave: an unowned scooter may take it, so setup must never delete it after
+     * this (NewOwnerKey.removable), and no other scooter is offered it while the tie stands. Returns SEND, ELSEWHERE
+     * (tied to another scooter) or UNSAVED (the write failed, with the old record back in memory, or anything threw):
+     * the controller sends the owner check only on SEND. One in-memory read for any other key.
+     */
+    static NewOwnerKey.Offer keyOffered(Context context, String profileId, String savedMac, String address) {
+        try { return NewOwnerKey.offerTo(madeKeyRecords(context), profileId, savedMac, address); }
+        catch (RuntimeException failed) { return NewOwnerKey.Offer.UNSAVED; }
+    }
+
+    /**
+     * BleController calls this when the scooter at {@code address} refuses {@code profileId}'s owner check: a made key
+     * tied to that scooter is untied (it doesn't hold the key) and stays offered (NewOwnerKey.afterRefusal). A failed
+     * write puts the tie back in memory too, which only ever keeps the key away from other scooters. Never throws into
+     * the BLE path.
+     */
+    static void keyRefused(Context context, String profileId, String address) {
+        try { NewOwnerKey.refusedBy(madeKeyRecords(context), profileId, address); } catch (RuntimeException ignored) { }
+    }
+
+    /**
+     * Made keys' records as NewOwnerKey writes them: SharedPreferences changes its in-memory map before the disk
+     * write, so a failed commit() still shows the new value until NewOwnerKey.save puts the old one back.
+     */
+    private static NewOwnerKey.Records madeKeyRecords(Context context) {
+        SharedPreferences p = madeKeys(context);
+        return new NewOwnerKey.Records() {
+            @Override public String get(String key) { return p.getString(key, null); }
+            @Override public boolean write(String key, String value) {
+                SharedPreferences.Editor edit = p.edit();
+                return (value == null ? edit.remove(key) : edit.putString(key, value)).commit();
+            }
+        };
+    }
+
+    /** The made key's record for this profile (NewOwnerKey), or null for any other key; unreadable counts as offered. */
+    static String madeKeyRecord(Context context, String profileId) {
+        if (profileId == null || profileId.isEmpty()) return null;
+        try { return madeKeys(context).getString(NewOwnerKey.key(profileId), null); }
+        catch (RuntimeException unreadable) { return NewOwnerKey.OFFERED; }
+    }
+
+    /** Made keys' records live in app_settings, outside setup's own preferences, which finishing setup clears. */
+    private static SharedPreferences madeKeys(Context context) {
+        return context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+    }
+
     /** Only this setup attempt may reuse an unidentified profile; Add a scooter clears these IDs. */
     ScooterProfiles.Profile ownerImportProfile() {
         if (closed) return null;
@@ -265,6 +326,7 @@ public final class OnboardingScreen implements AppScreen {
 
     @Override public void refresh() {
         if (closed) return;
+        if (step == IMPORT) leaveMadeKey();
         applyPendingName();
         ScooterService service = host.service();
         if (step == NEARBY && prefs.getBoolean(KEY_ASKED_NEARBY, false) && hasPermission()) { toConnect(); return; }
@@ -313,7 +375,8 @@ public final class OnboardingScreen implements AppScreen {
 
     private String path() { return prefs.getString(KEY_PATH, WEBADB); }
     private boolean isComputerCapture() { return CAPTURE.equals(path()) || WEBADB.equals(path()); }
-    private int importStep() { return TYPED.equals(path()) ? IDENTITY : IMPORT; }
+    /** Typed keys and new keys share the identity step's place (step 5); everything else imports a file. */
+    private int importStep() { return TYPED.equals(path()) || NEW_KEY.equals(path()) ? IDENTITY : IMPORT; }
 
     private boolean hasPermission() {
         Context c = host.activity();
@@ -359,13 +422,16 @@ public final class OnboardingScreen implements AppScreen {
         return true;
     }
 
-    /** A name typed while the picked file was still waiting is applied once its profile exists. */
+    /**
+     * A name typed while the picked file was still waiting is applied once its profile exists. Never to a key Volt
+     * made: that name belongs to the imported file, and setup points away from a made key on Import (leaveMadeKey).
+     */
     private void applyPendingName() {
         String name = prefs.getString(KEY_PENDING_NAME, null);
         if (name == null) return;
         ScooterProfiles store = profiles();
         ScooterProfiles.Profile p = find(store, prefs.getString(KEY_PROFILE, ""));
-        if (p == null) return;
+        if (p == null || madeKey(p)) return;
         if (!name.trim().isEmpty() && !name.trim().equals(p.name)) { p.name = name.trim(); p.nameDefault = false; store.update(p); }
         prefs.edit().remove(KEY_PENDING_NAME).apply();
     }
@@ -390,11 +456,47 @@ public final class OnboardingScreen implements AppScreen {
         ScooterProfiles store = profiles();
         if (!id.isEmpty()) {
             if (store == null) return "loading";
-            ScooterProfiles.Profile p = find(store, id);
+            ScooterProfiles.Profile p = importedProfile(store, id);
             if (p != null && p.configured()) return "applied";
         }
         if (pendingOwnerFile().isFile()) return "pending";
         return "choose";
+    }
+
+    /** Setup's current profile as Import sees it: a key Volt made is not an imported file, so Import offers the picker. */
+    private ScooterProfiles.Profile importedProfile(ScooterProfiles store, String id) {
+        ScooterProfiles.Profile p = find(store, id);
+        return madeKey(p) ? null : p;
+    }
+
+    /**
+     * Setup is on Import: the key this setup made is no longer its current profile. One never offered to a scooter
+     * goes, by the same rule as when a typed key replaces it (mayRemoveCreated), once no connection is using it; one
+     * that may be on a scooter stays in My scooters, and setup's pointers to it go, so a name typed for the picked file
+     * (applyPendingName) and Import's reuse of setup's profile (ownerImportProfile) never reach it. Waits for the store.
+     */
+    private void leaveMadeKey() {
+        ScooterProfiles store = profiles();
+        ScooterProfiles.Profile made = store == null ? null : generatedProfile();
+        if (made == null) return;
+        boolean current = made.id.equals(prefs.getString(KEY_PROFILE, "")), created = made.id.equals(prefs.getString(KEY_CREATED, ""));
+        if (current || created) {
+            SharedPreferences.Editor away = prefs.edit();
+            if (current) away.remove(KEY_PROFILE);
+            if (created) away.remove(KEY_CREATED);
+            away.apply();
+        }
+        if (!removableMade(made)) return;
+        // A connection still using it ends first, so no owner check can carry a key whose profile is gone.
+        ScooterService service = host.service();
+        if (service != null && service.ble.state() != BleController.State.DISCONNECTED) {
+            ScooterProfiles.Profile using = service.ble.profile();
+            if (using == null || using.id.equals(made.id)) {
+                if (service.scooterChangeUnavailable() != null) return;
+                service.ble.disconnect();
+            }
+        }
+        if (mayRemoveCreated(made)) store.remove(made.id);
     }
 
     private String structureKey() {
@@ -406,6 +508,7 @@ public final class OnboardingScreen implements AppScreen {
         Motion.page(root, Integer.signum(next - step), () -> {
             step = next;
             prefs.edit().putInt(KEY_STEP, next).apply();
+            if (next == IMPORT) leaveMadeKey();
             render();
         });
         if (title != null) title.post(() -> {
@@ -421,6 +524,8 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     private void toConnect() {
+        // A made key is recorded as offered at the transport (keyOffered), not here: a connection can start without
+        // this page (the service's own reconnect, a permission result while the service binds).
         prefs.edit().putBoolean(KEY_CONNECT, true).remove(KEY_ASKED_NEARBY).apply();
         go(CONNECT);
         maybeAutoConnect();
@@ -474,7 +579,7 @@ public final class OnboardingScreen implements AppScreen {
             case COMPUTER: connectComputer(); break;
             case HELPER: runHelper(); break;
             case IMPORT: importFile(); break;
-            case IDENTITY: enterIdentity(); break;
+            case IDENTITY: if (NEW_KEY.equals(path())) newKey(); else enterIdentity(); break;
             case NEARBY: nearby(); break;
             case CONNECT: connectScooter(); break;
             default: done(); break;
@@ -572,7 +677,7 @@ public final class OnboardingScreen implements AppScreen {
             badge.addView(number, new FrameLayout.LayoutParams(-1, -1));
         }
         item.addView(badge, new LinearLayout.LayoutParams(ui.dp(26), ui.dp(26)));
-        TextView name = ui.text(STEP_LABELS[n - 1], 14.5f, now);
+        TextView name = ui.text(stepLabel(n), 14.5f, now);
         name.setTextColor(now ? ui.text : applies ? ui.muted : ui.dim);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = ui.dp(12);
         item.addView(name, lp);
@@ -580,7 +685,7 @@ public final class OnboardingScreen implements AppScreen {
         badge.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        item.setContentDescription(T.onboardingStepRow(n, STEP_LABELS[n - 1],
+        item.setContentDescription(T.onboardingStepRow(n, stepLabel(n),
                 now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone()
                         : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()));
         if (Build.VERSION.SDK_INT >= 28) item.setScreenReaderFocusable(true);
@@ -771,6 +876,7 @@ public final class OnboardingScreen implements AppScreen {
         boolean shizukuSupported = Build.VERSION.SDK_INT >= 30;
         String[][] options = {
                 {WEBADB, "screen", T.onboardingPathWebadb(), T.onboardingPathWebadbDetail(), T.onboardingPathRecommended()},
+                {NEW_KEY, "plus", T.onboardingPathNewKey(), T.onboardingPathNewKeyDetail(), null},
                 {RESTORE, "download", T.onboardingRestoreBackup(), T.onboardingPathRestoreDetail(), null},
                 {CAPTURE, "screen", T.onboardingPathCapture(), T.onboardingPathCaptureDetail(), null},
                 {SHIZUKU, "screen", T.onboardingPathShizuku(), T.onboardingPathShizukuDetail(), null},
@@ -1169,7 +1275,7 @@ public final class OnboardingScreen implements AppScreen {
                 if (!name.trim().isEmpty()) { earlier.name = name.trim(); earlier.nameDefault = false; }
                 store.update(earlier); store.select(earlier.id); profile = earlier;
             } else {
-                if (earlier != null) store.remove(earlier.id);
+                if (earlier != null && mayRemoveCreated(earlier)) store.remove(earlier.id);
                 profile = store.create(name, parsed.identity, parsed.role);
             }
             prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).apply();
@@ -1177,6 +1283,159 @@ public final class OnboardingScreen implements AppScreen {
         identityField.setText("");
         hideKeyboard();
         afterProfile();
+    }
+
+    // ---------------------------------------------------------------- new owner key
+
+    /**
+     * "Make a new owner key": for a scooter with no owner yet (new, or removed from the NAVEE app). Volt makes the key
+     * ({@link NewOwnerKey}) when the owner continues, saves it as an ordinary owner profile (role 0) and connects; the
+     * scooter takes it at the owner check. Nothing is sent from this page.
+     */
+    private void newKey() {
+        scaffold(true);
+        heading(T.onboardingNewTitle(), false, false);
+        paragraph(T.onboardingNewBody(), false);
+        LinearLayout group = column();
+        LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
+        content.addView(group, gp);
+        group.addView(tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail()));
+        group.addView(tick("new1", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail()));
+        TextView note = fine(T.onboardingNewNaveeNote());
+        ((LinearLayout.LayoutParams) note.getLayoutParams()).topMargin = ui.dp(6);
+        ScooterProfiles.Profile generated = generatedProfile();
+        nameField = nameInput(generated == null || generated.nameDefault ? "" : generated.name);
+        TextView next = primary(T.onboardingContinue(), this::makeNewKey);
+        // While the local service starts, Continue waits with a spinner instead of answering a tap with a toast.
+        View starting = spinnerOn(next);
+        updaters.add(() -> {
+            boolean storeReady = profiles() != null;
+            next.setEnabled(storeReady);
+            starting.setVisibility(storeReady ? View.GONE : View.VISIBLE);
+        });
+    }
+
+    /** The profile holding the key this setup made, while it still exists. */
+    private ScooterProfiles.Profile generatedProfile() {
+        return find(profiles(), prefs.getString(KEY_GENERATED, ""));
+    }
+
+    /** Step 5 is Import, except on the new-key route, where nothing is imported: Volt makes the owner key. */
+    private Msg stepLabel(int n) { return n == 5 && NEW_KEY.equals(path()) ? M.onboardingStepNewKey() : STEP_LABELS[n - 1]; }
+
+    /** True for the profile holding the key this setup made. */
+    private boolean madeHere(ScooterProfiles.Profile p) { return p != null && p.id.equals(prefs.getString(KEY_GENERATED, "")); }
+
+    /** True for a profile holding a key Volt made, in this setup or an earlier one (it has a made key's record). */
+    private boolean madeKey(ScooterProfiles.Profile p) {
+        return p != null && (madeHere(p) || madeKeyRecord(host.activity(), p.id) != null);
+    }
+
+    /** A made key setup may still delete: no scooter address saved, and its record says no scooter was offered it. */
+    private boolean removableMade(ScooterProfiles.Profile made) {
+        String record = madeKeyRecord(host.activity(), made.id);
+        // A made key with no record is one this phone can't vouch for, so it counts as offered.
+        return NewOwnerKey.removable(record == null || NewOwnerKey.offered(record), !made.mac.isEmpty());
+    }
+
+    /**
+     * Makes the key on the first Continue and keeps it after that: Back from Connect and Continue again, or a second
+     * try after resetting the scooter, reuses the same key, because a scooter may already have taken it. A new key, its
+     * record and setup's pointer to it are on disk (commit()) before Connect can offer it, since it exists nowhere else.
+     * The record comes first, under the new profile's ID, so no made key is ever saved without one (keyOffered).
+     */
+    private void makeNewKey() {
+        ScooterProfiles store = profiles();
+        if (store == null) return;
+        if (!prepareProfileChange()) return;
+        // As with a typed key: an owner file picked earlier in this flow but not yet applied is dropped, with its name.
+        File abandoned = pendingOwnerFile();
+        if (abandoned.isFile() && !abandoned.delete()) {
+            host.toast(T.onboardingIdentityClearFailed());
+            return;
+        }
+        prefs.edit().remove(KEY_PENDING_NAME).apply();
+        String name = nameField == null ? "" : nameField.getText().toString().trim();
+        String earlierProfile = prefs.getString(KEY_PROFILE, null), earlierCreated = prefs.getString(KEY_CREATED, null);
+        ScooterProfiles.Profile earlier = find(store, earlierCreated);
+        try {
+            ScooterProfiles.Profile profile = generatedProfile();
+            if (profile != null) {
+                if (!name.isEmpty()) { profile.name = name; profile.nameDefault = false; }
+                store.update(profile); store.select(profile.id);
+                if (!prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).commit()) {
+                    host.toast(T.onboardingNewSaveFailed());
+                    return;
+                }
+            } else {
+                ScooterProfiles.Profile active = store.active();
+                String id = UUID.randomUUID().toString();
+                if (!recordMade(id)) { host.toast(T.onboardingNewSaveFailed()); return; }
+                profile = store.createMade(id, name, NewOwnerKey.generate());
+                boolean saved = store.saveNow() && prefs.edit().putString(KEY_GENERATED, profile.id)
+                        .putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).commit();
+                if (!saved) {
+                    // Never offered, so it may go, with its record; setup's earlier choices come back as they were.
+                    store.remove(profile.id);
+                    try { madeKeys(host.activity()).edit().remove(NewOwnerKey.key(id)).apply(); } catch (RuntimeException ignored) { }
+                    if (active != null && find(store, active.id) != null) store.select(active.id);
+                    SharedPreferences.Editor undo = prefs.edit().remove(KEY_GENERATED);
+                    if (earlierProfile == null) undo.remove(KEY_PROFILE); else undo.putString(KEY_PROFILE, earlierProfile);
+                    if (earlierCreated == null) undo.remove(KEY_CREATED); else undo.putString(KEY_CREATED, earlierCreated);
+                    undo.apply();
+                    host.toast(T.onboardingNewSaveFailed());
+                    return;
+                }
+            }
+            // A profile this flow made from a typed key goes, as saveIdentity replaces it, unless a scooter accepted it;
+            // never an owner's own, and never the made key itself (a typed key saved after a made key was kept leaves both).
+            if (earlier != null && !earlier.id.equals(profile.id) && mayRemoveCreated(earlier)) store.remove(earlier.id);
+        } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }
+        hideKeyboard();
+        afterProfile();
+    }
+
+    /** The record of a key about to be made under this new profile ID: never offered (NewOwnerKey.MADE), on disk. */
+    private boolean recordMade(String id) {
+        // A failed write leaves no record in memory either (NewOwnerKey.save): the key is never made.
+        try { return NewOwnerKey.recordNew(madeKeyRecords(host.activity()), id); }
+        catch (RuntimeException failed) { return false; }
+    }
+
+    /**
+     * Whether setup may replace a profile it created earlier in this flow (saveIdentity, makeNewKey). Never one a
+     * scooter accepted (it has a saved scooter address), typed or made; and a key setup made only while it was never
+     * offered to any scooter (NewOwnerKey.removable), because an unowned scooter may have taken it.
+     */
+    private boolean mayRemoveCreated(ScooterProfiles.Profile created) {
+        if (!created.mac.isEmpty()) return false;
+        if (!madeKey(created)) return true;
+        if (!removableMade(created)) return false;
+        if (madeHere(created)) prefs.edit().remove(KEY_GENERATED).apply();
+        try { madeKeys(host.activity()).edit().remove(NewOwnerKey.key(created.id)).apply(); } catch (RuntimeException ignored) { }
+        return true;
+    }
+
+    /** The last connection attempt failed because the scooter refused the key this setup made: it has an owner. */
+    private boolean refusedNewKey(ScooterService service) {
+        if (service == null || !NEW_KEY.equals(path()) || !prefs.getBoolean(KEY_TRIED, false)) return false;
+        ScooterProfiles.Profile generated = generatedProfile(), active = service.profiles.active();
+        if (generated == null || active == null || !generated.id.equals(active.id)) return false;
+        BleController.State state = service.ble.state();
+        if (state != BleController.State.DISCONNECTED && state != BleController.State.WAITING) return false;
+        String problem = service.ble.message();
+        return problem != null && problem.startsWith(BleController.OWNER_REJECTED);
+    }
+
+    /**
+     * "Set up another way" after a refusal: back to the routes, keeping the made key. The refusal came from the scooter
+     * just tried; an earlier one may have taken the key before its address was saved, so it stays in My scooters (Forget
+     * removes it there), and coming back to this route reuses it. Only setup's pointers to it as the current profile go,
+     * so the next route starts clean.
+     */
+    private void setUpAnotherWay() {
+        prefs.edit().remove(KEY_PROFILE).remove(KEY_CREATED).remove(KEY_TRIED).remove(KEY_CONNECT).apply();
+        go(PATH);
     }
 
     private void nearby() {
@@ -1249,6 +1508,11 @@ public final class OnboardingScreen implements AppScreen {
             connectNow();
         });
         TextView cancel = footerLink(T.commonCancel(), this::stopConnecting);
+        // Only after a scooter refused a key Volt made (it already has an owner).
+        TextView otherWay = NEW_KEY.equals(path()) ? footerLink(T.onboardingNewOtherWay(), this::setUpAnotherWay) : null;
+        // The problem last brought into view: a new one scrolls the page to it once (a short window or large text
+        // would otherwise leave it under the footer), without pinning the page there on every refresh.
+        String[] problemShown = new String[1];
         updaters.add(() -> {
             ScooterService service = host.service();
             ScooterProfiles.Profile active = service == null ? null : service.profiles.active();
@@ -1282,8 +1546,18 @@ public final class OnboardingScreen implements AppScreen {
                 // After an attempt, the controller's message is the problem to show (scan timeout, failure).
                 String problem = service.ble.message();
                 boolean nothingFound = problem != null && problem.startsWith(BleController.NOTHING_FOUND);
-                message = nothingFound ? T.onboardingConnectIsItOn() : problem == null ? null : String.valueOf(service.ble.displayMessage());
+                message = refusedNewKey(service) ? T.onboardingNewRefused()
+                        : nothingFound ? T.onboardingConnectIsItOn() : problem == null ? null : String.valueOf(service.ble.displayMessage());
+                if (message != null && !message.isEmpty() && !message.equals(problemShown[0])) {
+                    problemShown[0] = message;
+                    statusRow.post(() -> {
+                        android.graphics.Rect whole = new android.graphics.Rect();
+                        statusRow.getDrawingRect(whole);
+                        statusRow.requestRectangleOnScreen(whole, !motionEnabled());
+                    });
+                }
             } else message = "";
+            if (message == null || message.isEmpty()) problemShown[0] = null;
             status.setText(message == null ? "" : message);
             starting.setVisibility(startingService ? View.VISIBLE : View.GONE);
             statusRow.setVisibility(status.getText().length() == 0 ? View.GONE : View.VISIBLE);
@@ -1292,6 +1566,7 @@ public final class OnboardingScreen implements AppScreen {
             connect.setEnabled(needsNearby || (service != null && configured && !pendingOwnerFile().isFile()));
             connect.setVisibility(busy || waitingToStart ? View.GONE : View.VISIBLE);
             cancel.setVisibility(busy || waitingToStart ? View.VISIBLE : View.GONE);
+            if (otherWay != null) otherWay.setVisibility(!busy && !waitingToStart && refusedNewKey(service) ? View.VISIBLE : View.GONE);
         });
     }
 
@@ -1306,11 +1581,15 @@ public final class OnboardingScreen implements AppScreen {
 
     private void done() {
         scaffold(false);
-        content.addView(new Hero(true), new LinearLayout.LayoutParams(-1, ui.dp(250)));
+        ScooterProfiles.Profile p = onboardingProfile();
+        boolean madeKey = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
+        // A made key pins its note and Back up Volt above Go to Home, so in a short window the hero gives up height
+        // (at most a third of the window) to keep the heading above them. Taller windows keep the full hero.
+        int hero = madeKey ? Math.min(250, host.activity().getResources().getConfiguration().screenHeightDp / 3) : 250;
+        content.addView(new Hero(true), new LinearLayout.LayoutParams(-1, ui.dp(hero)));
         View gap = new View(host.activity());
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
         heading(T.onboardingDoneTitle(), true, true);
-        ScooterProfiles.Profile p = onboardingProfile();
         paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.displayName()), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
@@ -1321,7 +1600,15 @@ public final class OnboardingScreen implements AppScreen {
         backup.setMinHeight(ui.dp(54));
         backup.setContentDescription(T.onboardingDoneBackupDescription());
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2); bp.bottomMargin = ui.dp(10);
-        if (p != null && p.configured()) group.addView(backup, bp);
+        // A key Volt made exists only on this phone, so the backup matters more than usual: say why, above the button,
+        // and pin both above Go to Home so neither scrolls out of sight in a short window or at large text.
+        if (madeKey) {
+            TextView note = ui.text(T.onboardingDoneNewKeyNote(), 13, false);
+            note.setTextColor(ui.muted); note.setLineSpacing(ui.dp(2), 1); note.setGravity(Gravity.CENTER_HORIZONTAL);
+            LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2); np.topMargin = ui.dp(6); np.bottomMargin = ui.dp(12);
+            footer.addView(note, np);
+            footer.addView(backup, bp);
+        } else if (p != null && p.configured()) group.addView(backup, bp);
         // The closing reminder depends on what this setup turned on.
         if (isComputerCapture()) group.addView(tick("done1", T.onboardingDoneUsbOff(), T.onboardingDoneUsbOffDetail()));
         else if (SHIZUKU.equals(path())) {

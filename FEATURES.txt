@@ -371,6 +371,22 @@ identifying the helper used; successful real-scooter capture is not yet confirme
 separately for each new path. The computer ADB helper is the established route.
 Existing parked write/readback checks below do not establish helper capture.
 
+NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (UNRELEASED)
+
+For a scooter with no owner (never set up, or removed from the NAVEE app),
+setup can make an owner key instead of capturing one: 88 and five random
+bytes, kept only in that scooter's profile on this phone. No computer, helper
+or NAVEE account is needed. The NAVEE app can't add the scooter while it has
+Volt's key; release it in Volt first. Once the key has been offered to a
+scooter, setup keeps it, even after a refusal or a timeout, so a scooter is
+never left with an owner key nobody holds; forget it later from My scooters.
+Until that scooter is saved, the key goes to it only (Try again shows the
+scooter list; another scooter is refused before it hears the key), unless it
+refuses the key. Once saved, it reconnects like any scooter, even at a new
+Bluetooth address after a repair. Backups carry the key with this record. A scooter already saved in Volt is refused before
+it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
+tried on a real scooter. See docs/validation/new-scooter-setup.md.
+
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
 The parked scooter accepted a changed value, reported that new value, and
