@@ -203,6 +203,30 @@ public final class HubPages {
         return path.size() > 1 ? path.get(1) : HOME;
     }
 
+    /** Settings and its sub-pages: the app's own pages, which are not about the scooter. */
+    public static boolean appPage(String id) { return SETTINGS.equals(subjectOf(canonical(id))); }
+
+    /** headerConnectionLine's answers: no line and no room for it; its room kept, blank; the line shown. */
+    public static final int LINE_GONE = 0, LINE_ROOM = 1, LINE_SHOWN = 2;
+
+    /**
+     * The connection line in a page's header ("Disconnected · last seen 5 min ago" between the back link and the title;
+     * the contributor's decision, 14 Nov, #383): on a page it shows only while the scooter is not connected (disconnected,
+     * connecting, searching, Bluetooth off, a held release: every state but the plain connected one), so a connected
+     * page's header is the back link and the title, as in the Layout Plan's page mock-ups. Settings and its sub-pages
+     * never show it. Home keeps its own line above the scooter's name (LINE_SHOWN, not built from this).
+     * connected: the scooter is connected and ready. roomHeld: the line has shown on this page since it opened; then a
+     * connection made while the page is open blanks the line but keeps its room (LINE_ROOM), so the title keeps its place
+     * until the next page opens. A connection lost on an open page shows the line at once.
+     */
+    public static int headerConnectionLine(String page, boolean connected, boolean roomHeld) {
+        String id = canonical(page);
+        if (HOME.equals(id)) return LINE_SHOWN;
+        if (appPage(id)) return LINE_GONE;
+        if (!connected) return LINE_SHOWN;
+        return roomHeld ? LINE_ROOM : LINE_GONE;
+    }
+
     /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */
     public static String icon(String id) {
         switch (subjectOf(id)) {

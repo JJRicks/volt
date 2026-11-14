@@ -835,7 +835,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LinearLayout makeHeader(){
         if(!selectedPage.equals(HubPages.HOME))return makeCompactHeader();
         // Home's header (status line, scooter name and edit pencil) belongs to the dashboard toolbar.
-        clearDashboardLock();profileTitle=null;return column();
+        clearDashboardLock();profileTitle=null;connectionLinePage=null;return column();
     }
     /** Volt lock card: a full-width bar you tap anywhere on, or slide, to lock and unlock. */
     private View makeDashboardLock(boolean showDisconnect,boolean compact){
@@ -1198,7 +1198,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Home is the root of every stack, so every other page has a back link to the page under it (Home for a subject).
         if(nav.size()>1)header.addView(backLink(nav.pages().get(nav.size()-2)),new LinearLayout.LayoutParams(-2,-2));
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
-        connectionTitle.setTypeface(design.regular());header.addView(connectionTitle);
+        connectionTitle.setTypeface(design.regular());connectionTitle.setTag(TAG_PAGE_CONNECTION);
+        // Shown only while the scooter is not connected, never on Settings (HubPages.headerConnectionLine). A rebuild of the
+        // same page keeps what the line had (its room, and the state it last showed); another page starts afresh.
+        if(!selectedPage.equals(connectionLinePage)){connectionLinePage=selectedPage;connectionRoomHeld=false;connectionLineReady=null;}
+        BleController headerBle=scooterService==null?null:scooterService.ble;
+        applyPageConnectionLine(headerBle!=null&&headerBle.ready(),false);
+        header.addView(connectionTitle);
         liveStatsTitle=null;
         // Data's own page keeps Live Stats' title with its live dot; every other page shows its own title (HubText).
         if(HubPages.DATA.equals(selectedPage)){
@@ -1209,6 +1215,28 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         profileTitle=null;
         return header;
+    }
+    /** The page header's connection line (validations find it by this tag). */
+    static final String TAG_PAGE_CONNECTION="hub-page-connection";
+    /** The page whose header the connection line belongs to; whether it has shown there; the connection it last showed. */
+    private String connectionLinePage;private boolean connectionRoomHeld;private Boolean connectionLineReady;
+    /**
+     * The page header's connection line by HubPages.headerConnectionLine: shown while not connected, its room kept blank
+     * once the scooter connects with the page open (the title keeps its place; the room goes when the next page opens),
+     * and gone on a connected page and on Settings. A connection lost while the page is open shows the line at once,
+     * without an animation (the page under the header moves with it, in one step), and TalkBack announces it.
+     */
+    private void applyPageConnectionLine(boolean ready,boolean announce){
+        if(connectionTitle==null)return;
+        int state=HubPages.headerConnectionLine(selectedPage,ready,connectionRoomHeld);
+        int visibility=state==HubPages.LINE_SHOWN?View.VISIBLE:state==HubPages.LINE_ROOM?View.INVISIBLE:View.GONE;
+        if(connectionTitle.getVisibility()!=visibility)connectionTitle.setVisibility(visibility);
+        if(state==HubPages.LINE_SHOWN)connectionRoomHeld=true;
+        if(announce&&state==HubPages.LINE_SHOWN&&Boolean.TRUE.equals(connectionLineReady)&&!ready){
+            CharSequence spoken=connectionTitle.getContentDescription();
+            connectionTitle.announceForAccessibility(spoken!=null?spoken:connectionTitle.getText());
+        }
+        connectionLineReady=ready;
     }
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
@@ -1382,6 +1410,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
                 design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
                 connectionTitle.setContentDescription(T.bleReleaseHeld());}
+            applyPageConnectionLine(ready,true);
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
