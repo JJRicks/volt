@@ -1353,6 +1353,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
+            // A held release (BleController.releaseHeld): say why Volt isn't reconnecting, down to Disconnected when narrow.
+            if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
+                design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
+                connectionTitle.setContentDescription(T.bleReleaseHeld());}
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
@@ -1621,7 +1625,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The held release's sheet, at most one: the one shown, or null. */
     private AlertDialog releaseHoldSheet;
-    /** The question a held release owes (BleController.releaseAsk), shown once over whatever is in front. */
+    /**
+     * The question a held release owes (BleController.releaseAsk), over whatever is in front, until the owner answers it
+     * (closes the sheet or picks an action): a sheet lost to a recreated screen or a restart is shown again.
+     */
     private void maybeShowReleaseHold(){
         if(scooterService==null||!resumed||onboarding!=null||riding!=null)return;
         String id=scooterService.ble.releaseAsk();if(id!=null)showReleaseHold(id);
@@ -1637,19 +1644,22 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(releaseHoldSheet!=null&&releaseHoldSheet.isShowing())return;
         ScooterProfiles.Profile held=null;for(ScooterProfiles.Profile p:scooterService.profiles.all())if(p.id.equals(id))held=p;
         if(held==null||!scooterService.ble.releaseHeld(id)){scooterService.ble.releaseAsked(id);return;}
-        scooterService.ble.releaseAsked(id);
+        // Answered only by the owner: the close button, Back or a tap outside (cancel), or either action. A dismissal
+        // with the screen (recreation, finishing) leaves it owed.
+        BleController ble=scooterService.ble;
         final AlertDialog[] self=new AlertDialog[1];
-        LinearLayout body=sheetContent(T.moreScootersReleaseHeldTitle(held.displayName()),T.moreScootersReleaseHeldBody(),()->{if(self[0]!=null)self[0].dismiss();});
+        LinearLayout body=sheetContent(T.moreScootersReleaseHeldTitle(held.displayName()),T.moreScootersReleaseHeldBody(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();});
         body.setTag("release_held_sheet");
-        TextView remove=design.button(T.moreScootersReleaseHeldRemove(),()->{if(self[0]!=null)self[0].dismiss();removeHeldRelease(id);});
+        TextView remove=design.button(T.moreScootersReleaseHeldRemove(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();removeHeldRelease(id);});
         remove.setTag("release_held_remove");design.decorate(remove,"trash");
         LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.topMargin=design.dp(14);body.addView(remove,rp);
-        TextView again=design.secondaryButton(T.moreScootersReleaseHeldReconnect(),()->{if(self[0]!=null)self[0].dismiss();reconnectHeldRelease(id);});
+        TextView again=design.secondaryButton(T.moreScootersReleaseHeldReconnect(),()->{ble.releaseAsked(id);if(self[0]!=null)self[0].dismiss();reconnectHeldRelease(id);});
         again.setTag("release_held_reconnect");design.decorate(again,"bluetooth");
         LinearLayout.LayoutParams ap=new LinearLayout.LayoutParams(-1,-2);ap.topMargin=design.dp(10);body.addView(again,ap);
         TextView note=design.caption(T.moreScootersReleaseHeldReconnectNote());note.setTag("release_held_reconnect_note");
         note.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(note);
         AlertDialog dialog=showSheet(body);self[0]=dialog;releaseHoldSheet=dialog;
+        dialog.setOnCancelListener(d->ble.releaseAsked(id));
         dialog.setOnDismissListener(d->{if(releaseHoldSheet==dialog)releaseHoldSheet=null;});
     }
     /** Remove from Volt: My scooters, then that scooter's Forget dialog with all its rules (MoreScreen.forgetAfterRelease). */

@@ -17,6 +17,8 @@ public final class BackupRegistryTest {
     private static final Set<String> IGNORED=new HashSet<>(Arrays.asList(
                 "path","name","mime","ready","picker","report_tests",                      // pending_documents
         "pending","token","original"));                                            // owner_capture_cleanup
+    /** release_holds (ReleaseHolds): a private namespace, never read by backups. */
+    static { IGNORED.addAll(Arrays.asList("release_held","release_owed")); }
     private static final Pattern CALL=Pattern.compile("\\b(?:get|put)(String|Int|Boolean|Long|Float|StringSet)\\(\\s*(\"((?:[^\"\\\\]|\\\\.)*)\"\\s*(\\+)?|([A-Za-z_][A-Za-z0-9_]*\\.)?([A-Z][A-Z0-9_]+)\\s*(\\+)?)");
     private static final Pattern CONSTANT=Pattern.compile("([A-Z][A-Z0-9_]+)\\s*=\\s*\"([^\"]*)\"");
     private static final Pattern NAMESPACE=Pattern.compile("getSharedPreferences\\(\\s*(?:\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_.]*))");

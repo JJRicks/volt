@@ -44,6 +44,9 @@
          chooses Remove from Volt or Reconnect (the release sheet). Never say it was released. -->
     <string name="ble_release_held" volt:screen="Connection state" volt:purpose="status"
         volt:safety="owner-key">Release not confirmed · not reconnecting</string>
+    <!-- The connection line's shorter form of ble_release_held, for a header too narrow for the full line. -->
+    <string name="ble_release_held_short" volt:screen="Narrow connection line" volt:purpose="status"
+        volt:safety="owner-key">Release not confirmed</string>
     <!-- An Experimental controls try reads the control's current value first. %1$s is the control's
          name in lower case, in English until the controls batch gives control names their translation
          (for example "headlight"); a language that cannot use it mid-sentence may write

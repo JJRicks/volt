@@ -1247,8 +1247,9 @@ public final class MoreScreen implements AppScreen {
      * The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). It is shown
      * even if this screen was rebuilt or left while the scooter answered, since the service has already acted on it and
      * the message is the only word of what happened; only the redraw waits for a live activity. A release sent but not
-     * confirmed is held (BleController.releaseHeld): its question sheet is owed by the service, and MainActivity shows it
-     * once on the activity in front, now or when Volt is next in front, so the toast is only for an activity that is gone.
+     * confirmed is held (BleController.releaseHeld, saved on the phone): its question is owed until the owner answers it,
+     * and MainActivity shows it on the activity in front, now or when Volt is next in front, so the toast is only for an
+     * activity that is gone.
      */
     private void releaseEnded(OwnerRelease.Outcome outcome) {
         boolean gone = host.activity().isDestroyed();
@@ -3132,7 +3133,8 @@ public final class MoreScreen implements AppScreen {
             boolean connected = selected && s.ble.ready();
             boolean connecting = selected && state != BleController.State.DISCONNECTED && !connected;
             card.name.setText(item.displayName());
-            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : T.moreScootersOffline();
+            // A held release (BleController.releaseHeld) says why Volt won't connect by itself; the line wraps at whole words.
+            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : s.ble.releaseHeld(item.id) ? T.bleReleaseHeld() : T.moreScootersOffline();
             card.stateLine.setVisibility(selected ? View.VISIBLE : View.GONE);
             card.status.setText(detail); card.status.setTextColor(ui.muted);
             DeviceDescriptor descriptor = item.savedDescriptor();

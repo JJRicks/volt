@@ -19,8 +19,11 @@ final class BackupRegistry {
     static final String[] LABELS = {"Scooters & setup keys", "Dashboards", "App preferences", "Rides", "Charges", "Readings history", "Scooter preferences"};
     /** Namespaces a backup may read or replace, in the legacy full-backup order. */
     static final String[] NAMESPACES = AppDataArchive.PREFERENCES;
-    /** Namespaces owned by this installation. Backups never read, clear or replace them. */
-    static final String[] PRIVATE_NAMESPACES = {"pending_documents", "owner_capture_cleanup"};
+    /**
+     * Namespaces owned by this installation. Backups never read, clear or replace them. release_holds is
+     * ReleaseHolds.PREFERENCES: an unconfirmed release is this phone's state, never exported and never restored.
+     */
+    static final String[] PRIVATE_NAMESPACES = {"pending_documents", "owner_capture_cleanup", "release_holds"};
 
     static final class Rule {
         final String namespace, key, category, reason;

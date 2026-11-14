@@ -109,6 +109,8 @@ public final class BleController {
         simulationChanging=true;
         // Cancel pending real operations before any sample can be displayed. In-flight
         // callbacks also lose their generation/GATT identity when close() runs.
+        // A sent release that simulation interrupts holds its scooter, as any other unconfirmed ending does.
+        if(profile!=null)releaseHolds().ended(profile.id,releaseSent(mutation));
         wanted=false;recoverableConnectionLoss=false;handler.removeCallbacksAndMessages(null);endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);clearMutation();
         close(State.DISCONNECTED);clearDiscovery();telemetry.clear();profile=null;scanner=null;discoveries.clear();advertised.clear();commandResults.clear();experimentBaselines.clear();
         simulationDriveMode=ScooterSimulation.SPORT;
@@ -630,7 +632,7 @@ public final class BleController {
         ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();endFind();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
         // A release that went out and ends here unanswered (a drop other than the quick one, Bluetooth off, a pause, the
         // service ending, the owner's Disconnect, another scooter's connect) holds automatic reconnects to its scooter.
-        if(releaseSent(mutation)&&profile!=null)holdRelease(profile.id);
+        if(profile!=null)releaseHolds().ended(profile.id,releaseSent(mutation));
         if(releasing(mutation)){releaseHook=null;releaseDone=null;}
         queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:releaseSent(mutation)?ProximityFollowUp.NOT_CHECKED_RESULT:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
@@ -641,8 +643,8 @@ public final class BleController {
         if(simulating())return;
         // A confirmed find whose link fails before its serial matched: the find's own notice, never a silent retry.
         if(retry&&findUnverified()){findUnchecked(reason,code);return;}
-        // A release that went out unconfirmed holds the reconnect (holdRelease), so nothing says one is coming.
-        boolean releaseHold=releaseSent(mutation)||profile!=null&&releaseHeld(profile.id);
+        // A release that went out unconfirmed holds the reconnect (ReleaseHolds), so nothing says one is coming.
+        boolean releaseHold=!releaseHolds().retries(profile==null?null:profile.id,releaseSent(mutation));
         recoverableConnectionLoss=retry&&reason!=ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT&&!releaseHold;recordDiagnostic(reason,code);
         // The event log keeps its reason; the tally also learns whether the link ever reached STATE_CONNECTED (mtuRequested
         // until the link closes below). Bluetooth going off is never a failed attempt.
@@ -1048,12 +1050,12 @@ public final class BleController {
     }
     /**
      * No reply within the confirmation window: logged as a timeout, and the link drops as for any unconfirmed change,
-     * but with no reconnect: the scooter may have forgotten its owner (holdRelease).
+     * but with no reconnect: the scooter may have forgotten its owner (ReleaseHolds).
      */
     private void releaseTimeout(){
         Mutation m=mutation;releaseHook=null;releaseDone=null;
         logMutation(m,CommandLog.Outcome.TIMEOUT,-1,null);
-        if(profile!=null)holdRelease(profile.id);
+        if(profile!=null)releaseHolds().ended(profile.id,releaseSent(m));
         clearMutation();
         failed(M.bleFailedNotConfirmed(),true,ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT,-1);
     }
@@ -1079,23 +1081,26 @@ public final class BleController {
         return true;
     }
     /**
-     * Profiles whose release went out unconfirmed (OwnerRelease.holds): no automatic reconnect reaches them until the
-     * owner chooses Remove from Volt or Reconnect. In memory for this service's life only: after Android ends the
-     * service or the phone restarts, auto-connect resumes, and a reconnect then claims the scooter again, so Volt and
-     * the scooter still agree.
+     * Profiles whose release went out unconfirmed (OwnerRelease.holds): no connection reaches them until the owner
+     * chooses Remove from Volt or Reconnect. Kept on disk (ReleaseHolds, a namespace no backup reads), loaded on first
+     * use, so a fresh process or service holds them too: auto-connect, Bluetooth on, recording and charge reconnects,
+     * background connection and failed()'s retry all reach heldBack or retries before connecting.
      */
-    private final Set<String> releaseHolds=new HashSet<>();
-    /** The held profile whose question hasn't been shown yet (MainActivity shows it once), or null. */
-    private String releaseAsk;
-    private void holdRelease(String profileId){releaseHolds.add(profileId);releaseAsk=profileId;}
-    /** Whether Volt holds its reconnects to this profile after an unconfirmed release. */
-    public boolean releaseHeld(String profileId){return profileId!=null&&releaseHolds.contains(profileId);}
-    /** The held profile whose question is still owed, or null. */
-    public String releaseAsk(){return releaseAsk!=null&&releaseHolds.contains(releaseAsk)?releaseAsk:null;}
-    /** The question for this profile was shown. */
-    public void releaseAsked(String profileId){if(profileId!=null&&profileId.equals(releaseAsk))releaseAsk=null;}
-    /** The owner chose (Reconnect) or the profile is gone (Forget): Volt may connect to it again. */
-    public void endReleaseHold(String profileId){if(profileId==null)return;releaseHolds.remove(profileId);releaseAsked(profileId);}
+    private ReleaseHolds releaseHolds;
+    private ReleaseHolds releaseHolds(){
+        if(releaseHolds==null){SharedPreferences saved=context.getSharedPreferences(ReleaseHolds.PREFERENCES,Context.MODE_PRIVATE);
+            releaseHolds=new ReleaseHolds(saved.getStringSet(ReleaseHolds.HELD,null),saved.getStringSet(ReleaseHolds.OWED,null),
+                    (held,owed)->saved.edit().putStringSet(ReleaseHolds.HELD,held).putStringSet(ReleaseHolds.OWED,owed).commit());}
+        return releaseHolds;
+    }
+    /** Whether Volt holds its connections to this profile after an unconfirmed release. */
+    public boolean releaseHeld(String profileId){return releaseHolds().held(profileId);}
+    /** A held profile whose question the owner hasn't answered yet (closed the sheet or picked an action), or null. */
+    public String releaseAsk(){List<String> ids=new ArrayList<>();for(ScooterProfiles.Profile p:profiles.all())ids.add(p.id);return releaseHolds().owed(ids);}
+    /** The owner closed this profile's sheet or picked an action: the hold stays, the question is answered. */
+    public void releaseAsked(String profileId){releaseHolds().asked(profileId);}
+    /** The owner chose Reconnect, or the profile is gone (Forget, a confirmed release): Volt may connect to it again. */
+    public void endReleaseHold(String profileId){releaseHolds().end(profileId);}
     /** A connection to a held profile is refused here, saying why; the explicit Connect paths ask first (MainActivity). */
     private boolean heldBack(ScooterProfiles.Profile p){if(!releaseHeld(p.id))return false;notice(M.bleReleaseHeld());return true;}
     // ---- Compatibility check (read-only) ------------------------------------------------------

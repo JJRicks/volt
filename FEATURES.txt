@@ -796,8 +796,10 @@ refusal or a release never sent keeps the profile. Any other ending after the
 send (no reply within 6.5 seconds, a later drop, a lost link, Bluetooth off)
 keeps the profile but holds every automatic reconnect to it and asks: Remove
 from Volt (Forget, with its key-backup rule) or Reconnect (which makes Volt its
-owner again if it did release). The hold lasts while Volt's service runs. It
-changes nothing on NAVEE's servers. See docs/validation/owner-release.md.
+owner again if it did release). The hold is saved on the phone, never in a
+backup, and outlasts Volt closing and the phone restarting; the question comes
+back until answered, and Home and My scooters show the hold. It changes nothing
+on NAVEE's servers. See docs/validation/owner-release.md.
 
 APP TOOLS AND REMAINING VALIDATION
 
