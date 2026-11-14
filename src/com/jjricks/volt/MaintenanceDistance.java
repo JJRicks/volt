@@ -99,7 +99,7 @@ final class MaintenanceDistance {
     /**
      * How a reading on the same field width steps from the last one: FORWARD or SAME, IGNORED for a backward step of
      * at most {@link #JITTER_KM}, WRAP from the top 5 % of a wrapping field to its bottom 5 %, else RESET. Pure; the
-     * maintenance count and the lifetime odometer (OdometerCarry) share it, so both read a reading the same way.
+     * maintenance count and the lifetime odometer record share it, so both read a reading the same way.
      */
     static Kind step(double lastRawKm, int bits, double rawKm) {
         double delta = round(rawKm - lastRawKm);

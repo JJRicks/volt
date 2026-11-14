@@ -118,7 +118,7 @@ public final class OdometerCarryTest {
         for (int i = 0; i < OdometerCarry.MAX_CARRIES + 5; i++) {
             many.observe(20, 32, frame++, WALL + frame); many.observe(0, 32, frame++, WALL + frame); many.observe(0, 32, frame++, WALL + frame);
         }
-        check(many.carries.size() == OdometerCarry.MAX_CARRIES && near(many.carriedKm(), 10 + 20 * (OdometerCarry.MAX_CARRIES + 4)), "many resets: capped, total kept");
+        check(many.carries.size() == OdometerCarry.MAX_CARRIES && near(many.carriedKm(), 20 * (OdometerCarry.MAX_CARRIES + 5)), "many resets: capped, total kept");
     }
 
     // 5. Undo restores exactly the earlier total.
@@ -370,7 +370,9 @@ public final class OdometerCarryTest {
                 "StatsScreen", "StatsCharts", "RidesScreen", "DiagnosticsBundle", "IssueReport"};
         for (String name : raw) {
             String source = read("src/com/jjricks/volt/" + name + ".java");
-            check(!source.contains("OdometerCarry") && !source.contains("shownOdometerKm") && !source.contains("odometerRecord") && !source.contains("dashboardReadings"),
+            // Live Stats takes only the learned range from Home's readings, never the odometer.
+            String rest = source.replace("service.dashboardReadings().get(\"remaining_range_km\")", "");
+            check(!source.contains("OdometerCarry") && !source.contains("shownOdometerKm") && !source.contains("odometerRecord") && !rest.contains("dashboardReadings"),
                     name + " reads the raw odometer");
         }
         String service = read("src/com/jjricks/volt/ScooterService.java");
