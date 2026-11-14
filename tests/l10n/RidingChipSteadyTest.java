@@ -28,12 +28,14 @@ public final class RidingChipSteadyTest {
             highlight();
             clockDay();
             speeds();
+            rangeKinds();
+            stackedCap();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
         System.out.println("RidingChipSteadyTest: " + checks + " checks passed (row fill, sizes, widest values, short column, "
-                + "None, highlight growth, every time of day, every speed)");
+                + "None, highlight growth, every time of day, every speed, range kinds, stacked cap)");
     }
 
     private static void spread() {
@@ -312,5 +314,52 @@ public final class RidingChipSteadyTest {
             rides = tabular(shown) * rideSize <= rideRoom + 1e-3f;
         }
         check(rides, "every ride time under 100 hours draws at the one size");
+    }
+    /**
+     * F02 and F07 (the council on #493): a range chip reserves room and names only for what RidingFocus.range can give its
+     * content. Scooter's range reserved "Almost empty", which it never shows, and dropped another chip for the whole ride;
+     * Volt's range reserved "Scooter's range", which it never carries, and shortened its own name. Every input range()
+     * takes, tried for each content, gives a kind in kinds() and a name namedAs() allows.
+     */
+    private static void rangeKinds() {
+        java.util.Map<String, java.util.Set<String>> names = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Set<RidingFocus.RangeKind>> seen = new java.util.HashMap<>();
+        String[] contents = {RidingLayout.RANGE_AT_PACE, RidingLayout.RANGE_SCOOTER, RidingLayout.RANGE_VOLT};
+        List<RangeReadout.Value> lives = new java.util.ArrayList<>();
+        lives.add(null);
+        for (RangeReadout.State state : RangeReadout.State.values())
+            for (Double primary : new Double[]{null, 12.3})
+                for (int decimals = 0; decimals <= 1; decimals++)
+                    lives.add(new RangeReadout.Value(state, primary, null, true, decimals, decimals == 0, false, false, false));
+        for (String content : contents) {
+            names.put(content, new java.util.HashSet<>());
+            seen.put(content, java.util.EnumSet.noneOf(RidingFocus.RangeKind.class));
+            for (RangeReadout.Value live : lives)
+                for (Double scooterKm : new Double[]{null, 40.0, 255.0})
+                    for (Double learnedKm : new Double[]{null, 30.0})
+                        for (Double percent : new Double[]{null, 1.0, 50.0})
+                            for (String units : new String[]{"km", "mi"}) {
+                                RidingFocus.Range r = RidingFocus.range(content, live, scooterKm, false, learnedKm, percent, false, units);
+                                check(RidingFocus.kinds(content).contains(r.kind), content + " gave " + r.kind + ", which kinds() leaves out");
+                                seen.get(content).add(r.kind);
+                                names.get(content).add(RidingFocus.namedAs(content, r.kind));
+                                if (r.kind == RidingFocus.RangeKind.SCOOTER) check(!r.approx && r.decimals == 0, "the scooter's figure is whole and unmarked");
+                                if (r.kind == RidingFocus.RangeKind.VOLT) check(r.approx && r.decimals == 0, "Volt's figure is an approximate whole number");
+                                if (r.value != null) check(r.value < 1000, "three whole figures: " + content + " " + r.value);
+                            }
+            check(seen.get(content).equals(java.util.EnumSet.copyOf(RidingFocus.kinds(content))), content + ": kinds() lists only kinds range() gives: " + seen.get(content));
+        }
+        check(!RidingFocus.kinds(RidingLayout.RANGE_SCOOTER).contains(RidingFocus.RangeKind.ALMOST_EMPTY), "F02: Scooter's range never reads Almost empty");
+        check(RidingFocus.kinds(RidingLayout.RANGE_VOLT).contains(RidingFocus.RangeKind.ALMOST_EMPTY)
+                && RidingFocus.kinds(RidingLayout.RANGE_AT_PACE).contains(RidingFocus.RangeKind.ALMOST_EMPTY), "F02: Volt's and at-pace range can");
+        check(names.get(RidingLayout.RANGE_VOLT).equals(java.util.Collections.singleton(RidingLayout.RANGE_VOLT)), "F07: Volt's range carries only its own name");
+        check(names.get(RidingLayout.RANGE_SCOOTER).equals(java.util.Collections.singleton(RidingLayout.RANGE_SCOOTER)), "F07: Scooter's range carries only its own name");
+        check(names.get(RidingLayout.RANGE_AT_PACE).size() == 3, "F07: Range at this pace can carry all three names");
+    }
+
+    /** F01 (the council on #493): the stacked Lock column keeps its 320 dp cap; only the side-by-side row rose to 560 dp. */
+    private static void stackedCap() {
+        check(RidingFrames.STOPPED_CONTROLS_STACKED_MAX_DP == 320, "the stacked column's cap is the one it always had");
+        check(RidingFrames.STOPPED_CONTROLS_MAX_DP == 560, "the side-by-side row's cap");
     }
 }

@@ -73,6 +73,8 @@ public final class RidingChipFitTest {
         stacks();
         names();
         namesAmongShown();
+        gpsFirstStepsToItsDash();
+        compactChipKeepsAWideFix();
         System.out.println("RidingChipFitTest passed");
     }
 
@@ -239,6 +241,83 @@ public final class RidingChipFitTest {
                 if (!fit.shown[a] || !fit.shown[b] || fit.steps[a] < 0 || fit.steps[b] < 0 || contents[a].equals(contents[b])) continue;
                 if (marks[a][fit.steps[a]].equals(marks[b][fit.steps[b]])) throw new AssertionError(name + ": chips " + a + " and " + b + " look alike");
             }
+    }
+
+    /** Fixed widths [rung][chip], the same whatever the name step. */
+    private static RidingChipFit.Widths fixedWidths(final int[][] widths) {
+        return (chip, rung, step) -> widths[rung][chip];
+    }
+
+    /**
+     * F04 (the council on #493): a GPS chip that fits in full but pushes a later chip out tries its compact form (the
+     * dash) before that chip is dropped, so every chip the rider chose shows where the dash makes room. Steady: the
+     * widths are each chip's widest, and the answer depends on them alone.
+     */
+    private static void gpsFirstStepsToItsDash() {
+        String[][] marks = {null, null, null};
+        String[] contents = {"gps_accuracy", "current", "clock"};
+        // GPS in full ("Not recording") 150, its compact form (±888 ft or the dash) 80; current 90; clock 70; gap 8.
+        int[][] full = new int[RidingChipFit.RUNGS][], compact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { full[r] = new int[]{150, 90, 70}; compact[r] = new int[]{80, 90, 70}; }
+        boolean[] canStep = {true, false, false};
+        // 150 + 90 + 70 + 16 = 326 overfills 300; 80 + 90 + 70 + 16 = 256 fits.
+        RidingChipFit plain = RidingChipFit.row(marks, contents, fixedWidths(full), GAP, 300);
+        if (plain.count != 2 || !plain.shown[0]) throw new AssertionError("F04 setup: in full GPS fits and the clock steps aside");
+        RidingChipFit fit = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 300);
+        if (fit.count != 3 || !fit.compact[0] || fit.compact[1] || fit.compact[2])
+            throw new AssertionError("F04: a GPS chip that fits in full must step to its dash before the clock is dropped");
+        // All three fit in full: GPS keeps its words.
+        RidingChipFit roomy = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 326);
+        if (roomy.count != 3 || roomy.compact[0]) throw new AssertionError("F04: with room for every chip in full, GPS keeps its words");
+        // The dash doesn't make room (80 + 90 + 120 + 16 = 306 > 300): nothing to gain, so GPS keeps its words and the third goes.
+        int[][] wideClock = new int[RidingChipFit.RUNGS][], wideClockCompact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { wideClock[r] = new int[]{150, 90, 120}; wideClockCompact[r] = new int[]{80, 90, 120}; }
+        RidingChipFit noGain = RidingChipFit.stepping(marks, contents, fixedWidths(wideClock), fixedWidths(wideClockCompact), canStep, false, GAP, 300);
+        if (noGain.count != 2 || noGain.compact[0]) throw new AssertionError("F04: a dash that saves no chip leaves GPS in full");
+        // GPS last and dropped steps down as before.
+        String[] last = {"current", "clock", "gps_accuracy"};
+        int[][] lastFull = new int[RidingChipFit.RUNGS][], lastCompact = new int[RidingChipFit.RUNGS][];
+        for (int r = 0; r < RidingChipFit.RUNGS; r++) { lastFull[r] = new int[]{90, 70, 150}; lastCompact[r] = new int[]{90, 70, 80}; }
+        RidingChipFit lastFit = RidingChipFit.stepping(marks, last, fixedWidths(lastFull), fixedWidths(lastCompact), new boolean[]{false, false, true}, false, GAP, 300);
+        if (lastFit.count != 3 || !lastFit.compact[2]) throw new AssertionError("F04: a dropped GPS chip still shows its dash");
+        // Every room gives the same answer each time: it reads nothing but the widths.
+        for (int room = 0; room <= 400; room++) {
+            RidingChipFit a = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
+            RidingChipFit b = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
+            if (a.count != b.count || a.rung != b.rung || !java.util.Arrays.equals(a.compact, b.compact))
+                throw new AssertionError("F04: the fit must depend on the widths alone, room " + room);
+            RidingChipFit sansStep = RidingChipFit.row(marks, contents, fixedWidths(full), GAP, room);
+            if (a.count < sansStep.count) throw new AssertionError("F04: stepping never shows fewer chips than the plain fit, room " + room);
+        }
+        // The same in a column of two: a short column's limit isn't beaten by any dash.
+        RidingChipFit column = RidingChipFit.steppingColumn(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, 200, 2);
+        if (column.count != 2 || column.compact[0]) throw new AssertionError("F04: a column's limit stays; GPS in full fits its room");
+    }
+
+    /**
+     * F08 (the council on #493): a value wider than the samples of the form the chip is sized in is kept so the chip
+     * refits once. A ±1000 ft fix in a compact GPS chip (sized from ±888 ft) is narrower than "Not recording", so
+     * measured against the full samples it was never kept and drew past the chip's edge.
+     */
+    private static void compactChipKeepsAWideFix() {
+        if (RidingChipFit.form(RidingChipFit.FULL, true) != RidingChipFit.FORM_COMPACT) throw new AssertionError("F08: a planned compact form is the compact form");
+        if (RidingChipFit.form(RidingChipFit.TIGHT, false) != RidingChipFit.FORM_TIGHT) throw new AssertionError("F08: the tightest rung's form");
+        if (RidingChipFit.form(RidingChipFit.SHORT_NAMES, false) != RidingChipFit.FORM_FULL) throw new AssertionError("F08: any other rung is in full");
+        // Widest samples: full ("Not recording") 120, tight 120, compact (±888 ft) 60.
+        float[] widest = new float[RidingChipFit.FORMS];
+        widest[RidingChipFit.FORM_FULL] = 120; widest[RidingChipFit.FORM_TIGHT] = 120; widest[RidingChipFit.FORM_COMPACT] = 60;
+        String fix = "\u00b11000 ft";
+        String drawn = RidingChipFit.drawn(RidingChipFit.FORM_COMPACT, fix, null, null);
+        if (!fix.equals(drawn)) throw new AssertionError("F08: a fix has no compact form, so a compact chip draws its figure");
+        if (!RidingChipFit.widens(70, RidingChipFit.FORM_COMPACT, widest)) throw new AssertionError("F08: a ±1000 ft fix (70) in a compact chip must be kept");
+        if (RidingChipFit.widens(70, RidingChipFit.FORM_FULL, widest)) throw new AssertionError("F08: in full the same fix is within \"Not recording\"");
+        if (RidingChipFit.widens(60, RidingChipFit.FORM_COMPACT, widest)) throw new AssertionError("F08: a value as wide as the widest sample isn't kept");
+        // A GPS state draws its words only where they fit, else its dash: never past the chip, so never kept.
+        if (RidingChipFit.drawn(RidingChipFit.FORM_COMPACT, "Not recording", null, "\u2014") != null) throw new AssertionError("F08: a state in a compact chip is never measured");
+        // The tightest rung draws the clock without its AM/PM, measured against its own samples.
+        if (!"10:58:58".equals(RidingChipFit.drawn(RidingChipFit.FORM_TIGHT, "10:58:58 PM", "10:58:58", null))) throw new AssertionError("F08: the tight text at the tightest rung");
+        if (!"10:58 PM".equals(RidingChipFit.drawn(RidingChipFit.FORM_TIGHT, "10:58 PM", null, null))) throw new AssertionError("F08: no tight text, the full one");
+        if (RidingChipFit.widens(1000, -1, widest) || RidingChipFit.widens(1000, RidingChipFit.FORM_FULL, null)) throw new AssertionError("F08: no form, nothing kept");
     }
 
     private static void expect(int[][] widths, int room, int count, int rung, String name) {

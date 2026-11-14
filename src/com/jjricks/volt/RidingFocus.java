@@ -247,4 +247,26 @@ final class RidingFocus {
         if (km == null || !Double.isFinite(km) || km < 0) return new Range(RangeKind.NONE, null, 0, false, false, false);
         return new Range(RangeKind.SCOOTER, (double) Math.round(distance(km, units)), 0, false, false, stale);
     }
+
+    /**
+     * Every kind range() can give a range content, as riding mode's steady chips size it (they reserve room and names for
+     * these alone). Scooter's range is the scooter's figure or nothing, never "Almost empty"; Volt's range is Volt's
+     * figure, "Almost empty" or nothing, never the scooter's; Range at this pace can be any of them. Reserving a state a
+     * content never shows dropped another chip for the whole ride (the council on #493: Scooter's range and "Almost empty").
+     */
+    static List<RangeKind> kinds(String content) {
+        if (RidingLayout.RANGE_SCOOTER.equals(content)) return Arrays.asList(RangeKind.SCOOTER, RangeKind.NONE);
+        if (RidingLayout.RANGE_VOLT.equals(content)) return Arrays.asList(RangeKind.VOLT, RangeKind.ALMOST_EMPTY, RangeKind.NONE);
+        return Arrays.asList(RangeKind.values());
+    }
+
+    /**
+     * The range content whose names a reading carries: a chosen source keeps its own name with no reading, and Range at
+     * this pace names the estimate it fell back to (the scooter's or Volt's).
+     */
+    static String namedAs(String content, RangeKind kind) {
+        if (kind == RangeKind.SCOOTER || RidingLayout.RANGE_SCOOTER.equals(content)) return RidingLayout.RANGE_SCOOTER;
+        if (kind == RangeKind.VOLT || RidingLayout.RANGE_VOLT.equals(content)) return RidingLayout.RANGE_VOLT;
+        return RidingLayout.RANGE_AT_PACE;
+    }
 }

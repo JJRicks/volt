@@ -552,7 +552,8 @@ final class RidingScreen implements AppScreen {
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             int cap = ui.dp(RidingFrames.STOPPED_CONTROLS_MAX_DP), width = MeasureSpec.getSize(widthSpec);
             if (getOrientation() == VERTICAL) {
-                if (width > cap) widthSpec = MeasureSpec.makeMeasureSpec(cap, MeasureSpec.getMode(widthSpec));
+                int stackedCap = ui.dp(RidingFrames.STOPPED_CONTROLS_STACKED_MAX_DP);
+                if (width > stackedCap) widthSpec = MeasureSpec.makeMeasureSpec(stackedCap, MeasureSpec.getMode(widthSpec));
             } else if (stoppedLock != null && stoppedLock.getParent() == this) {
                 boolean wide = MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED && width > cap;
                 LayoutParams lock = (LayoutParams) stoppedLock.getLayoutParams(), disc = (LayoutParams) recordDisc.getLayoutParams();
@@ -1100,6 +1101,13 @@ final class RidingScreen implements AppScreen {
     /** A power reading's name, as a tile's label and the trace's key show it. */
     private static String powerName() { return T.ridingLabelPower(); }
 
+    /** A range content's names, full and short (RidingFocus.namedAs says whose a reading carries). */
+    private static String[] rangeNames(String content) {
+        if (RidingLayout.RANGE_SCOOTER.equals(content)) return new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
+        if (RidingLayout.RANGE_VOLT.equals(content)) return new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
+        return new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
+    }
+
     /** What a reading says to a screen reader: its name and value, or its name and that there's no reading. */
     private static String spokenReading(String name, String spoken) {
         return spoken == null ? T.ridingReadingSpokenNone(name) : T.ridingReadingSpoken(name, spoken);
@@ -1200,11 +1208,7 @@ final class RidingScreen implements AppScreen {
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
                         scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
                 // The label names whose estimate it is; a chosen source keeps its name with no reading.
-                if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))
-                    s.rungs = new String[]{T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
-                else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))
-                    s.rungs = new String[]{T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
-                else s.rungs = new String[]{T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
+                s.rungs = rangeNames(RidingFocus.namedAs(content, range.kind));
                 if (range.kind == RidingFocus.RangeKind.ALMOST_EMPTY) {
                     s.main = T.ridingRangeAlmostEmpty();
                     s.color = ui.orange;
@@ -1357,12 +1361,15 @@ final class RidingScreen implements AppScreen {
     /**
      * The widest values a reading can show, as shown() would show them, with 8 for every figure (callers set the
      * figures to the font's widest: RidingChipFit.widened). The fit and sizes are worked out from these, never from the
-     * value on show, so they don't change while riding (a tester, Nov 14). words adds the states a reading shows in
-     * words ("Almost empty", a GPS state); without it they're left out, for spots where a state may simply draw smaller.
-     * The names around the values are the rider's units, clock format, temperature unit and language, so a change of any
-     * of them gives other samples.
+     * value on show, so they don't change while riding (a tester, Nov 14). The names around the values are the rider's
+     * units, clock format, temperature unit and language, so a change of any of them gives other samples.
+     *
+     * chip: for a chip, which adds the states a reading shows in words ("Almost empty", a GPS state) and reserves the
+     * widest value a supported scooter can show, each bound below with where it comes from; a wider value is kept when
+     * it comes (Chip.seeWide), so the chip widens for it once. Without chip (the highlight, which has no such net and
+     * where a state may simply draw smaller) the states are left out and the speeds keep RidingHighlightSize's samples.
      */
-    private List<Shown> samples(String content, String units, boolean words) {
+    private List<Shown> samples(String content, String units, boolean chip) {
         List<Shown> out = new ArrayList<>();
         switch (content) {
             case RidingLayout.SPEED: {
@@ -1376,29 +1383,48 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
-                for (int decimals = 0; decimals <= 1; decimals++) {
-                    Formatted number = Fmt.decimalNumber(Locale.US, decimals == 0 ? 888 : 88.8, decimals);
-                    out.add(sample(Fmt.quantity(Fmt.compose(T.RIDING_APPROX, number), Fmt.unit(distanceUnit(units)))));
-                }
-                if (words) out.add(word(T.ridingRangeAlmostEmpty()));
+                // Only what RidingFocus.range can give this content (RidingFocus.kinds): Scooter's range never reads "Almost
+                // empty", and reserving it dropped another chip for the whole ride (the council on #493). Three whole
+                // figures, as before: the scooter sends its range in one byte (Telemetry remaining_range_km, 0 to 255 km).
+                List<RidingFocus.RangeKind> kinds = RidingFocus.kinds(content);
+                Formatted unit = Fmt.unit(distanceUnit(units)), whole = Fmt.decimalNumber(Locale.US, 888, 0);
+                // The scooter's figure: a whole number, unmarked (RidingFocus.scooter).
+                if (kinds.contains(RidingFocus.RangeKind.SCOOTER)) out.add(sample(Fmt.quantity(whole, unit)));
+                // Volt's figure: an approximate whole number (RidingFocus.volt, and Range at this pace's NO_HISTORY).
+                if (kinds.contains(RidingFocus.RangeKind.VOLT)) out.add(sample(Fmt.quantity(Fmt.compose(T.RIDING_APPROX, whole), unit)));
+                // Range at this pace: whole or to a tenth, approximate or not (RangeReadout); the approximate ones are the wider.
+                if (kinds.contains(RidingFocus.RangeKind.AT_PACE))
+                    for (int decimals = 0; decimals <= 1; decimals++) {
+                        Formatted number = Fmt.decimalNumber(Locale.US, decimals == 0 ? 888 : 88.8, decimals);
+                        out.add(sample(Fmt.quantity(Fmt.compose(T.RIDING_APPROX, number), unit)));
+                    }
+                if (chip && kinds.contains(RidingFocus.RangeKind.ALMOST_EMPTY)) out.add(word(T.ridingRangeAlmostEmpty()));
                 break;
             }
             case RidingLayout.BATTERY:
                 out.add(sample(Fmt.percent(Fmt.integerNumber(RidingHighlightSize.BATTERY_SAMPLE))));
                 break;
             case RidingLayout.TRIP:
-                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 8888.8, 1), Fmt.unit(distanceUnit(units)))));
+                // Bound: 999.9 km or mi since riding mode opened. A full charge takes a supported scooter at most 255 km (its
+                // own range estimate is one byte, Telemetry remaining_range_km), so a longer trip needs four charges in one go.
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 888.8, 1), Fmt.unit(distanceUnit(units)))));
                 break;
             case RidingLayout.RIDE_TIME: case RidingLayout.RECORDING_TIME:
                 out.add(word(clock(RidingHighlightSize.STOPWATCH_SAMPLE_MS)));
                 break;
             case RidingLayout.AVERAGE_SPEED: case RidingLayout.MAX_SPEED:
-                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, RidingHighlightSize.SPEED_SAMPLE, 1), Fmt.unit(speedUnit(units)))));
+                // Bound (chips): 99.9 km/h or mph. The fastest Top speed any supported scooter offers is 70 km/h (43.5 mph;
+                // ModelRegistry SPEED_25_70), so a speed needs a third whole figure only past 100 km/h. The highlight keeps 888.8.
+                out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, chip ? 88.8 : RidingHighlightSize.SPEED_SAMPLE, 1), Fmt.unit(speedUnit(units)))));
                 break;
             case RidingLayout.EFFICIENCY:
+                // Bound kept: a sign and three figures. Volt's own gates allow more (RidingValues.efficiency: 30 s over at least
+                // EFFICIENCY_MIN_KM, 0.02 km, at up to PowerScale's 6000 W draw or 3000 W regen), so nothing justifies fewer.
                 out.add(sample(Fmt.quantity(Fmt.integerNumber(-888), Fmt.unitText(T.ridingUnitWhPer(distanceUnit(units).symbol())))));
                 break;
             case RidingLayout.RIDE_ENERGY:
+                // Bound kept: four figures. It counts every Wh since riding mode opened, and nothing in the code bounds a
+                // supported pack's size (only the UT5 MAX's is known), so nothing justifies three.
                 out.add(sample(Fmt.quantity(Fmt.integerNumber(8888), Fmt.unit(UnitCode.WATT_HOUR))));
                 break;
             case RidingLayout.VOLTAGE:
@@ -1408,6 +1434,8 @@ final class RidingScreen implements AppScreen {
                 out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, -88.8, 1), Fmt.unit(UnitCode.AMP))));
                 break;
             case RidingLayout.ODOMETER:
+                // Bound kept: five whole figures. The ride report's 32-bit field (Telemetry odometer_km) and OdometerCarry
+                // reach past 10,000 km, which a commuter's scooter can.
                 out.add(sample(Fmt.quantity(Fmt.decimalNumber(Locale.US, 88888.8, 1), Fmt.unit(distanceUnit(units)))));
                 break;
             case RidingLayout.BATTERY_TEMPERATURE:
@@ -1447,12 +1475,13 @@ final class RidingScreen implements AppScreen {
                 break;
             }
             case RidingLayout.POWER:
+                // Bound kept: a sign and four figures, as Volt's own limits allow (RidingValues.PowerScale: 6000 W draw, 3000 W regen).
                 out.add(sample(Fmt.quantity(Fmt.integerNumber(-8888), Fmt.unit(UnitCode.WATT))));
                 break;
             case RidingLayout.GPS_ACCURACY: {
                 boolean feet = GpsAccuracy.feet(units);
                 out.add(sample(GpsAccuracyText.value(888, GpsAccuracy.unit(feet))));
-                if (words)
+                if (chip)
                     for (GpsAccuracy.State state : GpsAccuracy.State.values())
                         if (state != GpsAccuracy.State.FIX) {
                             Shown s = word(GpsAccuracyText.state(state));
@@ -2268,12 +2297,14 @@ final class RidingScreen implements AppScreen {
             int at = wanted.indexOf(chip), want = View.GONE;
             if (at >= 0 && fit.shown[at]) {
                 want = View.VISIBLE;
-                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], room == Integer.MAX_VALUE ? -1 : room);
-                // Each chip as wide as its widest value, so its edge never moves with the value (a GPS chip whose words
-                // or dash come and go, and a chip following its value, take their text's width, as before).
+                // Each chip as wide as its widest value in the form it shows, so its edge never moves with the value. A GPS
+                // chip in its compact form too: as wide as its widest compact value, with a state's words shown only where
+                // they fit that width, else its dash. It used to take its text's width, so the dash and "Off" moved it and
+                // the column beside the speed (the council on #493). Only a chip following its value takes its text's width.
+                int width = follows[at] || room == Integer.MAX_VALUE ? -2
+                        : Math.min(room, chip.widthAt(normal, fit.rung, fit.steps[at], fit.compact[at]));
+                chip.useRung(normal, fit.rung, fit.steps[at], fit.compact[at], width >= 0 ? width : room == Integer.MAX_VALUE ? -1 : room);
                 LinearLayout.LayoutParams p = (LinearLayout.LayoutParams) chip.getLayoutParams();
-                int width = follows[at] || fit.compact[at] || room == Integer.MAX_VALUE ? -2
-                        : Math.min(room, chip.widthAt(normal, fit.rung, fit.steps[at], false));
                 if (p.width != width) p.width = width;
                 setLeadingMargin(group, chip, shown == 0 ? 0 : gap, true);
                 shown++;
@@ -2406,9 +2437,9 @@ final class RidingScreen implements AppScreen {
          * so the chip widens for one once and stays.
          */
         private final List<String> seen = new ArrayList<>();
-        /** Measures a value at the three-chip size, and the widest sample so measured. */
+        /** Measures a value at the three-chip size, and the widest sample of each form so measured (RidingChipFit.FORM_FULL...). */
         private Paint ruler;
-        private float rulerWidest;
+        private final float[] rulerWidest = new float[RidingChipFit.FORMS];
         Chip(String content) {
             super(host.activity());
             this.content = content;
@@ -2618,13 +2649,20 @@ final class RidingScreen implements AppScreen {
          * another's when its own has no reading, and Trip names a recorded ride's distance.
          */
         private String[][] nameSets(String[] now) {
-            String[] atPace = {T.ridingLabelRangeAtPace(), T.ridingLabelRangeAtPaceShort()};
-            String[] scooter = {T.ridingLabelRangeScooter(), T.ridingLabelRangeScooterShort()};
-            String[] volt = {T.ridingLabelRangeVolt(), T.ridingLabelRangeVoltShort()};
             switch (content) {
-                case RidingLayout.RANGE_AT_PACE: return new String[][]{atPace, scooter, volt};
-                case RidingLayout.RANGE_VOLT: return new String[][]{volt, scooter};
-                case RidingLayout.RANGE_SCOOTER: return new String[][]{scooter};
+                case RidingLayout.RANGE_AT_PACE: case RidingLayout.RANGE_SCOOTER: case RidingLayout.RANGE_VOLT: {
+                    // Only the names its kinds can carry (RidingFocus.kinds, namedAs), its own first: Volt's range never
+                    // shows the scooter's figure, so reserving "Scooter's range" shortened its own name (the council on #493).
+                    List<String> named = new ArrayList<>();
+                    named.add(content);
+                    for (RidingFocus.RangeKind kind : RidingFocus.kinds(content)) {
+                        String as = RidingFocus.namedAs(content, kind);
+                        if (!named.contains(as)) named.add(as);
+                    }
+                    String[][] out = new String[named.size()][];
+                    for (int i = 0; i < out.length; i++) out[i] = rangeNames(named.get(i));
+                    return out;
+                }
                 case RidingLayout.TRIP: {
                     String trip = T.ridingLabelTrip(), ride = T.ridingLabelRideDistance();
                     return new String[][]{{trip, trip}, {ride, ride}};
@@ -2670,14 +2708,23 @@ final class RidingScreen implements AppScreen {
             ruler = new Paint(probe.getPaint());
             ruler.setTextSize(valuePx);
             ruler.setLetterSpacing(0);
-            rulerWidest = 0;
-            for (String v : f) rulerWidest = Math.max(rulerWidest, ruler.measureText(v));
-            for (String v : t) rulerWidest = Math.max(rulerWidest, ruler.measureText(v));
+            String[][] forms = new String[RidingChipFit.FORMS][];
+            forms[RidingChipFit.FORM_FULL] = f;
+            forms[RidingChipFit.FORM_TIGHT] = t;
+            forms[RidingChipFit.FORM_COMPACT] = c;
+            for (int form = 0; form < RidingChipFit.FORMS; form++) {
+                rulerWidest[form] = 0;
+                for (String v : forms[form]) rulerWidest[form] = Math.max(rulerWidest[form], ruler.measureText(v));
+            }
             requestLayout();
         }
-        /** Keeps a value wider than every sample with them, so the chip fits it from now on. */
-        private boolean seeWide(String value) {
-            if (value == null || ruler == null || seen.contains(value) || ruler.measureText(value) <= rulerWidest) return false;
+        /**
+         * Keeps a value wider than every sample of the form the chip is sized in (RidingChipFit.widens) with them, so the
+         * chip fits it from now on. The form matters: a compact GPS chip is sized from its compact samples (±888 ft), and a
+         * ±1000 ft fix measured against "Not recording" was never kept, so it drew past the chip (the council on #493).
+         */
+        private boolean seeWide(String value, int form) {
+            if (value == null || ruler == null || seen.contains(value) || !RidingChipFit.widens(ruler.measureText(value), form, rulerWidest)) return false;
             seen.add(value);
             return true;
         }
@@ -2715,8 +2762,8 @@ final class RidingScreen implements AppScreen {
             tight = s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
             // The dash in place of a state's words, where the fit asked for it; a reading in figures shows as it is.
             compact = !s.seconds && s.mainShort != null ? s.mainShort.toString() : null;
-            seeWide(full);
-            seeWide(tight);
+            int form = RidingChipFit.form(rung, compactPlanned);
+            seeWide(RidingChipFit.drawn(form, full, tight, compact), form);
             useSamples(units);
             CharSequence shown = textAt(rung, compactShown);
             if (!TextUtils.equals(text.getText(), shown)) text.setText(shown);

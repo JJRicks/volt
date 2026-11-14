@@ -162,12 +162,16 @@ public final class GpsAccuracyTextTest {
         for (int i = 0; i < 3; i++) used += widths(i == 2, tr, rt, g).at(i, row.rung, row.steps[i]);
         check(used <= 296, "and they fit the row: " + used);
 
-        // Nothing else changes: with GPS first its words take the row as before (the owner keeps that), and with no
-        // chip able to step down the fit is the plain one.
+        // With GPS first, in full its words fit but push ride time out. Its dash makes room for all three, so the row
+        // shows them all with GPS as its dash: a GPS chip that fits in full no longer drops a later chip (the council on
+        // #493). Where every chip fits in full, GPS keeps its words.
         String[] first = {gps, trip, time};
         RidingChipFit before = RidingChipFit.row(marks(g, tr, rt), first, widths(false, g, tr, rt), 8, 296);
+        check(before.shown[0] && before.count == 2, "in full, GPS first fits and ride time steps aside");
         RidingChipFit after = RidingChipFit.stepping(marks(g, tr, rt), first, widths(false, g, tr, rt), widths(true, g, tr, rt), new boolean[]{true, false, false}, false, 8, 296);
-        check(before.shown[0] && same(before, after) && !after.compact[0], "a GPS chip that shows in full keeps its words, the rest as before");
+        check(after.count == 3 && after.compact[0] && !after.compact[1] && !after.compact[2], "stepping: GPS first steps to its dash so ride time shows");
+        RidingChipFit roomy = RidingChipFit.stepping(marks(g, tr, rt), first, widths(false, g, tr, rt), widths(true, g, tr, rt), new boolean[]{true, false, false}, false, 8, 600);
+        check(roomy.count == 3 && !roomy.compact[0], "with room for all three in full, GPS keeps its words");
         RidingChipFit none = RidingChipFit.stepping(marks(tr, rt, g), rowContents, widths(false, tr, rt, g), widths(true, tr, rt, g), new boolean[3], false, 8, 296);
         check(same(rowPlain, none), "no chip that can step down: the plain fit");
         RidingChipFit noneColumn = RidingChipFit.stepping(marks(g, tc), new String[]{gps, temp}, widths(false, g, tc), widths(true, g, tc), null, true, 8, 105);

@@ -34,7 +34,7 @@ final class RidingChipFit {
     final boolean[] shown;
     /** Each shown chip's name step at that rung, worked out against the chips that show; -1 for the rest. */
     final int[] steps;
-    /** The chips that show their compact form (a GPS state's dash) because in full they would step aside (see {@link #stepping}). */
+    /** The chips that show their compact form (a GPS state's dash) because in full they or a later chip would step aside (see {@link #stepping}). */
     final boolean[] compact;
 
     private RidingChipFit(int count, int rung, boolean[] shown, int[] steps) {
@@ -62,30 +62,47 @@ final class RidingChipFit {
      * A row or column in which some chips have a compact form for their value: a GPS accuracy state ("Not
      * recording") whose mark is the no-reading dash. Every chip first tries as it reads in full, exactly as
      * {@link #row} or {@link #column} would fit it; a chip with a compact form that would then step aside tries again
-     * in that form, so the reading the rider chose shows as a mark rather than not at all. A chip that shows in full
-     * keeps its full value, and with no chip able to step down the fit is the plain one.
+     * in that form, so the reading the rider chose shows as a mark rather than not at all. If a chip still steps aside,
+     * every chip with a compact form tries it, shown in full or not, and that fit is taken when more chips show: a GPS
+     * chip that fits in full no longer pushes a later chip out where its dash makes room (the council on #493). With
+     * no chip able to step down, or nothing gained, the fit is the one before. It depends on the widths alone, which
+     * are each chip's widest, so it never changes with the value on show.
      *
      * @param full each chip's widths with its value in full
      * @param compact each chip's widths with its compact value (read only for chips in canStep)
-     * @param canStep the chips that have a compact form now
+     * @param canStep the chips that have a compact form
      */
-    static RidingChipFit stepping(String[][] marks, String[] contents, Widths full, final Widths compact, boolean[] canStep,
-                                  boolean stacked, int gap, int room) {
-        RidingChipFit plain = stacked ? column(marks, contents, full, room) : row(marks, contents, full, gap, room);
-        final boolean[] use = new boolean[marks.length];
-        boolean any = false;
-        for (int chip = 0; chip < marks.length; chip++) {
-            use[chip] = canStep != null && canStep[chip] && !plain.shown[chip];
-            any |= use[chip];
+    static RidingChipFit stepping(final String[][] marks, final String[] contents, Widths full, final Widths compact, boolean[] canStep,
+                                  final boolean stacked, final int gap, final int room) {
+        return stepping(marks.length, w -> stacked ? column(marks, contents, w, room) : row(marks, contents, w, gap, room), full, compact, canStep);
+    }
+
+    /** A fit of a row or column's chips from their widths. */
+    private interface Fitter {
+        RidingChipFit fit(Widths widths);
+    }
+
+    private static RidingChipFit stepping(int of, Fitter fitter, final Widths full, final Widths compact, boolean[] canStep) {
+        RidingChipFit plain = fitter.fit(full);
+        if (canStep == null) return plain;
+        boolean[] dropped = new boolean[of], every = new boolean[of];
+        for (int chip = 0; chip < of; chip++) {
+            every[chip] = canStep[chip];
+            dropped[chip] = canStep[chip] && !plain.shown[chip];
         }
-        if (!any) return plain;
-        final Widths wide = full;
-        Widths mixed = new Widths() {
-            @Override public int at(int chip, int rung, int step) { return use[chip] ? compact.at(chip, rung, step) : wide.at(chip, rung, step); }
-        };
-        RidingChipFit fit = stacked ? column(marks, contents, mixed, room) : row(marks, contents, mixed, gap, room);
-        boolean[] shownCompact = new boolean[marks.length];
-        for (int chip = 0; chip < marks.length; chip++) shownCompact[chip] = use[chip] && fit.shown[chip];
+        RidingChipFit fit = count(dropped) == 0 ? plain : withCompact(fitter, full, compact, dropped);
+        if (count(every) > count(dropped) && fit.count < of) {
+            RidingChipFit all = withCompact(fitter, full, compact, every);
+            if (all.count > fit.count) fit = all;
+        }
+        return fit;
+    }
+
+    /** The fit with the chips in use in their compact form, marked compact where they show. */
+    private static RidingChipFit withCompact(Fitter fitter, final Widths full, final Widths compact, final boolean[] use) {
+        RidingChipFit fit = fitter.fit((chip, rung, step) -> use[chip] ? compact.at(chip, rung, step) : full.at(chip, rung, step));
+        boolean[] shownCompact = new boolean[use.length];
+        for (int chip = 0; chip < use.length; chip++) shownCompact[chip] = use[chip] && fit.shown[chip];
         return new RidingChipFit(fit.count, fit.rung, fit.shown, fit.steps, shownCompact);
     }
 
@@ -318,24 +335,40 @@ final class RidingChipFit {
     }
 
     /** {@link #stepping} for a column of at most limit chips (see {@link #column(String[][], String[], Widths, int, int)}). */
-    static RidingChipFit steppingColumn(String[][] marks, String[] contents, Widths full, final Widths compact, boolean[] canStep,
-                                        int room, int limit) {
-        RidingChipFit plain = column(marks, contents, full, room, limit);
-        final boolean[] use = new boolean[marks.length];
-        boolean any = false;
-        for (int chip = 0; chip < marks.length; chip++) {
-            use[chip] = canStep != null && canStep[chip] && !plain.shown[chip];
-            any |= use[chip];
-        }
-        if (!any) return plain;
-        final Widths wide = full;
-        Widths mixed = new Widths() {
-            @Override public int at(int chip, int rung, int step) { return use[chip] ? compact.at(chip, rung, step) : wide.at(chip, rung, step); }
-        };
-        RidingChipFit fit = column(marks, contents, mixed, room, limit);
-        boolean[] shownCompact = new boolean[marks.length];
-        for (int chip = 0; chip < marks.length; chip++) shownCompact[chip] = use[chip] && fit.shown[chip];
-        return new RidingChipFit(fit.count, fit.rung, fit.shown, fit.steps, shownCompact);
+    static RidingChipFit steppingColumn(final String[][] marks, final String[] contents, Widths full, final Widths compact, boolean[] canStep,
+                                        final int room, final int limit) {
+        return stepping(marks.length, w -> column(marks, contents, w, room, limit), full, compact, canStep);
+    }
+
+    // The samples a chip is sized from, by the form it's in, and the values it must keep beyond them (Chip.seeWide).
+
+    /** A chip's forms: in full, at the tightest rung (the clock without its AM/PM), and in its compact form (GPS). */
+    static final int FORM_FULL = 0, FORM_TIGHT = 1, FORM_COMPACT = 2, FORMS = 3;
+
+    /** The form a chip is sized in: its planned compact form, else by its rung. */
+    static int form(int rung, boolean compactPlanned) {
+        return compactPlanned ? FORM_COMPACT : rung == TIGHT ? FORM_TIGHT : FORM_FULL;
+    }
+
+    /**
+     * The text a chip draws whatever its width, in a form: at the tightest rung its tight text where it has one; in its
+     * compact form a value without a compact form of its own (a GPS fix's figure). A value with one (a GPS state) is
+     * null there: its words show only where they fit, else its compact form, so it never draws past the chip.
+     */
+    static String drawn(int form, String full, String tight, String compact) {
+        if (form == FORM_COMPACT) return compact == null ? full : null;
+        if (form == FORM_TIGHT && tight != null) return tight;
+        return full;
+    }
+
+    /**
+     * True when a value drawn in a form is wider than every sample of that form, so the chip must keep it with them and be
+     * fitted again, once. Measured against the form the chip is sized in, never another: a ±1000 ft fix in a compact GPS
+     * chip (sized from ±888 ft) is narrower than "Not recording" and was never kept, so it drew past the chip's edge (the
+     * council on #493).
+     */
+    static boolean widens(float drawnWidth, int form, float[] widestByForm) {
+        return widestByForm != null && form >= 0 && form < widestByForm.length && drawnWidth > widestByForm[form];
     }
 
     /**

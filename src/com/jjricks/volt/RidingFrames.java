@@ -35,10 +35,15 @@ final class RidingFrames {
     /** 4 mph in km/h: at this speed or more, an open tune menu closes, in any display unit (owner, Nov 9). */
     static final double MENU_CLOSE_KMH = 6.437;
     /**
-     * The stopped controls' widest Lock and Record, dp, so the lock's slide stays a sensible length on a tablet. Side by
-     * side, a wider slot keeps Record at its far end (the row spans its slot); stacked, the column is no wider than this.
+     * The stopped controls' widest Lock and Record side by side, dp, so the lock's slide stays a sensible length on a
+     * tablet; a wider slot keeps Record at its far end (the row spans its slot).
      */
     static final float STOPPED_CONTROLS_MAX_DP = 560;
+    /**
+     * The stacked Lock and Record column's widest, dp: the cap it always had. It shared the side-by-side cap, so raising
+     * that to 560 let a stacked Lock stretch to 560 dp in a wide window (the council on #493).
+     */
+    static final float STOPPED_CONTROLS_STACKED_MAX_DP = 320;
 
     /**
      * The ring's top in the rider's unit: the larger of 20 mph (30 km/h) and the fastest speed seen,
