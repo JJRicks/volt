@@ -231,13 +231,14 @@ final class ChargeWireView extends ChargePicture {
 
     // ---- the cable's end and the parents' clipping ----
 
-    /** The parents {@link #clip} let the layers draw past, to clip again. */
-    private final java.util.ArrayList<ViewGroup> unclipped = new java.util.ArrayList<>();
+    /** The parents {@link #clip} let the layers draw past (their bounds, or their padding), to clip again. */
+    private final java.util.ArrayList<ViewGroup> unclipped = new java.util.ArrayList<>(), unpadded = new java.util.ArrayList<>();
 
     /**
      * At rest (ChargePictureFit.atRest) and where the cable runs off the screen's edge, every parent up to the
      * nearest scroller (the scroller included, so its content column's margins do not clip) lets the layers draw
-     * outside its bounds; the scroller's own parent still clips it, so nothing reaches past the scroller or into
+     * outside its bounds and its padding (Widgets' takeover clips to its padding, which would cut the cable at the
+     * content column's edge); the scroller's own parent still clips it, so nothing reaches past the scroller or into
      * another pane. Any other moment (hidden, animating open or closed, editing, charging stopped, detached) they
      * clip again, as on the base branch. Without a scroller nothing changes.
      */
@@ -245,22 +246,24 @@ final class ChargeWireView extends ChargePicture {
         if (placement.scale <= 0) atRest = false;
         updateCable();
         boolean open = ChargePictureFit.unclipped(atRest && picture.isAttachedToWindow(), Double.isInfinite(fadeEnd) && !Float.isNaN(edge));
-        if (open == !unclipped.isEmpty()) return;
+        if (open == !(unclipped.isEmpty() && unpadded.isEmpty())) return;
         if (!open) { reclip(); return; }
-        int from = unclipped.size();
         for (ViewParent p = picture.getParent(); p instanceof ViewGroup; p = p.getParent()) {
             ViewGroup g = (ViewGroup) p;
             if (g.getClipChildren()) { g.setClipChildren(false); unclipped.add(g); }
+            if (g.getClipToPadding()) { g.setClipToPadding(false); unpadded.add(g); }
             if (p instanceof ScrollView) return;
         }
         // No scroller: nothing is opened.
-        for (int i = unclipped.size() - 1; i >= from; i--) unclipped.remove(i).setClipChildren(true);
+        reclip();
     }
 
     /** Clips again what {@link #clip} opened. */
     private void reclip() {
         for (ViewGroup g : unclipped) g.setClipChildren(true);
+        for (ViewGroup g : unpadded) g.setClipToPadding(true);
         unclipped.clear();
+        unpadded.clear();
     }
 
     /** The scroller's right edge in the layers' pixels, or NaN when there is none (no allocation). */

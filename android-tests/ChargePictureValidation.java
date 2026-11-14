@@ -122,9 +122,12 @@ public final class ChargePictureValidation extends Instrumentation {
                 // At rest the wire picture's cable runs off the screen's edge (its parents open up to the scroller); a
                 // folded picture keeps every parent clipping.
                 require(clipsAll() == !(picture instanceof ChargeWireView && runsOff()), "Widgets " + key + ": clipping at rest: " + clipsAll());
+                // The takeover clips to its padding (its own width) unless the cable runs off: then that opens too.
+                require(((ViewGroup) hero).getClipToPadding() == !(picture instanceof ChargeWireView && runsOff()), "Widgets " + key + ": the takeover's padding clip at rest: " + ((ViewGroup) hero).getClipToPadding());
             });
             settle();
             shot("widgets-" + key);
+            requireCableAtEdge("Widgets " + key);
             if (key.startsWith("ut5")) phases("widgets-" + key);
         }
         // Editing clips again at once, and leaving it opens again.
@@ -132,7 +135,7 @@ public final class ChargePictureValidation extends Instrumentation {
         Object screen = screen();
         main(() -> invoke(screen, "toggleEditing"));
         settle();
-        main(() -> require(clipsAll(), "Widgets: editing left a parent unclipped"));
+        main(() -> require(clipsAll() && ((ViewGroup) hero()).getClipToPadding(), "Widgets: editing left a parent unclipped"));
         main(() -> invoke(screen, "toggleEditing"));
         redraw();
         main(() -> require(!clipsAll() || !runsOff(), "Widgets: leaving edit mode did not open the cable's parents again"));
@@ -189,6 +192,7 @@ public final class ChargePictureValidation extends Instrumentation {
                 require(clipsAll() == !(picture instanceof ChargeWireView && runsOff()), "Clean " + key + ": clipping at rest: " + clipsAll());
             });
             shot("clean-" + key);
+            requireCableAtEdge("Clean " + key);
             if (key.startsWith("ut5")) phases("clean-" + key);
         }
         checks.add(label + " Clean: each picture under the percentage with the prototype's relationship; the cable's parents open only at rest");
@@ -287,6 +291,41 @@ public final class ChargePictureValidation extends Instrumentation {
         }
         return true;
     }
+    /**
+     * Where the wire picture's cable runs off the screen's edge, the drawn screen shows it there: the resting cable's
+     * grey in the scroller's last pixel column, within the picture's layer (no parent's clip or padding cuts it short).
+     */
+    private void requireCableAtEdge(String where) throws Exception {
+        AtomicReference<int[]> geometry = new AtomicReference<>();
+        main(() -> {
+            ChargePicture p = picture();
+            if (!(p instanceof ChargeWireView) || !runsOff()) return;
+            View layer = p.layers()[0], scroller = layer;
+            while (scroller != null && !(scroller instanceof ScrollView)) scroller = scroller.getParent() instanceof View ? (View) scroller.getParent() : null;
+            if (scroller == null) return;
+            int[] at = new int[2], scrollAt = new int[2];
+            layer.getLocationOnScreen(at); scroller.getLocationOnScreen(scrollAt);
+            geometry.set(new int[] {scrollAt[0] + scroller.getWidth() - 1, at[1], at[1] + layer.getHeight(),
+                    (int) field(p, "cableEdge"), (int) field(p, "cableCore")});
+        });
+        int[] g = geometry.get();
+        if (g == null) return;
+        Bitmap screen = getUiAutomation().takeScreenshot();
+        require(screen != null, "Screenshot unavailable");
+        try {
+            int x = Math.min(g[0], screen.getWidth() - 1);
+            boolean found = false;
+            for (int y = Math.max(0, g[1]); y < Math.min(screen.getHeight(), g[2]) && !found; y++) {
+                int c = screen.getPixel(x, y);
+                found = near(c, g[3]) || near(c, g[4]);
+            }
+            require(found, where + ": the cable does not reach the screen's edge (x " + x + ", y " + g[1] + "-" + g[2] + ")");
+        } finally { screen.recycle(); }
+    }
+    private static boolean near(int a, int b) {
+        return Math.abs(((a >> 16) & 255) - ((b >> 16) & 255)) <= 30 && Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) <= 30 && Math.abs((a & 255) - (b & 255)) <= 30;
+    }
+
     /** The wire picture's cable runs off the screen's edge here (not faded out short of it on a wide window). */
     private boolean runsOff() {
         ChargePicture p = picture();
