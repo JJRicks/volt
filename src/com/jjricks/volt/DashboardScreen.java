@@ -2559,6 +2559,13 @@ public final class DashboardScreen implements AppScreen {
 
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
 
+        /** Widgets: the percentage (above the stage) gets the charging picture's shade, as on Clean. */
+        @Override protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+            if (!clean && child == percent && picture != null && photo.getVisibility() == View.VISIBLE)
+                shade.draw(canvas, percent, picture.shade(), ui.bg, ui.dark);
+            return super.drawChild(canvas, child, drawingTime);
+        }
+
         /**
          * Clean's fixed slot (council review 5886927849; the contributor's decisions on #383): the line (as it wraps),
          * its short form, the full-size percentage and the readings are measured at the slot's width, and ChargingFit
@@ -2639,10 +2646,14 @@ public final class DashboardScreen implements AppScreen {
             return Math.round(stageHeight - ui.dp(ChargingFit.TICK_DP) - ui.dp(ChargePicture.TRACK_DP + ChargePicture.tyreGapDp()));
         }
 
+        /** Where the picture's tyres stand in the stage now: Clean's gap above its track, or Widgets' photo's foot. */
+        private int pictureFloor() { return clean ? pictureFloor(stage.getHeight()) : photo.getBottom(); }
+
         /**
-         * Clean: shows the charging picture for this photo key in the photo's place (ChargePicture; null: the photo, as
-         * before). The percentage moves up a little over it and gets its shade, and the floor glow follows its tyres;
-         * the photo view keeps its place and description but draws nothing.
+         * Shows the charging picture for this photo key in the photo's place (ChargePicture; null: the photo, as before),
+         * on Clean's charging view and Widgets' takeover alike. The percentage gets its shade (and on Clean moves up a
+         * little over it), and the floor glow follows its tyres; the photo view keeps its place and description but
+         * draws nothing.
          */
         private void showPicture(String key) {
             String shown = key == null ? null : ChargePicture.shownKey(key);
@@ -2692,7 +2703,7 @@ public final class DashboardScreen implements AppScreen {
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
             photoKnown = known;
-            if (clean) showPicture(known ? ModelRegistry.photo(activeModel()) : null);
+            showPicture(known ? ModelRegistry.photo(activeModel()) : null);
             if (picture != null) { picture.watts(estimate.inputWatts); picture.invalidateLive(); }
             showPhoto();
             stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
@@ -2766,9 +2777,20 @@ public final class DashboardScreen implements AppScreen {
                 super.onDetachedFromWindow();
             }
 
+            /** Widgets: the picture's tyres stand where the photo's foot is (the takeover's own layout is unchanged). */
+            @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                super.onLayout(changed, left, top, right, bottom);
+                if (!clean && picture != null) picture.size(right - left, photo.getBottom());
+            }
+
             @Override
             protected void onDraw(Canvas canvas) {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
+                if (!clean && picture != null) {
+                    // Widgets with a charging picture: its floor glow, as Clean's (the charge bar draws the floor line).
+                    if (photo.getVisibility() == View.VISIBLE && w > 0) drawCleanGlow(canvas, w);
+                    return;
+                }
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
                     drawTrack(canvas, w, getHeight());
@@ -2804,7 +2826,7 @@ public final class DashboardScreen implements AppScreen {
             /**
              * Clean: the mock-up's red glow, a wide soft ellipse under the scooter's wheels (about 286 x 60 dp on a 344 dp
              * phone, at most 1.7 times the photo's side on a wide window), centred under the photo; it breathes with
-             * {@link #glow} while charging is on screen. With a charging picture it is the picture's.
+             * {@link #glow} while charging is on screen. With a charging picture (Clean or Widgets) it is the picture's.
              */
             private void drawCleanGlow(Canvas canvas, float w) {
                 float cx = w / 2, floor = photo.getBottom() - photoSide * .04f;
@@ -2816,7 +2838,7 @@ public final class DashboardScreen implements AppScreen {
                     // The charging picture's floor glow, as the prototype draws it under the tyres for every model (129 x
                     // 34 dp round a point 10 dp left of the 283.6 x 136.3 dp wire picture's centre, at its foot),
                     // breathing a little (0.85 at rest, 0.74 to 0.88 while it runs).
-                    ChargeWireModels.Placement at = picture.glowPlacement((int) w, pictureFloor(getHeight()));
+                    ChargeWireModels.Placement at = picture.glowPlacement((int) w, pictureFloor());
                     float pw = at.width(ChargeWireModels.UT5_MAX), ph = at.height(ChargeWireModels.UT5_MAX);
                     if (pw <= 0) return;
                     cx = at.left + pw * .4644f; floor = at.top + ph * .9956f;
