@@ -135,11 +135,6 @@ public final class OnboardingScreen implements AppScreen {
     private int step;
     private String renderedKey = "";
     private boolean closed;
-    /** "Write down your owner key" while it is up (keyPrompt()), and what keeps its buttons current; null otherwise. */
-    private AlertDialog keyPrompt;
-    private Runnable keyPromptUpdate;
-    /** The rider dismissed it on this screen: it never comes back here, even if its record failed to save. */
-    private boolean keyPromptDismissed;
 
     public OnboardingScreen(ScreenHost host, Listener listener) {
         this.host = host;
@@ -1776,6 +1771,12 @@ public final class OnboardingScreen implements AppScreen {
             super.onMeasure(widthSpec, heightSpec);
         }
     }
+
+    /** "Write down your owner key" while it is up (keyPrompt()), and what keeps its buttons current; null otherwise. */
+    private AlertDialog keyPrompt;
+    private Runnable keyPromptUpdate;
+    /** The rider dismissed it on this screen: it never comes back here, even if its record failed to save. */
+    private boolean keyPromptDismissed;
 
     // ---------------------------------------------------------------- troubleshooting sheet
 
