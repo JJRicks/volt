@@ -495,7 +495,7 @@ public final class BleController {
      */
     private boolean findSerialRefused(Protocol.Frame f){
         if(!finding()||f.cmd!=0x74||f.error()!=0||f.data.length<2)return false;
-        String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace("\u0000","").trim();
+        String received=new String(Arrays.copyOfRange(f.data,1,Math.min(18,f.data.length)),StandardCharsets.US_ASCII).replace(String.valueOf((char)0),"").trim();
         if(FindNearby.serial(profile.serial,received)==FindNearby.Serial.MATCH)return false;
         findRefused();return true;
     }
