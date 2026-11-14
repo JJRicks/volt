@@ -50,6 +50,8 @@ public final class RidingChipWidenTest {
             strictReadings();
             neverShrinks();
             traceColumnFromWidest();
+            focusRowsStay();
+            widestDigitByFraction();
             rowHidesTheLast();
             sourceWiring();
         } finally {
@@ -58,7 +60,8 @@ public final class RidingChipWidenTest {
         }
         System.out.println("RidingChipWidenTest: " + checks + " checks passed (the four usual-room readings, usual values, "
                 + "GPS widens once, a compact fix before the first fit, Almost empty, regen, a hot pack, strict readings, "
-                + "never shrinks, Trace's column from the widest values, the last chip hides, wiring)");
+                + "never shrinks, Trace's column from the widest values, Focus's rows stay, the widest figure by fractional width, "
+                + "the last chip hides, wiring)");
     }
 
     /** Samples by form: in full and on the tightest rung the same, in compact form each its compact text (or itself). */
@@ -309,31 +312,173 @@ public final class RidingChipWidenTest {
                 check(gpsWidenings <= 1 && tempWidenings <= 1, unit + ": at most one widening per reading: " + gpsWidenings + ", " + tempWidenings);
             }
         }
-        // The column's room: from the widest values, so a widening within them never changes it.
+        // The column's room: from the widest values, so a widening within them never changes it. Each width is a steady
+        // chip's with what it kept, at the rung it was fitted at from its widest values (0: a follower, or not shown).
         int base = 99, size = 234;
-        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{99, 62}) == base,
+        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}) == base,
                 "a GPS chip widened to its widest (±888 ft) fits the room it fitted before: the room stays");
-        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{111, 62}) == 111,
+        check(RidingChipFit.columnRoom(base, size, new int[]{111, 62}) == 111,
                 "a fix past even the widest (±1000 ft, kept as ±8888 ft) widens the column once to hold it, no follower");
-        check(RidingChipFit.columnRoom(base, size, new int[]{99, 62}, new int[]{300, 62}) == size, "never past the row");
-        check(RidingChipFit.columnRoom(base, size, new int[]{140, 62}, new int[]{150, 62}) == base,
+        check(RidingChipFit.columnRoom(base, size, new int[]{300, 62}) == size, "never past the row");
+        check(RidingChipFit.columnRoom(base, size, new int[]{0, 62}) == base,
                 "a chip whose widest never fitted (Max speed) leaves the room alone: it follows its value, as before");
-        // With the fake font: the GPS chip's tightest widths, from its widest values and with a ±1000 ft fix kept.
+        check(RidingChipFit.columnRoom(Integer.MAX_VALUE, Integer.MAX_VALUE, new int[]{111}) == Integer.MAX_VALUE, "an unmeasured column has no room limit");
+        // With the fake font: the GPS chip's widths from its widest values, and with a ±1000 ft fix kept.
         RidingChipFit.Reserve gps = new RidingChipFit.Reserve();
         String[][] usual = gpsUsual(), strict = gpsStrict();
         int fitted = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
         see(gps, "±150 ft", null, usual, strict);
         int afterWidest = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
-        check(afterWidest == fitted && RidingChipFit.columnRoom(fitted, size, new int[]{fitted}, new int[]{afterWidest}) == fitted,
+        check(afterWidest == fitted && RidingChipFit.columnRoom(fitted, size, new int[]{afterWidest}) == fitted,
                 "±150 ft: the room is the one before widening");
         see(gps, "±1000 ft", null, usual, strict);
         int afterKept = Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT]);
-        int room = RidingChipFit.columnRoom(fitted, size, new int[]{fitted}, new int[]{afterKept});
+        int room = RidingChipFit.columnRoom(fitted, size, new int[]{afterKept});
         check(afterKept > fitted && room == afterKept, "±1000 ft: the room grows once to the kept width");
         see(gps, "±1888 ft", null, usual, strict);
-        check(RidingChipFit.columnRoom(fitted, size, new int[]{fitted},
+        check(RidingChipFit.columnRoom(fitted, size,
                 new int[]{Math.round(gps.widest(gps.samples(null, strict), MEASURE)[RidingChipFit.FORM_COMPACT])}) == room,
                 "another four-figure fix: the same room, no second move");
+        columnKeepsItsRung();
+        followersFromTheColumnsOwnRoom();
+    }
+
+    /** Widths by rung (FULL ... TIGHT), the same for every chip. */
+    private static RidingChipFit.Widths byRung(final int... widths) {
+        return (chip, rung, step) -> widths[Math.min(rung, widths.length - 1)];
+    }
+
+    /**
+     * About 380 dp (the council on #500, F03): the GPS chip fitted in full in the column's own room, then a ±1000 ft fix,
+     * wider than that room in full but not on the tightest rung. The room grows to hold it at the rung it's drawn at, so
+     * it keeps that rung and never gets narrower. Taking the room from its tightest width left the room as it was, and
+     * the chip stepped down to the tightest rung: a worse fix made the pill and the column narrower.
+     */
+    private static void columnKeepsItsRung() {
+        String[][] marks = {{null, null, null}};
+        String[] contents = {RidingLayout.GPS_ACCURACY};
+        int base = 130, size = 380;
+        RidingChipFit.Widths widest = byRung(120, 118, 116, 114, 112, 99), kept = byRung(140, 138, 136, 134, 132, 125);
+        RidingChipFit fit = RidingChipFit.column(marks, contents, widest, base, Integer.MAX_VALUE);
+        check(fit.shown[0] && fit.rung == RidingChipFit.FULL, "the GPS chip fits in full from its widest values");
+        int room = RidingChipFit.columnRoom(base, size, new int[]{kept.at(0, fit.rung, fit.steps[0])});
+        check(room == 140, "the room grows to the kept width at the rung the chip is drawn at: " + room);
+        RidingChipFit again = RidingChipFit.column(marks, contents, widest, base, Integer.MAX_VALUE);
+        check(again.rung == fit.rung && Math.min(room, kept.at(0, again.rung, again.steps[0])) >= widest.at(0, fit.rung, fit.steps[0]),
+                "the chip keeps its rung and never gets narrower after a worse fix");
+        // What the tightest width alone gave: no growth, and a fit against the kept widths steps the chip down.
+        int tightOnly = RidingChipFit.columnRoom(base, size, new int[]{kept.at(0, RidingChipFit.TIGHT, 0) > base ? kept.at(0, RidingChipFit.TIGHT, 0) : 0});
+        RidingChipFit before = RidingChipFit.column(marks, contents, kept, tightOnly, Integer.MAX_VALUE);
+        check(tightOnly == base && before.rung > fit.rung, "(the old room from the tightest width stepped the chip down)");
+    }
+
+    /**
+     * 344 dp, Trace with GPS accuracy and Power (the council on #500, F02): Power's widest values don't fit the column's
+     * own room, so it follows its value. A ±1000 ft fix widens the column for the GPS chip; Power still follows, as its
+     * followers are decided in the column's own room, not the widened one, so it never jumps to a fixed widest width.
+     */
+    private static void followersFromTheColumnsOwnRoom() {
+        int base = 99, size = 234, gpsTight = 87, powerTight = 105, gpsKept = 111;
+        boolean powerFollows = powerTight > base, gpsFollows = gpsTight > base;
+        int room = RidingChipFit.columnRoom(base, size, new int[]{gpsFollows ? 0 : gpsKept, powerFollows ? 0 : powerTight});
+        check(!gpsFollows && powerFollows && room == gpsKept, "the column widens for the GPS chip alone");
+        check(powerTight > base, "Power is decided against the column's own room, " + base + ", and still follows in " + room);
+        check(powerTight <= room, "(in the widened room Power's widest would fit, and it would have stopped following)");
+    }
+
+    /**
+     * Focus's rows (#496) split from every chip's widest values and never change: a chip widened past its usual values
+     * draws within that width, and one past even its widest values (a ±1000 ft fix) hides its row's last chips while the
+     * row is too wide, never another row's, and never moves a chip to another row or adds one (RidingChipRows.fitting).
+     */
+    private static void focusRowsStay() {
+        java.util.Random random = new java.util.Random(496);
+        for (int run = 0; run < 2000; run++) {
+            int n = 1 + random.nextInt(4), gap = 8, room = 200 + random.nextInt(300);
+            String[][] marks = new String[n][];
+            String[] contents = new String[n];
+            final int[] strict = new int[n];
+            for (int i = 0; i < n; i++) { marks[i] = new String[]{null, null, null}; contents[i] = RidingLayout.GPS_ACCURACY; strict[i] = 60 + random.nextInt(140); }
+            RidingChipFit.Widths widths = (chip, rung, step) -> strict[chip];
+            RidingChipRows split = RidingChipRows.split(marks, contents, widths, widths, null, gap, room, 1 + random.nextInt(3));
+            boolean[] showing = new boolean[n];
+            for (int i = 0; i < n; i++) showing[i] = split.row[i] >= 0;
+            int[] drawn = new int[n];
+            for (int i = 0; i < n; i++) drawn[i] = strict[i] - random.nextInt(20);
+            check(java.util.Arrays.equals(split.fitting(drawn, showing, gap, room), showing), "within the widest values every chip in a row shows");
+            int widened = -1;
+            for (int step = 0; step < 6; step++) {
+                int i = random.nextInt(n);
+                // Usual to widest (within the split), or once past the widest (kept), never back.
+                if (random.nextBoolean()) drawn[i] = Math.max(drawn[i], strict[i]);
+                else if (widened < 0) { drawn[i] = Math.min(room, strict[i] + 1 + random.nextInt(80)); widened = i; }
+                boolean[] now = split.fitting(drawn, showing, gap, room);
+                for (int r = 0; r < split.rows; r++) {
+                    boolean hid = false;
+                    for (int k = 0; k < n; k++) {
+                        if (split.row[k] != r || !showing[k]) continue;
+                        // In slot order, the chips that show are the row's first ones: only its last ones hide.
+                        if (!now[k]) hid = true;
+                        else check(!hid, "a chip hides only after every chip before it in its row shows");
+                    }
+                    if (widened < 0 || split.row[widened] != r)
+                        for (int k = 0; k < n; k++) if (split.row[k] == r && showing[k]) check(now[k], "another row's chips all show");
+                    int[] left = split.lefts(drawn, now, gap);
+                    for (int k = 0; k < n; k++) if (left[k] >= 0 && k != firstIn(split, now, r)) check(split.row[k] != r || left[k] + drawn[k] <= room, "a row fits its room");
+                }
+                check(split.height(40, gap) == split.rows * 40 + Math.max(0, split.rows - 1) * gap, "the rows' height is the split's");
+            }
+        }
+    }
+
+    private static int firstIn(RidingChipRows split, boolean[] showing, int row) {
+        for (int i = 0; i < split.row.length; i++) if (split.row[i] == row && showing[i]) return i;
+        return -1;
+    }
+
+    /**
+     * The font's widest figure is picked by fractional widths (the council on #500): Saira's advance widths, per 1000 of
+     * the size, for the chip's bold value and the regular. At 17 sp and these densities and text sizes, whole-pixel
+     * widths tie 0 or 6 with 8 and the first won; a usual "±88 ft" sample was then measured as "±00 ft" and a real ±88 ft
+     * fix widened the chip. By fractional widths 8 wins everywhere, and ±88 ft draws inside its usual samples.
+     */
+    private static void widestDigitByFraction() {
+        int[][] fonts = {{663, 395, 612, 608, 650, 625, 664, 572, 681, 664}, {671, 376, 610, 601, 642, 619, 657, 563, 683, 657},
+                {668, 383, 611, 604, 645, 621, 661, 566, 683, 661}, {666, 389, 611, 607, 647, 623, 664, 569, 682, 664}};
+        int tiesLost = 0, oldWidened = 0;
+        for (int[] advances : fonts)
+            for (double density : new double[]{1, 1.25, 1.5, 1.75, 2, 2.625, 2.75, 3, 3.5, 4})
+                for (double scale : new double[]{.85, 1, 1.15, 1.3, 1.5, 1.8, 2}) {
+                    final double px = 17 * density * scale;
+                    float[] fraction = new float[10], whole = new float[10];
+                    for (int d = 0; d < 10; d++) {
+                        fraction[d] = (float) (advances[d] / 1000.0 * px);
+                        whole[d] = (float) Math.ceil(fraction[d]);
+                    }
+                    int pick = RidingChipFit.widestDigit(fraction), wholePick = RidingChipFit.widestDigit(whole);
+                    check(pick == 8, "the widest figure is 8 by fractional width at " + density + "x, " + scale + ": " + pick);
+                    if (wholePick != 8) tiesLost++;
+                    RidingChipFit.Measure measure = text -> {
+                        float w = 0;
+                        for (int i = 0; i < text.length(); i++) {
+                            char c = text.charAt(i);
+                            w += c >= '0' && c <= '9' ? advances[c - '0'] / 1000f * (float) px : (float) (.5 * px);
+                        }
+                        return w;
+                    };
+                    for (int picked : new int[]{pick, wholePick}) {
+                        String[][] usual = forms(new String[]{RidingChipFit.widened("±88 ft", DIGITS, picked)}, null);
+                        String[][] strict = forms(new String[]{RidingChipFit.widened("±888 ft", DIGITS, picked)}, null);
+                        RidingChipFit.Reserve reserve = new RidingChipFit.Reserve();
+                        boolean widens = reserve.see(RidingChipFit.drawnByForm("±88 ft", null, null), usual, strict, measure, DIGITS, picked);
+                        if (picked == pick) check(!widens && !reserve.pastUsual(), "±88 ft stays in its usual room at " + density + "x, " + scale);
+                        else if (widens) oldWidened++;
+                    }
+                }
+        check(tiesLost > 0 && oldWidened > 0, "(whole-pixel widths lost the tie and widened at some densities: " + tiesLost + ", " + oldWidened + ")");
+        check(RidingChipFit.widestDigit(new float[]{5, 5, 5, 5, 5, 5, 5, 5, 5, 5}) == 0, "equal widths (tabular figures): the first");
+        check(RidingChipFit.widestDigit(new float[9]) == -1 && RidingChipFit.widestDigit(null) == -1, "without ten figures: none");
+        check(RidingChipFit.widestDigit(new float[10]) == -1, "unmeasured figures: none");
     }
 
     /** Fixed widths [rung][chip], the same whatever the name step and size. */
@@ -373,17 +518,28 @@ public final class RidingChipWidenTest {
         check(screen.contains("for (Shown s : samples(content, units, false))"), "the highlight's widest values are the full ones");
         // Trace's column: its room, its fit and its width from each chip's widest values (traceColumnFromWidest).
         check(screen.contains("String[][] widest = reserve.samples(null, strictForms);"), "a chip's widest samples ignore its usual room");
-        check(screen.contains("room = Math.max(room, Math.min(size, chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));"),
+        check(screen.contains("room = Math.max(room, Math.min(size, chip.strictWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));"),
                 "the column's room comes from the self-naming chips' widest values");
-        check(screen.contains("&& chip.widestWidthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > room;"),
-                "a chip follows its value only when its widest can't fit the column");
-        check(screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, false),")
-                && screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, true), canStep, room, limit);"),
-                "the column fits from the widest values");
-        check(screen.contains("room = RidingChipFit.columnRoom(room, size, fitted, kept);"), "the column's room widens once for a value past the widest");
+        check(screen.contains("&& chip.strictWidthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > base;"),
+                "a chip follows its value only when its widest can't fit the column's own room, never the widened one");
+        check(screen.contains(": wanted.get(chip).strictWidthAt(normal, rung, step, false),")
+                && screen.contains(": wanted.get(chip).strictWidthAt(normal, rung, step, true), canStep, base, Integer.MAX_VALUE);"),
+                "the column fits from the widest values, in its own room");
+        check(screen.contains("keptWidths[i] = wanted.get(i).widestWidthAt(normal, fit.rung, fit.steps[i], fit.compact[i]);")
+                && screen.contains("int room = RidingChipFit.columnRoom(base, size, keptWidths);"),
+                "the column's room widens once for a value past the widest, at the rung the chip is drawn at");
         check(screen.contains("if (group.getMinimumWidth() != columnWidth) group.setMinimumWidth(columnWidth);"),
                 "the column keeps its chips' widest width");
+        // Focus's rows: split from the widest values; a chip past them hides its row's last chip, nothing changes row.
+        check(screen.contains("(chip, rung, step) -> chips.get(chip).strictWidthAt(normal, rung, step, false),")
+                && screen.contains("(chip, rung, step) -> chips.get(chip).strictWidthAt(normal, rung, step, true), canStep, ui.dp(CHIP_GAP_DP), room, most);"),
+                "Focus's rows split from the widest values");
+        check(screen.contains("showing = split.fitting(widths, showing, gap, room);"), "a Focus row too wide hides its last chip");
+        // The widest figure: by the measure Reserve.see takes, in fractional pixels.
+        check(screen.contains("figures[d] = ruler.measureText(digits, d, d + 1);") && screen.contains("widestDigit = RidingChipFit.widestDigit(figures);")
+                && screen.contains("ruler::measureText, digits, widestDigit"), "the widest figure is picked by the reserve's own measure");
         int row = screen.indexOf("private void fitRow("), column = screen.lastIndexOf("/**", screen.indexOf("private void fitColumn("));
-        check(row > 0 && column > row && !screen.substring(row, column).contains("widestWidthAt"), "Halo's row fits as before");
+        check(row > 0 && column > row && !screen.substring(row, column).contains("widestWidthAt")
+                && !screen.substring(row, column).contains("strictWidthAt"), "Halo's row fits as before");
     }
 }

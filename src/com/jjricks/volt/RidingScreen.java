@@ -2462,12 +2462,15 @@ final class RidingScreen implements AppScreen {
      * (Max speed's 888.8 mph beside the speed on a 344 dp cover screen) is fitted to the value on show, as every chip was
      * before, rather than never showing: it can still step aside when its value grows. The others stay steady.
      *
-     * The column fits, and keeps its width, from each chip's widest values (Chip.widestWidthAt), as before usual room: a
-     * usual-room reading (battery temperature, GPS accuracy...) draws at its usual width inside that, and its widening once
-     * past its usual values grows its own pill and never the column, never the speed beside it, and never makes it a
-     * follower (the council on #500).
+     * The column fits from each chip's widest values without any value kept past them (Chip.strictWidthAt), in base, as
+     * before usual room: a usual-room reading (battery temperature, GPS accuracy...) draws at its usual width inside that,
+     * and its widening once past its usual values grows its own pill and never the column, never the speed beside it, and
+     * never makes it a follower (the council on #500). Which chips follow their value is decided in base too, so a column
+     * widened for a kept value never stops a neighbour (Power) following its own. A steady chip that keeps a value past
+     * its widest (a ±1000 ft fix) widens the column once, up to size, to hold it at the rung and name it was fitted at
+     * (RidingChipFit.columnRoom): the rungs, names and which chips show stay as they were.
      */
-    private void fitColumn(ChipColumn group, int room, int upTo, boolean followValues) {
+    private void fitColumn(ChipColumn group, int base, int size, int upTo, boolean followValues) {
         List<Chip> wanted = wanted(group, upTo);
         int n = wanted.size();
         String[][] marks = new String[n][];
@@ -2478,15 +2481,19 @@ final class RidingScreen implements AppScreen {
         boolean[] follows = new boolean[n];
         for (int i = 0; i < n; i++) {
             Chip chip = wanted.get(i);
-            follows[i] = followValues && room != Integer.MAX_VALUE
-                    && chip.widestWidthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > room;
+            follows[i] = followValues && base != Integer.MAX_VALUE
+                    && chip.strictWidthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > base;
             chip.followsValue = follows[i];
         }
         RidingChipFit fit = RidingChipFit.steppingColumn(marks, contents,
                 (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, false)
-                        : wanted.get(chip).widestWidthAt(normal, rung, step, false),
+                        : wanted.get(chip).strictWidthAt(normal, rung, step, false),
                 (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, true)
-                        : wanted.get(chip).widestWidthAt(normal, rung, step, true), canStep, room, Integer.MAX_VALUE);
+                        : wanted.get(chip).strictWidthAt(normal, rung, step, true), canStep, base, Integer.MAX_VALUE);
+        int[] keptWidths = new int[n];
+        for (int i = 0; i < n; i++)
+            if (!follows[i] && fit.shown[i]) keptWidths[i] = wanted.get(i).widestWidthAt(normal, fit.rung, fit.steps[i], fit.compact[i]);
+        int room = RidingChipFit.columnRoom(base, size, keptWidths);
         int gap = ui.dp(CHIP_GAP_DP), shown = 0, columnWidth = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -2563,29 +2570,19 @@ final class RidingScreen implements AppScreen {
             setOrientation(VERTICAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            int room = Integer.MAX_VALUE;
+            int room = Integer.MAX_VALUE, size = Integer.MAX_VALUE;
             if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
-                int size = MeasureSpec.getSize(widthSpec);
+                size = MeasureSpec.getSize(widthSpec);
                 room = (int) (size * CHIP_COLUMN_SHARE);
                 for (int i = 0; i < getChildCount(); i++) {
                     View child = getChildAt(i);
                     if (!(child instanceof Chip)) continue;
                     Chip chip = (Chip) child;
-                    // Its widest, not its usual width, so the column's room never depends on whether a reading widened.
+                    // Its widest, not its usual width, so the column's room never depends on whether a reading widened; a
+                    // value kept past even that widens the column in fitColumn (RidingChipFit.columnRoom).
                     if (chip.namesItself)
-                        room = Math.max(room, Math.min(size, chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));
+                        room = Math.max(room, Math.min(size, chip.strictWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));
                 }
-                // A chip whose widest values fitted, kept since a value past even those (a ±1000 ft fix): the column widens
-                // once to hold it, rather than the chip following its value from then on (RidingChipFit.columnRoom).
-                List<Chip> wanted = wanted(this);
-                int[] fitted = new int[wanted.size()], kept = new int[wanted.size()];
-                for (int i = 0; i < wanted.size(); i++) {
-                    Chip chip = wanted.get(i);
-                    kept[i] = chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, chip.canStep);
-                    fitted[i] = chip.reserve.kept().isEmpty() ? kept[i]
-                            : chip.strictWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, chip.canStep);
-                }
-                room = RidingChipFit.columnRoom(room, size, fitted, kept);
             }
             int upTo = Integer.MAX_VALUE;
             if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
@@ -2597,7 +2594,7 @@ final class RidingScreen implements AppScreen {
                     }
                 if (RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height) < picked) upTo = kept;
             }
-            fitColumn(this, room, upTo, true);
+            fitColumn(this, room, size, upTo, true);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
@@ -2619,7 +2616,11 @@ final class RidingScreen implements AppScreen {
         /** True on the unit line: as wide as the chips shown, so the head can set the row at the right edge. */
         boolean hug;
         ChipRows() { super(host.activity()); }
-        /** The split of these chips into at most most rows of room across, at today's chip size. */
+        /**
+         * The split of these chips into at most most rows of room across, at today's chip size: from each chip's widest
+         * values without any value kept past them (strictWidthAt), so a usual-room reading going past its usual values, or
+         * a value past even its widest, never moves a chip to another row, adds a row or shrinks the number above.
+         */
         private RidingChipRows split(List<Chip> chips, int room, int most) {
             int n = chips.size();
             String[][] marks = new String[n][];
@@ -2628,8 +2629,8 @@ final class RidingScreen implements AppScreen {
             for (int i = 0; i < n; i++) { marks[i] = chips.get(i).marks(); contents[i] = chips.get(i).content; canStep[i] = chips.get(i).canStep; }
             int normal = RidingChipFit.SIZE_NORMAL;
             return RidingChipRows.split(marks, contents,
-                    (chip, rung, step) -> chips.get(chip).widthAt(normal, rung, step, false),
-                    (chip, rung, step) -> chips.get(chip).widthAt(normal, rung, step, true), canStep, ui.dp(CHIP_GAP_DP), room, most);
+                    (chip, rung, step) -> chips.get(chip).strictWidthAt(normal, rung, step, false),
+                    (chip, rung, step) -> chips.get(chip).strictWidthAt(normal, rung, step, true), canStep, ui.dp(CHIP_GAP_DP), room, most);
         }
         /** Every chip picked, shown or not (a drive mode not in yet): what the unit line must take (RidingChipPlace). */
         private List<Chip> all() {
@@ -2669,11 +2670,18 @@ final class RidingScreen implements AppScreen {
                 Chip chip = picked.get(i);
                 boolean inRow = split.row[i] >= 0;
                 if (inRow) {
-                    widths[i] = chip.widthAt(normal, split.rung, split.step[i], split.compact[i]);
+                    // Its own width: a usual-room reading's usual one until a value goes past it, never past the row.
+                    widths[i] = Math.min(room, chip.widthAt(normal, split.rung, split.step[i], split.compact[i]));
                     chip.useRung(normal, split.rung, split.step[i], split.compact[i], widths[i]);
                     chip.measure(MeasureSpec.makeMeasureSpec(widths[i], MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
                 }
                 showing[i] = inRow && chip.wanted;
+            }
+            // A chip widened past its widest values (a ±1000 ft fix) can make its row too wide: the row's last chip steps
+            // aside, and nothing changes row (RidingChipRows.fitting).
+            showing = split.fitting(widths, showing, gap, room);
+            for (int i = 0; i < n; i++) {
+                Chip chip = picked.get(i);
                 if (chip.getVisibility() != (showing[i] ? VISIBLE : GONE)) chip.setVisibility(showing[i] ? VISIBLE : GONE);
             }
             // On the unit line, as wide as the chips showing, so the row's right end stays at the line's right edge.
@@ -2762,6 +2770,8 @@ final class RidingScreen implements AppScreen {
         private String[][] widestForms;
         /** Widths from widestForms, as widths. */
         private int[][][][] widestWidths = newWidths();
+        /** The same from strictForms alone (strictWidthAt). */
+        private int[][][][] strictWidths = newWidths();
         Chip(String content) {
             super(host.activity());
             this.content = content;
@@ -2895,11 +2905,19 @@ final class RidingScreen implements AppScreen {
             }
             return cell[form] - 1;
         }
-        /** The same from the reading's widest values alone, without the values kept past them (ChipColumn's room). */
+        /**
+         * The same from the reading's widest values alone, without the values kept past them: what Trace's column fits
+         * and Focus's rows split from, so neither changes while riding (fitColumn, ChipRows).
+         */
         int strictWidthAt(int size, int rung, int step, boolean compactForm) {
-            int samples = compactForm && canStep ? RidingChipFit.FORM_COMPACT : rung == RidingChipFit.TIGHT ? RidingChipFit.FORM_TIGHT
-                    : RidingChipFit.FORM_FULL;
-            return measureWidth(size, rung, step, strictForms[samples]);
+            int[] cell = strictWidths[size][rung][step + 1];
+            int form = compactForm ? 1 : 0;
+            if (cell[form] == 0) {
+                int samples = compactForm && canStep ? RidingChipFit.FORM_COMPACT : rung == RidingChipFit.TIGHT ? RidingChipFit.FORM_TIGHT
+                        : RidingChipFit.FORM_FULL;
+                cell[form] = measureWidth(size, rung, step, strictForms[samples]) + 1;
+            }
+            return cell[form] - 1;
         }
         /** The chip's width at a size, rung and name step with the value on show (fitColumn's followValues). */
         int nowWidthAt(int size, int rung, int step, boolean compactForm) {
@@ -3019,25 +3037,28 @@ final class RidingScreen implements AppScreen {
          * change nothing. What the chip sizes from is the reserve's choice among them, with the values it kept (useForms).
          */
         private void useSamples(String units) {
-            if (digits == null) {
-                StringBuilder all = new StringBuilder();
-                for (int d = 0; d <= 9; d++) all.append(Fmt.integer(d));
-                digits = all.toString();
-                sized(probe, valuePx);
-                int widest = 0, at = -1;
-                if (digits.length() == 10)
-                    for (int d = 0; d <= 9; d++) {
-                        int w = measured(probe, digits.substring(d, d + 1));
-                        if (w > widest) { widest = w; at = d; }
-                    }
-                widestDigit = at;
-            }
             if (ruler == null) {
                 ruler = new Paint(probe.getPaint());
                 ruler.setTextSize(valuePx);
                 ruler.setLetterSpacing(0);
             }
-            strictForms = forms(samples(content, units, true, false));
+            if (digits == null) {
+                StringBuilder all = new StringBuilder();
+                for (int d = 0; d <= 9; d++) all.append(Fmt.integer(d));
+                digits = all.toString();
+                // By the measure Reserve.see takes, in fractional pixels: whole-pixel widths tie (RidingChipFit.widestDigit).
+                float[] figures = null;
+                if (digits.length() == 10) {
+                    figures = new float[10];
+                    for (int d = 0; d <= 9; d++) figures[d] = ruler.measureText(digits, d, d + 1);
+                }
+                widestDigit = RidingChipFit.widestDigit(figures);
+            }
+            String[][] strict = forms(samples(content, units, true, false));
+            if (!java.util.Arrays.deepEquals(strict, strictForms)) {
+                strictForms = strict;
+                strictWidths = newWidths();
+            }
             usualForms = RidingLayout.chipHasUsualRoom(content) ? forms(samples(content, units, true, true)) : null;
             useForms();
         }
@@ -3095,6 +3116,8 @@ final class RidingScreen implements AppScreen {
                         // Other names in reach (a new language): fit again. Names within reach only swap the text shown.
                         nameSets = sets;
                         widths = newWidths();
+                        widestWidths = newWidths();
+                        strictWidths = newWidths();
                         requestLayout();
                     }
                     String shownName = nameAt(names, shownStep < 0 ? RidingChipFit.NAME_FULL : shownStep);

@@ -484,16 +484,16 @@ final class RidingChipFit {
     }
 
     /**
-     * Trace's column room: base (its share of the row, or a self-naming chip's widest), widened once for each chip whose
-     * widest values fitted base (fitted[i], its tightest width from them) but which has since kept a value past them
-     * (kept[i], its tightest width with that value), up to size. A usual-room reading going past its usual values changes
-     * neither width, so never the room; a chip whose widest values never fitted (Max speed's 888.8 mph) still follows
-     * its value (fitColumn), as before.
+     * Trace's column room: base (its share of the row, or a self-naming chip's widest), widened once to hold each steady
+     * chip at the rung and name it was fitted at from its widest values (fitColumn), now that it has kept a value past
+     * them (a ±1000 ft fix): widest[i] is that chip's width with what it kept, 0 for a chip that follows its value or
+     * doesn't show. Up to size. Without a kept value each width is at most base (the fit was made in it), so the room is
+     * base: a usual-room reading going past its usual values never moves it. The width is the one at the chip's own rung,
+     * not its tightest, so a worse fix never steps the chip down a rung and makes it narrower (the council on #500).
      */
-    static int columnRoom(int base, int size, int[] fitted, int[] kept) {
+    static int columnRoom(int base, int size, int[] widest) {
         int room = base;
-        for (int i = 0; i < fitted.length; i++)
-            if (kept[i] > fitted[i] && fitted[i] <= base) room = Math.max(room, Math.min(size, kept[i]));
+        for (int w : widest) if (w > base) room = Math.max(room, Math.min(size, w));
         return room;
     }
 
@@ -531,6 +531,20 @@ final class RidingChipFit {
             if (Character.isLetter(c) || Character.getType(c) == Character.OTHER_PUNCTUATION) return true;
         }
         return false;
+    }
+
+    /**
+     * The widest of a language's ten figures, 0 to 9, by their drawn widths in fractional pixels (Paint.measureText, the
+     * measure Reserve.see takes): its index, the first of equal widths, or -1 without ten widths. Whole-pixel view widths
+     * tie: at 1.25, 1.5, 2.75 and 3.0 times density Saira's 0 or 6 rounds to the same pixel as its 8, which is truly the
+     * widest, and won, so a usual "±88 ft" sample was measured as "±00 ft", narrower than a real ±88 ft fix, and the chip
+     * widened while the reading was still two figures (the council on #500).
+     */
+    static int widestDigit(float[] widths) {
+        if (widths == null || widths.length != 10) return -1;
+        int at = 0;
+        for (int d = 1; d < 10; d++) if (widths[d] > widths[at]) at = d;
+        return widths[at] > 0 ? at : -1;
     }
 
     /**
