@@ -95,7 +95,8 @@ import com.jjricks.volt.WideLayout;
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
  * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
- * fixture runners. Every word it types or reads is English: run it with the emulator in en-US.
+ * fixture runners. -e dock_arrival lifted|resting|aside requires that state of the dock as Widgets Home opens. Every
+ * word it types or reads is English: run it with the emulator in en-US.
  */
 public final class HubValidation extends Instrumentation {
     private static final String FIXTURE_NAME = "Synthetic hub fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
@@ -445,6 +446,11 @@ public final class HubValidation extends Instrumentation {
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(root().findViewWithTag("hub-dock") != null && root().findViewWithTag("hub-dock-handle") != null, "Widgets Home has no dock or All item"));
         boolean aside = dockClearOfLock("Widgets Home");
+        // -e dock_arrival names how the step's window shows the dock as Widgets Home opens: lifted above the Lock bar,
+        // resting in its own place, or aside (no room to lift it).
+        String arrival = aside ? "aside" : dockLifted ? "lifted" : "resting";
+        if (arguments.containsKey("dock_arrival"))
+            require(arrival.equals(arguments.getString("dock_arrival")), "Widgets Home opened with the dock " + arrival + ", expected " + arguments.getString("dock_arrival"));
         // Pictured as Home opens: with the dock lifted above the Lock bar where it would cover it.
         screenshot("widgets-home");
         dockInReach("Widgets Home");
