@@ -1,0 +1,4 @@
+# Make a new owner key (NewOwnerKey): the key's shape and randomness, the owner check that carries it, and when setup may delete one.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/NewOwnerKey.java
+tests/l10n/NewOwnerKeyTest.java

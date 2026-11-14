@@ -55,6 +55,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/GpsAccuracy.java" "$TEST_DIR/GpsAccurac
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
+# Icon labels: a centred label's text centres on the whole label, never at the cost of its text (IconLabelBalance).
+sources+=("$APP_DIR/src/com/jjricks/volt/IconLabelBalance.java" "$TEST_DIR/IconLabelBalanceTest.java")
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6),
@@ -83,6 +85,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ScooterMenuLayout.java" "$TEST_DIR/Scoo
 sources+=("$APP_DIR/src/com/jjricks/volt/ControlsPages.java" "$TEST_DIR/ControlsPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubSummaries.java" "$TEST_DIR/HubSummariesTest.java")
 # Hub routes: where each saved Quick access id leads once the quick-access sheets are gone (hub layout plan, PR 4).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubRoutes.java" "$TEST_DIR/HubRoutesTest.java")
+# The Ride page's tiles and recent rides, and Battery & charging's summary card, charge track, rows and HISTORY bars (the owner's Layout Plan).
+sources+=("$APP_DIR/src/com/jjricks/volt/RideRecordTile.java" "$APP_DIR/src/com/jjricks/volt/ChargeTrackShape.java" "$APP_DIR/src/com/jjricks/volt/BatterySummaryFit.java" "$APP_DIR/src/com/jjricks/volt/ChargeHistoryBars.java" "$APP_DIR/src/com/jjricks/volt/PageRows.java" "$TEST_DIR/HubPageTilesTest.java")
 # The shortcut picker's sections, first open section, search and availability; the Charge alerts shortcut's value.
 sources+=("$APP_DIR/src/com/jjricks/volt/ShortcutPicker.java" "$TEST_DIR/ShortcutPickerTest.java")
 # Ride and Data as subjects: the moved switches keep their keys and defaults (hub layout plan, PR 5).
@@ -182,21 +186,23 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest
+java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAveragesTest
-java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest
+java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubSummariesTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPageTilesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"

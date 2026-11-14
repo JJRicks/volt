@@ -84,6 +84,26 @@ final class HubSummaries {
     }
 
     /**
+     * Battery & charging's summary card, right column: the reported battery health in whole percent, only from a live
+     * reading ({@link #live}) in 1-100, else null and the line hides. A model that doesn't report health never has a
+     * number here, so the line shows only where the model reports it; a last-seen value is never stated as now.
+     */
+    static Integer health(Double number, boolean live) {
+        Double value = live(number, live);
+        if (value == null || value <= 0 || value > 100) return null;
+        return (int) Math.round(value);
+    }
+
+    /**
+     * Battery & charging's summary card, right column: the pack temperature in degrees Celsius, only from a live
+     * reading within -40 to 100 (anything outside is not a battery temperature), else null and the line hides.
+     */
+    static Double packTemperature(Double celsius, boolean live) {
+        Double value = live(celsius, live);
+        return value == null || value < -40 || value > 100 ? null : value;
+    }
+
+    /**
      * A setting's value as its row reads it, or null when the row shows it as unknown: a value outside the variant's
      * settings, such as the OEM charge limit's 0 ("Default (80%)", a sentinel Volt treats as unknown). Without a variant
      * (a profile that has never connected: catalogue rows, unavailable) the value passes as it is.
@@ -151,5 +171,20 @@ final class HubSummaries {
     static boolean rescanRides(boolean recording, boolean ended, boolean known, long sinceMs, long everyMs) {
         if (recording) return false;
         return ended || !known || sinceMs >= everyMs;
+    }
+
+    /**
+     * Whether Clean's Ride row takes the ride Clean's top area found (CleanHomeScreen's look at the saved rides, the
+     * one Just back shows) over its own. The row lists only rides already in memory and looks again every half
+     * minute, so a ride saved while Home shows (or one still being read) appeared on Just back while the row said "No
+     * rides yet" (emulator walk on #390). It takes a found ride while it knows none, or knows an older one; never one
+     * older than its own, and not while a ride records (the row shows the recording then).
+     *
+     * @param ownEndMs the row's newest finished ride's shown end (wall clock), or null for none known
+     * @param foundEndMs the found ride's shown end, or null when nothing was found
+     */
+    static boolean takeFoundRide(boolean recording, Long ownEndMs, Long foundEndMs) {
+        if (recording || foundEndMs == null) return false;
+        return ownEndMs == null || foundEndMs > ownEndMs;
     }
 }

@@ -9,6 +9,8 @@ import java.util.Map;
 public final class ScooterSimulation {
     private final LinkedHashMap<String, Integer> features = new LinkedHashMap<>();
     private final LinkedHashMap<String, Sample> fixed = new LinkedHashMap<>();
+    /** Validation-held readings (hold), written after the scene's in each tick. */
+    private final LinkedHashMap<String, Sample> held = new LinkedHashMap<>();
     private long chargeStart;
     /** Synthetic advertised model ID; "" is the default UT5 MAX simulator. Never stored or exported. */
     private String model = "";
@@ -130,6 +132,11 @@ public final class ScooterSimulation {
     private void choose(String key, int value) { features.put(key, value); }
     private void sample(String key, String text, double number) { fixed.put(key, new Sample(text, number)); }
     private void text(String key, String text) { fixed.put(key, new Sample(text, null)); }
+    /**
+     * A reading that wins over the scene's and the script's own on every tick until held again, for emulator validations
+     * that need a value no scene gives (a walking-pace speed while Parked). Memory only; nothing in the app calls it.
+     */
+    void hold(String key, String text, double number) { held.put(key, new Sample(text, number)); }
 
     public Map<String, Integer> features() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(features));
@@ -361,6 +368,8 @@ public final class ScooterSimulation {
             signState(out, false, elapsedMs);
             ride(out, elapsedMs, phase);
         } else scene(out, elapsedMs, phase);
+        for (Map.Entry<String, Sample> h : held.entrySet())
+            out.putSimulationSample(h.getKey(), h.getValue().text, h.getValue().number, elapsedMs);
         out.flush(telemetry);
     }
 

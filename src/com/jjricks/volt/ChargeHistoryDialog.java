@@ -77,14 +77,14 @@ final class ChargeHistoryDialog {
     private void failed() {
         if (!available()) return;
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
-        LinearLayout box = padded(); box.addView(ui.caption(T.statsChargeHistoryFailed()));
+        LinearLayout box = padded(); box.addView(ui.caption(failedText()));
         box.addView(ui.secondaryButton(T.statsChargeHistoryRetry(), this::load)); body.addView(box);
     }
     private void showList() {
         if (!available()) return;
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout list = padded(); list.setTag("charge-history-list");
-        if (recordings.isEmpty()) list.addView(ui.caption(T.statsChargeHistoryEmpty()));
+        if (recordings.isEmpty()) list.addView(ui.caption(emptyText()));
         for (ChargeSessionStore.HistorySession session : recordings) {
             LinearLayout row = column(); row.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
             row.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 45)),
@@ -125,6 +125,36 @@ final class ChargeHistoryDialog {
             text += T.statsChargeChargerStopped(session.chargerPauses, session.chargerPauses, duration(session.chargerPausedMs));
         return text;
     }
+    /**
+     * Battery & charging's HISTORY card line for its last charge (ChargeHistoryBars.last): its battery span and how long
+     * it ran, "42% → 90% · 2 h 10 min"; the empty list's words when there is none.
+     */
+    static String lastChargeLine(ChargeHistoryBars.Charge charge) {
+        if (charge == null) return emptyText();
+        return span(charge.from, charge.to) + " · " + duration(charge.ms);
+    }
+    /**
+     * The HISTORY card's line (ChargeHistoryBars.line) in this dialog's words: the last charge's line, "No saved charge
+     * recordings yet.", "No battery samples" when no recording has one, or "Could not load recordings." for a failed read.
+     */
+    static String historyCardLine(ChargeHistoryBars.Line kind, ChargeHistoryBars.Charge last) {
+        switch (kind) {
+            case FAILED: return failedText();
+            case NO_SAMPLES: return noSamplesText();
+            case LAST: return lastChargeLine(last);
+            default: return emptyText();
+        }
+    }
+    /** "Could not load recordings.": the list's and the HISTORY card's words for a failed read. */
+    private static String failedText() { return T.statsChargeHistoryFailed(); }
+    /** "No battery samples": a recording's and the HISTORY card's words when there is no battery sample. */
+    private static String noSamplesText() { return T.statsChargeNoBatterySamples(); }
+    /** "No saved charge recordings yet." */
+    private static String emptyText() { return T.statsChargeHistoryEmpty(); }
+    /** A recording's battery span, "42% → 90%". */
+    private static String span(double first, double last) {
+        return T.statsChargeBatterySpan(Fmt.decimal(Locale.getDefault(), first, 0), Fmt.decimal(Locale.getDefault(), last, 0));
+    }
     private static String duration(long ms) {
         long minutes = Math.round(ms / 60000d);
         return minutes >= 60 ? T.statsChargeDurationHours(Fmt.integer(minutes / 60), Fmt.integer(minutes % 60)) : T.statsChargeDurationMinutes(Fmt.integer(minutes));
@@ -134,7 +164,7 @@ final class ChargeHistoryDialog {
         for (ChargeSessionStore.HistoryPoint point : session.points) if (Double.isFinite(point.batteryPercent)) {
             if (first == null) first = point.batteryPercent; last = point.batteryPercent;
         }
-        return first == null ? T.statsChargeNoBatterySamples() : T.statsChargeBatterySpan(Fmt.decimal(Locale.getDefault(), first, 0), Fmt.decimal(Locale.getDefault(), last, 0));
+        return first == null ? noSamplesText() : span(first, last);
     }
     private String charger(ChargeSessionStore.Charger charger) {
         return charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();

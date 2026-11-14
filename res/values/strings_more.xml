@@ -109,6 +109,10 @@
     <string name="more_scooters_forget" volt:screen="My scooters" volt:purpose="button">Forget this scooter</string>
     <!-- Screen-reader label of the Forget button. %1$s is the scooter's name. -->
     <string name="more_scooters_forget_named" volt:screen="My scooters" volt:purpose="accessibility">Forget %1$s</string>
+    <!-- Button: look for this scooter at a new Bluetooth address (after a repair, say). Opens the scan sheet. -->
+    <string name="more_scooters_find_new_address" volt:screen="My scooters" volt:purpose="button">Find at a new address</string>
+    <!-- Screen-reader label of that button. %1$s is the scooter's name. -->
+    <string name="more_scooters_find_new_address_named" volt:screen="My scooters" volt:purpose="accessibility">Find %1$s at a new address</string>
     <!-- Shown on the name field when it is left empty. -->
     <string name="more_scooters_enter_name" volt:screen="My scooters" volt:purpose="error">Enter a scooter name</string>
     <!-- Title of the confirmation before removing a scooter. %1$s is the scooter's name. -->
@@ -119,6 +123,71 @@
     <string name="more_scooters_save_backup" volt:screen="My scooters" volt:purpose="button">Save backup first</string>
     <!-- Red button: remove the scooter's setup from this phone. -->
     <string name="more_scooters_forget_action" volt:screen="My scooters" volt:purpose="button">Forget</string>
+    <!-- In the Forget dialog for a scooter set up with an owner key (KeyBackups): forgetting in Volt doesn't clear the
+         key from the scooter, so without a copy the rider may not be able to connect as its owner again. -->
+    <string name="more_scooters_forget_owner_warning" volt:screen="My scooters" volt:purpose="warning"
+        volt:safety="owner-key" volt:dnt="Volt">The scooter keeps its owner key until it\'s released. Forgetting deletes Volt\'s copy, so without a backup you may not be able to connect as its owner again.</string>
+    <!-- In the Forget dialog when a backup holding this scooter's owner key was saved on this phone. %1$s is the date and
+         time it was saved, for example "Nov 13, 10:40 PM". -->
+    <string name="more_scooters_forget_backed_up" volt:screen="My scooters" volt:purpose="note"
+        volt:safety="owner-key">Backup with this key saved %1$s.</string>
+    <!-- In the Forget dialog when no backup holding this scooter's owner key was saved on this phone: Forget waits until
+         one is. "Release this scooter" is the button's name in the scooter's edit dialog. -->
+    <string name="more_scooters_forget_backup_needed" volt:screen="My scooters" volt:purpose="note"
+        volt:safety="owner-key">Save a backup with this key first. To make the scooter new again instead, use Release this scooter.</string>
+    <!-- Red button in the edit dialog, for a scooter set up with an owner key: the scooter forgets that key, so it can
+         be added again like a new or reset scooter (asks first). The ellipsis says a confirmation follows. -->
+    <string name="more_scooters_release" volt:screen="My scooters" volt:purpose="button"
+        volt:safety="owner-key">Release this scooter…</string>
+    <!-- Screen-reader label of the Release button. %1$s is the scooter's name. -->
+    <string name="more_scooters_release_named" volt:screen="My scooters" volt:purpose="accessibility"
+        volt:safety="owner-key">Release %1$s</string>
+    <!-- Shown when Release is tapped but this scooter isn't the one connected (or Volt is simulating). -->
+    <string name="more_scooters_release_connect_first" volt:screen="My scooters" volt:purpose="reason"
+        volt:safety="owner-key">Connect to this scooter first to release it.</string>
+    <!-- Title of the confirmation before releasing a scooter. %1$s is the scooter's name. -->
+    <string name="more_scooters_release_title" volt:screen="My scooters" volt:purpose="title"
+        volt:safety="owner-key">Release %1$s?</string>
+    <!-- Body of the Release confirmation. The scooter forgets the owner key Volt uses, and Volt removes the scooter
+         from this phone. Anyone near it can then add it with the official NAVEE app or with Volt. Volt doesn't talk to
+         NAVEE's servers, so a NAVEE app account that lists the scooter still lists it. Volt and NAVEE are names. -->
+    <string name="more_scooters_release_body" volt:screen="My scooters" volt:purpose="dialog" volt:safety="owner-key"
+        volt:dnt="Volt|NAVEE">Your scooter forgets its owner key, and Volt removes it from this phone. Anyone nearby can then add it with the NAVEE app or Volt. If you added it in the NAVEE app, your account there still lists it.</string>
+    <!-- Red button in the Release confirmation: send the release to the scooter. -->
+    <string name="more_scooters_release_action" volt:screen="My scooters" volt:purpose="button"
+        volt:safety="owner-key">Release</string>
+    <!-- Toast: the scooter confirmed it forgot its owner key; Volt disconnected and removed it from this phone. -->
+    <string name="more_scooters_released" volt:screen="My scooters" volt:purpose="toast"
+        volt:safety="owner-key">Scooter released</string>
+    <!-- Toast: the scooter answered that it would not release. Nothing changed on the scooter or in Volt. -->
+    <string name="more_scooters_release_refused" volt:screen="My scooters" volt:purpose="toast"
+        volt:safety="owner-key">The scooter refused the release. It stays saved in Volt.</string>
+    <!-- Toast: the release was sent but the scooter didn't answer before the connection timed out or closed, so Volt
+         can't tell whether it took. Volt kept the scooter; if the scooter did take it, reconnecting gives it this owner key again. -->
+    <string name="more_scooters_release_unconfirmed" volt:screen="My scooters" volt:purpose="toast"
+        volt:safety="owner-key">The scooter didn\'t confirm the release. It stays saved in Volt.</string>
+    <!-- Toast: the release was cancelled before it was sent (for example, the scooter started moving). -->
+    <string name="more_scooters_release_not_sent" volt:screen="My scooters" volt:purpose="toast"
+        volt:safety="owner-key">The release wasn\'t sent. The scooter stays saved in Volt.</string>
+    <!-- Sheet title after a release was sent but not confirmed: no answer in time, or the connection ended some other
+         way than the quick drop the UT5 MAX answers with. Volt kept the scooter and doesn't reconnect to it by itself
+         until the rider chooses below. Never say it was released. %1$s is the scooter's name. -->
+    <string name="more_scooters_release_held_title" volt:screen="Release sheet" volt:purpose="title"
+        volt:safety="owner-key">%1$s didn\'t confirm the release</string>
+    <!-- Body of that sheet. "This key" is the owner key Volt connects with. Volt and NAVEE are names. -->
+    <string name="more_scooters_release_held_body" volt:screen="Release sheet" volt:purpose="dialog"
+        volt:safety="owner-key" volt:dnt="Volt|NAVEE">It may have released. If it did, it no longer knows this key, and the NAVEE app or another Volt owner key can add it. Volt won\'t reconnect to it by itself until you choose.</string>
+    <!-- Filled red button in that sheet: forget the scooter in Volt, through Forget's own dialog (which asks for a saved
+         backup of the owner key first). A full-width button; keep it short. -->
+    <string name="more_scooters_release_held_remove" volt:screen="Release sheet" volt:purpose="button"
+        volt:safety="owner-key" volt:dnt="Volt">Remove from Volt</string>
+    <!-- Secondary button in that sheet: connect to the scooter again with the saved owner key. -->
+    <string name="more_scooters_release_held_reconnect" volt:screen="Release sheet" volt:purpose="button"
+        volt:safety="owner-key">Reconnect</string>
+    <!-- Under the Reconnect button: if the scooter did release, reconnecting gives it this owner key again, so Volt is
+         its owner once more and the NAVEE app can't add it. -->
+    <string name="more_scooters_release_held_reconnect_note" volt:screen="Release sheet" volt:purpose="note"
+        volt:safety="owner-key" volt:dnt="Volt">If it released, reconnecting makes Volt its owner again.</string>
 
     <!-- ===== App preferences and Units ===== -->
 

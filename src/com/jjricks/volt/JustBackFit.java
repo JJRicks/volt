@@ -9,6 +9,7 @@ package com.jjricks.volt;
  *   <li>{@link #signedChange}: the Battery tile's signed change ("−18" for a ride that used 18%, "+2" for a gain).</li>
  *   <li>{@link #distanceSp}: the distance's size, about 60 sp as the mock-up renders it, growing only a little with
  *       large text so the route panel and the tiles keep their room in the fixed top area.</li>
+ *   <li>{@link #nameScale}: the tile names a little smaller (to {@link #NAME_MIN_SCALE}) before one wraps.</li>
  *   <li>{@link #valueSize}: a tile value (number large, unit small) at the largest size that fits its tile on one
  *       line, down to the readable floor; under it the value takes its short rung.</li>
  * </ul>
@@ -22,6 +23,13 @@ final class JustBackFit {
     static final int MIN_ROUTE_DP = 56;
     /** A tile value's size at 1x (sp, the mock-up's 21 sp) and its unit's share of it. */
     static final float VALUE_SP = 21, VALUE_UNIT_RATIO = .62f;
+    /** A tile name's size at 1x (sp). */
+    static final float NAME_SP = 12.5f;
+    /**
+     * The least share of its size a tile name takes to stay on one line, as Clean's charging tiles' labels
+     * (ChargingFit.TILE_LABEL_MIN_SCALE): the app's usual "a little smaller before it wraps".
+     */
+    static final float NAME_MIN_SCALE = ChargingFit.TILE_LABEL_MIN_SCALE;
 
     private JustBackFit() {}
 
@@ -64,6 +72,24 @@ final class JustBackFit {
     }
 
     /**
+     * The share of their size the three tile names take so each stays on one line, as the mock-up draws them ("Avg
+     * speed" wrapped onto two lines at 344 dp with 1.4x text): 1 when every name fits {@code room} at full size; else
+     * the largest share, in hundredths, at which the widest fits, no smaller than {@link #NAME_MIN_SCALE} nor than the
+     * readable floor ({@code floorSp} over the name's full size {@code fullSp}); when even that is too wide, 1 (the
+     * names keep their size and TileFit wraps them at spaces, never inside a word). widths are the names' widths at
+     * full size, in the same unit as room.
+     */
+    static float nameScale(float[] widths, float room, float fullSp, float floorSp) {
+        float widest = 0;
+        for (float w : widths) widest = Math.max(widest, w);
+        if (widest <= room) return 1;
+        if (room <= 0 || fullSp <= 0) return 1;
+        float least = Math.max(NAME_MIN_SCALE, Math.min(1, floorSp / fullSp));
+        float scale = (float) Math.floor(room / widest * 100) / 100;
+        return scale >= least ? scale : 1;
+    }
+
+    /**
      * The size (px) a tile value takes: {@code top} when it fits {@code room}, else the size its width shrinks to
      * (widths grow with size), no smaller than {@code floor}; -1 when even the floor is too wide, so the caller shows
      * the value's short rung. widthAtTop is the value's width at {@code top}.
@@ -73,5 +99,16 @@ final class JustBackFit {
         if (widthAtTop <= 0 || room <= 0) return -1;
         float size = (float) Math.floor(top * room / widthAtTop * 100) / 100;
         return size >= floor ? size : -1;
+    }
+
+    /**
+     * The one size every tile value in the row takes, as the mock-up draws them (all three the same size on one
+     * baseline): the smallest of each tile's own fit size (from {@link #valueSize}, or the floor for a value that only
+     * fits as its short rung). A long value no longer shrinks alone. {@code top} when there are none.
+     */
+    static float rowValueSize(float top, float... fits) {
+        float size = top;
+        for (float fit : fits) if (fit > 0) size = Math.min(size, fit);
+        return size;
     }
 }

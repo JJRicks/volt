@@ -150,8 +150,8 @@ public final class RidesAnalysisValidation extends Instrumentation {
             main(() -> {
                 syntheticReady(profile); profile.serial = "S2538SYNTHETIC"; profile.advertisedPid = "2538";
                 service.ble.telemetry.accept(0x70, new byte[]{0, 0, 3}, SystemClock.elapsedRealtime());
-                screen.refresh(); TextView record = (TextView)field(screen, "recordButton");
-                check(record.isEnabled(), "Real Rides Record action is enabled on the synthetic ready connection"); record.performClick();
+                screen.refresh(); View record = screen.view().findViewWithTag("ride-record");
+                check(record != null && record.isEnabled() && record.isClickable(), "Real Rides Record action is enabled on the synthetic ready connection"); record.performClick();
                 check(service.isRecording(), "One Record tap starts capture immediately");
                 RideStore.Summary started = service.rides.activeSummary(); created.add(started.id);
                 check(started.label.endsWith(" - SPORT") && !started.label.contains("Old manually"), "Actual journal uses fresh model-aware mode instead of the previous manual label");
