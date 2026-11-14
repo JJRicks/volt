@@ -127,6 +127,8 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 |---|---|---|
 | `onboarding_done` | Durable | Setup finished. |
 | `rerun`, `step`, `path`, `profile_id`, `created_profile_id`, `pending_name`, `import_failed`, `nearby_asked`, `connect_requested`, `connect_tried`, `tick_<n>` | Pending | Wizard position and choices for a setup in progress on this installation. `nearby_asked` relates to an Android permission prompt. |
+| `generated_profile_id` | Pending | **Make a new owner key**: the ID of the scooter profile holding the owner key this setup made (the key itself is only in `profiles`). This installation only; never in backups (BackupRegistry). |
+| `generated_sent` | Pending | That made key has been offered to a scooter: set by BleController just before its owner check (0x30), and from then on setup never deletes the key. This installation only; never in backups (BackupRegistry). |
 
 ### `pending_documents` (Pending)
 

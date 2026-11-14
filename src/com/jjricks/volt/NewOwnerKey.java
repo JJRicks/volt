@@ -31,10 +31,21 @@ final class NewOwnerKey {
     }
 
     /**
-     * Whether setup may delete the scooter profile holding a key it made. Once Volt has tried the key on a scooter,
-     * that scooter may have taken it as its owner key, and deleting the only copy would leave the scooter with an
-     * owner nobody holds. So only a key that was never sent, or one the scooter refused outright, may go, and never
-     * one a scooter accepted (its profile has a saved scooter address, which Volt stores only after the owner check).
+     * Whether setup may delete the scooter profile holding a key it made: only if Volt never offered the key to any
+     * scooter and no scooter accepted it. An unowned scooter takes the first owner key it is sent and keeps it, and
+     * the made key exists nowhere else, so once the owner check (0x30) carrying it has been queued for any scooter,
+     * that scooter may hold it, even if the link dropped before its address was saved. A refusal later says nothing
+     * about that earlier scooter, so it never licenses deletion. "Accepted" is a saved scooter address on the profile,
+     * which Volt stores only after the owner check.
      */
-    static boolean removable(boolean sent, boolean refused, boolean accepted) { return !accepted && (!sent || refused); }
+    static boolean removable(boolean offered, boolean accepted) { return !offered && !accepted; }
+
+    /**
+     * Whether the connection about to send its owner check with profile {@code profileId} must record the made key as
+     * offered (BleController.authenticate, through OnboardingScreen.keyOffered): only for setup's own made key, and only
+     * the first time, so the up-to-three rounds per connection and every reconnect cost one string compare.
+     */
+    static boolean marksOffered(String profileId, String generatedId, boolean alreadyOffered) {
+        return !alreadyOffered && profileId != null && !profileId.isEmpty() && profileId.equals(generatedId);
+    }
 }

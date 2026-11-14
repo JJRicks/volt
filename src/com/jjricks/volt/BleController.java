@@ -592,7 +592,16 @@ public final class BleController {
         @Override public void onCharacteristicWrite(BluetoothGatt g,BluetoothGattCharacteristic c,int code){handler.post(()->{if(g!=gatt)return;if(!workAllowed()){suspend();return;}writing=false;++writeOperation;if(code!=0){failed(M.bleFailedSend(),true,ConnectionEventLog.Reason.WRITE_FAILED,code);return;}handler.postDelayed(BleController.this::pump,80);});}
     };
     private void discover(BluetoothGatt g){if(simulating())return;if(g!=gatt||discovered)return;if(!workAllowed()){suspend();return;}discovered=true;if(!g.discoverServices())failed(M.bleFailedConnection(),true,ConnectionEventLog.Reason.SERVICE_DISCOVERY_FAILED,-1);}
-    private void authenticate(){if(simulating())return;if(!workAllowed()){suspend();return;}if(profile==null||++authRounds>3){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}state=State.AUTHENTICATING;message=M.bleStatusCheckingOwner();authenticated=false;challengePending=false;changed();send(Protocol.auth(Protocol.fromHex(profile.identity),1,profile.role));}
+    private void authenticate(){if(simulating())return;if(!workAllowed()){suspend();return;}if(profile==null||++authRounds>3){failed(M.bleFailedOwnerCheck(),false,ConnectionEventLog.Reason.AUTHENTICATION_FAILED,-1);return;}
+        // Hardware saved under another profile is refused before it is offered this profile's owner key, as remember()
+        // refuses it after the owner check: an unowned (reset) scooter would take the key and drop the saved profile's.
+        // No reconnect, and an advertised model ID read for this address is dropped (null; a new scan result resets its address).
+        if(gatt!=null){ScooterProfiles.Profile saved=profiles.hardwareMatch(profile.id,gatt.getDevice().getAddress(),null);if(saved!=null){wanted=false;identifying=false;pendingAdvertised=null;telemetry.clear();
+            failed(M.bleFailedOtherSaved(saved.name),false,ConnectionEventLog.Reason.IDENTITY_REJECTED,-1);return;}}
+        state=State.AUTHENTICATING;message=M.bleStatusCheckingOwner();authenticated=false;challengePending=false;changed();
+        // A key setup made counts as offered from here on, whatever started this connection: the scooter may take it.
+        OnboardingScreen.keyOffered(context,profile.id);
+        send(Protocol.auth(Protocol.fromHex(profile.identity),1,profile.role));}
     private void send(byte[] frame){send(frame,null);}
     /** A read for the connected notice alone (ReadPolicy.noticeBattery): marked quiet unless the same read is already queued. */
     private void sendQuietly(byte[] frame){quietReads.add(frame);send(frame);boolean queued=false;for(byte[] q:queue)queued|=q==frame;if(!queued)quietReads.remove(frame);}

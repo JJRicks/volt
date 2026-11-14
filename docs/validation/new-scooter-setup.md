@@ -29,12 +29,15 @@ Volt's new key keeps the `0x88` top byte and fills the other five bytes from And
 
 The risk is losing a key a scooter has taken. The scooter would then be owned by a key nobody holds. Setup keeps the key in these cases:
 
+- **The key and setup's record of it are on disk before anything is sent.** Continue saves the new profile and setup's pointers to it with a synchronous write; if that fails (a full disk), the key is dropped unsent and the page says so.
 - **Back or Continue again** on the new-key page reuses the key it already made. Each attempt sends the same key.
-- **Once the key has been sent**, setup never deletes it, unless the scooter refused it outright (the owner check's "Owner identity rejected"). A timeout, a dropped connection or closing setup keeps it. The scooter may have taken the key before the link dropped.
-- **Once a scooter has accepted it** (its profile has a saved scooter address, which Volt stores only after the owner check and the serial read), setup never deletes it, even if a later attempt on another scooter is refused.
+- **Once the key has been offered to any scooter**, setup never deletes it. The connection controller records the offer just before it queues the owner check, whatever started the connection (setup's Connect page, a permission result while the service was still starting, or the service's own reconnect). A refusal doesn't change that: a refusal from one scooter says nothing about another that may have taken the key on an earlier attempt whose link dropped before its address was saved. A timeout, a dropped connection, a refusal or closing setup all keep it.
+- **Once a scooter has accepted it** (its profile has a saved scooter address, which Volt stores only after the owner check and the serial read), setup never deletes it, and the same holds for a typed key: setup never replaces a profile a scooter accepted.
+- **A scooter already saved in Volt is refused before the owner check.** If the scooter's address belongs to another saved profile, Volt stops with "This is <name>. Select it in My scooters" before sending any key, so a reset scooter still saved in Volt never takes the new key. Release it from its saved profile first (**Release this scooter**, from the companion change).
+- A key that was never offered (the chooser was cancelled, say) may be replaced when setup goes another way.
 - A kept key stays in **My scooters** like any other scooter, where **Forget scooter** removes it after the usual confirmation.
 
-On a refusal, setup says the scooter already has an owner, and offers **Set up another way**. That returns to the route list and deletes the refused key.
+On a refusal, setup says the scooter already has an owner, and offers **Set up another way**. That returns to the route list and keeps the key; choosing **Make a new owner key** again reuses it.
 
 The done page reminds the owner that the key is only on this phone and to back Volt up. Volt backups carry it like any owner identity.
 
@@ -44,7 +47,10 @@ The done page reminds the owner that the key is only on this phone and to back V
   - 200 seeded keys are twelve upper-case hex digits starting `88`; all-zero and all-`FF` tails are kept as made;
   - 500 `SecureRandom` keys all differ, and each of the five random bytes varies;
   - the identity parser reads each key back unchanged as an owner (role 0), and the owner check carries it as bytes 7 to 12 of a 17-byte `0x30` frame with role 0;
-  - the removal rules above, including "accepted, later refused: kept".
+  - the removal rules above: only a key never offered and never accepted may go;
+  - the offer record: only setup's own key, written once, never for another profile;
+  - the council's lockout chains, as the record and the rule see them: a permission result while the service binds, the service's own reconnect, a link dropped before the address was saved, a refusal from a second scooter, a cancelled chooser and a saved scooter refused before the owner check;
+  - in the connection controller's source, the saved-scooter refusal comes before the offer record, which comes before the only owner check, and simulation returns before both.
 - `bash build.sh`; `python3 tools/l10n/gen_catalog.py --check`; `python3 tools/l10n/ship_check.py --aapt required`.
 - **Emulator:** `NewOwnerKeyValidation`, 51 assertions, passed on this change at each of the sizes below. The harness and its place in the release sweep land in a follow-up pull request, because a change that adds text can't also change the proof tooling.
   - 412 × 915 dp, dark and light;
@@ -55,11 +61,11 @@ The done page reminds the owner that the key is only on this phone and to back V
 
   It drives the real setup screens and stores on a disposable emulator with Bluetooth off:
   - the new route sits second, after the recommended one, and the new-key page makes nothing;
-  - Continue makes one key of the right shape, marks it sent at Connect, and Back and Continue reuse it;
-  - the owner check's rejection, injected into the real connection controller, shows the refusal, and **Set up another way** deletes that key;
+  - Continue makes one key of the right shape, and Back and Continue reuse it;
+  - the owner check's rejection, injected into the real connection controller, shows the refusal on screen, and **Set up another way** keeps that key;
   - after a timeout, the key stays and **Set up another way** is hidden;
   - a typed key saved afterwards leaves the made key in place, and coming back to the new route reuses the made key and drops the typed one;
-  - the done page shows the backup note above **Back up Volt**.
+  - the done page shows the backup note above **Back up Volt**, both on screen without scrolling.
 
   Screenshots of the route list, the new-key page, the refusal and the done page were inspected at every size. Nothing reaches a scooter, so the done page is entered directly once the profile has the scooter address a real binding saves; `FirstConnectionValidation` covers the binding.
 - **Physical:** none yet.
@@ -79,7 +85,7 @@ This needs the owner's scooter, phone and go-ahead. It also needs **Release this
 4. **NAVEE app:** remove the scooter from the account. Note the app's version and its exact message. Close the NAVEE app.
 5. **Volt:** **More → My scooters → Add a scooter → Make a new owner key → Continue**, then pick the scooter.
    - **Pass:** it connects, reads the serial and shows **You're connected** with the backup note. Lock and unlock once and check that live values arrive.
-   - **Refused:** "This scooter already has an owner" means the removal didn't clear the owner. Tap **Set up another way**, restore the backup, and stop here.
+   - **Refused:** "This scooter already has an owner" means the removal didn't clear the owner. Tap **Set up another way**, restore the backup, and stop here. Volt keeps the new key in **My scooters**; forget it there once the scooter is back on its account.
    - **Timed out:** move closer and try again. The same key is kept.
 6. **Volt:** make a backup now. It's the only other copy of the new key.
 7. **Volt:** close and reopen Volt, and check that it reconnects by itself with the new key.

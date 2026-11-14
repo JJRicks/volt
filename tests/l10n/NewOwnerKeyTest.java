@@ -13,6 +13,9 @@ public final class NewOwnerKeyTest {
         randomness();
         acceptedEverywhereAKeyIs();
         removal();
+        offered();
+        lockoutChains();
+        transportOrder();
         System.out.println("NewOwnerKeyTest: " + assertions + " assertions passed");
     }
 
@@ -62,14 +65,73 @@ public final class NewOwnerKeyTest {
     }
 
     private static void removal() {
-        check(NewOwnerKey.removable(false, false, false), "never sent: removable");
-        check(NewOwnerKey.removable(true, true, false), "refused by the scooter: removable");
-        check(!NewOwnerKey.removable(true, false, false), "sent and not refused: kept");
-        check(NewOwnerKey.removable(false, true, false), "refused without a send cannot happen, but stays removable");
-        // A scooter took the key once (an earlier attempt): kept even if a later scooter refused it.
-        check(!NewOwnerKey.removable(true, true, true), "accepted earlier, refused later: kept");
-        check(!NewOwnerKey.removable(true, false, true), "accepted: kept");
-        check(!NewOwnerKey.removable(false, false, true), "accepted without a recorded send (restored state): kept");
+        check(NewOwnerKey.removable(false, false), "never offered, never accepted: removable");
+        check(!NewOwnerKey.removable(true, false), "offered: kept, whatever happened after");
+        check(!NewOwnerKey.removable(true, true), "offered and accepted: kept");
+        check(!NewOwnerKey.removable(false, true), "accepted without a recorded offer (restored state): kept");
+    }
+
+    /** The transport's record (OnboardingScreen.keyOffered, called by BleController.authenticate before the 0x30). */
+    private static void offered() {
+        check(NewOwnerKey.marksOffered("made", "made", false), "setup's own key, first owner check: recorded");
+        check(!NewOwnerKey.marksOffered("made", "made", true), "already recorded: no second write (3 rounds, reconnects)");
+        check(!NewOwnerKey.marksOffered("other", "made", false), "another profile's owner check: not this key");
+        check(!NewOwnerKey.marksOffered("other", "", false), "no made key in this setup: nothing to record");
+        check(!NewOwnerKey.marksOffered("", "", false), "empty ids never match");
+        check(!NewOwnerKey.marksOffered(null, "made", false), "no profile: nothing recorded");
+    }
+
+    /**
+     * The council's lockout chains for #485 (F07, F17), as the record and the rule see them. The record is made by the
+     * transport whatever started the connection, so none of these depend on setup's own pages; the emulator harness
+     * (android-tests/NewOwnerKeyValidation.java) drives the screens and the real BleController for the same chains.
+     */
+    private static void lockoutChains() {
+        // Nearby devices granted while the service still binds, then setup's auto-connect: the owner check goes out.
+        boolean offered = offer(false, "made", "made");
+        check(!NewOwnerKey.removable(offered, false), "auto-connect after a permission result: kept");
+        // ScooterService.connectLast() reconnects with the made key without setup's Connect page.
+        check(!NewOwnerKey.removable(offer(false, "made", "made"), false), "service's own reconnect: kept");
+        // The link drops after the owner check, before remember() saves the address; then a typed key is saved.
+        check(!NewOwnerKey.removable(offer(false, "made", "made"), false), "dropped before the address was saved: kept");
+        // Scooter A may have taken it; Try again picks owned scooter B, which refuses; then Set up another way.
+        boolean a = offer(false, "made", "made"), b = offer(a, "made", "made");
+        check(b && !NewOwnerKey.removable(b, false), "refusal from B after A: kept");
+        // The chooser is cancelled before any scooter is picked: no owner check, so nothing is recorded.
+        check(NewOwnerKey.removable(false, false), "chooser cancelled, never offered: may go");
+        // A scooter saved under another profile is refused before the owner check (BleController): never offered.
+        check(NewOwnerKey.removable(false, false), "saved scooter refused before the owner check: may go");
+        // Another profile's connection never marks the made key.
+        check(NewOwnerKey.removable(offer(false, "typed", "made"), false), "another profile's owner check: may go");
+    }
+
+    private static boolean offer(boolean already, String profileId, String generatedId) {
+        return already || NewOwnerKey.marksOffered(profileId, generatedId, already);
+    }
+
+    /** The order inside BleController.authenticate(): the saved-hardware refusal, then the record, then the 0x30. */
+    private static void transportOrder() {
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        int start = ble.indexOf("private void authenticate(){"), end = ble.indexOf("private void send(byte[] frame)", start);
+        check(start >= 0 && end > start, "authenticate() found");
+        String body = ble.substring(start, end);
+        int sim = body.indexOf("if(simulating())return;"), saved = body.indexOf("profiles.hardwareMatch(profile.id,gatt.getDevice().getAddress(),null)");
+        int hook = body.indexOf("OnboardingScreen.keyOffered(context,profile.id);"), auth = body.indexOf("send(Protocol.auth(");
+        check(sim >= 0 && sim < saved, "simulation returns before anything (never reaches the record)");
+        check(saved > 0 && saved < hook, "saved-hardware refusal before the record");
+        check(hook > 0 && hook < auth, "record before the owner check is queued");
+        check(body.indexOf("send(Protocol.auth(", auth + 1) < 0 && ble.indexOf("Protocol.auth(") == ble.indexOf("Protocol.auth(", start),
+                "authenticate() is BleController's only owner check");
+        String screen = read("src/com/jjricks/volt/OnboardingScreen.java");
+        int connect = screen.indexOf("private void toConnect() {"), after = screen.indexOf("private void afterProfile()", connect);
+        check(connect > 0 && !screen.substring(connect, after).contains("KEY_GENERATED_SENT"),
+                "setup's Connect page does not decide whether the key was offered");
+    }
+
+    private static String read(String path) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) { throw new AssertionError("cannot read " + path, e); }
     }
 
     /** Twelve hex digits starting 88: the shape of every key generate() makes. */
