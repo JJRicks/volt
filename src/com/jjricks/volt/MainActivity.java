@@ -2586,6 +2586,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** The Layout Plan's raised icon tile (Ui.raiseIcon); the sub-line's indent follows the wider tile. */
         void raise(){
             design.raiseIcon(name);
+            // The name's line centres on the 33 dp tile (a TextView sets its text at the top beside a taller drawable), so
+            // it is level with the value, chevron and switch, which centre on the whole row.
+            name.setGravity((name.getGravity()&~Gravity.VERTICAL_GRAVITY_MASK)|Gravity.CENTER_VERTICAL);
             // From the tile's own bounds: the name's compound padding is not resolved until it is laid out.
             android.graphics.drawable.Drawable tile=name.getCompoundDrawablesRelative()[0];
             if(tile!=null&&sub.getParent()==words&&sub.getPaddingStart()>0)
