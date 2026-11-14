@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 /**
  * Where two side-by-side panes divide a row (hub layout plan 1.11, PR 13): the wide Clean Home's scooter pane and its
- * page pane, and More's old menu and section panes (HubPanes). Pure Java (no Android), so the JVM tests reach it; every
+ * page pane. Pure Java (no Android), so the JVM tests reach it; every
  * size is in the same unit (pixels on a device, dp in the tests).
  *
  * <p>The gutter falls on a vertical hinge when there is one and both panes keep their minimums beside it; otherwise on the

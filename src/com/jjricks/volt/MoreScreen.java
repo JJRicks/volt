@@ -308,25 +308,12 @@ public final class MoreScreen implements AppScreen {
         dialogs.clear();
     }
 
-    /**
-     * The submenu expired while this screen stayed alive (the app was in the background for more
-     * than a minute). Put the live panes back at the top so neither this screen nor the close()
-     * of an expiry rebuild carries the old offsets forward.
-     */
-    public void resetScroll() {
-        sectionScrollPositions.clear();
-    }
-
     /** Units returns to its parent; a standalone section otherwise leaves to the page below. */
     @Override public boolean back() {
         // A Hub page's Back is the page stack's; so is Settings' (its sections are Hub pages since PR 11).
         if (embedded || !standalone) return false;
         if ("Units".equals(selectedSection)) { selectSection("App"); return true; }
-        if ("Compatibility".equals(selectedSection) && !standalone) {
-            selectSection(compatibilityRecovery ? "" : "Developer"); return true;
-        }
-        if (standalone || selectedSection.isEmpty()) return false;
-        selectSection(""); return true;
+        return false;
     }
 
     /** More holds Volt's setup flows, PIN forms, Lab tries and text fields: riding mode never opens over it by itself. */

@@ -9,7 +9,7 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Two panes side by side, each the row's full height (hub layout plan 1.11, PR 13): the wide Clean Home's scooter pane
- * and page pane. Extracted from More's wide menu (MoreScreen.Panes), which keeps using it; no text of its own.
+ * and page pane. Extracted in PR 13 from More's old wide menu (removed in PR 14); no text of its own.
  *
  * <p>The split follows HubSplit: the gutter on a vertical hinge when there is one, otherwise on the window's centre line,
  * each pane held to its minimum. The window position is known only at layout, so the row re-splits there before the
