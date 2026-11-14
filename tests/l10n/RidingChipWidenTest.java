@@ -49,6 +49,7 @@ public final class RidingChipWidenTest {
             packTemperature();
             strictReadings();
             neverShrinks();
+            traceColumnFromWidest();
             rowHidesTheLast();
             sourceWiring();
         } finally {
@@ -57,7 +58,7 @@ public final class RidingChipWidenTest {
         }
         System.out.println("RidingChipWidenTest: " + checks + " checks passed (the four usual-room readings, usual values, "
                 + "GPS widens once, a compact fix before the first fit, Almost empty, regen, a hot pack, strict readings, "
-                + "never shrinks, the last chip hides, wiring)");
+                + "never shrinks, Trace's column from the widest values, the last chip hides, wiring)");
     }
 
     /** Samples by form: in full and on the tightest rung the same, in compact form each its compact text (or itself). */
@@ -257,6 +258,59 @@ public final class RidingChipWidenTest {
         }
     }
 
+    /**
+     * Trace's column fits and takes its room from the widest values (Reserve.samples with no usual room, as #493 sized every
+     * chip), never from the usual ones (the council on #500). So whatever a usual-room reading shows within its widest
+     * values, widened or not, the column's samples stay the widest values: its room and width never depend on a widening,
+     * and a chip that fitted the column before widening fits it after, never becoming a follower. Random sequences of GPS
+     * fixes and pack temperatures within those values widen each chip at most once and never shrink it.
+     */
+    private static void traceColumnFromWidest() {
+        java.util.Random random = new java.util.Random(500);
+        String[][] gpsUsual = gpsUsual(), gpsStrict = gpsStrict();
+        for (String unit : new String[]{"c", "f"}) {
+            String[][] tempUsual = forms(new String[]{wide(DisplayTemperature.quantity(RidingChipFit.USUAL_PACK_LOW_C, unit, 0).toString()),
+                    wide(DisplayTemperature.quantity(RidingChipFit.USUAL_PACK_HIGH_C, unit, 0).toString()), "—"}, null);
+            String[][] tempStrict = forms(new String[]{wide(DisplayTemperature.quantity(-88.0, unit, 0).toString()),
+                    wide(DisplayTemperature.quantity(88.0, unit, 0).toString()), "—"}, null);
+            for (int run = 0; run < 200; run++) {
+                RidingChipFit.Reserve gps = new RidingChipFit.Reserve(), temp = new RidingChipFit.Reserve();
+                float[] gpsColumn = gps.widest(gps.samples(null, gpsStrict), MEASURE).clone();
+                float[] tempColumn = temp.widest(temp.samples(null, tempStrict), MEASURE).clone();
+                float[] gpsLast = gps.widest(gps.samples(gpsUsual, gpsStrict), MEASURE).clone();
+                float[] tempLast = temp.widest(temp.samples(tempUsual, tempStrict), MEASURE).clone();
+                int gpsWidenings = 0, tempWidenings = 0;
+                for (int i = 0; i < 40; i++) {
+                    // A fix of one to three figures (±150 ft widens a chip from its usual ±88 ft to its widest ±888 ft).
+                    int pick = random.nextInt(8);
+                    String fix = pick == 0 ? "Not recording" : "±" + (1 + random.nextInt(999)) + " ft";
+                    if (see(gps, fix, pick == 0 ? "—" : null, gpsUsual, gpsStrict)) gpsWidenings++;
+                    check(inside(gps, fix, pick == 0 ? "—" : null, gpsUsual, gpsStrict), "a fix draws inside: " + fix);
+                    // A pack from -88 to 88 °C, in the unit shown.
+                    String pack = DisplayTemperature.quantity((double) (random.nextInt(177) - 88), unit, 0).toString();
+                    if (see(temp, pack, null, tempUsual, tempStrict)) tempWidenings++;
+                    check(inside(temp, pack, null, tempUsual, tempStrict), unit + ": a pack draws inside: " + pack);
+                    check(java.util.Arrays.deepEquals(gps.samples(null, gpsStrict), gpsStrict)
+                            && java.util.Arrays.deepEquals(temp.samples(null, tempStrict), tempStrict),
+                            "the column's samples are the widest values, widened or not");
+                    check(java.util.Arrays.equals(gps.widest(gps.samples(null, gpsStrict), MEASURE), gpsColumn)
+                            && java.util.Arrays.equals(temp.widest(temp.samples(null, tempStrict), MEASURE), tempColumn),
+                            "the column's room and widths never depend on a widening");
+                    float[] gpsNow = gps.widest(gps.samples(gpsUsual, gpsStrict), MEASURE);
+                    float[] tempNow = temp.widest(temp.samples(tempUsual, tempStrict), MEASURE);
+                    for (int form = 0; form < RidingChipFit.FORMS; form++) {
+                        check(gpsNow[form] >= gpsLast[form] && tempNow[form] >= tempLast[form], "a chip never shrinks");
+                        // Its own width never passes the column's, so the widened chip fits wherever it fitted before.
+                        check(gpsNow[form] <= gpsColumn[form] && tempNow[form] <= tempColumn[form], "a chip's width stays within its widest");
+                    }
+                    gpsLast = gpsNow.clone();
+                    tempLast = tempNow.clone();
+                }
+                check(gpsWidenings <= 1 && tempWidenings <= 1, unit + ": at most one widening per reading: " + gpsWidenings + ", " + tempWidenings);
+            }
+        }
+    }
+
     /** Fixed widths [rung][chip], the same whatever the name step and size. */
     private static RidingChipFit.SizedWidths fixed(final int... widths) {
         return (size, chip, rung, step) -> Math.round(widths[chip] * RidingChipFit.SIZE_SCALE[size]);
@@ -292,5 +346,18 @@ public final class RidingChipWidenTest {
         check(screen.contains("usualForms = RidingLayout.chipHasUsualRoom(content) ? forms(samples(content, units, true, true)) : null;"),
                 "a chip takes its usual samples only for the four readings");
         check(screen.contains("for (Shown s : samples(content, units, false))"), "the highlight's widest values are the full ones");
+        // Trace's column: its room, its fit and its width from each chip's widest values (traceColumnFromWidest).
+        check(screen.contains("String[][] widest = reserve.samples(null, strictForms);"), "a chip's widest samples ignore its usual room");
+        check(screen.contains("room = Math.max(room, Math.min(size, chip.widestWidthAt(RidingChipFit.SIZE_NORMAL, RidingChipFit.FULL, -1, false)));"),
+                "the column's room comes from the self-naming chips' widest values");
+        check(screen.contains("&& chip.widestWidthAt(normal, RidingChipFit.TIGHT, RidingChipFit.NAME_ICON, canStep[i]) > room;"),
+                "a chip follows its value only when its widest can't fit the column");
+        check(screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, false),")
+                && screen.contains(": wanted.get(chip).widestWidthAt(normal, rung, step, true), canStep, room, limit);"),
+                "the column fits from the widest values");
+        check(screen.contains("if (group.getMinimumWidth() != columnWidth) group.setMinimumWidth(columnWidth);"),
+                "the column keeps its chips' widest width");
+        int row = screen.indexOf("private void fitRow("), column = screen.lastIndexOf("/**", screen.indexOf("private void fitColumn("));
+        check(row > 0 && column > row && !screen.substring(row, column).contains("widestWidthAt"), "Halo's row fits as before");
     }
 }
