@@ -316,7 +316,15 @@ public final class ScooterSimulation {
      * Charging scene has plugged in (true for the high-speed one) on a model whose chargers Volt tells apart, else null
      * (no charge, or a model with one charger family, where real detection finds nothing either).
      */
-    public Boolean detectedFastCharger() { return charging() && chargerFamilies ? fastCharger() : null; }
+    public Boolean detectedFastCharger() { return charging() && chargerFamilies && !detectionPending ? fastCharger() : null; }
+    /** Validation-held: the plugged charger not identified yet (pendDetection). */
+    private boolean detectionPending;
+    /**
+     * Holds back what the Automatic charger choice finds (detectedFastCharger) while pending, as a real UT5 MAX's charger
+     * detection does for its first frames after plugging in, for the emulator validations of what waits for detection
+     * (Charge done by's startup guard). Memory only; nothing in the app calls it.
+     */
+    void pendDetection(boolean pending) { detectionPending = pending; }
     /** The scene's battery level, for tests. */
     double battery() { return battery; }
 
