@@ -1764,9 +1764,18 @@ public final class OnboardingScreen implements AppScreen {
             if (one <= room) { text = oneRow; size = largest; }
             else if (largest * room / one >= oneRowFloor) { text = oneRow; size = largest * room / one; }
             else { text = twoRows; size = Math.max(floor, Math.min(largest, largest * room / two)); }
-            size = (float) Math.floor(size);
-            if (!text.contentEquals(digits.getText())) digits.setText(text);
-            if (digits.getTextSize() != size) digits.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+            // Text width doesn't scale exactly with size: step down until the widest row really fits.
+            measure.setTextSize((float) Math.floor(size));
+            String widest = text.equals(oneRow) ? oneRow : row;
+            while (measure.getTextSize() > floor && measure.measureText(widest) > room)
+                measure.setTextSize(measure.getTextSize() - 1);
+            float fitted = measure.getTextSize();
+            if (text.contentEquals(digits.getText()) && digits.getTextSize() == fitted) return;
+            // After this layout pass, so the new size is measured again rather than dropped mid-layout.
+            digits.post(() -> {
+                if (!text.contentEquals(digits.getText())) digits.setText(text);
+                if (digits.getTextSize() != fitted) digits.setTextSize(TypedValue.COMPLEX_UNIT_PX, fitted);
+            });
         });
         return digits;
     }
