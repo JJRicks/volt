@@ -15,7 +15,7 @@ import java.util.Locale;
  * by), Just back's Battery tile name, short ride time and one spoken sentence, Home style's list separator, the
  * Quick access "Search settings" tile and its short rung, Battery &amp; charging's section labels and "Last charge"
  * line, Controls' "More controls" heading and its two sub-lines, the Ride page's "Today" / "Yesterday" ride titles,
- * the Record tile's short rung while simulating, and Settings' "Scooters &amp; data" and "About" section labels. In English and under a key-echo text source (each line is one
+ * the Record tile's short rung while simulating, Settings' "Scooters &amp; data" and "About" section labels, and the Charge done by sheet's "Enable" and "Finish charging by" rows. In English and under a key-echo text source (each line is one
  * whole catalog string, never glued from pieces).
  *
  * <p>The round names also fit their one line under the circles at the maintainers' sizes, 344x882 dp and 725x604 dp
@@ -161,6 +161,8 @@ public final class HubPlanTextTest {
         equal("Simulating", HubText.rideSimulatingShort().render(), "Record tile's short rung while simulating");
         equal("Scooters & data", HubText.settingsSectionScooters().render(), "Settings: SCOOTERS & DATA label");
         equal("About", HubText.settingsSectionAbout().render(), "Settings: ABOUT label");
+        equal("Enable", HubText.doneByEnable().render(), "Charge done by sheet: switch row");
+        equal("Finish charging by", HubText.doneByFinish().render(), "Charge done by sheet: time row");
     }
 
     private static float em(char c) {
@@ -224,6 +226,8 @@ public final class HubPlanTextTest {
             equal("⟦hub_ride_simulating⟧", HubText.rideSimulatingShort().render(), "echo: simulating short");
             equal("⟦hub_settings_section_scooters⟧", HubText.settingsSectionScooters().render(), "echo: Settings, scooters & data");
             equal("⟦hub_settings_section_about⟧", HubText.settingsSectionAbout().render(), "echo: Settings, about");
+            equal("⟦hub_done_by_enable⟧", HubText.doneByEnable().render(), "echo: Charge done by sheet, switch row");
+            equal("⟦hub_done_by_finish⟧", HubText.doneByFinish().render(), "echo: Charge done by sheet, time row");
         } finally {
             T.install(null);
         }
@@ -241,6 +245,12 @@ public final class HubPlanTextTest {
                 && hub.matches("(?s).*name=\"hub_qa_search_settings_short\"[^>]*volt:ladder=\"short\".*"), "the search tile's ladder");
         check(rides.contains(">Simulating · Exit</string>") && hub.matches("(?s).*name=\"hub_ride_simulating\"[^>]*>Simulating<.*"),
                 "Simulating · Exit keeps its English; the shorter name is a key of its own");
+        String main = read("res/values/strings_main.xml");
+        check(main.contains("name=\"main_schedule_done_by\" volt:screen=\"Charge schedule\" volt:purpose=\"row name\" volt:safety=\"charge\">Charge done by<"),
+                "the sheet's title and the page's row keep Charge done by");
+        for (String key : new String[]{"hub_done_by_enable", "hub_done_by_finish"})
+            check(hub.matches("(?s).*name=\"" + key + "\" volt:screen=\"Charge done by sheet \\(Battery &amp; charging\\)\"[^>]*volt:safety=\"charge\".*"),
+                    key + " names the Charge done by sheet and is charging text");
     }
 
     /** The screens on this branch read the new text through HubText. */
