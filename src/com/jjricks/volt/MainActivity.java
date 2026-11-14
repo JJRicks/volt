@@ -328,7 +328,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
@@ -2216,7 +2216,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             return false;
         }
         @Override public View view(){return view;}
-        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}choiceSheet=null;}
+        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
         @Override public void refresh(){
             refreshMaintenance();
             for(ControlRow row:rows)row.refresh();
@@ -2978,11 +2978,18 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The rows of the open Charge done by sheet (the switch, then the time); empty while it is closed. */
     private final ArrayList<ChargeDoneRow> doneSheetRows=new ArrayList<>();
+    /**
+     * The open Charge done by sheet, kept apart from controlDialog: its time row opens the picker over it (which then
+     * becomes controlDialog), and the page's close and onDestroy still close the sheet.
+     */
+    private AlertDialog chargeDoneSheet;
+    private void closeChargeDoneSheet(){AlertDialog sheet=chargeDoneSheet;chargeDoneSheet=null;doneSheetRows.clear();if(sheet!=null)sheet.dismiss();}
     /** Battery & charging's Charge done by sheet: the on/off switch and the finish time, the rows the page used to show. */
     private void showChargeDoneSheet(){
         // No scooter: the time row's own answer (select a scooter first).
         if(scooterService==null){showChargeDoneTime();return;}
         if(controlDialog!=null)controlDialog.dismiss();
+        closeChargeDoneSheet();
         final AlertDialog[] self=new AlertDialog[1];
         LinearLayout body=sheetContent(doneByTitle(),null,()->{if(self[0]!=null)self[0].dismiss();});
         body.setTag("charge-done-sheet");
@@ -2992,8 +2999,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(time)design.divider(card);
             ChargeDoneRow row=new ChargeDoneRow(time);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
         }
-        AlertDialog dialog=showSheet(body);self[0]=dialog;controlDialog=dialog;
-        dialog.setOnDismissListener(d->{if(self[0]==dialog)doneSheetRows.clear();if(controlDialog==dialog)controlDialog=null;redraw();});
+        AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
+        dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
     }
     /** "Charge done by": the rows' name, the time picker's and the sheet's title. */
     private String doneByTitle(){return T.mainScheduleDoneBy();}
