@@ -33,6 +33,14 @@ public final class OdometerCarryTest {
         merge();
         backups();
         rawConsumers();
+        resetArrivesAs16BitZero();
+        telemetryReset();
+        sixteenToThirtyTwo();
+        confirmComparesLowReadings();
+        adoptKeepsNewerRecord();
+        cachedReadingOlderThanRecord();
+        gaugeCue();
+        cleanHomeStopsRings();
         System.out.println("OdometerCarryTest: " + checks + " checks passed");
     }
 
@@ -74,22 +82,22 @@ public final class OdometerCarryTest {
         OdometerCarry w = new OdometerCarry();
         w.observe(250, 8, 1, WALL);
         check(w.observe(2, 8, 2, WALL + 1) == OdometerCarry.Step.PENDING && near(w.displayKm(2), 250), "a wrap waits for a second reading too, holding the total");
-        check(w.observe(3, 8, 3, WALL + 2) == OdometerCarry.Step.WRAP, "two readings confirm the wrap");
+        check(w.observe(2, 8, 3, WALL + 2) == OdometerCarry.Step.WRAP, "two readings confirm the wrap");
         check(w.carries.isEmpty() && near(w.carriedKm(), 0) && near(w.wrappedKm, 256), "a wrap is no carry-over: one turn of the field is counted");
         check(near(w.displayKm(3), 259) && w.displayKm(3) > 250, "the shown total never drops at a wrap");
         check(!w.unacknowledged(), "a wrap asks for no attention");
         // A 16-bit field (v1 tenths) wraps at 6553.6.
         OdometerCarry s = new OdometerCarry();
         s.observe(6500.0, 16, 1, WALL);
-        s.observe(10.0, 16, 2, WALL + 1); s.observe(10.4, 16, 3, WALL + 2);
-        check(s.carries.isEmpty() && near(s.wrappedKm, 6553.6) && near(s.displayKm(10.4), 6564.0), "a 16-bit wrap keeps counting");
+        s.observe(10.0, 16, 2, WALL + 1); s.observe(10.2, 16, 3, WALL + 2);
+        check(s.carries.isEmpty() && near(s.wrappedKm, 6553.6) && near(s.displayKm(10.4), 6564.0), "a 16-bit wrap from near the top to near zero keeps counting");
         // The same classification as maintenance (one shared helper).
         check(MaintenanceDistance.step(250, 8, 2) == MaintenanceDistance.Kind.WRAP && MaintenanceDistance.step(250, 8, 240) == MaintenanceDistance.Kind.RESET
                 && MaintenanceDistance.step(500, 32, 499.8) == MaintenanceDistance.Kind.IGNORED && MaintenanceDistance.step(500, 32, 499.7) == MaintenanceDistance.Kind.RESET,
                 "MaintenanceDistance.step: wrap, reset, jitter");
         // 250 to 240 on a 1-byte field is a reset, not a wrap.
         OdometerCarry r = new OdometerCarry();
-        r.observe(250, 8, 1, WALL); r.observe(240, 8, 2, WALL + 1); r.observe(241, 8, 3, WALL + 2);
+        r.observe(250, 8, 1, WALL); r.observe(240, 8, 2, WALL + 1); r.observe(240, 8, 3, WALL + 2);
         check(r.carries.size() == 1 && near(r.carriedKm(), 10) && near(r.wrappedKm, 0), "a drop outside the wrap window is a reset");
     }
 
@@ -100,7 +108,7 @@ public final class OdometerCarryTest {
         check(near(zero.carriedKm(), 1234.5) && near(zero.displayKm(0), 1234.5), "a reset to 0 carries the full last value");
         check(zero.last().wall == WALL + 2 * MIN && near(zero.last().fromKm, 1234.5) && near(zero.last().toKm, 0), "the carry-over records when and what");
         OdometerCarry used = at(1234.5);
-        used.observe(500, 32, 2, WALL + MIN); used.observe(500.3, 32, 3, WALL + 2 * MIN);
+        used.observe(500, 32, 2, WALL + MIN); used.observe(500.2, 32, 3, WALL + 2 * MIN);
         check(near(used.carriedKm(), 734.5) && near(used.displayKm(500.3), 1234.8), "a used part at 500: carries only what keeps the total going, never more");
         check(used.displayKm(500.3) < 1234.5 + 500.3, "a used part's own mileage is never added");
     }
@@ -110,7 +118,7 @@ public final class OdometerCarryTest {
         OdometerCarry c = at(1000);
         c.observe(0, 32, 2, WALL + 1); c.observe(0, 32, 3, WALL + 2);
         c.observe(300, 32, 4, WALL + 3);
-        c.observe(0, 32, 5, WALL + 4); c.observe(0.5, 32, 6, WALL + 5);
+        c.observe(0, 32, 5, WALL + 4); c.observe(0.2, 32, 6, WALL + 5);
         check(c.carries.size() == 2 && near(c.carriedKm(), 1300) && near(c.displayKm(0.5), 1300.5), "two resets add up");
         // The cap folds the oldest together and keeps the total.
         OdometerCarry many = at(10);
@@ -138,10 +146,10 @@ public final class OdometerCarryTest {
         OdometerCarry c = at(1234.5);
         c.observe(0, 32, 2, WALL + 1); c.observe(0, 32, 3, WALL + 2);
         OdometerCarry w = new OdometerCarry();
-        w.observe(250, 8, 1, WALL); w.observe(2, 8, 2, WALL + 1); w.observe(3, 8, 3, WALL + 2);
+        w.observe(250, 8, 1, WALL); w.observe(2, 8, 2, WALL + 1); w.observe(2, 8, 3, WALL + 2);
         check(w.observe(259.0, 16, 4, WALL + 3) == OdometerCarry.Step.REBASELINE && w.carries.isEmpty() && near(w.wrappedKm, 0) && near(w.displayKm(259), 259),
-                "a field-width change re-baselines without a carry-over; the new field's own value stands");
-        check(c.observe(10, 16, 4, WALL + 3) == OdometerCarry.Step.REBASELINE && near(c.carriedKm(), 1234.5), "a width change keeps what was carried over");
+                "a v0-to-v1 change (8-bit whole km to tenths) re-baselines without a carry-over; the new field's own value stands");
+        check(c.observe(10, 8, 4, WALL + 3) == OdometerCarry.Step.REBASELINE && near(c.carriedKm(), 1234.5), "a v1-to-v0 change keeps what was carried over");
     }
 
     // The cue: the reduced-motion choice, the still dot while moving, nothing in riding mode, re-armed by a new carry-over.
@@ -416,6 +424,204 @@ public final class OdometerCarryTest {
         String home = read("src/com/jjricks/volt/DashboardScreen.java");
         check(home.contains("for (Tile tile : tiles) tile.refresh(tile.widget.type.equals(\"live\") || tile.widget.type.equals(\"history\")\n                ? readings : forecast);"),
                 "Home's charts keep the raw readings");
+    }
+
+    // Council 5903733062 #1: Telemetry reads the 32-bit odometer only while it is above zero, so a reset to 0 arrives as
+    // a 16-bit reading. The same tenths odometer: an ordinary drop that carries over, never a fresh start.
+    private static void resetArrivesAs16BitZero() {
+        OdometerCarry c = at(1234.5);
+        check(c.observe(0, 16, 2, WALL + 1) == OdometerCarry.Step.PENDING, "a 16-bit 0.0 after 32-bit readings is a drop that waits");
+        check(near(c.lastRawKm, 1234.5) && c.bits == 32 && c.carries.isEmpty() && near(c.displayKm(0), 1234.5), "nothing saved changes; the total holds");
+        check(c.observe(0, 16, 3, WALL + 2) == OdometerCarry.Step.CARRIED && near(c.carriedKm(), 1234.5) && c.bits == 32, "a second 16-bit 0.0 confirms it");
+        check(near(c.displayKm(0), 1234.5) && c.unacknowledged(), "the total carries on, with the cue");
+        check(c.observe(0.1, 32, 4, WALL + 3) == OdometerCarry.Step.FORWARD && c.carries.size() == 1 && near(c.displayKm(0.1), 1234.6),
+                "the 32-bit field coming back at 0.1 is the same odometer moving on");
+        // Confirmed by the scooter moving: 16-bit 0.0, then 32-bit 0.1.
+        OdometerCarry moved = at(1234.5);
+        moved.observe(0, 16, 2, WALL + 1);
+        check(moved.observe(0.1, 32, 3, WALL + 2) == OdometerCarry.Step.CARRIED && near(moved.carriedKm(), 1234.5) && near(moved.displayKm(0.1), 1234.6),
+                "a 32-bit 0.1 confirms a 16-bit 0.0");
+        // A single 16-bit zero, then the 32-bit field again: a glitch, nothing carried, nothing re-baselined.
+        OdometerCarry glitch = at(1234.5);
+        glitch.observe(0, 16, 2, WALL + 1);
+        check(glitch.observe(1234.6, 32, 3, WALL + 2) == OdometerCarry.Step.FORWARD && glitch.carries.isEmpty() && near(glitch.lastRawKm, 1234.6), "one 16-bit zero is a glitch");
+        // Through the Keeper: the stored record is never overwritten by the 16-bit zero.
+        Prefs prefs = new Prefs();
+        OdometerCarry.Keeper keeper = new OdometerCarry.Keeper(prefs);
+        keeper.observe(P, 1234.5, 32, 1, WALL);
+        check(keeper.observe(P, 0, 16, 2, WALL + MIN) == OdometerCarry.Step.PENDING, "the Keeper: pending");
+        OdometerCarry stored = OdometerCarry.decode(prefs.values.get(OdometerCarry.key(P)));
+        check(near(stored.lastRawKm, 1234.5) && stored.bits == 32, "the stored record still holds 1,234.5 km on the 32-bit field");
+        check(keeper.observe(P, 0, 16, 3, WALL + 2 * MIN) == OdometerCarry.Step.CARRIED, "the Keeper: carried");
+        stored = OdometerCarry.decode(prefs.values.get(OdometerCarry.key(P)));
+        check(near(stored.carriedKm(), 1234.5) && stored.bits == 32 && near(stored.displayKm(0), 1234.5), "written at once, still on the 32-bit field");
+        // The serial hand-off: the kept record is stored at 32 bits; the new profile's next readings are 16-bit zeros.
+        Prefs handoff = new Prefs();
+        OdometerCarry.Keeper again = new OdometerCarry.Keeper(handoff);
+        again.observe(P, 1234.5, 32, 1, WALL);
+        again.forget(P, "N2242SERIAL");
+        check(again.adopt(Q, "N2242SERIAL") && again.load(Q).bits == 32, "the kept record moves over at 32 bits");
+        check(again.observe(Q, 0, 16, 2, WALL + MIN) == OdometerCarry.Step.PENDING && again.observe(Q, 0, 16, 3, WALL + 2 * MIN) == OdometerCarry.Step.CARRIED
+                        && near(again.load(Q).carriedKm(), 1234.5), "set up again after Release: two 16-bit zeros carry the old odometer over");
+        // Only v0 (8-bit whole km) against v1 (tenths) is another field.
+        check(at(500).observe(500, 8, 2, WALL + 1) == OdometerCarry.Step.REBASELINE, "32 to 8 re-baselines");
+        OdometerCarry sixteen = new OdometerCarry();
+        sixteen.observe(500, 16, 1, WALL);
+        check(sixteen.observe(500, 8, 2, WALL + 1) == OdometerCarry.Step.REBASELINE, "16 to 8 re-baselines");
+        check(OdometerCarry.effectiveBits(32, 16) == 32 && OdometerCarry.effectiveBits(16, 16) == 16 && OdometerCarry.effectiveBits(32, 8) == 8
+                && OdometerCarry.effectiveBits(8, 16) == 16, "a 16-bit reading is judged on the 32-bit field once the record has it");
+    }
+
+    /** A v1 ride report (0x92) with this 16-bit and 32-bit odometer, in tenths of a km. */
+    private static byte[] ride(int legacyTenths, long extendedTenths) {
+        byte[] data = new byte[19];
+        data[1] = 80; data[2] = 1;
+        data[13] = (byte) legacyTenths; data[14] = (byte) (legacyTenths >>> 8);
+        for (int i = 0; i < 4; i++) data[15 + i] = (byte) (extendedTenths >>> (8 * i));
+        return data;
+    }
+
+    // The same reset as Telemetry really reports it: a 0x92 frame whose 32-bit odometer is zero.
+    private static void telemetryReset() {
+        Telemetry model = new Telemetry();
+        OdometerCarry c = new OdometerCarry();
+        model.accept(0x92, ride(0, 12345), 10);
+        check(model.odometerBits() == 32 && near(model.number("odometer_km"), 1234.5), "the 32-bit odometer: 1,234.5 km");
+        check(c.observe(model.number("odometer_km"), model.odometerBits(), 10, WALL) == OdometerCarry.Step.FIRST, "first reading");
+        model.accept(0x92, ride(0, 0), 20);
+        check(model.odometerBits() == 16 && near(model.number("odometer_km"), 0), "after a reset Telemetry reports the 16-bit field: 0.0 km at 16 bits");
+        check(c.observe(model.number("odometer_km"), model.odometerBits(), 20, WALL + 1) == OdometerCarry.Step.PENDING, "Telemetry's reset reading waits");
+        model.accept(0x92, ride(0, 0), 30);
+        check(c.observe(model.number("odometer_km"), model.odometerBits(), 30, WALL + 2) == OdometerCarry.Step.CARRIED && near(c.carriedKm(), 1234.5),
+                "and the next frame carries it over");
+        model.accept(0x92, ride(1, 1), 40);
+        check(model.odometerBits() == 32 && c.observe(model.number("odometer_km"), model.odometerBits(), 40, WALL + 3) == OdometerCarry.Step.FORWARD
+                && near(c.displayKm(0.1), 1234.6), "back on the 32-bit field at 0.1 km: forward");
+    }
+
+    // A 16-bit-only record whose report starts carrying a nonzero 32-bit value: the same counter, read whole.
+    private static void sixteenToThirtyTwo() {
+        OdometerCarry s = new OdometerCarry();
+        s.observe(6000.0, 16, 1, WALL);
+        check(s.observe(6000.5, 32, 2, WALL + 1) == OdometerCarry.Step.FORWARD && s.bits == 32 && near(s.displayKm(6000.5), 6000.5), "16 to 32: forward, no re-baseline");
+        // With a 16-bit lap counted, the laps fold into the baseline and the shown total stays put.
+        OdometerCarry w = new OdometerCarry();
+        w.observe(6500.0, 16, 1, WALL); w.observe(10.0, 16, 2, WALL + 1); w.observe(10.0, 16, 3, WALL + 2);
+        double before = w.displayKm(10.0);
+        check(near(before, 6563.6) && w.observe(6563.7, 32, 4, WALL + 3) == OdometerCarry.Step.FORWARD && near(w.wrappedKm, 0) && near(w.displayKm(6563.7), 6563.7),
+                "16 to 32 after a lap: the 32-bit value takes over with the same total");
+        check(w.observe(0, 16, 5, WALL + 4) == OdometerCarry.Step.PENDING && w.observe(0, 16, 6, WALL + 5) == OdometerCarry.Step.CARRIED && near(w.displayKm(0), 6563.7),
+                "and a later reset still carries everything over");
+        // 32 bits lower than the 16-bit total (Volt took a reset for a lap): a drop that waits, the total held.
+        OdometerCarry odd = new OdometerCarry();
+        odd.observe(6500.0, 16, 1, WALL); odd.observe(10.0, 16, 2, WALL + 1); odd.observe(10.0, 16, 3, WALL + 2);
+        check(odd.observe(10.1, 32, 4, WALL + 3) == OdometerCarry.Step.PENDING && near(odd.displayKm(10.1), 6563.6), "a lower 32-bit value holds the total while it waits");
+    }
+
+    // Council 5903733062 #6: the second low reading confirms only a drop to about the same number.
+    private static void confirmComparesLowReadings() {
+        OdometerCarry c = at(1000);
+        check(c.observe(0, 32, 2, WALL + 1) == OdometerCarry.Step.PENDING, "a bogus 0");
+        check(c.observe(800, 32, 3, WALL + 2) == OdometerCarry.Step.PENDING && c.carries.isEmpty() && near(c.displayKm(800), 1000),
+                "a real 800 after it is not a confirmation: it waits in its place");
+        check(c.observe(800, 32, 4, WALL + 3) == OdometerCarry.Step.CARRIED && near(c.carriedKm(), 200) && near(c.displayKm(800), 1000),
+                "a second 800 confirms: 200 km carried over, 1,000 km shown");
+        OdometerCarry close = at(1000);
+        close.observe(0, 32, 2, WALL + 1);
+        check(close.observe(0.2, 32, 3, WALL + 2) == OdometerCarry.Step.CARRIED && near(close.carriedKm(), 1000), "within 0.2 km of the first: confirmed");
+        OdometerCarry far = at(1000);
+        far.observe(0, 32, 2, WALL + 1);
+        check(far.observe(0.3, 32, 3, WALL + 2) == OdometerCarry.Step.PENDING && far.carries.isEmpty(), "0.3 km away: waits again");
+    }
+
+    // Council 5903733062 #8: the kept copy moves over only when the profile's own record is not the newer one.
+    private static void adoptKeepsNewerRecord() {
+        // Forget on phone A at 500 km; phone B rode on to 700 km; its backup restored onto A, newer.
+        Prefs prefs = new Prefs();
+        OdometerCarry.Keeper keeper = new OdometerCarry.Keeper(prefs);
+        keeper.observe(P, 500, 32, 1, WALL);
+        keeper.forget(P, "N2242SERIAL");
+        OdometerCarry fromB = new OdometerCarry();
+        fromB.observe(700, 32, 1, WALL + 60 * MIN);
+        prefs.values.put(OdometerCarry.key(Q), OdometerCarry.encode(fromB));
+        check(!keeper.adopt(Q, "N2242SERIAL") && !prefs.values.containsKey(OdometerCarry.keptKey("N2242SERIAL")), "the older kept copy is dropped");
+        check(near(keeper.load(Q).lastRawKm, 700), "the restored, newer record stays");
+        keeper.observe(Q, 0, 32, 2, WALL + 61 * MIN); keeper.observe(Q, 0, 32, 3, WALL + 62 * MIN);
+        check(near(keeper.load(Q).carriedKm(), 700) && near(keeper.load(Q).displayKm(0), 700), "a reset then carries 700 km, not 500");
+        // The profile's record is older than the kept copy: the kept copy moves over.
+        Prefs older = new Prefs();
+        OdometerCarry.Keeper k2 = new OdometerCarry.Keeper(older);
+        OdometerCarry old = new OdometerCarry();
+        old.observe(300, 32, 1, WALL - 60 * MIN);
+        older.values.put(OdometerCarry.key(Q), OdometerCarry.encode(old));
+        k2.observe(P, 500, 32, 1, WALL);
+        k2.forget(P, "S2");
+        check(k2.adopt(Q, "S2") && near(k2.load(Q).lastRawKm, 500), "an older profile record: the kept copy moves over");
+        check(OdometerCarry.Keeper.keepsOwn(at(700), at(500)) && !OdometerCarry.Keeper.keepsOwn(new OdometerCarry(), at(500)), "no baseline: the kept copy moves over");
+        // Newer but below the kept reading: began after the reset (readings before the serial check): the kept copy moves over.
+        OdometerCarry afterReset = new OdometerCarry();
+        afterReset.observe(0, 16, 1, WALL + MIN);
+        check(!OdometerCarry.Keeper.keepsOwn(afterReset, at(500)), "a newer record below the kept reading began after the reset");
+    }
+
+    // Council 5903733062 #9: a cached reading older than the record shows the record's own reading.
+    private static void cachedReadingOlderThanRecord() {
+        // Phone A last saw 1,000 km; a newer backup restored in which the scooter reset and 1,000 km carried over.
+        OdometerCarry restored = at(1000);
+        restored.observe(0, 32, 2, WALL + 10 * MIN); restored.observe(0, 32, 3, WALL + 11 * MIN);
+        check(near(restored.shownKm(1000, WALL, false), 1000), "the cached 1,000 km from before the reset is not counted twice");
+        check(near(restored.shownKm(0, WALL + 12 * MIN, false), 1000) && near(restored.shownKm(0.4, WALL, true), 1000.4), "a newer cached reading, or a live one, as before");
+        check(!near(restored.displayKm(1000), 1000), "(displayKm alone would show 2,000)");
+        String service = read("src/com/jjricks/volt/ScooterService.java");
+        String with = between(service, "private Map<String, TelemetryHistory.Reading> withShownOdometer(", "private LearnedRangeEstimate.Result currentRangeCache");
+        check(with.contains("record.shownKm(odometer.number, odometer.capturedWallMs, odometer.live)") && !with.contains("record.displayKm("),
+                "Home's odometer goes through shownKm with the reading's age and liveness");
+    }
+
+    // Council 5903733062 #4: an odometer gauge gets the dot and the tap, by the number's rules.
+    private static void gaugeCue() {
+        String home = read("src/com/jjricks/volt/DashboardScreen.java");
+        String mark = between(home, "private void markOdometer(", "void sonarFrame(");
+        check(mark.contains("Gauge dial = number == null && gauge != null && MaintenanceView.ODOMETER.equals(widget.metric) ? gauge : null;")
+                        && mark.contains("View target = dial != null ? dial : number == big ? big : odometerTarget(number);")
+                        && mark.contains("if (dial != null && target == dial && dial.hasOnClickListeners() && dial != odometerTarget) target = null;"),
+                "an odometer gauge is the tap target, unless it already acts on a tap");
+        check(mark.contains("sonar = dial != null ? new OdometerSonar(this, dial) : new OdometerSonar(this, number);")
+                        && mark.contains("dial.setContentDescription(T.dashboardOdometerCarrySpoken(dial.getContentDescription()))"),
+                "the gauge gets the same overlay and spoken hint");
+        String sonar = between(home, "private final class OdometerSonar", "/** A distance as the maintenance page writes an odometer");
+        check(sonar.contains("if (gauge != null) { placeOnGauge(); return; }") && sonar.contains("OdometerAttention.gaugeSpot(") && sonar.contains("gauge.arcMoved = replace;"),
+                "on a gauge the dot is placed from the ring as drawn");
+        String dial = between(home, "private final class Gauge extends View {", "private void splitReading(");
+        check(dial.contains("Runnable arcMoved;"), "the gauge tells the cue when its ring moves");
+        // The spot: outside the ring by the margin, inside the gauge, mirrored right to left.
+        float cx = 150, cy = 66, outer = 60, width = 300, margin = 4;
+        float[] spot = OdometerAttention.gaugeSpot(cx, cy, outer, width, false, margin);
+        double toRing = Math.hypot(spot[0] - cx, spot[1] - cy) - outer;
+        check(spot[0] > cx && spot[1] < cy && spot[2] > 4, "top-end corner, with room for a ring");
+        check(toRing >= spot[2] + margin - 1e-3 && spot[1] >= spot[2] + margin - 1e-3 && width - spot[0] >= spot[2] + margin - 1e-3,
+                "the ring at its reach touches neither the gauge's ring nor its top and end edges");
+        float[] rtl = OdometerAttention.gaugeSpot(cx, cy, outer, width, true, margin);
+        check(Math.abs(rtl[0] - (cx - (spot[0] - cx))) < 1e-3 && Math.abs(rtl[1] - spot[1]) < 1e-3 && Math.abs(rtl[2] - spot[2]) < 1e-3, "mirrored right to left");
+        // A narrow gauge, the ring as wide as the view: still outside the ring and inside the view.
+        float[] narrow = OdometerAttention.gaugeSpot(70, 76, 64, 140, false, margin);
+        check(Math.hypot(narrow[0] - 70, narrow[1] - 76) > 64 && narrow[0] < 140 && narrow[1] > 0, "a narrow gauge: between the ring and the corner");
+    }
+
+    // Council 5903733062 #2: leaving Clean Home stops the rings; the animator also stops itself.
+    private static void cleanHomeStopsRings() {
+        String home = read("src/com/jjricks/volt/DashboardScreen.java");
+        String clean = between(home, "final class CleanParts {", "public View view() {");
+        String close = between(clean, "void close() {", "\n        }");
+        check(close.contains("closed = true;") && close.contains("pulsing.clear();") && close.contains("runOdometerPulse();")
+                        && close.indexOf("runOdometerPulse();") > close.indexOf("closed = true;"),
+                "Clean Home's close clears the ringing tiles and stops the animator, as Home's close does");
+        String run = between(home, "private void runOdometerPulse() {", "private boolean anyPulsingAttached() {");
+        check(run.contains("if (closed || !anyPulsingAttached()) {") && run.contains("a.cancel();") && run.contains("if (odometerPulse == a) odometerPulse = null;"),
+                "the animator cancels itself once the page is closed or no ringing tile is attached");
+        check(between(home, "private boolean anyPulsingAttached() {", "\n    }").contains("tile.isAttachedToWindow()"), "attached means on a window");
+        check(between(home, "private final class OdometerSonar", "/** A distance as the maintenance page writes an odometer").contains("public void onViewAttachedToWindow(View v) { runOdometerPulse(); }"),
+                "a ringing tile back on screen restarts the rings");
     }
 
     private static int count(String text, String part) { int n = 0; for (int i = text.indexOf(part); i >= 0; i = text.indexOf(part, i + 1)) n++; return n; }

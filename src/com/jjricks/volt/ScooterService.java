@@ -2801,7 +2801,8 @@ public final class ScooterService extends Service {
         TelemetryHistory.Reading odometer = readings.get(MaintenanceView.ODOMETER);
         OdometerCarry record = odometer == null || odometer.number == null ? null : odometerRecord();
         if (record == null) return readings;
-        double shown = record.displayKm(odometer.number);
+        // A cached reading older than the record (a newer record restored meanwhile) shows the record's own reading.
+        double shown = record.shownKm(odometer.number, odometer.capturedWallMs, odometer.live);
         if (shown == odometer.number) return readings;
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(readings);
         result.put(odometer.key, new TelemetryHistory.Reading(odometer.key, odometer.label, odometer.group,

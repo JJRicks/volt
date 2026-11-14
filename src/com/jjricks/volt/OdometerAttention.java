@@ -40,6 +40,19 @@ final class OdometerAttention {
         return dot + (Math.max(dot, reach) - dot) * out;
     }
 
+    /**
+     * Where the cue sits on an odometer gauge (a 270-degree ring centred at {@code cx, cy} with outer radius
+     * {@code outer}, in a gauge {@code width} wide): at the top-end corner of the ring's square, on its diagonal, as far
+     * from the ring as from the gauge's top and end edges. Returns {x, y, room}: the dot's centre in the gauge's
+     * coordinates, and how far the ring may reach from it, {@code margin} short of the ring and of those edges.
+     */
+    static float[] gaugeSpot(float cx, float cy, float outer, float width, boolean rtl, float margin) {
+        float edge = Math.min(cy, rtl ? cx : width - cx), root2 = (float) Math.sqrt(2);
+        // t along each axis: the gap to the ring is t * sqrt(2) - outer, to the edges edge - t; equal here.
+        float t = Math.max(0, (edge + outer) / (1 + root2));
+        return new float[]{rtl ? cx - t : cx + t, cy - t, edge - t - margin};
+    }
+
     /** The ring's opacity at {@code progress}, 0 to 1: strongest leaving the dot, transparent at the end. */
     static float ringAlpha(float progress) {
         return 1 - Math.max(0, Math.min(1, progress));

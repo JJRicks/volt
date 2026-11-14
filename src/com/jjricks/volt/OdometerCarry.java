@@ -18,8 +18,14 @@ import java.util.*;
  *     number it saw, which never over-counts, even when a used part with its own mileage is fitted.</li>
  * <li>A confirmed wrap adds one turn of the field to {@link #wrappedKm}, so the shown total never drops at a wrap, and
  *     is no carry-over: nothing to explain or undo.</li>
- * <li>A change of field width (a firmware update) re-baselines without a carry-over and clears {@link #wrappedKm}: the
- *     new field's own value stands, and laps of the old field may already be in it.</li>
+ * <li>The 16- and 32-bit fields are one odometer, in tenths, from the same v1 report: Telemetry reads the 32-bit field
+ *     only while it is above zero, so a reset to 0 arrives as a 16-bit reading. A record that has seen the 32-bit field
+ *     keeps judging every v1 reading on it ({@link #effectiveBits}), so that 0 is an ordinary drop and carries over;
+ *     a 16-bit record that starts seeing the 32-bit field moves to it with its laps folded into the baseline
+ *     ({@link #widen}), so the shown total stays the same.</li>
+ * <li>Only a change between the v0 field (8-bit whole km) and the v1 fields (tenths) re-baselines, without a carry-over
+ *     and clearing {@link #wrappedKm}: the new field's own value stands, and laps of the old field may already be in
+ *     it.</li>
  * </ul>
  * Only the odometer Volt shows the rider (Home's odometer, riding mode's) is the raw reading plus
  * {@link #offsetKm}; rides, range, maintenance, exports and diagnostics keep the raw readings. Pure Java.
@@ -90,6 +96,16 @@ final class OdometerCarry {
         return MaintenanceDistance.round(raw + offsetKm());
     }
 
+    /**
+     * The odometer Home shows for a reading it holds. A live reading reads as {@link #displayKm}. A cached reading older
+     * than this record's last reading (a record restored from another phone, say, that has carried a reset over since)
+     * shows the record's own last reading instead, so a carry-over is never added to a number from before it.
+     */
+    double shownKm(double rawKm, long capturedWallMs, boolean live) {
+        if (!live && hasBaseline() && capturedWallMs < lastWall) return displayKm(lastRawKm);
+        return displayKm(rawKm);
+    }
+
     /** The latest carry-over, or null. */
     Carry last() { return carries.isEmpty() ? null : carries.get(carries.size() - 1); }
 
@@ -116,6 +132,9 @@ final class OdometerCarry {
      */
     Step observe(double rawKm, int readingBits, long frame, long wall) {
         if (Double.isNaN(rawKm) || Double.isInfinite(rawKm) || rawKm < 0) return Step.IGNORED;
+        // 16 and 32 bits are the same tenths odometer: judged on the record's own field, never a fresh start.
+        if (hasBaseline() && readingBits == MaintenanceDistance.BITS_32 && bits == MaintenanceDistance.BITS_16) widen();
+        readingBits = effectiveBits(bits, readingBits);
         if (!hasBaseline() || readingBits != bits) {
             boolean first = !hasBaseline();
             if (!first) wrappedKm = 0;
@@ -132,8 +151,11 @@ final class OdometerCarry {
             clearDrop(); lastWall = Math.max(lastWall, wall);
             return Step.JITTER;
         }
-        if (!dropPending()) { dropKm = rawKm; dropFrame = frame; dropKind = kind; return Step.PENDING; }
+        if (!dropPending()) { pending(rawKm, frame, kind); return Step.PENDING; }
         if (frame == dropFrame) return Step.PENDING;
+        // The second low reading confirms only a drop to about the same number; a different one (a glitch, then the
+        // real reading) becomes the drop that waits, so the carry-over is worked out from a reading that repeated.
+        if (Math.abs(MaintenanceDistance.round(rawKm - dropKm)) > MaintenanceDistance.JITTER_KM) { pending(rawKm, frame, kind); return Step.PENDING; }
         // Confirmed, as the first low reading read it.
         Step step;
         if (dropKind == MaintenanceDistance.Kind.WRAP) {
@@ -157,6 +179,30 @@ final class OdometerCarry {
     }
 
     private void clearDrop() { dropKm = Double.NaN; dropFrame = 0; dropKind = null; }
+
+    private void pending(double rawKm, long frame, MaintenanceDistance.Kind kind) { dropKm = rawKm; dropFrame = frame; dropKind = kind; }
+
+    /**
+     * The field a reading is judged on. v1's 16- and 32-bit fields are one odometer, so once a record has seen the
+     * 32-bit field a 16-bit reading (Telemetry's fallback when the 32-bit value is 0) is judged on the 32-bit field's
+     * period: a drop, never a wrap or a fresh start. Only v0 (8) against v1 (16, 32) is another field.
+     */
+    static int effectiveBits(int recordBits, int readingBits) {
+        if (recordBits == MaintenanceDistance.BITS_32 && readingBits == MaintenanceDistance.BITS_16) return MaintenanceDistance.BITS_32;
+        return readingBits;
+    }
+
+    /**
+     * A 16-bit record meets the 32-bit field (the report started carrying it): the same counter, read whole. The laps
+     * the record counted are folded into the baseline, so the shown total is unchanged and the 32-bit reading is
+     * judged against everything the 16-bit field had reached.
+     */
+    private void widen() {
+        lastRawKm = MaintenanceDistance.round(lastRawKm + wrappedKm);
+        wrappedKm = 0;
+        bits = MaintenanceDistance.BITS_32;
+        clearDrop();
+    }
 
     /** Whether this differs enough from the saved record for a write: 0.1 km, a new baseline, a carry-over, a wrap, or 5 min. */
     boolean worthSaving(OdometerCarry saved) {
@@ -328,7 +374,8 @@ final class OdometerCarry {
         /**
          * The connected scooter's serial is known and matched (ScooterProfiles keeps it only after the serial check): a
          * record kept when a profile for this same scooter was forgotten moves to this profile, unless this profile has
-         * carried something over already. Its next two low readings then carry the reset over. Whether one moved.
+         * carried something over already or holds the newer record ({@link #keepsOwn}). Its next two low readings then
+         * carry the reset over. The kept copy goes either way. Whether one moved.
          */
         boolean adopt(String profileId, String serial) {
             if (!real(profileId) || serial == null || serial.isEmpty()) return false;
@@ -337,8 +384,22 @@ final class OdometerCarry {
             OdometerCarry kept = read(text);
             storage.remove(keptKey(serial));
             if (kept == null || !load(profileId).carries.isEmpty()) return false;
+            if (keepsOwn(load(profileId), kept)) return false;
             store(profileId, kept);
             return true;
+        }
+
+        /**
+         * Whether a profile's own record outranks the copy kept by serial: it has read the odometer more recently (a
+         * backup restored from another phone that kept riding it, say) and is not below the kept reading. A newer
+         * record that is below it began after a reset the kept copy saw (this connection's readings before the serial
+         * check, or another phone's record started on the reset odometer), so the kept copy still moves over and the
+         * distance before the reset carries over.
+         */
+        static boolean keepsOwn(OdometerCarry own, OdometerCarry kept) {
+            if (!kept.hasBaseline()) return own.hasBaseline();
+            if (!own.hasBaseline() || own.lastWall < kept.lastWall) return false;
+            return MaintenanceDistance.round(kept.lastRawKm - own.lastRawKm) <= MaintenanceDistance.JITTER_KM;
         }
 
         private void store(String profileId, OdometerCarry c) {
