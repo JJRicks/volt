@@ -578,7 +578,7 @@ final class RidingScreen implements AppScreen {
         head.addView(big, new LinearLayout.LayoutParams(0, -1, 1));
         List<String> besideSpots = filled(RidingFrames.TRACE_COLUMN);
         if (layout.on(RidingLayout.CHIPS) && !besideSpots.isEmpty()) {
-            LinearLayout beside = new ChipColumn();
+            LinearLayout beside = new ChipColumn(filled(RidingFrames.TRACE_CHIPS).size());
             beside.setGravity(Gravity.END | Gravity.TOP);
             // The column sets each chip's top gap by what's shown (fitColumn).
             for (int i = 0; i < besideSpots.size(); i++)
@@ -2384,9 +2384,12 @@ final class RidingScreen implements AppScreen {
      * the value on show. So the rung, the names, the size and which chips show stay put while riding, and change only when
      * the room, the units, the clock format, the language or the text size does (a tester, Nov 14).
      */
-    private List<Chip> wanted(ViewGroup group) {
+    private List<Chip> wanted(ViewGroup group) { return wanted(group, Integer.MAX_VALUE); }
+
+    /** {@link #wanted(ViewGroup)} among the group's first upTo children. */
+    private List<Chip> wanted(ViewGroup group, int upTo) {
         List<Chip> wanted = new ArrayList<>();
-        for (int i = 0; i < group.getChildCount(); i++) {
+        for (int i = 0; i < group.getChildCount() && i < upTo; i++) {
             View child = group.getChildAt(i);
             if (child instanceof Chip && ((Chip) child).wanted) wanted.add((Chip) child);
         }
@@ -2436,15 +2439,15 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * Trace's column: the chips keep the size they always had, each as wide as its widest value; a column too short for them all
-     * shows the first ones that fit (RidingChipFit.column with a limit), always the same ones for the same column.
+     * Trace's column: the chips keep the size they always had, each as wide as its widest value. Only its first upTo chips
+     * may show (ChipColumn: its third only where the column has room for every chip picked).
      *
      * With followValues (Trace), a chip whose widest value can't fit the column's room even alone at the tightest rung
      * (Max speed's 888.8 mph beside the speed on a 344 dp cover screen) is fitted to the value on show, as every chip was
      * before, rather than never showing: it can still step aside when its value grows. The others stay steady.
      */
-    private void fitColumn(ChipColumn group, int room, int limit, boolean followValues) {
-        List<Chip> wanted = wanted(group);
+    private void fitColumn(ChipColumn group, int room, int upTo, boolean followValues) {
+        List<Chip> wanted = wanted(group, upTo);
         int n = wanted.size();
         String[][] marks = new String[n][];
         String[] contents = new String[n];
@@ -2462,7 +2465,7 @@ final class RidingScreen implements AppScreen {
                 (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, false)
                         : wanted.get(chip).widthAt(normal, rung, step, false),
                 (chip, rung, step) -> follows[chip] ? wanted.get(chip).nowWidthAt(normal, rung, step, true)
-                        : wanted.get(chip).widthAt(normal, rung, step, true), canStep, room, limit);
+                        : wanted.get(chip).widthAt(normal, rung, step, true), canStep, room, Integer.MAX_VALUE);
         int gap = ui.dp(CHIP_GAP_DP), shown = 0;
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
@@ -2519,11 +2522,19 @@ final class RidingScreen implements AppScreen {
      * Trace's chips, stacked beside the big number (fitColumn). They take at most CHIP_COLUMN_SHARE of the row, so a long
      * name shortens, or its chip steps aside, before it can squeeze the speed. The chips that name themselves (drive mode,
      * temperature, clock) always keep the room they had before the share existed, so the default column looks as it did.
-     * A column too short for every chip shows the first ones that fit.
+     *
+     * Its two original chips (chip_1, chip_2) stay whatever the height, as they always have (RidingChipChoicesValidation's
+     * split-screen half). Its third shows only where the column is tall enough for every chip picked, a drive-mode chip
+     * waiting for its mode included, so it never takes a waiting chip's place and then hides when the mode arrives, and a
+     * column whose chip 1 is None never forces it into a short column (the council on #496). The room counts every chip
+     * picked too, so a mode coming or going never changes how the others fit.
      */
     private final class ChipColumn extends LinearLayout {
-        ChipColumn() {
+        /** How many of the chips are Trace's original two (the rest, at most one, is its third). */
+        private final int kept;
+        ChipColumn(int kept) {
             super(host.activity());
+            this.kept = kept;
             setOrientation(VERTICAL);
         }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -2535,20 +2546,20 @@ final class RidingScreen implements AppScreen {
                     View child = getChildAt(i);
                     if (!(child instanceof Chip)) continue;
                     Chip chip = (Chip) child;
-                    if (chip.wanted && chip.namesItself) room = Math.max(room, Math.min(size, chip.widthAt(RidingChipFit.FULL, -1)));
+                    if (chip.namesItself) room = Math.max(room, Math.min(size, chip.widthAt(RidingChipFit.FULL, -1)));
                 }
             }
-            int limit = Integer.MAX_VALUE;
+            int upTo = Integer.MAX_VALUE;
             if (MeasureSpec.getMode(heightSpec) != MeasureSpec.UNSPECIFIED) {
-                int height = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom(), tallest = 0;
+                int height = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom(), tallest = 0, picked = 0;
                 for (int i = 0; i < getChildCount(); i++)
-                    if (getChildAt(i) instanceof Chip) tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
-                limit = RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height);
-                // Trace's two chips stay whatever the height, as they always have (RidingChipChoicesValidation's
-                // split-screen half): only its third steps aside for a short column.
-                limit = Math.max(limit, Math.min(2, getChildCount()));
+                    if (getChildAt(i) instanceof Chip) {
+                        tallest = Math.max(tallest, ((Chip) getChildAt(i)).heightAt(RidingChipFit.SIZE_NORMAL));
+                        picked++;
+                    }
+                if (RidingChipFit.stackable(tallest, ui.dp(CHIP_GAP_DP), height) < picked) upTo = kept;
             }
-            fitColumn(this, room, limit, true);
+            fitColumn(this, room, upTo, true);
             super.onMeasure(widthSpec, heightSpec);
         }
     }
