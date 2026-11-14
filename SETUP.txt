@@ -136,7 +136,10 @@ no owner. In Volt's guided setup, choose Make a new owner key: Volt makes an
 owner key, keeps it only on this phone, and connects with it. Set it up in
 Volt before adding it in the NAVEE app. While it has Volt's key, the NAVEE app
 can't add it; release it in Volt first (More → My scooters, the pencil,
-Edit scooter → Release this scooter). Back up Volt after it connects: the key
+Edit scooter → Release this scooter). A scooter already saved in Volt must be
+released from its saved profile first; setup refuses it otherwise. Once the
+key has been offered to a scooter, Volt keeps it, even if setup goes another
+way; forget it later from My scooters. Back up Volt after it connects: the key
 is nowhere else. This route has not yet been tried on a real scooter.
 
 IF CAPTURE DOES NOT WORK

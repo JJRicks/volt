@@ -490,8 +490,11 @@
     <!-- Status line when the scooter refused the owner key Volt made: it already has an owner (usually from the NAVEE app). -->
     <string name="onboarding_new_refused" volt:screen="Find your scooter" volt:purpose="status"
         volt:safety="owner-key" volt:dnt="NAVEE">This scooter already has an owner, so it refused the new key. Remove it from the NAVEE app and try again, or set up another way.</string>
-    <!-- Link after that refusal: back to the list of setup methods. Volt forgets the key the scooter refused. -->
+    <!-- Link after that refusal: back to the list of setup methods. Volt keeps the key it made (an earlier scooter may hold it). -->
     <string name="onboarding_new_other_way" volt:screen="Find your scooter" volt:purpose="link">Set up another way</string>
+    <!-- Toast on the new-key page: the phone could not save the key it just made (usually full storage), so nothing was sent. -->
+    <string name="onboarding_new_save_failed" volt:screen="New owner key" volt:purpose="message"
+        volt:safety="owner-key">Couldn\'t save the new owner key. Free up some storage and try again.</string>
     <!-- Under "You're connected" after "Make a new owner key": the key is only on this phone until Volt is backed up. -->
     <string name="onboarding_done_new_key_note" volt:screen="You\'re connected" volt:purpose="note"
         volt:safety="owner-key" volt:dnt="Volt">Volt made this scooter\'s owner key, and it\'s only on this phone. Back up Volt so you can set it up on another phone.</string>

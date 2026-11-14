@@ -377,9 +377,11 @@ For a scooter with no owner (never set up, or removed from the NAVEE app),
 setup can make an owner key instead of capturing one: 88 and five random
 bytes, kept only in that scooter's profile on this phone. No computer, helper
 or NAVEE account is needed. The NAVEE app can't add the scooter while it has
-Volt's key; release it in Volt first. Setup keeps any key it has sent unless
-the scooter refused it, so a scooter is never left with an owner key nobody
-holds. Inferred from the official app's bind and removal steps; not yet
+Volt's key; release it in Volt first. Once the key has been offered to any
+scooter, setup keeps it, even after a refusal (an earlier scooter may have
+taken it), so a scooter is never left with an owner key nobody holds; forget
+it later from My scooters. A scooter already saved in Volt is refused before
+it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
 tried on a real scooter. See docs/validation/new-scooter-setup.md.
 
 EARLIER CONFIRMED WRITES AND FRESH READBACK
