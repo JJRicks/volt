@@ -128,7 +128,9 @@ public final class NewOwnerKeyTest {
         // A restore's merge (BackupArchive): never loosens this phone's record.
         check(A.equals(NewOwnerKey.merged(A, NewOwnerKey.MADE)) && A.equals(NewOwnerKey.merged(A, null)) && A.equals(NewOwnerKey.merged(A, B)), "this phone's tie stays");
         check(A.equals(NewOwnerKey.merged(NewOwnerKey.MADE, A)) && A.equals(NewOwnerKey.merged(null, A)), "an offered backup record wins over made or none");
-        check(NewOwnerKey.OFFERED.equals(NewOwnerKey.merged(NewOwnerKey.OFFERED, A)), "two offered records: this phone's");
+        check(A.equals(NewOwnerKey.merged(NewOwnerKey.OFFERED, A)), "an untied record here, a tie in the backup: the tie wins");
+        check(A.equals(NewOwnerKey.merged(A, NewOwnerKey.OFFERED)), "a tie here, an untied record in the backup: the tie stays");
+        check(NewOwnerKey.OFFERED.equals(NewOwnerKey.merged(NewOwnerKey.OFFERED, NewOwnerKey.MADE)) && NewOwnerKey.OFFERED.equals(NewOwnerKey.merged(NewOwnerKey.MADE, NewOwnerKey.OFFERED)), "offered wins over made, from either side");
         check(NewOwnerKey.MADE.equals(NewOwnerKey.merged(NewOwnerKey.MADE, null)) && NewOwnerKey.MADE.equals(NewOwnerKey.merged(null, NewOwnerKey.MADE)), "made, from either side");
         check(NewOwnerKey.merged(null, null) == null, "an older backup with no record adds none");
     }
@@ -287,6 +289,7 @@ public final class NewOwnerKeyTest {
             check(merged(root, "same-made", made, NewOwnerKey.MADE, A).equals(A), "same profile, made here, tied in the backup: tied");
             check(merged(root, "same-two", made, B, A).equals(B), "same profile, tied to B here and A in the backup: this phone's tie");
             check(merged(root, "same-offered", made, NewOwnerKey.OFFERED, NewOwnerKey.MADE).equals(NewOwnerKey.OFFERED), "same profile, offered here: stays offered");
+            check(merged(root, "same-untied-tied", made, NewOwnerKey.OFFERED, A).equals(A), "same profile, untied here, tied in the backup: the backup's tie");
             // An older backup with no record: as before, no record means not a made key; it adds none and loosens none.
             check(merged(root, "old-here", made, A, null).equals(A), "an older backup leaves this phone's tie");
             check(merged(root, "old-none", made, null, null).isEmpty(), "an older backup adds no record");

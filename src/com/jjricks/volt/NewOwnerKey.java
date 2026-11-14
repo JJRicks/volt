@@ -102,12 +102,15 @@ final class NewOwnerKey {
 
     /**
      * The record a restore keeps for one profile whose key is the same here and in the backup (BackupArchive): a
-     * restore never loosens what this phone knows. A record that says the key may be on a scooter (offered, or tied)
-     * wins over one that says it never was, or over none; between two such records this phone's stays, since it
-     * governs this phone's connections; otherwise whichever exists. An older backup with no record changes nothing
-     * here, and adds no record where there is none.
+     * restore never loosens what this phone knows. A tie wins over every other record, since it names the scooter that
+     * may hold the key and keeps the key from any other; between two ties this phone's stays, since it governs this
+     * phone's connections. Then a record that says the key may be on a scooter (offered) wins over one that says it
+     * never was, or over none; otherwise whichever exists. An older backup with no record changes nothing here, and
+     * adds no record where there is none.
      */
     static String merged(String here, String incoming) {
+        if (!tie(here).isEmpty()) return here;
+        if (!tie(incoming).isEmpty()) return incoming;
         if (offered(here)) return here;
         if (offered(incoming)) return incoming;
         return here != null ? here : incoming;
