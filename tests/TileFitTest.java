@@ -38,6 +38,17 @@ public final class TileFitTest {
         require(TileFit.columns(swedish, CHARS, 12, 2, 200, 180) == 3, "Two rows taller than the room: three in a row");
         require(TileFit.columns(swedish, CHARS, 12, 2, 180, 180) == 2, "Two rows that fit the room: two in a row");
         require(TileFit.columns(new String[]{"Ride time", "Avg speed", "Battery drop"}, CHARS, 12, 2, 0, 0) == 3, "Names that fit thirds stay three in a row");
+        // The council's second review of part 9, finding 3: when two rows are taller than the room, two rows with the tight
+        // padding before three in a row, and three in a row only with names cut whole (one line, an ellipsis), never broken.
+        require(TileFit.layout(swedish, CHARS, 12, 2, 180, 160, 200) == TileFit.TWO, "Two rows fit: two in a row");
+        require(TileFit.layout(swedish, CHARS, 12, 2, 200, 170, 180) == TileFit.TWO_TIGHT, "Only the tight rows fit: two tight rows");
+        require(TileFit.layout(swedish, CHARS, 12, 2, 200, 190, 180) == TileFit.THREE_CUT, "Neither fits: three in a row, names cut whole");
+        require(TileFit.layout(new String[]{"Ride time", "Avg speed", "Battery"}, CHARS, 12, 2, 999, 999, 0) == TileFit.THREE, "Names that fit thirds: three in a row");
+        require(TileFit.nameLines("Medelhastighet", CHARS, 12, 2) == 1, "A word wider than the tile: one line, ending in an ellipsis, never broken inside");
+        require(TileFit.nameLines("Medelhastighet", CHARS, 14, 2) == 2 && TileFit.nameLines("Spadek poziomu baterii", CHARS, 9, 2) == 2,
+                "Words that fit: up to two lines, wrapped at spaces");
+        require(TileFit.nameLines("Vitesse moyennement", CHARS, 10, 2) == 1, "One word too wide is enough");
+        require(TileFit.nameLines("", CHARS, 1, 2) == 2 && TileFit.nameLines(null, CHARS, 1, 2) == 2, "No name: the usual lines");
         System.out.println("TileFit: " + checks + " checks passed");
     }
 

@@ -271,11 +271,13 @@ final class JustBackView extends LinearLayout {
 
     /**
      * The three tiles: three in a row while every name fits a third whole in two lines, else two in a row with the
-     * battery tile spanning the second row (TileFit.columns, council early review of part 9, note 2). The names keep
-     * their full words: no name is broken inside a word or cut at normal text size; the route panel above gives up
-     * the height a second row takes (it draws nothing when too little is left). When even all of the route panel's
-     * height is not enough for a second row (large text), the tiles stay three in a row with names ellipsized at two
-     * lines, so nothing runs past the top area's bottom edge.
+     * battery tile spanning the second row (TileFit.layout, council early review of part 9, note 2). The names keep
+     * their full words: no name is broken inside a word; the route panel above gives up the height a second row takes
+     * (it draws nothing when too little is left). When even all of the route panel's height is not enough for a second
+     * row (a short split-screen window, council's second review, finding 3), the two rows take the tiles' tight padding;
+     * only when even that does not fit (very large text in a very short window) do the tiles stay three in a row, a name
+     * with a word too wide for its third then on one line ending in an ellipsis (TileFit.nameLines), never broken inside
+     * the word, so nothing runs past the top area's bottom edge.
      */
     private static final class Tiles extends android.view.ViewGroup {
         private final Cell[] cells;
@@ -306,14 +308,24 @@ final class JustBackView extends LinearLayout {
                 float scale = JustBackFit.nameScale(widths, third - first.horizontalPadding() - 1, first.nameFull, first.nameFloor);
                 for (Cell cell : cells) cell.nameScale(scale);
             }
-            int wanted = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
-                    : TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES);
-            int height = measureAt(wanted, width);
-            if (wanted != 3) {
-                int fewer = TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES, height, maxHeight);
-                if (fewer == 3) height = measureAt(3, width);
+            int layout = TileFit.THREE;
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED
+                    && TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES) != 3) {
+                // Two rows as the tiles are now, then the same with the other padding by its known difference, so the
+                // padding changes (and asks for a layout) only when the answer does.
+                int now = measureAt(2, width), saving = 2 * first.tightSaving();
+                int twoRows = first.isTight() ? now + saving : now, tightHeight = twoRows - saving;
+                layout = TileFit.layout(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES,
+                        twoRows, tightHeight, maxHeight);
             }
+            tight(layout == TileFit.TWO_TIGHT);
+            int height = measureAt(layout == TileFit.TWO || layout == TileFit.TWO_TIGHT ? 2 : 3, width);
             setMeasuredDimension(width, resolveSize(height, heightSpec));
+        }
+
+        /** The tiles' tight padding (TileFit.TWO_TIGHT) or their usual one. */
+        private void tight(boolean on) {
+            for (Cell cell : cells) cell.tight(on);
         }
 
         /** The width of tile i with count tiles in a row (the last spans the row in two columns). */
@@ -333,6 +345,9 @@ final class JustBackView extends LinearLayout {
             int height = 0, row = 0;
             for (int i = 0; i < cells.length; i++) {
                 int cellWidth = cellWidth(i, count, width);
+                // Whole words only: a name with a word wider than its tile takes one line and ends in an ellipsis.
+                cells[i].nameLines(TileFit.nameLines(cells[i].label(), cells[i].namePaint()::measureText,
+                        cellWidth - cells[i].horizontalPadding(), Cell.NAME_LINES));
                 cells[i].measure(MeasureSpec.makeMeasureSpec(Math.max(0, cellWidth), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                 row = Math.max(row, cells[i].getMeasuredHeight());
                 boolean rowEnds = columns == 3 ? i == cells.length - 1 : i % 2 == 1 || i == cells.length - 1;
@@ -386,14 +401,21 @@ final class JustBackView extends LinearLayout {
         private final float nameFull, nameFloor;
         private final android.text.TextPaint measure = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence full = "—", shorter;
+        /** The usual and the tight (TileFit.TWO_TIGHT) padding above and below, and the gap above the value (px). */
+        private final int padding, tightPadding, valueGap, tightValueGap;
+        private boolean tight;
 
         Cell(ScreenHost host, Msg label) {
             super(host.activity());
             Ui ui = host.ui();
+            padding = ui.dp(9);
+            tightPadding = ui.dp(5);
+            valueGap = ui.dp(4);
+            tightValueGap = ui.dp(2);
             setOrientation(VERTICAL);
             // From the top, the value at the bottom: a row's names and values line up whatever a name's line count.
             setGravity(Gravity.TOP);
-            setPadding(ui.dp(10), ui.dp(9), ui.dp(10), ui.dp(9));
+            setPadding(ui.dp(10), padding, ui.dp(10), padding);
             // The charging moment's tile colour and corner (DashboardScreen.InfoCell), so the row keeps its look.
             setBackground(ui.shape(ui.raised, 14, 0));
             name = ui.caption(label.render());
@@ -415,8 +437,27 @@ final class JustBackView extends LinearLayout {
             valueTop = ui.sp(JustBackFit.VALUE_SP);
             valueFloor = Math.min(valueTop, ui.sp(Ui.READABLE_FLOOR_SP));
             LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-1, Math.round(valueTop * 1.25f));
-            valueSize.topMargin = ui.dp(4);
+            valueSize.topMargin = valueGap;
             addView(value, valueSize);
+        }
+
+        boolean isTight() { return tight; }
+
+        /** How much shorter one row of tiles is with the tight padding (px). */
+        int tightSaving() { return 2 * (padding - tightPadding) + (valueGap - tightValueGap); }
+
+        /** The tight padding (TileFit.TWO_TIGHT: two rows in a short window) or the usual one. */
+        void tight(boolean on) {
+            if (tight == on) return;
+            tight = on;
+            int vertical = on ? tightPadding : padding;
+            setPadding(getPaddingLeft(), vertical, getPaddingRight(), vertical);
+            ((LinearLayout.LayoutParams) value.getLayoutParams()).topMargin = on ? tightValueGap : valueGap;
+        }
+
+        /** The most lines the name takes (TileFit.nameLines). */
+        void nameLines(int lines) {
+            if (name.getMaxLines() != lines) name.setMaxLines(lines);
         }
 
         /** The tile's name as shown. */
