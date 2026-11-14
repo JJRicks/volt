@@ -126,6 +126,15 @@ public final class HubPagesTest {
         require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
                 "Large text: fewer, still comfortable: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f));
         require(HubPages.dockSubjects(HubPages.dockRoom(600), 1f).size() == 7, "A wide phone shows all seven");
+        // The dock HubValidation expects in each window of the sweep's hub steps (344x882 and 725x604 dp, at 1x and 1.4x
+        // text): the 725 dp window gets the wide layout (all seven) at 1x, and the phone layout at 1.4x (725 / 1.4 < 650),
+        // whose dock still holds all seven in 689 dp of room; a 344 dp phone never gets the wide layout.
+        require(!WideLayout.wide(344, 1f) && !WideLayout.wide(344, 1.4f), "344 dp is a phone at any text size");
+        require(WideLayout.wide(725, 1f) && !WideLayout.wide(725, 1.4f), "725 dp: wide at 1x, the phone layout at 1.4x");
+        require(HubPages.dockRoom(725) == 689 && HubPages.dockSubjects(HubPages.dockRoom(725), 1.4f).equals(HubPages.SUBJECTS),
+                "725 dp at 1.4x: the phone dock holds all seven: " + HubPages.dockSubjects(HubPages.dockRoom(725), 1.4f));
+        require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.4f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
+                "344 dp at 1.4x: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.4f));
         // A wide dock (#392 early review): full names only when every one fits on one line, else every short name.
         // 725 dp less 24 dp each side gives 677 dp, eight items of about 83.6 dp, captions of about 79.6 dp.
         float[] fits = {40, 70, 60, 79};

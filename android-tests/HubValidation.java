@@ -16,7 +16,9 @@ import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
@@ -39,6 +41,7 @@ import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.WideLayout;
 
 /**
  * Fresh disposable emulator only (refuses a physical phone, existing app data and Bluetooth turned on). Walks the Hub
@@ -54,19 +57,24 @@ import com.jjricks.volt.ScooterService;
  *   <li><b>The page stack</b>: opening a page already in the stack closes the pages above it, Home resets it, and an
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
  *   <li><b>Search</b>: the header's search opens the search page with its field focused and the subjects listed;
- *   typing hides the subjects; the system Back first clears the query (the subjects come back), then returns to Home;
+ *   typing hides the subjects (pictured with the keyboard gone); the system Back first clears the query (the subjects come back), then returns to Home;
  *   the page's back link returns to Home at once, even with a query typed. Search's own results (settings, readings,
  *   rides) arrive with part 12, which checks them.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
- *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown. Each
- *   place is measured only while the moment it belongs to is the one shown, its crossfade over. Every picture waits for a
- *   frame drawn after the views changed to reach the screen.</li>
+ *   changes from the battery card to the simulator's charging view and back, and with the Just back card shown, and
+ *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
+ *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
+ *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
+ *   reach the screen of the window it pictures (the activity's, or the All sheet's own).</li>
  *   <li><b>Widgets Home</b>: its header is main's (no search or gear of its own); Search and Settings are the first rows
  *   of the dock's All sheet and open over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only
  *   (never on a subject page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet
- *   listing all seven subjects, whose rows open their subject and close the sheet. With -e wide true or false, the dock
- *   must hold all seven (wide) or the phone's most-used ones (HubPages.dockSubjects). While the dock shows, it covers no
- *   shown part of Widgets' Lock bar (part 11 has it step aside), on arrival and after each Back.</li>
+ *   listing all seven subjects, whose rows open their subject and close the sheet. With -e wide true (a window at least
+ *   650 dp wide) or false (a narrower one), the dock must be the layout's: all seven when the window at this text size
+ *   gets the wide layout (WideLayout.wide), else the phone's most-used ones (HubPages.dockSubjects; at 725x604 dp and
+ *   1.4x text, a phone dock that holds all seven). While the dock shows, it covers no shown part of Widgets' Lock bar,
+ *   on arrival and after each Back; while it has stepped aside (part 11, a short window at large text), it would cover
+ *   that bar, and the walk scrolls Home as a rider would until the dock comes back before tapping it.</li>
  *   <li><b>Taps</b>: every tap first scrolls its view into sight, and the view's centre must then be on screen and, on a
  *   page with the dock, above the dock; a view an owner cannot see is not tapped.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
@@ -236,8 +244,9 @@ public final class HubValidation extends Instrumentation {
         });
         main(() -> field[0].setText("maintenance")); settle();
         main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while a query is typed"));
-        screenshot("search-typed");
+        // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
+        screenshot("search-typed");
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         main(() -> {
@@ -259,21 +268,31 @@ public final class HubValidation extends Instrumentation {
         checks.add("Search: opens focused with the subjects listed; typing hides them; Back clears the query, then returns to Home; the back link returns to Home at once");
     }
 
-    /** The Lock bar keeps its place and size while the top area changes moment. */
+    /**
+     * The Lock bar keeps its place and size, and Home's scooter name its place, while the top area changes moment; each
+     * moment is pictured at the same scroll (Home's top).
+     */
     private void moments() throws Exception {
         requireHome("CleanHomeScreen");
         Object clean = field(activity, "screen");
+        main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
+        settle();
+        main(() -> require(((ScrollView) field(activity, "scroll")).getScrollY() == 0, "Clean Home did not scroll back to its top"));
         int[] parked = placeIn(clean, 0, "the battery card");
+        screenshot("moment-parked");
+        // Still the battery card after the picture, at the place measured.
+        int[] afterPicture = placeIn(clean, 0, "the battery card");
+        require(Arrays.equals(parked, afterPicture), "Clean Home moved while the parked moment was pictured: " + describe(parked) + " -> " + describe(afterPicture));
         BleController ble = activity.service().ble;
         main(() -> { ble.setSimulationCharging(true); activity.redraw(); });
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 1; }), "Clean Home does not show the charging view while the simulator charges");
         int[] charging = placeIn(clean, 1, "the charging view");
-        require(Arrays.equals(parked, charging), "The Lock bar moved for the charging view: " + Arrays.toString(parked) + " -> " + Arrays.toString(charging));
+        require(Arrays.equals(parked, charging), "The Lock bar or the scooter name moved for the charging view: " + describe(parked) + " -> " + describe(charging));
         screenshot("moment-charging");
         main(() -> { ble.setSimulationCharging(false); activity.redraw(); });
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 0; }), "Clean Home did not return to the battery card");
         int[] back = placeIn(clean, 0, "the battery card");
-        require(Arrays.equals(parked, back), "The Lock bar moved back from the charging view: " + Arrays.toString(parked) + " -> " + Arrays.toString(back));
+        require(Arrays.equals(parked, back), "The Lock bar or the scooter name moved back from the charging view: " + describe(parked) + " -> " + describe(back));
         // Just back needs a ride saved in the last hour; its card is shown directly here, for the layout only (no ride).
         // Clean Home's own refresh (once a second) puts the parked card back, so the place counts only if it was measured
         // while Just back was still the moment shown, its crossfade over; else the card is shown and measured again.
@@ -289,15 +308,17 @@ public final class HubValidation extends Instrumentation {
         boolean pictured = false;
         for (int attempt = 0; attempt < JUST_BACK_TRIES && !pictured; attempt++) {
             main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 2));
-            if (placeWhile(clean, 2, 1500) == null) continue;
+            int[] before = placeWhile(clean, 2, 1500);
+            if (before == null) continue;
+            require(Arrays.equals(parked, before), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(before));
             screenshot("moment-just-back");
             if (onMain(() -> ((Integer) field(clean, "moment")) == 2)) { pictured = true; continue; }
             discardScreenshot(screenshots.remove(screenshots.size() - 1));
         }
         require(pictured, "No Just back picture while the card was still shown, " + JUST_BACK_TRIES + " times");
         main(() -> invoke(clean, "show", new Class<?>[]{int.class}, 0)); settle();
-        require(Arrays.equals(parked, justBack), "The Lock bar moved for the Just back card: " + Arrays.toString(parked) + " -> " + Arrays.toString(justBack));
-        checks.add("Moments: the Lock bar and the top area keep their place and size for the battery card, charging and Just back");
+        require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
+        checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back; each pictured at that scroll");
     }
 
     /** Widgets Home: the dock, each of its items, and its All sheet. */
@@ -306,17 +327,31 @@ public final class HubValidation extends Instrumentation {
         requireHome("DashboardScreen");
         Object dock = dock();
         @SuppressWarnings("unchecked") List<String> shown = new ArrayList<>((List<String>) invoke(dock, "shown", new Class<?>[0]));
+        boolean layoutWide = WideLayout.wide(widthDp(), textScale());
+        main(() -> require(Boolean.valueOf(layoutWide).equals(field(dock, "wide")), "The dock's layout is " + (layoutWide ? "not " : "") + "the wide one at "
+                + widthDp() + " dp and " + textScale() + "x text"));
+        String layout = layoutWide ? "wide" : "phone";
         if (arguments.containsKey("wide")) {
-            boolean wide = Boolean.parseBoolean(arguments.getString("wide"));
-            List<String> expected = wide ? HubPages.SUBJECTS : HubPages.dockSubjects(dockRoomDp(), textScale());
-            require(shown.equals(expected), "The " + (wide ? "wide" : "phone") + " dock shows " + shown + ", expected " + expected);
+            // -e wide names the window: true, at least the wide layout's 650 dp (725x604 dp); false, a phone's. The wide
+            // window gets the wide dock (all seven) at 1x text; at 1.4x it has the phone layout (725 / 1.4 < 650 dp),
+            // whose dock still holds all seven in its 689 dp of room (HubPages.dockSubjects).
+            boolean wideWindow = Boolean.parseBoolean(arguments.getString("wide"));
+            require(wideWindow == (widthDp() >= WideLayout.MIN_TEXT_DP), "-e wide " + wideWindow + " on a window " + widthDp() + " dp wide");
+            if (!wideWindow) require(!layoutWide, "A window under " + WideLayout.MIN_TEXT_DP + " dp got the wide layout");
+            if (wideWindow && textScale() <= 1f) require(layoutWide, "The wide window at 1x text did not get the wide layout");
+            List<String> expected = layoutWide ? HubPages.SUBJECTS : HubPages.dockSubjects(dockRoomDp(), textScale());
+            require(shown.equals(expected), "The " + layout + " dock shows " + shown + ", expected " + expected);
         }
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
-        main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
-        dockClearOfLock("Widgets Home");
+        main(() -> require(root().findViewWithTag("hub-dock") != null && root().findViewWithTag("hub-dock-handle") != null, "Widgets Home has no dock or All item"));
+        boolean aside = dockClearOfLock("Widgets Home");
+        // Pictured as Home opens: with the dock stepped aside where it would cover the Lock bar.
         screenshot("widgets-home");
+        dockInReach("Widgets Home");
+        main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
         widgetsPages(false);
         for (String subject : shown) {
+            dockInReach("Widgets Home before " + subject);
             main(() -> { View item = root().findViewWithTag("hub-dock-" + subject); require(shown(item), "The dock has no " + subject + " item");
                 require(item.getContentDescription() != null && item.getContentDescription().length() > 0, "The dock's " + subject + " item has no spoken name"); });
             tapTag("hub-dock-" + subject);
@@ -328,7 +363,8 @@ public final class HubValidation extends Instrumentation {
         }
         for (String subject : HubPages.SUBJECTS) if (!shown.contains(subject))
             main(() -> require(root().findViewWithTag("hub-dock-" + subject) == null, "The dock has an item for " + subject + ", which it does not list"));
-        checks.add("Widgets dock: " + shown + " each open their subject over Home; Back returns to Widgets Home; no dock on subject pages; the dock never over the Lock bar");
+        checks.add("Widgets dock (" + layout + " layout at " + widthDp() + " dp, " + textScale() + "x text): " + shown + " each open their subject over Home; Back returns to Widgets Home; "
+                + "no dock on subject pages; the dock never over the Lock bar" + (aside ? "; it stepped aside over the Lock bar as Home opened and came back once Home scrolled" : ""));
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
             AlertDialog[] sheet = {openAllSheet()};
@@ -337,7 +373,7 @@ public final class HubValidation extends Instrumentation {
                 require(content.findViewWithTag("hub-dock-sheet") != null, "The All sheet has no content tag");
                 for (String each : HubPages.SUBJECTS) require(shown(content.findViewWithTag("home-subject-" + each)), "The All sheet does not list " + each);
             });
-            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet");
+            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet", onMain(() -> sheet[0].getWindow().getDecorView()));
             tapIn(() -> sheet[0].getWindow().getDecorView(), "home-subject-" + subject, "home-subject-" + subject + " in the All sheet");
             await(() -> onMain(() -> !sheet[0].isShowing()), "The All sheet stayed open after opening " + subject);
             arrived(subject, HubPages.HOME, subject);
@@ -365,7 +401,7 @@ public final class HubValidation extends Instrumentation {
         for (String[] each : new String[][]{{"home-search", HubPages.SEARCH}, {"home-settings", HubPages.SETTINGS}}) {
             AlertDialog sheet = openAllSheet();
             main(() -> require(shown(sheet.getWindow().getDecorView().findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
-            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages");
+            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages", onMain(() -> sheet.getWindow().getDecorView()));
             tapIn(() -> sheet.getWindow().getDecorView(), each[0], each[0] + " in the All sheet");
             await(() -> onMain(() -> !sheet.isShowing()), "The All sheet stayed open after " + each[0]);
             arrived(each[1], HubPages.HOME, each[1]);
@@ -382,22 +418,46 @@ public final class HubValidation extends Instrumentation {
 
     /**
      * Part 11 keeps the dock off Widgets' Lock bar (it steps aside while it would cover any shown part of it): while the
-     * dock shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it. Measured in window pixels here,
-     * not with the app's own rule (HubPages.dockCovers).
+     * dock shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it; while it has stepped aside
+     * (invisible, keeping its place), it would. Measured in window pixels here, not with the app's own rule
+     * (HubPages.dockCovers). True when the dock is aside.
      */
-    private void dockClearOfLock(String where) {
-        main(() -> {
+    private boolean dockClearOfLock(String where) {
+        return onMain(() -> {
             View dock = root().findViewWithTag("hub-dock"), lock = (View) field(activity, "dashboardLock");
             require(lock != null, where + " has no Lock bar");
+            require(dock != null && dock.getVisibility() != View.GONE, where + " has no dock");
             Rect bar = new Rect();
-            if (!shown(dock) || !lock.isShown() || !lock.getGlobalVisibleRect(bar)) return;
+            boolean barShown = lock.isShown() && lock.getGlobalVisibleRect(bar);
+            if (dock.getVisibility() == View.INVISIBLE) {
+                int[] at = new int[2]; dock.getLocationInWindow(at);
+                Rect place = new Rect(at[0], at[1], at[0] + dock.getWidth(), at[1] + dock.getHeight());
+                require(barShown && Rect.intersects(place, bar), where + ": the dock stepped aside but its place " + place.toShortString()
+                        + " is clear of the Lock bar's shown part " + (barShown ? bar.toShortString() : "(none)"));
+                return true;
+            }
+            if (!shown(dock) || !barShown) return false;
             Rect over = new Rect();
             require(!dock.getGlobalVisibleRect(over) || !Rect.intersects(over, bar), where + ": the dock " + over.toShortString() + " covers the Lock bar's shown part " + bar.toShortString());
+            return false;
         });
+    }
+
+    /**
+     * Where the dock has stepped aside over the Lock bar, scrolls Home to its end as a rider would, until the bar is above
+     * the dock and the dock shows again (dockClearOfLock checks it then).
+     */
+    private void dockInReach(String where) {
+        if (!dockClearOfLock(where)) return;
+        main(() -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN));
+        await(() -> onMain(() -> root().findViewWithTag("hub-dock").getVisibility() == View.VISIBLE), where + ": the dock stayed aside after scrolling Home to its end");
+        settle();
+        require(!dockClearOfLock(where + " scrolled to its end"), where + ": the dock stepped aside again");
     }
 
     /** Taps the dock's All item and returns its sheet, open and settled. */
     private AlertDialog openAllSheet() {
+        dockInReach("Widgets Home before All");
         tapTag("hub-dock-handle");
         AlertDialog[] sheet = new AlertDialog[1];
         await(() -> onMain(() -> { sheet[0] = (AlertDialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
@@ -518,6 +578,9 @@ public final class HubValidation extends Instrumentation {
             android.view.inputmethod.InputMethodManager input = (android.view.inputmethod.InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
             if (focus != null && input != null) { input.hideSoftInputFromWindow(focus.getWindowToken(), 0); focus.clearFocus(); }
         });
+        // Until the keyboard has left the window (its insets), so what follows (a picture, Back) sees it gone.
+        if (Build.VERSION.SDK_INT >= 30) await(() -> onMain(() -> { WindowInsets insets = root().getRootWindowInsets(); return insets == null || !insets.isVisible(WindowInsets.Type.ime()); }),
+                "The keyboard stayed shown after hiding it");
         settle();
     }
 
@@ -551,19 +614,31 @@ public final class HubValidation extends Instrumentation {
         return dock;
     }
     /** The room a phone dock has (HubPages.dockRoom of the window's width, as HubDock measures it). */
-    private int dockRoomDp() { return HubPages.dockRoom(activity.getResources().getConfiguration().screenWidthDp); }
+    private int dockRoomDp() { return HubPages.dockRoom(widthDp()); }
+    /** The window's width in dp (Ui.wideLayout's). */
+    private int widthDp() { return activity.getResources().getConfiguration().screenWidthDp; }
     /** App text size times Android's font size, at least 1 (HubDock's scale). */
     private float textScale() { return Math.max(1f, activity.ui().textScale * activity.getResources().getConfiguration().fontScale); }
 
     /** How often the walk shows the Just back card again when Clean Home's refresh replaced it before it was measured. */
     private static final int JUST_BACK_TRIES = 20;
 
-    /** The Lock bar's place in the window and its size, and the top area's height (px). On the main thread. */
+    /**
+     * The Lock bar's place in the window and its size, the top area's height, and the scooter name's (home-switch-scooter)
+     * place in the window (px): a scroll jump between moments moves the name even where the top area keeps its size. On
+     * the main thread.
+     */
     private int[] lockPlaceNow() {
-        View lock = root().findViewWithTag("home-lock"), top = root().findViewWithTag("home-top-area");
+        View lock = root().findViewWithTag("home-lock"), top = root().findViewWithTag("home-top-area"), name = root().findViewWithTag("home-switch-scooter");
         require(shown(lock) && shown(top), "Clean Home has no Lock bar or top area");
-        int[] at = new int[2]; lock.getLocationInWindow(at);
-        return new int[]{at[0], at[1], lock.getWidth(), lock.getHeight(), top.getHeight()};
+        require(shown(name), "Clean Home shows no scooter name (home-switch-scooter)");
+        int[] at = new int[2], named = new int[2]; lock.getLocationInWindow(at); name.getLocationInWindow(named);
+        return new int[]{at[0], at[1], lock.getWidth(), lock.getHeight(), top.getHeight(), named[0], named[1]};
+    }
+    /** A place from lockPlaceNow, named. */
+    private static String describe(int[] place) {
+        return place == null ? "none" : "Lock bar at " + place[0] + "," + place[1] + " size " + place[2] + "x" + place[3] + ", top area " + place[4]
+                + " high, scooter name at " + place[5] + "," + place[6];
     }
 
     /** lockPlaceNow measured while Clean Home shows moment (a state that holds, such as charging), within 10 s. */
@@ -596,8 +671,9 @@ public final class HubValidation extends Instrumentation {
                     View each = moments[i];
                     if (i == moment ? each.getVisibility() != View.VISIBLE || each.getAlpha() < 1f : each.getVisibility() != View.GONE) return;
                 }
-                View top = root().findViewWithTag("home-top-area"), lock = root().findViewWithTag("home-lock");
-                if (top == null || lock == null || top.isLayoutRequested() || lock.isLayoutRequested() || root().isLayoutRequested()) return;
+                View top = root().findViewWithTag("home-top-area"), lock = root().findViewWithTag("home-lock"), name = root().findViewWithTag("home-switch-scooter");
+                if (top == null || lock == null || name == null || top.isLayoutRequested() || lock.isLayoutRequested() || name.isLayoutRequested()
+                        || root().isLayoutRequested()) return;
                 place[0] = lockPlaceNow();
             });
             if (gone[0]) return null;
@@ -666,8 +742,10 @@ public final class HubValidation extends Instrumentation {
         main(() -> activity.redraw()); settle();
     }
 
-    private void screenshot(String label) throws Exception {
-        awaitFrameShown();
+    private void screenshot(String label) throws Exception { screenshot(label, onMain(this::root)); }
+    /** A picture once a frame of window (the decor view of the window it pictures, such as a sheet's) is on screen. */
+    private void screenshot(String label, View window) throws Exception {
+        awaitFrameShown(window);
         File dir = new File(getTargetContext().getExternalFilesDir(null), "hub-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory unavailable");
         File file = new File(dir, arguments.getString("theme", "dark") + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
@@ -679,10 +757,12 @@ public final class HubValidation extends Instrumentation {
      * system to put it on screen, so a screenshot shows what the views hold now and not the frame before (the emulator's
      * run on 6db305f8 kept a Just back "picture" that still showed the parked card while its census listed Just back).
      */
-    private void awaitFrameShown() {
+    private void awaitFrameShown() { awaitFrameShown(onMain(this::root)); }
+    /** As awaitFrameShown, for the window whose decor view is window (the activity's, or a dialog's own). */
+    private void awaitFrameShown(View window) {
         if (Build.VERSION.SDK_INT < 29) { settle(); return; }
         CountDownLatch committed = new CountDownLatch(1);
-        main(() -> { root().getViewTreeObserver().registerFrameCommitCallback(committed::countDown); root().invalidate(); });
+        main(() -> { window.getViewTreeObserver().registerFrameCommitCallback(committed::countDown); window.invalidate(); });
         boolean drawn;
         try { drawn = committed.await(3, TimeUnit.SECONDS); } catch (InterruptedException interrupted) { throw new IllegalStateException(interrupted); }
         require(drawn, "No frame was drawn within 3 s for a screenshot");
