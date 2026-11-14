@@ -78,9 +78,10 @@ final class RidingAlertBanner {
         stop.setGravity(Gravity.CENTER);
         stop.setMaxLines(1);
         stop.setMinWidth(ui.dp(HEIGHT_DP));
-        stop.setPadding(ui.dp(22), 0, ui.dp(22), 0);
         // A 44 dp pill drawn inside the banner's full 56 dp height, all of which takes the tap.
-        stop.setBackground(new InsetDrawable(ui.shape(ui.onAccent, 22, 0), ui.dp(0), ui.dp(6), ui.dp(6), ui.dp(6)));
+        stop.setBackground(new InsetDrawable(ui.shape(ui.onAccent, 22, 0), 0, ui.dp(6), ui.dp(6), ui.dp(6)));
+        // After the background, which sets its own padding; the extra end padding centres the label in the pill.
+        stop.setPadding(ui.dp(22), 0, ui.dp(22 + 6), 0);
         stop.setClickable(true);
         stop.setFocusable(true);
         stop.setOnClickListener(v -> closeShown());
