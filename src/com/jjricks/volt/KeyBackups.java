@@ -2,14 +2,13 @@ package com.jjricks.volt;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Which owner keys a saved backup holds, so no tap can lock a rider out of their own scooter (owner, 2026-11-13).
@@ -23,10 +22,16 @@ import java.util.Map;
  * held, a fingerprint of the profile ID and key with the time saved, never the key itself. The record is this
  * phone's own: BackupRegistry excludes the prefix, so a restore or another phone never inherits a claim that a file
  * exists. A changed key no longer matches its fingerprint, so it needs a new backup.
+ *
+ * Stored as app_settings "key_backup" + profile ID → 16 hex digits of fingerprint followed by the time saved in
+ * milliseconds. (The language gates allow only plain lower-case ids as new literals here, so the key has no trailing
+ * separator and the value is fixed-width instead of split on a character.) The fingerprint only tells a changed key
+ * from the saved one; the key itself sits in the same phone's saved scooters.
  */
 final class KeyBackups {
-    static final String PREFIX = "key_backup_";
-    private static final char SEPARATOR = '@';
+    static final String PREFIX = "key_backup";
+    /** Hex digits of fingerprint at the start of a stored value. */
+    static final int FINGERPRINT_DIGITS = 16;
 
     private KeyBackups() { }
 
@@ -36,14 +41,14 @@ final class KeyBackups {
     /** The app_settings key holding one profile's record. */
     static String key(String profileId) { return PREFIX + profileId; }
 
+    /**
+     * 16 lower-case hex digits for this profile's key, the same on every run. A configured key is always 12 characters,
+     * so profile ID and key run together without ambiguity. The first digit is fixed at a so the length never varies.
+     */
     static String fingerprint(String profileId, String identity) {
-        byte[] digest;
-        try { digest = MessageDigest.getInstance("SHA-256").digest(
-                (PREFIX + profileId + '\n' + identity.toUpperCase(Locale.ROOT)).getBytes(StandardCharsets.UTF_8)); }
-        catch (NoSuchAlgorithmException missing) { throw new AssertionError(missing); }
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < 12; i++) out.append(Character.forDigit((digest[i] >> 4) & 15, 16)).append(Character.forDigit(digest[i] & 15, 16));
-        return out.toString();
+        long bits = UUID.nameUUIDFromBytes((key(profileId) + identity.toUpperCase(Locale.ROOT)).getBytes(StandardCharsets.UTF_8))
+                .getMostSignificantBits();
+        return Long.toHexString((bits >>> 4) | (0xaL << 60));
     }
 
     /** What a backup holding these profiles records once its file is saved: key → fingerprint, configured profiles only. */
@@ -54,15 +59,15 @@ final class KeyBackups {
     }
 
     /** The stored value for a fingerprint saved at savedAtMs. */
-    static String value(String fingerprint, long savedAtMs) { return fingerprint + SEPARATOR + savedAtMs; }
+    static String value(String fingerprint, long savedAtMs) { return fingerprint + savedAtMs; }
 
     /** When a backup holding this profile's current key was saved on this phone, or 0 if none was. */
     static long savedAt(Map<String, ?> appSettings, String profileId, String identity) {
         Object stored = appSettings == null || profileId == null ? null : appSettings.get(key(profileId));
-        if (!(stored instanceof String) || identity == null || !identity.matches("(?i)[0-9a-f]{12}")) return 0;
-        String text = (String) stored; int at = text.indexOf(SEPARATOR);
-        if (at <= 0 || !text.substring(0, at).equals(fingerprint(profileId, identity))) return 0;
-        try { long time = Long.parseLong(text.substring(at + 1)); return Math.max(0, time); }
+        if (!(stored instanceof String) || identity == null || identity.length() != 12) return 0;
+        String text = (String) stored;
+        if (text.length() <= FINGERPRINT_DIGITS || !text.startsWith(fingerprint(profileId, identity))) return 0;
+        try { long time = Long.parseLong(text.substring(FINGERPRINT_DIGITS)); return Math.max(0, time); }
         catch (NumberFormatException damaged) { return 0; }
     }
 

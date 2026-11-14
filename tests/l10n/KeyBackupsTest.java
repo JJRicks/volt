@@ -34,12 +34,14 @@ public final class KeyBackupsTest {
 
     private static void record() {
         String fp = KeyBackups.fingerprint(ID, KEY);
-        check(fp.matches("[0-9a-f]{24}"), "a fingerprint is 24 lower-case hex digits: " + fp);
+        check(fp.matches("[0-9a-f]{16}") && fp.length() == KeyBackups.FINGERPRINT_DIGITS, "a fingerprint is 16 lower-case hex digits: " + fp);
+        check(fp.equals(KeyBackups.fingerprint(ID, KEY)), "the same on every run");
         check(fp.equals(KeyBackups.fingerprint(ID, KEY.toLowerCase(Locale.ROOT))), "the key's case doesn't matter");
         check(!fp.contains(KEY) && !fp.toUpperCase(Locale.ROOT).contains(KEY), "the record never holds the key itself");
         check(!fp.equals(KeyBackups.fingerprint(ID, "0123456789AC")), "another key, another fingerprint");
         check(!fp.equals(KeyBackups.fingerprint("d0000000-0000-4000-8000-00000000000d", KEY)), "another profile, another fingerprint");
-        check(KeyBackups.key(ID).equals("key_backup_" + ID), "one app_settings key per profile");
+        check(KeyBackups.key(ID).equals("key_backup" + ID), "one app_settings key per profile");
+        check(KeyBackups.value(fp, 42).equals(fp + "42"), "fingerprint, then the time saved");
         check(KeyBackups.guarded(0) && !KeyBackups.guarded(1), "owner profiles are guarded, shared ones aren't");
 
         check(KeyBackups.savedAt(saved(ID, KEY, 1763000000000L), ID, KEY) == 1763000000000L, "a backup of this key reads back its time");
@@ -49,7 +51,8 @@ public final class KeyBackupsTest {
         check(KeyBackups.savedAt(new HashMap<>(), ID, KEY) == 0 && KeyBackups.savedAt(null, ID, KEY) == 0, "nothing saved, nothing read");
         check(KeyBackups.savedAt(saved(ID, KEY, 5), ID, "") == 0 && KeyBackups.savedAt(saved(ID, KEY, 5), ID, "not a key!!") == 0, "a profile without a key has no backup of it");
         Map<String, Object> damaged = new HashMap<>();
-        for (Object bad : new Object[]{"", "@", KeyBackups.fingerprint(ID, KEY), KeyBackups.fingerprint(ID, KEY) + "@", KeyBackups.fingerprint(ID, KEY) + "@soon", 17L, true}) {
+        String good = KeyBackups.fingerprint(ID, KEY);
+        for (Object bad : new Object[]{"", "@", good, good + "@", good + "soon", good + "-", good.substring(1) + "12345", good + "99999999999999999999", 17L, true}) {
             damaged.put(KeyBackups.key(ID), bad);
             check(KeyBackups.savedAt(damaged, ID, KEY) == 0, "a damaged record reads as no backup: " + bad);
         }
@@ -98,6 +101,8 @@ public final class KeyBackupsTest {
         rejects(() -> BackupArchive.plan(phone, prepared, BackupTestStore.all(), true, Collections.emptyMap()),
                 "Replace everything refuses to drop an owner key no backup on this phone holds");
         check(phone.preferences().equals(before), "the refused review changed nothing");
+        check(KeyBackups.savedAt(BackupArchiveTest.phone(new File(root, "fixture")).preferences().get("app_settings"), BackupArchiveTest.C, "0123456789AB") == 1749000000000L,
+                "BackupArchiveTest's spelled-out record is what KeyBackups writes");
         try { BackupArchive.plan(phone, prepared, BackupTestStore.all(), true, Collections.emptyMap()); }
         catch (BackupException refused) { check(String.valueOf(refused.getMessage()).contains("owner key"), "the refusal says why: " + refused.getMessage()); }
 
