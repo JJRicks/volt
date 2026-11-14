@@ -57,6 +57,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ModelHomeValidation" android:targetPackage="com.jjricks.volt" android:label="Home follows a known model's tiles and drive modes" />
   <instrumentation android:name="com.jjricks.volt.tests.ReportShortcutsValidation" android:targetPackage="com.jjricks.volt" android:label="Report an issue and the checker's Share report" />
   <instrumentation android:name="com.jjricks.volt.tests.ReportDiagnosticsValidation" android:targetPackage="com.jjricks.volt" android:label="Report emails' diagnostics file, preview and consent" />
+  <instrumentation android:name="com.jjricks.volt.tests.HubValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator Hub walk: Homes, subject pages, page stack, dock, Settings and search on the simulator" />
   <instrumentation android:name="com.jjricks.volt.tests.MoreMenuValidation" android:targetPackage="com.jjricks.volt" android:label="More menu rows line up on phone and wide layouts" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatibilityGatingValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated model compatibility gating validation" />
   <instrumentation android:name="com.jjricks.volt.tests.CompatControlsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated simulated OEM control families validation" />
