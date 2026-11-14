@@ -118,6 +118,8 @@ final class RidingScreen implements AppScreen {
     private final RidingDisplay display;
     /** Night vision: the red layer on this screen and the moon at the top bar's end. */
     private final RidingNight night;
+    /** A battery alert that fires while riding: a banner over the top bar or just under it, never a dialog (RidingAlertBanner). */
+    private final RidingAlertBanner alertBanner;
     /** The tune menu's clock seconds switch, as it was when this screen was built (a change rebuilds it). */
     private final boolean clockSeconds;
     /** Redraws the Clock readings each second while seconds show (RidingClockSeconds); idle otherwise. */
@@ -221,7 +223,8 @@ final class RidingScreen implements AppScreen {
         disc = new RidingDiscMotion(picker);
         LinearLayout.LayoutParams topSize = new LinearLayout.LayoutParams(-1, -2);
         topSize.bottomMargin = ui.dp(side ? 10 : 14);
-        frame.addView(top, topSize);
+        alertBanner = new RidingAlertBanner(context, ui, service, labelSp(15), this::covered);
+        frame.addView(alertBanner.over(top, back, warning), topSize);
 
         // The cells.
         // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.
@@ -620,6 +623,15 @@ final class RidingScreen implements AppScreen {
 
     private int cardColor() { return ui.dark ? ui.surface : ui.raised; }
 
+    /**
+     * Volt's own sheet or dialog is over riding mode: the tune sheet (with whatever opened from it) or one of the
+     * activity's dialogs. From isShowing, so every way a sheet or dialog closes counts at once.
+     */
+    private boolean covered() {
+        AlertDialog d = sheet;
+        return d != null && d.isShowing() || host.dialogShowing();
+    }
+
     /** Closes the picker sheet if it's showing; safe while the activity is going away. */
     private void dismissSheet() {
         AlertDialog d = sheet;
@@ -649,6 +661,7 @@ final class RidingScreen implements AppScreen {
         if (clockLifecycle != null) host.activity().getApplication().unregisterActivityLifecycleCallbacks(clockLifecycle);
         display.detach();
         night.detach();
+        alertBanner.close();
     }
 
     /**
@@ -783,6 +796,7 @@ final class RidingScreen implements AppScreen {
         float alpha = RidingBurnIn.chromeAlpha(now - session.openedMs);
         for (View v : chrome) v.setAlpha(alpha);
         clockTick.sync(wallNow);
+        alertBanner.refresh();
     }
 
     /**
