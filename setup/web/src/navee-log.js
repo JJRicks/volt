@@ -55,8 +55,8 @@ const ALLOW = [
 ];
 // A NAVEE frame header with a sensitive command byte, in any separator style
 // (spaces, colons, commas, brackets, "0x" prefixes or none at all).
-const SENSITIVE_FRAME = /55[^0-9a-z]{0,3}aa[^0-9a-z]{0,3}[0-9a-f]{2}[^0-9a-z]{0,3}(?:30|31|63|7a)/i;
-const SENSITIVE_CMD = /cmd\W{0,3}(?:0x)?(?:30|31|63|7a)\b/i;
+const SENSITIVE_FRAME = /55[^0-9a-z]{0,3}aa[^0-9a-z]{0,3}[0-9a-f]{2}[^0-9a-z]{0,3}(?:30|31|63|7a|50)/i;
+const SENSITIVE_CMD = /cmd\W{0,3}(?:0x)?(?:30|31|63|7a|50)\b/i;
 const SECRET_WORDS = /authdata|encryptdata/i;
 const MAC = /\b[0-9a-f]{2}(?:[:-][0-9a-f]{2}){5}\b/gi;
 const BARE_ADDRESS = /\b[0-9a-f]{12}\b/gi; // BleHandler.r(): MAC or advertised ID, colons removed

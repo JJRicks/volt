@@ -65,5 +65,22 @@ final class BackupProfiles {
         return out.append(']').toString();
     }
     static Profile find(List<Profile> profiles, String id){for(Profile p:profiles)if(p.id.equals(id))return p;return null;}
+    /**
+     * Every entry parse() would accept on its own, skipping the rest instead of refusing the whole list (KeyBackups.dropped:
+     * one damaged saved scooter must not hide the others' owner keys). Each entry goes through parse() alone, as a list of
+     * one (join adds the brackets), so the rules stay parse()'s; duplicate IDs are all kept. A list that can't be split
+     * into entries gives none.
+     */
+    static List<Profile> readable(Object items) {
+        List<Profile> result=new ArrayList<>();
+        if(!(items instanceof String))return result;
+        List<String> raw;
+        try{raw=BackupJson.elements((String)items,MAX_DEPTH);}catch(IOException unreadable){return result;}
+        for(String element:raw){
+            List<Profile> one=Collections.singletonList(new Profile(null,null,null,0,null,null,element));
+            try{result.addAll(parse(join(one,Collections.<Profile>emptyList())));}catch(IOException skipped){/* left out */}
+        }
+        return result;
+    }
     private static String text(Map<String,Object> p,String key){Object v=p.get(key);return v instanceof String?(String)v:"";}
 }

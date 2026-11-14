@@ -1,6 +1,13 @@
 package com.jjricks.volt;
 
+import android.os.Build;
+import android.text.Layout;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -8,29 +15,72 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * The summary at the top of Battery & charging (hub layout plan, PR 4): the battery level with the range left, then
- * whether it is charging and to which limit. Readings come from ScooterService.dashboardReadings(), so the range is
+ * The summary at the top of Battery & charging (the owner's Layout Plan): the battery level large with the range left
+ * under it; beside them the reported health, the pack temperature and whether it is charging and to which limit; and
+ * under both the charge track with the charge-limit tick (ChargeTrack, the track Clean's charging view draws). Readings come from ScooterService.dashboardReadings(), so the range is
  * the learned one where the owner chose it, as on Home. A level that isn't known hides the card. Words come from
- * HubText, and the plain "Charging" (no known limit) from BatteryOverviewSpeech, as Home's battery card says it; a
- * last-seen level is spoken in that card's "…, last seen" forms (DashboardScreen.overviewSpoken);
- * numbers and units from Fmt, and a refresh sets them again, so nothing rendered is kept.
+ * HubText, the range line and the plain "Charging" (no known limit) from DashboardScreen and BatteryOverviewSpeech, as
+ * Home's battery card says them, and the health and temperature names from ScooterReadingLabels; a last-seen level is
+ * spoken in that card's "…, last seen" forms (DashboardScreen.overviewSpoken); numbers and units from Fmt, and a
+ * refresh sets them again, so nothing rendered is kept. Health and temperature show only from live readings the model
+ * reports (HubSummaries.health, packTemperature), and charging only beside a live level (HubSummaries.card).
  */
 final class HubBatterySummary implements AppScreen {
     private static final double KM_PER_MILE = 1.609344;
+    /** The percent sign beside the large level, relative to the number (as Home's battery card draws it). */
+    private static final float SIGN = .44f;
+    /** The space between a reading's name and its value in the right column, dp. */
+    private static final int FACT_GAP_DP = 5;
 
     private final ScreenHost host;
     private final Ui ui;
-    private final LinearLayout view, card;
-    private final TextView level, state;
+    private final LinearLayout view, card, side, healthRow, packRow;
+    private final TextView level, rangeLine, state, healthName, healthValue, packName, packValue;
+    private final ChargeTrack track;
 
     HubBatterySummary(ScreenHost host) {
         this.host = host; ui = host.ui();
         view = new LinearLayout(host.activity()); view.setOrientation(LinearLayout.VERTICAL);
         card = ui.card(); card.setTag("hub-battery-summary");
-        level = ui.text("", 22, true); card.addView(level, new LinearLayout.LayoutParams(-1, -2));
-        state = ui.caption(""); state.setPadding(0, ui.dp(6), 0, 0); card.addView(state, new LinearLayout.LayoutParams(-1, -2));
+        LinearLayout figures = new SideOrStack();
+        LinearLayout main = new LinearLayout(host.activity()); main.setOrientation(LinearLayout.VERTICAL);
+        // The digits sit level with the right column's first line and the range line about 10 dp under them
+        // (BatterySummaryFit): the font's own space above and below the large digits is taken away in onMeasure.
+        level = ui.text("", 48, true); level.setMaxLines(1); level.setIncludeFontPadding(false);
+        main.addView(level, new LinearLayout.LayoutParams(-2, -2));
+        rangeLine = ui.text("", 14, false); rangeLine.setTextColor(ui.muted); rangeLine.setIncludeFontPadding(false);
+        main.addView(rangeLine, new LinearLayout.LayoutParams(-1, -2));
+        figures.addView(main);
+        side = new LinearLayout(host.activity()); side.setOrientation(LinearLayout.VERTICAL);
+        // The column reads quietly, names and values alike muted and regular ("Health 97%"), as the plan draws it.
+        healthName = ui.text("", 14, false); healthValue = ui.text("", 14, false);
+        // Each line as wide as its own words: the column takes its widest shown line (SideOrStack, BatterySummaryFit.columnWidth).
+        healthRow = fact(healthName, healthValue); side.addView(healthRow, new LinearLayout.LayoutParams(-2, -2));
+        packName = ui.text("", 14, false); packValue = ui.text("", 14, false);
+        packRow = fact(packName, packValue); side.addView(packRow, new LinearLayout.LayoutParams(-2, -2));
+        state = ui.text("", 14, false); state.setTextColor(ui.muted);
+        side.addView(state, new LinearLayout.LayoutParams(-2, -2));
+        figures.addView(side);
+        card.addView(figures, new LinearLayout.LayoutParams(-1, -2));
+        track = new ChargeTrack(host.activity(), ui);
+        // About 12 dp between the figures and the track itself; the view's top holds the tick's reach above it.
+        LinearLayout.LayoutParams trackParams = new LinearLayout.LayoutParams(-1, ChargeTrack.height(ui)); trackParams.topMargin = ui.dp(12) - Math.round(ChargeTrack.reach(ui));
+        card.addView(track, trackParams);
         view.addView(card);
         refresh();
+    }
+
+    /** A line of the right column: a reading's name, muted, then its value; spoken as one item. */
+    private LinearLayout fact(TextView name, TextView value) {
+        LinearLayout row = new LinearLayout(host.activity()); row.setOrientation(LinearLayout.HORIZONTAL);
+        // Lines about 21 dp apart, as the plan's column: no padding beyond the text's own.
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        name.setTextColor(ui.muted); name.setMaxLines(1);
+        row.addView(name, new LinearLayout.LayoutParams(-2, -2));
+        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(-2, -2); valueParams.leftMargin = ui.dp(FACT_GAP_DP);
+        value.setTextColor(ui.muted); value.setMaxLines(1); row.addView(value, valueParams);
+        if (Build.VERSION.SDK_INT >= 28) row.setScreenReaderFocusable(true);
+        return row;
     }
 
     @Override public View view() { return view; }
@@ -41,29 +91,148 @@ final class HubBatterySummary implements AppScreen {
         TelemetryHistory.Reading soc = readings == null ? null : readings.get("battery_percent");
         if (soc == null || soc.number == null || !Double.isFinite(soc.number)) { card.setVisibility(View.GONE); return; }
         card.setVisibility(View.VISIBLE);
-        Formatted percent = Fmt.percent(Fmt.integerNumber(Math.round(soc.number)));
-        CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
-        level.setText(range == null ? percent : HubText.batteryLevelRange(percent, range));
+        double clamped = Math.max(0, Math.min(100, soc.number));
+        CharSequence big = large(Fmt.percent(Fmt.integerNumber(Math.round(soc.number))));
+        if (!big.toString().contentEquals(level.getText())) level.setText(big);
         level.setTextColor(soc.live ? ui.text : ui.muted);
+        CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
+        // "about 40 mi left", the range line Home's battery card draws.
+        rangeLine.setText(range == null ? "" : DashboardScreen.rangeLeft(DashboardScreen.aboutRange(range)));
+        rangeLine.setVisibility(range == null ? View.GONE : View.VISIBLE);
         // A last-seen level is drawn muted; while connected nothing else on the page says it is old, so it is spoken in
         // Home's battery card's words: "Battery 62 percent, about 40 mi of range left, last seen 14:05". The range goes in
         // as Home's card passes it, an estimate wrapped in "about" (DashboardScreen.aboutRange), as the drawn line says it.
-        double clamped = Math.max(0, Math.min(100, soc.number));
+        // That sentence holds the range, so the range line is then not read again.
         level.setContentDescription(soc.live ? null : DashboardScreen.overviewSpoken(clamped, Long.toString(Math.round(clamped)),
                 range == null ? "" : BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)),
                 DisplayTime.recent(host.activity(), service.settings, soc.capturedWallMs, System.currentTimeMillis())).render());
+        rangeLine.setImportantForAccessibility(soc.live ? View.IMPORTANT_FOR_ACCESSIBILITY_AUTO : View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        // Read live as Home's battery card speaks it, "about 40 mi of range left": some languages draw the value alone.
+        rangeLine.setContentDescription(soc.live && range != null ? BatteryOverviewSpeech.line(false, DashboardScreen.aboutRange(range)) : null);
+        // The right column: health and pack temperature where the model reports them live.
+        TelemetryHistory.Reading healthReading = readings.get("battery_health_percent");
+        Integer health = healthReading == null ? null : HubSummaries.health(healthReading.number, healthReading.live);
+        healthRow.setVisibility(health == null ? View.GONE : View.VISIBLE);
+        if (health != null) {
+            healthName.setText(ScooterReadingLabels.compact(healthReading.key, ""));
+            healthValue.setText(Fmt.percent(Fmt.integerNumber(health)));
+            // Drawn by its compact name; spoken by its full one with the value, as one item.
+            healthRow.setContentDescription(DashboardScreen.readingSpoken(ScooterReadingLabels.full(healthReading.key, ""), healthValue.getText()));
+        }
+        TelemetryHistory.Reading packReading = readings.get("temperature_c");
+        Double pack = packReading == null ? null : HubSummaries.packTemperature(packReading.number, packReading.live);
+        Formatted packShown = pack == null ? null : DisplayTemperature.quantity(pack, service.settings.getString("temperature_unit", "c"), 0);
+        packRow.setVisibility(packShown == null ? View.GONE : View.VISIBLE);
+        if (packShown != null) {
+            packName.setText(ScooterReadingLabels.compact(packReading.key, ""));
+            packValue.setText(packShown);
+            packRow.setContentDescription(DashboardScreen.readingSpoken(ScooterReadingLabels.full(packReading.key, ""), packValue.getText()));
+        }
         // Charging or not only from a live reading (as the Scooter tab's Battery summary), and only beside a live level:
         // a last-seen or missing state, or a last-seen level above it, hides the line (HubSummaries.card).
         TelemetryHistory.Reading charge = readings.get("charging_state");
         Boolean charging = charge == null || !charge.live || charge.number == null ? null : charge.number == 1;
         Integer limit = HubSubjects.chargeLimit(service);
         HubSummaries.CardState shown = HubSummaries.card(charging, HubSummaries.live(soc.number, soc.live) != null, limit);
-        if (shown == null) { state.setVisibility(View.GONE); return; }
-        state.setVisibility(View.VISIBLE);
-        // Charging without a known limit: a plain "Charging", the word Home's battery card uses (the level is on the line above).
-        state.setText(shown == HubSummaries.CardState.NOT_CHARGING ? HubText.batteryNotCharging()
+        state.setVisibility(shown == null ? View.GONE : View.VISIBLE);
+        // Charging without a known limit: a plain "Charging", the word Home's battery card uses (the level is beside it).
+        if (shown != null) state.setText(shown == HubSummaries.CardState.NOT_CHARGING ? HubText.batteryNotCharging()
                 : shown == HubSummaries.CardState.CHARGING_TO_LIMIT ? HubText.batteryChargingTo(Fmt.percent(Fmt.integerNumber(limit)))
                 : BatteryOverviewSpeech.line(true, ""));
+        side.setVisibility(health == null && packShown == null && shown == null ? View.GONE : View.VISIBLE);
+        // The track: filled to the level (grey when last seen, as the number is), with the tick at a known charge limit.
+        track.set(clamped, limit == null ? Double.NaN : limit, soc.live ? ui.accent : ui.dim, ui.text);
+    }
+
+    /** The level as Fmt writes it, with everything but the number (the percent sign) drawn smaller. */
+    private static CharSequence large(Formatted percent) {
+        SpannableString shown = new SpannableString(percent.toString());
+        if (percent.numbers() == 0) return shown;
+        int start = percent.numberStart(0), end = percent.numberEnd(0);
+        if (start > 0) shown.setSpan(new RelativeSizeSpan(SIGN), 0, start, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (end < shown.length()) shown.setSpan(new RelativeSizeSpan(SIGN), end, shown.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return shown;
+    }
+
+    /**
+     * The level and range beside the right column, or the column under them when both don't fit side by side (a narrow
+     * screen at large text): the large level is never shrunk or cut.
+     */
+    private final class SideOrStack extends LinearLayout {
+        /** Null until the first measure. */
+        private Boolean stacked;
+
+        SideOrStack() { super(host.activity()); setBaselineAligned(false); }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            View column = getChildAt(1);
+            boolean stack = false;
+            if (column.getVisibility() != GONE && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                int room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
+                // The column is as wide as its widest shown line, whichever that is (BatterySummaryFit.columnWidth).
+                int width = BatterySummaryFit.columnWidth(Math.max(0, room), lineWidth(healthRow, healthName, healthValue),
+                        lineWidth(packRow, packName, packValue), state.getVisibility() == GONE ? 0 : (int) Math.ceil(textWidth(state)));
+                LayoutParams params = (LayoutParams) column.getLayoutParams();
+                if (params.width != width) { params.width = width; column.setLayoutParams(params); }
+                float need = textWidth(level);
+                stack = BatterySummaryFit.stacks(room, width, ui.dp(12), need);
+            }
+            arrange(stack);
+            fit(stack || column.getVisibility() == GONE ? 0 : firstLineCapTop());
+            super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** A text view's one-line width, with its padding. */
+        private float textWidth(TextView words) {
+            return Layout.getDesiredWidth(words.getText(), words.getPaint()) + words.getCompoundPaddingLeft() + words.getCompoundPaddingRight();
+        }
+
+        /** A reading's line in the right column (name, gap, value); 0 while it is hidden. */
+        private int lineWidth(View row, TextView name, TextView value) {
+            if (row.getVisibility() == GONE) return 0;
+            return BatterySummaryFit.factWidth(textWidth(name), ui.dp(FACT_GAP_DP), textWidth(value)) + row.getPaddingLeft() + row.getPaddingRight();
+        }
+
+        /** The level's margins and the range line's gap (BatterySummaryFit), from the fonts' measured glyphs. */
+        private void fit(int besideCapTop) {
+            String digits = level.getText().toString().replaceAll("[^0-9]", "");
+            if (digits.isEmpty()) return;
+            android.graphics.Paint.FontMetricsInt metrics = level.getPaint().getFontMetricsInt();
+            android.graphics.Rect glyphs = new android.graphics.Rect();
+            level.getPaint().getTextBounds(digits, 0, digits.length(), glyphs);
+            int[] margins = BatterySummaryFit.levelMargins(glyphs.top - metrics.ascent, metrics.descent - glyphs.bottom, besideCapTop);
+            LayoutParams size = (LayoutParams) level.getLayoutParams();
+            if (size.topMargin != margins[0] || size.bottomMargin != margins[1]) { size.topMargin = margins[0]; size.bottomMargin = margins[1]; level.setLayoutParams(size); }
+            int gap = BatterySummaryFit.rangePadding(ui.dp(BatterySummaryFit.RANGE_GAP_DP), capTop(rangeLine, false));
+            if (rangeLine.getPaddingTop() != gap) rangeLine.setPadding(0, gap, 0, 0);
+        }
+
+        /** Where the right column's first shown line's capitals start, from the column's top. */
+        private int firstLineCapTop() {
+            View first = null;
+            for (int i = 0; i < side.getChildCount() && first == null; i++) if (side.getChildAt(i).getVisibility() != GONE) first = side.getChildAt(i);
+            if (first == null) return 0;
+            TextView words = first instanceof TextView ? (TextView) first : (TextView) ((ViewGroup) first).getChildAt(0);
+            return first.getPaddingTop() + capTop(words, words.getIncludeFontPadding());
+        }
+
+        /** The space a text view keeps above its capitals ("H"), with or without its font padding. */
+        private int capTop(TextView words, boolean padded) {
+            android.graphics.Paint.FontMetricsInt metrics = words.getPaint().getFontMetricsInt();
+            android.graphics.Rect cap = new android.graphics.Rect();
+            words.getPaint().getTextBounds("H", 0, 1, cap);
+            return (padded ? -metrics.top : -metrics.ascent) + cap.top;
+        }
+
+        private void arrange(boolean stack) {
+            if (stacked != null && stacked == stack) return;
+            stacked = stack;
+            LayoutParams main = (LayoutParams) getChildAt(0).getLayoutParams(), column = (LayoutParams) getChildAt(1).getLayoutParams();
+            main.width = stack ? LayoutParams.MATCH_PARENT : 0; main.weight = stack ? 0 : 1;
+            column.gravity = Gravity.TOP;
+            column.leftMargin = stack ? 0 : ui.dp(12); column.topMargin = stack ? ui.dp(10) : 0;
+            setOrientation(stack ? VERTICAL : HORIZONTAL);
+        }
     }
 
     /** The range left in the rider's units ("mi", "km" or "dual"), or null when there is none. */

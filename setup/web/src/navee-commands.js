@@ -56,8 +56,8 @@ export const COMMANDS = {
   '74': read('Serial number'), '75': read('Battery serial'), '76': read('Ride history'), '79': read('Extra battery data'), '7b': read('Fault codes')
 };
 export const GROUPS = ['Ride', 'Lights & sound', 'Battery', 'Security', 'Preferences', 'Reads'];
-// ScooterCommands.sensitiveCommand: owner auth, encrypted data, PIN write, PIN read.
-export const SENSITIVE = new Set([0x30, 0x31, 0x63, 0x7a]);
+// ScooterCommands.sensitiveCommand: owner auth, encrypted data, PIN write, PIN read, releasing the scooter.
+export const SENSITIVE = new Set([0x30, 0x31, 0x63, 0x7a, 0x50]);
 const hex = n => n.toString(16).padStart(2, '0');
 const KEYS = Object.keys(COMMANDS);
 // Follows selector bytes while some entry continues the key; returns the entry (if any),

@@ -1,0 +1,14 @@
+# The lifetime odometer record (OdometerCarry): carry-overs after a reset, Home's cue (OdometerAttention), backups,
+# and that only the shown odometer adds the carried distance. tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/OdometerCarry.java
+src/com/jjricks/volt/OdometerAttention.java
+src/com/jjricks/volt/MaintenanceKeeper.java
+src/com/jjricks/volt/MaintenanceView.java
+src/com/jjricks/volt/MaintenancePolicy.java
+src/com/jjricks/volt/MaintenanceDistance.java
+src/com/jjricks/volt/MaintenanceStore.java
+src/com/jjricks/volt/MaintenanceDefaults.java
+src/com/jjricks/volt/BackupJson.java
+tests/l10n/OdometerCarryTest.java
+src/com/jjricks/volt/Telemetry.java

@@ -2,9 +2,10 @@ package com.jjricks.volt;
 
 import android.view.View;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 /**
- * "Usable ride energy" under an Experimental label, below the rows of Battery & charging › Estimates & charger
+ * "Usable ride energy" under an Experimental tag, below the rows of Battery & charging › Estimates & charger
  * (hub layout plan, deferred from part 4 to part 8): Clean Home has no widgets, so its owners find the estimate here.
  * The card is the widget dashboard's own capacity widget (DashboardScreen.EnergyPanel), with its text; the label
  * comes from HubText, so this file holds no catalog references.
@@ -24,9 +25,13 @@ final class UsableEnergyPanel implements AppScreen {
         panel = DashboardScreen.energyPanel(host, actions);
         view = new LinearLayout(host.activity());
         view.setOrientation(LinearLayout.VERTICAL);
-        View label = ui.sectionLabel(HubText.experimentalBadge().render());
+        // The Layout Plan's EXPERIMENTAL tag, as on the other Experimental rows, above the card it marks.
+        TextView label = ui.sectionLabel(HubText.experimentalBadge().render());
+        ui.experimentalTag(label);
         label.setTag(TAG_LABEL);
-        view.addView(label);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(-2, -2);
+        labelParams.setMarginStart(ui.dp(4)); labelParams.topMargin = ui.dp(14); labelParams.bottomMargin = ui.dp(8);
+        view.addView(label, labelParams);
         LinearLayout.LayoutParams card = new LinearLayout.LayoutParams(-1, -2);
         card.bottomMargin = ui.dp(16);
         view.addView(panel.view(), card);

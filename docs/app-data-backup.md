@@ -6,7 +6,7 @@
 
 | Category | Holds |
 |---|---|
-| Scooters & setup keys | Profiles (names, owner setup identities, addresses, serials, selected scooter), the legacy pre-profile setup (exact restores only), setup completion |
+| Scooters & setup keys | Profiles (names, owner setup identities, addresses, serials, selected scooter), the record of each owner key Volt made, the legacy pre-profile setup (exact restores only), setup completion |
 | Dashboards | Every scooter's dashboard, its three slots, widget options and notes, and the column choice |
 | App preferences | Units, appearance, text size, haptics, connection and recording options, map choice and provider, favourites, chart and selector choices |
 | Rides | Raw scooter journals with phone GPS/pressure and motion sidecars, names, notes, clocks and gaps |

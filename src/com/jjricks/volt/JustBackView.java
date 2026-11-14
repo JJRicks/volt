@@ -71,13 +71,14 @@ final class JustBackView extends LinearLayout {
         setOnClickListener(v -> { if (rideId != null) open.accept(rideId); });
 
         // The ended line centred over the distance, the X at the right on the same line. A line too long to stay
-        // centred clear of the X (large text, long languages) starts at the left edge, on two lines if it must, instead
-        // of being cut early.
+        // centred clear of the X on both sides is centred in the room left of the X; only one too long even for that
+        // (large text, long languages) starts at the left edge, on two lines, instead of being cut early.
         first = new FrameLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) saved.getLayoutParams();
                 int x = ui.dp(48), room = MeasureSpec.getSize(widthSpec) - 2 * x;
-                boolean centred = saved.getPaint().measureText(String.valueOf(saved.getText())) <= room;
+                float wide = saved.getPaint().measureText(String.valueOf(saved.getText()));
+                boolean centred = wide <= room, one = wide <= room + x;
                 int start = centred ? x : 0;
                 // The resolved side margin too: a margin set on the params after they were resolved is otherwise only
                 // read at the next layout-direction change, and the line stayed centred and cut (emulator, 1.4x text).
@@ -86,10 +87,8 @@ final class JustBackView extends LinearLayout {
                     size.setMarginStart(start);
                     if (rtl) size.rightMargin = start; else size.leftMargin = start;
                 }
-                // Still too long beside the X: a second line rather than an early cut.
-                boolean one = centred || saved.getPaint().measureText(String.valueOf(saved.getText())) <= room + x;
                 if (saved.getMaxLines() != (one ? 1 : 2)) saved.setMaxLines(one ? 1 : 2);
-                saved.setGravity(centred ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL);
+                saved.setGravity(one ? Gravity.CENTER : Gravity.START | Gravity.CENTER_VERTICAL);
                 super.onMeasure(widthSpec, heightSpec);
             }
         };
@@ -296,6 +295,13 @@ final class JustBackView extends LinearLayout {
             String[] names = new String[cells.length];
             for (int i = 0; i < cells.length; i++) names[i] = cells[i].label();
             Cell first = cells[0];
+            // The names a little smaller, together, before any wraps (JustBackFit.nameScale): one line each, as the mock-up.
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                float[] widths = new float[cells.length];
+                for (int i = 0; i < cells.length; i++) widths[i] = cells[i].nameWidthAtFull();
+                float scale = JustBackFit.nameScale(widths, third - first.horizontalPadding() - 1, first.nameFull, first.nameFloor);
+                for (Cell cell : cells) cell.nameScale(scale);
+            }
             int wanted = MeasureSpec.getMode(widthSpec) == MeasureSpec.UNSPECIFIED ? 3
                     : TileFit.columns(names, first.namePaint()::measureText, third - first.horizontalPadding(), Cell.NAME_LINES);
             int height = measureAt(wanted, width);
@@ -306,14 +312,23 @@ final class JustBackView extends LinearLayout {
             setMeasuredDimension(width, resolveSize(height, heightSpec));
         }
 
+        /** The width of tile i with count tiles in a row (the last spans the row in two columns). */
+        private int cellWidth(int i, int count, int width) {
+            int span = count == 3 ? 1 : i == cells.length - 1 && cells.length % 2 == 1 ? 2 : 1;
+            return Math.max(0, span == 2 ? width : (width - (count - 1) * gap) / count);
+        }
+
         /** Measures the cells with count tiles in a row and returns the height they take. */
         private int measureAt(int count, int width) {
             columns = count;
+            // One value size for all the tiles, as the mock-up (review of #390): a long value no longer shrinks alone.
+            float[] fits = new float[cells.length];
+            for (int i = 0; i < cells.length; i++) fits[i] = cells[i].fitSize(cellWidth(i, count, width) - cells[i].horizontalPadding());
+            float size = JustBackFit.rowValueSize(cells[0].valueTop, fits);
+            for (Cell cell : cells) cell.valueSize(size);
             int height = 0, row = 0;
             for (int i = 0; i < cells.length; i++) {
-                int span = columns == 3 ? 1 : i == cells.length - 1 && cells.length % 2 == 1 ? 2 : 1;
-                int each = (width - (columns - 1) * gap) / columns;
-                int cellWidth = span == 2 ? width : each;
+                int cellWidth = cellWidth(i, count, width);
                 cells[i].measure(MeasureSpec.makeMeasureSpec(Math.max(0, cellWidth), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                 row = Math.max(row, cells[i].getMeasuredHeight());
                 boolean rowEnds = columns == 3 ? i == cells.length - 1 : i % 2 == 1 || i == cells.length - 1;
@@ -351,8 +366,9 @@ final class JustBackView extends LinearLayout {
 
     /**
      * One of the three small tiles: its name (whole words, at most two lines; Tiles gives it the room) above a value
-     * on one line, its number large and its unit small as the mock-up draws "15.5 mph" and "−18%". The value takes the
-     * largest size that fits the tile, down to the readable floor (JustBackFit.valueSize), so a unit is never cut;
+     * on one line, its number large and its unit small as the mock-up draws "15.5 mph" and "−18%". The row's values take
+     * one size, the largest at which each fits its tile, down to the readable floor (JustBackFit.valueSize and
+     * rowValueSize), on one baseline, so a unit is never cut;
      * below the floor it takes its short rung (the speed's first unit alone, with units set to both), while the full
      * value is what is spoken.
      */
@@ -360,6 +376,10 @@ final class JustBackView extends LinearLayout {
         static final int NAME_LINES = 2;
         private final TextView name, value;
         private final float valueTop, valueFloor;
+        /** The row's value size (px) set by Tiles; 0 before the first. */
+        private float rowSize;
+        /** The name's full size and the readable floor (px; the floor is not grown by the app's text size). */
+        private final float nameFull, nameFloor;
         private final android.text.TextPaint measure = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
         private CharSequence full = "—", shorter;
 
@@ -373,7 +393,9 @@ final class JustBackView extends LinearLayout {
             // The charging moment's tile colour and corner (DashboardScreen.InfoCell), so the row keeps its look.
             setBackground(ui.shape(ui.raised, 14, 0));
             name = ui.caption(label.render());
-            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_SP, JustBackFit.NAME_SP * ui.textScale);
+            nameFull = name.getTextSize();
+            nameFloor = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, Ui.READABLE_FLOOR_SP, getResources().getDisplayMetrics());
             name.setMaxLines(NAME_LINES);
             // Only with very large text, where even half a row is too narrow, does a name still end in an ellipsis.
             name.setEllipsize(TextUtils.TruncateAt.END);
@@ -398,6 +420,19 @@ final class JustBackView extends LinearLayout {
 
         Paint namePaint() { return name.getPaint(); }
 
+        /** The name's width at its full size (px), measured on a copy of its paint. */
+        float nameWidthAtFull() {
+            measure.set(name.getPaint());
+            measure.setTextSize(nameFull);
+            return measure.measureText(label());
+        }
+
+        /** The name at this share of its full size (JustBackFit.nameScale). */
+        void nameScale(float scale) {
+            float size = nameFull * scale;
+            if (Math.abs(name.getTextSize() - size) > .25f) name.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+        }
+
         int horizontalPadding() { return getPaddingLeft() + getPaddingRight(); }
 
         /**
@@ -416,17 +451,48 @@ final class JustBackView extends LinearLayout {
         /** The same, for a value with no units to style (the ride time). */
         void set(String shown, String spoken) { set(shown, null, spoken); }
 
+        /**
+         * The size this tile's value would take on its own in room (px): its full value's fit, else its short rung's,
+         * else the floor. Tiles takes the smallest of the row's and gives it back with valueSize.
+         */
+        float fitSize(float room) {
+            float size = fit(full, room);
+            if (size < 0 && shorter != null) size = fit(shorter, room);
+            return size < 0 ? valueFloor : size;
+        }
+
+        /** The row's value size (px), from Tiles; 0 lets the tile pick its own. */
+        void valueSize(float size) { rowSize = size; }
+
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                 float room = MeasureSpec.getSize(widthSpec) - horizontalPadding();
+                float size = rowSize > 0 ? rowSize : fitSize(room);
+                // The full value when it fits at the row's size, else its short rung (ellipsized at the floor at worst).
                 CharSequence pick = full;
-                float size = fit(full, room);
-                if (size < 0 && shorter != null) { pick = shorter; size = fit(shorter, room); }
-                if (size < 0) size = valueFloor;
+                if (shorter != null && widthAt(full, size) > room) pick = shorter;
                 if (!pick.toString().contentEquals(value.getText())) value.setText(pick);
                 if (Math.abs(value.getTextSize() - size) > .5f) value.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
+                // The baseline where a full-size value's would be: the box is aligned at its bottom, and a smaller
+                // size has a smaller descent, so the difference goes below it as padding.
+                int lift = Math.max(0, Math.round(descentAt(valueTop) - descentAt(value.getTextSize())));
+                if (value.getPaddingBottom() != lift) value.setPadding(0, 0, 0, lift);
             }
             super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** The value's font descent at size s (px). */
+        private float descentAt(float s) {
+            measure.set(value.getPaint());
+            measure.setTextSize(s);
+            return measure.getFontMetrics().descent;
+        }
+
+        /** text's width at size s (px), spans and the bold overhang's slack included, as fit measures it. */
+        private float widthAt(CharSequence text, float s) {
+            measure.set(value.getPaint());
+            measure.setTextSize(s);
+            return android.text.Layout.getDesiredWidth(text, measure) + 2;
         }
 
         /** The size text takes in room (JustBackFit.valueSize), or -1 when it does not fit at the floor. */

@@ -15,12 +15,12 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.ScooterSimulation;
 
 /**
  * Riding mode's real chip row with its first chip unavailable (a drive mode the scooter hasn't given). The row is measured at
@@ -73,12 +73,11 @@ public final class RidingChipRowValidation extends Instrumentation {
 
     /** A drive mode code no label knows: the chip has nothing to say and steps aside, as before the scooter reports one. */
     private void unknownMode() throws ReflectiveOperationException {
-        Object sim = field(activity.service().ble, "simulation");
-        Method sample = sim.getClass().getDeclaredMethod("sample", String.class, String.class, double.class); sample.setAccessible(true);
-        sample.invoke(sim, "driving_mode", "99 (raw)", 99d);
-        // The acceleration feature reads back through driving_mode on every tick.
-        @SuppressWarnings("unchecked") Map<String, Integer> features = (Map<String, Integer>) field(sim, "features");
-        features.put("acceleration", 99);
+        // Since the simulator's scenes (#430) every tick ends with the simulated model's own drive mode, so a fixed
+        // driving_mode sample never reaches the screen. A model whose only drive-mode code is 99 makes 99 the mode.
+        ScooterSimulation sim = (ScooterSimulation) field(activity.service().ble, "simulation");
+        sim.setDriveModes(new int[]{99});
+        require(sim.driveMode() == 99, "the simulated drive mode is 99");
         activity.service().ble.tickSimulation();
     }
 

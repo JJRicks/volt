@@ -297,9 +297,10 @@ public final class RidingConfigMenuValidation extends Instrumentation {
         try {
             Object ble = activity.service().ble;
             Object sim = field(ble, "simulation");
-            Method sample = sim.getClass().getDeclaredMethod("sample", String.class, String.class, double.class);
-            sample.setAccessible(true);
-            sample.invoke(sim, "speed_kmh", kmh + " km/h", kmh);
+            // hold, not sample: since the simulator's scenes (#430) the Parked scene writes speed 0 after the fixed samples.
+            Method hold = sim.getClass().getDeclaredMethod("hold", String.class, String.class, double.class);
+            hold.setAccessible(true);
+            hold.invoke(sim, "speed_kmh", kmh + " km/h", kmh);
             activity.service().ble.tickSimulation();
         } catch (ReflectiveOperationException e) { throw new RuntimeException(e); }
     }

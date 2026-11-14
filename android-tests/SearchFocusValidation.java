@@ -36,6 +36,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BleController;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardScreen;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterService;
@@ -85,21 +86,41 @@ public final class SearchFocusValidation extends Instrumentation {
         }
     }
     private void controlsChecks(String theme) {
-        // The Scooter tab is the subjects index since the Hub layout (#385): its search is a ControlsScreen part of the page.
-        clickDescription("Scooter"); Object page = screen(); Object controls = HubTestPages.part(activity, "ControlsScreen");
-        EditText search = (EditText)field(controls, "search");
-        showKeyboard(search, activity.getWindow(), "speed"); tap((View)field(controls, "results"), activity.getWindow());
+        // The Scooter tab's settings search (a ControlsScreen, #385) is Home's Search page since part 11 (#392), and its own
+        // HubSearchScreen since part 12 (#393), reached from
+        // Home by the rider's taps (Widgets Home's dock or its All sheet). The page focuses its field as it opens; the
+        // keyboard is put away first so each case below raises it itself.
+        HubTestPages.reach(this, activity, HubPages.SEARCH);
+        main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)), "Home's way in did not open Search (" + HubTestPages.current(activity) + ")"));
+        main(() -> getTargetContext().getSystemService(InputMethodManager.class).hideSoftInputFromWindow(root().getWindowToken(), 0));
+        await(() -> !imeVisible(activity.getWindow()), 4000, "Search's keyboard did not close");
+        // Part 12 (#393): Search is its own page, HubSearchScreen, with its field ("search") over its results ("results").
+        Object page = screen(); Object hub = HubTestPages.part(activity, "HubSearchScreen");
+        EditText search = (EditText)field(hub, "search");
+        // An inert spot outside the field: the results' first group label (a tap on a result row would open it).
+        showKeyboard(search, activity.getWindow(), "speed");
+        View[] label = {null};
+        await(() -> { ViewGroup results = (ViewGroup)field(hub, "results");
+            label[0] = results.getChildCount() > 0 && results.getChildAt(0) instanceof TextView ? results.getChildAt(0) : null;
+            return label[0] != null && label[0].isShown(); }, 4000, "Search shows no results for \"speed\"");
+        tap(label[0], activity.getWindow());
         assertDismissed(search, activity.getWindow(), "speed", "Outside results tap");
         require(screen() == page, "An inert outside tap navigated away from settings");
         showKeyboard(search, activity.getWindow(), "speed"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, activity.getWindow(), "speed", "System Back");
         require(screen() == page, "Hiding the keyboard also navigated away");
-        showKeyboard(search, activity.getWindow(), "speed"); tap(findDescription(root(), "Live Stats"), activity.getWindow());
-        await(() -> screen() instanceof StatsScreen && !imeVisible(activity.getWindow()), 4000,
+        // The navigation outside the field is Search's Cancel (part 12): the page header steps aside while the field has
+        // the cursor or a query, and Cancel beside the field is its way back. A tap on it while the keyboard is up must
+        // still navigate (to Home) and close the keyboard.
+        showKeyboard(search, activity.getWindow(), "speed"); tap(root().findViewWithTag("hub-search-cancel"), activity.getWindow());
+        await(() -> HubPages.HOME.equals(HubTestPages.current(activity)) && !imeVisible(activity.getWindow()), 4000,
                 "Outside navigation tap was swallowed or left the keyboard open");
         checks.add(theme + ": outside taps and system Back clear settings search focus, preserve the filter, and deliver navigation actions");
     }
     private void statsChecks(String theme) {
+        // Live Stats is the Data page since part 11 (#392), reached from Home by the rider's taps.
+        HubTestPages.reach(this, activity, HubPages.DATA);
+        await(() -> screen() instanceof StatsScreen, 4000, "Home's way in did not open Data's readings");
         // Wide Stats shows Readings in its own pane (no tab) and scrolls that pane rather than the page.
         boolean wide = Boolean.TRUE.equals(field(screen(), "wide"));
         if (!wide) clickText(root(), "Readings");
@@ -138,7 +159,9 @@ public final class SearchFocusValidation extends Instrumentation {
         checks.add(theme + ": measurement search preserves its query while outside taps and swipes still filter and scroll");
     }
     private void dialogChecks(String theme) throws Exception {
-        clickDescription("Home"); await(() -> screen() instanceof DashboardScreen, 4000, "Dashboard did not appear");
+        // Home is the Data page's back link since the tab bar went (part 11, #392).
+        View back = root().findViewWithTag("hub-back"); require(back != null && back.isShown(), "Data has no back link");
+        tap(back, activity.getWindow()); await(() -> screen() instanceof DashboardScreen, 4000, "Dashboard did not appear");
         DashboardScreen dashboard = (DashboardScreen)screen();
         if (!dashboard.isEditing()) clickDescription("Edit dashboard");
         Object tile = liveTile(dashboard); final DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile, "widget");

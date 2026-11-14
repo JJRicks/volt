@@ -396,6 +396,7 @@ public final class Telemetry {
         rawFrames.clear();
         responseStatuses.clear();
         odometerBits = 0;
+        odometerExtended = false;
         homeMode = false;
         settingsByteIsAcceleration = false;
         rawVoltage = rawCurrent = rawTemperature = null;
@@ -602,11 +603,20 @@ public final class Telemetry {
             measured(data, 8, 1, false, "odometer_km", 1, SUFFIX_KM, 0, cmd, time);
         }
         odometerBits = !expanded ? 8 : has(data, 14, 4) && unsigned(data, 14, 4, false) > 0 ? 32 : has(data, 12, 2) ? 16 : 0;
+        odometerExtended = expanded && has(data, 14, 4);
     }
 
     /** The odometer field the last ride report used: 8 (v0 whole km), 16 or 32 (v1 tenths), or 0. Maintenance distance wraps by it. */
     private int odometerBits;
     public synchronized int odometerBits() { return odometerBits; }
+
+    /**
+     * Whether the last ride report was v1 and carried the 32-bit odometer bytes, even at zero. A 16-bit odometer from a
+     * report with them is the 32-bit field reading 0 (a reset); from a short report without them it says nothing about
+     * the 32-bit field (the lifetime odometer record tells the two apart by it).
+     */
+    private boolean odometerExtended;
+    public synchronized boolean odometerExtended() { return odometerExtended; }
 
     private void firmware(byte[] data, int cmd, long time) {
         String[] names = {"meter_version", "controller_version", "battery_version", "screen_version", "uwb_version"};
