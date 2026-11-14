@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.MoreScreen;
 import com.jjricks.volt.OnboardingScreen;
@@ -41,6 +42,8 @@ public final class UpdateCheckValidation extends Instrumentation {
     private static final String APK = "https://github.com/JJRicks/volt/releases/download/v9.9.9/volt-9.9.9.apk";
     private Bundle arguments;
     private MainActivity activity;
+    /** Settings' Updates sheet (part 11), open under every dialog Check for updates shows. */
+    private AlertDialog sheet;
     private int assertions;
     private final ArrayList<String> screenshots = new ArrayList<>();
     private final List<String> requests = new CopyOnWriteArrayList<>(), agents = new CopyOnWriteArrayList<>();
@@ -69,10 +72,19 @@ public final class UpdateCheckValidation extends Instrumentation {
                     opened.set(String.valueOf(intent.getData())); return new ActivityResult(0, null);
                 }
             });
-            main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(more(), "selectSection", new Class<?>[]{String.class}, "About"); more().refresh(); });
-            // Check for updates now sits in More's own Updates section, in the menu: on a phone, Back from About shows it.
-            main(() -> more().back());
-            await(() -> tag("check-updates") != null && tag("check-updates").isShown(), "Check for updates is not in About & permissions");
+            // Check for updates sat in More's own Updates section, in the menu. Since part 11 (#392) More is Settings, reached
+            // from Home by the rider's taps, and Updates is its own row there (settings-updates, with the automatic check's
+            // state): the row opens the Updates sheet that holds the automatic check's switch and Check for updates. The
+            // saved More section (About) must not stand in the way.
+            HubTestPages.reach(this, activity, HubPages.SETTINGS);
+            main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)) && field(activity, "screen") instanceof MoreScreen, "Settings did not open from Home"));
+            View[] updatesRow = {null};
+            main(() -> updatesRow[0] = HubTestPages.shownTag(activity, "settings-updates"));
+            require(updatesRow[0] != null, "Settings has no Updates row");
+            HubTestPages.tapView(this, activity, updatesRow[0], "Settings' Updates row");
+            await(() -> updatesSheet() != null && tag("check-updates") != null && tag("check-updates").isShown() && tag("update_auto") != null && tag("update_auto").isShown(),
+                    "Check for updates is not in Settings' Updates sheet");
+            main(() -> sheet = updatesSheet());
 
             reply.set(release("v9.9.9", PAGE));
             tap(); require(showing("Check GitHub for updates?") && requests.isEmpty(), "No consent before the first request");
@@ -168,9 +180,38 @@ public final class UpdateCheckValidation extends Instrumentation {
         for (int i = list.size() - 1; i >= 0; i--) { AlertDialog d = (AlertDialog) list.get(i); if (d.isShowing()) return d.getWindow().getDecorView(); }
         return null;
     }
-    private int showingCount() { AtomicReference<Integer> n = new AtomicReference<>(0); main(() -> { int c = 0; for (Object d : (List<?>) field(more(), "dialogs")) if (((AlertDialog) d).isShowing()) c++; n.set(c); }); return n.get(); }
+    /**
+     * Dialogs Check for updates opened, showing now. The Updates sheet that holds the row (part 11) is not one of them: it
+     * must still be showing under them, so a check that closed it also fails here.
+     */
+    private int showingCount() {
+        AtomicReference<Integer> n = new AtomicReference<>(0);
+        main(() -> {
+            require(sheet == null || sheet.isShowing(), "The Updates sheet closed under Check for updates");
+            int c = 0; for (Object d : (List<?>) field(more(), "dialogs")) if (d != sheet && ((AlertDialog) d).isShowing()) c++; n.set(c);
+        });
+        return n.get();
+    }
+    /** The Updates sheet over Settings (MoreScreen.updatesSheet): the showing dialog that holds Check for updates. Main thread. */
+    private AlertDialog updatesSheet() {
+        AtomicReference<AlertDialog> found = new AtomicReference<>();
+        main(() -> { for (Object d : (List<?>) field(more(), "dialogs")) {
+            AlertDialog dialog = (AlertDialog) d;
+            if (dialog.isShowing() && dialog.getWindow().getDecorView().findViewWithTag("check-updates") != null) found.set(dialog);
+        } });
+        return found.get();
+    }
     private MoreScreen more() { return (MoreScreen) field(activity, "screen"); }
-    private View tag(String tag) { return activity.getWindow().getDecorView().findViewWithTag(tag); }
+    /** A tagged view in the activity's window or, since Check for updates sits in the Updates sheet (part 11), in a showing dialog. */
+    private View tag(String tag) {
+        View found = activity.getWindow().getDecorView().findViewWithTag(tag);
+        if (found != null || !(field(activity, "screen") instanceof MoreScreen)) return found;
+        for (Object d : (List<?>) field(more(), "dialogs")) {
+            AlertDialog dialog = (AlertDialog) d;
+            if (dialog.isShowing() && (found = dialog.getWindow().getDecorView().findViewWithTag(tag)) != null) return found;
+        }
+        return null;
+    }
     private TextView text(View root, String text) {
         if (root instanceof TextView && ((TextView) root).getText().toString().equals(text)) return (TextView) root;
         if (root instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) root).getChildCount(); i++) { TextView t = text(((ViewGroup) root).getChildAt(i), text); if (t != null) return t; }

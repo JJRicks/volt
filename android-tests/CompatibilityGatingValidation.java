@@ -471,9 +471,15 @@ public final class CompatibilityGatingValidation extends Instrumentation {
     }
 
     private void verifyCompatibility(String pid, String label) throws Exception {
-        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "Compatibility")); settle();
-        main(() -> require(field(more(), "compatibilityPanel") != null && texts(root()).contains("Run check"), label + ": Compatibility panel without Run check"));
+        // More's Compatibility section is the Service › Compatibility page since part 11 (#392) (HubCompatibilityPage, not a
+        // More section), reached from Home by the rider's taps: Service's row, then its Compatibility row. It opens the full
+        // checker, not Review's recovery-only view.
+        HubTestPages.reach(this, activity, HubPages.SERVICE_COMPATIBILITY); settle();
+        main(() -> {
+            require(HubPages.SERVICE_COMPATIBILITY.equals(HubTestPages.current(activity)), label + ": Service's Compatibility row opened " + HubTestPages.current(activity));
+            require(Boolean.FALSE.equals(field(compatibilityPanel(), "recoveryOnly")), label + ": Compatibility opened its recovery-only view");
+            require(texts(root()).contains("Run check"), label + ": Compatibility panel without Run check");
+        });
         screenshot(label + "-more-compatibility");
         // Try a setting moved to Experimental controls (Help verify): the checker offers no setting change, and runs no guided test.
         main(() -> {
@@ -532,7 +538,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         main(() -> {
             String shown = texts(root());
             require(shown.contains("Share") && shown.contains("Save file") && shown.contains("Simulated scooter (not real evidence)"), label + ": preview incomplete");
-            Object report = field(field(more(), "compatibilityPanel"), "report");
+            Object report = field(compatibilityPanel(), "report");
             String json = (String)invoke(report, "json");
             require(json.contains("\"simulated\": true") && !json.contains("SIMULATION") && !json.contains("\"pid\": \"\""), label + ": report content");
         });
@@ -563,7 +569,9 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             require(invoke(ble, "discovery") != kept, label + ": region change kept a check whose descriptor changed");
             ble.setSimulationRegion(region);
         });
-        main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "")); settle();
+        // More's index was the way out of its Compatibility section; the page's Back returns to Service (part 11).
+        main(() -> invoke(activity, "navigateBack", new Class<?>[]{})); settle();
+        main(() -> require(HubPages.SERVICE.equals(HubTestPages.current(activity)), label + ": Back from Compatibility opened " + HubTestPages.current(activity)));
         checks.add(label + ": compatibility check holds writes, ends within bounds and previews its report");
     }
     /**
@@ -587,7 +595,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         try {
             final String[] shownJson = {null}, shownSummary = {null};
             main(() -> {
-                Object report = field(field(more(), "compatibilityPanel"), "report");
+                Object report = field(compatibilityPanel(), "report");
                 shownJson[0] = (String)invoke(report, "json"); shownSummary[0] = (String)invoke(report, "summary");
                 TextView toggle = byText(root(), "Show JSON"); require(toggle != null, label + ": no Show JSON"); toggle.performClick();
             });
@@ -952,6 +960,12 @@ public final class CompatibilityGatingValidation extends Instrumentation {
         return out.toString();
     }
     private MoreScreen more() { Object screen = field(activity, "screen"); require(screen instanceof MoreScreen, "More screen is not active"); return (MoreScreen)screen; }
+    /** The compatibility check's panel: the Service › Compatibility page's (HubCompatibilityPage, part 11). Main thread. */
+    private Object compatibilityPanel() {
+        Object screen = field(activity, "screen");
+        require(screen != null && screen.getClass().getSimpleName().equals("HubCompatibilityPage"), "The Compatibility page is not on top (" + HubTestPages.current(activity) + ")");
+        return field(screen, "panel");
+    }
     private void reveal(String tag) {
         main(() -> { View view = root().findViewWithTag(tag); require(view != null, "Missing " + tag); view.requestRectangleOnScreen(new Rect(0, 0, view.getWidth(), view.getHeight()), true); }); settle();
     }

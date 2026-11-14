@@ -26,8 +26,8 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.DashboardConfig;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
-import com.jjricks.volt.MoreScreen;
 import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
@@ -79,11 +79,17 @@ public final class Ut5SimulationScreens extends Instrumentation {
             main(() -> { EditText search = (EditText)field(field(activity, "screen"), "search"); search.setText("speed"); search.clearFocus(); }); settle();
             capture("search-speed");
             main(() -> { EditText search = (EditText)field(field(activity, "screen"), "search"); search.setText(""); search.clearFocus(); }); settle();
-            select("more"); capture("more");
-            for (String section : new String[]{"Scooters", "Security", "Lab"}) {
-                main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, section)); settle(); capture("more-" + section.toLowerCase(Locale.ROOT));
+            select("more"); requirePage(HubPages.SETTINGS); capture("more");
+            // More's Scooters, Security and Lab sections are pages since the Hub layout: Settings › My scooters, Security, and
+            // Service › Experimental controls (#387, #392). Each is captured as the page it is now, under its old name, so
+            // the captures still pair with the older builds'. The page is opened by its id, as select() opens the others.
+            String[][] sections = {{"Scooters", HubPages.SETTINGS_SCOOTERS}, {"Security", HubPages.SECURITY}, {"Lab", HubPages.SERVICE_EXPERIMENTAL}};
+            for (String[] section : sections) {
+                select(section[1]); requirePage(section[1]);
+                main(() -> require(HubTestPages.part(activity, "MoreScreen") != null, section[1] + " does not show More's " + section[0] + " section"));
+                capture("more-" + section[0].toLowerCase(Locale.ROOT));
             }
-            main(() -> invoke(more(), "selectSection", new Class<?>[]{String.class}, "")); settle();
+            select(HubPages.SETTINGS); requirePage(HubPages.SETTINGS);
             main(() -> require(activity.service().setSimulation(false), "Simulation did not stop")); settle();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -128,7 +134,8 @@ public final class Ut5SimulationScreens extends Instrumentation {
         screenshots.add(file.getAbsolutePath());
         TextCensus.write(this, file);
     }
-    private MoreScreen more() { Object screen = field(activity, "screen"); require(screen instanceof MoreScreen, "More screen is not active"); return (MoreScreen)screen; }
+    /** The page on top is page (its id, HubPages). */
+    private void requirePage(String page) { main(() -> require(page.equals(HubTestPages.current(activity)), "Opened " + HubTestPages.current(activity) + ", not " + page)); }
     private SharedPreferences settings() { return prefs("app_settings"); }
     private SharedPreferences prefs(String name) { return getTargetContext().getSharedPreferences(name, Context.MODE_PRIVATE); }
     private View root() { return (View)field(activity, "root"); }
