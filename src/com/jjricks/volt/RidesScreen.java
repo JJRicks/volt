@@ -771,7 +771,7 @@ public final class RidesScreen implements AppScreen {
     /**
      * The Ride page's recent ride (the owner's Layout Plan): titled by its date and time, with distance, duration and
      * the battery change under it (PageRows.rideLine) and a chevron; no route thumbnail. It opens the ride, and is
-     * spoken as the history row was (its name, date, distance and duration).
+     * spoken as the history row was (its name, date, distance and duration), then the battery change it shows.
      */
     private View recentRideRow(RideStore.Summary s) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56));
@@ -786,7 +786,8 @@ public final class RidesScreen implements AppScreen {
         row.addView(chevron, cp);
         String label = rideLabel(s);
         rowTouch(row, () -> showDetails(s.id));
-        row.setContentDescription(historySpoken(label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.shownElapsedMs)));
+        row.setContentDescription(historySpoken(label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.shownElapsedMs)
+                + (measured == null ? "" : ", " + measured)));
         return row;
     }
     /** Wide layout: the selected ride's row carries a red tint and reads as selected. */
