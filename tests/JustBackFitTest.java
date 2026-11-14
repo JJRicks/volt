@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 /**
  * JustBackFit: Just back as the Layout Plan's mock-up draws it (the contributor's decisions on #383), at 344x882 and
- * 725x604 dp with 1x and 1.4x text: the average speed from distance and time, the signed battery change, the distance's
+ * 725x604 dp with 1x and 1.4x text: the average speed (stored, else from distance and time), the signed battery change, the distance's
  * size and how the fixed top area shares its height between the distance and the route.
  */
 public final class JustBackFitTest {
@@ -18,15 +18,25 @@ public final class JustBackFitTest {
     }
 
     private static void averageSpeed() {
-        // A ride that stored no average (no speed readings: the rig's seeded 6.21 mi ride in 20:00) shows a dash: nothing
-        // is worked out from its distance and time, as the ride's own page on Rides shows none.
-        require(JustBackFit.averageSpeedKmh(null, null) == null, "no stored average: none (a dash), not distance over time");
-        require(JustBackFit.averageSpeedKmh(24.0, 26.0) == 24.0, "a stored average comes first");
-        require(JustBackFit.averageSpeedKmh(null, 26.0) == 26.0, "then the stored moving average");
-        require(JustBackFit.averageSpeedKmh(Double.NaN, Double.POSITIVE_INFINITY) == null, "unusable stored values are skipped, never replaced by a derived one");
-        require(JustBackFit.averageSpeedKmh(Double.NaN, 20.0) == 20.0, "an unusable average falls back to the moving average");
-        require(JustBackFit.averageSpeedKmh(-1.0, null) == null, "a negative stored average is unusable");
-        require(JustBackFit.averageSpeedKmh(0.0, null) == 0.0, "a stored zero is a real average");
+        // A stored average is used as it is, ahead of the moving average and of anything derived.
+        require(JustBackFit.averageSpeedKmh(24.0, 26.0, 9.994, 0, 20 * 60_000L) == 24.0, "a stored average comes first");
+        require(JustBackFit.averageSpeedKmh(null, 26.0, 9.994, 0, 20 * 60_000L) == 26.0, "then the stored moving average");
+        require(JustBackFit.averageSpeedKmh(0.0, null, 5.0, 0, 60_000L) == 0.0, "a stored zero is a real average");
+        // A missing average is derived: the rig's seeded ride, 6.21 mi (9.994 km) in 20:00 with no speed readings saved,
+        // is about 18.6 mph (30.0 km/h), not a dash.
+        Double seeded = JustBackFit.averageSpeedKmh(null, null, 9.994, 0, 20 * 60_000L);
+        require(seeded != null && Math.abs(seeded - 29.982) < .01, "distance over the shown time: " + seeded);
+        require(Math.abs(seeded / 1.609344 - 18.63) < .01, "about 18.6 mph");
+        Double moving = JustBackFit.averageSpeedKmh(null, null, 10.0, 15 * 60_000L, 20 * 60_000L);
+        require(moving != null && Math.abs(moving - 40.0) < 1e-9, "over the moving time when the ride has one");
+        require(JustBackFit.averageSpeedKmh(Double.NaN, Double.POSITIVE_INFINITY, 10.0, 0, 30 * 60_000L) == 20.0, "unusable stored values are skipped");
+        require(JustBackFit.averageSpeedKmh(-1.0, null, 10.0, 0, 30 * 60_000L) == 20.0, "a negative stored average is unusable");
+        // Nothing measured to derive from: none, which the tile shows as a dash.
+        require(JustBackFit.averageSpeedKmh(null, null, 9.994, 0, 0) == null, "zero duration: a dash");
+        require(JustBackFit.averageSpeedKmh(null, null, 9.994, 0, -5) == null, "negative duration: a dash");
+        require(JustBackFit.averageSpeedKmh(null, null, null, 0, 60_000L) == null, "no distance (odometer reset or unread): a dash");
+        require(JustBackFit.averageSpeedKmh(null, null, 0.0, 0, 60_000L) == null, "zero distance: a dash");
+        require(JustBackFit.averageSpeedKmh(null, null, Double.NaN, 0, 60_000L) == null, "NaN distance: a dash");
     }
 
     private static void batteryChange() {

@@ -209,8 +209,9 @@ final class JustBackView extends LinearLayout {
         // day. The mock-up's shorter "24m" needs new text (part 10).
         String duration = s.shownElapsedMs > 0 ? RidesScreen.duration(s.shownElapsedMs) : null;
         time.set(duration, duration);
-        // The ride's saved average only: a ride that stored none shows a dash, as its page on Rides does.
-        Double average = JustBackFit.averageSpeedKmh(s.averageSpeedKmh, s.movingAverageSpeedKmh);
+        // The saved average, else the measured distance over the moving or shown time (JustBackFit): a ride with a
+        // distance and a time never shows a dash. Formatted as Rides formats a speed (RideText.speed).
+        Double average = JustBackFit.averageSpeedKmh(s.averageSpeedKmh, s.movingAverageSpeedKmh, s.distanceKm, s.movingMs, s.shownElapsedMs);
         if (average == null) speed.set(null, null);
         else {
             // Both units may not fit a narrow tile at its readable floor: then the first unit alone, both spoken (note 3).

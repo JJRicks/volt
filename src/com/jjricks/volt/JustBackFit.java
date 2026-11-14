@@ -5,8 +5,8 @@ package com.jjricks.volt;
  * pure rules behind JustBackView. Pure Java.
  *
  * <ul>
- *   <li>{@link #averageSpeedKmh}: the Avg speed tile's value, from the saved average, else the saved moving average;
- *       a dash when the ride saved neither.</li>
+ *   <li>{@link #averageSpeedKmh}: the Avg speed tile's value, from the saved average, else the saved moving average,
+ *       else the ride's measured distance over its time, so a ride with a distance and a time never shows a dash.</li>
  *   <li>{@link #signedChange}: the Battery tile's signed change ("−18" for a ride that used 18%, "+2" for a gain).</li>
  *   <li>{@link #distanceSp}: the distance's size, about 60 sp as the mock-up renders it, growing only a little with
  *       large text so the route panel and the tiles keep their room in the fixed top area.</li>
@@ -27,12 +27,21 @@ final class JustBackFit {
     private JustBackFit() {}
 
     /**
-     * The Avg speed tile's value in km/h, or null (a dash) when the ride saved none: the saved average (RideStore's,
-     * over the time speed was reported) first, then the saved moving average. Nothing is worked out from the distance
-     * and time: missing telemetry stays unavailable, as on the ride's own page on Rides.
+     * The Avg speed tile's value in km/h, or null (a dash) when the ride has nothing measured to give it. The saved
+     * average (RideStore's, over the time speed was reported) comes first, then the saved moving average. A ride that
+     * stored neither (no speed readings close enough together to integrate: a GPS-only ride, or the rig's seeded ride
+     * with samples 20 s apart) still has a measured distance (the odometer's change, null when it reset or was never
+     * read) and a recorded time, so its average is that distance over its moving time, else over its shown time: the
+     * same distance and time the card shows beside it. Only measured values go in; nothing is filled in for a reading
+     * that is missing, so a ride without a positive, finite distance or a positive time has none
+     * (CONTRIBUTING: missing telemetry stays unavailable).
      */
-    static Double averageSpeedKmh(Double stored, Double movingStored) {
-        return usable(stored) ? stored : usable(movingStored) ? movingStored : null;
+    static Double averageSpeedKmh(Double stored, Double movingStored, Double distanceKm, long movingMs, long elapsedMs) {
+        if (usable(stored)) return stored;
+        if (usable(movingStored)) return movingStored;
+        if (distanceKm == null || !Double.isFinite(distanceKm) || distanceKm <= 0) return null;
+        long time = movingMs > 0 ? movingMs : elapsedMs;
+        return time > 0 ? distanceKm * 3_600_000d / time : null;
     }
 
     private static boolean usable(Double value) {

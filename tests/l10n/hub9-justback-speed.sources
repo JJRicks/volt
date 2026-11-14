@@ -1,0 +1,4 @@
+# Hub 9: Just back's Avg speed tile, its value (JustBackFit) formatted as Rides formats a speed (RideText).
+src/com/jjricks/volt/JustBackFit.java
+src/com/jjricks/volt/RideText.java
+tests/l10n/JustBackSpeedTest.java
