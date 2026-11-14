@@ -28,6 +28,24 @@ public final class OwnerIdentityParserTest {
         equal("886B33AF01C2", 0, "88-6B-33-AF-01-C2");
         equal("886B33AF01C2", 0, "  88 6b 33 Af 01 c2 \n");
         equal(ID, 0, "86 00 12 34 56 78");
+        writtenTwoRows();
+    }
+
+    /** The popup's two rows of three bytes (MadeKeyPrompt.twoRows): one LF or CRLF after the third byte, spaces only. */
+    private static void writtenTwoRows() {
+        equal("886B33AF01C2", 0, "88 6B 33\nAF 01 C2");
+        equal("886B33AF01C2", 0, "88 6B 33\r\nAF 01 C2");
+        equal("886B33AF01C2", 0, "88 6b 33\naf 01 c2\n");
+        equal("886B33AF01C2", 0, "\r\n  88 6B 33\r\nAF 01 C2\r\n");
+        equal(ID, 0, "86 00 12\n34 56 78");
+        rejects("88 6B 33\n\nAF 01 C2"); rejects("88 6B 33\r\n\r\nAF 01 C2"); rejects("88 6B 33\n\r\nAF 01 C2");
+        rejects("88 6B 33\rAF 01 C2"); rejects("88 6B 33\n\rAF 01 C2"); rejects("88 6B 33 \nAF 01 C2");
+        rejects("88 6B 33\n AF 01 C2"); rejects("88 6B\n33 AF 01 C2"); rejects("88 6B 33 AF\n01 C2");
+        rejects("88\n6B\n33\nAF\n01\nC2"); rejects("88 6B 33\nAF 01 C2\n88 6B 33\nAF 01 C2");
+        rejects("88:6B:33\nAF:01:C2"); rejects("88-6B-33\r\nAF-01-C2"); rejects("88 6B 33\nAF:01:C2");
+        rejects("88 6B 33\nAF 01-C2"); rejects("88 6B 33\tAF 01 C2"); rejects("88 6B 33\u2028AF 01 C2");
+        rejects("88 6B 33\u0085AF 01 C2"); rejects("Key:\n88 6B 33\nAF 01 C2"); rejects("88 6B 33\nAF 01");
+        rejects("88 6B 33\nAF 01 C2 D4"); rejects("88 6B 3\nAF 01 C2"); rejects("886B33\nAF01C2");
     }
 
     private static void captureFrames() {

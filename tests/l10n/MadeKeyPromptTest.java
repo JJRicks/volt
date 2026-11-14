@@ -14,6 +14,7 @@ public final class MadeKeyPromptTest {
         written();
         readBack();
         neverInMessages();
+        goToHome();
         System.out.println("MadeKeyPromptTest: " + assertions + " assertions passed");
     }
 
@@ -88,6 +89,11 @@ public final class MadeKeyPromptTest {
         Random random = new Random(11);
         for (int i = 0; i < 300; i++) {
             String key = NewOwnerKey.generate(random), one = MadeKeyPrompt.oneRow(key);
+            String two = MadeKeyPrompt.twoRows(key);
+            for (String rows : new String[] {two, two.replace("\r\n", "\n"), two.replace("\r\n", "\n").replace("\n", "\r\n"), two + "\n"}) {
+                OwnerIdentityParser.Result parsed = OwnerIdentityParser.parse(rows);
+                check(parsed.identity.equals(key) && parsed.role == 0, "the two rows read back as an owner key");
+            }
             for (String written : new String[] {one, one.replace(' ', ':'), one.replace(' ', '-'), one.toLowerCase(java.util.Locale.ROOT)}) {
                 OwnerIdentityParser.Result parsed = OwnerIdentityParser.parse(written);
                 check(parsed.identity.equals(key) && parsed.role == 0, "reads back as an owner key");
@@ -106,6 +112,43 @@ public final class MadeKeyPromptTest {
                 check(!message.contains("6B") && !message.contains("6b") && !message.contains("AF 01"), "no key digits in the refusal");
             }
         }
+    }
+
+    /**
+     * Follow-up finding 1: Go to Home before the service binds (no profile yet) must not finish setup, and clear what
+     * the popup needs, while a made key's popup may still be owed; it waits a few seconds, then never strands the rider.
+     */
+    private static void goToHome() {
+        // May be owed: the new-key route made a key whose popup wasn't dismissed.
+        check(MadeKeyPrompt.mayBeOwed(true, ID, null, false), "a made key, popup not yet shown");
+        check(MadeKeyPrompt.mayBeOwed(true, ID, "", false), "no shown record");
+        check(MadeKeyPrompt.mayBeOwed(true, ID, "profile-0", false), "another profile's record doesn't count");
+        check(!MadeKeyPrompt.mayBeOwed(true, ID, ID, false), "already dismissed for this key");
+        check(!MadeKeyPrompt.mayBeOwed(true, ID, null, true), "dismissed on this screen (even if its record failed to save)");
+        check(!MadeKeyPrompt.mayBeOwed(false, ID, null, false), "not the new-key route");
+        check(!MadeKeyPrompt.mayBeOwed(true, "", null, false), "no key made");
+        check(!MadeKeyPrompt.mayBeOwed(true, null, null, false), "no key made (no record)");
+        check(MadeKeyPrompt.HOME_WAIT_MS >= 2000 && MadeKeyPrompt.HOME_WAIT_MS <= 6000, "a few seconds");
+        // Not loaded and maybe owed: wait, never finish (which would clear the popup's record).
+        for (long ms : new long[] {-5000, 0, 1, 1000, MadeKeyPrompt.HOME_WAIT_MS - 1})
+            check(MadeKeyPrompt.home(false, false, true, ms) == MadeKeyPrompt.HOME_WAIT, "waits for the profile at " + ms);
+        // Never stranded: after the wait it finishes as it does with no profile.
+        check(MadeKeyPrompt.home(false, false, true, MadeKeyPrompt.HOME_WAIT_MS) == MadeKeyPrompt.HOME_NOW, "gives up after the wait");
+        check(MadeKeyPrompt.home(false, false, true, Long.MAX_VALUE) == MadeKeyPrompt.HOME_NOW, "long after");
+        // Nothing owed: no wait at all, as before (every other setup).
+        check(MadeKeyPrompt.home(false, false, false, 0) == MadeKeyPrompt.HOME_NOW, "nothing owed, no wait");
+        // Loaded: the popup first when due (setup finishes once it's dismissed), else at once.
+        check(MadeKeyPrompt.home(true, true, true, 0) == MadeKeyPrompt.HOME_AFTER_PROMPT, "due: the popup first");
+        check(MadeKeyPrompt.home(true, true, true, Long.MAX_VALUE) == MadeKeyPrompt.HOME_AFTER_PROMPT, "due after a long wait: still the popup");
+        check(MadeKeyPrompt.home(true, false, true, 0) == MadeKeyPrompt.HOME_NOW, "loaded, not due (no saved address): home");
+        check(MadeKeyPrompt.home(true, false, false, 0) == MadeKeyPrompt.HOME_NOW, "loaded, nothing owed: home");
+        // The whole path: reopened before the service binds, with the popup due.
+        boolean owed = MadeKeyPrompt.mayBeOwed(true, ID, null, false);
+        check(MadeKeyPrompt.home(false, false, owed, 300) == MadeKeyPrompt.HOME_WAIT, "early tap waits");
+        boolean due = MadeKeyPrompt.due(true, ID, KEY, MAC, null);
+        check(MadeKeyPrompt.home(true, due, owed, 900) == MadeKeyPrompt.HOME_AFTER_PROMPT, "then the popup once the service binds");
+        check(MadeKeyPrompt.home(true, MadeKeyPrompt.due(true, ID, KEY, MAC, ID), MadeKeyPrompt.mayBeOwed(true, ID, ID, true), 0)
+                == MadeKeyPrompt.HOME_NOW, "and home once it's dismissed");
     }
 
     private static void check(boolean condition, String what) {
