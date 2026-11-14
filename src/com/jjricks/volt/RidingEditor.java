@@ -58,6 +58,19 @@ final class RidingEditor {
         return RidingLayout.choices(spot.kind);
     }
 
+    /**
+     * What the editor offers for a spot: its readings, and for a chip spot first of all None, an empty slot that takes
+     * no room (a tester, Nov 14). Everything else offers exactly its choices.
+     */
+    static List<String> options(RidingLayout.Spot spot) {
+        List<String> readings = choices(spot);
+        if (spot == null || spot.kind != RidingLayout.Kind.CHIP) return readings;
+        List<String> out = new ArrayList<>();
+        out.add(RidingLayout.NONE);
+        out.addAll(readings);
+        return out;
+    }
+
     /** The switches a frame has, in the editor's order. */
     static List<String> switches(String frameId) {
         RidingLayout.Frame f = RidingLayout.frameDef(frameId);

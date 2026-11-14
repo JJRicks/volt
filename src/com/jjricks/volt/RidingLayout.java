@@ -16,6 +16,10 @@ import java.util.*;
  * That holds both ways across versions, so VERSION stays 1 when a kind accepts more: 1.13.0 only let a
  * chip hold drive mode, battery temperature or the clock, and reading this version's "average_speed"
  * chip it refuses the id and shows that chip's default, while the other spots keep their choices.
+ *
+ * A chip spot may also hold {@link #NONE} (a tester, Nov 14): the slot shows nothing and takes no room. It is no
+ * reading, so it isn't in the catalog; only a chip spot accepts it. A Volt from before it reads "none" as an unknown
+ * content and shows that chip's default, as above; it never crashes on it.
  */
 final class RidingLayout {
     /** What a spot is, which decides the contents it accepts. */
@@ -62,6 +66,8 @@ final class RidingLayout {
     // Record and Status showed the same thing. migrated() reads it as STATUS wherever it appears.
     // Switches.
     static final String POWER_BAR = "power_bar", CHIPS = "chips";
+    /** An empty chip slot: no chip, and no room taken. Only a chip spot accepts it (see accepts). */
+    static final String NONE = "none";
     /** Speed and range to tenths: on by default, with a switch in the layout editor (owner, Q23 B). */
     static final String TENTHS = "tenths";
 
@@ -99,7 +105,13 @@ final class RidingLayout {
     }
 
     static Content item(String id) { return id == null ? null : BY_ID.get(id); }
-    static boolean accepts(Kind kind, String contentId) { Content c = item(contentId); return c != null && c.accepts.contains(kind); }
+    static boolean accepts(Kind kind, String contentId) {
+        if (NONE.equals(contentId)) return kind == Kind.CHIP;
+        Content c = item(contentId);
+        return c != null && c.accepts.contains(kind);
+    }
+    /** True for a spot content that shows something: anything but an empty chip slot (or no content at all). */
+    static boolean shows(String contentId) { return contentId != null && !NONE.equals(contentId); }
     /** The contents a spot of this kind can show, in catalog order. */
     static List<String> choices(Kind kind) {
         List<String> out = new ArrayList<>();

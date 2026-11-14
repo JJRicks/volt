@@ -232,6 +232,8 @@
     <string name="riding_content_trace_speed_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed and power</string>
     <string name="riding_content_trace_power" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Power only</string>
     <string name="riding_content_trace_speed" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">Speed only</string>
+    <!-- A chip slot's choice that shows no chip there: the other chips share the row. -->
+    <string name="riding_content_none" volt:screen="Riding layout editor" volt:purpose="option" volt:max="150dp@15sp">None</string>
     <!-- A switch: the tall bar at the left edge that shows power. -->
     <string name="riding_switch_power_bar" volt:screen="Riding layout editor" volt:purpose="switch">Power bar</string>
     <string name="riding_switch_power_bar_summary" volt:screen="Riding layout editor" volt:purpose="summary">Left edge: red for power, green for regen</string>
