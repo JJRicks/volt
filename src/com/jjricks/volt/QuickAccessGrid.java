@@ -249,8 +249,10 @@ final class QuickAccessGrid extends ViewGroup {
                 if (cell.isSelected() != selected || cell.unknown != lockUnknown) {
                     cell.setSelected(selected); cell.unknown = lockUnknown; cell.updateBackground();
                 }
-                cell.setAlpha(look != null ? (look.dimmed ? .65f : 1f) : (feature != null || chargeControl) && !featureLive ? .65f : 1f);
-                if (look == null && alerts && !featureLive) cell.setAlpha(.65f);
+                cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
+                if (alerts && !featureLive) cell.setAlpha(.65f);
+                // Clean's circles that show a saved or last known state are dimmed only while it is a last known one.
+                if (look != null) cell.setAlpha(look.dimmed ? .65f : 1f);
             }
             cell.setEnabled(!editing);
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
@@ -540,10 +542,14 @@ final class QuickAccessGrid extends ViewGroup {
             int pad = ui.dp(QuickActionLayout.SIDE_DP);
             setPadding(pad, ui.dp(2), pad, ui.dp(4));
             float room = width - 2 * pad;
-            // Measured at the full size on a copy of the paint, so the view's size changes only when the choice does. A
-            // pixel is kept in hand so a name the rule keeps whole is never ellipsized by rounding.
-            QuickActionLayout.Name name = QuickActionLayout.name(room - 1,
-                    fullSize(label, QuickActionLayout.NAME_SP)::measureText, roundNames(entry));
+            // Measured at each size it may take, as it is drawn, on a copy of the paint, so the view's size changes only
+            // when the choice does. A pixel is kept in hand so a name the rule keeps whole is never ellipsized by rounding.
+            android.text.TextPaint sized = new android.text.TextPaint(label.getPaint());
+            QuickActionLayout.Name name = QuickActionLayout.name(room - 1, (text, share) -> {
+                sized.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                        QuickActionLayout.NAME_SP * ui.textScale * share, getResources().getDisplayMetrics()));
+                return sized.measureText(text);
+            }, roundNames(entry));
             label.setVisibility(name.text == null ? GONE : VISIBLE);
             if (name.text != null) {
                 float size = QuickActionLayout.NAME_SP * ui.textScale * name.scale;

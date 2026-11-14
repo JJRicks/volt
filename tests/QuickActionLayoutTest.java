@@ -99,6 +99,11 @@ public final class QuickActionLayoutTest {
         require(name.iconOnly(), "no name fits whole: the icon alone: " + name);
         name = QuickActionLayout.name(60, w, "Abcdefghijkl", null, "", "Abcdefghijklmn", "Abcdef");
         require("Abcdef".equals(name.text), "empty names and names no narrower are skipped: " + name);
+        // Each size is checked as it is drawn: a smaller size a few pixels wider than in proportion takes the next step.
+        QuickActionLayout.ScaledWidth drawn = (text, scale) -> text.length() * 10f * scale + (scale < 1 ? 3 : 0);
+        name = QuickActionLayout.name(60, drawn, "Abcdefg");
+        require(name.scale < .85f && 70 * name.scale + 3 <= 60, "a size wider than in proportion takes the next step down: " + name);
+        require(QuickActionLayout.name(60, drawn, "Abcdefgh").iconOnly(), "no size that fits as drawn: the icon alone");
         require(QuickActionLayout.name(60, w).iconOnly() && QuickActionLayout.name(60, w, (String) null).iconOnly()
                 && QuickActionLayout.name(60, w, "").iconOnly(), "no name: the icon alone");
     }

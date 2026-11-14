@@ -39,6 +39,12 @@ final class QuickActionLayout {
     /** A text's width at the size being fitted. */
     interface Width { float of(String text); }
 
+    /**
+     * A text's width at a share of the full size, measured at that size (text does not always scale in proportion:
+     * hinting and rounding can make a smaller size a pixel or two wider than the full width times the share).
+     */
+    interface ScaledWidth { float of(String text, float scale); }
+
     /** The name under a circle: its text (null: the icon alone) and its size as a share of the full size. */
     static final class Name {
         final String text;
@@ -81,16 +87,21 @@ final class QuickActionLayout {
      * tried, are skipped.
      */
     static Name name(float room, Width width, String... names) {
+        return name(room, (text, scale) -> width.of(text) * scale, names);
+    }
+
+    /** As {@link #name(float, Width, String...)}, each size measured as it is drawn. */
+    static Name name(float room, ScaledWidth width, String... names) {
         float tried = Float.MAX_VALUE;
         for (String name : names) {
             if (name == null || name.isEmpty()) continue;
-            float wide = width.of(name);
+            float wide = width.of(name, 1);
             if (wide >= tried) continue;
             tried = wide;
             if (wide <= room) return new Name(name, 1);
             for (int step = 1; 1 - step * SCALE_STEP >= MIN_SCALE - 1e-4f; step++) {
                 float scale = Math.round((1 - step * SCALE_STEP) * 100) / 100f;
-                if (wide * scale <= room) return new Name(name, scale);
+                if (width.of(name, scale) <= room) return new Name(name, scale);
             }
         }
         return new Name(null, 1);
