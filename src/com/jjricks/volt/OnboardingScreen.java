@@ -1661,7 +1661,7 @@ public final class OnboardingScreen implements AppScreen {
         card.setBackground(ui.shape(ui.raised, 18, ui.outline));
         card.setPadding(ui.dp(12), ui.dp(16), ui.dp(12), ui.dp(14));
         KeyDigits digits = new KeyDigits(identity);
-        digits.setTag("made-key-digits");
+        digits.setTag("made_key_digits");
         card.addView(digits, new LinearLayout.LayoutParams(-1, -2));
         TextView write = ui.text(T.onboardingKeyWrite(), 15, true);
         write.setTextColor(ui.orange); write.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -1676,13 +1676,13 @@ public final class OnboardingScreen implements AppScreen {
         // The save Forget's "Save backup first" uses: Back up with Scooters & setup keys, which KeyBackups records
         // once its file is saved, and which setup's Restore a backup reads back.
         TextView save = ui.button(T.onboardingKeySave(), () -> host.dataBackup(false, BackupRegistry.SCOOTERS));
-        save.setTag("made-key-save");
+        save.setTag("made_key_save");
         ui.decorate(save, "download");
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
         box.addView(save, sp);
         AlertDialog dialog = new AlertDialog.Builder(c).setView(box).create();
         TextView done = ui.secondaryButton(T.commonDone(), () -> dismissKeyPrompt(dialog, profileId));
-        done.setTag("made-key-done");
+        done.setTag("made_key_done");
         box.addView(done);
         // Back and taps outside do nothing until Done works; after that Back is Done, and a tap outside still does
         // nothing, so a stray tap never hides the key for good.
