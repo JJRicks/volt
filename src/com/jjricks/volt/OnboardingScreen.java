@@ -1581,6 +1581,9 @@ public final class OnboardingScreen implements AppScreen {
 
     private void done() {
         scaffold(false);
+        // Over this page, once: the key Volt made, to write down (MadeKeyPrompt). Checked on every refresh, since the
+        // service (and with it the profile) may bind after this page is drawn.
+        updaters.add(this::keyPrompt);
         ScooterProfiles.Profile p = onboardingProfile();
         boolean madeKey = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
         // A made key pins its note and Back up Volt above Go to Home, so in a short window the hero gives up height
@@ -1621,6 +1624,167 @@ public final class OnboardingScreen implements AppScreen {
         }
         primary(T.onboardingDoneHome(), () -> finish(false));
     }
+
+    // ---------------------------------------------------------------- write down your owner key
+
+    /**
+     * Shows "Write down your owner key" when it is due (MadeKeyPrompt.due: a key this setup made, which the scooter
+     * accepted, not yet dismissed), and keeps the one already up current. The key appears here and nowhere else.
+     */
+    private void keyPrompt() {
+        if (closed || step != DONE || keyPromptDismissed) return;
+        if (keyPrompt != null) { if (keyPromptUpdate != null) keyPromptUpdate.run(); return; }
+        ScooterProfiles.Profile p = onboardingProfile();
+        boolean made = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
+        if (p == null || !MadeKeyPrompt.due(made, p.id, p.identity, p.mac, prefs.getString(MadeKeyPrompt.SHOWN, null))) return;
+        showKeyPrompt(p.id, p.identity);
+    }
+
+    private void showKeyPrompt(String profileId, String identity) {
+        Context c = host.activity();
+        LinearLayout box = column();
+        box.setPadding(ui.dp(22), ui.dp(22), ui.dp(22), ui.dp(16));
+        LinearLayout words = column();
+        TextView heading = ui.text(T.onboardingKeyTitle(), 21, true);
+        if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
+        words.addView(heading);
+        TextView body = ui.text(T.onboardingKeyBody(), 14.5f, false);
+        body.setLineSpacing(ui.dp(3), 1);
+        LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(-1, -2); wp.topMargin = ui.dp(10);
+        words.addView(body, wp);
+        LinearLayout card = column();
+        card.setBackground(ui.shape(ui.raised, 18, ui.outline));
+        card.setPadding(ui.dp(12), ui.dp(16), ui.dp(12), ui.dp(14));
+        TextView digits = keyDigits(identity);
+        digits.setTag("made_key_digits");
+        card.addView(digits, new LinearLayout.LayoutParams(-1, -2));
+        TextView write = ui.text(T.onboardingKeyWrite(), 15, true);
+        write.setTextColor(ui.orange); write.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(10);
+        card.addView(write, lp);
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.topMargin = ui.dp(16);
+        words.addView(card, cp);
+        // The words scroll in a short window or at large text; the buttons stay pinned below them.
+        ScrollView scroll = new ScrollView(c);
+        scroll.addView(words);
+        box.addView(scroll, new LinearLayout.LayoutParams(-1, -2, 1));
+        // The save Forget's "Save backup first" uses: Back up with Scooters & setup keys, which KeyBackups records
+        // once its file is saved, and which setup's Restore a backup reads back.
+        TextView save = ui.button(T.onboardingKeySave(), () -> host.dataBackup(false, BackupRegistry.SCOOTERS));
+        save.setTag("made_key_save");
+        ui.decorate(save, "download");
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
+        box.addView(save, sp);
+        AlertDialog dialog = new AlertDialog.Builder(c).setView(box).create();
+        long shownAt = android.os.SystemClock.elapsedRealtime();
+        boolean[] saved = {false};
+        // A disabled button takes no tap, but a click can still reach it another way (performClick): it waits too.
+        TextView done = ui.secondaryButton(T.commonDone(), () -> {
+            if (MadeKeyPrompt.doneEnabled(android.os.SystemClock.elapsedRealtime() - shownAt, saved[0])) dismissKeyPrompt(dialog, profileId);
+        });
+        done.setTag("made_key_done");
+        box.addView(done);
+        // Back and taps outside do nothing until Done works; after that Back is Done, and a tap outside still does
+        // nothing, so a stray tap never hides the key for good.
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnCancelListener(d -> dismissKeyPrompt(dialog, profileId));
+        Runnable update = () -> {
+            if (keyPrompt != dialog) return;
+            if (!saved[0] && keyBackupSaved(profileId, identity)) {
+                saved[0] = true;
+                save.setText(T.onboardingKeySaved()); save.setContentDescription(T.onboardingKeySaved());
+                ui.decorate(save, "check");
+                save.setEnabled(false); save.setTextColor(ui.ok);
+            }
+            long elapsed = android.os.SystemClock.elapsedRealtime() - shownAt;
+            boolean enabled = MadeKeyPrompt.doneEnabled(elapsed, saved[0]);
+            int left = MadeKeyPrompt.secondsLeft(elapsed);
+            done.setEnabled(enabled);
+            done.setText(enabled ? T.commonDone() : T.onboardingKeyDoneWait(left));
+            done.setContentDescription(enabled ? T.commonDone() : T.onboardingKeyDoneWaitDescription(left, left));
+            dialog.setCancelable(enabled);
+        };
+        keyPrompt = dialog;
+        keyPromptUpdate = update;
+        Runnable tick = new Runnable() {
+            @Override public void run() {
+                if (keyPrompt != dialog) return;
+                update.run();
+                if (!done.isEnabled()) root.postDelayed(this, 250);
+            }
+        };
+        show(dialog);
+        dialog.setOnDismissListener(d -> {
+            dialogs.remove(dialog);
+            root.removeCallbacks(tick);
+            if (keyPrompt == dialog) { keyPrompt = null; keyPromptUpdate = null; }
+        });
+        tick.run();
+    }
+
+    /**
+     * Done (or Back once it works): the rider has seen the key. Only now is it recorded as shown, on disk (commit()):
+     * a process death or a new activity before this shows the key again. A failed write leaves it to show again
+     * next time this page is drawn, never sooner.
+     */
+    private void dismissKeyPrompt(AlertDialog dialog, String profileId) {
+        keyPromptDismissed = true;
+        prefs.edit().putString(MadeKeyPrompt.SHOWN, profileId).commit();
+        dialog.dismiss();
+    }
+
+    /** A backup holding this key reached its file on this phone (KeyBackups), the record Forget's guard reads. */
+    private boolean keyBackupSaved(String profileId, String identity) {
+        try { return KeyBackups.savedAt(madeKeys(host.activity()).getAll(), profileId, identity) > 0; }
+        catch (RuntimeException unreadable) { return false; }
+    }
+
+    /**
+     * The made key in big monospace digits, a space between bytes: on one row when it fits at a large size, else on
+     * two rows of three bytes, shrinking only as far as a size still easy to copy from. Never broken inside a byte, and
+     * always left to right. TalkBack reads it a character at a time, byte by byte. A plain TextView (the census keys
+     * views by class), fitted from its own width whenever that changes; text is set only when the choice differs.
+     */
+    private TextView keyDigits(String identity) {
+        String oneRow = MadeKeyPrompt.oneRow(identity), twoRows = MadeKeyPrompt.twoRows(identity), row = MadeKeyPrompt.firstRow(identity);
+        TextView digits = ui.text(oneRow, 34, true);
+        digits.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+        digits.setGravity(Gravity.CENTER); digits.setLineSpacing(ui.dp(6), 1);
+        digits.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); digits.setTextDirection(View.TEXT_DIRECTION_LTR);
+        digits.setContentDescription(T.onboardingKeySpoken(MadeKeyPrompt.spoken(identity)));
+        digits.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            float room = r - l - v.getPaddingLeft() - v.getPaddingRight();
+            if (room <= 0) return;
+            float largest = ui.sp(34), oneRowFloor = ui.sp(24), floor = ui.sp(20);
+            Paint measure = new Paint(digits.getPaint());
+            measure.setTextSize(largest);
+            float one = measure.measureText(oneRow), two = measure.measureText(row);
+            String text; float size;
+            if (one <= room) { text = oneRow; size = largest; }
+            else if (largest * room / one >= oneRowFloor) { text = oneRow; size = largest * room / one; }
+            else { text = twoRows; size = Math.max(floor, Math.min(largest, largest * room / two)); }
+            // Text width doesn't scale exactly with size: step down until the widest row really fits.
+            measure.setTextSize((float) Math.floor(size));
+            String widest = text.equals(oneRow) ? oneRow : row;
+            while (measure.getTextSize() > floor && measure.measureText(widest) > room)
+                measure.setTextSize(measure.getTextSize() - 1);
+            float fitted = measure.getTextSize();
+            if (text.contentEquals(digits.getText()) && digits.getTextSize() == fitted) return;
+            // After this layout pass, so the new size is measured again rather than dropped mid-layout.
+            digits.post(() -> {
+                if (!text.contentEquals(digits.getText())) digits.setText(text);
+                if (digits.getTextSize() != fitted) digits.setTextSize(TypedValue.COMPLEX_UNIT_PX, fitted);
+            });
+        });
+        return digits;
+    }
+
+    /** "Write down your owner key" while it is up (keyPrompt()), and what keeps its buttons current; null otherwise. */
+    private AlertDialog keyPrompt;
+    private Runnable keyPromptUpdate;
+    /** The rider dismissed it on this screen: it never comes back here, even if its record failed to save. */
+    private boolean keyPromptDismissed;
 
     // ---------------------------------------------------------------- troubleshooting sheet
 

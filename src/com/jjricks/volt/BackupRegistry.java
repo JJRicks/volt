@@ -188,6 +188,8 @@ final class BackupRegistry {
         exclude("onboarding", "step", Integer.class, WIZARD);
         // Setup's own owner key (Make a new owner key): which profile holds it, so Back and Continue reuse it.
         exclude("onboarding", "generated_profile_id", String.class, WIZARD);
+        // Whose made key "Write down your owner key" has shown (MadeKeyPrompt.SHOWN), so it shows once.
+        exclude("onboarding", "made_key_shown", String.class, WIZARD);
         for (String key : "path profile_id created_profile_id pending_name".split(" ")) exclude("onboarding", key, String.class, WIZARD);
         RULES.add(new Rule("onboarding", "tick_", true, Boolean.class, null, WIZARD, false, false, false));
     }
