@@ -42,15 +42,6 @@ final class RideRecordTile {
     static float nameRoom(float contentWidthDp) { return (contentWidthDp - 8) / 2 - 2 * PAD_DP; }
 
     /**
-     * Which name the tile draws (the narrow-label ladder; owner: short forms before anything wraps): 0, the full name,
-     * while it fits room (measured, same units), and before the first layout (no room yet, room <= 0) until the layout
-     * measures it; 1, the short rung, otherwise.
-     */
-    static int nameRung(float fullWidth, float room) {
-        return room <= 0 || fullWidth <= room ? 0 : 1;
-    }
-
-    /**
      * The narrow-label ladder for every look of the tile (owner: short forms before anything wraps; never a word broken
      * or the text shrunk). Rungs run longest first: lines[i] is rung i's one-line width, longestWords[i] the width of
      * its widest unbreakable part (RideRecordTile.words), both measured in room's units. Before the first layout (room

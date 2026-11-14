@@ -63,8 +63,8 @@ public final class HubPageTilesTest {
         require(phone == 128 && wide == 310.5f, "Room beside the 8 dp gap, less 12 dp each side");
         // 1.0x: every full name on one line.
         for (float w : new float[]{exit, record, riding}) {
-            require(RideRecordTile.nameRung(w, phone) == 0, "344 dp 1.0x: full name " + w);
-            require(RideRecordTile.nameRung(w, wide) == 0, "725 dp 1.0x: full name " + w);
+            require(fullName(w, phone) == 0, "344 dp 1.0x: full name " + w);
+            require(fullName(w, wide) == 0, "725 dp 1.0x: full name " + w);
         }
         // 1.4x: on the phone "Simulating · Exit" is too wide for one line; it wraps before the dot (RideRecordTile.dotsLead),
         // and "Simulating" alone fits the first line. Riding mode and Record ride still fit; nothing changes at 725 dp.
@@ -72,27 +72,36 @@ public final class HubPageTilesTest {
         require(RideRecordTile.dotsLead("Simulating \u00B7 Exit").equals("Simulating \u00B7\u00A0Exit"), "The dot leads the second line");
         require(RideRecordTile.dotsLead("Saving phone sensors\u2026").equals("Saving phone sensors\u2026") && RideRecordTile.dotsLead(null) == null,
                 "Names without the dot are unchanged");
-        require(RideRecordTile.nameRung(riding * 1.4f, phone) == 0 && RideRecordTile.nameRung(record * 1.4f, phone) == 0,
+        require(fullName(riding * 1.4f, phone) == 0 && fullName(record * 1.4f, phone) == 0,
                 "344 dp 1.4x: Riding mode and Record ride fit");
-        for (float w : new float[]{exit, record, riding}) require(RideRecordTile.nameRung(w * 1.4f, wide) == 0, "725 dp 1.4x: full name " + w);
-        require(RideRecordTile.nameRung(500, 0) == 0 && RideRecordTile.nameRung(500, -1) == 0, "Before layout: the full name");
+        for (float w : new float[]{exit, record, riding}) require(fullName(w * 1.4f, wide) == 0, "725 dp 1.4x: full name " + w);
+        require(fullName(500, 0) == 0 && fullName(500, -1) == 0, "Before layout: the full name");
         tileLadder(phone, wide);
     }
 
     /**
      * Every look of the Record ride tile through the ladder (RideRecordTile.rung) at 344x882 dp (128 dp of room) and
      * 725x604 dp (310.5 dp; at 1.4x the phone layout's tile is as wide), 1.0x and 1.4x, and 2.0x for the largest text:
-     * French "Enregistrement" ≈ 110 dp at 15 sp bold, "Enreg." ≈ 48 dp, "REC" ≈ 30 dp; "Simulating · Exit" ≈ 123 dp
+     * French "Enregistrement" ≈ 110 dp at 15 sp bold, then the riding screen's abbreviation "REC" ≈ 30 dp (its reading
+     * name "Enreg." is not a rung: in Italian it is "Tempo REC"); "Simulating · Exit" ≈ 123 dp
      * (widest part "Simulating" ≈ 74 dp), "Simulation · Quitter" ≈ 140 dp (widest part "Simulation" ≈ 78 dp).
      */
+    /**
+     * The ladder's pick for a two-rung name (full, then short at half its width) on the one-line test: 0 while the full
+     * name fits room (and before the first layout, room <= 0), else 1.
+     */
+    private static int fullName(float fullWidth, float room) {
+        return RideRecordTile.rung(new float[]{fullWidth, fullWidth / 2}, new float[]{fullWidth, fullWidth / 2}, room, false);
+    }
+
     private static void tileLadder(float phone, float wide) {
-        float[] recLines = {110, 48, 30}, recWords = {110, 48, 30};
+        float[] recLines = {110, 30}, recWords = {110, 30};
         for (float scale : new float[]{1f, 1.4f, 2f}) {
             float[] lines = times(recLines, scale), words = times(recWords, scale);
             int onPhone = RideRecordTile.rung(lines, words, phone, false), onWide = RideRecordTile.rung(lines, words, wide, false);
             require(onPhone >= 0 && lines[onPhone] <= phone, "344 dp " + scale + "x: a recording name on one line, never split");
             require(onWide >= 0 && lines[onWide] <= wide, "725 dp " + scale + "x: a recording name on one line");
-            require(onPhone == (110 * scale <= phone ? 0 : 1), "344 dp " + scale + "x: Enregistrement while it fits, else Enreg.");
+            require(onPhone == (110 * scale <= phone ? 0 : 1), "344 dp " + scale + "x: Enregistrement while it fits, else REC");
             require(onWide == 0, "725 dp " + scale + "x: the whole name");
         }
         // Simulating · Exit wraps between words before a shorter rung; whichever is drawn, no word is wider than the tile.

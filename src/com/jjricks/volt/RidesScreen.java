@@ -355,15 +355,17 @@ public final class RidesScreen implements AppScreen {
     }
     /**
      * The Record ride tile's rungs for a look, longest first: "Record ride", then "Record"; "Recording", then the riding
-     * screen's shorter names for it ("Enreg.", "REC" in French); "Simulating · Exit" (wrapping before the dot where it
+     * screen's abbreviation for it ("Rec.", "REC" in French); "Simulating · Exit" (wrapping before the dot where it
      * must), then "Simulating"; the sensors-saving line alone.
      */
     private static String[] recordRungs(RideRecordTile.Look look, String startLabel) {
         switch (look) {
             case START: return new String[]{HubText.quickActionLabel(HomeQuickActions.RECORD).render(), HubText.quickActionShortLabel(HomeQuickActions.RECORD).render()};
             case RECORDING: {
+                // Only the riding screen's abbreviation ("Rec.", "REC"): its reading name ("Tempo REC", "Aufnahme") is
+                // the recording time's name, not a status.
                 String[] shorter = RidingScreen.recordingRungs();
-                return new String[]{HubText.qaRecording().render(), shorter[0], shorter[1]};
+                return new String[]{HubText.qaRecording().render(), shorter[1]};
             }
             case SIMULATING: return new String[]{RideRecordTile.dotsLead(startLabel), MoreScreen.simulatingLabel()};
             default: return new String[]{RideRecordTile.dotsLead(startLabel)};
