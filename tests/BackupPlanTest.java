@@ -336,6 +336,55 @@ public final class BackupPlanTest {
         unchosen.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS);
         unchosen.restore(cleanSource.export(BackupTestStore.all()), BackupTestStore.all(), true, null);
         check(HomeStyle.CLEAN.equals(unchosen.preferences().get("app_settings").get(HomeStyle.KEY)), "a backup that has a style still applies it as backed up");
+        // Part 9's second review, finding 1: a pre-Hub backup with Record rides automatically on (and no background switch)
+        // marks the background-recording notice due on this installation, by App preferences or Replace everything, after
+        // setup was skipped (Clean unchosen, origin install) or finished (a chosen style), as at the welcome screen.
+        BackupTestStore autoSource = BackupTestStore.rich(new File(root, "notice-source"));
+        autoSource.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true);
+        byte[] autoOn = autoSource.export(BackupTestStore.all());
+        BackupTestStore offSource = BackupTestStore.rich(new File(root, "notice-source-off"));
+        offSource.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, false);
+        byte[] autoOff = offSource.export(BackupTestStore.all());
+        String[] phones = {"skipped", "finished", "welcome"};
+        for (String state : phones)
+            for (boolean replace : new boolean[]{true, false})
+                for (boolean on : new boolean[]{true, false}) {
+                    BackupTestStore phone = "welcome".equals(state) ? new BackupTestStore(new File(root, "notice-" + state + "-" + replace + "-" + on))
+                            : BackupArchiveTest.phone(new File(root, "notice-" + state + "-" + replace + "-" + on));
+                    if (!"welcome".equals(state)) {
+                        phone.put("app_settings", HomeStyle.KEY, HomeStyle.CLEAN);
+                        phone.put("app_settings", HomeStyle.ORIGIN_KEY, HomeStyle.ORIGIN_INSTALL);
+                        if ("finished".equals(state)) phone.put("app_settings", HomeStyle.CHOSEN_KEY, true);
+                    }
+                    phone.put("app_settings", HomeStyle.WHATS_NEW_SHOWN_KEY, true);
+                    phone.restore(on ? autoOn : autoOff, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+                    Map<String, Object> app = phone.preferences().get("app_settings");
+                    String how = state + ", " + (replace ? "Replace everything" : "App preferences") + ", Record rides automatically " + (on ? "on" : "off");
+                    check(on == Boolean.TRUE.equals(app.get(HomeStyle.RESTORED_NOTICE_KEY)), how + ": the notice is due exactly when it is on: " + app);
+                    check(Boolean.TRUE.equals(app.get(HomeStyle.WHATS_NEW_SHOWN_KEY)), how + ": this phone's What's new answer stays (a device key)");
+                    check("welcome".equals(state) ? !app.containsKey(HomeStyle.ORIGIN_KEY) : HomeStyle.ORIGIN_INSTALL.equals(app.get(HomeStyle.ORIGIN_KEY)),
+                            how + ": the origin is left as it was");
+                    check(Boolean.valueOf(on).equals(app.get(AutoStartPolicy.AUTO_RECORD_KEY)) && !app.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
+                            how + ": Record rides automatically comes back as backed up, background starts off");
+                }
+        BackupTestStore marked = BackupArchiveTest.phone(new File(root, "notice-kept"));
+        marked.put("app_settings", HomeStyle.RESTORED_NOTICE_KEY, true);
+        marked.restore(autoOff, BackupTestStore.all(), true, null);
+        check(Boolean.TRUE.equals(marked.preferences().get("app_settings").get(HomeStyle.RESTORED_NOTICE_KEY)),
+                "a later restore leaves an untold notice due (the sheet settles it if Record rides automatically is off)");
+        BackupTestStore dashboardsOnly = BackupArchiveTest.phone(new File(root, "notice-dashboards"));
+        dashboardsOnly.restore(autoOn, set(BackupRegistry.DASHBOARDS), false, C);
+        check(!dashboardsOnly.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "Dashboards alone bring no preferences and no notice");
+        BackupTestStore withSwitch = BackupTestStore.rich(new File(root, "notice-source-switch"));
+        withSwitch.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true); withSwitch.put("app_settings", AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
+        BackupTestStore from1132 = BackupArchiveTest.phone(new File(root, "notice-1132"));
+        from1132.restore(withSwitch.export(BackupTestStore.all()), set(BackupRegistry.PREFERENCES), false, null);
+        check(!from1132.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "a backup that holds the background switch (1.13.2) marks nothing");
+        BackupTestStore hubSource = BackupTestStore.rich(new File(root, "notice-source-hub"));
+        hubSource.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true); hubSource.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS);
+        BackupTestStore fromHub = BackupArchiveTest.phone(new File(root, "notice-hub"));
+        fromHub.restore(hubSource.export(BackupTestStore.all()), BackupTestStore.all(), true, null);
+        check(!fromHub.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "a Hub backup marks nothing");
         // Note 3: a pre-Hub backup has no moment switches; restoring it keeps this phone's instead of dropping them.
         for (boolean replace : new boolean[]{true, false}) {
             BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-moments-" + replace));

@@ -1,0 +1,13 @@
+# Riding mode's usual room (the owner, Nov 14): four readings size their chips from their usual values and widen once
+# past them. tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from
+# the repository root.
+src/com/jjricks/volt/RidingChipFit.java
+src/com/jjricks/volt/RidingChipRows.java
+src/com/jjricks/volt/RidingLayout.java
+src/com/jjricks/volt/DisplayTemperature.java
+src/com/jjricks/volt/GpsAccuracy.java
+src/com/jjricks/volt/GpsAccuracyText.java
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/Formatted.java
+src/com/jjricks/volt/UnitCode.java
+tests/l10n/RidingChipWidenTest.java
