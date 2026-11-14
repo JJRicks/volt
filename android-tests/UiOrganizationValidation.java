@@ -70,7 +70,11 @@ public final class UiOrganizationValidation extends Instrumentation {
             requireFreshEmulator(); admitted = true;
             SharedPreferences settings = settings();
             require(settings.edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                    .putString("theme", "dark").putString("more_section", "App").commit(), "Cannot set emulator UI preferences");
+                    .putString("theme", "dark").putString("more_section", "App")
+                    // This fixture reads as an updated install (settings saved, setup done), for which part 9's What's new
+                    // sheet is due; since part 9's final round it stays until answered (HomeStyle.whatsNewAnswered), so it
+                    // would cover Home's dock for every tap below. These runners check navigation: it counts as answered.
+                    .putBoolean("home_whats_new_shown", true).commit(), "Cannot set emulator UI preferences");
             // These runners check the navigation, so skip the first-run onboarding a fresh install shows. A saved More
             // submenu ("App") stays in the fixture: Settings must open on its index whatever the old tab saved.
             OnboardingScreen.markDone(getTargetContext());
