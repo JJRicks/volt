@@ -223,8 +223,8 @@ final class RidingScreen implements AppScreen {
         disc = new RidingDiscMotion(picker);
         LinearLayout.LayoutParams topSize = new LinearLayout.LayoutParams(-1, -2);
         topSize.bottomMargin = ui.dp(side ? 10 : 14);
-        alertBanner = new RidingAlertBanner(context, ui, service, labelSp(15), ui.dp(TOUCH_DP + 12));
-        frame.addView(alertBanner.over(top), topSize);
+        alertBanner = new RidingAlertBanner(context, ui, service, labelSp(15));
+        frame.addView(alertBanner.over(top, back, warning), topSize);
 
         // The cells.
         // The unit sits under the speed, except in a short side-by-side window, where it goes beside so the number keeps its height.

@@ -2853,7 +2853,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Riding mode open (or about to be restored): the pending alert waits for riding mode's screen, then shows as its banner. */
     private void showChargeAlertInRiding(){
         if(riding==null||rebuilding||!(screen instanceof RidingScreen))return;
-        if(!scooterService.showChargeAlertInRiding(SystemClock.elapsedRealtime()))return;
+        if(!scooterService.showChargeAlertInRiding())return;
         scooterService.chargeAlertShown();
         screen.refresh();
     }

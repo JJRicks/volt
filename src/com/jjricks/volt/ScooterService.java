@@ -109,7 +109,7 @@ public final class ScooterService extends Service {
      */
     private AlertShown alertShown,pendingChargeAlert;
     /** The alert riding mode's banner shows (RidingAlert): when it took it, whether the alarm sounded then, and its number. */
-    private AlertShown ridingAlert;private long ridingAlertSinceMs,ridingAlertId;private boolean ridingAlertSounded;
+    private AlertShown ridingAlert;private RidingAlert.Seen ridingAlertSeen;private long ridingAlertId;private boolean ridingAlertSounded;
     /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
     private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
@@ -1242,16 +1242,19 @@ public final class ScooterService extends Service {
      * Riding mode takes the pending alert as its banner (RidingAlert) instead of a dialog; the caller then marks it
      * shown with chargeAlertShown, as the dialog does. A newer alert replaces the one showing. False with none pending.
      */
-    public boolean showChargeAlertInRiding(long nowMs){
+    public boolean showChargeAlertInRiding(){
         AlertShown alert=pendingChargeAlert;if(alert==null)return false;
-        ridingAlert=alert;ridingAlertSinceMs=nowMs;ridingAlertSounded=alarmPlaying();ridingAlertId++;
+        ridingAlert=alert;ridingAlertSeen=new RidingAlert.Seen();ridingAlertSounded=alarmPlaying();ridingAlertId++;
         return true;
     }
-    /** Riding mode's banner while it shows, else null; one whose time has passed is dropped, so it never shows again. */
-    public RidingAlert ridingAlert(long nowMs){
+    /**
+     * Riding mode's banner while it shows, else null; one whose time has passed is dropped, so it never shows again.
+     * inView: riding mode is in front with nothing over it; only that time counts toward a silent banner's ten seconds.
+     */
+    public RidingAlert ridingAlert(long nowMs,boolean inView){
         AlertShown alert=ridingAlert;if(alert==null)return null;
-        RidingAlert shown=new RidingAlert(alert.event,alert.level,ridingAlertId,ridingAlertSinceMs,ridingAlertSounded,alert.text());
-        if(shown.shown(nowMs,alarmPlaying()))return shown;
+        RidingAlert shown=new RidingAlert(alert.event,alert.level,ridingAlertId,ridingAlertSeen.tick(nowMs,inView),ridingAlertSounded,alert.text());
+        if(shown.shown(alarmPlaying()))return shown;
         ridingAlert=null;return null;
     }
     /** The banner's Stop sound or close: it goes and the alarm ends. A close meant for an older banner leaves a newer one. */
