@@ -463,6 +463,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
+        for (ChargeDoneRow row : doneSheetRows) row.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
         if (chargeAlertSheet != null) chargeAlertSheet.refresh();
@@ -1086,7 +1087,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout line=row();line.setGravity(Gravity.CENTER_VERTICAL);line.setMinimumHeight(design.dp(40));
         TextView name=design.text(label,14,false);name.setTextColor(design.muted);line.addView(name,new LinearLayout.LayoutParams(0,-2,1));
         TextView shown=design.text(value,14,true);shown.setGravity(Gravity.END);line.addView(shown,new LinearLayout.LayoutParams(-2,-2));
-        line.setFocusable(true);line.setContentDescription(T.mainLabelValue(label,value));
+        line.setFocusable(true);line.setContentDescription(labelValue(label,value));
         parent.addView(line,new LinearLayout.LayoutParams(-1,-2));return shown;
     }
     private LinearLayout.LayoutParams connectionIcon(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(16),design.dp(16));p.setMarginEnd(design.dp(8));return p;}
@@ -1869,7 +1870,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final ControlsPages.Spec spec;
         private final LinearLayout view=column();
         private final ArrayList<ControlRow> rows=new ArrayList<>();
-        private final ArrayList<ChargeDoneRow> chargeRows=new ArrayList<>();
+        /** Battery & charging's one Charge done by row (ControlsPages.CHARGE_DONE): the time or Off; it opens the sheet with both rows. */
+        private ChargeDoneRow doneBy;
+        /** Battery & charging's HISTORY card (ControlsPages.CHARGE_HISTORY); null on other pages. */
+        private final ChargeHistoryCard history;
+        /** What the HISTORY card last loaded for (scooter and whether a charge was recording), and whether a load is out. */
+        private String historyKey;private boolean historyLoading;
         private final LinkedHashMap<String,LinearLayout> sections=new LinkedHashMap<>(), bodies=new LinkedHashMap<>();
         private final LinkedHashMap<String,TextView> labels=new LinkedHashMap<>();
         private final LinkedHashMap<View,String[]> extras=new LinkedHashMap<>();
@@ -1889,8 +1895,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final java.util.HashMap<View,View> gluedBelow=new java.util.HashMap<>(),gluedTo=new java.util.HashMap<>();
         /** The page's own card, its rows in the spec's order; null on the index. */
         private final LinearLayout pageBody;
-        /** The card of the page's trailing sub-page links under pageBody (ControlsPages.linksCardFrom); null when they share it. */
+        /** The page's last card of rows when it has more than one (ControlsPages.cards: the trailing links); null when they share it. */
         private final LinearLayout linksBody;
+        /** Every card of rows the page places, pageBody first (the HISTORY card is not one). */
+        private final ArrayList<LinearLayout> cardBodies=new ArrayList<>();
         /** Rows that open another page (card -> page id), and the "Experimental" entries of controls Lab tries on this model. */
         private final LinkedHashMap<View,String> links=new LinkedHashMap<>();
         private final LinkedHashMap<String,View> labEntries=new LinkedHashMap<>();
@@ -1949,11 +1957,12 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // where another model maps them normally; maximum_speed's row replaces the top speed card the same way.
                 if(f.key.equals("lock")||f.key.equals("pin")||f.key.equals("proximity_key"))continue;
                 ControlRow control=new ControlRow(f);rows.add(control);addRow(groupOf(f),control.card);rowId(f.key,control.card);
-                if(f.key.equals("timed_charging")||f.key.equals("charge_start")){
-                    ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));chargeRows.add(done);
-                    addRow("Battery",done.row.card);gluedBelow.put(control.card,done.row.card);gluedTo.put(done.row.card,control.card);
-                    extras.put(done.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
-                    shownExtras.put(done.row.card,new String[]{T.mainSearchDoneBy(),T.mainScheduleDoneBy()});
+                // One Charge done by row follows the charging schedule's rows (the Layout Plan); its sheet holds the switch and the time.
+                if(f.key.equals("charge_start")){
+                    doneBy=new ChargeDoneRow(false,true);
+                    addRow("Battery",doneBy.row.card);rowId(ControlsPages.CHARGE_DONE,doneBy.row.card);
+                    extras.put(doneBy.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
+                    shownExtras.put(doneBy.row.card,new String[]{T.mainSearchDoneBy(),doneByTitle()});
                 }
             }
             // Lights page: a read-only first row says the front headlight is switched on the scooter itself.
@@ -2012,26 +2021,39 @@ public final class MainActivity extends Activity implements ScreenHost {
                 addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
                 shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
             }
-            pageBody=spec.search?null:design.groupCard();
-            // The Layout Plan: the rows in one card, then the sub-page links in a card of their own under it.
-            int linksFrom=ControlsPages.linksCardFrom(spec);
-            linksBody=pageBody!=null&&linksFrom<spec.rows.size()?design.groupCard():null;
-            if(pageBody!=null){
-                for(int i=0;i<spec.rows.size();i++){
-                    String id=spec.rows.get(i);LinearLayout body=i>=linksFrom&&linksBody!=null?linksBody:pageBody;
+            // The Layout Plan's cards (ControlsPages.cards): the rows, then the sub-page links in a card of their own under
+            // them; Battery & charging's HISTORY card stands alone between its CHARGING rows and the rest.
+            java.util.List<java.util.List<String>> cardRows=spec.search?java.util.Collections.<java.util.List<String>>emptyList():ControlsPages.cards(spec);
+            ChargeHistoryCard historyCard=null;
+            for(java.util.List<String> ids:cardRows){
+                if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
+                    view.addView(design.sectionLabel(RidesScreen.historyLabel()));
+                    historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
+                    // Tagged as the link it stands in for, so the walk that opens sub-pages by their link finds it.
+                    historyCard.card.setTag("hub-link-"+HubPages.BATTERY_HISTORY);
+                    view.addView(historyCard.card);continue;
+                }
+                LinearLayout body=design.groupCard();cardBodies.add(body);
+                for(String id:ids){
                     String target=ControlsPages.linkTarget(id);
                     if(target!=null){place(body,linkRow(target));continue;}
+                    if(ControlsPages.USABLE_ENERGY.equals(id)){place(body,usableEnergyRow());continue;}
                     View card=rowViews.get(id);if(card==null)continue;
                     place(body,card);View done=gluedBelow.get(card);if(done!=null)place(body,done);
                     // Any control may be a Lab try on some model (ModelRegistry.experimental): each gets an entry, shown by labOffered.
                     for(ControlRow control:rows)if(control.card==card){View entry=labEntry(control.feature);labEntries.put(id,entry);place(body,entry);}
                 }
-                view.addView(pageBody,new LinearLayout.LayoutParams(-1,-2));
-                if(linksBody!=null){LinearLayout.LayoutParams under=new LinearLayout.LayoutParams(-1,-2);under.topMargin=design.dp(10);view.addView(linksBody,under);}
-                // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
-                if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:new LinearLayout[]{pageBody,linksBody})if(body!=null)
-                    for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.bare();}
+                LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);
+                // Cards in a run sit 10 dp apart; after the HISTORY card its own bottom margin keeps the gap.
+                if(!cardBodies.isEmpty()&&cardBodies.size()>1&&view.getChildAt(view.getChildCount()-1)==cardBodies.get(cardBodies.size()-2))params.topMargin=design.dp(10);
+                view.addView(body,params);
             }
+            history=historyCard;
+            pageBody=cardBodies.isEmpty()?null:cardBodies.get(0);
+            linksBody=cardBodies.size()>1?cardBodies.get(cardBodies.size()-1):null;
+            // No icon tiles where the plan draws none (Battery & charging): the names start at the card's padding.
+            if(!ControlsPages.iconTiles(spec.page))for(LinearLayout body:cardBodies)
+                for(int i=0;i<body.getChildCount();i++){SettingLine line=settingLines.get(body.getChildAt(i));if(line!=null)line.bare();}
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
         }
@@ -2043,6 +2065,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /** A row that opens one of this page's sub-pages. */
         private View linkRow(String target){View card=linkCard(target);links.put(card,target);return card;}
+        /**
+         * Battery & charging's Usable ride energy row (ControlsPages.USABLE_ENERGY), with the Experimental tag after its
+         * name as the Layout Plan draws it; it opens Estimates & charger, where the panel is.
+         */
+        private View usableEnergyRow(){
+            String name=DashboardScreen.usableEnergyTitle();
+            SettingLine row=new SettingLine("battery",name,null);row.tag(HubText.experimentalBadge().toString());
+            row.chevron(()->open(HubPages.BATTERY_ESTIMATES));
+            row.line.setContentDescription(HubText.experimentalRowDescription(name));row.line.setTag("battery-usable-energy-row");
+            rowId(ControlsPages.USABLE_ENERGY,row.card);return row.card;
+        }
         private View linkCard(String target){
             SettingLine link=new SettingLine(linkIcon(target),HubText.rowTitle(target),null);link.chevron(()->open(target));
             link.line.setTag("hub-link-"+target);return link.card;
@@ -2092,6 +2125,27 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(ControlRow row:rows)if(row.card==card)return rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab);
             return true;
         }
+        /**
+         * The HISTORY card's charges: loaded off the main thread from the saved charge recordings when the page opens,
+         * and again when the scooter changes or a recording ends, so a finished charge shows up.
+         */
+        private void refreshHistory(){
+            if(history==null||historyLoading)return;
+            String profile=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
+            String key=profile+"|"+(scooterService!=null&&scooterService.isChargeRecording());
+            if(key.equals(historyKey))return;
+            historyKey=key;
+            if(scooterService==null||profile.isEmpty()){showHistory(null);return;}
+            historyLoading=true;
+            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;showHistory(sessions);}))
+                {historyLoading=false;showHistory(null);}
+        }
+        private void showHistory(java.util.List<ChargeSessionStore.HistorySession> sessions){
+            ArrayList<ChargeHistoryBars.Charge> charges=new ArrayList<>();
+            if(sessions!=null)for(ChargeSessionStore.HistorySession session:sessions)charges.add(ChargeHistoryBars.of(session));
+            String line=ChargeHistoryDialog.lastChargeLine(ChargeHistoryBars.last(charges));
+            history.show(charges,line,labelValue(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(),line));
+        }
         private void refreshMaintenance(){
             MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
             String value=MaintenanceScreen.rowValue(summary);
@@ -2133,6 +2187,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // A page's card shows only while a row in it does: no empty strip on a model without any of its rows (#387 review).
             if(pageBody!=null)pageBody.setVisibility(hideDividers(pageBody)?View.VISIBLE:View.GONE);
             if(linksBody!=null)linksBody.setVisibility(hideDividers(linksBody)?View.VISIBLE:View.GONE);
+            for(LinearLayout body:cardBodies)if(body!=pageBody&&body!=linksBody)body.setVisibility(hideDividers(body)?View.VISIBLE:View.GONE);
             results.setVisibility(searching?View.VISIBLE:View.GONE);results.setText(count==0?T.mainSearchNone():T.mainSearchResults(count,count));
             if(indexList!=null)indexList.setVisibility(searching?View.GONE:View.VISIBLE);
         }
@@ -2165,7 +2220,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void refresh(){
             refreshMaintenance();
             for(ControlRow row:rows)row.refresh();
-            for(ChargeDoneRow row:chargeRows)row.refresh();
+            if(doneBy!=null)doneBy.refresh();refreshHistory();
             scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();chargeLive.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
@@ -2422,6 +2477,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         design.pressFeedback(pill);
         return pill;
     }
+    /** "Label, value" as a row is spoken. */
+    private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
     /** Each SettingLine by its card, so a page can restyle the rows it places (ControlsScreen: icon tiles). */
     private final java.util.WeakHashMap<View,SettingLine> settingLines=new java.util.WeakHashMap<>();
     /** One divided row inside a group card: boxed icon, label with optional sub-text, then a value, switch or action. */
@@ -2541,13 +2598,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         void refresh(){
             boolean on=scooterService==null||scooterService.chargeLiveEnabled();
             String value=on?T.commonOn():T.commonOff();
-            String sub=on&&scooterService!=null&&!scooterService.chargeLiveAllowed()?T.mainAlertNotificationsOff():null;
+            // The warning first; else the Layout Plan's "On the lock screen" while the card shows there (PageRows.liveSub).
+            PageRows.LiveSub kind=PageRows.liveSub(on,scooterService==null||scooterService.chargeLiveAllowed(),
+                    scooterService!=null&&scooterService.chargeLiveDetail()==ChargeLiveState.Detail.HIDDEN);
+            String sub=kind==PageRows.LiveSub.NOTIFICATIONS_OFF?T.mainAlertNotificationsOff():kind==PageRows.LiveSub.LOCK_SCREEN?lockScreenTitle():null;
             if(!value.contentEquals(row.value.getText()))row.value.setText(value);
-            row.setSub(sub);row.sub.setTextColor(design.danger);
+            row.setSub(sub);row.sub.setTextColor(kind==PageRows.LiveSub.NOTIFICATIONS_OFF?design.danger:design.muted);
             row.line.setContentDescription(sub==null?T.mainLabelValue(T.chargeLiveRow(),value):T.mainLabelValueDetail(T.chargeLiveRow(),value,sub));
         }
     }
     private ChargeLiveSheet chargeLiveSheet;
+    /** "On the lock screen": the Live charging sheet's section and the row's sub-line while the card shows there. */
+    private String lockScreenTitle(){return T.chargeLiveLockTitle();}
     private void showChargeLive(){
         if(scooterService==null)return;
         if(controlDialog!=null)controlDialog.dismiss();
@@ -2572,7 +2634,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-2,-2);tp.leftMargin=design.dp(10);line.line.addView(toggle,tp);
             line.line.setClickable(true);line.line.setFocusable(true);line.line.setBackground(rowRipple());line.line.setOnClickListener(v->toggle.performClick());
             card.addView(line.card);
-            body.addView(design.sectionLabel(T.chargeLiveLockTitle()));
+            body.addView(design.sectionLabel(lockScreenTitle()));
             lock=new SegmentedSelector(design,T.chargeLiveLockTitle(),new String[]{T.chargeLiveLockDetails(),T.chargeLiveLockLevel(),T.chargeLiveLockHidden()},choice->{
                 if(scooterService==null){dialog().dismiss();return;}
                 scooterService.setChargeLiveDetail(ChargeLiveState.Detail.values()[choice]);
@@ -2910,18 +2972,46 @@ public final class MainActivity extends Activity implements ScreenHost {
                 scheduleResult(result);
             });redraw();
         },charge.doneByMinuteOfDay/60,charge.doneByMinuteOfDay%60,DisplayTime.is24Hour(this,preferences));
-        picker.setTitle(T.mainScheduleDoneBy());controlDialog=picker;picker.show();
+        picker.setTitle(doneByTitle());controlDialog=picker;picker.show();
         styleDialogButton(picker.getButton(AlertDialog.BUTTON_POSITIVE),design.accent);
         styleDialogButton(picker.getButton(AlertDialog.BUTTON_NEGATIVE),design.muted);
     }
-    /** Local charge planning uses the same row and picker language as scooter-owned settings. */
+    /** The rows of the open Charge done by sheet (the switch, then the time); empty while it is closed. */
+    private final ArrayList<ChargeDoneRow> doneSheetRows=new ArrayList<>();
+    /** Battery & charging's Charge done by sheet: the on/off switch and the finish time, the rows the page used to show. */
+    private void showChargeDoneSheet(){
+        // No scooter: the time row's own answer (select a scooter first).
+        if(scooterService==null){showChargeDoneTime();return;}
+        if(controlDialog!=null)controlDialog.dismiss();
+        final AlertDialog[] self=new AlertDialog[1];
+        LinearLayout body=sheetContent(doneByTitle(),null,()->{if(self[0]!=null)self[0].dismiss();});
+        body.setTag("charge-done-sheet");
+        LinearLayout card=design.groupCard();body.addView(card,new LinearLayout.LayoutParams(-1,-2));
+        doneSheetRows.clear();
+        for(boolean time:new boolean[]{false,true}){
+            if(time)design.divider(card);
+            ChargeDoneRow row=new ChargeDoneRow(time);doneSheetRows.add(row);card.addView(row.row.card);row.refresh();
+        }
+        AlertDialog dialog=showSheet(body);self[0]=dialog;controlDialog=dialog;
+        dialog.setOnDismissListener(d->{if(self[0]==dialog)doneSheetRows.clear();if(controlDialog==dialog)controlDialog=null;redraw();});
+    }
+    /** "Charge done by": the rows' name, the time picker's and the sheet's title. */
+    private String doneByTitle(){return T.mainScheduleDoneBy();}
+    /**
+     * Local charge planning uses the same row and picker language as scooter-owned settings. A row is the on/off switch,
+     * the finish time, or (summary) Battery & charging's one Charge done by row (the Layout Plan: "Charge done by
+     * 7:30 am ›"): the finish time while it is on, Off, or the measuring minutes (PageRows.doneBy); a tap opens the
+     * sheet that holds the other two. Same preferences and schedule.
+     */
     private final class ChargeDoneRow {
-        final SettingLine row;final Switch toggle;final boolean time;final View spinner;
-        ChargeDoneRow(boolean time){
-            this.time=time;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
-            row.line.setTag(time?"charge-done-time":"charge-done-toggle");
+        final SettingLine row;final Switch toggle;final boolean time,summary;final View spinner;
+        ChargeDoneRow(boolean time){this(time,false);}
+        ChargeDoneRow(boolean time,boolean summary){
+            this.time=time;this.summary=summary;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
+            row.line.setTag(summary?"charge-done-row":time?"charge-done-time":"charge-done-toggle");
             spinner=new Spinner();spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());
-            if(time){toggle=null;row.chevron(MainActivity.this::showChargeDoneTime);}
+            if(summary){toggle=null;row.chevron(MainActivity.this::showChargeDoneSheet);}
+            else if(time){toggle=null;row.chevron(MainActivity.this::showChargeDoneTime);}
             else{
                 row.value.setVisibility(View.GONE);
                 toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));
@@ -2934,18 +3024,20 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         void refresh(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
-            String blocked=charge==null?(time?T.mainScheduleSelectScooter():T.commonConnectChargerFirst()):time?charge.timeBlockedReason:doneByActionBlocked(charge);
+            // The summary row is held back only without a scooter (as the time row is); its sheet says why for each row.
+            String blocked=charge==null?(time||summary?T.mainScheduleSelectScooter():T.commonConnectChargerFirst()):summary?null:time?charge.timeBlockedReason:doneByActionBlocked(charge);
             boolean measuring=!time&&scooterService!=null&&scooterService.isChargeMeasuring();if(measuring)blocked=null;
             blocked=ChargeScheduleText.shown(blocked);
             boolean on=charge!=null&&charge.doneByEnabled;int minute=charge==null?8*60:charge.doneByMinuteOfDay;
             Calendar at=Calendar.getInstance();at.set(Calendar.HOUR_OF_DAY,minute/60);at.set(Calendar.MINUTE,minute%60);
-            String value=time?DisplayTime.clock(MainActivity.this,preferences,at.getTimeInMillis())
-                    :measuring?T.mainScheduleMeasuringValue(Fmt.integer(scooterService.chargeMeasureMinutesLeft())):on?T.commonOn():T.commonOff();
-            if(!time)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
+            String clock=DisplayTime.clock(MainActivity.this,preferences,at.getTimeInMillis());
+            String state=measuring?T.mainScheduleMeasuringValue(Fmt.integer(scooterService.chargeMeasureMinutesLeft())):on?T.commonOn():T.commonOff();
+            String value=summary?(PageRows.doneBy(on,measuring)==PageRows.DoneBy.TIME?clock:state):time?clock:state;
+            if(!time&&!summary)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
             row.name.setTextColor(blocked==null?design.text:design.muted);row.value.setText(value);
             row.line.setAlpha(blocked==null?1f:.5f);row.line.setEnabled(true);
             row.line.setContentDescription(blocked==null?T.mainLabelValue(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value):T.mainLabelValueDetail(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value,blocked));
-            boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending?View.VISIBLE:View.GONE);
+            boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending&&!summary?View.VISIBLE:View.GONE);
             if(toggle!=null){toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
         }
     }

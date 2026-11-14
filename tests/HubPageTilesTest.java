@@ -13,6 +13,8 @@ public final class HubPageTilesTest {
         tileNames();
         summaryFit();
         trackTick();
+        historyBars();
+        pageRows();
         System.out.println("HubPageTiles: " + checks + " checks passed");
     }
 
@@ -109,6 +111,72 @@ public final class HubPageTilesTest {
         require(card[0] == 86.5f && card[1] == 137.5f, "The summary card: 4.5 dp above and below the track");
         float[] none = ChargeTrackShape.tickSpan(100, 24, -5, -5);
         require(none[0] == 100 && none[1] == 124, "A negative reach is none");
+    }
+
+    /**
+     * Battery & charging's HISTORY card (ChargeHistoryBars) at the reference windows: 344x882 dp (279 dp inside the
+     * card), 725x604 dp at 1.0x (the page's pane, ≈ 330 dp inside) and at 1.4x (phone layout, 645 dp inside). The bars
+     * do not change with the text size; the summary line ("42% → 90% · 2 h 10 min" ≈ 150 dp at 14 sp) fits one line
+     * at 1.0x and 1.4x at every width.
+     */
+    private static void historyBars() {
+        require(ChargeHistoryBars.maxBars(279) == 7, "344 dp: seven bars, as the Layout Plan draws");
+        require(ChargeHistoryBars.maxBars(330) == 8, "725 dp pane: eight");
+        require(ChargeHistoryBars.maxBars(645) == ChargeHistoryBars.MAX_BARS, "725 dp phone layout (1.4x): at most twelve");
+        require(ChargeHistoryBars.maxBars(100) == ChargeHistoryBars.MIN_BARS && ChargeHistoryBars.maxBars(0) == ChargeHistoryBars.MIN_BARS
+                && ChargeHistoryBars.maxBars(Float.NaN) == ChargeHistoryBars.MIN_BARS, "Never fewer than four, nor before layout");
+        for (float room : new float[]{279, 330, 645}) {
+            int n = ChargeHistoryBars.maxBars(room);
+            float bar = ChargeHistoryBars.barWidth(room, n);
+            require(bar >= ChargeHistoryBars.MIN_BAR_DP, "Bars at least 28 dp at " + room);
+            require(Math.abs(bar * n + ChargeHistoryBars.GAP_DP * (n - 1) - room) < 0.01, "Bars and gaps fill the card at " + room);
+            for (float scale : new float[]{1f, 1.4f}) require(150 * scale <= room, "The last charge's line fits one line at " + room + " dp, " + scale + "x");
+        }
+        // Slots: the plan's seven while there are fewer charges, one per charge beyond that as room allows.
+        for (float room : new float[]{279, 330, 645}) {
+            require(ChargeHistoryBars.slots(room, 0) == 7 && ChargeHistoryBars.slots(room, 7) == 7, "Seven slots, few charges, at " + room);
+            require(ChargeHistoryBars.slots(room, 20) == ChargeHistoryBars.maxBars(room), "Many charges: as many as fit at " + room);
+        }
+        require(ChargeHistoryBars.slots(330, 8) == 8 && ChargeHistoryBars.slots(645, 9) == 9, "One per charge where they fit");
+        require(ChargeHistoryBars.slots(150, 3) == ChargeHistoryBars.maxBars(150) && ChargeHistoryBars.maxBars(150) < 7, "A narrow card draws what fits");
+        require(ChargeHistoryBars.barWidth(279, 0) == 0 && ChargeHistoryBars.barWidth(0, 7) == 0, "No bars, no room: no width");
+        // Fills: the newest charges right-aligned, oldest to newest; empty slots are the track (-1).
+        java.util.List<ChargeHistoryBars.Charge> newestFirst = java.util.Arrays.asList(
+                new ChargeHistoryBars.Charge(42, 90, 7_800_000L), new ChargeHistoryBars.Charge(80, 82, 600_000L),
+                new ChargeHistoryBars.Charge(Double.NaN, Double.NaN, 1000), new ChargeHistoryBars.Charge(10, 100, 1L));
+        double[] fills = ChargeHistoryBars.fills(newestFirst, 7);
+        require(fills.length == 7 && fills[0] == -1 && fills[1] == -1 && fills[2] == -1, "Three empty slots on the left");
+        require(fills[3] == 0.9 && fills[4] == ChargeHistoryBars.MIN_FILL && fills[5] == ChargeHistoryBars.MIN_FILL && fills[6] == 0.48,
+                "Oldest to newest: 90 points, then a 2-point top-up and an unmeasured charge at the least fill, the newest 48");
+        double[] two = ChargeHistoryBars.fills(newestFirst, 2);
+        require(two.length == 2 && two[0] == ChargeHistoryBars.MIN_FILL && two[1] == 0.48, "More charges than slots: the newest");
+        require(ChargeHistoryBars.fills(null, 4)[3] == -1 && ChargeHistoryBars.fills(newestFirst, 0).length == 0, "No charges or no slots");
+        require(new ChargeHistoryBars.Charge(90, 40, 5).gained() == 0 && new ChargeHistoryBars.Charge(1, 2, -5).ms == 0, "No negative gain or time");
+        // The summary line's charge: the newest with battery samples.
+        require(ChargeHistoryBars.last(newestFirst) == newestFirst.get(0), "The newest charge");
+        require(ChargeHistoryBars.last(java.util.Arrays.asList(new ChargeHistoryBars.Charge(Double.NaN, 5, 1), newestFirst.get(1))) == newestFirst.get(1),
+                "Skips one without samples");
+        require(ChargeHistoryBars.last(null) == null && ChargeHistoryBars.last(java.util.Collections.emptyList()) == null, "None: the empty words");
+    }
+
+    /** Charge done by's value, the Live charging row's sub-line and the Ride page's recent ride line (PageRows). */
+    private static void pageRows() {
+        require(PageRows.doneBy(true, false) == PageRows.DoneBy.TIME, "On: the finish time");
+        require(PageRows.doneBy(false, false) == PageRows.DoneBy.OFF, "Off: Off");
+        require(PageRows.doneBy(false, true) == PageRows.DoneBy.MEASURING && PageRows.doneBy(true, true) == PageRows.DoneBy.MEASURING,
+                "Measuring: its minutes, whatever the switch");
+        require(PageRows.liveSub(false, false, false) == PageRows.LiveSub.NONE && PageRows.liveSub(false, true, false) == PageRows.LiveSub.NONE,
+                "Off: no sub-line");
+        require(PageRows.liveSub(true, false, false) == PageRows.LiveSub.NOTIFICATIONS_OFF && PageRows.liveSub(true, false, true) == PageRows.LiveSub.NOTIFICATIONS_OFF,
+                "The warning comes first");
+        require(PageRows.liveSub(true, true, false) == PageRows.LiveSub.LOCK_SCREEN, "On and shown there: On the lock screen");
+        require(PageRows.liveSub(true, true, true) == PageRows.LiveSub.NONE, "Hidden on the lock screen: not said");
+        require(PageRows.rideLine("6.2 mi", "24m 00s", "\u221218%").equals("6.2 mi \u00B7 24m 00s \u00B7 \u221218%"), "Distance, duration, battery");
+        require(PageRows.rideLine("6.2 mi", "24m 00s", null).equals("6.2 mi \u00B7 24m 00s") && PageRows.rideLine(null, "5s", "").equals("5s")
+                && PageRows.rideLine(null, null, null).isEmpty(), "Missing parts are left out");
+        // At 344 dp (the recent rides' card ≈ 290 dp inside, less the 25 dp chevron) the 12 sp line "6.2 mi · 1h 02m · −18%"
+        // (≈ 125 dp) fits one line at 1.0x and 1.4x, and at 725 dp (≈ 640 dp) with room to spare.
+        for (float room : new float[]{290 - 25, 640 - 25}) for (float scale : new float[]{1f, 1.4f}) require(125 * scale <= room, "Ride line fits at " + room);
     }
 
     private static void require(boolean ok, String message) {

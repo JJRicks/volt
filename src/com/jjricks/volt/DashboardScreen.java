@@ -12,6 +12,8 @@ import java.util.*;
 
 /** A local, editable dashboard. Widget movement never shares gestures with scooter controls. */
 public final class DashboardScreen implements AppScreen {
+    /** The capacity tile's title, "Usable ride energy"; Battery & charging's row of that name uses it too. */
+    static String usableEnergyTitle() { return T.dashboardUsableEnergy(); }
     /**
      * What an idle recorder disc says: Home's, and riding mode's Record, which never connects, so its
      * disabled "Connect to scooter" is only the reason it can't start.
@@ -4808,7 +4810,7 @@ public final class DashboardScreen implements AppScreen {
                         : T.dashboardEnergyCaveat()));
                 if (capacityUnavailable != null) details.addView(caveat(capacityUnavailable));
             }
-            show(T.dashboardUsableEnergy(), details);
+            show(usableEnergyTitle(), details);
         }
 
         private LinearLayout detailRow(String label, String value) {
