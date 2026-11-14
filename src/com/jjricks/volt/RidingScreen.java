@@ -419,8 +419,8 @@ final class RidingScreen implements AppScreen {
             if (weight < 0) weight = p.weight;
             p.height = 0;
             p.weight = weight;
+            // The first pass keeps the chips' room from the last one, so a layout that hasn't changed fits them only once.
             ChipColumn beside = beside();
-            if (beside != null) beside.fullHeight = -1;
             super.onMeasure(widthSpec, heightSpec);
             if (beside == null || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) return;
             int row = head.getMeasuredHeight(), numberHeight = big.number.getMeasuredHeight();
