@@ -201,14 +201,14 @@ final class HomeStylePreview extends View {
             paint.setColor(ui.raised);
             c.drawCircle(x + cell / 2, 362, 22, paint);
             ui.drawIcon(c, action[0], ui.text, x + cell / 2, 362, 20);
-            // As Clean picks it (QuickActionLayout.name): a name whole on one line, a shorter or smaller one, else
-            // the icon alone; never a cut name (the contributor's decision on round quick actions).
+            // The first name of the ladder (QuickAccessGrid.roundNames) whole on one line, else the icon alone, as
+            // Clean shows it on this width; never a cut name (the contributor's decision on round quick actions).
             words.setTypeface(ui.medium());
-            QuickActionLayout.Name name = QuickActionLayout.name(cell + 4, (text, scale) -> {
-                words.setTextSize(11 * scale);
-                return words.measureText(text);
-            }, java.util.Arrays.copyOfRange(action, 2, action.length));
-            if (name.text != null) centred(c, name.text, x + cell / 2, 401, Float.MAX_VALUE, 11 * name.scale, ui.muted, false);
+            words.setTextSize(11);
+            String name = null;
+            for (int n = 2; n < action.length && name == null; n++)
+                if (action[n] != null && !action[n].isEmpty() && words.measureText(action[n]) <= cell + 4) name = action[n];
+            if (name != null) centred(c, name, x + cell / 2, 401, Float.MAX_VALUE, 11, ui.muted, false);
         }
         // The subjects: icon, name, a summary line and the chevron.
         card(c, 16, 418, 304, VIRTUAL_HEIGHT + 20, 18, ui.surface);
