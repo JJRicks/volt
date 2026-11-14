@@ -268,7 +268,7 @@ public final class RidesScreen implements AppScreen {
         }
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ui.sectionLabel(mode == SUMMARY ? HubText.recentRides().render() : historyLabel()), new LinearLayout.LayoutParams(0, -2, 1));
         historyCount = ui.caption(""); historyCount.setGravity(Gravity.END); historyCount.setPadding(ui.dp(4), ui.dp(14), ui.dp(4), ui.dp(6));
         head.addView(historyCount);
         history = vertical();
@@ -727,6 +727,7 @@ public final class RidesScreen implements AppScreen {
     }
     /** History row: route thumbnail, name and start time, then distance and duration. */
     private View historyRow(RideStore.Summary s, boolean chosen) {
+        if (mode == SUMMARY) return recentRideRow(s);
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(64));
         row.setPadding(0, ui.dp(10), 0, ui.dp(10));
         if (wide) {
@@ -738,7 +739,7 @@ public final class RidesScreen implements AppScreen {
         RouteThumb thumb = new RouteThumb(); thumbs.put(s.id, thumb);
         row.addView(thumb, new LinearLayout.LayoutParams(ui.dp(52), ui.dp(40)));
         LinearLayout words = vertical();
-        String label = s.label.isEmpty() ? T.ridesDefaultName() : s.label;
+        String label = rideLabel(s);
         TextView name = ui.text(label, 15, false); name.setMaxLines(1); name.setEllipsize(TextUtils.TruncateAt.END); words.addView(name);
         TextView when = ui.caption(shortDate(s.startWallMs)); when.setPadding(0, ui.dp(4), 0, 0); when.setMaxLines(1); words.addView(when);
         LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1); wordsParams.leftMargin = ui.dp(12);
@@ -757,8 +758,35 @@ public final class RidesScreen implements AppScreen {
             historyRows.put(s.id, row); styleHistoryRow(row, chosen);
         } else {
             rowTouch(row, () -> showDetails(s.id));
-            row.setContentDescription(T.ridesHistoryRow(spoken));
+            row.setContentDescription(historySpoken(spoken));
         }
+        return row;
+    }
+    /** "History", the label over All rides & compare's list; Battery & charging's HISTORY card uses it too. */
+    static String historyLabel() { return T.ridesHistory(); }
+    /** A ride's name: its label, or the default name. */
+    private static String rideLabel(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
+    /** A history row's spoken text around its words (name, date, distance, duration). */
+    private static String historySpoken(String words) { return T.ridesHistoryRow(words); }
+    /**
+     * The Ride page's recent ride (the owner's Layout Plan): titled by its date and time, with distance, duration and
+     * the battery change under it (PageRows.rideLine) and a chevron; no route thumbnail. It opens the ride, and is
+     * spoken as the history row was (its name, date, distance and duration).
+     */
+    private View recentRideRow(RideStore.Summary s) {
+        LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56));
+        row.setPadding(0, ui.dp(10), 0, ui.dp(10));
+        LinearLayout words = vertical();
+        TextView title = ui.text(longDate(s.startWallMs), 15, false); title.setMaxLines(2); words.addView(title);
+        String measured = s.batteryDropPercent != null && Double.isFinite(s.batteryDropPercent) ? change(s.batteryDropPercent) : null;
+        TextView line = ui.caption(PageRows.rideLine(distance(s.distanceKm), duration(s.shownElapsedMs), measured));
+        line.setPadding(0, ui.dp(3), 0, 0); words.addView(line);
+        row.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
+        View chevron = ui.icon("chevron", 15, ui.muted); LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)); cp.leftMargin = ui.dp(10);
+        row.addView(chevron, cp);
+        String label = rideLabel(s);
+        rowTouch(row, () -> showDetails(s.id));
+        row.setContentDescription(historySpoken(label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.shownElapsedMs)));
         return row;
     }
     /** Wide layout: the selected ride's row carries a red tint and reads as selected. */
