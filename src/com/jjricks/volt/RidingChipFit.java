@@ -34,7 +34,7 @@ final class RidingChipFit {
     final boolean[] shown;
     /** Each shown chip's name step at that rung, worked out against the chips that show; -1 for the rest. */
     final int[] steps;
-    /** The chips that show their compact form (a GPS state's dash) because in full they or a later chip would step aside (see {@link #stepping}). */
+    /** The chips that show their compact form (a GPS state's dash) because in full they (or, in {@link #steadyStepping}, a later chip) would step aside. */
     final boolean[] compact;
 
     private RidingChipFit(int count, int rung, boolean[] shown, int[] steps) {
@@ -62,19 +62,33 @@ final class RidingChipFit {
      * A row or column in which some chips have a compact form for their value: a GPS accuracy state ("Not
      * recording") whose mark is the no-reading dash. Every chip first tries as it reads in full, exactly as
      * {@link #row} or {@link #column} would fit it; a chip with a compact form that would then step aside tries again
-     * in that form, so the reading the rider chose shows as a mark rather than not at all. If a chip still steps aside,
-     * every chip with a compact form tries it, shown in full or not, and that fit is taken when more chips show: a GPS
-     * chip that fits in full no longer pushes a later chip out where its dash makes room (the council on #493). With
-     * no chip able to step down, or nothing gained, the fit is the one before. It depends on the widths alone, which
-     * are each chip's widest, so it never changes with the value on show.
+     * in that form, so the reading the rider chose shows as a mark rather than not at all. A chip that shows in full
+     * keeps its full value, and with no chip able to step down the fit is the plain one. Riding mode's steady row uses
+     * {@link #steadyStepping}, which goes one step further.
      *
      * @param full each chip's widths with its value in full
      * @param compact each chip's widths with its compact value (read only for chips in canStep)
-     * @param canStep the chips that have a compact form
+     * @param canStep the chips that have a compact form now
      */
     static RidingChipFit stepping(final String[][] marks, final String[] contents, Widths full, final Widths compact, boolean[] canStep,
                                   final boolean stacked, final int gap, final int room) {
-        return stepping(marks.length, w -> stacked ? column(marks, contents, w, room) : row(marks, contents, w, gap, room), full, compact, canStep);
+        return stepping(marks.length, fitter(marks, contents, stacked, gap, room), full, compact, canStep, false);
+    }
+
+    /**
+     * {@link #stepping}, then, if a chip still steps aside, every chip with a compact form tries it, shown in full or
+     * not, and that fit is taken when more chips show. Failure mode it closes: the steady fit sizes a GPS chip from its
+     * widest state ("Not recording"), so a GPS chip early in the row fitted in full and pushed a later chip out for the
+     * whole ride, where its dash would have let them all show (the council on #493). With nothing gained, the fit is
+     * {@link #stepping}'s. It depends on the widths alone, each chip's widest, so it never changes with the value on show.
+     */
+    static RidingChipFit steadyStepping(final String[][] marks, final String[] contents, Widths full, final Widths compact, boolean[] canStep,
+                                        final boolean stacked, final int gap, final int room) {
+        return stepping(marks.length, fitter(marks, contents, stacked, gap, room), full, compact, canStep, true);
+    }
+
+    private static Fitter fitter(final String[][] marks, final String[] contents, final boolean stacked, final int gap, final int room) {
+        return w -> stacked ? column(marks, contents, w, room) : row(marks, contents, w, gap, room);
     }
 
     /** A fit of a row or column's chips from their widths. */
@@ -82,7 +96,8 @@ final class RidingChipFit {
         RidingChipFit fit(Widths widths);
     }
 
-    private static RidingChipFit stepping(int of, Fitter fitter, final Widths full, final Widths compact, boolean[] canStep) {
+    private static RidingChipFit stepping(int of, Fitter fitter, final Widths full, final Widths compact, boolean[] canStep,
+                                          boolean steady) {
         RidingChipFit plain = fitter.fit(full);
         if (canStep == null) return plain;
         boolean[] dropped = new boolean[of], every = new boolean[of];
@@ -91,7 +106,7 @@ final class RidingChipFit {
             dropped[chip] = canStep[chip] && !plain.shown[chip];
         }
         RidingChipFit fit = count(dropped) == 0 ? plain : withCompact(fitter, full, compact, dropped);
-        if (count(every) > count(dropped) && fit.count < of) {
+        if (steady && count(every) > count(dropped) && fit.count < of) {
             RidingChipFit all = withCompact(fitter, full, compact, every);
             if (all.count > fit.count) fit = all;
         }
@@ -279,14 +294,14 @@ final class RidingChipFit {
     /**
      * A row fitted at the largest size it may use that shows as much as the three-chip size would: the same chips, at a
      * rung no tighter, and no more of them in their compact form. Otherwise the three-chip size, fitted as
-     * {@link #stepping} fits it. The widths are meant to be each chip's widest value, so the answer never changes while
+     * {@link #steadyStepping} fits it. The widths are meant to be each chip's widest value, so the answer never changes while
      * the values do.
      */
     static Sized sized(String[][] marks, String[] contents, SizedWidths full, SizedWidths compact, boolean[] canStep,
                        int largest, int gap, int room) {
-        RidingChipFit base = stepping(marks, contents, atSize(full, SIZE_NORMAL), atSize(compact, SIZE_NORMAL), canStep, false, gap, room);
+        RidingChipFit base = steadyStepping(marks, contents, atSize(full, SIZE_NORMAL), atSize(compact, SIZE_NORMAL), canStep, false, gap, room);
         for (int size = Math.min(largest, SIZES - 1); size > SIZE_NORMAL; size--) {
-            RidingChipFit fit = stepping(marks, contents, atSize(full, size), atSize(compact, size), canStep, false, gap, room);
+            RidingChipFit fit = steadyStepping(marks, contents, atSize(full, size), atSize(compact, size), canStep, false, gap, room);
             if (java.util.Arrays.equals(fit.shown, base.shown) && fit.rung <= base.rung && compactCount(fit) <= compactCount(base))
                 return new Sized(size, fit);
         }
@@ -334,10 +349,10 @@ final class RidingChipFit {
         return new RidingChipFit(count(set), rung, set, steps(marks, contents, set, rung));
     }
 
-    /** {@link #stepping} for a column of at most limit chips (see {@link #column(String[][], String[], Widths, int, int)}). */
+    /** {@link #steadyStepping} for a column of at most limit chips (see {@link #column(String[][], String[], Widths, int, int)}). */
     static RidingChipFit steppingColumn(final String[][] marks, final String[] contents, Widths full, final Widths compact, boolean[] canStep,
                                         final int room, final int limit) {
-        return stepping(marks.length, w -> column(marks, contents, w, room, limit), full, compact, canStep);
+        return stepping(marks.length, w -> column(marks, contents, w, room, limit), full, compact, canStep, true);
     }
 
     // The samples a chip is sized from, by the form it's in, and the values it must keep beyond them (Chip.seeWide).

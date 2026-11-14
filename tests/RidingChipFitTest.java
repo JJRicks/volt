@@ -257,37 +257,43 @@ public final class RidingChipFitTest {
         String[][] marks = {null, null, null};
         String[] contents = {"gps_accuracy", "current", "clock"};
         // GPS in full ("Not recording") 150, its compact form (±888 ft or the dash) 80; current 90; clock 70; gap 8.
-        int[][] full = new int[RidingChipFit.RUNGS][], compact = new int[RidingChipFit.RUNGS][];
+        int[][] full = new int[RidingChipFit.RUNGS][];
+        int[][] compact = new int[RidingChipFit.RUNGS][];
         for (int r = 0; r < RidingChipFit.RUNGS; r++) { full[r] = new int[]{150, 90, 70}; compact[r] = new int[]{80, 90, 70}; }
         boolean[] canStep = {true, false, false};
         // 150 + 90 + 70 + 16 = 326 overfills 300; 80 + 90 + 70 + 16 = 256 fits.
         RidingChipFit plain = RidingChipFit.row(marks, contents, fixedWidths(full), GAP, 300);
         if (plain.count != 2 || !plain.shown[0]) throw new AssertionError("F04 setup: in full GPS fits and the clock steps aside");
-        RidingChipFit fit = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 300);
+        // stepping alone keeps main's rule (a chip that shows in full keeps its words; GpsAccuracyTextTest holds it to that).
+        RidingChipFit kept = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 300);
+        if (kept.count != 2 || kept.compact[0]) throw new AssertionError("F04: stepping alone keeps a GPS chip that fits in full in its words");
+        RidingChipFit fit = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 300);
         if (fit.count != 3 || !fit.compact[0] || fit.compact[1] || fit.compact[2])
             throw new AssertionError("F04: a GPS chip that fits in full must step to its dash before the clock is dropped");
         // All three fit in full: GPS keeps its words.
-        RidingChipFit roomy = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 326);
+        RidingChipFit roomy = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, 326);
         if (roomy.count != 3 || roomy.compact[0]) throw new AssertionError("F04: with room for every chip in full, GPS keeps its words");
         // The dash doesn't make room (80 + 90 + 120 + 16 = 306 > 300): nothing to gain, so GPS keeps its words and the third goes.
-        int[][] wideClock = new int[RidingChipFit.RUNGS][], wideClockCompact = new int[RidingChipFit.RUNGS][];
+        int[][] wideClock = new int[RidingChipFit.RUNGS][];
+        int[][] wideClockCompact = new int[RidingChipFit.RUNGS][];
         for (int r = 0; r < RidingChipFit.RUNGS; r++) { wideClock[r] = new int[]{150, 90, 120}; wideClockCompact[r] = new int[]{80, 90, 120}; }
-        RidingChipFit noGain = RidingChipFit.stepping(marks, contents, fixedWidths(wideClock), fixedWidths(wideClockCompact), canStep, false, GAP, 300);
+        RidingChipFit noGain = RidingChipFit.steadyStepping(marks, contents, fixedWidths(wideClock), fixedWidths(wideClockCompact), canStep, false, GAP, 300);
         if (noGain.count != 2 || noGain.compact[0]) throw new AssertionError("F04: a dash that saves no chip leaves GPS in full");
         // GPS last and dropped steps down as before.
         String[] last = {"current", "clock", "gps_accuracy"};
-        int[][] lastFull = new int[RidingChipFit.RUNGS][], lastCompact = new int[RidingChipFit.RUNGS][];
+        int[][] lastFull = new int[RidingChipFit.RUNGS][];
+        int[][] lastCompact = new int[RidingChipFit.RUNGS][];
         for (int r = 0; r < RidingChipFit.RUNGS; r++) { lastFull[r] = new int[]{90, 70, 150}; lastCompact[r] = new int[]{90, 70, 80}; }
-        RidingChipFit lastFit = RidingChipFit.stepping(marks, last, fixedWidths(lastFull), fixedWidths(lastCompact), new boolean[]{false, false, true}, false, GAP, 300);
+        RidingChipFit lastFit = RidingChipFit.steadyStepping(marks, last, fixedWidths(lastFull), fixedWidths(lastCompact), new boolean[]{false, false, true}, false, GAP, 300);
         if (lastFit.count != 3 || !lastFit.compact[2]) throw new AssertionError("F04: a dropped GPS chip still shows its dash");
         // Every room gives the same answer each time: it reads nothing but the widths.
         for (int room = 0; room <= 400; room++) {
-            RidingChipFit a = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
-            RidingChipFit b = RidingChipFit.stepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
+            RidingChipFit a = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
+            RidingChipFit b = RidingChipFit.steadyStepping(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, false, GAP, room);
             if (a.count != b.count || a.rung != b.rung || !java.util.Arrays.equals(a.compact, b.compact))
                 throw new AssertionError("F04: the fit must depend on the widths alone, room " + room);
             RidingChipFit sansStep = RidingChipFit.row(marks, contents, fixedWidths(full), GAP, room);
-            if (a.count < sansStep.count) throw new AssertionError("F04: stepping never shows fewer chips than the plain fit, room " + room);
+            if (a.count < sansStep.count) throw new AssertionError("F04: the steady fit never shows fewer chips than the plain fit, room " + room);
         }
         // The same in a column of two: a short column's limit isn't beaten by any dash.
         RidingChipFit column = RidingChipFit.steppingColumn(marks, contents, fixedWidths(full), fixedWidths(compact), canStep, 200, 2);

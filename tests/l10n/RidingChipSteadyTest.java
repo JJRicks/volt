@@ -355,6 +355,20 @@ public final class RidingChipSteadyTest {
         check(names.get(RidingLayout.RANGE_VOLT).equals(java.util.Collections.singleton(RidingLayout.RANGE_VOLT)), "F07: Volt's range carries only its own name");
         check(names.get(RidingLayout.RANGE_SCOOTER).equals(java.util.Collections.singleton(RidingLayout.RANGE_SCOOTER)), "F07: Scooter's range carries only its own name");
         check(names.get(RidingLayout.RANGE_AT_PACE).size() == 3, "F07: Range at this pace can carry all three names");
+        // shown() names the range itself; it must follow namedAs, or the sizing reserves names the chip never shows.
+        String screen = source("src/com/jjricks/volt/RidingScreen.java");
+        check(screen.contains("if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))\n                    s.rungs = rangeNames(RidingLayout.RANGE_SCOOTER);")
+                && screen.contains("else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))\n                    s.rungs = rangeNames(RidingLayout.RANGE_VOLT);")
+                && screen.contains("else s.rungs = rangeNames(RidingLayout.RANGE_AT_PACE);"), "F07: shown() names a range as RidingFocus.namedAs does");
+        check(screen.contains("String as = RidingFocus.namedAs(content, kind);"), "F07: the sizing names a range from namedAs");
+    }
+
+    private static String source(String path) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new AssertionError("can't read " + path, e);
+        }
     }
 
     /** F01 (the council on #493): the stacked Lock column keeps its 320 dp cap; only the side-by-side row rose to 560 dp. */

@@ -1208,7 +1208,12 @@ final class RidingScreen implements AppScreen {
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
                         scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
                 // The label names whose estimate it is; a chosen source keeps its name with no reading.
-                s.rungs = rangeNames(RidingFocus.namedAs(content, range.kind));
+                // The same rule as RidingFocus.namedAs, which the chip's sizing uses (RidingChipSteadyTest holds the two together).
+                if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))
+                    s.rungs = rangeNames(RidingLayout.RANGE_SCOOTER);
+                else if (range.kind == RidingFocus.RangeKind.VOLT || content.equals(RidingLayout.RANGE_VOLT))
+                    s.rungs = rangeNames(RidingLayout.RANGE_VOLT);
+                else s.rungs = rangeNames(RidingLayout.RANGE_AT_PACE);
                 if (range.kind == RidingFocus.RangeKind.ALMOST_EMPTY) {
                     s.main = T.ridingRangeAlmostEmpty();
                     s.color = ui.orange;
@@ -2231,7 +2236,7 @@ final class RidingScreen implements AppScreen {
         boolean[] canStep = new boolean[n];
         for (int i = 0; i < n; i++) { marks[i] = wanted.get(i).marks(); contents[i] = wanted.get(i).content; canStep[i] = wanted.get(i).canStep; }
         int gap = ui.dp(CHIP_GAP_DP);
-        // A GPS state that would step aside in full shows its dash instead (RidingChipFit.stepping): the chip the rider chose stays.
+        // A GPS state that would step aside in full, or push a later chip out, shows its dash instead (RidingChipFit.steadyStepping).
         RidingChipFit.Sized sized = RidingChipFit.sized(marks, contents,
                 (size, chip, rung, step) -> wanted.get(chip).widthAt(size, rung, step, false),
                 (size, chip, rung, step) -> wanted.get(chip).widthAt(size, rung, step, true),

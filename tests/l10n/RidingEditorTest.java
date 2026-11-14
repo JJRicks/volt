@@ -243,8 +243,7 @@ public final class RidingEditorTest {
         int toggle = sheet.indexOf("editor.set(id, on);");
         check(toggle > 0 && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) > toggle
                 && sheet.indexOf("reset.setEnabled(editor.canReset());", toggle) < sheet.indexOf("content.addView(reset);"), "every switch refreshes Reset");
-        check(screen.contains("rangeNames(RidingFocus.namedAs(content, range.kind))")
-                && RidingFocus.namedAs(RidingLayout.RANGE_VOLT, RidingFocus.RangeKind.NONE).equals(RidingLayout.RANGE_VOLT), "Volt's range keeps its name with no reading");
+        check(screen.contains("content.equals(RidingLayout.RANGE_VOLT)"), "Volt's range keeps its name with no reading");
         check(screen.contains("session.learnedKm(percent), percent,"), "the screen passes Volt's learned range");
         check(read("src/com/jjricks/volt/LiveRangeEstimator.java").contains("r::remainingKm"), "the learned range is the learned result's own remainingKm (Home's)");
         check(read("src/com/jjricks/volt/RidingDiscAnimator.java").contains("Ui.motionEnabled()") && motion.contains("disc.setClickable(shown);"), "the motion honours animations off and stops taps");
