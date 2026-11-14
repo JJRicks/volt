@@ -26,13 +26,13 @@ import android.widget.TextView;
  * Clean Home's "Just back" moment (hub layout plan 1.5 and 1.7, PR 9): for about an hour after a ride ends, the top
  * area shows it, as the Layout Plan's mock-up draws it (the contributor's decisions on #383): on the page itself, no
  * card. A muted "Ride ended 12 minutes ago" centred with a small round X at the right, the distance large and centred
- * (about 60 sp, its unit smaller in the text colour), the route drawn on a plain dark rounded panel with a green start
- * dot and a white end dot (from the phone journal's own GPS fixes; never a map tile), then three tiles: Ride time, Avg
+ * (about 60 sp, its unit smaller in the text colour), the route drawn on a rounded panel in the card colour with a faint
+ * dot grid, a green start dot and a white end dot (from the phone journal's own GPS fixes; never a map tile), then three tiles: Ride time, Avg
  * speed and Battery with the signed change ("−18%"). Tapping it opens that ride; the X closes it until the next ride.
  *
  * <p>It fills the top area's fixed height (the same as parked and charging), so the Lock bar never moves: the route
  * panel takes what the words and tiles leave and goes when that is too little, then the distance gets smaller
- * (JustBackFit.split). Text from HubText and the ride formatters (RideText, RidingFocus, Fmt); this file holds no
+ * (JustBackFit.split). Text from HubText and the ride formatters (RideText, RidesScreen.duration, Fmt); this file holds no
  * catalog references.
  */
 final class JustBackView extends LinearLayout {
@@ -202,13 +202,15 @@ final class JustBackView extends LinearLayout {
         shownKey = key;
         rideId = s.id;
         if (otherRide) route.setRoute(null);
-        Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units);
+        Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units, 1);
         distance.setText(miles == null ? "—" : large(miles));
         spokenRide = HubText.justBackDescription(miles == null ? "—" : miles.toString());
-        String clock = s.shownElapsedMs > 0 ? RidingFocus.clockText(s.shownElapsedMs) : null;
-        time.set(clock, clock);
-        // A ride that stored no average (no speed readings) still has one from its distance and time (JustBackFit).
-        Double average = JustBackFit.averageSpeedKmh(s.averageSpeedKmh, s.movingAverageSpeedKmh, s.distanceKm, s.movingMs, s.shownElapsedMs);
+        // A duration, as the ride's own Duration tile on Rides shows it ("20m 00s"), not a clock that reads as a time of
+        // day. The mock-up's shorter "24m" needs new text (part 10).
+        String duration = s.shownElapsedMs > 0 ? RidesScreen.duration(s.shownElapsedMs) : null;
+        time.set(duration, duration);
+        // The ride's saved average only: a ride that stored none shows a dash, as its page on Rides does.
+        Double average = JustBackFit.averageSpeedKmh(s.averageSpeedKmh, s.movingAverageSpeedKmh);
         if (average == null) speed.set(null, null);
         else {
             // Both units may not fit a narrow tile at its readable floor: then the first unit alone, both spoken (note 3).
@@ -368,15 +370,18 @@ final class JustBackView extends LinearLayout {
             super(host.activity());
             Ui ui = host.ui();
             setOrientation(VERTICAL);
-            setGravity(Gravity.CENTER_VERTICAL);
+            // From the top, the value at the bottom: a row's names and values line up whatever a name's line count.
+            setGravity(Gravity.TOP);
             setPadding(ui.dp(10), ui.dp(9), ui.dp(10), ui.dp(9));
-            setBackground(ui.shape(ui.dark ? ui.raised : ui.surface, 18, 0));
+            // The charging moment's tile colour and corner (DashboardScreen.InfoCell), so the row keeps its look.
+            setBackground(ui.shape(ui.raised, 14, 0));
             name = ui.caption(label.render());
             name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale);
             name.setMaxLines(NAME_LINES);
             // Only with very large text, where even half a row is too narrow, does a name still end in an ellipsis.
             name.setEllipsize(TextUtils.TruncateAt.END);
             addView(name, new LinearLayout.LayoutParams(-1, -2));
+            addView(new View(host.activity()), new LinearLayout.LayoutParams(-1, 0, 1));
             value = ui.text("—", JustBackFit.VALUE_SP, true);
             value.setMaxLines(1);
             value.setIncludeFontPadding(false);
@@ -435,19 +440,24 @@ final class JustBackView extends LinearLayout {
         }
     }
 
-    /** The route on a plain dark rounded panel, with its start and end marked; a route icon while there is none. */
+    /** The route on a rounded panel in the card colour, with its start and end marked; a route icon while there is none. */
     private static final class RouteView extends View {
         private final Ui ui;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF box = new RectF();
         private final Path path = new Path();
         private float[] route;
+        /** The mock-up's dot grid: a faint dot every GRID_DP, GRID_INSET_DP in from the panel's edges. */
+        private static final int GRID_DP = 14, GRID_INSET_DP = 12;
 
         RouteView(ScreenHost host) {
             super(host.activity());
             ui = host.ui();
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
+
+        /** The panel: the card colour, as the tiles' on the dark page and one step darker than the light page. */
+        private int panelColor() { return ui.dark ? ui.surface : ui.raised; }
 
         void setRoute(float[] value) {
             route = value;
@@ -459,11 +469,16 @@ final class JustBackView extends LinearLayout {
             if (getHeight() < ui.dp(MIN_ROUTE_DP)) return;
             box.set(0, 0, getWidth(), getHeight());
             paint.setStyle(Paint.Style.FILL);
-            // A plain dark rounded panel: the card colour on the dark page, a dark panel on the light one.
-            paint.setColor(ui.dark ? ui.surface : Color.rgb(0x1f, 0x22, 0x27));
+            // The card colour in both themes, as the mock-up draws it, with its faint dot grid.
+            int panel = panelColor();
+            paint.setColor(panel);
             canvas.drawRoundRect(box, ui.dp(20), ui.dp(20), paint);
+            paint.setColor(Ui.withAlpha(ui.muted, 70));
+            float step = ui.dp(GRID_DP), grid = ui.dp(GRID_INSET_DP), dot = ui.dp(1) / 2f + .5f;
+            for (float y = grid; y <= getHeight() - grid + .5f; y += step)
+                for (float x = grid; x <= getWidth() - grid + .5f; x += step) canvas.drawCircle(x, y, dot, paint);
             if (route == null || route.length < 4) {
-                ui.drawIcon(canvas, "route", Ui.withAlpha(Color.WHITE, 90), getWidth() / 2f, getHeight() / 2f, ui.dp(22));
+                ui.drawIcon(canvas, "route", Ui.withAlpha(ui.muted, 140), getWidth() / 2f, getHeight() / 2f, ui.dp(22));
                 return;
             }
             float inset = Math.min(ui.dp(18), getHeight() / 5f), w = getWidth() - 2 * inset, h = getHeight() - 2 * inset;
@@ -485,17 +500,16 @@ final class JustBackView extends LinearLayout {
                 canvas.drawPath(path, paint);
             }
             paint.setStyle(Paint.Style.FILL);
-            // As the mock-up: a green start dot and a white end dot, each ringed in the panel's colour.
-            int panel = ui.dark ? ui.surface : Color.rgb(0x1f, 0x22, 0x27);
+            // As the mock-up: a green start dot and a white end dot (the text colour on the light panel, where white
+            // would vanish), each ringed in the panel's colour.
             // A loop ends where it started: the end's white dot then rings the start's smaller green one.
             boolean together = Math.hypot(ex - sx, ey - sy) < ui.dp(10);
             paint.setColor(panel);
             canvas.drawCircle(sx, sy, ui.dp(7), paint);
             canvas.drawCircle(ex, ey, ui.dp(7), paint);
-            paint.setColor(Color.WHITE);
+            paint.setColor(ui.dark ? Color.WHITE : ui.text);
             canvas.drawCircle(ex, ey, ui.dp(5), paint);
-            // The panel is dark in both themes, so the start keeps the dark theme's green.
-            paint.setColor(ui.dark ? ui.ok : Color.rgb(0x5f, 0xcb, 0x7e));
+            paint.setColor(ui.ok);
             canvas.drawCircle(sx, sy, ui.dp(together ? 3 : 5), paint);
         }
     }

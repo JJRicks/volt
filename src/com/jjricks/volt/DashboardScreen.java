@@ -974,13 +974,22 @@ public final class DashboardScreen implements AppScreen {
         grid.updateEditorMotion();
     }
 
+    /**
+     * The scooter's name in Home's header, or null for none (the header then says "Your scooter"): while simulating,
+     * the simulated model's name (display only; the profile's stored name is untouched), else the profile's name.
+     * HomeStylePreview draws the same name.
+     */
+    static String headerName(ScooterService service, ScooterProfiles.Profile profile) {
+        String simulated = service == null || service.ble == null ? null : service.ble.simulationName();
+        return simulated != null ? simulated : profile == null ? null : profile.name;
+    }
+
     /** Home status line: Connected · drive mode, Connecting… or Disconnected · last seen. */
     private void refreshHeader(
             ScooterProfiles.Profile profile, Map<String, TelemetryHistory.Reading> readings) {
         BleController ble = service == null ? null : service.ble;
-        // While simulating, the simulated model's name (display only; the profile's stored name is untouched).
-        String simulated = ble == null ? null : ble.simulationName();
-        profileName.setText(simulated != null ? simulated : profile == null ? T.dashboardYourScooter() : profile.name);
+        String name = headerName(service, profile);
+        profileName.setText(name != null ? name : T.dashboardYourScooter());
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
         boolean connecting =

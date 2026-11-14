@@ -177,9 +177,10 @@ final class HomeStyle {
 
     /**
      * Whether the one-time What's new sheet shows now (Joel 6, 10): only on an installation the seed found updated
-     * that never saw the sheet, on Home, resumed, with neither setup nor riding mode open. Choosing a style first
-     * (in settings, or a restore that brought a choice) does not skip it: the sheet also carries the changelog and
-     * one-time notices; the choice only hides its offer to switch ({@link #offerSwitch}). A fresh installation never
+     * that never saw the sheet, on Home, resumed, with neither setup nor riding mode open. A style chosen first (in
+     * settings, or a restore that brought a choice) hides its offer to switch ({@link #offerSwitch}); the sheet then
+     * shows only for the background-recording notice ({@link #whatsNewShows}), and without it the decision is settled
+     * ({@link #whatsNewSettled}). A fresh installation never
      * sees it once setup recorded its origin (HomeStylePrefs.recordNewInstall or markChosen).
      */
     static boolean showWhatsNew(String origin, boolean shown, boolean onboardingShowing,
@@ -215,6 +216,16 @@ final class HomeStyle {
     static boolean whatsNewShows(boolean chosen, boolean offer, boolean backgroundNotice, boolean hasNotes) {
         if (chosen) return backgroundNotice;
         return whatsNewHasContent(offer, backgroundNotice, hasNotes);
+    }
+
+    /**
+     * Whether the What's new sheet is settled for good without showing: an owner who already chose a style and gets no
+     * background-recording notice has no offer and never sees the notes alone, so it is recorded as shown (not decided
+     * again at each Home rebuild, which would open it weeks later if they turned Record rides automatically on).
+     * Only an owner who has not chosen, on an APK without notes and with nothing else to show, is left undecided.
+     */
+    static boolean whatsNewSettled(boolean chosen, boolean backgroundNotice) {
+        return chosen && !backgroundNotice;
     }
 
     /** The narrowest half (dp) the style picker's cards take side by side: the drawing, then the name and radio. */

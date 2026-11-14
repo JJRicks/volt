@@ -44,7 +44,7 @@ final class HomeQuickEditor {
     }
 
     /**
-     * The four names as Clean shows them, in order: "Ride, Record, Done by, Cruise". The separator is a plain comma
+     * The four names as Clean shows them, in order: "Ride, Record, Charge done by, Cruise". The separator is a plain comma
      * until part 10 adds a translated list separator.
      */
     static String summary(List<String> ids) {

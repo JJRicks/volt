@@ -39,8 +39,9 @@ final class WhatsNewSheet {
 
     /**
      * Shows the sheet over the current screen and returns it, so the activity can close it when it goes away; records
-     * it as shown first. Returns null, showing and recording nothing, when it would hold nothing
-     * (HomeStyle.whatsNewShows): no offer, no notice and no bundled notes, or a chosen style and no notice.
+     * it as shown first. Returns null, showing nothing, when it would hold nothing (HomeStyle.whatsNewShows): for a
+     * chosen style and no notice it records the sheet as shown (HomeStyle.whatsNewSettled); for no offer, no notice and
+     * no bundled notes it records nothing, so it is decided again.
      */
     static AlertDialog show(ScreenHost host, SharedPreferences preferences) {
         Ui ui = host.ui();
@@ -51,7 +52,12 @@ final class WhatsNewSheet {
         Object autoRecord = all.get(AutoStartPolicy.AUTO_RECORD_KEY);
         boolean notice = HomeStyle.whatsNewBackgroundNotice(origin instanceof String ? (String) origin : null, Boolean.TRUE.equals(autoRecord));
         boolean chosen = Boolean.TRUE.equals(all.get(HomeStyle.CHOSEN_KEY));
-        // An owner who already chose a style sees nothing without the notice: no need to read the notes then.
+        // An owner who already chose a style sees nothing without the notice: no need to read the notes then, and the
+        // decision is final for them, so it is recorded (HomeStyle.whatsNewSettled).
+        if (HomeStyle.whatsNewSettled(chosen, notice)) {
+            preferences.edit().putBoolean(HomeStyle.WHATS_NEW_SHOWN_KEY, true).apply();
+            return null;
+        }
         if (!HomeStyle.whatsNewShows(chosen, offer, notice, false) && !HomeStyle.whatsNewShows(chosen, offer, notice, true)) return null;
         WhatsNewNotes.Notes notes = WhatsNewNotes.parse(bundled(host), AppVersion.name(host.activity()));
         if (!HomeStyle.whatsNewShows(chosen, offer, notice, notes != null)) return null;

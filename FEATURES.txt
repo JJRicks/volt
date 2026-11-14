@@ -1341,11 +1341,11 @@ and Time to 90% (Time to full without a limit). Where the view is too small,
 nothing is dropped: the line shortens, the photo and then the charge get
 smaller, and only then the line goes; the tiles stay. For about an hour after
 a recorded ride, Just back sits on the page in the same area: "Ride ended 12
-minutes ago" with a small X, the distance large, the route on a plain dark
-panel (green start, white end) and three tiles: Ride time, Avg speed (from
-distance and time when the ride saved no average) and Battery with the signed
-change ("-18%"); on a short area the route goes first, then the distance gets
-smaller. The Ride row shows a
+minutes ago" with a small X, the distance large, the route on a panel in
+the card colour (green start, white end) and three tiles: Ride time
+("20m 00s"), Avg speed (a dash when the ride saved no average, as on Rides)
+and Battery with the signed change ("−18%"); on a short area the route goes
+first, then the distance gets smaller. The Ride row shows a
 running recording and its time while a ride records, else the last ride.
 Settings > Home style shows the two styles side by side, a Quick actions row
 naming Clean's four (opening the same picker as Edit Home) and the two moment

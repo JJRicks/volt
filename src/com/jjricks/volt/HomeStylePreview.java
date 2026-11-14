@@ -6,6 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -51,6 +52,8 @@ final class HomeStylePreview extends View {
     private final RectF box = new RectF();
     /** The phone's own bounds, kept apart from box, which the drawing reuses for its parts (council early review, note 6). */
     private final RectF frame = new RectF();
+    /** The frame's rounded shape, which the screen's content is clipped to so it never shows past the corners. */
+    private final Path clip = new Path();
     private final Bitmap photo;
     /** The scooter's name, or "" (a bar is drawn). */
     private final String name;
@@ -73,7 +76,9 @@ final class HomeStylePreview extends View {
         DeviceDescriptor model = profile == null ? null : profile.savedDescriptor();
         // The stand-in only before a model is known: a known model with no bundled photo shows none, as on Home.
         photo = model == null ? fallback(context) : ScooterPhotos.get(context.getResources(), model, 4);
-        name = profile == null ? "" : profile.displayName();
+        // The name Clean's header shows (DashboardScreen.headerName: the simulated model's while simulating).
+        String header = DashboardScreen.headerName(service, profile);
+        name = header != null ? header : profile == null ? "" : profile.displayName();
         SharedPreferences settings = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         boolean metric = "km".equals(settings.getString("units", "mi"));
         charge = Fmt.percent(Fmt.integerNumber(82)).toString();
@@ -141,7 +146,9 @@ final class HomeStylePreview extends View {
         float corner = ui.dp(12);
         canvas.drawRoundRect(frame, corner, corner, paint);
         canvas.save();
-        canvas.clipRect(frame);
+        clip.reset();
+        clip.addRoundRect(frame, corner, corner, Path.Direction.CW);
+        canvas.clipPath(clip);
         canvas.translate(left, top);
         canvas.scale(s, s);
         if (clean) drawClean(canvas);

@@ -5,8 +5,8 @@ package com.jjricks.volt;
  * pure rules behind JustBackView. Pure Java.
  *
  * <ul>
- *   <li>{@link #averageSpeedKmh}: the Avg speed tile's value, from the saved average or, when the ride stored none,
- *       from its distance and time, so a ride with a distance and a time never shows a dash.</li>
+ *   <li>{@link #averageSpeedKmh}: the Avg speed tile's value, from the saved average, else the saved moving average;
+ *       a dash when the ride saved neither.</li>
  *   <li>{@link #signedChange}: the Battery tile's signed change ("−18" for a ride that used 18%, "+2" for a gain).</li>
  *   <li>{@link #distanceSp}: the distance's size, about 60 sp as the mock-up renders it, growing only a little with
  *       large text so the route panel and the tiles keep their room in the fixed top area.</li>
@@ -27,18 +27,12 @@ final class JustBackFit {
     private JustBackFit() {}
 
     /**
-     * The Avg speed tile's value in km/h, or null when the ride has nothing to derive it from. The saved average
-     * (RideStore's, over the time speed was reported) comes first, then the saved moving average; a ride that stored
-     * neither (no speed readings, as a ride recorded from GPS alone or the simulator's seeded ride) is derived from its
-     * distance over its moving time, else over its shown time. A ride without a positive distance and time has none.
+     * The Avg speed tile's value in km/h, or null (a dash) when the ride saved none: the saved average (RideStore's,
+     * over the time speed was reported) first, then the saved moving average. Nothing is worked out from the distance
+     * and time: missing telemetry stays unavailable, as on the ride's own page on Rides.
      */
-    static Double averageSpeedKmh(Double stored, Double movingStored, Double distanceKm, long movingMs, long elapsedMs) {
-        if (usable(stored)) return stored;
-        if (usable(movingStored)) return movingStored;
-        if (distanceKm == null || !Double.isFinite(distanceKm) || distanceKm <= 0) return null;
-        long time = movingMs > 0 ? movingMs : elapsedMs;
-        if (time <= 0) return null;
-        return distanceKm * 3_600_000d / time;
+    static Double averageSpeedKmh(Double stored, Double movingStored) {
+        return usable(stored) ? stored : usable(movingStored) ? movingStored : null;
     }
 
     private static boolean usable(Double value) {

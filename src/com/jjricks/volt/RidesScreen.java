@@ -2557,7 +2557,8 @@ public final class RidesScreen implements AppScreen {
         return letters.toString();
     }
     private static String percent(double coverage) { return T.fmtPercent(Fmt.decimal(Locale.US, coverage * 100, 0)); }
-    private static String duration(long millis) {
+    /** A ride's duration as its Duration tile shows it ("20m 00s", "1h 02m"); also Clean's Just back Ride time tile. */
+    static String duration(long millis) {
         long seconds = Math.max(0, millis) / 1000;
         return seconds >= 3600 ? String.format(Locale.US, "%dh %02dm", seconds / 3600, seconds % 3600 / 60)
                 : seconds >= 60 ? String.format(Locale.US, "%dm %02ds", seconds / 60, seconds % 60) : seconds + "s";

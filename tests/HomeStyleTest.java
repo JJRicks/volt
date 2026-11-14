@@ -139,6 +139,11 @@ public final class HomeStyleTest {
         require(HomeStyle.whatsNewShows(true, false, true, true) && HomeStyle.whatsNewShows(true, false, true, false),
                 "A chosen style still gets the background-recording notice once");
         require(!HomeStyle.whatsNewShows(false, false, false, false), "Never an empty sheet");
+        // A chosen owner without the notice is settled for good (recorded as shown), so turning Record rides
+        // automatically on weeks later never opens the one-time sheet; an unchosen owner is never settled this way.
+        require(HomeStyle.whatsNewSettled(true, false), "A chosen style and no notice: settled, recorded as shown");
+        require(!HomeStyle.whatsNewSettled(true, true), "A chosen style with the notice: the sheet shows");
+        require(!HomeStyle.whatsNewSettled(false, false) && !HomeStyle.whatsNewSettled(false, true), "An unchosen owner is not settled without the sheet");
         // Dismissing keeps Widgets: closing records nothing but the sheet as shown, so the style stays unchosen Widgets.
         require(HomeStyle.of(null).equals(HomeStyle.WIDGETS) && HomeStyle.offerSwitch(false, null), "Kept Widgets after a dismiss");
     }
