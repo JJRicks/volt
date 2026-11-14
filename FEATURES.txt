@@ -1343,7 +1343,7 @@ smaller, and only then the line goes; the tiles stay. For about an hour after
 a recorded ride, Just back sits on the page in the same area: "Ride ended 12
 minutes ago" with a small X, the distance large, the route on a panel in
 the card colour (green start, white end) and three tiles: Ride time
-("20m 00s"), Avg speed (from the measured distance and time when the ride
+("24m", "1h 02m"), Avg speed (from the measured distance and time when the ride
 saved no average, the rule the ride's page and compare sheet on Rides use
 too; a dash only without a distance or a time) and Battery with the signed change ("−18%"); on a short area the route goes
 first, then the distance gets smaller. The Ride row shows a
