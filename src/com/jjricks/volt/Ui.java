@@ -333,6 +333,87 @@ public final class Ui {
         Drawable[] old = label.getCompoundDrawablesRelative();
         label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
         label.setCompoundDrawablePadding(dp(12));
+        IconBalance.watch(label);
+    }
+    /**
+     * A view's measured width without an icon label's balance spacer, for a parent that measures labels to pick a
+     * layout (Stats' StackingRow): the balance then never changes the layout it picks.
+     */
+    static int unbalancedWidth(View view) {
+        if (!(view instanceof TextView)) return view.getMeasuredWidth();
+        TextView label = (TextView) view;
+        Drawable end = label.getCompoundDrawablesRelative()[2];
+        int spacer = end instanceof BalanceSpacer ? end.getBounds().width() : 0;
+        return IconLabelBalance.unbalanced(label.getMeasuredWidth(), spacer, label.getCompoundDrawablePadding());
+    }
+    /** The invisible end drawable that centres a centred label's text past its start icon (IconLabelBalance). */
+    private static final class BalanceSpacer extends Drawable {
+        BalanceSpacer(int width) { setBounds(0, 0, width, 0); }
+        @Override public void draw(Canvas canvas) {}
+        @Override public void setAlpha(int value) {}
+        @Override public void setColorFilter(ColorFilter value) {}
+        @Override public int getOpacity() { return PixelFormat.TRANSPARENT; }
+    }
+    /**
+     * Balances a decorated label at layout time, when its gravity, padding, gap, icon and width are final: a centred
+     * label whose text still fits on one line gets the end spacer, and any other label loses it. It decides before
+     * the frame draws (and lays the label out again first), so the text never jumps. One per label: decorate may
+     * run more than once on the same label, and a caller may swap the start icon (Stats' spinner) in between.
+     */
+    private static final class IconBalance implements View.OnAttachStateChangeListener, android.view.ViewTreeObserver.OnPreDrawListener {
+        private static final java.util.WeakHashMap<TextView, Boolean> WATCHED = new java.util.WeakHashMap<>();
+        private final TextView label;
+        private android.view.ViewTreeObserver observer;
+        private CharSequence measuredText; private float measuredSize, measuredSpacing, measuredWidth; private Typeface measuredFace;
+
+        private IconBalance(TextView label) { this.label = label; }
+
+        static void watch(TextView label) {
+            if (WATCHED.put(label, Boolean.TRUE) != null) return;
+            IconBalance balance = new IconBalance(label);
+            label.addOnAttachStateChangeListener(balance);
+            if (label.isAttachedToWindow()) balance.onViewAttachedToWindow(label);
+        }
+        @Override public void onViewAttachedToWindow(View view) {
+            if (observer != null && observer.isAlive()) return;
+            observer = label.getViewTreeObserver(); observer.addOnPreDrawListener(this);
+        }
+        @Override public void onViewDetachedFromWindow(View view) {
+            if (observer != null && observer.isAlive()) observer.removeOnPreDrawListener(this);
+            observer = null;
+        }
+        @Override public boolean onPreDraw() {
+            if (!label.isLaidOut() || label.isLayoutRequested()) return true;
+            Drawable[] drawables = label.getCompoundDrawablesRelative();
+            Drawable end = drawables[2];
+            if (end != null && !(end instanceof BalanceSpacer)) return true; // the end belongs to the caller
+            int have = end == null ? 0 : end.getBounds().width(), want = wanted(drawables[0]);
+            if (want == have) return true;
+            label.setCompoundDrawablesRelative(drawables[0], drawables[1], want == 0 ? null : new BalanceSpacer(want), drawables[3]);
+            return false; // lay out again before this frame draws
+        }
+        private int wanted(Drawable icon) {
+            int align = label.getTextAlignment();
+            boolean centred = align == View.TEXT_ALIGNMENT_CENTER || align == View.TEXT_ALIGNMENT_GRAVITY
+                    && (label.getGravity() & Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK) == Gravity.CENTER_HORIZONTAL;
+            // Autosize could shrink the text into the balanced room; such a label keeps today's layout.
+            if (!centred || icon == null || label.getAutoSizeTextType() != TextView.AUTO_SIZE_TEXT_TYPE_NONE) return 0;
+            return IconLabelBalance.spacer(true, label.getWidth(), label.getPaddingStart(), label.getPaddingEnd(),
+                    icon.getBounds().width(), label.getCompoundDrawablePadding(), textWidth());
+        }
+        /** The shown text's widest line, unwrapped; measured again only when the text or its paint changes. */
+        private float textWidth() {
+            CharSequence shown = label.getText();
+            if (label.getTransformationMethod() != null) shown = label.getTransformationMethod().getTransformation(shown, label);
+            android.text.TextPaint paint = label.getPaint();
+            if (shown != measuredText || paint.getTextSize() != measuredSize || paint.getLetterSpacing() != measuredSpacing
+                    || paint.getTypeface() != measuredFace) {
+                measuredText = shown; measuredSize = paint.getTextSize(); measuredSpacing = paint.getLetterSpacing();
+                measuredFace = paint.getTypeface();
+                measuredWidth = android.text.Layout.getDesiredWidth(shown, paint);
+            }
+            return measuredWidth;
+        }
     }
     /**
      * Display-only mode cues from the shown text, which must be Telemetry's English label; callers
