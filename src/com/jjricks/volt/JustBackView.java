@@ -55,8 +55,6 @@ final class JustBackView extends LinearLayout {
     private final Cell time, speed, battery;
     private String rideId;
     private String shownKey = "";
-    /** The card's spoken name without the ended line, which bind puts in front of it each time. */
-    private Msg spokenRide;
     /** The distance as the card shows it ("6.2 mi"), for the card's spoken sentence (HubText.justBackSpoken). */
     private CharSequence spokenDistance;
 
@@ -186,18 +184,10 @@ final class JustBackView extends LinearLayout {
         saved.setText(ended);
         String key = s.id + ":" + units;
         if (!key.equals(shownKey)) show(s, units, key);
-        // The line sighted owners read first is spoken first too (council early review of part 9, note 7).
-        String spoken = ended + (endsSentence(ended) ? " " : ". ") + spokenRide.render();
-        // One whole sentence per language, ended line first, then the distance (part 10's text). It replaces the two
-        // sentences above; the line building them goes in an ordinary part (a batch may not change a line holding a literal).
-        spoken = HubText.justBackSpoken(minutes, spokenDistance).render();
+        // One whole sentence per language, the ended line sighted owners read first spoken first too (council early review
+        // of part 9, note 7), then the distance (part 10's text).
+        String spoken = HubText.justBackSpoken(minutes, spokenDistance).render();
         if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
-    }
-
-    /** Whether text already ends in sentence punctuation (a translation may end its line with one). */
-    private static boolean endsSentence(String text) {
-        String trimmed = text.trim();
-        return !trimmed.isEmpty() && ".!?\u3002\uff01\uff1f\u061f\u0964".indexOf(trimmed.charAt(trimmed.length() - 1)) >= 0;
     }
 
     /** Everything but the ended line, for ride s in units; key is the ride and units it shows. */
@@ -208,13 +198,12 @@ final class JustBackView extends LinearLayout {
         if (otherRide) route.setRoute(null);
         Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units, 1);
         distance.setText(miles == null ? "—" : large(miles));
-        spokenRide = HubText.justBackDescription(miles == null ? "—" : miles.toString());
         spokenDistance = distance.getText().toString();
         // A duration, short as the mock-up writes it ("24m", "1h 02m"), not a clock that reads as a time of day.
         String duration = s.shownElapsedMs > 0 ? HubText.justBackRideTimeValue(s.shownElapsedMs).render() : null;
-        time.set(duration, duration);
         // Spoken in words ("20 minutes", "1 hour 2 minutes"), so a screen reader never reads "20m" as a distance.
-        if (duration != null) time.set(duration, HubText.justBackRideTimeSpoken(s.shownElapsedMs).render());
+        if (duration == null) time.set(null, null);
+        else time.set(duration, HubText.justBackRideTimeSpoken(s.shownElapsedMs).render());
         // The saved average, else the measured distance over the moving or shown time (RideAverages, as the ride's page
         // on Rides): a ride with a distance and a time never shows a dash. Formatted as Rides formats a speed (RideText.speed).
         Double average = RideAverages.speedKmh(s);

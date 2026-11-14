@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** HubPages: the page tree, legacy ids, More's sections and the tab and riding rules (hub layout plan, PR 1). */
+/** HubPages: the page tree, legacy ids, More's sections and the riding rule (hub layout plan, PRs 1 and 11). */
 public final class HubPagesTest {
     private static int checks;
 
@@ -18,7 +18,8 @@ public final class HubPagesTest {
         tree();
         legacy();
         subjects();
-        tabs();
+        hub();
+        dock();
         riding();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
@@ -66,8 +67,10 @@ public final class HubPagesTest {
         require(HubPages.canonical("controls").equals(HubPages.CONTROLS), "controls is the Controls page");
         require(HubPages.canonical(null).equals(HubPages.HOME) && HubPages.canonical("bogus").equals(HubPages.HOME)
                 && HubPages.canonical("").equals(HubPages.HOME), "Anything else opens Home");
-        for (String legacy : new String[] {"home", "stats", "controls", "rides", "more"})
-            require(HubPages.TABS.contains(HubPages.tabOf(HubPages.canonical(legacy))), "Each of today's tabs opens a page on its tab: " + legacy);
+        // The Scooter tab's index (parts 3-10) is gone (PR 11): its id opens Home, whose subjects it listed.
+        require(HubPages.canonical("scooter").equals(HubPages.HOME) && !HubPages.known(HubPages.SCOOTER), "scooter opens Home");
+        for (String legacy : new String[] {"home", "stats", "controls", "rides", "more", "scooter"})
+            require(HubPages.depth(HubPages.canonical(legacy)) <= 1, "Each old tab opens Home or a page directly under it: " + legacy);
     }
 
     private static void subjects() {
@@ -87,40 +90,115 @@ public final class HubPagesTest {
                 && HubPages.icon(HubPages.LIGHTS).equals("bulb") && HubPages.icon(HubPages.SERVICE).equals("wrench"), "The plan's subject icons");
     }
 
-    private static void tabs() {
-        require(HubPages.TABS.size() == 5 && HubPages.TABS.get(0).equals(HubPages.HOME) && HubPages.TABS.get(2).equals(HubPages.SCOOTER),
-                "Five tab roots, Home first and Scooter in the centre");
-        for (String tab : HubPages.TABS) require(HubPages.tabOf(tab).equals(tab), "A tab root is its own tab: " + tab);
-        for (String page : HubPages.ALL) require(HubPages.TABS.contains(HubPages.tabOf(page)), "Every page is on a tab: " + page);
-        require(HubPages.tabOf(HubPages.DATA_STORAGE).equals(HubPages.DATA), "Data pages are on Live Stats");
-        require(HubPages.tabOf(HubPages.RIDE_RIDING).equals(HubPages.RIDE), "Ride pages are on Rides");
-        require(HubPages.tabOf(HubPages.SETTINGS_UNITS).equals(HubPages.SETTINGS), "Settings pages are on More");
-        for (String page : new String[] {HubPages.CONTROLS_LIMITS, HubPages.BATTERY, HubPages.LIGHTS_STAR, HubPages.SECURITY,
-                HubPages.SERVICE_COMPATIBILITY, HubPages.SCOOTER})
-            require(HubPages.tabOf(page).equals(HubPages.SCOOTER), "Scooter pages are on Scooter: " + page);
-        require(HubPages.tabOf("stats").equals(HubPages.DATA) && HubPages.tabOf("more").equals(HubPages.SETTINGS)
-                && HubPages.tabOf("bogus").equals(HubPages.HOME), "Legacy and unknown ids find their tab");
+    private static void hub() {
+        // The Hub has no tabs (PR 11): Home is the root of every stack, and every other page is under a page under Home.
+        for (String page : HubPages.ALL)
+            require(page.equals(HubPages.HOME) || HubPages.parent(HubPages.subjectOf(page)).equals(HubPages.HOME), "Under Home: " + page);
+        for (String page : new String[] {HubPages.SETTINGS, HubPages.SEARCH})
+            require(HubPages.parent(page).equals(HubPages.HOME) && !HubPages.SUBJECTS.contains(page), "Header page, not a subject: " + page);
+    }
+
+    /** The Widgets dock (owner's answer 8 on #383): never cramped, every subject one tap away through "All". */
+    private static void dock() {
+        require(new HashSet<>(HubPages.DOCK_ORDER).equals(new HashSet<>(HubPages.SUBJECTS)) && HubPages.DOCK_ORDER.size() == 7,
+                "The dock's order lists each subject once");
+        // A 344 dp phone less the dock's 14 dp margins and 4 dp padding (308 dp): four subjects and All, each at least
+        // 60 dp (well over 48).
+        require(HubPages.dockRoom(344) == 308, "A 344 dp phone's dock room: " + HubPages.dockRoom(344));
+        List<String> phone = HubPages.dockSubjects(HubPages.dockRoom(344), 1f);
+        require(phone.equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY, HubPages.CONTROLS, HubPages.DATA)), "344 dp: " + phone);
+        require(HubPages.dockRoom(344) / (phone.size() + 1) >= 48, "Each item gets 48 dp at 344 dp");
+        for (float scale : new float[] {1f, 1.15f, 1.3f, 1.6f, 2f})
+            for (int width = 280; width <= 900; width += 4) {
+                List<String> shown = HubPages.dockSubjects(width, scale);
+                require(!shown.isEmpty(), "At least one subject: " + width + "/" + scale);
+                require(width / (shown.size() + 1f) >= HubPages.DOCK_ITEM_DP * scale || shown.size() == 1,
+                        "Comfortable items: " + width + "/" + scale);
+                int last = -1;
+                for (String subject : shown) {
+                    int at = HubPages.SUBJECTS.indexOf(subject);
+                    require(at > last, "Home's order: " + shown);
+                    last = at;
+                }
+                require(HubPages.dockSubjects(width + 4, scale).containsAll(shown), "More room never hides a subject: " + width + "/" + scale);
+            }
+        // At 1.3x text a 344 dp phone shows Ride and Battery & charging beside All, each item about 100 dp.
+        require(HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f).equals(java.util.Arrays.asList(HubPages.RIDE, HubPages.BATTERY)),
+                "Large text: fewer, still comfortable: " + HubPages.dockSubjects(HubPages.dockRoom(344), 1.3f));
+        require(HubPages.dockSubjects(HubPages.dockRoom(600), 1f).size() == 7, "A wide phone shows all seven");
+        // A wide dock (#392 early review): full names only when every one fits on one line, else every short name.
+        // 725 dp less 24 dp each side gives 677 dp, eight items of about 83.6 dp, captions of about 79.6 dp.
+        float[] fits = {40, 70, 60, 79};
+        require(HubPages.wideDockNames(fits, 677, 8, 96, 4), "Every name fits: full names");
+        float[] oneWraps = {40, 90, 60, 50};
+        require(!HubPages.wideDockNames(oneWraps, 677, 8, 96, 4), "One name would wrap (Battery & charging at 725 dp): short names");
+        // With room to spare an item is capped at 96 dp: 92 dp captions.
+        require(HubPages.wideDockNames(new float[] {92}, 2000, 8, 96, 4), "The cap's caption: 92 dp fits");
+        require(!HubPages.wideDockNames(new float[] {92.5f}, 2000, 8, 96, 4), "Past the cap's caption: short names");
+        require(!HubPages.wideDockNames(new float[] {10}, 677, 0, 96, 4), "No items: short names");
+        require(!HubPages.wideDockNames(new float[] {Float.NaN}, 677, 8, 96, 4), "An unmeasured name: short names");
+        // The dock's upward swipe: past twice the slop upward and more up than across; a quick flick counts on its first move.
+        require(HubPages.dockSwipe(17, 0, 8), "17 dp up past a 8 dp slop: a swipe");
+        require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
+        require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
+        // The dock never covers the Lock bar (part 11), in dp at 3 px per dp as the emulator draws them. 725x604 dp at
+        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it moves, below); scrolled 130 dp, the bar
+        // (431-489) is above the dock (it shows). 725x604 at 1x: the bar ends at 422 dp, the dock starts at 460 dp.
+        // A bar well above a dock at 790 dp (a 344 dp phone with no Shortcuts card above the bar).
+        require(HubPages.dockCovers(561 * 3, 615 * 3, 561 * 3, 604 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x: the dock is over the Lock bar");
+        require(!HubPages.dockCovers(431 * 3, 489 * 3, 431 * 3, 489 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x, scrolled: the bar is clear of the dock");
+        require(!HubPages.dockCovers(372 * 3, 422 * 3, 372 * 3, 422 * 3, 460 * 3, 530 * 3), "725x604 at 1x: the dock is under the bar");
+        for (float text : new float[]{1f, 1.4f})
+            require(!HubPages.dockCovers(Math.round(420 * text), Math.round(474 * text), Math.round(420 * text), Math.round(474 * text), 790, 862), "344x882 at " + text + "x: clear");
+        require(!HubPages.dockCovers(-200, -10, 0, 0, 0, 70), "a bar scrolled out of sight is never covered");
+        require(HubPages.dockCovers(100, 160, 100, 160, 159, 200) && !HubPages.dockCovers(100, 160, 100, 160, 160, 200), "one pixel of overlap counts; touching does not");
+        require(!HubPages.dockCovers(500, 560, 500, 520, 530, 600), "only the bar's shown part counts");
+        // #392's sweep review: where the dock would cover the bar it floats 10 dp above it instead, so Widgets Home keeps
+        // its navigation in sight; it steps aside only where moving up would take it above the page's top (minTop: under
+        // the status bar and the 48 dp Simulation banner, 72 dp). In dp, times 3 for window pixels as the emulator draws.
+        int px = 3, gap = 10 * px, minTop = 72 * px;
+        // 344x882 dp, 1x: the Shortcuts card puts the bar at 791-843 dp, under a dock at 777-847 dp: up 66 dp, top at 711 dp.
+        require(HubPages.dockCovers(791 * px, 843 * px, 791 * px, 843 * px, 777 * px, 847 * px), "344x882 at 1x: the bar is under the dock");
+        require(HubPages.dockLift(791 * px, 777 * px, 847 * px, minTop, gap) == -66 * px, "344x882 at 1x: the dock floats 10 dp above the bar");
+        // 344x882 dp, 1.4x: a 98 dp dock at 749-847 dp, the bar at 820 dp: up 37 dp.
+        require(HubPages.dockLift(820 * px, 749 * px, 847 * px, minTop, gap) == -37 * px, "344x882 at 1.4x: the dock floats above the bar");
+        // 412x915 dp, 1x: the bar at 830-882 dp, the dock at 810-880 dp: up 60 dp.
+        require(HubPages.dockLift(830 * px, 810 * px, 880 * px, minTop, gap) == -60 * px, "412x915 at 1x: the dock floats above the bar");
+        // 412x915 dp at 1.4x: the bar at 860 dp, a 98 dp dock at 782-880 dp: up 30 dp.
+        require(HubPages.dockLift(860 * px, 782 * px, 880 * px, minTop, gap) == -30 * px, "412x915 at 1.4x: the dock floats above the bar");
+        // 725x604 dp, 1x: the bar (372-422 dp) is above the dock (460-530 dp), so the dock covers nothing and keeps its place
+        // (checked above). A bar that starts 10 dp or more under the dock's own place needs no move either.
+        require(HubPages.dockLift(540 * px, 460 * px, 530 * px, minTop, gap) == 0 && HubPages.dockLift(600 * px, 460 * px, 530 * px, minTop, gap) == 0,
+                "A bar 10 dp or more under the dock: no move");
+        // 725x604 dp, 1.4x: the bar at 561 dp under a dock at 496-569 dp: up 18 dp, its top at 478 dp, still on the page.
+        require(HubPages.dockLift(561 * px, 496 * px, 569 * px, minTop, gap) == -18 * px, "725x604 at 1.4x: the dock floats above the bar");
+        // A window too short for both: moving up would put the dock's top at 70 dp, above the page: it steps aside.
+        require(HubPages.dockLift(150 * px, 140 * px, 210 * px, minTop, gap) == HubPages.DOCK_STEP_ASIDE, "No room above the bar: step aside");
+        require(HubPages.dockLift(152 * px, 140 * px, 210 * px, minTop, gap) == -68 * px, "Exactly the room: the dock moves up");
+        require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 
     private static void riding() {
-        for (String page : new String[] {HubPages.HOME, HubPages.SCOOTER, HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.DATA,
+        for (String page : new String[] {HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.DATA,
                 HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS})
             require(HubPages.clearForRiding(page), "Riding mode may open over " + page);
         for (String page : new String[] {HubPages.SETTINGS, HubPages.SETTINGS_SCOOTERS, HubPages.SECURITY, HubPages.SERVICE_EXPERIMENTAL,
                 HubPages.SERVICE_COMPATIBILITY, HubPages.RIDE_RIDING, HubPages.RIDE_RECORDING, HubPages.DATA_STORAGE, HubPages.SEARCH})
             require(!HubPages.clearForRiding(page), "Riding mode waits on " + page);
         require(!HubPages.clearForRiding(null) && !HubPages.clearForRiding("more"), "Unknown ids are busy");
-        // The owner's answer 21 (#383): of the Scooter pages, only the index, Controls, Battery & charging and Lights & sound
-        // let it open; every other subject and every sub-page blocks it. Checked over every page so a new page can't slip in.
-        Set<String> clear = new HashSet<>(java.util.Arrays.asList(HubPages.HOME, HubPages.SCOOTER, HubPages.RIDE, HubPages.RIDE_RIDES,
+        // The owner's answer 21 (#383): of the scooter subjects only Controls, Battery & charging and Lights & sound let it
+        // open; every other subject and every sub-page blocks it. Checked over every page so a new page can't slip in.
+        Set<String> clear = new HashSet<>(java.util.Arrays.asList(HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES,
                 HubPages.DATA, HubPages.CONTROLS, HubPages.BATTERY, HubPages.LIGHTS));
         for (String page : HubPages.ALL)
             require(HubPages.clearForRiding(page) == clear.contains(page), "Only the agreed pages let riding mode open: " + page);
         for (String page : HubPages.ALL)
             if (HubPages.depth(page) > HubPages.depth(HubPages.subjectOf(page)))
                 require(!HubPages.clearForRiding(page) || page.equals(HubPages.RIDE_RIDES), "A sub-page blocks it: " + page);
-        // Today's rule with the tab roots: only More blocks by page.
-        for (String tab : HubPages.TABS) require(HubPages.clearForRiding(tab) == !tab.equals(HubPages.SETTINGS), "Tab rule: " + tab);
+        // The old tab roots keep their rule: only More (Settings) blocks by page; the Scooter tab's id is not a page now.
+        for (String tab : new String[] {"home", "stats", "rides", "more"})
+            require(HubPages.clearForRiding(HubPages.canonical(tab)) == !tab.equals("more"), "Tab rule: " + tab);
+        require(!HubPages.clearForRiding(HubPages.SCOOTER), "scooter is not a page");
     }
 
     private static void moreSections(String moreScreen) throws Exception {
@@ -160,6 +238,7 @@ public final class HubPagesTest {
             String icon = HubPages.icon(page);
             require(source.contains("key.equals(\"" + icon + "\")"), "Ui draws the icon " + icon + " for " + page);
         }
+        require(source.contains("key.equals(\"" + HubPages.DOCK_ALL_ICON + "\")"), "Ui draws the dock's All icon");
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }

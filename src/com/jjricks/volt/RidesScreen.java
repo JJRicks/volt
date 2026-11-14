@@ -148,7 +148,7 @@ public final class RidesScreen implements AppScreen {
         selected = new LinkedHashSet<String>(preferences.getStringSet("ride_comparison", new LinkedHashSet<String>()));
         chartKey = preferences.getString("ride_chart_key", "power_w");
         selectedRide = preferences.getString("ride_selected", "");
-        // Same rule as the activity's side rail (Ui.wideLayout), so two panes appear exactly when the rail does.
+        // The wide breakpoint (Ui.wideLayout), as every other wide page uses.
         wide = mode == ALL && ui.wideLayout();
         if (mode == SENSORS) {
             // A part of a Hub page, which scrolls the whole page: no scroller of its own.

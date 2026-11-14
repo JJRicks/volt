@@ -34,7 +34,7 @@ desktop ADB/Python method below remains available.
 
 PHONE-ONLY CAPTURE WITH SHIZUKU (ANDROID 11+)
 
-In first-run setup (or More → My scooters → Run setup again), choose
+In first-run setup (or Settings → My scooters → Run setup again), choose
 "Use Shizuku on this phone". Follow the official linked guide to install Shizuku,
 pair Wireless debugging and start it. This route supports Shizuku 13+ started
 through debugging; root-backed Shizuku is not accepted. This first version supports
@@ -115,7 +115,7 @@ it to your phone manually. Existing computer files are never overwritten.
 
 IMPORT AND CONNECT
 
-1. Open Volt and go to More → Scooters → Import owner setup file.
+1. Open Volt and go to Settings → My scooters → Import owner setup file.
 2. Choose navee-owner-setup.json in Downloads.
 3. Allow Nearby devices, power on your scooter, and tap Connect.
 4. Select your scooter if it is the first connection. The app checks its serial
@@ -126,7 +126,7 @@ You can delete the Downloads copy after import if you keep a safe backup.
 Turn off USB debugging when you no longer need it.
 
 You can also paste an existing 12-character identity or private setup backup
-under More → Scooters → Add with owner identity. Backup imports preserve owner/shared role.
+under Settings → My scooters → Add with owner identity. Backup imports preserve owner/shared role.
 Never paste an account password or an HTTP token into this field.
 
 NEW OR RESET SCOOTER — NO COMPUTER
@@ -135,7 +135,7 @@ A scooter that has never been set up, or was removed from the NAVEE app, has
 no owner. In Volt's guided setup, choose Make a new owner key: Volt makes an
 owner key, keeps it only on this phone, and connects with it. Set it up in
 Volt before adding it in the NAVEE app. While it has Volt's key, the NAVEE app
-can't add it; release it in Volt first (More → My scooters, the pencil,
+can't add it; release it in Volt first (Settings → My scooters, the pencil,
 Edit scooter → Release this scooter). A scooter already saved in Volt must be
 released from its saved profile first; setup refuses it otherwise. Once the
 key has been offered to a scooter, Volt keeps it, even if setup goes another
@@ -183,7 +183,7 @@ on a new phone without another capture.
 
 The app does not bind scooters to an account, change firmware, or replace
 cloud ownership transfers, OEM activation or Find My/Find Hub services. Release
-this scooter (More > My scooters > Edit scooter, tried on a UT5 MAX) only makes
+this scooter (Settings > My scooters > Edit scooter, tried on a UT5 MAX) only makes
 a connected scooter forget its owner key; it changes no NAVEE account record.
 Ordinary diagnostics exclude owner identity and PIN digits. A private owner
 backup intentionally contains its setup identity.

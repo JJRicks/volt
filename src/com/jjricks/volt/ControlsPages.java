@@ -77,7 +77,7 @@ final class ControlsPages {
         final List<String> rows;
         /** The UT5 MAX top speed card leads the page (another model's maximum_speed table is an ordinary row). */
         final boolean topSpeed;
-        /** The page is the Scooter tab's index: a search field over every row, and no rows of its own. */
+        /** The page is the search page (PR 11; the Scooter tab's index before it): a search field over every row, and no rows of its own. */
         final boolean search;
 
         Spec(String page, List<String> rows, boolean topSpeed, boolean search) {
@@ -114,7 +114,7 @@ final class ControlsPages {
     }
 
     static {
-        put(HubPages.SCOOTER, false, true);
+        put(HubPages.SEARCH, false, true);
         put(HubPages.CONTROLS, true, false,
                 "maximum_speed", "cruise_control", "energy_recovery", "traction_control", "acceleration", "dual_drive",
                 link(HubPages.CONTROLS_ASSISTS), link(HubPages.CONTROLS_LIMITS));

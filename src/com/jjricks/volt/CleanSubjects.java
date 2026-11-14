@@ -19,18 +19,21 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Clean Home's seven subjects (hub layout plan, PR 8), in Home's order: each row has the subject's icon, name and a
+ * Clean Home's seven subjects (hub layout plan, PR 8), in Home's order; also the Widgets dock's sheet and the search
+ * page's list while its field is empty (PR 11): each row has the subject's icon, name and a
  * live one-line summary, and opens the subject's own page (ScreenHost.open with its HubPages id: the pages parts 3-5
- * built, as the Scooter tab's index opens them). While a maintenance check is due, an orange dot leads Service's summary. A
- * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary, the same
- * source as the Scooter tab's index; Ride's and Data's lines are Clean's own (Ride shows the running recording while a
- * ride records, HubSummaries.rideLine). Words from HubText.
+ * built, pushed on Home's page stack). While a maintenance check is due, an orange dot leads Service's summary. A
+ * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary (the rules
+ * in HubSummaries); Ride's and Data's lines are this list's own (Ride shows the running recording while a ride
+ * records, HubSummaries.rideLine). Words from HubText.
  */
 final class CleanSubjects {
     /** View tag of a subject's row: "home-subject-" and its page id. */
     static String tag(String subject) { return "home-subject-" + subject; }
 
     private final ScreenHost host;
+    /** Runs before a row opens its subject (the dock's sheet closes itself); null on Home. */
+    private final Runnable beforeOpen;
     private final Ui ui;
     private final SharedPreferences preferences;
     private final LinearLayout view;
@@ -52,8 +55,15 @@ final class CleanSubjects {
     private RideStore.Summary foundRide;
     private static final long RIDE_EVERY_MS = 30_000;
 
-    CleanSubjects(ScreenHost host) {
+    CleanSubjects(ScreenHost host) { this(host, null); }
+
+    /**
+     * The same list for another place (hub layout plan, PR 11): the Widgets dock's sheet, which closes itself first
+     * (beforeOpen), and the search page while its field is empty.
+     */
+    CleanSubjects(ScreenHost host, Runnable beforeOpen) {
         this.host = host;
+        this.beforeOpen = beforeOpen;
         ui = host.ui();
         preferences = host.activity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
         view = ui.groupCard();
@@ -119,7 +129,11 @@ final class CleanSubjects {
         line.setClickable(true);
         line.setFocusable(true);
         line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
-        line.setOnClickListener(v -> { if (!closed) host.open(subject); });
+        line.setOnClickListener(v -> {
+            if (closed) return;
+            if (beforeOpen != null) beforeOpen.run();
+            host.open(subject);
+        });
         ids.add(subject);
         names.add(name);
         values.add(value);

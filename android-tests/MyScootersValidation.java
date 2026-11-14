@@ -129,15 +129,21 @@ public final class MyScootersValidation extends Instrumentation {
         main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "more"); invoke(more(), "selectSection", new Class<?>[]{String.class}, "Scooters"); more().refresh(); });
         await(() -> tag("scooters-add") != null && tag("scooters-add").isShown(), "My scooters menu did not open");
     }
-    /** -e layout: the activity's window class and More's columns both match it (Ui.wideLayout's rule). */
+    /**
+     * -e layout: the activity's window class matches it (Ui.wideLayout's rule). My scooters is a Settings page since part 11
+     * (#392): one column at every width (Settings' sub-pages are pages, so More's menu-beside-submenu panes are gone), so
+     * the page must be one column in both window classes.
+     */
     private void expectedLayout() throws Exception {
         if (layout.isEmpty()) return;
         require(layout.equals("wide") || layout.equals("phone"), "layout must be wide or phone");
         final boolean wide = layout.equals("wide");
         main(() -> {
-            require(Boolean.TRUE.equals(field(activity, "expanded")) == wide, "Expected the " + layout + " window layout (side rail or bottom bar) at "
+            require(Boolean.TRUE.equals(field(activity, "expanded")) == wide, "Expected the " + layout + " window layout at "
                     + activity.getResources().getConfiguration().screenWidthDp + " dp and " + textScale + "x text");
-            require(Boolean.TRUE.equals(field(more(), "wide")) == wide, "Expected the " + layout + " More layout");
+            require("settings.scooters".equals(field(activity, "selectedPage")), "My scooters is not its own Settings page");
+            require(!Boolean.TRUE.equals(field(more(), "wide")) && field(more(), "menuScroll") == null && field(more(), "sectionScroll") == null,
+                    "My scooters built More's two-pane layout at " + activity.getResources().getConfiguration().screenWidthDp + " dp");
         });
     }
     private void visibleCards() throws Exception {

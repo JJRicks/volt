@@ -92,9 +92,9 @@ You can try most screens on an emulator or your own phone with no scooter. Devel
    "$ANDROID_SDK_ROOT/platform-tools/adb" -s emulator-5554 push tests/fixtures/legacy/full-v1.voltbackup /sdcard/Download/
    ```
 
-2. In Volt, open More › Back up & restore › Restore, choose that file and enter the password `synthetic fixture password`.
+2. In Volt, open Settings (the gear on Home) › Back up & restore › Restore, choose that file and enter the password `synthetic fixture password`.
 3. Review the contents, choose Replace everything, then Close Volt and reopen it. Home shows **Synthetic UT5**, disconnected.
-4. Open More › Developer options and turn on **Simulate scooter as connected**. A red **Simulation · Exit** bar appears, and Home shows readings.
+4. Open Settings › Developer options and turn on **Simulate scooter as connected**. A red **Simulation · Exit** bar appears, and Home shows readings.
 
 Restoring replaces the app's data on that device, so do it only in a build or emulator you don't use for riding. The backup also turns the online map on.
 

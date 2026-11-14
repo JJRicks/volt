@@ -41,10 +41,10 @@ public final class ControlsPagesTest {
             require(!HubPages.subjectOf(page).equals(HubPages.SETTINGS) && !HubPages.subjectOf(page).equals(HubPages.RIDE)
                     && !HubPages.subjectOf(page).equals(HubPages.DATA), "Scooter rows stay on scooter subjects: " + page);
         }
-        ControlsPages.Spec index = ControlsPages.spec(HubPages.SCOOTER);
-        require(index.search && index.rows.isEmpty() && !index.topSpeed, "The index is search only");
+        ControlsPages.Spec index = ControlsPages.spec(HubPages.SEARCH);
+        require(index.search && index.rows.isEmpty() && !index.topSpeed, "The search page is search only");
         for (String page : ControlsPages.pages())
-            require(page.equals(HubPages.SCOOTER) || !ControlsPages.spec(page).search, "Only the index searches: " + page);
+            require(page.equals(HubPages.SEARCH) || !ControlsPages.spec(page).search, "Only the search page searches: " + page);
         require(ControlsPages.spec(HubPages.CONTROLS).topSpeed, "The top speed card leads Controls");
         int topSpeed = 0;
         for (String page : ControlsPages.pages()) if (ControlsPages.spec(page).topSpeed) topSpeed++;

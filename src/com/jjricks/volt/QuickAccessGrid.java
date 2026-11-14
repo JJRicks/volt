@@ -537,25 +537,19 @@ final class QuickAccessGrid extends ViewGroup {
         }
         /**
          * Round: the circle at its size for this column and the one short name on one line under it, a little smaller
-         * only where it does not fit at full size, else a shorter name, else the icon alone (QuickActionLayout). The
+         * only where it does not fit at full size, else a shorter name, else the icon alone (QuickActionLayout); and
+         * where one of the row's names has to get smaller, the others take its size (QuickActionLayout.names). The
          * circles stay on one line across the row: each column's circle is at its top.
          */
-        void measureRound(int width) {
+        void measureRound(int width, QuickActionLayout.Name name) {
             float density = getResources().getDisplayMetrics().density;
             int side = ui.dp(QuickActionLayout.circleDp(width / density));
             LinearLayout.LayoutParams circleSize = (LinearLayout.LayoutParams) circle.getLayoutParams();
             if (circleSize.width != side) { circleSize.width = circleSize.height = side; }
             int pad = ui.dp(QuickActionLayout.SIDE_DP);
             setPadding(pad, ui.dp(2), pad, ui.dp(4));
-            float room = width - 2 * pad;
-            // Measured at each size it may take, as it is drawn, on a copy of the paint, so the view's size changes only
-            // when the choice does. A pixel is kept in hand so a name the rule keeps whole is never ellipsized by rounding.
-            android.text.TextPaint sized = new android.text.TextPaint(label.getPaint());
-            QuickActionLayout.Name name = QuickActionLayout.name(room - 1, (text, share) -> {
-                sized.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
-                        QuickActionLayout.NAME_SP * ui.textScale * share, getResources().getDisplayMetrics()));
-                return sized.measureText(text);
-            }, roundNames(entry));
+            // The name as the row fitted it (QuickActionLayout.names, with roundWidth), so the view's size changes only
+            // when the choice does.
             label.setVisibility(name.text == null ? GONE : VISIBLE);
             if (name.text != null) {
                 // Always set: the size chosen is the one measured (a 5% step can be under half a pixel on a small
@@ -569,6 +563,18 @@ final class QuickAccessGrid extends ViewGroup {
             }
             measure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+        }
+        /**
+         * A name's width at a share of its full size, measured as it is drawn on a copy of the label's paint (for
+         * QuickActionLayout's ladder).
+         */
+        QuickActionLayout.ScaledWidth roundWidth() {
+            android.text.TextPaint sized = new android.text.TextPaint(label.getPaint());
+            return (text, share) -> {
+                sized.setTextSize(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP,
+                        QuickActionLayout.NAME_SP * ui.textScale * share, getResources().getDisplayMetrics()));
+                return sized.measureText(text);
+            };
         }
         /** A copy of a text's paint at {@code sp} times the app's text scale (and the system's, as sp is). */
         private android.text.TextPaint fullSize(TextView text, float sp) {
@@ -670,7 +676,13 @@ final class QuickAccessGrid extends ViewGroup {
         int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
         int rows = (count + columns - 1) / columns;
         rowHeight = ui.dp(48);
-        for (Cell cell : cells) { cell.measureRound(cellWidth); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
+        // Each name through #449's ladder, then the four at one size: when one has to get smaller, the others match it
+        // (QuickActionLayout.names). A pixel is kept in hand so a name the rule keeps whole is never ellipsized by rounding.
+        int pad = ui.dp(QuickActionLayout.SIDE_DP);
+        String[][] ladders = new String[count][];
+        for (int i = 0; i < count; i++) ladders[i] = roundNames(cells.get(i).entry);
+        QuickActionLayout.Name[] fitted = QuickActionLayout.names(cellWidth - 2 * pad - 1, cells.get(0).roundWidth(), ladders);
+        for (int i = 0; i < count; i++) { Cell cell = cells.get(i); cell.measureRound(cellWidth, fitted[i]); rowHeight = Math.max(rowHeight, cell.getMeasuredHeight()); }
         for (Cell cell : cells) cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
         setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);

@@ -19,8 +19,9 @@ final class HubRoutes {
     /** Quick access ids that open a page, and the page. */
     private static final Map<String, String> PAGES = new LinkedHashMap<>();
     static {
-        // "Settings" (the legacy default) opened every scooter setting, Security and App preferences: the Scooter tab holds them.
-        PAGES.put("controls", HubPages.SCOOTER);
+        // "Settings" (the legacy default) opened every scooter setting, Security and App preferences: the Scooter tab held them.
+        // Since the Hub (PR 11) Search holds what that tab's index did: the search over every scooter row, and the subjects.
+        PAGES.put("controls", HubPages.SEARCH);
         PAGES.put("stats", HubPages.DATA);
         PAGES.put("rides", HubPages.RIDE);
         PAGES.put("section:Security", HubPages.SECURITY);
@@ -73,8 +74,8 @@ final class HubRoutes {
 
     /**
      * The More section a Settings or Data page shows as its body (hub layout plan, PR 5), or null for a page MainActivity
-     * builds otherwise. Settings itself is still More's tab while the tabs remain: a shortcut to it (more:App) opens More
-     * on App preferences, as it always has.
+     * builds otherwise. Settings itself is MoreScreen's index (no section), so its "App" here is only the section id a
+     * Settings shortcut (more:App) names; MainActivity builds the index for it.
      */
     static String moreSectionOf(String page) {
         if (page == null) return null;

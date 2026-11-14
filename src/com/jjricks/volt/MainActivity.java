@@ -69,27 +69,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     private static final int BLUETOOTH_PERMISSION=101, NOTIFICATION_PERMISSION=102, ENABLE_BLUETOOTH=103,
             RIDE_LOCATION_PERMISSION=104, IMPORT_OWNER=201, SAVE_DOCUMENT=202, IMPORT_LAYOUTS=203;
     private static final long BODY_REFRESH_MS=1000;
-    private static final long MORE_RETENTION_MS=60_000;
-    private static final String MORE_AWAY_AT="more_away_elapsed", MORE_AWAY_BOOT="more_away_boot";
+    /** When Volt last left the screen (elapsed realtime) and the boot it was in; read once on return (HubNav.awayExpired). */
+    private static final String HUB_AWAY_AT="hub_away_elapsed", HUB_AWAY_BOOT="hub_away_boot";
     private static final java.util.Set<String> preparingExports=java.util.Collections.synchronizedSet(new java.util.HashSet<String>());
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final ConnectionFeedbackState connectionFeedback=new ConnectionFeedbackState(SystemClock::elapsedRealtime);
     private final ConnectionHapticPlayer connectionHaptics=new ConnectionHapticPlayer();
-    // Volt order: Scooter is the raised centre button of the floating tab bar. Each tab opens its root Hub page.
-    private final String[] pages=HubPages.TABS.toArray(new String[0]);
-    private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
-    /** The tab names as shown; names above are ids, in the same order. */
-    private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
-    /** The rail's one-line tab captions when a full name does not fit (Ui.nav); the screen reader keeps the full name. */
-    private String[] navShortNames(){return new String[]{T.mainNavHomeShort(),T.mainNavStatsShort(),T.mainNavScooterShort(),T.mainNavRidesShort(),T.mainNavMoreShort()};}
-    private String shownPageName(String id){int at=java.util.Arrays.asList(names).indexOf(id);return at<0?id:navNames()[at];}
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
     private static final long STATS_RETENTION_MS=10000L;
-    private final String[] icons={"home","stats","scooter","rides","more"};
-    private static final int NAV_CENTER=2;
-    /** The Scooter tab (the phone's raised button, or the rail item) for the maintenance dot, and whether it is the raised button. */
-    private View scooterTab;private boolean scooterTabCorner;
+    /** Home's Lock bar as last built (HubDock keeps it clear on Widgets); null before any. */
+    private View dashboardLock;
+    /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
+    private HubDock dock;
     private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>();
     private ScooterService scooterService;
     private SharedPreferences preferences,documents;
@@ -182,7 +174,6 @@ public final class MainActivity extends Activity implements ScreenHost {
     };
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
-    private int navFrom = -1;
     private View pageHeader;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
         if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
@@ -238,7 +229,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
         setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
         super.onCreate(saved);
-        if(Build.VERSION.SDK_INT>=33){systemBack=this::navigateBack;getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
+        if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
         String stagedExport=documents.getString("path",null);
         if(stagedExport!=null&&!documents.getBoolean("ready",false)&&!preparingExports.contains(stagedExport)){
@@ -252,14 +243,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
-        // A notice tap still waiting for the Scooter tab survives a cold start (into unfinished setup, say), as on main.
+        // A notice tap still waiting for riding mode or setup to close survives a cold start (into unfinished setup, say), as on main.
         maintenancePending|=MaintenanceScreen.pending(preferences);
         selectedPage=nav.current();
         if(saved!=null&&saved.containsKey("riding_opened_ms"))ridingResume=RidingSession.Resume.of(saved.getString("riding_profile"),saved.getLong("riding_opened_ms"),saved.getDoubleArray("riding_distance"),saved.getDoubleArray("riding_speed"),saved.getLong("riding_auto_ends",-1),saved.getBoolean("riding_link_seen",false),saved.getLongArray("riding_leave"));
-        expireMoreSection(saved!=null);
-        // A maintenance notice's tap opens the Maintenance page on the Scooter tab, for the active scooter only.
+        // A fresh start has no stack to keep, so a clock left by the last run never cuts a notice's route short.
+        if(saved!=null)expireAway();else clearAway();
+        // A maintenance notice's tap opens Service › Maintenance reminders, for the active scooter only.
         MaintenanceNotices.Tap tap=saved==null?MaintenanceNotices.tapped(getIntent(),preferences,new ScooterProfiles(this)):null;
-        // Also kept as pending until a Scooter page is built: setup shown first replaces the stack when it finishes.
+        // Also kept as pending until a page is built outside setup: setup shown first replaces the stack when it finishes.
         if(tap!=null&&tap.route==MaintenanceNotify.Route.OPEN_PAGE){showMaintenanceFromNotice();pendMaintenance(true);}
         expireStatsSection(saved!=null);
         fold=new FoldMonitor(this,()->{if(!destroyed)rebuild();});
@@ -280,15 +272,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         MaintenanceNotices.Tap tap=MaintenanceNotices.tapped(intent,preferences,scooterService!=null&&scooterService.profiles!=null?scooterService.profiles:new ScooterProfiles(this));
         if(tap==null)return;
         if(tap.route!=MaintenanceNotify.Route.OPEN_PAGE){maintenanceTapOther(tap);return;}
-        // Focus mode stays up; the page opens when the Scooter tab is next shown.
+        // Focus mode stays up; the page opens as soon as riding mode or setup closes (riding mode still waiting to be
+        // restored counts: the page would open under it and be lost).
         if(riding!=null||onboarding!=null||ridingRestore){pendMaintenance(true);return;}
         captureScroll();showMaintenanceFromNotice();preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
-    /** More's menu, then the manual update check's dialog once More is on screen (showUpdateCheck). */
+    /** Settings, then the manual update check's dialog once Settings is on screen (showUpdateCheck). */
     private void openUpdateCheck(boolean now){
-        updateCheckPending=true;
-        if(now)openMoreSection("");
-        else{showPage(HubPages.SETTINGS);preferences.edit().putString("more_section","").apply();}
+        updateCheckPending=true;clearAway();
+        if(!now){showPage(HubPages.SETTINGS);return;}
+        if(selectedPage.equals(HubPages.SETTINGS))showUpdateCheck();else open(HubPages.SETTINGS);
     }
     private void showUpdateCheck(){
         if(!updateCheckPending||!(screen instanceof MoreScreen))return;
@@ -297,17 +290,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean updateCheckPending;
     /**
      * A maintenance notice was tapped while riding mode or setup was up (onNewIntent), or at a cold start: its page opens
-     * on the next Scooter tab page built. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
+     * as soon as they close. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
      */
     private boolean maintenancePending;
     private void pendMaintenance(boolean on){maintenancePending=on;MaintenanceScreen.pending(preferences,on);}
-    /** A maintenance notice's place: Scooter › Service › Maintenance reminders, so Back steps through Service to the Scooter index. */
-    private void showMaintenanceFromNotice(){pageArgs=null;compatibilityRecovery=false;nav.reset(HubPages.SCOOTER);nav.open(HubPages.SERVICE);nav.open(MaintenanceScreen.PAGE);selectedPage=nav.current();}
+    /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
+    private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
-        if(onTab(HubPages.SETTINGS)){boolean expired=expireMoreSection(true);markMoreActive();if(expired)rebuild();}
-        if(onTab(HubPages.DATA)){boolean expired=expireStatsSection(true);markStatsActive();if(expired)rebuild();}
+        // A long time away closes sub-pages back to their subject; Data keeps Live Stats' own shorter section reset.
+        boolean expired=expireAway();
+        if(inData()){expired|=expireStatsSection(true);markStatsActive();}
+        if(expired)rebuild();
         if(hasBluetoothPermission()){ensureService();if(bound&&scooterService!=null)startService(new Intent(this,ScooterService.class));}
         if(scooterService!=null){maybeApplyOwnerImport();scooterService.visible(true);if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}if(scooterService.ble.connected())scooterService.ble.refresh(false);}
         handler.removeCallbacks(pulse);handler.post(pulse);
@@ -330,8 +325,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onPause(){
         connectionHaptics.cancel();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
-        if(onTab(HubPages.SETTINGS))markMoreAway();
-        if(onTab(HubPages.DATA))markStatsAway();
+        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
+        long now=SystemClock.elapsedRealtime();
+        if(HubNav.awayClockStarts(OwnDialogs.showing(),launchedAt,now))markAway();
+        launchedAt=-1;searchKeyboard=null;
+        if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
         super.onPause();
@@ -340,7 +338,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
         if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
@@ -391,18 +389,28 @@ public final class MainActivity extends Activity implements ScreenHost {
             ((DashboardScreen) screen).onUserTouch();
         return super.dispatchTouchEvent(event);
     }
-    @Override public void onBackPressed(){navigateBack();}
-    private void navigateBack(){
+    @Override public void onBackPressed(){navigateBack(false);}
+    /** The system Back. Validations call it by name (AutoStart, Dashboard, Locale, UiOrganization), so it keeps its signature. */
+    private void navigateBack(){navigateBack(false);}
+    /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
+    private void navigateBack(boolean link){
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
-        if(screen!=null&&screen.back())return;
+        if(screen!=null&&!(link&&nav.size()>1&&HubNav.linkSkipsPageBack(selectedPage))&&screen.back())return;
         if(nav.size()>1){goBack();return;}
         finish();
     }
     @Override public void onConfigurationChanged(Configuration next){super.onConfigurationChanged(next);rebuild();fitTallSheet();}
+    /** When Volt last started an activity (elapsed realtime; -1 for none): HubNav.awayClockStarts. */
+    private long launchedAt=-1;
+    @Override public void startActivityForResult(Intent intent,int requestCode,Bundle options){
+        launchedAt=SystemClock.elapsedRealtime();
+        super.startActivityForResult(intent,requestCode,options);
+    }
     @Override public void onWindowFocusChanged(boolean focused){
         super.onWindowFocusChanged(focused);
+        if(focused&&searchKeyboard!=null){EditText field=searchKeyboard;searchKeyboard=null;showSearchKeyboard(field);}
         // Returning to the app (or dismissing a dialog) is not a new scooter connection.
         observeConnectionFeedback(true);
     }
@@ -425,9 +433,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!resumed||destroyed||enteringMaintenance)return;maybeApplyOwnerImport();automaticRefresh();maybeLaunchSave();handler.postDelayed(this,1000);
     }};
     private boolean darkTheme(){String theme=preferences.getString("theme","dark");return theme.equals("dark")||(theme.equals("system")&&(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES);}
-    /** Whether the shown page belongs to this tab (HubPages.tabOf), while the tab bar remains. */
-    private boolean onTab(String tab){return HubPages.tabOf(selectedPage).equals(tab);}
-    private int tabIndex(String page){return java.util.Arrays.asList(pages).indexOf(HubPages.tabOf(page));}
+    /** Whether the shown page is Data or one of its pages (Live Stats' section memory covers them all). */
+    private boolean inData(){return inData(selectedPage);}
+    private static boolean inData(String page){return HubPages.DATA.equals(HubPages.subjectOf(HubPages.canonical(page)));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
     private void showPage(String page){pageArgs=null;compatibilityRecovery=false;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
@@ -453,10 +461,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         cancelDeferredBodyRefresh();updateHeader();refreshBodyNow();
         refreshMaintenanceDot();
     }
-    /** The Scooter tab's dot while a maintenance check is due (owner answer Q39 B). */
+    /**
+     * The dock's Service dot while a maintenance check is due (owner answer Q39 B; orange, as Clean Home's Service row).
+     * Home's subject list and Service's own rows draw theirs on every refresh.
+     */
     private void refreshMaintenanceDot(){
-        MaintenanceView.Summary summary=MaintenanceScreen.summary(scooterService);
-        MaintenanceScreen.markTab(design,scooterTab,scooterTabCorner,summary!=null&&summary.dot());
+        if(dock!=null)dock.refresh();
     }
     /** BLE packets update lock/pending state immediately; heavy screen refreshes share the 1 Hz pulse. */
     private void automaticRefresh(){
@@ -475,7 +485,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
-        lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();updateScan();
+        lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
         for (ChargeDoneRow row : doneSheetRows) row.refresh();
@@ -490,7 +500,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         int change=KeepScreenOn.change(awake,getWindow().getAttributes().flags);
         if(change>0)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else if(change<0)getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
-    /** Rebuild under a crossfade from the current window; a direction (tab order) brings the new page in from that side. */
+    /** Rebuild under a crossfade from the current window; a direction (+1 deeper, -1 back) brings the new page in from that side. */
     private void transitionRebuild(int direction){
         FrameLayout before=root;
         android.graphics.Bitmap previous=!destroyed&&!rebuilding&&before!=null&&before.isAttachedToWindow()?Motion.capture(before):null;
@@ -503,7 +513,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
-        captureScroll();if(screen!=null)screen.close();
+        captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark:R.style.VoltLight);
         expanded=design.wideLayout();
@@ -535,6 +545,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
         }
+        // A maintenance tap deferred while riding mode or setup was up opens as soon as they close: before the header, so the
+        // header is built for Maintenance reminders (back row and title), not for the Home they closed onto.
+        if(maintenancePending&&!ridingRestore){pendMaintenance(false);showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         LinearLayout shell=column();root.addView(shell,new FrameLayout.LayoutParams(-1,-1));
         simulationNotice = design.text(T.mainSimulationBanner(), 12, true);
         simulationNotice.setTag("simulation-banner");
@@ -549,9 +562,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         });
         simulationNotice.setVisibility(displayedSimulation ? View.VISIBLE : View.GONE);
         shell.addView(simulationNotice, new LinearLayout.LayoutParams(-1, -2));
-        LinearLayout appBody=expanded?row():column();shell.addView(appBody,new LinearLayout.LayoutParams(-1,0,1));
-        if(expanded)appBody.addView(navigation(true),new LinearLayout.LayoutParams(design.dp(92),-1));
-        LinearLayout content=column();appBody.addView(content,new LinearLayout.LayoutParams(expanded?0:-1,expanded?-1:0,1));
+        // The Hub has no tab bar or side rail (PR 11): the page has the window's full width; Home is the root of every stack.
+        LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout header=makeHeader();
         if(horizontalHinge()){
             ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
@@ -560,9 +572,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             View spacer=new View(this);spacer.setBackgroundColor(design.bg);content.addView(spacer,new LinearLayout.LayoutParams(-1,Math.max(design.dp(12),fold.hinge.height())));
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
-        // A deferred maintenance tap also opens when riding mode or setup closes onto a Scooter tab page, as the old Scooter page did.
-        // Not while riding mode still waits to be restored (the service isn't bound yet): it would open under riding mode and be lost.
-        if(maintenancePending&&!ridingRestore&&HubPages.tabOf(selectedPage).equals(HubPages.SCOOTER)){pendMaintenance(false);showMaintenanceFromNotice();preferences.edit().putString("last_page",selectedPage).apply();}
         HubNav.Args args=pageArgs;pageArgs=null;
         screen=createScreen(selectedPage,args);
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
@@ -574,15 +583,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
-        if(!expanded){
-            // The tab bar floats over the page; pad the scroller so the last card can scroll clear of it.
-            View bar=design.floatingNav(navNames(),icons,tabIndex(selectedPage),navFrom,NAV_CENTER,i->select(pages[i]));
-            FrameLayout.LayoutParams barParams=new FrameLayout.LayoutParams(-1,design.floatingNavHeight(),Gravity.BOTTOM);
-            barParams.leftMargin=design.dp(14);barParams.rightMargin=design.dp(14);barParams.bottomMargin=design.dp(10);
-            pageFrame.addView(bar,barParams);
-            scooterTab=((ViewGroup)bar).getChildCount()>1?((ViewGroup)bar).getChildAt(1):null;scooterTabCorner=true;
+        if(screen instanceof DashboardScreen){
+            // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
+            DashboardScreen dashboard=(DashboardScreen)screen;
+            // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
+            dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
+            pageFrame.addView(dock.view(),dock.layoutParams());
+            // The dock never covers the Lock bar: where the bar sits under it, it floats 10 dp above the bar (or, with no room, steps aside) until the page scrolls the bar above it.
+            dock.keepClear(()->dashboardLock);
             scroll.setClipToPadding(false);
-            scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+design.floatingNavHeight()+design.dp(16));
+            scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());
         }
         Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();
         styleSystemBars();
@@ -611,18 +621,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
-     * The screen for a page. Home's pages show Clean Home or the widget dashboard (home_style); the Scooter tab's subject
-     * pages, the Ride pages (ride.rides, ride.recording, ride.riding), data.storage and Settings' sub-pages
-     * (settings.home/scooters/units/about/developer) have screens of their own; any other page, one with no screen yet,
-     * shows its tab's screen (HubPages.tabOf). args are the page's one-shot arguments (ScreenHost.open), or null.
+     * The screen for a page. Home shows Clean Home or the widget dashboard (home_style); the scooter subjects (Battery &
+     * charging, Controls, Lights & sound, Security, Service) and their pages, the search page, the Ride pages, Data and its
+     * storage page, Settings and its sub-pages each have a screen. args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
-        // Settings › Home style; while the tab bar remains it opens on the Settings tab.
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
-        switch(HubPages.tabOf(page)){
-            // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
-            case HubPages.HOME:return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
-            case HubPages.SCOOTER:return scooterPage(page,args);
+        // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
+        if(HubPages.HOME.equals(page))return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
+        if(HubPages.SEARCH.equals(page))return searchPage();
+        switch(HubPages.subjectOf(page)){
+            case HubPages.BATTERY:case HubPages.CONTROLS:case HubPages.LIGHTS:case HubPages.SECURITY:case HubPages.SERVICE:return scooterPage(page,args);
             default:break;
         }
         if(scooterService==null)return new LoadingScreen();
@@ -645,7 +654,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String section=HubRoutes.moreSectionOf(page);
         return section!=null?new MoreScreen(this,section,true):new MoreScreen(this);
     }
-    /** A page under the Scooter tab (hub layout plan, PRs 3 and 4); its index for the tab's root and for a page not built yet. */
+    /** A scooter subject's page (hub layout plan, PRs 3 and 4): Battery & charging, Controls, Lights & sound, Security, Service. */
     private AppScreen scooterPage(String page,HubNav.Args args){
         ControlsPages.Spec spec=ControlsPages.spec(page);
         // Pages with More's sections need the service (as the More tab does); their rows read its settings.
@@ -672,7 +681,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             default:break;
         }
-        if(spec!=null&&!spec.search)return new ControlsScreen(spec);
         if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
@@ -683,10 +691,22 @@ public final class MainActivity extends Activity implements ScreenHost {
                 @Override public void close(){maintenance.close();}
             };
         }
-        ControlsScreen search=new ControlsScreen(ControlsPages.spec(HubPages.SCOOTER));
-        HubListScreen subjects=new HubListScreen(this,HubSubjects.scooterIndex(this));
+        // Every other scooter page has its rows in ControlsPages; a page without would show the search over every row.
+        return new ControlsScreen(spec!=null?spec:ControlsPages.spec(HubPages.SEARCH));
+    }
+    /**
+     * The search page (header's search button; hub layout plan, PR 11): the search over every scooter row that the Scooter
+     * tab's index had, and Home's seven subjects while the field is empty. The full search (settings, readings, rides) is PR 12's.
+     */
+    private AppScreen searchPage(){
+        ControlsScreen search=new ControlsScreen(ControlsPages.spec(HubPages.SEARCH));
+        CleanSubjects subjects=new CleanSubjects(this);
         search.indexList(subjects.view());
-        return new HubPageScreen(this,search,subjects);
+        return new HubPageScreen(this,search,new AppScreen(){
+            @Override public View view(){return subjects.view();}
+            @Override public void refresh(){subjects.refresh();}
+            @Override public void close(){subjects.close();}
+        });
     }
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
     private AppScreen securityLock(){
@@ -703,7 +723,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** Service's Diagnostics & connection activity row: Data is their one home, so it opens Live Stats on Diagnostics. */
     private void openDiagnostics(){
-        // A deliberate shortcut wins over Live Stats' expired return state (as openMoreSection does for More):
+        // A deliberate shortcut wins over Live Stats' expired return state:
         // with the away timer cleared, leaving() keeps Diagnostics instead of resetting to Overview.
         expireStatsSection(true);markStatsActive();
         preferences.edit().putString("stats_section","Diagnostics").apply();
@@ -712,11 +732,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** What either Home asks of the activity: the lock, navigation, quick actions and the header's buttons. */
     private DashboardScreen.Actions homeActions(){
-        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){select(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
+        return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return dashboardLock=makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return dashboardLock=makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
-            // Search opens the Scooter tab's search with its field focused until the Hub's own search page exists.
-            public void openSearch(){open(HubPages.SCOOTER);focusPageSearch();}
+            // The search page with its field focused (the full search arrives in PR 12).
+            public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
             public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
@@ -727,7 +747,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
+        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
+    }
+    /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
+    private EditText searchKeyboard;
+    private void showSearchKeyboard(EditText field){
+        field.post(()->{android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);if(input!=null&&field.isAttachedToWindow()&&field.hasFocus())input.showSoftInput(field,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);});
     }
     private static EditText firstEditText(View view){
         if(view instanceof EditText)return (EditText)view;
@@ -1162,24 +1188,21 @@ public final class MainActivity extends Activity implements ScreenHost {
         FrameLayout field=new FrameLayout(this);field.setPadding(design.dp(24),design.dp(8),design.dp(24),design.dp(4));field.addView(input,new FrameLayout.LayoutParams(-1,-2));
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainRenameTitle())).setView(field).setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainRenameSave(),null).create();controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{String name=input.getText().toString().trim();if(name.isEmpty()){input.setError(T.mainRenameEmpty());return;}profile.name=name;profile.nameDefault=false;scooterService.profiles.update(profile);dialog.dismiss();rebuild();});
     }
-    /** Other tabs: a tappable connection line above the page title. The lock lives on Home. */
+    /** Every page but Home: its back link, a tappable connection line and the page's title. The lock lives on Home. */
     private LinearLayout makeCompactHeader(){
         // A page other than Home starts with no lock registered; Security's page part registers its own after this.
         clearDashboardLock();
         LinearLayout header=column();header.setPadding(design.dp(expanded?24:18),design.dp(10),design.dp(expanded?24:18),design.dp(6));
-        String pageName="";int tab=tabIndex(selectedPage);if(tab>=0)pageName=names[tab];
-        // A page below a tab's root shows a back link to the page under it, and its own title (HubText).
-        boolean subpage=!HubPages.TABS.contains(selectedPage)&&nav.size()>1;
-        if(subpage)header.addView(backLink(nav.pages().get(nav.size()-2)),new LinearLayout.LayoutParams(-2,-2));
+        // Home is the root of every stack, so every other page has a back link to the page under it (Home for a subject).
+        if(nav.size()>1)header.addView(backLink(nav.pages().get(nav.size()-2)),new LinearLayout.LayoutParams(-2,-2));
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
         connectionTitle.setTypeface(design.regular());header.addView(connectionTitle);
         liveStatsTitle=null;
-        // Data's own page keeps Live Stats' title with its live dot; a page under it shows its own title.
-        if(onTab(HubPages.DATA)&&!subpage){
+        // Data's own page keeps Live Stats' title with its live dot; every other page shows its own title (HubText).
+        if(HubPages.DATA.equals(selectedPage)){
             liveStatsTitle=new LiveStatsTitle(design);header.addView(liveStatsTitle);
         }else{
-            Msg hubTitle=subpage?HubText.title(selectedPage):null;
-            TextView title=design.text(hubTitle!=null?hubTitle:shownPageName(pageName),24,true);title.setPadding(0,design.dp(2),0,0);
+            TextView title=design.text(HubText.title(selectedPage),24,true);title.setPadding(0,design.dp(2),0,0);
             if(Build.VERSION.SDK_INT>=28)title.setAccessibilityHeading(true);header.addView(title);
         }
         profileTitle=null;
@@ -1187,37 +1210,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
-        Msg toTitle=HubText.title(to);CharSequence name=toTitle!=null?toTitle:shownPageName(names[Math.max(0,tabIndex(to))]);
+        CharSequence name=HubText.title(to);
         LinearLayout backRow=row();backRow.setGravity(Gravity.CENTER_VERTICAL);backRow.setMinimumHeight(design.dp(48));
         backRow.addView(design.icon("back",16,design.accent),new LinearLayout.LayoutParams(design.dp(16),design.dp(16)));
         TextView backText=design.text(name,13.5f,false);backText.setTypeface(design.medium());backText.setTextColor(design.accent);backText.setPadding(design.dp(4),0,design.dp(10),0);backRow.addView(backText);
         backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(HubText.backTo(name));backRow.setBackground(rowRipple());
-        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack());
+        backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack(true));
         return backRow;
     }
-    private View navigation(boolean rail){
-        LinearLayout nav=rail?column():row();nav.setGravity(rail?Gravity.TOP|Gravity.CENTER_HORIZONTAL:Gravity.CENTER);nav.setBackgroundColor(design.bg);nav.setPadding(design.dp(rail?8:4),design.dp(rail?20:6),design.dp(rail?8:4),design.dp(rail?12:6));
-        View selected=null;
-        for(int i=0;i<pages.length;i++){final String page=pages[i];View item=design.nav(navNames()[i],navShortNames()[i],icons[i],onTab(page),()->select(page));LinearLayout.LayoutParams p=rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1);if(rail){item.setMinimumHeight(design.dp(78));p.bottomMargin=design.dp(8);}nav.addView(item,p);if(onTab(page))selected=item;}
-        if(rail){scooterTab=nav.getChildAt(java.util.Arrays.asList(pages).indexOf(HubPages.SCOOTER));scooterTabCorner=false;}
-        if(!rail)return nav;
-        // App text and Android font size compound. Let two-line captions determine each
-        // item's height, and keep every destination reachable in a short or large-text rail.
-        ScrollView scroller=new ScrollView(this);scroller.setFillViewport(false);scroller.setVerticalScrollBarEnabled(false);scroller.addView(nav,new ScrollView.LayoutParams(-1,-2));
-        View current=selected;if(current!=null)scroller.post(()->current.requestRectangleOnScreen(new Rect(0,0,current.getWidth(),current.getHeight()),true));
-        return scroller;
-    }
-    /** A tab or Home's navigation: the page with only its parents below it (legacy tab ids are accepted). */
-    private void select(String page){
-        String target=HubPages.canonical(page);
-        // A maintenance notice tapped during riding mode or setup opens its page on the next visit to the Scooter tab.
-        if(target.equals(HubPages.SCOOTER)&&maintenancePending){pendMaintenance(false);captureScroll();leaving(selectedPage,MaintenanceScreen.PAGE);String from=selectedPage;showMaintenanceFromNotice();arrived(from);return;}
-        if(target.equals(selectedPage)){if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
-        String from=selectedPage;
-        captureScroll();leaving(from,target);
-        pageArgs=null;if(HubPages.TABS.contains(target))nav.reset(target);else nav.open(target);
-        arrived(from);
-    }
+    /**
+     * A page by id, legacy tab ids accepted (validations call it by reflection): since the tabs went (PR 11) it is open(page),
+     * so every route uses Home's page stack. Home closes every page above it.
+     */
+    private void select(String page){open(page,null);}
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){
@@ -1235,21 +1240,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         nav.back();pageArgs=null;
         arrived(from);
     }
-    /** More's and Live Stats' return timers when a page change moves between tabs. */
+    /** Live Stats' return timer when a page change leaves or enters Data's pages. */
     private void leaving(String from,String to){
-        String fromTab=HubPages.tabOf(from),toTab=HubPages.tabOf(to);
-        if(fromTab.equals(toTab))return;
-        if(fromTab.equals(HubPages.SETTINGS))markMoreAway();
-        if(fromTab.equals(HubPages.DATA))markStatsAway();
-        if(toTab.equals(HubPages.DATA)){expireStatsSection(true);if(resumed)markStatsActive();}
-        if(toTab.equals(HubPages.SETTINGS)){expireMoreSection(true);if(resumed)markMoreActive();}
+        boolean fromData=inData(from),toData=inData(to);
+        if(fromData==toData)return;
+        if(fromData)markStatsAway();
+        if(toData){expireStatsSection(true);if(resumed)markStatsActive();}
     }
-    /** The stack changed from page from: show its top, sliding in from the tab's side, or by depth within a tab. */
+    /** The stack changed from page from: show its top, sliding in by depth (deeper from the end side, back from the start). */
     private void arrived(String from){
         String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();
         if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
-        int before=tabIndex(from),after=tabIndex(page);
-        navFrom=before;transitionRebuild(before!=after?Integer.signum(after-before):HubNav.direction(from,page));navFrom=-1;
+        transitionRebuild(HubNav.direction(from,page));
     }
     /** Brief returns preserve the Live Stats section; a longer absence starts at Overview. */
     private void markStatsAway(){
@@ -1272,32 +1274,31 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scroll!=null&&HubPages.DATA.equals(scrollPage))scroll.scrollTo(0,0);
         return changed;
     }
-    /** Retain a submenu only while in More or for a short return from another tab/app. */
-    private void markMoreAway(){
-        if(preferences.contains(MORE_AWAY_AT))return;
-        preferences.edit().putLong(MORE_AWAY_AT,SystemClock.elapsedRealtime()).putInt(MORE_AWAY_BOOT,bootCount()).apply();
+    /** Volt left the screen: the first time since it was last on screen starts the away clock (HubNav.awayExpired). */
+    private void markAway(){
+        if(preferences.contains(HUB_AWAY_AT))return;
+        preferences.edit().putLong(HUB_AWAY_AT,SystemClock.elapsedRealtime()).putInt(HUB_AWAY_BOOT,bootCount()).apply();
     }
-    private void markMoreActive(){
-        if(preferences.contains(MORE_AWAY_AT))preferences.edit().remove(MORE_AWAY_AT).remove(MORE_AWAY_BOOT).apply();
+    /**
+     * Back on screen: after a minute or more away, or a reboot, the open sub-pages close back to their subject (Home is
+     * never forced; generalizes More's old one-minute submenu rule). The away clock stops either way. True when the stack changed.
+     */
+    /** A deliberate route (a fresh start, a notice's tap, the update check) beats an expired return: stop the away clock. */
+    private void clearAway(){
+        if(preferences.contains(HUB_AWAY_AT)||preferences.contains(HUB_AWAY_BOOT))preferences.edit().remove(HUB_AWAY_AT).remove(HUB_AWAY_BOOT).apply();
+    }
+    private boolean expireAway(){
+        long away=preferences.getLong(HUB_AWAY_AT,-1);
+        if(away<0)return false;
+        boolean expired=HubNav.awayExpired(away,preferences.getInt(HUB_AWAY_BOOT,-1),SystemClock.elapsedRealtime(),bootCount());
+        preferences.edit().remove(HUB_AWAY_AT).remove(HUB_AWAY_BOOT).apply();
+        if(!expired||!nav.closeSubPages())return false;
+        pageArgs=null;if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
+        selectedPage=nav.current();preferences.edit().putString("last_page",selectedPage).apply();
+        return true;
     }
     private int bootCount(){
         return android.provider.Settings.Global.getInt(getContentResolver(),android.provider.Settings.Global.BOOT_COUNT,-1);
-    }
-    private boolean expireMoreSection(boolean retainActive){
-        return expireMoreSection(retainActive,SystemClock.elapsedRealtime());
-    }
-    private boolean expireMoreSection(boolean retainActive,long now){
-        long away=preferences.getLong(MORE_AWAY_AT,-1);
-        boolean expired=away<0?!retainActive:now<away||now-away>=MORE_RETENTION_MS
-                ||preferences.getInt(MORE_AWAY_BOOT,-1)!=bootCount();
-        if(!expired)return false;
-        boolean hadSection=!preferences.getString("more_section","").isEmpty();
-        preferences.edit().putString("more_section","").remove(MORE_AWAY_AT).remove(MORE_AWAY_BOOT)
-                .remove("more_wide_section_scroll").remove("more_wide_menu_scroll").apply();
-        scrollPositions.put(HubPages.SETTINGS,0);
-        if(scroll!=null&&scrollPage.equals(HubPages.SETTINGS))scroll.scrollTo(0,0);
-        if(screen instanceof MoreScreen)((MoreScreen)screen).resetScroll();
-        return hadSection;
     }
     /**
      * The lock bar's switch alone for riding mode (RidingScreen), registered like any Home lock so updates and the queue
@@ -1310,20 +1311,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         return registerDashboardLock(lockControl);
     }
     /**
-     * A Quick access shortcut's page (HubRoutes). Settings is More's tab while the tabs remain, so its shortcut opens More
-     * on App preferences, as it always has; a tab's root resets to that tab; any other page opens above the current one.
+     * A Quick access shortcut's page (HubRoutes), and the scanner's and Review's routes: opened on Home's page stack like
+     * every other route (PR 11), so Back returns to where the shortcut was used.
      */
-    private void openRoute(String page,HubNav.Args args){
-        if(page.equals(HubPages.SETTINGS)){openMoreSection(HubRoutes.moreSectionOf(page));return;}
-        if(HubPages.TABS.contains(page))select(page);else open(page,args);
-    }
-    /** More's tab on one of its own sections ("" for its menu): Settings' shortcut and the update check (PR 5: nothing else). */
-    private void openMoreSection(String section){
-        // A deliberate shortcut wins over the older submenu's expired return state.
-        expireMoreSection(true);markMoreActive();
-        preferences.edit().putString("more_section",section).remove("more_wide_section_scroll").remove("more_wide_menu_scroll").apply();scrollPositions.put(HubPages.SETTINGS,0);
-        if(selectedPage.equals(HubPages.SETTINGS)){if(scroll!=null)scroll.scrollTo(0,0);rebuild();}else select(HubPages.SETTINGS);
-    }
+    private void openRoute(String page,HubNav.Args args){open(page,args);}
     private void captureScroll(){if(scroll!=null)scrollPositions.put(scrollPage,scroll.getScrollY());}
     private boolean horizontalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.width()>fold.hinge.height()&&fold.hinge.top>0&&fold.hinge.width()>0;}
     private boolean verticalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.height()>fold.hinge.width()&&fold.hinge.left>0&&fold.hinge.height()>0;}
@@ -1647,9 +1638,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(adapter==null){toast(T.mainScanNoBluetooth());return;}if(!adapter.isEnabled()){pendingConnect=true;startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),ENABLE_BLUETOOTH);return;}
         if(scooterService==null){pendingConnect=true;ensureService();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
-        // No scooter: My scooters has Add scooter. A scooter not yet set up: More's index, whose checklist imports the owner setup.
+        // No scooter: My scooters has Add scooter. A scooter not yet set up: Settings, whose checklist imports the owner setup.
         if(profile==null){open(HubPages.SETTINGS_SCOOTERS);return;}
-        if(!profile.configured()){openMoreSection("");return;}
+        if(!profile.configured()){open(HubPages.SETTINGS);return;}
         // A release that went out unconfirmed: ask again instead of connecting, since connecting claims the scooter back.
         if(scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         BleController.State state=scooterService.ble.state();if(state==BleController.State.CONNECTING||state==BleController.State.AUTHENTICATING||scooterService.ble.ready())return;
@@ -2079,8 +2070,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * The scooter's settings rows on one Hub page (hub layout plan, PR 3). ControlsPages.Spec says which rows the page
      * shows and in what order. Every row is built on every page, so refresh() and search treat them alike; rows the
-     * page doesn't show stay in their (detached) section bodies. The Scooter tab's index (spec.search) shows only the
-     * search field: typing finds any row on any page, grouped by section as before, and the subject list hides.
+     * page doesn't show stay in their (detached) section bodies. The search page (spec.search; the Scooter tab's index
+     * before PR 11) shows only the search field: typing finds any row on any page, grouped by section as before, and
+     * the subject list hides.
      * Every page is one column, wide screens included (the Hub's two panes come in PR 13).
      */
     private final class ControlsScreen implements AppScreen {
@@ -2531,7 +2523,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(choiceSheet!=null)choiceSheet.refresh();
         }
     }
-    /** The Scooter tab's groups, in order. A group's English is its id (maps, stored section: actions); its render() is shown. */
+    /** The scooter pages' row groups, in order. A group's English is its id (maps, stored section: actions); its render() is shown. */
     private static Msg[] settingsGroups(){return new Msg[]{M.mainGroupRide(),M.mainGroupBattery(),M.mainGroupLights(),M.mainGroupLineLights(),M.mainGroupStarLights(),M.mainGroupDashboardSound(),M.mainGroupSecurity(),M.mainGroupProfile()};}
     /** The shown name of a settings group id; an id with no group of its own is shown as it is. */
     private static String sectionTitle(String section){for(Msg group:settingsGroups())if(group.english().equals(section))return group.render();return section;}
@@ -4044,6 +4036,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         return false;
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
+        OwnDialogs.track(dialog);
         shownDialogs.add(dialog);
         android.view.Window window=dialog.getWindow();
         if(window!=null)window.setBackgroundDrawable(new android.graphics.drawable.InsetDrawable(design.shape(design.surface,24,0),design.dp(16)));

@@ -122,7 +122,7 @@ PREVIOUSLY IN 1.12.0
 - Live charging: after you leave Volt during a charge, a live card on the
   lock screen and in notifications shows the level, the finish time and the
   power, with Disconnect; on Android 16 and later it can be a Live Update.
-- Maintenance reminders by distance or time (Scooter > Service >
+- Maintenance reminders by distance or time (Service >
   Maintenance), with a quiet notification when a check is due.
 - Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French
   and Italian, all beta, and a Language row with Units and Text size.
@@ -166,7 +166,7 @@ PREVIOUSLY IN 1.10.0
   turn the schedule off so charging starts now (one notification if Volt is in
   the background). A schedule the scooter applied after a lost confirmation is
   tracked too. Report diagnostics include the schedule's times and outcome.
-- UT5 MAX: Test scheduled charging (Scooter > Battery & charging > Estimates &
+- UT5 MAX: Test scheduled charging (Battery & charging > Estimates &
   charger) pauses a charge, sets the scooter to resume about 2 minutes later
   and checks that it does, so a scooter that isn't keeping its clock shows up
   in minutes, not overnight.
@@ -255,7 +255,7 @@ PREVIOUSLY IN 1.6.0
   GT3 Max photo waits for its Model ID.
 - Which scooter is this? in the report flows (49 NAVEE models, search or write-in),
   an optional drive-mode naming step, and Volt remembers your answer for the
-  scooter's name and photo (More → My scooters → Edit scooter).
+  scooter's name and photo (Settings → My scooters → Edit scooter).
 - More → Report an issue drafts an email to volt-reports@jjricks.com; the
   compatibility checker's Email to Volt sends a finished check's report.
 - Simpler USB pairing page; Chrome + USB is the recommended setup route.
@@ -479,7 +479,7 @@ Useful details:
   lamp output. A separate manual main-headlight command has not been verified;
   use the scooter's power button. The OEM says manually changing the headlight
   temporarily suspends automatic control until the scooter restarts.
-- Scooter > Battery & charging > Range estimate > Scooter's estimate enables drive-mode following, choosing a supported
+- Battery & charging > Range estimate > Scooter's estimate enables drive-mode following, choosing a supported
   firmware estimator while fresh status confirms the scooter is stationary.
   Firmware without Eco support uses D-mode for Eco/Walk. Automatic attempts
   remain bounded across reconnects. This changes the scooter's prediction, not
@@ -585,7 +585,7 @@ server located in Russia; Volt can't see that location, so it doesn't. The
 scooter's firmware can still reject a setting. A control that is Lab
 on the UT5 MAX is an ordinary row on a model the official app maps it for.
 Controls the official app hides for an identified model can be tried from
-Scooter > Service > Experimental controls (see EXPERIMENTAL CONTROLS below),
+Service > Experimental controls (see EXPERIMENTAL CONTROLS below),
 and appear on their subject page labelled Experimental; the rows above
 are unchanged.
 Firmware conditions need the version read in the current connection, and a
@@ -594,7 +594,7 @@ a kick-start below 3 km/h where 3-5 is offered: it shows as it is, and only
 3-5 can be chosen (from Experimental controls too, where that try can't be
 set back).
 
-More > Compatibility runs a read-only check (nine known reads, at most 30 s)
+Service > Compatibility test runs a read-only check (nine known reads, at most 30 s)
 and builds a report for review: model ID, derived region, firmware, read
 outcomes, status-field presence and control decisions, with no serial, address,
 owner key, PIN, names or routes. On models other than the UT5 MAX, optional
@@ -683,7 +683,7 @@ retain honest raw labels; firmware faults are not silently cleared.
 
 EXPERIMENTAL CONTROLS (FORMERLY FIRMWARE LAB)
 
-Scooter > Service > Experimental controls (formerly More > Experimental
+Service > Experimental controls (formerly More > Experimental
 controls) lists, for the connected (or last identified)
 scooter, controls the official NAVEE app does not offer for that model, so an
 owner can try them while parked. Everything the official app offers for the
@@ -780,7 +780,7 @@ Separate Drive cap     Status field absent on this observed firmware.
 Missing or unexplained values keep a control unavailable. The app has no
 arbitrary command console or firmware-write feature.
 
-Release this scooter (More > My scooters > Edit scooter; not yet in a release;
+Release this scooter (Settings > My scooters > Edit scooter; not yet in a release;
 tried on a UT5 MAX, other models untested) is the one ownership command. For an
 owner profile only, connected and authenticated, parked, with fresh status, a
 real scooter (never simulation) and nothing recording, testing or changing, it
@@ -803,11 +803,13 @@ on NAVEE's servers. See docs/validation/owner-release.md.
 APP TOOLS AND REMAINING VALIDATION
 
 The app includes local profiles, appearance/text/unit choices, fold-aware
-layouts, charts, ride recording, notes, comparison and exports. More uses saved
-App, Scooters, Data, About and Developer sections, showing one at a time without
-rebuilding their controls. Security and Experimental controls are subject pages
-(Scooter > Security, Scooter > Service > Experimental controls). Submenus reset after one minute away from More or the
-app, while active use and quick returns preserve the section. First-time owner setup stays visible when needed.
+layouts, charts, ride recording, notes, comparison and exports. Settings is one
+page (Home style, Appearance, Units, Text size, Language, Haptic feedback; My
+scooters, Back up & restore; Updates, About & permissions, Developer options),
+and its sections open as pages; Appearance and Updates open over it. Security and Experimental controls are subject pages (Security,
+Service > Experimental controls). Open sub-pages close back to their subject
+after a minute away from the app or a reboot, while quick returns keep them.
+First-time owner setup stays visible when needed.
 
 Keep idle connection in background defaults off. When off with no recording,
 hiding the app or turning the screen off starts a 10-second grace period. If
@@ -843,18 +845,22 @@ Find My/Find Hub networks remain outside this offline app.
 
 DASHBOARD AND LOCAL HISTORY
 
-Five main tabs: Home, Scooter, Stats, Rides and More. Scooter lists its
-subjects with a summary each (Battery & charging, Controls, Lights & sound,
-Security, Service); each is a short page in a fixed, most-used-first order with
-sub-pages for settings set once (Assists, Speed limits, Battery modes,
-Estimates & charger, Line lights, Star lights). Search at the top of the tab
-finds a setting on any page. The former arrange-and-hide editor is gone, and
-settings hidden with it show again. Rename the local scooter profile in More >
-My scooters or with its widget pencil while editing Home. Maintenance
-(Scooter > Service > Maintenance, off by default) keeps local reminders by
+No tabs: Home is the hub for seven subjects, each with a summary (Ride,
+Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
+on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
+the tab bar was: the most-used subjects with short names, and All, or swipe
+up, for every subject with its summary). Each is a short page in a fixed, most-used-first
+order with sub-pages for settings set once (Assists, Speed limits, Battery
+modes, Estimates & charger, Line lights, Star lights); every page has a back
+link. The gear in Clean Home's header (beside the connection line), or
+Settings at the top of the dock's All list on Widgets, opens Settings; Search,
+beside it in either place, finds a scooter setting on any page. The former arrange-and-hide editor is gone, and settings hidden with
+it show again. Rename the local scooter profile in Settings > My scooters or
+with its widget pencil while editing Home. Maintenance
+(Service > Maintenance, off by default) keeps local reminders by
 distance, time or either, counted from odometer readings the
-scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), a red
-Scooter tab dot and an optional quiet notification once per due cycle (a daily
+scooter already reports, with Mark done, Snooze (1 day, 3 days, 1 week), an
+orange dot on Home's Service row or dock icon and an optional quiet notification once per due cycle (a daily
 JobScheduler check for time reminders; no push service). Where a NAVEE manual
 states a schedule (UT5 MAX, from its printed manual; GT3, ST3, V25/V40/V50,
 S40/S60, S65C and K100 series), the page lists each interval with
@@ -934,10 +940,10 @@ to about 10 km, after asking) or the time zone, or custom times; a moon tap
 lasts until the next switch. Nothing is sent. Tested with simulated samples
 on emulators only.
 
-Auto-start (Rides > Recording settings and Rides > Riding mode, both off by default): Record rides
+Auto-start (Ride > Recording settings and Ride > Riding mode, both off by default): Record rides
 automatically starts a recording when the connected scooter reports a speed
 above zero while Volt is in front (resumed); it starts one while Volt is in
-the background only with Rides > Recording settings > Start recording in the
+the background only with Ride > Recording settings > Start recording in the
 background (also off by default) and Stay connected in background on, and a
 ride started that way has no GPS route. On Android 8 and 9 a Volt in split
 screen without focus counts as background (a known limit). Riding mode > Open
@@ -1018,7 +1024,7 @@ Entering/leaving editing slides the grid and pops its controls in/out in 210 ms.
 Visible editing cards have a subtle 0.2-degree wiggle, paused for the active
 move/resize card and stopped on focus loss, hidden views, detach or close.
 Appearance and unit choices use rounded selectors with sliding highlights.
-Distance/speed, temperature and time format are grouped under App preferences >
+Distance/speed, temperature and time format are grouped under Settings >
 Units. Narrow controls may scroll sideways; light-pattern controls fit or wrap
 to show every choice. Their highlight follows confirmed scooter state, with
 pending writes disabled and rejected/unknown values represented honestly.
@@ -1037,7 +1043,7 @@ Short page-arrival and button-press effects accompany deliberate interactions.
 Subtle haptics mark tabs and segmented choices, Top speed presets, switches and
 stars, picking up and moving a widget or favourite, the lock slider crossing its
 midpoint, and the scooter confirming a lock change or a ride starting/saving.
-App preferences → Haptic feedback turns them off (on by default); Android's
+Settings → Haptic feedback turns them off (on by default); Android's
 Touch feedback setting also applies. Half-folding a foldable leaves the screen
 unchanged.
 Removal uses a 200 ms shrink/fade with soft puffs without delaying the grid update.
@@ -1102,7 +1108,7 @@ Connected,
 Connecting with an inline spinner, or Disconnected plus the last verified
 connection time. Older connections include a date; tapping status opens details
 or errors. The timestamp remains tied to a successful authenticated connection.
-More > App preferences > Units > Time format follows the phone by default or selects
+Settings > Units > Time format follows the phone by default or selects
 12-hour/24-hour clocks for displayed times.
 
 Live trend, including battery power, offers a two-minute time window. Its
@@ -1132,7 +1138,7 @@ history does not extend the fixed ten-second idle background deadline.
 
 RANGE LEARNED FROM YOUR RIDES
 
-Scooter > Battery & charging > Range estimate offers
+Battery & charging > Range estimate offers
 Scooter's estimate (default, following drive mode) or Volt's estimate
 (learned), saved separately for each scooter. Volt's
 estimate uses only that profile's completed ride recordings on this phone;
@@ -1166,7 +1172,7 @@ unobserved battery levels limit accuracy. See docs/validation/learned-range.md.
 
 BACK UP AND RESTORE
 
-More > About & permissions > Back up & restore is the single entry. Back up
+Settings > Back up & restore is the single entry. Back up
 lists seven categories with counts (Scooters & setup keys, Dashboards, App
 preferences, Rides, Charges, Readings history, Scooter preferences); any
 subset, or Select all for a complete copy, is saved as a password-encrypted
@@ -1186,7 +1192,7 @@ docs/app-data-backup.md and docs/user-guide.md.
 
 USABLE RIDE ENERGY (EXPERIMENTAL; FORMERLY CAPACITY EXPERIMENT)
 
-Also shown under Experimental at the bottom of Scooter > Battery & charging >
+Also shown under Experimental at the bottom of Battery & charging >
 Estimates & charger (90-day window, the model's rated energy; no reference
 can be set there), so Clean Home owners find it without a widget.
 Analyzes explicit rides for the selected scooter using:
@@ -1238,14 +1244,14 @@ Brief boundary fluctuations have bounded tolerance to avoid abrupt ETA switching
 stale readings and sustained or larger power mismatches still discard the reference.
 Usable ride energy never changes charging estimates.
 
-Scooter → Battery & charging → Estimates & charger → Charger for estimates
+Battery & charging → Estimates & charger → Charger for estimates
 offers Stock / High-speed without Developer options, including while
 disconnected. This per-scooter manual choice
 changes estimates only: High-speed opts out of the bundled stock reference.
 It neither sets charger output nor starts recording, and cannot change during
 an active capture. The recording screen uses the same saved selection.
 
-Explicit Charge recording lives in Scooter > Battery & charging > Charge history
+Explicit Charge recording lives in Battery & charging > Charge history
 & recordings (formerly Developer options), with a manual Stock or
 High-speed charger selection. Its Charger row shows the charger for estimates and
 opens its one home, Battery & charging > Estimates & charger > Charger; Developer
@@ -1306,14 +1312,14 @@ names, MAC addresses, PINs and location are excluded.
 
 New charge samples also retain the original full/limit time estimates, limit,
 estimator version and source (live rate, stock reference or personal curve).
-Scooter → Battery & charging → Charge history & recordings → Charge recordings
+Battery & charging → Charge history & recordings → Charge recordings
 shows Time remaining and Predicted
 finish graphs with full-resolution touch inspection and fullscreen views. An
 observed 100% finish provides a reference and prediction error; incomplete
 recordings and lower cutoffs are never compared to a guessed completion time.
 Older journals have no historical predictions; estimates are not backfilled.
 
-Live charging (Scooter > Battery & charging > Live charging, on by default)
+Live charging (Battery & charging > Live charging, on by default)
 starts only when you leave Volt while the scooter is connected and charging, or a Charge
 done by or Scheduled charging start is set. Volt's connection notice becomes a
 card with the level, target, finish time and power; the lock screen shows
@@ -1323,7 +1329,7 @@ charger is unplugged, after 3 minutes with stale readings, after 12 hours, about
 Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
-a Live Update (status-bar chip and segmented bar); Scooter > Battery & charging >
+a Live Update (status-bar chip and segmented bar); Battery & charging >
 Charge history & recordings > Live Update status reports the outcome. It keeps only the battery reads Volt
 already makes and sends no new scooter command. Out of sight, the card, the
 connection notice and Charge done by / Scheduled charging read the scooter on
@@ -1393,7 +1399,7 @@ legacy unverified cache entries require refresh. No bulk prefetch is performed.
 
 CLEAN HOME
 
-Home has two styles, Clean and Widgets, chosen in More > Home style, from Edit
+Home has two styles, Clean and Widgets, chosen in Settings > Home style, from Edit
 Home (a long-press on Clean's quick actions), or from the Home style row at the
 top of the Layout sheet while editing Widgets. Switching never changes widget
 layouts or saved slots. Clean's four quick actions are round buttons with one
@@ -1446,10 +1452,10 @@ Choose two to eight ordered shortcuts in the widget options. Direct toggles use
 the same live-value and parked checks as Scooter settings. Choices/sliders open
 over Home, and so do the quick-control groups (Lights, Ride settings, Battery
 settings, Line lights, Star lights, Dashboard & sound), each as a pop-up sheet.
-Shortcuts to whole settings pages open the page: Settings opens the Scooter
-tab, PIN/proximity opens Scooter > Security, experimental controls open
-their test in Scooter > Service > Experimental controls, app-preference
-shortcuts open More on that menu, and Data & history opens Live Stats > Data &
+Shortcuts to whole settings pages open the page: Settings opens Search (every scooter
+setting, with the subjects below), PIN/proximity opens Security, experimental
+controls open their test in Service > Experimental controls, app-preference
+shortcuts open their page under Settings, and Data & history opens Data > Data &
 history. Stats and Rides are still page shortcuts. Every saved shortcut keeps working. Which
 controls, scheduled charging and battery alerts each model has: see the UT5 MAX
 tables and OTHER NAVEE MODELS above. There is no drive mode shortcut: the

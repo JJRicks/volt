@@ -71,34 +71,42 @@ public final class UiOrganizationValidation extends Instrumentation {
             SharedPreferences settings = settings();
             require(settings.edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putString("theme", "dark").putString("more_section", "App").commit(), "Cannot set emulator UI preferences");
-            // These runners check the tabs, so skip the first-run onboarding a fresh install shows.
+            // These runners check the navigation, so skip the first-run onboarding a fresh install shows. A saved More
+            // submenu ("App") stays in the fixture: Settings must open on its index whatever the old tab saved.
             OnboardingScreen.markDone(getTargetContext());
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, 6000,
                     "Local workspace did not initialize");
-            for (String name : new String[]{"Home", "Scooter", "Live Stats", "Rides", "More"}) {
-                clickDescription(name); waitForIdleSync(); assertNoScooterWork(); assertNavigationFits();
+            // The tab bar's five destinations (Home, Scooter, Live Stats, Rides, More) are Home and the pages that hold them
+            // since part 11 (#392): Search (the Scooter index's search and subjects), Data, Ride and Settings, each reached
+            // from Home by the rider's taps (the dock or its All sheet on Widgets Home, Clean Home's rows, search and gear).
+            for (String page : DESTINATIONS) {
+                if (HubPages.HOME.equals(page)) main(() -> HubTestPages.open(activity, HubPages.HOME));
+                else HubTestPages.reach(this, activity, page);
+                waitForIdleSync(); hideKeyboard();
+                main(() -> require(page.equals(HubTestPages.current(activity)), "Navigation did not reach " + page + " (" + HubTestPages.current(activity) + ")"));
+                assertNoScooterWork(); assertNavigationFits();
             }
-            requireScreenText("App preferences");
-            check("All five destinations are reachable; navigation targets remain visible");
+            requireScreenText(APP_PREFERENCES_ROW);
+            check("Home and the four pages that replaced the tabs are reachable by touch; Home's ways in and every page's back link remain visible");
             screenshot("more-index-dark");
 
             // The Hub layout (#385) made the Scooter tab an index of subject pages: its RIDE, BATTERY and PROFILE groups
             // became Controls, Battery & charging and Lights & sound pages, and Rename (the Profile group) left the Scooter
-            // pages for More › My scooters. The same rows are checked on the pages that hold them now.
-            clickDescription("Scooter");
+            // pages for Settings › My scooters. Part 11 (#392) replaced the index with Search, which lists Home's seven
+            // subjects while its field is empty. The same rows are checked on the pages that hold them now.
+            HubTestPages.reach(this, activity, HubPages.SEARCH); hideKeyboard();
             main(() -> {
-                require(HubPages.SCOOTER.equals(HubTestPages.current(activity)), "The Scooter tab did not open its index");
-                for (String subject : new String[]{HubPages.BATTERY, HubPages.CONTROLS, HubPages.LIGHTS, HubPages.SECURITY, HubPages.SERVICE})
-                    require(tagShown("hub-row-" + subject), "The Scooter index has no " + subject + " row");
+                require(HubPages.SEARCH.equals(HubTestPages.current(activity)), "Search did not open");
+                for (String subject : SUBJECTS) require(tagShown(subject(subject)), "Search lists no " + subject + " subject");
                 require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "The index shows rows before a search");
             });
             screenshot("scooter-dark");
-            clickTag("hub-row-" + HubPages.CONTROLS);
+            clickTag(subject(HubPages.CONTROLS));
             requireVisibleControl("energy_recovery");
             main(() -> {
-                require(HubPages.CONTROLS.equals(HubTestPages.current(activity)), "The index's Controls row did not open Controls");
+                require(HubPages.CONTROLS.equals(HubTestPages.current(activity)), "Search's Controls row did not open Controls");
                 require(topSpeedShown(), "Top speed card missing from the Controls page");
                 // Every control has a row, hidden unless offered; Maximum speed's row shows only where another model's map replaces the card.
                 require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "Maximum speed must live only in the top speed card");
@@ -108,7 +116,7 @@ public final class UiOrganizationValidation extends Instrumentation {
             clickTag("hub-link-" + HubPages.CONTROLS_ASSISTS);
             requireVisibleControl("start_speed");
             main(() -> require(HubPages.CONTROLS_ASSISTS.equals(HubTestPages.current(activity)), "Controls' Assists link did not open its page"));
-            clickDescription("Scooter");
+            HubTestPages.reach(this, activity, HubPages.SEARCH); hideKeyboard();
             main(() -> first(root(), EditText.class).setText("speed"));
             main(() -> {
                 Set<String> visible = visibleFeatures();
@@ -116,16 +124,16 @@ public final class UiOrganizationValidation extends Instrumentation {
                 require(!visible.contains("energy_recovery"), "Speed search did not hide an unrelated setting");
                 for (String key : visible) require(!isLight(key), "Speed search should hide lighting settings");
                 require(findText(root(), "LIGHTS") == null, "Speed search should hide the empty Lights group");
-                require(!tagShown("hub-row-" + HubPages.BATTERY), "Speed search left the subject list shown");
+                require(!tagShown(subject(HubPages.BATTERY)), "Speed search left the subject list shown");
             });
             main(() -> invoke(activity, "navigateBack"));
             main(() -> require(!topSpeedShown() && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")), "Back did not clear the settings search"));
-            main(() -> require(tagShown("hub-row-" + HubPages.BATTERY), "Back did not bring back the subject list"));
-            check("Scooter index lists its subjects; Controls shows the top speed card; search hides empty groups and Back clears it without control writes");
+            main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && tagShown(subject(HubPages.BATTERY)), "Back did not bring back the subject list"));
+            check("Search lists the subjects; Controls shows the top speed card; search hides empty groups and Back clears it without control writes");
 
             // The Lights page's HEADLIGHTS, LINE LIGHTS and STAR LIGHTS groups are Lights & sound and its Line lights and
-            // Star lights pages since the Hub layout (#385); the search over every row is the index's.
-            clickTag("hub-row-" + HubPages.LIGHTS);
+            // Star lights pages since the Hub layout (#385); the search over every row is Search's (the index's until part 11).
+            clickTag(subject(HubPages.LIGHTS));
             main(() -> {
                 Set<String> expected = new HashSet<>(Arrays.asList("headlight", "auto_sensor", "line_light", "line_pattern",
                         "line_color", "line_boost_color", "star_light", "star_pattern", "star_color", "star_boost_color"));
@@ -133,7 +141,7 @@ public final class UiOrganizationValidation extends Instrumentation {
                 require(lightFeatures().equals(new HashSet<>(Arrays.asList("headlight", "auto_sensor"))), "Lights & sound shows lighting rows " + lightFeatures());
                 require(!topSpeedShown(), "The Lights page should not show the top speed card");
                 require(tagShown("hub-link-" + HubPages.LIGHTS_LINE) && tagShown("hub-link-" + HubPages.LIGHTS_STAR), "Lights page has no Line lights and Star lights links");
-                require(tagShown("hub-back"), "Lights page has no way back to Scooter");
+                require(tagShown("hub-back"), "Lights page has no way back to Search");
             });
             screenshot("lights-dark");
             for (String[] family : new String[][]{{HubPages.LIGHTS_LINE, "line_light", "line_pattern", "line_color", "line_boost_color"},
@@ -149,29 +157,28 @@ public final class UiOrganizationValidation extends Instrumentation {
                 main(() -> require(HubPages.LIGHTS.equals(HubTestPages.current(activity)), "Back from " + family[0] + " did not return to Lights & sound"));
             }
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(HubPages.SCOOTER.equals(HubTestPages.current(activity)) && tagShown("hub-row-" + HubPages.BATTERY) && settings.getString("scooter_section", "").isEmpty(),
-                    "Back from Lights did not return to the Scooter index"));
+            main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && tagShown(subject(HubPages.BATTERY)) && settings.getString("scooter_section", "").isEmpty(),
+                    "Back from Lights did not return to Search"));
             main(() -> first(root(), EditText.class).setText("boost"));
             main(() -> require(visibleFeatures().equals(new HashSet<>(Arrays.asList("line_boost_color", "star_boost_color", "parking_assist"))),
                     "Global scooter search should find both Boost colors and Power Assist"));
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(HubPages.SCOOTER.equals(HubTestPages.current(activity)) && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")),
+            main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")),
                     "Back did not clear the boost search"));
-            check("Lights & sound links Line lights and Star lights, which hold the zones; the index search covers all settings; Back returns to Scooter");
+            check("Lights & sound links Line lights and Star lights, which hold the zones; Search covers all settings; Back returns to Search");
 
-            clickDescription("More"); clickText(root(), "App preferences");
+            // More › App preferences became Settings' own first card (part 11): Settings opens on it, one column on every
+            // width, and its Back is the page stack's, back to Home (there is no menu pane to keep).
+            HubTestPages.reach(this, activity, HubPages.SETTINGS);
             requireScreenText(APP_PREFERENCES_ROW); screenshot("preferences-dark");
             main(() -> invoke(activity, "navigateBack"));
-            if (wideMore()) {
-                // Wide menu-submenu layout: Back leaves the tab like Home; the menu is there on return.
-                main(() -> require("home".equals(field(activity, "selectedPage")), "Wide More Back did not leave the tab"));
-                clickDescription("More");
-            }
+            main(() -> require(HubPages.HOME.equals(HubTestPages.current(activity)), "Back from Settings did not return Home"));
+            HubTestPages.reach(this, activity, HubPages.SETTINGS);
             requireScreenText("My scooters");
-            check("More opens preferences; Back returns to its settings index (phone) or leaves the tab beside its menu (wide)");
-            verifyMoreReturn(settings);
+            check("Settings shows the app preferences and My scooters on its index; Back returns Home");
+            verifyAwayReturn(settings);
 
-            clickDescription("Live Stats");
+            HubTestPages.reach(this, activity, HubPages.DATA);
             // Wide Stats keeps Readings in its own pane beside the sections, without a Readings tab.
             if (!Boolean.TRUE.equals(field(field(activity, "screen"), "wide"))) clickText(root(), "Readings");
             Object stats = field(activity, "screen");
@@ -186,17 +193,19 @@ public final class UiOrganizationValidation extends Instrumentation {
 
             main(() -> settings.edit().putString("theme", "light").putFloat("text_scale", 1.4f).apply());
             await(() -> !activity.ui().dark && activity.ui().textScale > 1.3f, 4000, "Large light theme did not apply");
-            clickDescription("Scooter"); assertNavigationFits(); screenshot("scooter-large-light");
+            main(() -> HubTestPages.open(activity, HubPages.HOME)); waitForIdleSync(); assertNavigationFits();
+            HubTestPages.reach(this, activity, HubPages.SEARCH); hideKeyboard(); assertNavigationFits(); screenshot("scooter-large-light");
             main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "lights")); waitForIdleSync(); assertNavigationFits(); screenshot("lights-large-light");
-            clickDescription("More"); clickText(root(), "App preferences"); screenshot("preferences-large-light");
+            HubTestPages.reach(this, activity, HubPages.SETTINGS); requireScreenText(APP_PREFERENCES_ROW); screenshot("preferences-large-light");
             check("Light theme and 140% app text preserve navigation and grouped settings");
             main(() -> settings.edit().putString("theme", "dark").putFloat("text_scale", 1f).apply());
             await(() -> activity.ui().dark && activity.ui().textScale == 1f, 4000, "Dark theme did not restore");
 
             PhoneRideStore.Track fixture = syntheticTrack();
             require(fixture.locationCount >= 30 && fixture.maxGpsAccelerationMps2 != null, "Synthetic UI fixture did not load");
-            clickDescription("Rides");
-            Object rides = field(activity, "screen");
+            // The Rides tab is the Ride page (HubPages' legacy "rides").
+            HubTestPages.reach(this, activity, HubPages.RIDE);
+            Object rides = HubTestPages.part(activity, "RidesScreen");
             main(() -> {
                 settings.edit().putBoolean("map_basemap_enabled", false).commit();
                 invoke(rides, "presentPhoneRide", new Class<?>[]{PhoneRideStore.Track.class}, fixture);
@@ -409,80 +418,111 @@ public final class UiOrganizationValidation extends Instrumentation {
         catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new IllegalStateException(error); }
     }
     /**
-     * A row that shows App preferences is open. It was Connect automatically until the Hub layout (#389) moved the
-     * connection rows to More › My scooters; Haptic feedback stays in App preferences.
+     * A row that shows the app preferences are open. It was Connect automatically until the Hub layout (#389) moved the
+     * connection rows to Settings › My scooters; Haptic feedback stays with the app preferences, on Settings' index since part 11.
      */
     private static final String APP_PREFERENCES_ROW = "Haptic feedback";
-    private void verifyMoreReturn(SharedPreferences settings) {
-        clickText(root(), "App preferences");
-        clickDescription("Home"); clickDescription("More");
-        requireScreenText(APP_PREFERENCES_ROW);
+    /** The tab bar's five destinations as part 11 (#392) holds them: Home, Search (Scooter), Data (Live Stats), Ride (Rides), Settings (More). */
+    private static final String[] DESTINATIONS = {HubPages.HOME, HubPages.SEARCH, HubPages.DATA, HubPages.RIDE, HubPages.SETTINGS};
+    private static final String[] SUBJECTS = {HubPages.RIDE, HubPages.BATTERY, HubPages.CONTROLS, HubPages.LIGHTS, HubPages.SECURITY, HubPages.SERVICE, HubPages.DATA};
+    /** A subject's row on Search (and Clean Home, and the dock's All sheet): CleanSubjects' tag. */
+    private static String subject(String page) { return "home-subject-" + page; }
+    /**
+     * More's one-minute submenu rule (its own away timer, expireMoreSection and more_section) became the Hub's away rule
+     * in part 11 (#392): after a minute or more away from Volt, or a reboot, the open sub-pages close back to their
+     * subject (HubNav.awayExpired, hub_away_elapsed / hub_away_boot); a brief return and a rebuild keep them, and Home or a
+     * subject itself is never forced. Settings › Units stands in for More's App preferences submenu.
+     */
+    private void verifyAwayReturn(SharedPreferences settings) {
+        openUnits();
         main(() -> activity.rebuild()); waitForIdleSync();
-        requireScreenText(APP_PREFERENCES_ROW);
-        main(() -> {
-            require(!settings.contains("more_away_elapsed"), "Active More must not have an absence timer");
-            invoke(activity, "expireMoreSection", new Class<?>[]{boolean.class, long.class}, true, Long.MAX_VALUE);
-        });
-        requireScreenText(APP_PREFERENCES_ROW);
-        require(settings.getString("more_section", "").equals("App"), "Reading a submenu must not expire it");
+        main(() -> require(HubPages.SETTINGS_UNITS.equals(HubTestPages.current(activity)), "A rebuild closed Settings › Units"));
+        main(() -> require(!settings.contains(HUB_AWAY_AT), "Volt on screen must not run an away clock"));
+        // The rule itself, at its edges (no long sleep): just under a minute keeps sub-pages, a minute or another boot closes them.
+        long base = 1_000_000L;
+        require(!awayExpired(base, 7, base + 59_999, 7), "Sub-pages expired before one minute");
+        require(awayExpired(base, 7, base + 60_000, 7), "Sub-pages did not expire at one minute");
+        require(awayExpired(base, 6, base + 1, 7), "Another boot did not expire sub-pages");
+        require(!awayExpired(-1, 7, base, 7), "Sub-pages expired without an away time");
 
-        clickDescription("Home");
-        long left = settings.getLong("more_away_elapsed", -1);
-        require(left >= 0, "Leaving More did not start its retention timer");
-        main(() -> {
-            require(!(Boolean) invoke(activity, "expireMoreSection", new Class<?>[]{boolean.class, long.class}, true, left + 59_999),
-                    "More expired before one minute");
-            require((Boolean) invoke(activity, "expireMoreSection", new Class<?>[]{boolean.class, long.class}, true, left + 60_000),
-                    "More did not expire at one minute");
-        });
-        clickDescription("More"); requireScreenText("App preferences");
-        require(settings.getString("more_section", "").isEmpty(), "Expired More did not return to its index");
-        check("More retains brief tab returns and rebuilds, stays open while active, and expires at exactly one minute away");
-
-        clickText(root(), "App preferences");
+        // A brief leave: the clock starts once, a second leave does not move it, and coming back keeps the page and stops it.
         main(() -> callActivityOnPause(activity));
-        require(settings.contains("more_away_elapsed"), "Pausing on More did not start retention");
+        long left = settings.getLong(HUB_AWAY_AT, -1);
+        require(left >= 0, "Leaving Volt did not start the away clock");
+        SystemClock.sleep(50);
+        main(() -> invoke(activity, "markAway"));
+        require(settings.getLong(HUB_AWAY_AT, -2) == left, "A second leave moved the away clock");
         main(() -> callActivityOnResume(activity)); waitForIdleSync();
-        requireScreenText(APP_PREFERENCES_ROW);
-        require(!settings.contains("more_away_elapsed"), "Resuming More did not end the absence");
+        main(() -> require(HubPages.SETTINGS_UNITS.equals(HubTestPages.current(activity)), "A brief return closed Settings › Units"));
+        require(!settings.contains(HUB_AWAY_AT), "Coming back did not stop the away clock");
+        check("Sub-pages stay through brief returns and rebuilds, no clock runs while Volt is on screen, and the rule expires at exactly one minute or another boot");
 
-        // A different boot invalidates a persisted monotonic timestamp without a long test sleep.
+        // A minute away (the clock backdated): Settings › Units closes back to Settings, its subject.
         main(() -> {
             callActivityOnPause(activity);
-            settings.edit().putInt("more_away_boot", -2).commit();
+            settings.edit().putLong(HUB_AWAY_AT, SystemClock.elapsedRealtime() - 60_000).commit();
             callActivityOnResume(activity);
         }); waitForIdleSync();
-        requireScreenText("App preferences");
-        require(settings.getString("more_section", "").isEmpty(), "Expired background return left the old submenu visible");
-
-        clickText(root(), "App preferences"); clickDescription("Home");
-        long originalLeft = settings.getLong("more_away_elapsed", -1);
-        main(() -> { callActivityOnPause(activity); callActivityOnResume(activity); });
-        require(settings.getLong("more_away_elapsed", -2) == originalLeft, "Backgrounding another tab extended More's absence timer");
-        // Security left More for Scooter › Security in the Hub layout (#387): More's own deliberate shortcut is Settings'
-        // (Quick access "more:App"), which must still win over an expired More index; the Security shortcut opens its page.
+        main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "A minute away left " + HubTestPages.current(activity) + " open"));
+        requireScreenText(APP_PREFERENCES_ROW);
+        require(settings.getString("more_section", "").equals("App"), "Settings wrote the retired more_section");
+        // Another boot: the same.
+        openUnits();
         main(() -> {
-            settings.edit().putInt("more_away_boot", -2).commit();
+            callActivityOnPause(activity);
+            settings.edit().putInt(HUB_AWAY_BOOT, -2).commit();
+            callActivityOnResume(activity);
+        }); waitForIdleSync();
+        main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "A reboot left " + HubTestPages.current(activity) + " open"));
+        requireScreenText(APP_PREFERENCES_ROW);
+        // A subject is never closed: an expired return to Settings itself stays there.
+        main(() -> {
+            callActivityOnPause(activity);
+            settings.edit().putInt(HUB_AWAY_BOOT, -2).commit();
+            callActivityOnResume(activity);
+        }); waitForIdleSync();
+        main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "An expired return closed Settings itself"));
+        check("A minute or a reboot away closes Settings › Units back to Settings, which an expired return never closes");
+
+        // Settings' Quick access shortcut (more:App) opens Settings over Home, and an expired return keeps it there.
+        main(() -> HubTestPages.open(activity, HubPages.HOME)); waitForIdleSync();
+        main(() -> {
+            settings.edit().putLong(HUB_AWAY_AT, SystemClock.elapsedRealtime()).putInt(HUB_AWAY_BOOT, -2).commit();
             invoke(activity, "quickAction", new Class<?>[]{String.class}, "more:App");
         }); waitForIdleSync();
-        require(settings.getString("more_section", "").equals("App"), "Settings shortcut was replaced by an expired More index");
+        main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "The Settings shortcut opened " + HubTestPages.current(activity)));
+        requireScreenText(APP_PREFERENCES_ROW);
+        main(() -> { callActivityOnPause(activity); callActivityOnResume(activity); }); waitForIdleSync();
+        main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "An expired return replaced the Settings shortcut's page"));
         requireScreenText(APP_PREFERENCES_ROW);
         main(() -> invoke(activity, "navigateBack"));
-        if (wideMore()) main(() -> require("home".equals(field(activity, "selectedPage"))
-                && settings.getString("more_section", "").equals("App"), "Wide More Back must leave the tab and keep its submenu"));
-        else requireScreenText("App preferences");
-        clickDescription("Home");
+        main(() -> require(HubPages.HOME.equals(HubTestPages.current(activity)), "Back from the Settings shortcut did not return Home"));
         main(() -> {
-            settings.edit().putInt("more_away_boot", -2).commit();
+            settings.edit().putInt(HUB_AWAY_BOOT, -2).commit();
             invoke(activity, "quickAction", new Class<?>[]{String.class}, "section:Security");
         }); waitForIdleSync();
         main(() -> require(HubPages.SECURITY.equals(HubTestPages.current(activity)), "Security shortcut opened " + HubTestPages.current(activity)));
         requireScreenText("Handlebar PIN");
         main(() -> invoke(activity, "navigateBack"));
         main(() -> require("home".equals(field(activity, "selectedPage")), "Back from the Security shortcut did not return Home"));
-        check("More handles brief and expired background returns, preserves an earlier tab-away time, and honors the Settings and Security shortcuts");
+        check("The Settings and Security shortcuts open their pages over Home, an expired return keeps them, and Back returns Home");
     }
-
+    private static final String HUB_AWAY_AT = "hub_away_elapsed", HUB_AWAY_BOOT = "hub_away_boot";
+    /** Settings › Units, by the rider's taps: Settings (from Home), then its Units row. */
+    private void openUnits() {
+        HubTestPages.reach(this, activity, HubPages.SETTINGS);
+        View[] units = {null};
+        main(() -> units[0] = HubTestPages.shownTag(activity, "preference-units-menu"));
+        HubTestPages.tapView(this, activity, units[0], "the Units row"); waitForIdleSync();
+        main(() -> require(HubPages.SETTINGS_UNITS.equals(HubTestPages.current(activity)), "The Units row did not open its page"));
+    }
+    private static boolean awayExpired(long awayAt, int awayBoot, long now, int boot) {
+        try {
+            Method method = Class.forName("com.jjricks.volt.HubNav").getDeclaredMethod("awayExpired", long.class, int.class, long.class, int.class);
+            method.setAccessible(true);
+            return (Boolean) method.invoke(null, awayAt, awayBoot, now, boot);
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException("Cannot invoke HubNav.awayExpired", e); }
+    }
     private void requireFreshEmulator() {
         String hardware = Build.HARDWARE.toLowerCase(Locale.ROOT);
         require(hardware.contains("ranchu") || hardware.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"),
@@ -528,23 +568,59 @@ public final class UiOrganizationValidation extends Instrumentation {
         store.appendBatch(id, rows.toString(), ""); store.stop(id, wall + 70000, start + 70000);
         return store.load(id);
     }
+    /**
+     * The way around fits on the page shown, as the tab bar's five targets had to: on Home, Home's ways in (Widgets Home's
+     * dock items and its All item; Clean Home's subject rows, search and gear); on any other page, its back link. Each is
+     * shown, uncut, at least 48 dp tall (and wide, where it has no caption), with its caption laid out whole.
+     */
     private void assertNavigationFits() {
         main(() -> {
-            for (String name : new String[]{"Home", "Scooter", "Live Stats", "Rides", "More"}) {
-                View item = findDescription(root(), name); require(item != null && item.isShown(), "Missing navigation " + name);
+            List<View> targets = new ArrayList<>();
+            if (HubPages.HOME.equals(HubTestPages.current(activity))) {
+                Object dock = field(activity, "dock");
+                View tree = dock != null ? (View) invoke(dock, "view") : root();
+                for (View view : descendants(tree)) {
+                    Object tag = view.getTag();
+                    if (!(tag instanceof String) || !view.isShown()) continue;
+                    String name = (String) tag;
+                    if (dock != null ? name.startsWith("hub-dock-") && !name.equals("hub-dock-sheet")
+                            : name.startsWith("home-subject-") || name.equals("home-settings") || name.equals("home-search")) targets.add(view);
+                }
+                require(targets.size() >= (dock != null ? 2 : 9), "Home shows only " + targets.size() + " ways in");
+                if (dock != null) require(root().findViewWithTag("hub-dock-handle") != null && root().findViewWithTag("hub-dock-handle").isShown(), "Widgets Home's dock has no All item");
+            } else {
+                View back = root().findViewWithTag("hub-back");
+                require(back != null && back.isShown(), "Missing navigation: page " + HubTestPages.current(activity) + " has no back link");
+                targets.add(back);
+            }
+            int minimum = Math.round(48 * root().getResources().getDisplayMetrics().density);
+            for (View item : targets) {
+                String name = String.valueOf(item.getTag());
                 requireFullyVisibleNow(item, "Navigation " + name);
+                require(item.getHeight() >= minimum, "Navigation target under 48dp tall: " + name);
                 TextView label = first(item, TextView.class);
                 if (label != null) {
-                    // The expanded side rail keeps text captions.
-                    require(label.getLayout() != null, "Navigation caption did not lay out");
+                    require(label.getLayout() != null, "Navigation caption did not lay out: " + name);
                     require(label.getLayout().getHeight() <= label.getHeight() + 2, "Navigation caption clipped vertically: " + name);
-                } else {
-                    // The compact floating tab bar is icon-only; each target must still be 48dp.
-                    int minimum = Math.round(48 * item.getResources().getDisplayMetrics().density);
-                    require(item.getWidth() >= minimum && item.getHeight() >= minimum, "Navigation target smaller than 48dp: " + name);
-                }
+                } else require(item.getWidth() >= minimum, "Navigation target narrower than 48dp: " + name);
             }
         });
+    }
+    private static List<View> descendants(View root) {
+        List<View> out = new ArrayList<>(); out.add(root);
+        for (int i = 0; i < out.size(); i++) if (out.get(i) instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) out.get(i);
+            for (int c = 0; c < group.getChildCount(); c++) out.add(group.getChildAt(c));
+        }
+        return out;
+    }
+    /** Search opens with its keyboard up; put it away so the page is measured and tapped as a rider sees it after typing. */
+    private void hideKeyboard() {
+        main(() -> {
+            android.view.inputmethod.InputMethodManager input = activity.getSystemService(android.view.inputmethod.InputMethodManager.class);
+            if (input != null) input.hideSoftInputFromWindow(root().getWindowToken(), 0);
+        });
+        waitForIdleSync();
     }
     /** The shown Scooter page's rows: a ControlsScreen, alone or a part of the page (the index, Battery & charging). */
     private Object controls() { return HubTestPages.part(activity, "ControlsScreen"); }
@@ -579,9 +655,6 @@ public final class UiOrganizationValidation extends Instrumentation {
         main(() -> view.requestRectangleOnScreen(new Rect(0, 0, view.getWidth(), view.getHeight()), true));
         waitForIdleSync();
     }
-    /** More shows its menu and submenu side by side (no submenu Back step) at unfolded widths. */
-    /** The activity's own wide-or-phone choice (Ui.wideLayout: width over text scale), not the raw width. */
-    private boolean wideMore() { return Boolean.TRUE.equals(field(activity, "expanded")); }
     private void requireFullyVisible(View view, String name) { main(() -> requireFullyVisibleNow(view, name)); }
     private void requireFullyVisibleNow(View view, String name) {
         Rect rect = new Rect(); require(view.getGlobalVisibleRect(rect), name + " is not visible");

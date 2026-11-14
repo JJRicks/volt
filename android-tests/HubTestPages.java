@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * moved the Scooter tab's rows onto subject pages (Battery & charging, Controls, Lights & sound, Security, Service) and
  * More's and Rides' settings onto Ride, Live Stats and Settings pages; docs/development-notes.md has the screen map.
  *
- * <p>{@link #reach} and {@link #route} go the rider's way, by touch: the tab, then each row on the way, each required
+ * <p>{@link #reach} and {@link #route} go the rider's way, by touch: from Home, each row on the way, each required
  * shown, enabled, on screen and leading to its page (#414 review: opening pages directly passed even with no rows at
  * all). They run from the instrumentation thread. {@link #open} opens a page directly (Home, then each page on
  * {@link HubPages#path} through the activity's own {@code open(String)}) for setup and repeat visits; it and the other
@@ -43,7 +43,7 @@ public final class HubTestPages {
     private static final Map<MainActivity, Set<String>> TAPPED = new WeakHashMap<>();
 
     /**
-     * Reaches a page the rider's way the first time this activity shows it ({@link #route}: its tab, then each row on the
+     * Reaches a page the rider's way the first time this activity shows it ({@link #route}: from Home, each row on the
      * way, all tapped), and directly ({@link #open}) on a repeat visit once that route has been proven. Call it from the
      * instrumentation thread, not inside runOnMainSync.
      */
@@ -58,41 +58,18 @@ public final class HubTestPages {
     }
 
     /**
-     * Reaches a page as a rider does, by touch: taps its tab in the navigation bar (the Scooter tab for the Scooter pages,
-     * Rides for the Ride pages, Live Stats for Data's), then on each page the row that opens the next page on
-     * {@link HubPages#path} ({@link #tapRow}). Throws, naming the row, when a row on the way is missing, hidden, disabled,
-     * off screen or opens something else.
+     * Reaches a page as a rider does, by touch: from Home (the root of every page stack since the tab bar went in part 11),
+     * taps on each page the row that opens the next page on {@link HubPages#path} ({@link #tapRow}): Home's way in first
+     * on either Home style (Clean's subject row, search or gear; Widgets' dock item, or its All sheet's row), then each
+     * page's own row. Throws, naming the row, when a row on the way is missing, hidden, disabled, off screen or opens
+     * something else.
      */
     public static String route(Instrumentation instrumentation, MainActivity activity, String page) {
-        String wanted = HubPages.canonical(page), tab = HubPages.tabOf(wanted);
-        tapTab(instrumentation, activity, tab);
-        for (String step : HubPages.path(wanted)) if (!step.equals(HubPages.HOME) && !step.equals(tab)) tapRow(instrumentation, activity, step);
+        String wanted = HubPages.canonical(page);
+        onMain(instrumentation, () -> open(activity, HubPages.HOME));
+        instrumentation.waitForIdleSync();
+        for (String step : HubPages.path(wanted)) if (!step.equals(HubPages.HOME)) tapRow(instrumentation, activity, step);
         return wanted;
-    }
-
-    /** Taps a tab of the navigation bar (floating bar or rail), found by its spoken name (Scooter: MainActivity.scooterTab), and waits for its page. */
-    public static void tapTab(Instrumentation instrumentation, MainActivity activity, String tab) {
-        int index = HubPages.TABS.indexOf(tab);
-        if (index < 0) throw new IllegalArgumentException(tab + " is not a tab");
-        View[] found = {null};
-        String[] label = {null};
-        List<String> seen = new ArrayList<>();
-        onMain(instrumentation, () -> {
-            label[0] = ((String[]) call(activity, "navNames"))[index];
-            View page = (View) field(activity, "scroll");
-            // The Scooter tab is the activity's own scooterTab (the raised button, or the rail's item): its spoken name
-            // gains "maintenance due" while a check is due (MaintenanceScreen.markTab), so it is not found by name.
-            View scooter = (View) field(activity, "scooterTab");
-            if (tab.equals(HubPages.SCOOTER) && scooter != null && scooter.isClickable()) { found[0] = scooter; return; }
-            for (View view : descendants(activity.getWindow().getDecorView())) {
-                if (!view.isClickable() || view.getContentDescription() == null || inside(view, page)) continue;
-                if (label[0].contentEquals(view.getContentDescription())) { found[0] = view; break; }
-                if (seen.size() < 12) seen.add(String.valueOf(view.getContentDescription()));
-            }
-        });
-        if (found[0] == null) throw new IllegalStateException("No " + label[0] + " tab in the navigation bar (page " + currentOn(instrumentation, activity) + "; other actions outside the page: " + seen + ")");
-        tap(instrumentation, activity, found[0], "the " + label[0] + " tab");
-        awaitPage(instrumentation, activity, tab, "the " + label[0] + " tab");
     }
 
     /**
@@ -103,6 +80,7 @@ public final class HubTestPages {
      */
     public static void tapRow(Instrumentation instrumentation, MainActivity activity, String target) {
         String wanted = HubPages.canonical(target);
+        if (viaDock(instrumentation, activity, wanted)) return;
         View[] row = {null};
         String[] problem = {null}, from = {null};
         onMain(instrumentation, () -> {
@@ -144,6 +122,32 @@ public final class HubTestPages {
         });
         if (problem[0] != null) throw new IllegalStateException(problem[0]);
         tap(instrumentation, activity, view, name);
+    }
+
+    /**
+     * A rider's tap on the shown page's back link ("hub-back", in the page header above the screen), with {@link #tapView}'s
+     * rules, then waits for the page below it on the activity's page stack to be on top (the back link goes there, which is
+     * not {@link HubPages#parent} when the page was opened from elsewhere: Developer options' checker opens Compatibility over
+     * Developer options). Throws when the page has no back link shown, nothing is below it, or the tap leaves another page
+     * on top. Instrumentation thread; returns the page now shown.
+     */
+    public static String back(Instrumentation instrumentation, MainActivity activity) {
+        View[] link = {null};
+        String[] from = {null}, target = {null};
+        onMain(instrumentation, () -> {
+            from[0] = current(activity);
+            List<?> pages = (List<?>) call(field(activity, "nav"), "pages");
+            target[0] = pages.size() > 1 ? (String) pages.get(pages.size() - 2) : null;
+            View root = (View) field(activity, "root");
+            View found = root == null ? null : root.findViewWithTag("hub-back");
+            link[0] = found != null && found.isShown() ? found : null;
+        });
+        if (link[0] == null) throw new IllegalStateException("Page " + from[0] + " has no back link shown");
+        if (target[0] == null) throw new IllegalStateException("Page " + from[0] + " has no page below it to go back to");
+        String name = "the back link on page " + from[0];
+        tap(instrumentation, activity, link[0], name);
+        awaitPage(instrumentation, activity, target[0], name);
+        return target[0];
     }
 
     /**
@@ -218,7 +222,7 @@ public final class HubTestPages {
     }
 
     /**
-     * Opens a saved ride's details the rider's way: the Rides tab, the Ride page's All rides & compare row (the only page
+     * Opens a saved ride's details the rider's way: Home's Ride row, the Ride page's All rides & compare row (the only page
      * with the wide two panes; the Ride page itself is always compact), then the ride's history row, all by touch. Requires
      * the layout the window should get ({@link #expectWide}): wide, the ride selected in the right pane with no dialog
      * (its row selected, the pane shown and titled with the ride); compact, one new details dialog showing the ride. So a
@@ -286,6 +290,132 @@ public final class HubTestPages {
         return null;
     }
 
+    /**
+     * Widgets Home's way in to target (part 11): its header has no search or gear and it lists no subject rows, so a
+     * rider taps the dock's item for target when the dock shows one, and otherwise the dock's All item and then the
+     * sheet's row (a subject's "home-subject-" row, or its "home-settings" / "home-search" row). Each is required shown,
+     * enabled and tappable and gets a real touch ({@link #tapIn}); then target must be on top. False, doing nothing, when
+     * the page shown is not Home or Home has no dock (Clean Home: {@link #rowsTo}).
+     */
+    private static boolean viaDock(Instrumentation instrumentation, MainActivity activity, String target) {
+        Object[] dock = {null};
+        onMain(instrumentation, () -> dock[0] = HubPages.HOME.equals(current(activity)) ? field(activity, "dock") : null);
+        if (dock[0] == null) return false;
+        View[] item = {null}, all = {null};
+        String[] problem = {null};
+        // The dock can move or step aside after it was picked: Home's cards still settle (a tile's value arrives and the Lock
+        // bar moves under the dock), and HubDock.keepClear then lifts or hides it. The rider sees that and scrolls; so does this, once more, but
+        // only when the dock says it stepped aside for the Lock bar (any other hiding still fails).
+        for (int attempt = 1; ; attempt++) {
+            showDock(instrumentation, activity);
+            item[0] = null; all[0] = null; problem[0] = null;
+            onMain(instrumentation, () -> {
+                for (View view : descendants((View) call(dock[0], "view"))) {
+                    if (!view.isShown()) continue;
+                    if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
+                    else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
+                }
+                View pick = item[0] != null ? item[0] : all[0];
+                if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
+                else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
+                else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
+            });
+            if (problem[0] != null) throw new IllegalStateException(problem[0]);
+            View pick = item[0] != null ? item[0] : all[0];
+            String name = item[0] != null ? "the dock item " + item[0].getTag() + " on page " + HubPages.HOME : "the dock's All item on page " + HubPages.HOME;
+            try { tap(instrumentation, activity, pick, name); }
+            catch (IllegalStateException missed) {
+                boolean[] aside = {false};
+                onMain(instrumentation, () -> aside[0] = dockAsideForLockBar(dock[0]));
+                if (attempt >= 2 || !aside[0]) throw missed;
+                continue;
+            }
+            break;
+        }
+        if (item[0] != null) {
+            awaitPage(instrumentation, activity, target, "the dock item " + item[0].getTag() + " on page " + HubPages.HOME);
+            return true;
+        }
+        // The sheet: shown, with its window focused, and exactly one shown row to target in it.
+        String rowTag = HubPages.SETTINGS.equals(target) ? "home-settings" : HubPages.SEARCH.equals(target) ? "home-search" : "home-subject-" + target;
+        View[] root = {null}, row = {null};
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until && row[0] == null) {
+            onMain(instrumentation, () -> {
+                Object sheet = field(dock[0], "sheet");
+                if (!(sheet instanceof android.app.Dialog) || !((android.app.Dialog) sheet).isShowing()) { problem[0] = "The dock's All item did not open its sheet"; return; }
+                View decor = ((android.app.Dialog) sheet).getWindow().getDecorView();
+                List<View> shown = new ArrayList<>();
+                for (View view : descendants(decor)) if (rowTag.equals(view.getTag()) && view.isShown()) shown.add(view);
+                if (shown.isEmpty()) problem[0] = "The dock's All sheet shows no row to " + target;
+                else if (shown.size() > 1) problem[0] = "The dock's All sheet shows " + shown.size() + " rows to " + target;
+                else if (!shown.get(0).isEnabled()) problem[0] = "The All sheet's row to " + target + " is disabled";
+                else if (!shown.get(0).isClickable() || !shown.get(0).hasOnClickListeners()) problem[0] = "The All sheet's row to " + target + " is not tappable";
+                else { root[0] = decor; row[0] = shown.get(0); problem[0] = null; }
+            });
+            if (row[0] == null) SystemClock.sleep(40);
+        }
+        if (row[0] == null) throw new IllegalStateException(problem[0]);
+        String name = "the All sheet's row " + rowTag + " on page " + HubPages.HOME;
+        tapIn(instrumentation, activity, root[0], row[0], name);
+        awaitPage(instrumentation, activity, target, name);
+        return true;
+    }
+
+    /**
+     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, and still. Where Home's Lock bar sits where the
+     * dock floats, the dock moves up over it (HubDock.keepClear); only on a window too short for that does it step aside,
+     * coming back once the page scrolls the bar above it, so the rider scrolls Home to its end: so does this. Waits until the dock's visibility and place have
+     * held for several reads (Home's cards may still be settling and moving the bar), and throws when the dock is gone
+     * (Home's editor), hidden without the Lock bar under it, or still aside after the scroll. Instrumentation thread; a no-op
+     * on a Home without a dock (Clean Home).
+     */
+    public static void showDock(Instrumentation instrumentation, MainActivity activity) {
+        Object[] dock = {null};
+        onMain(instrumentation, () -> dock[0] = HubPages.HOME.equals(current(activity)) ? field(activity, "dock") : null);
+        if (dock[0] == null) return;
+        String[] state = {null}, last = {null};
+        String[] problem = {null};
+        boolean scrolled = false;
+        int still = 0;
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            instrumentation.waitForIdleSync();
+            onMain(instrumentation, () -> {
+                View view = (View) call(dock[0], "view");
+                int[] at = new int[2]; view.getLocationOnScreen(at);
+                View bar = clearView(dock[0]);
+                int[] barAt = new int[2]; if (bar != null) bar.getLocationOnScreen(barAt);
+                problem[0] = view.getVisibility() == View.GONE ? "Widgets Home's dock is gone (Home is being edited)"
+                        : view.getVisibility() == View.INVISIBLE && !dockAsideForLockBar(dock[0]) ? "Widgets Home's dock is hidden with no Lock bar under it" : null;
+                state[0] = view.getVisibility() + "@" + at[1] + "/" + view.getHeight() + " bar " + (bar == null ? "-" : barAt[1] + "/" + bar.getHeight());
+            });
+            if (problem[0] != null) throw new IllegalStateException(problem[0]);
+            if (state[0].startsWith(View.INVISIBLE + "@")) {
+                if (!scrolled) { onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN)); scrolled = true; }
+                still = 0; last[0] = null; SystemClock.sleep(40); continue;
+            }
+            if (state[0].equals(last[0])) { if (++still >= 3) return; }
+            else still = 0;
+            last[0] = state[0];
+            SystemClock.sleep(60);
+        }
+        throw new IllegalStateException(state[0] != null && state[0].startsWith(View.INVISIBLE + "@")
+                ? "Widgets Home's dock stayed aside after scrolling Home to its end (" + state[0] + ")"
+                : "Widgets Home's dock did not settle (" + state[0] + ")");
+    }
+
+    /** The view Widgets Home's dock keeps clear (the Lock bar), or null. Main thread. */
+    private static View clearView(Object dock) {
+        Object supplier = field(dock, "keepClear");
+        return supplier == null ? null : (View) ((java.util.function.Supplier<?>) supplier).get();
+    }
+
+    /** Whether the dock is aside because it would cover the Lock bar where it floats now (HubDock.coversClearView). Main thread. */
+    private static boolean dockAsideForLockBar(Object dock) {
+        return ((View) call(dock, "view")).getVisibility() == View.INVISIBLE && Boolean.TRUE.equals(call(dock, "coversClearView"));
+    }
+
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */
     public static boolean rowShown(MainActivity activity, String target) {
         for (View view : rowsTo(activity, target)) if (view.isShown()) return true;
@@ -297,7 +427,11 @@ public final class HubTestPages {
         if (rowShown(activity, target)) throw new IllegalStateException("Page " + current(activity) + " shows a row to " + target + " (" + why + ")");
     }
 
-    /** Views on the shown page's screen tagged as a row that opens target. Main thread. */
+    /**
+     * Views on the shown page's screen tagged as a row that opens target. Main thread. On Home these are Clean Home's ways
+     * in (its subject rows and its header's search and gear); Widgets Home's ways in, the dock and its All sheet, sit
+     * outside the screen's view and are tapped by {@link #viaDock}.
+     */
     private static List<View> rowsTo(MainActivity activity, String target) {
         List<View> out = new ArrayList<>();
         Object screen = field(activity, "screen");
@@ -305,6 +439,9 @@ public final class HubTestPages {
         for (View view : descendants(((AppScreen) screen).view())) {
             Object tag = view.getTag();
             if (("hub-row-" + target).equals(tag) || ("hub-link-" + target).equals(tag)) out.add(view);
+            // Clean Home's own ways in (part 11): its subject rows, and its header's search and gear.
+            else if (HubPages.HOME.equals(current(activity)) && (("home-subject-" + target).equals(tag)
+                    || (HubPages.SETTINGS.equals(target) && "home-settings".equals(tag)) || (HubPages.SEARCH.equals(target) && "home-search".equals(tag)))) out.add(view);
         }
         return out;
     }
@@ -314,6 +451,14 @@ public final class HubTestPages {
      * screen and still, then a touch down and up injected at its centre.
      */
     private static void tap(Instrumentation instrumentation, MainActivity activity, View view, String name) {
+        tapIn(instrumentation, activity, null, view, name);
+    }
+
+    /**
+     * {@link #tap} on a view in a given window: root is that window's decor view (the dock's All sheet), or null for the
+     * activity's own window. The window must have focus and nothing in it may cover the view's centre.
+     */
+    private static void tapIn(Instrumentation instrumentation, MainActivity activity, View root, View view, String name) {
         int[] centre = new int[2];
         String[] problem = {"did not settle on screen"};
         long until = SystemClock.uptimeMillis() + WAIT_MS;
@@ -326,7 +471,8 @@ public final class HubTestPages {
                 if (!view.isShown()) { problem[0] = "is hidden"; return; }
                 if (!view.isEnabled()) { problem[0] = "is disabled"; return; }
                 // A rider's touch reaches the page only while its window has focus (no dialog or sheet over it).
-                if (!activity.hasWindowFocus()) { problem[0] = "is under another window (the page has no focus)"; return; }
+                View window = root != null ? root : activity.getWindow().getDecorView();
+                if (!window.hasWindowFocus()) { problem[0] = "is under another window (" + (root != null ? "the sheet" : "the page") + " has no focus)"; return; }
                 Rect visible = new Rect();
                 // Whole: all of the view but a deliberate negative-margin bleed (the wide ride list's selection tint runs
                 // into its card's padding, which clips it in every scroll position), so that is not asked to be on screen.
@@ -345,7 +491,7 @@ public final class HubTestPages {
                 // touch as catching the scroll, not as a tap on the row: wait until every scroller around it has stopped.
                 if (scrolling(view)) { problem[0] = "is in a page that is still scrolling"; return; }
                 // Nothing drawn over the row's centre may take the touch instead (a floating bar, a pane, an overlay).
-                View top = topAt(activity.getWindow().getDecorView(), centre[0], centre[1]);
+                View top = topAt(window, centre[0], centre[1]);
                 if (top != null && !inside(top, view)) { problem[0] = "is covered by " + describe(top); return; }
                 ready[0] = true;
             });
