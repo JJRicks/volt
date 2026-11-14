@@ -45,16 +45,16 @@ final class ChargeTrack extends View {
 
     /**
      * Draws the track along the bottom of a w by h area: 8 dp thick in the raised colour, filled in fill to level, and
-     * a 2 dp tick in tick at limit reaching 3 dp above the track (none at 100% or when limit is NaN), as Clean's
-     * charging view draws it. The paint's shader and alpha are reset first.
+     * a 2 dp tick in tick at limit reaching above pixels over the track and below pixels under it (none at 100% or when
+     * limit is NaN; ChargeTrackShape.tickSpan). The paint's shader and alpha are reset first.
      */
-    static void draw(Canvas canvas, Paint paint, Ui ui, float w, float h, double level, double limit, int fill, int tick) {
-        draw(canvas, paint, ui, w, h, level, limit, fill, tick, ui.dp(3), 0);
+    static void draw(Canvas canvas, Paint paint, Ui ui, float w, float h, double level, double limit, int fill, int tick, float above, float below) {
+        draw(canvas, paint, ui, w, h, level, limit, fill, tick, ui.dp(8), above, below);
     }
 
-    /** The same, with the tick reaching above and below pixels over and under the track (ChargeTrackShape.tickSpan). */
-    static void draw(Canvas canvas, Paint paint, Ui ui, float w, float h, double level, double limit, int fill, int tick, float above, float below) {
-        float thick = ui.dp(8), r = thick / 2, top = h - thick;
+    /** The same, thick pixels thick (Clean's charging view: ChargingFit.TRACK_DP, its tick ChargingFit.TICK_DP each way). */
+    static void draw(Canvas canvas, Paint paint, Ui ui, float w, float h, double level, double limit, int fill, int tick, float thick, float above, float below) {
+        float r = thick / 2, top = h - thick;
         paint.setShader(null);
         paint.setAlpha(255);
         paint.setStyle(Paint.Style.FILL);

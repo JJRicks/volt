@@ -192,8 +192,11 @@ public final class HubPageTilesTest {
     }
 
     private static void trackTick() {
-        float[] clean = ChargeTrackShape.tickSpan(100, 24, 9, 0);
-        require(clean[0] == 91 && clean[1] == 124, "Clean's charging view: the tick 3 dp above the track only");
+        float[] above = ChargeTrackShape.tickSpan(100, 24, 9, 0);
+        require(above[0] == 91 && above[1] == 124, "A tick 3 dp above the track only");
+        // Clean's charging view at 3 px per dp: a ChargingFit.TRACK_DP track, the tick ChargingFit.TICK_DP each way.
+        float[] clean = ChargeTrackShape.tickSpan(100, 3 * ChargingFit.TRACK_DP, 3 * ChargingFit.TICK_DP, 3 * ChargingFit.TICK_DP);
+        require(clean[0] == 88 && clean[1] == 133, "Clean's charging view: the tick 4 dp above and below its 7 dp track");
         float[] card = ChargeTrackShape.tickSpan(100, 24, 13.5f, 13.5f);
         require(card[0] == 86.5f && card[1] == 137.5f, "The summary card: 4.5 dp above and below the track");
         float[] none = ChargeTrackShape.tickSpan(100, 24, -5, -5);

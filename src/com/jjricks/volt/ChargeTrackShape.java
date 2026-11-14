@@ -24,7 +24,7 @@ final class ChargeTrackShape {
 
     /**
      * The limit tick's top and bottom for a track from trackTop, thick tall: it reaches above pixels over the track and
-     * below pixels under it (Clean's charging view: 3 dp above only; the summary card: the plan's 4.5 dp each way).
+     * below pixels under it (Clean's charging view: ChargingFit.TICK_DP each way; the summary card: the plan's 4.5 dp each way).
      */
     static float[] tickSpan(float trackTop, float thick, float above, float below) {
         return new float[]{trackTop - Math.max(0, above), trackTop + thick + Math.max(0, below)};

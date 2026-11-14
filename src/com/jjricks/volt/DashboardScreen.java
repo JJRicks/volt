@@ -2910,24 +2910,10 @@ public final class DashboardScreen implements AppScreen {
              * Battery & charging's summary card draws the same track (ChargeTrack).
              */
             private void drawTrack(Canvas canvas, float w, float h) {
-                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TICK_DP).
-                float thick = ui.dp(ChargingFit.TRACK_DP), r = thick / 2, reach = ui.dp(ChargingFit.TICK_DP);
-                h -= reach;
-                float top = h - thick;
-                paint.setShader(null);
-                paint.setAlpha(255);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(ui.raised);
-                canvas.drawRoundRect(0, top, w, h, r, r, paint);
-                if (!Double.isNaN(level) && level > 0) {
-                    paint.setColor(ui.accent);
-                    canvas.drawRoundRect(0, top, Math.max(thick, w * (float) (level / 100)), h, r, r, paint);
-                }
-                if (limit < 100) {
-                    float x = w * (float) (limit / 100);
-                    paint.setColor(Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255));
-                    canvas.drawRect(x - ui.dp(1), top - reach, x + ui.dp(1), h + reach, paint);
-                }
+                // The track sits above its tick's reach at the stage's bottom (ChargingFit.TRACK_DP, TICK_DP).
+                float reach = ui.dp(ChargingFit.TICK_DP);
+                ChargeTrack.draw(canvas, paint, ui, w, h - reach, level, limit, ui.accent, Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255),
+                        ui.dp(ChargingFit.TRACK_DP), reach, reach);
             }
         }
     }
