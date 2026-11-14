@@ -15,12 +15,14 @@ final class OdometerAttention {
     private OdometerAttention() { }
 
     /**
-     * The style for an odometer number. {@code unacknowledged}: a carry-over the rider hasn't opened; {@code motion}:
+     * The style for an odometer number. {@code unacknowledged}: a carry-over the rider hasn't opened; {@code opens}: a
+     * tap on the number's area opens the explanation (a cell with its own tap action keeps it, and gets no cue, since
+     * the cue and "double-tap for details" would promise something the tap doesn't do); {@code motion}:
      * the system lets apps animate (animator duration scale above 0, Remove animations off); {@code riding}: riding mode
      * or the number isn't on screen; {@code moving}: the scooter reports speed.
      */
-    static Style style(boolean unacknowledged, boolean motion, boolean riding, boolean moving) {
-        if (!unacknowledged || riding || moving) return Style.NONE;
+    static Style style(boolean unacknowledged, boolean opens, boolean motion, boolean riding, boolean moving) {
+        if (!unacknowledged || !opens || riding || moving) return Style.NONE;
         return motion ? Style.PULSE : Style.STILL;
     }
 

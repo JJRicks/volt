@@ -146,13 +146,29 @@ public final class OdometerCarryTest {
 
     // The cue: the reduced-motion choice, never while moving or riding, re-armed by a new carry-over.
     private static void attention() {
-        check(OdometerAttention.style(true, true, false, false) == OdometerAttention.Style.PULSE, "unacknowledged, animations on: pulse");
-        check(OdometerAttention.style(true, false, false, false) == OdometerAttention.Style.STILL, "animations off: still accent and dot");
-        check(OdometerAttention.style(true, true, false, true) == OdometerAttention.Style.NONE && OdometerAttention.style(true, false, false, true) == OdometerAttention.Style.NONE,
+        check(OdometerAttention.style(true, true, true, false, false) == OdometerAttention.Style.PULSE, "unacknowledged, animations on: pulse");
+        check(OdometerAttention.style(true, true, false, false, false) == OdometerAttention.Style.STILL, "animations off: still accent and dot");
+        check(OdometerAttention.style(true, true, true, false, true) == OdometerAttention.Style.NONE && OdometerAttention.style(true, true, false, false, true) == OdometerAttention.Style.NONE,
                 "never while the scooter reports speed");
-        check(OdometerAttention.style(true, true, true, false) == OdometerAttention.Style.NONE && OdometerAttention.style(true, false, true, false) == OdometerAttention.Style.NONE,
+        check(OdometerAttention.style(true, true, true, true, false) == OdometerAttention.Style.NONE && OdometerAttention.style(true, true, false, true, false) == OdometerAttention.Style.NONE,
                 "never in riding mode or off screen");
-        check(OdometerAttention.style(false, true, false, false) == OdometerAttention.Style.NONE, "acknowledged: plain");
+        check(OdometerAttention.style(false, true, true, false, false) == OdometerAttention.Style.NONE, "acknowledged: plain");
+        // No cue where a tap won't open the explanation: not the pulse, the still accent and dot, or the spoken hint.
+        for (boolean motion : new boolean[]{true, false})
+            check(OdometerAttention.style(true, false, motion, false, false) == OdometerAttention.Style.NONE, "a cell whose tap does something else gets no cue");
+        String home = read("src/com/jjricks/volt/DashboardScreen.java");
+        String mark = between(home, "private void markOdometer(", "void pulseOdometer(");
+        check(mark.contains("boolean opens = carried && target != null;")
+                        && mark.contains("OdometerAttention.style(record != null && record.unacknowledged(), opens,")
+                        && mark.contains("if (target == big && big.hasOnClickListeners() && big != odometerTarget) target = null;")
+                        && mark.contains("return holder.hasOnClickListeners() && holder != odometerTarget ? null : holder;"),
+                "Home cues only a number whose tap opens the explanation; a cell or number with its own tap keeps it, uncued");
+        String sheet = between(home, "private void showOdometerCarry() {", "private LinearLayout carryRow(");
+        check(sheet.contains("carryRow(T.dashboardOdometerCarryScooter(), shown(own).toString())") && sheet.contains("carryRow(T.dashboardOdometerCarryShown(), shown(total).toString())")
+                        && sheet.contains("service.displayReadings().get(MaintenanceView.ODOMETER)") && sheet.contains("service.dashboardReadings().get(MaintenanceView.ODOMETER)"),
+                "the sheet's two rows use Home's own formatter on Home's own readings, so they match the tile exactly");
+        check(mark.indexOf("dashboardOdometerCarrySpoken") > mark.indexOf("if (style == OdometerAttention.Style.NONE)"),
+                "the spoken hint comes only with a cue");
         // Gentle: two pulses then a pause, well under three a second.
         int peaks = 0; double previous = 0, max = 0; boolean rising = true;
         for (long t = 0; t < OdometerAttention.CYCLE_MS; t += 10) {

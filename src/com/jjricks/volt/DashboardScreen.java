@@ -4513,6 +4513,9 @@ public final class DashboardScreen implements AppScreen {
             OdometerCarry record = service == null || editing ? null : service.odometerRecord();
             boolean carried = record != null && record.carriedKm() > 0;
             View target = number == big ? big : odometerTarget(number);
+            // A number that already acts on a tap keeps its own action, and then shows no cue either.
+            if (target == big && big.hasOnClickListeners() && big != odometerTarget) target = null;
+            boolean opens = carried && target != null;
             if (target != null && (carried || target == odometerTarget)) {
                 target.setOnClickListener(carried ? v -> { if (!editing) showOdometerCarry(); } : null);
                 target.setClickable(carried);
@@ -4521,7 +4524,7 @@ public final class DashboardScreen implements AppScreen {
             }
             TelemetryHistory.Reading speed = values.get(RidingValues.SPEED_KEY);
             boolean moving = speed != null && speed.live && speed.number != null && speed.number > 0;
-            OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(),
+            OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(), opens,
                     Ui.motionEnabled(), !isShown(), moving);
             odometerNumber = number;
             odometerBase = number.getCurrentTextColor();
@@ -7074,9 +7077,13 @@ public final class DashboardScreen implements AppScreen {
                 : T.dashboardOdometerCarryIncludesMany(carried, carryDate(last.wall)), 15, true);
         includes.setPadding(0, ui.dp(12), 0, ui.dp(6));
         content.addView(includes, new LinearLayout.LayoutParams(-1, -2));
-        if (record.hasBaseline()) {
-            content.addView(carryRow(T.dashboardOdometerCarryScooter(), odometerText(record.lastRawKm)));
-            content.addView(carryRow(T.dashboardOdometerCarryShown(), odometerText(record.displayKm(record.lastRawKm))));
+        // The two rows name numbers on screen, so they read exactly as Home writes an odometer reading (units included):
+        // the scooter's own reading as Home would show it raw, and the total Home shows.
+        TelemetryHistory.Reading own = service.displayReadings().get(MaintenanceView.ODOMETER);
+        TelemetryHistory.Reading total = service.dashboardReadings().get(MaintenanceView.ODOMETER);
+        if (own != null && own.number != null && total != null && total.number != null) {
+            content.addView(carryRow(T.dashboardOdometerCarryScooter(), shown(own).toString()));
+            content.addView(carryRow(T.dashboardOdometerCarryShown(), shown(total).toString()));
         }
         TextView note = ui.caption(T.dashboardOdometerCarryNote());
         note.setPadding(0, ui.dp(10), 0, 0);
