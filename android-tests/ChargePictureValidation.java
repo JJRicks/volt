@@ -32,7 +32,7 @@ import java.util.function.BooleanSupplier;
  * MAX and UT5 Ultra X, the folded stills of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5 Ultra) on Widgets Home's
  * charging takeover and Clean Home's charging view, on the developer simulator (a UT5 MAX charging). Each model's
  * picture is shown through ChargePicture.tourKey; the wire pictures are also frozen mid-pulse, mid-sweep and in the
- * fast mode (ChargeWireView.tourSeconds and tourWatts), since the emulator's animations are off.
+ * fast mode (ChargeWireView.tourSeconds and tourWatts), with the animator off (it turns it off itself).
  *
  * For every picture, on both Homes: it shows, under the percentage, with the prototype's relationship
  * (ChargePictureFit: the number no larger than the picture allows unless at its 1.0x size, its baseline no deeper into
@@ -64,6 +64,11 @@ public final class ChargePictureValidation extends Instrumentation {
         label = args.getString("size_label", "size") + "-" + theme + "-" + text;
         try {
             admit(); admitted = true;
+            // Animations off for the frozen frames (the release sweep's emulator leaves them on): with them on, the
+            // pulses never let the main thread go idle and every settle waits forever. The app takes the setting with
+            // its first window (checked once it shows); restored in finally.
+            foundScale = shell("settings get global animator_duration_scale").trim();
+            shell("settings put global animator_duration_scale 0");
             seed(theme, text, "widgets");
             main(() -> {
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
@@ -71,6 +76,7 @@ public final class ChargePictureValidation extends Instrumentation {
                 profiles.select(ut5); OnboardingScreen.markDone(getTargetContext());
             });
             launch(false);
+            scale("0");
             verifyWidgets();
             verifyOpening();
             relaunch(theme, text, "clean");
@@ -166,7 +172,7 @@ public final class ChargePictureValidation extends Instrumentation {
             main(() -> ((ValueAnimator) field(hero(), "reveal")).end());
             settle();
             main(() -> require(field(hero(), "reveal") == null && (!clipsAll() || !runsOff()), "Opened: the cable's parents did not open"));
-        } finally { scale(foundScale == null || foundScale.equals("null") ? "0" : foundScale); }
+        } finally { scale("0"); }
         checks.add(label + " Widgets opening (animations on, held at 35% and 70%): the stage at most its least height, every parent clipping");
     }
 
