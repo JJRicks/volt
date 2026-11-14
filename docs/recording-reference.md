@@ -310,7 +310,7 @@ limits; no service can collect scooter readings without a connection.
 
 ### Automatic charge recordings
 
-**Record charges automatically** (Scooter → Battery & charging → Charge history
+**Record charges automatically** (Battery & charging → Charge history
 & recordings, off by default; ChargeAutoRecordPolicy) starts a charge recording
 without asking whenever Volt is connected to the selected scooter, on screen or
 not, and a fresh reading says it is charging, if Start charge recording would be
