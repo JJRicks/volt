@@ -223,4 +223,135 @@ final class RidingChipFit {
 
     /** A mark for an icon, apart from any name a translation could give. */
     static String iconMark(String key) { return key == null ? null : "\u0000icon:" + key; }
+
+    // The steady row (a tester, Nov 14): widths come from each reading's widest value, never the value on show, and the
+    // chips share the whole row, larger when there are fewer of them.
+
+    /**
+     * Text sizes for a row's chips, by how many chip slots the rider filled: three keep the size chips always had, two
+     * draw a little larger, one larger still. A larger size is used only where it costs no chip and no name (see
+     * {@link #sized}), so text never draws smaller than the three-chip size.
+     */
+    static final int SIZE_NORMAL = 0, SIZE_MEDIUM = 1, SIZE_LARGE = 2, SIZES = 3;
+    /** Each size's scale of the three-chip text and icons. */
+    static final float[] SIZE_SCALE = {1f, 1.2f, 1.4f};
+
+    /** The largest size a row of this many filled chip slots may use. */
+    static int largestSize(int filled) {
+        return filled <= 1 ? SIZE_LARGE : filled == 2 ? SIZE_MEDIUM : SIZE_NORMAL;
+    }
+
+    /** A chip's whole width at a size, rung and name step. */
+    interface SizedWidths {
+        int at(int size, int chip, int rung, int step);
+    }
+
+    /** A row's fit with the size its chips draw at. */
+    static final class Sized {
+        final int size;
+        final RidingChipFit fit;
+        Sized(int size, RidingChipFit fit) { this.size = size; this.fit = fit; }
+    }
+
+    private static int compactCount(RidingChipFit fit) { return count(fit.compact); }
+
+    private static Widths atSize(final SizedWidths widths, final int size) {
+        return new Widths() { @Override public int at(int chip, int rung, int step) { return widths.at(size, chip, rung, step); } };
+    }
+
+    /**
+     * A row fitted at the largest size it may use that shows as much as the three-chip size would: the same chips, at a
+     * rung no tighter, and no more of them in their compact form. Otherwise the three-chip size, fitted as
+     * {@link #stepping} fits it. The widths are meant to be each chip's widest value, so the answer never changes while
+     * the values do.
+     */
+    static Sized sized(String[][] marks, String[] contents, SizedWidths full, SizedWidths compact, boolean[] canStep,
+                       int largest, int gap, int room) {
+        RidingChipFit base = stepping(marks, contents, atSize(full, SIZE_NORMAL), atSize(compact, SIZE_NORMAL), canStep, false, gap, room);
+        for (int size = Math.min(largest, SIZES - 1); size > SIZE_NORMAL; size--) {
+            RidingChipFit fit = stepping(marks, contents, atSize(full, size), atSize(compact, size), canStep, false, gap, room);
+            if (java.util.Arrays.equals(fit.shown, base.shown) && fit.rung <= base.rung && compactCount(fit) <= compactCount(base))
+                return new Sized(size, fit);
+        }
+        return new Sized(SIZE_NORMAL, base);
+    }
+
+    /**
+     * The shown chips' widths once they fill the row: each keeps its own width and takes an equal part of what's left
+     * (the first ones take the odd pixels), so the row's two ends meet the tiles' edges above it. Widths that already
+     * overfill the row are returned as they are.
+     */
+    static int[] spread(int[] widths, int gap, int room) {
+        int[] out = widths.clone();
+        int n = widths.length;
+        if (n == 0) return out;
+        long used = gap * (n - 1L);
+        for (int w : widths) used += w;
+        long extra = room - used;
+        if (extra <= 0 || room == Integer.MAX_VALUE) return out;
+        long each = extra / n, odd = extra % n;
+        for (int i = 0; i < n; i++) out[i] += (int) (each + (i < odd ? 1 : 0));
+        return out;
+    }
+
+    /** How many chips of one height stack in a column this tall, with gaps between them. */
+    static int stackable(int chipHeight, int gap, int height) {
+        if (chipHeight <= 0) return Integer.MAX_VALUE;
+        if (height < chipHeight) return 0;
+        return 1 + (height - chipHeight) / Math.max(1, chipHeight + gap);
+    }
+
+    /**
+     * {@link #column} with at most limit chips: a column too short for every chip hides the lowest priority ones, always
+     * the same ones for the same column, before the widths are worked out.
+     */
+    static RidingChipFit column(String[][] marks, String[] contents, Widths widths, int room, int limit) {
+        int of = marks.length;
+        boolean[] set = new boolean[of];
+        for (int chip = 0; chip < of; chip++) {
+            if (count(set) >= limit) break;
+            set[chip] = true;
+            if (widestColumnRung(marks, contents, widths, set, room) < 0) set[chip] = false;
+        }
+        int rung = Math.max(FULL, widestColumnRung(marks, contents, widths, set, room));
+        return new RidingChipFit(count(set), rung, set, steps(marks, contents, set, rung));
+    }
+
+    /** {@link #stepping} for a column of at most limit chips (see {@link #column(String[][], String[], Widths, int, int)}). */
+    static RidingChipFit steppingColumn(String[][] marks, String[] contents, Widths full, final Widths compact, boolean[] canStep,
+                                        int room, int limit) {
+        RidingChipFit plain = column(marks, contents, full, room, limit);
+        final boolean[] use = new boolean[marks.length];
+        boolean any = false;
+        for (int chip = 0; chip < marks.length; chip++) {
+            use[chip] = canStep != null && canStep[chip] && !plain.shown[chip];
+            any |= use[chip];
+        }
+        if (!any) return plain;
+        final Widths wide = full;
+        Widths mixed = new Widths() {
+            @Override public int at(int chip, int rung, int step) { return use[chip] ? compact.at(chip, rung, step) : wide.at(chip, rung, step); }
+        };
+        RidingChipFit fit = column(marks, contents, mixed, room, limit);
+        boolean[] shownCompact = new boolean[marks.length];
+        for (int chip = 0; chip < marks.length; chip++) shownCompact[chip] = use[chip] && fit.shown[chip];
+        return new RidingChipFit(fit.count, fit.rung, fit.shown, fit.steps, shownCompact);
+    }
+
+    /**
+     * A reading's text with every figure set to the font's widest one, so its width is the most that many figures can
+     * take: "12.3 km/h" becomes "88.8 km/h" where 8 is the widest. digits holds the language's ten figures, 0 to 9, one
+     * character each; widest is the index of the widest. Other characters stay.
+     */
+    static String widened(CharSequence text, String digits, int widest) {
+        if (text == null) return null;
+        if (digits == null || digits.length() != 10 || widest < 0 || widest > 9) return text.toString();
+        char wide = digits.charAt(widest);
+        StringBuilder out = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            out.append(digits.indexOf(c) >= 0 ? wide : c);
+        }
+        return out.toString();
+    }
 }
