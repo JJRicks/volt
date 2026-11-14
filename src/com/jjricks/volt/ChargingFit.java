@@ -26,9 +26,10 @@ package com.jjricks.volt;
  *       {@link #PERCENT_MIN_SCALE} of its size (it never grows as the slot shrinks), then smaller, down to
  *       {@link #PERCENT_TINY_SCALE}; nothing is drawn under it.</li>
  * </ol>
- * The percentage stays while anything shows (the contributor's pick): a slot too short for it even at
- * {@link #PERCENT_TINY_SCALE} over the readings, or shorter than the readings themselves, loses the readings (the
- * percentage and the track then stay). The photo
+ * The readings never go (the contributor's answer 2: the tiles stay): in a slot too short for the
+ * percentage even at {@link #PERCENT_TINY_SCALE} over them, the percentage gets smaller still and goes only when the
+ * readings fill the slot; a slot shorter than the readings shows them alone, from its top. Nothing that went comes
+ * back as the slot shrinks: the percentage never grows and the photo never returns. The photo
  * shows while it is at least {@link #PHOTO_MIN_DP} tall. Every height given is in pixels, every constant in dp scaled
  * by {@code density}. The stage takes any height left over, so the readings end at the slot's bottom.
  */
@@ -135,26 +136,16 @@ final class ChargingFit {
             if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(HALF_SCALE, scale), stage, under, photoMin, true, gapMin);
             // 8. Too short for the percentage at its smallest with the track: the track, the photo and the gap make
             // way and the percentage stays over the readings, no larger than step 7's smallest (so it never grows as
-            // the slot shrinks), then smaller down to its least.
+            // the slot shrinks), then smaller down to its least, and smaller still in the very shortest slots. The
+            // readings stay (the contributor's answer 2: the tiles stay), and the height never goes back to a photo.
             stage = inner - readingsHeight;
             scale = share(stage, percentHeight);
             if (scale >= PERCENT_TINY_SCALE) return new Plan(false, false, true, Math.min(PERCENT_MIN_SCALE, scale), stage, 0, false, true, 0);
-            // Not even that: the readings make way for the percentage (it stays while anything shows), which stays no
-            // larger than it was over them.
-            return alone(inner, under, percentHeight, photoMin, PERCENT_MIN_SCALE);
+            return new Plan(false, false, stage > 0, Math.min(PERCENT_TINY_SCALE, scale), Math.max(0, stage), 0, false, true, 0);
         }
-        // 9. Not even the readings fit: the percentage (as large as fits) over the track, nothing else.
-        return alone(inner, under, percentHeight, photoMin, 1);
-    }
-
-    /**
-     * The percentage alone, at most {@code cap} of its size: over the track while it fits there at
-     * {@link #PERCENT_MIN_SCALE} or more, else filling the slot with nothing under it.
-     */
-    private static Plan alone(int inner, int under, int percentHeight, int photoMin, float cap) {
-        float scale = share(inner - under, percentHeight);
-        if (scale >= PERCENT_MIN_SCALE) return plan(false, false, Math.min(cap, scale), inner, under, photoMin, false, 0);
-        return new Plan(false, false, inner > 0, Math.min(cap, share(inner, percentHeight)), inner, 0, false, false, 0);
+        // 9. Not even the readings fit: they stay, from the slot's top (the percentage, already gone at a slot as tall
+        // as they are, does not come back, and no photo or track takes the height).
+        return new Plan(false, false, false, 0, 0, 0, false, true, 0);
     }
 
     /**

@@ -53,7 +53,10 @@ public final class ChargingFitTest {
     private static void sound(Case c) {
         ChargingFit.Plan p = c.plan;
         int stacked = p.stacked(c.line, c.shortLine, ChargingFit.LINE_GAP_DP, c.readings);
-        require(p.readings ? stacked == c.inner : stacked <= c.inner, c.name + ": stacks within the slot, to its bottom with the readings: " + p);
+        require(p.readings && c.readings <= c.inner ? stacked == c.inner : stacked <= Math.max(c.inner, c.readings),
+                c.name + ": stacks within the slot, to its bottom with the readings: " + p);
+        // The tiles stay (the contributor's answer 2): the readings show in every slot.
+        require(p.readings, c.name + ": the readings stay: " + p);
         int under = ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP;
         if (p.photo()) {
             require(p.photoHeight >= ChargingFit.PHOTO_MIN_DP, c.name + ": the photo has its least height");
@@ -74,8 +77,8 @@ public final class ChargingFitTest {
             require(ChargingFit.scaled(c.percent, p.percentScale) + under <= p.stageHeight, c.name + ": the track stays under the percentage: " + p);
         if (!p.track) require(!p.photo() && (!p.percent || ChargingFit.scaled(c.percent, p.percentScale) <= p.stageHeight),
                 c.name + ": without the track, the percentage fits the stage and no photo shows: " + p);
-        // The percentage stays while anything shows (the contributor's pick).
-        require(p.percent || p.stageHeight == 0 && !p.readings || c.inner == 0, c.name + ": the percentage stays while anything shows: " + p);
+        // The percentage stays while the readings leave it any height (the contributor's pick).
+        require(p.percent || c.inner <= c.readings, c.name + ": the percentage stays while the readings leave room: " + p);
         require(!p.shortLine || c.shortLine < c.line, c.name + ": a line already on one line keeps its words: " + p);
     }
 
@@ -154,15 +157,16 @@ public final class ChargingFitTest {
         sound(c);
         System.out.println("  " + c.name + ": " + c.plan);
         require(c.plan.readings && c.plan.percent, "280x640 at 1x: the readings and the percentage stay");
-        // Readings taller than the whole slot: the percentage shows over the track rather than a cut-off row.
+        // Readings taller than the whole slot: they stay (the tiles stay), and nothing takes the height back.
         c = new Case("readings taller than the slot", 200, 18, 18, 84, 222);
         sound(c);
-        require(!c.plan.readings && c.plan.percent, "readings taller than the slot: the percentage: " + c.plan);
+        require(c.plan.readings && !c.plan.percent && !c.plan.photo() && !c.plan.track && c.plan.stageHeight == 0,
+                "readings taller than the slot: the readings alone: " + c.plan);
 
         // The order things give way in, on one slot getting shorter: the line shortens, the gap closes, the photo
         // shrinks, the percentage shrinks to half, the line goes, the percentage shrinks further; the readings last.
         int line = 36, shortLine = 18, percent = 84, readings = 85;
-        boolean shortened = false, closed = false, shrunk = false, lineGone = false, readingsGone = false, trackGone = false;
+        boolean shortened = false, closed = false, shrunk = false, lineGone = false, tinyReached = false, trackGone = false;
         float lastScale = 1;
         for (int inner = 420; inner >= 0; inner--) {
             Case s = new Case("inner " + inner, inner, line, shortLine, percent, readings);
@@ -180,33 +184,42 @@ public final class ChargingFitTest {
                 lineGone = true;
             }
             if (p.line && p.percent) require(p.percentScale >= ChargingFit.HALF_SCALE, "with the line, the percentage is at least half, at " + inner);
-            if (!p.readings) {
-                require(inner - readings < Math.ceil(percent * ChargingFit.PERCENT_TINY_SCALE),
-                        "the readings go only when the percentage would not fit over them at its least, at " + inner);
-                readingsGone = true;
-            } else {
-                require(p.percent, "while the readings show, the percentage shows, at " + inner + ": " + p);
-                // Council review 5904036506, finding 6: the percentage never grows as the slot shrinks.
-                require(p.percentScale <= lastScale + 1e-6f, "the percentage never grows as the slot shrinks, at " + inner + ": " + p);
-                lastScale = p.percentScale;
-                if (!p.track) trackGone = true;
-            }
+            require(p.readings, "the readings stay, at " + inner + ": " + p);
+            require(p.percent || inner <= readings, "while the readings leave room, the percentage shows, at " + inner + ": " + p);
+            // Council review 5904036506, finding 6, and the review of 98be0a02: the percentage never grows as the slot
+            // shrinks, at every step, and the photo never comes back once the track has made way.
+            float scaleNow = p.percent ? p.percentScale : 0;
+            require(scaleNow <= lastScale + 1e-6f, "the percentage never grows as the slot shrinks, at " + inner + ": " + p);
+            lastScale = scaleNow;
+            if (!p.track) trackGone = true;
+            require(!p.photo() || !trackGone, "the photo never comes back once the track has made way, at " + inner + ": " + p);
+            if (p.percent && p.percentScale < ChargingFit.PERCENT_TINY_SCALE) tinyReached = true;
             if (!p.track && p.readings) require(p.percentScale <= ChargingFit.PERCENT_MIN_SCALE,
                     "without the track, the percentage is no larger than its smallest with it, at " + inner);
         }
-        require(shortened && closed && shrunk && lineGone && readingsGone && trackGone, "every step was reached");
+        require(shortened && closed && shrunk && lineGone && tinyReached && trackGone, "every step was reached");
         // Council review 5904036506, finding 7: stacked tiles at large text with the top area at its floor leave less
         // than 30% of the percentage's height; the percentage still shows over them, smaller, with nothing under it.
         c = new Case("stacked tiles, 208 dp floor", 208, 2 * 25, 25, 98, 186);
         sound(c);
         require(c.plan.readings && c.plan.percent && !c.plan.track && c.plan.percentScale < ChargingFit.PERCENT_MIN_SCALE,
                 "the stacked tiles and a smaller percentage over them: " + c.plan);
-        // Too short even for the percentage at its least over the readings: they make way, the percentage stays and is
-        // no larger than it was over them.
+        // Too short even for the percentage at its least over the readings: the readings stay, the percentage gets
+        // smaller still, and the freed height never goes to the photo or the track (review of 98be0a02, finding 2).
         c = new Case("readings fit, percentage does not", 190, 50, 25, 98, 186);
         sound(c);
-        require(c.plan.percent && !c.plan.readings && c.plan.percentScale <= ChargingFit.PERCENT_MIN_SCALE,
-                "the percentage stays, the readings make way: " + c.plan);
+        require(c.plan.percent && c.plan.readings && c.plan.percentScale < ChargingFit.PERCENT_TINY_SCALE
+                        && !c.plan.photo() && !c.plan.track, "the readings stay, the percentage smaller still: " + c.plan);
+        // The PR's 1.4x stacked-tile numbers, stepping the slot down past the readings: nothing grows, no photo returns.
+        float last = 1;
+        for (int inner = 260; inner >= 0; inner--) {
+            Case t = new Case("stacked tiles, inner " + inner, inner, 50, 25, 98, 186);
+            sound(t);
+            float now = t.plan.percent ? t.plan.percentScale : 0;
+            require(now <= last + 1e-6f, "stacked tiles: the percentage never grows, at " + inner + ": " + t.plan);
+            require(!t.plan.photo() || t.plan.track, "stacked tiles: no photo without the track, at " + inner + ": " + t.plan);
+            last = now;
+        }
         // A model with no photo: the percentage and the track are centred together in the stage (finding 9).
         require(ChargingFit.noPhotoTop(200, 70, 19) == 55 && ChargingFit.noPhotoTop(89, 70, 19) == 0 && ChargingFit.noPhotoTop(50, 70, 19) == 0,
                 "no photo: the percentage and the track centred in the stage, never above its top");
@@ -214,8 +227,12 @@ public final class ChargingFitTest {
         require(ChargingFit.plan(readings + least, line, shortLine, percent, readings, 1f).readings
                         && ChargingFit.plan(readings + least, line, shortLine, percent, readings, 1f).percent,
                 "the readings' height and the percentage at its least keeps both");
-        require(ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).percent,
-                "exactly the readings' height: the percentage stays (the readings make way for it)");
+        require(ChargingFit.plan(readings + 1, line, shortLine, percent, readings, 1f).percent
+                        && ChargingFit.plan(readings + 1, line, shortLine, percent, readings, 1f).readings,
+                "a slot 1 dp taller than the readings: the readings and the percentage, smaller still");
+        require(ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).readings
+                        && !ChargingFit.plan(readings, line, shortLine, percent, readings, 1f).photo(),
+                "exactly the readings' height: the readings stay (the tiles stay), no photo takes the height");
         require(ChargingFit.plan(260, line, shortLine, percent, readings, 1f).percentScale == 1
                         && ChargingFit.plan(260, line, shortLine, percent, readings, 2.625f).percentScale < 1,
                 "constants scale with density: 260 px holds the full percentage at 1, not at 2.625");
