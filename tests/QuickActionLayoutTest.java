@@ -79,6 +79,19 @@ public final class QuickActionLayoutTest {
         if (wider == 1)
             for (String name : new String[]{"Ride", "Record", "Cruise", "Alerts"})
                 require(!QuickActionLayout.name(room, names, name).iconOnly(), at + ": " + name + " whole");
+        // The electronic lock's round name is the lock reading's one-word compact name (review of 98be0a02): "Lock" at
+        // full size on one line, as the names beside it, with "Electronic lock" only as a rung it never needs.
+        if (wider == 1) {
+            QuickActionLayout.Name lock = QuickActionLayout.name(room, names, "Lock", "Electronic lock", "Electronic lock");
+            require("Lock".equals(lock.text) && lock.scale == 1, at + ": Lock at its full size: " + lock);
+            // German "Sperre" and pt-BR "Bloqueio" stay whole on one line (a little smaller where they must).
+            for (String translated : new String[]{"Sperre", "Bloqueio"}) {
+                QuickActionLayout.Name other = QuickActionLayout.name(room, names, translated);
+                whole(other, room, names, at);
+                require(translated.equals(other.text), at + ": " + translated + " whole: " + other);
+            }
+            System.out.println("  " + at + ": Lock -> " + lock);
+        }
         // Charge done by has no shorter English name yet (part 10's "Charge by"): whole where it fits at 75% or more,
         // else the icon alone, never "Charge do…".
         QuickActionLayout.Name done = QuickActionLayout.name(room, names, "Charge done by");

@@ -703,14 +703,17 @@ final class QuickAccessGrid extends ViewGroup {
      * A round action's names on Clean, for QuickActionLayout's ladder (the contributor's decisions on #383: "Cruise" for
      * Cruise control). First its one short name: Clean's own (HubText.quickActionRoundName); for cruise control,
      * traction control and energy recovery, the one-word name Live Stats already gives them (StatsLabels.row: "Cruise",
-     * "Traction", "Recovery") until part 10 adds Clean's own; else the control's short rung. Then the shorter names
+     * "Traction", "Recovery") until part 10 adds Clean's own; for the electronic lock, the reading's one-word compact
+     * name ("Lock", ScooterReadingLabels.compact), with "Electronic lock" as its next rung; else the control's short
+     * rung. Then the shorter names
      * the catalog already has for it (a control's Setting tile rung, such as pt-BR "Cruzeiro", and its short rung),
      * for a column too narrow for the first; the ladder skips any that is not narrower.
      */
     private static String[] roundNames(QuickAccessActions.Entry entry) {
         Msg own = HubText.quickActionRoundName(entry.id);
         String first = own != null ? own.render()
-                : ROUND_STATS_NAMES.contains(entry.featureKey) ? StatsLabels.row(entry.featureKey) : tileLabel(entry);
+                : ROUND_STATS_NAMES.contains(entry.featureKey) ? StatsLabels.row(entry.featureKey)
+                : LOCK_KEY.equals(entry.featureKey) ? ScooterReadingLabels.compact("lock_status", tileLabel(entry)) : tileLabel(entry);
         Msg rung = own != null ? null : TileShortLabels.forFeature(entry.featureKey);
         return new String[]{first, rung == null ? null : rung.render(), own != null ? null : entry.shortLabel().render()};
     }
@@ -723,6 +726,9 @@ final class QuickAccessGrid extends ViewGroup {
     static String roundGlyph(String id, String icon) {
         return "speed".equals(icon) && !HomeQuickActions.RIDING.equals(id) ? "speed_max" : icon;
     }
+
+    /** The electronic lock's feature key (data): its round name is the lock reading's compact name. */
+    private static final String LOCK_KEY = "lock";
 
     /** Controls whose Live Stats row name is their one-word short name (feature keys, data). */
     private static final java.util.Set<String> ROUND_STATS_NAMES =
