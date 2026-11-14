@@ -65,6 +65,9 @@ final class HomeQuickEditor {
         String id = ids.get(index);
         QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
         CharSequence label = entry == null ? id : entry.label().render();
+        // The Widgets pill's capitals ("RIDE") read as the same name the Home style row and Clean show ("Ride").
+        String round = entry == null ? null : QuickAccessGrid.roundName(entry);
+        if (round != null && !round.contentEquals(label) && round.equalsIgnoreCase(label.toString())) label = round;
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setTag(CleanHomeScreen.TAG_SLOT + (index + 1));
