@@ -2571,7 +2571,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** The Layout Plan's raised icon tile (Ui.raiseIcon); the sub-line's indent follows the wider tile. */
         void raise(){
             design.raiseIcon(name);
-            if(sub.getParent()==words&&sub.getPaddingStart()>0)sub.setPaddingRelative(name.getCompoundPaddingStart(),sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
+            // From the tile's own bounds: the name's compound padding is not resolved until it is laid out.
+            android.graphics.drawable.Drawable tile=name.getCompoundDrawablesRelative()[0];
+            if(tile!=null&&sub.getParent()==words&&sub.getPaddingStart()>0)
+                sub.setPaddingRelative(name.getPaddingStart()+tile.getBounds().width()+name.getCompoundDrawablePadding(),sub.getPaddingTop(),sub.getPaddingEnd(),sub.getPaddingBottom());
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
         void setSub(CharSequence text){setSub(text==null?null:text.toString());}
