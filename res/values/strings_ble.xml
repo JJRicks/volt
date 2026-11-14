@@ -40,6 +40,10 @@
          Release this scooter), so it can be added again like a new or reset scooter. -->
     <string name="ble_status_releasing" volt:screen="Connection state" volt:purpose="status"
         volt:safety="owner-key">Releasing the scooter…</string>
+    <!-- A release was sent but not confirmed, so Volt doesn't reconnect to this scooter by itself until the rider
+         chooses Remove from Volt or Reconnect (the release sheet). Never say it was released. -->
+    <string name="ble_release_held" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="owner-key">Release not confirmed · not reconnecting</string>
     <!-- An Experimental controls try reads the control's current value first. %1$s is the control's
          name in lower case, in English until the controls batch gives control names their translation
          (for example "headlight"); a language that cannot use it mid-sentence may write

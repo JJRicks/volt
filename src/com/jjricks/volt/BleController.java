@@ -467,8 +467,9 @@ public final class BleController {
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
     public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
-    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
+    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(heldBack(p))return;if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}
+        if(heldBack(p))return;
         // Never a saved scooter's owner key to another address without a confirmed find (FindNearby.mayConnect): the
         // ordinary scan sheet routes such a pick through find mode, and this refuses anything else.
         if(!FindNearby.mayConnect(p.mac,result.getDevice().getAddress(),pendingFindMac))return;
@@ -486,6 +487,7 @@ public final class BleController {
         if(mutation!=null){notice(M.bleWaitCurrentChange());return;}
         if(discovering){notice(M.bleStopCheckFirst());return;}
         ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(p.mac.isEmpty()){notice(M.bleConnectFirst());return;}
+        if(heldBack(p))return;
         if(!workAllowed()){suspend();return;}if(!permissions()){notice(NEARBY_NEEDED);return;}if(!bluetoothEnabled()){notice(BLUETOOTH_OFF);return;}
         intentionalDisconnectSequence++;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);
         wanted=true;retries=0;scan(p.mac);if(scanning)identifying=true;
@@ -607,6 +609,8 @@ public final class BleController {
     private void stopScan(){++scanSequence;if(scanTimeout!=null)handler.removeCallbacks(scanTimeout);scanTimeout=null;if(scanning&&scanner!=null&&scanCallback!=null)try{scanner.stopScan(scanCallback);}catch(Exception ignored){}scanning=false;scanCallback=null;}
     private void connect(ScooterProfiles.Profile p,String mac){
         if(simulating())return;
+        // Every automatic reconnect ends here or in connectLast: never to a scooter whose release went out unconfirmed.
+        if(heldBack(p))return;
         if(!workAllowed()){suspend();return;}
         if(!permissions()){notice(NEARBY_NEEDED);return;}if(!bluetoothEnabled()){notice(BLUETOOTH_OFF);return;}
         journal.attempt(p.id);recordDiagnostic(ConnectionEventLog.Reason.CONNECT_ATTEMPT,-1,p.id);close(State.CONNECTING);if(discoveryProfileId!=null&&!discoveryProfileId.equals(p.id))clearDiscovery();profile=p;telemetry.clear();sessionFirmware=null;pinState=null;loadResults();message=M.bleStatusConnecting();changed();
@@ -624,6 +628,10 @@ public final class BleController {
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
         ++generation;generationStartMs=now();++writeOperation;cadence.stop();stopScan();endFind();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
+        // A release that went out and ends here unanswered (a drop other than the quick one, Bluetooth off, a pause, the
+        // service ending, the owner's Disconnect, another scooter's connect) holds automatic reconnects to its scooter.
+        if(releaseSent(mutation)&&profile!=null)holdRelease(profile.id);
+        if(releasing(mutation)){releaseHook=null;releaseDone=null;}
         queue.clear();discoveryQueue.clear();quietReads.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:releaseSent(mutation)?ProximityFollowUp.NOT_CHECKED_RESULT:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
@@ -633,7 +641,9 @@ public final class BleController {
         if(simulating())return;
         // A confirmed find whose link fails before its serial matched: the find's own notice, never a silent retry.
         if(retry&&findUnverified()){findUnchecked(reason,code);return;}
-        recoverableConnectionLoss=retry&&reason!=ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT;recordDiagnostic(reason,code);
+        // A release that went out unconfirmed holds the reconnect (holdRelease), so nothing says one is coming.
+        boolean releaseHold=releaseSent(mutation)||profile!=null&&releaseHeld(profile.id);
+        recoverableConnectionLoss=retry&&reason!=ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT&&!releaseHold;recordDiagnostic(reason,code);
         // The event log keeps its reason; the tally also learns whether the link ever reached STATE_CONNECTED (mtuRequested
         // until the link closes below). Bluetooth going off is never a failed attempt.
         if(profile!=null)timeouts.failed(profile.id,attemptMac,profile.mac,reason,!mtuRequested&&bluetoothEnabled());
@@ -643,6 +653,7 @@ public final class BleController {
         // A first-time connection has no verified saved address yet. Do not leave
         // onboarding waiting for a retry that cannot be scheduled: let it offer Try again.
         boolean reconnect=retry&&wanted&&workAllowed()&&profile!=null&&!profile.mac.isEmpty();
+        if(releaseHold)reconnect=false;
         // A sent proximity change is not cancelled by a drop: some scooters restart Bluetooth after taking it. Its expected
         // value (and completion) waits for the automatic reconnect's first status read (confirmRecheck).
         ProximityFollowUp.Recheck next=!dropped||recheck!=null?null:ProximityFollowUp.afterDrop(mutation.key,mutation.sent,guided(mutation),reconnect,
@@ -676,7 +687,10 @@ public final class BleController {
     private static long awake(){return SystemClock.uptimeMillis();}
     private final BluetoothGattCallback callbacks=new BluetoothGattCallback(){
         @Override public void onConnectionStateChange(BluetoothGatt g,int code,int connection){handler.post(()->{
-            if(g!=gatt)return;if(!workAllowed()){suspend();return;}if(code!=0||connection==BluetoothProfile.STATE_DISCONNECTED){failed(M.bleFailedConnectionLost(),true,ConnectionEventLog.Reason.NATIVE_DISCONNECT,code);return;}
+            if(g!=gatt)return;
+            // The UT5 MAX answers a release by ending the link (OwnerRelease.afterDrop): checked before anything else reads the drop.
+            if((code!=0||connection==BluetoothProfile.STATE_DISCONNECTED)&&releaseQuickDrop(code))return;
+            if(!workAllowed()){suspend();return;}if(code!=0||connection==BluetoothProfile.STATE_DISCONNECTED){failed(M.bleFailedConnectionLost(),true,ConnectionEventLog.Reason.NATIVE_DISCONNECT,code);return;}
             if(connection==BluetoothProfile.STATE_CONNECTED&&!mtuRequested){mtuRequested=true;message=M.bleStatusConnecting();changed();if(!g.requestMtu(185))discover(g);}
         });}
         @Override public void onMtuChanged(BluetoothGatt g,int value,int code){handler.post(()->{if(g==gatt){if(!workAllowed()){suspend();return;}mtu=value;event("Bluetooth MTU "+value);discover(g);}});}
@@ -1032,13 +1046,58 @@ public final class BleController {
         if(report!=null)handler.post(()->report.accept(outcome));
         return true;
     }
-    /** No reply within the confirmation window: logged as a timeout, and the link drops as for any unconfirmed change. */
+    /**
+     * No reply within the confirmation window: logged as a timeout, and the link drops as for any unconfirmed change,
+     * but with no reconnect: the scooter may have forgotten its owner (holdRelease).
+     */
     private void releaseTimeout(){
         Mutation m=mutation;releaseHook=null;releaseDone=null;
         logMutation(m,CommandLog.Outcome.TIMEOUT,-1,null);
+        if(profile!=null)holdRelease(profile.id);
         clearMutation();
         failed(M.bleFailedNotConfirmed(),true,ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT,-1);
     }
+    /**
+     * The link ended while a release was in flight: when the scooter ended it within OwnerRelease.QUICK_DROP_MS of the
+     * send (OwnerRelease.afterDrop), Volt does what a status-0 reply does: no reconnect stays pending, released runs
+     * before anything could reconnect, then done gets RELEASED. True when that happened; otherwise the drop goes on to
+     * failed() or suspend(), and close() holds the scooter's reconnects.
+     */
+    private boolean releaseQuickDrop(int code){
+        Mutation m=mutation;
+        if(!releaseSent(m)||!releasing(m))return false;
+        if(OwnerRelease.afterDrop(m.sent,true,bluetoothEnabled(),code,m.sentMs,now())!=OwnerRelease.Outcome.RELEASED)return false;
+        recordDiagnostic(ConnectionEventLog.Reason.NATIVE_DISCONNECT,code);
+        logMutation(m,CommandLog.closed(true,m.ack),-1,null);
+        Runnable forget=releaseHook;Consumer<OwnerRelease.Outcome> report=releaseDone;releaseHook=null;releaseDone=null;
+        m.completion=null;clearMutation();
+        // As releaseReply: end the link and drop every pending callback (the confirmation timer, any retry) first, then
+        // forget the profile, so nothing reconnects with it and claims the scooter again.
+        disconnect();
+        if(forget!=null)forget.run();
+        if(report!=null)handler.post(()->report.accept(OwnerRelease.Outcome.RELEASED));
+        return true;
+    }
+    /**
+     * Profiles whose release went out unconfirmed (OwnerRelease.holds): no automatic reconnect reaches them until the
+     * owner chooses Remove from Volt or Reconnect. In memory for this service's life only: after Android ends the
+     * service or the phone restarts, auto-connect resumes, and a reconnect then claims the scooter again, so Volt and
+     * the scooter still agree.
+     */
+    private final Set<String> releaseHolds=new HashSet<>();
+    /** The held profile whose question hasn't been shown yet (MainActivity shows it once), or null. */
+    private String releaseAsk;
+    private void holdRelease(String profileId){releaseHolds.add(profileId);releaseAsk=profileId;}
+    /** Whether Volt holds its reconnects to this profile after an unconfirmed release. */
+    public boolean releaseHeld(String profileId){return profileId!=null&&releaseHolds.contains(profileId);}
+    /** The held profile whose question is still owed, or null. */
+    public String releaseAsk(){return releaseAsk!=null&&releaseHolds.contains(releaseAsk)?releaseAsk:null;}
+    /** The question for this profile was shown. */
+    public void releaseAsked(String profileId){if(profileId!=null&&profileId.equals(releaseAsk))releaseAsk=null;}
+    /** The owner chose (Reconnect) or the profile is gone (Forget): Volt may connect to it again. */
+    public void endReleaseHold(String profileId){if(profileId==null)return;releaseHolds.remove(profileId);releaseAsked(profileId);}
+    /** A connection to a held profile is refused here, saying why; the explicit Connect paths ask first (MainActivity). */
+    private boolean heldBack(ScooterProfiles.Profile p){if(!releaseHeld(p.id))return false;notice(M.bleReleaseHeld());return true;}
     // ---- Compatibility check (read-only) ------------------------------------------------------
 
     /**

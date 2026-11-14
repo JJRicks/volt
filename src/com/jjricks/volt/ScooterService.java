@@ -1978,12 +1978,16 @@ public final class ScooterService extends Service {
         if(maintenance!=null)maintenance.forget(id);
         if(odometerRecords!=null)odometerRecords.forget(id,forgotten==null?null:forgotten.serial);
         forgetEvidence(id);
+        // A held release ends with the profile: nothing is left to reconnect to.
+        ble.endReleaseHold(id);
         if(current)ble.scooterSwitched();
     }
     /**
      * Release this scooter (OwnerRelease, More › Scooters): asks the connected owner scooter to forget its owner key.
-     * Once it confirms, BleController has closed the link and this forgets the profile at once, before anything can
-     * reconnect with it and claim the scooter again; any other outcome keeps it. done gets the outcome on the main thread.
+     * Once it confirms (a status-0 reply, or the quick drop the UT5 MAX answers with), BleController has closed the link
+     * and this forgets the profile at once, before anything can reconnect with it and claim the scooter again; any other
+     * outcome keeps it, and one after the send holds automatic reconnects to it (BleController.releaseHeld) until the
+     * owner chooses. done gets the outcome on the main thread.
      */
     void releaseScooter(String id,Consumer<OwnerRelease.Outcome> done){
         ble.releaseOwner(id,()->{ScooterProfiles.Profile selected=profiles.active();forgetProfile(id,selected!=null&&selected.id.equals(id));},done);

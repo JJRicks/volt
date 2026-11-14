@@ -1246,16 +1246,27 @@ public final class MoreScreen implements AppScreen {
     /**
      * The release's outcome: only a confirmed release removed the scooter (ScooterService.releaseScooter). It is shown
      * even if this screen was rebuilt or left while the scooter answered, since the service has already acted on it and
-     * the message is the only word of what happened; only the redraw waits for a live activity.
+     * the message is the only word of what happened; only the redraw waits for a live activity. A release sent but not
+     * confirmed is held (BleController.releaseHeld): its question sheet is owed by the service, and MainActivity shows it
+     * once on the activity in front, now or when Volt is next in front, so the toast is only for an activity that is gone.
      */
     private void releaseEnded(OwnerRelease.Outcome outcome) {
+        boolean gone = host.activity().isDestroyed();
         switch (outcome) {
             case RELEASED: host.toast(T.moreScootersReleased()); break;
             case REJECTED: host.toast(T.moreScootersReleaseRefused()); break;
-            case NOT_CONFIRMED: host.toast(T.moreScootersReleaseUnconfirmed()); break;
+            case NOT_CONFIRMED: if (gone) host.toast(T.moreScootersReleaseUnconfirmed()); break;
             default: host.toast(T.moreScootersReleaseNotSent()); break;
         }
-        if (!host.activity().isDestroyed()) host.redraw();
+        if (!gone) host.redraw();
+    }
+    /**
+     * Remove from Volt in the held release's sheet (MainActivity): this scooter's Forget, with every rule Forget has,
+     * its owner-key backup first among them (KeyBackups). Nothing is removed without that dialog's own confirmation.
+     */
+    void forgetAfterRelease(String id) {
+        if (closed || findScooter(id) == null) return;
+        forgetScooter(id);
     }
 
     // ---- App preferences ----------------------------------------------------------------

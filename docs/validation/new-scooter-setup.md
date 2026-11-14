@@ -99,7 +99,7 @@ This needs the owner's scooter, phone and go-ahead. It also needs **Release this
    - **Timed out:** move closer and try again. The same key is kept.
 6. **Volt:** make a backup now. It's the only other copy of the new key.
 7. **Volt:** close and reopen Volt, and check that it reconnects by itself with the new key.
-8. **Volt:** **More → My scooters**, the pencil, **Edit scooter → Release this scooter**. It should release, disconnect and remove the profile.
+8. **Volt:** **More → My scooters**, the pencil, **Edit scooter → Release this scooter**. It should release, disconnect and remove the profile. On the UT5 MAX expect the scooter to drop the connection at once instead of answering; Volt counts that as released, shows "Scooter released" and removes it. If Volt instead says it didn't confirm the release, don't reconnect: choose **Remove from Volt** (it asks for a saved backup first) and go on to step 9.
 9. **Put it back**, either way:
    - **NAVEE app:** add the scooter as usual. It should bind to the account again. Then restore the Volt backup from step 1, or capture again.
    - **Volt:** restore the backup from step 1 (or type the saved identity), and connect. The scooter takes the account's identity again, and the NAVEE app still lists it as removed until it's added there.
