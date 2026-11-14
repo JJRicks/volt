@@ -166,8 +166,10 @@ public final class HubPagesTest {
         require(HubPages.dockLift(830 * px, 810 * px, 880 * px, minTop, gap) == -60 * px, "412x915 at 1x: the dock floats above the bar");
         // 412x915 dp at 1.4x: the bar at 860 dp, a 98 dp dock at 782-880 dp: up 30 dp.
         require(HubPages.dockLift(860 * px, 782 * px, 880 * px, minTop, gap) == -30 * px, "412x915 at 1.4x: the dock floats above the bar");
-        // 725x604 dp, 1x: the bar (372-422 dp) is above the dock (460-530 dp): no move.
-        require(HubPages.dockLift(372 * px, 460 * px, 530 * px, minTop, gap) == 0, "725x604 at 1x: the dock stays in its place");
+        // 725x604 dp, 1x: the bar (372-422 dp) is above the dock (460-530 dp), so the dock covers nothing and keeps its place
+        // (checked above). A bar that starts 10 dp or more under the dock's own place needs no move either.
+        require(HubPages.dockLift(540 * px, 460 * px, 530 * px, minTop, gap) == 0 && HubPages.dockLift(600 * px, 460 * px, 530 * px, minTop, gap) == 0,
+                "A bar 10 dp or more under the dock: no move");
         // 725x604 dp, 1.4x: the bar at 561 dp under a dock at 496-569 dp: up 18 dp, its top at 478 dp, still on the page.
         require(HubPages.dockLift(561 * px, 496 * px, 569 * px, minTop, gap) == -18 * px, "725x604 at 1.4x: the dock floats above the bar");
         // A window too short for both: moving up would put the dock's top at 70 dp, above the page: it steps aside.
