@@ -277,7 +277,7 @@ public final class HubValidation extends Instrumentation {
         tapTag("hub-back");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused with the subjects listed; typing hides them; Back clears the query, then returns to Home; the back link returns to Home at once");
+        checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once");
     }
 
     /**
@@ -331,6 +331,8 @@ public final class HubValidation extends Instrumentation {
                 TextView value = (TextView) field(field(card, name), "value");
                 require(value.getText().length() > 0 && !"—".contentEquals(value.getText()), "Just back's " + name + " tile shows no value: \"" + value.getText() + "\"");
             }
+            TextView time = (TextView) field(field(card, "time"), "value");
+            require("20m".contentEquals(time.getText()), "Just back's Ride time reads \"" + time.getText() + "\" for a 20 min ride");
         });
         screenshot("moment-just-back");
         // Still Just back after the picture, at the place measured (only a closed card or a newer ride would change it).
@@ -348,7 +350,8 @@ public final class HubValidation extends Instrumentation {
         return onMain(() -> {
             ScooterService service = activity.service();
             long end = System.currentTimeMillis() - 5_000L, start = end - 20 * 60_000L;
-            long monoEnd = SystemClock.elapsedRealtime() - 5_000L, mono = Math.max(0, monoEnd - 20 * 60_000L);
+            // The ride's own monotonic clock, as the design tour's: a fresh emulator may have been up for less than 20 min.
+            long mono = 100_000L, monoEnd = mono + 20 * 60_000L;
             int steps = 60;
             long step = (monoEnd - mono) / steps;
             try {
