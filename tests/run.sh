@@ -58,8 +58,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutT
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
 sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.java" "$APP_DIR/src/com/jjricks/volt/HubNav.java" "$TEST_DIR/HubNavTest.java")
 # Home model: Home style and its seed, the top area's height, moments and Clean's quick actions (hub layout plan, PR 6),
-# and the What's new sheet's bundled release notes (part 9).
-for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# the What's new sheet's bundled release notes (part 9) and Settings' rows (part 11).
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 # Clean Home's charging view: what shows in its slot as the Layout Plan draws it, nothing dropped (decisions on #383).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeTimeReadings.java")
@@ -185,7 +185,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
-for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.TileFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.JustBackFitTest
