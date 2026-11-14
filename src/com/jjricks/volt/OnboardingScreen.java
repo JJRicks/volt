@@ -585,7 +585,7 @@ public final class OnboardingScreen implements AppScreen {
             badge.addView(number, new FrameLayout.LayoutParams(-1, -1));
         }
         item.addView(badge, new LinearLayout.LayoutParams(ui.dp(26), ui.dp(26)));
-        TextView name = ui.text(STEP_LABELS[n - 1], 14.5f, now);
+        TextView name = ui.text(stepLabel(n), 14.5f, now);
         name.setTextColor(now ? ui.text : applies ? ui.muted : ui.dim);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = ui.dp(12);
         item.addView(name, lp);
@@ -593,7 +593,7 @@ public final class OnboardingScreen implements AppScreen {
         badge.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        item.setContentDescription(T.onboardingStepRow(n, STEP_LABELS[n - 1],
+        item.setContentDescription(T.onboardingStepRow(n, stepLabel(n),
                 now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone()
                         : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()));
         if (Build.VERSION.SDK_INT >= 28) item.setScreenReaderFocusable(true);
@@ -1227,6 +1227,9 @@ public final class OnboardingScreen implements AppScreen {
     private ScooterProfiles.Profile generatedProfile() {
         return find(profiles(), prefs.getString(KEY_GENERATED, ""));
     }
+
+    /** Step 5 is Import, except on the new-key route, where nothing is imported: Volt makes the owner key. */
+    private Msg stepLabel(int n) { return n == 5 && NEW_KEY.equals(path()) ? M.onboardingStepNewKey() : STEP_LABELS[n - 1]; }
 
     /** True for the profile holding the key this setup made. */
     private boolean madeHere(ScooterProfiles.Profile p) { return p != null && p.id.equals(prefs.getString(KEY_GENERATED, "")); }

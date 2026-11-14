@@ -38,6 +38,9 @@
     <!-- Step 5 of 7: import the owner setup file into Volt. -->
     <string name="onboarding_step_import" volt:screen="Setup step list" volt:purpose="step name"
         volt:safety="owner-key">Import</string>
+    <!-- Step 5 of 7 when Volt makes the owner key itself ("Make a new owner key"), in place of Import. -->
+    <string name="onboarding_step_new_key" volt:screen="Setup step list" volt:purpose="step name"
+        volt:safety="owner-key">Owner key</string>
     <!-- Step 6 of 7: allow Android's Nearby devices permission (Bluetooth). Use Android's own name for the permission. -->
     <string name="onboarding_step_nearby" volt:screen="Setup step list" volt:purpose="step name">Nearby devices</string>
     <!-- Step 7 of 7: connect to the scooter over Bluetooth. -->
