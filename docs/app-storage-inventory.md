@@ -130,6 +130,7 @@ One String per `<pid>`: JSON of the last command results. Since Volt 1.1.0 (`c7b
 | `onboarding_done` | Durable | Setup finished. |
 | `rerun`, `step`, `path`, `profile_id`, `created_profile_id`, `pending_name`, `import_failed`, `nearby_asked`, `connect_requested`, `connect_tried`, `tick_<n>` | Pending | Wizard position and choices for a setup in progress on this installation. `nearby_asked` relates to an Android permission prompt. |
 | `generated_profile_id` | Pending | **Make a new owner key**: the ID of the scooter profile holding the owner key this setup made, so Back and Continue reuse it (the key itself is only in `profiles`; whether it was offered is its `made_owner_key<pid>` record in `app_settings`). This installation only; never in backups (BackupRegistry). |
+| `made_key_shown` | Pending | **Write down your owner key**: the ID of the scooter profile whose made key the popup over setup's last page has shown, written only when the rider dismisses it (Done, or Back once Done works), so a process death or a new activity before that shows it again. A profile ID only, never the key. Cleared with the rest of setup's progress when setup ends; never in backups (BackupRegistry). |
 
 ### `pending_documents` (Pending)
 

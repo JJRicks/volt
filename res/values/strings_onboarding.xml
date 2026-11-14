@@ -498,6 +498,33 @@
     <!-- Under "You're connected" after "Make a new owner key": the key is only on this phone until Volt is backed up. -->
     <string name="onboarding_done_new_key_note" volt:screen="You\'re connected" volt:purpose="note"
         volt:safety="owner-key" volt:dnt="Volt">Volt made this scooter\'s owner key, and it\'s only on this phone. Back up Volt so you can set it up on another phone.</string>
+    <!-- Popup over "You're connected", shown once after "Make a new owner key": the only time Volt shows the key itself.
+         The key is the scooter's owner access; never soften the warning or say the key is safe to share. -->
+    <string name="onboarding_key_title" volt:screen="Write down your owner key" volt:purpose="title"
+        volt:safety="owner-key">Write down your owner key</string>
+    <!-- The popup's warning. "Volt's data" is everything the app saved on this phone. -->
+    <string name="onboarding_key_body" volt:screen="Write down your owner key" volt:purpose="message"
+        volt:safety="owner-key" volt:dnt="Volt">This key exists only on this phone. If you lose the phone or Volt\'s data without a copy, you can\'t get back into your scooter. Write it down and keep it somewhere safe, or save a backup file. A screenshot works too.</string>
+    <!-- Right under the key, in the warning colour. -->
+    <string name="onboarding_key_write" volt:screen="Write down your owner key" volt:purpose="warning"
+        volt:safety="owner-key">Please write this down!</string>
+    <!-- Spoken description of the key: %1$s is the key read one character at a time, bytes separated by commas
+         ("8 8, 6 B, 3 3, …"). Keep %1$s exactly as it is. -->
+    <string name="onboarding_key_spoken" volt:screen="Write down your owner key" volt:purpose="accessibility description"
+        volt:safety="owner-key">Owner key: %1$s</string>
+    <!-- Main button: save a backup file holding the scooter's owner key (the Back up page opens with Scooters & setup keys). -->
+    <string name="onboarding_key_save" volt:screen="Write down your owner key" volt:purpose="button"
+        volt:safety="owner-key">Save backup file</string>
+    <!-- That button once a backup holding this key was saved. -->
+    <string name="onboarding_key_saved" volt:screen="Write down your owner key" volt:purpose="status"
+        volt:safety="owner-key">Backup saved</string>
+    <!-- The close button while it waits: %1$d is the seconds left (10 down to 1), shown in brackets after "Done". -->
+    <string name="onboarding_key_done_wait" volt:screen="Write down your owner key" volt:purpose="button">Done (%1$d)</string>
+    <!-- Spoken description of that waiting button: %1$d is the seconds left. -->
+    <plurals name="onboarding_key_done_wait_description" volt:screen="Write down your owner key" volt:purpose="accessibility description">
+        <item quantity="one">Done, available in %1$d second</item>
+        <item quantity="other">Done, available in %1$d seconds</item>
+    </plurals>
 
     <!-- ===================================================================== identity -->
 
