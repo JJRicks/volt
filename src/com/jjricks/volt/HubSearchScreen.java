@@ -31,18 +31,37 @@ import java.util.function.Consumer;
  * (or is the name the found row already shows), so this file holds no catalog references.
  */
 final class HubSearchScreen implements AppScreen {
-    /** View tags: the field, the result count, the results, and each result ("hub-search-" and HubSearch.Entry.id()). */
-    static final String TAG_FIELD = "hub-search-field", TAG_COUNT = "hub-search-count", TAG_RESULTS = "hub-search-results";
+    /**
+     * View tags: the field, its Cancel, the result count, the results, and each result ("hub-search-" and
+     * HubSearch.Entry.id()).
+     */
+    static final String TAG_FIELD = "hub-search-field", TAG_CANCEL = "hub-search-cancel", TAG_COUNT = "hub-search-count",
+            TAG_RESULTS = "hub-search-results";
     static String tag(HubSearch.Entry entry) { return "hub-search-" + entry.id(); }
 
     /** Opens a result's page (MainActivity: the page, its anchor, a ride, a reading or a control's try). */
     interface Opener { void open(HubSearch.Entry entry); }
+
+    /**
+     * What the page around the search does for it (MainActivity's page; part 13's pane may pass none): the Cancel beside
+     * the field and where it goes, and the page header that gets out of the way while the owner searches
+     * (HubSearch.headerHidden), so the field sits at the very top as the Layout Plan draws it.
+     */
+    interface Frame {
+        /** Cancel's label (the existing common Cancel); null for no Cancel. */
+        CharSequence cancel();
+        /** Leaves the search page at once, its query with it (Cancel; the header's back link does the same). */
+        void leave();
+        /** Hides (true) or shows the page header: back link, status line and title. */
+        void headerHidden(boolean hidden);
+    }
 
     private final ScreenHost host;
     private final Ui ui;
     private final HubSearch.Gates gates;
     private final Consumer<String> remember;
     private final Opener opener;
+    private final Frame frame;
     private final LinearLayout view, results;
     /** Named like the other search fields (validations find a screen's field by this name). */
     private final EditText search;
@@ -50,21 +69,29 @@ final class HubSearchScreen implements AppScreen {
     private final CleanSubjects subjects;
     private String query;
     /** The result rows shown, so a refresh writes their values again without rebuilding them. */
-    private final List<TextView> values = new ArrayList<>();
+    private final List<ResultRow> values = new ArrayList<>();
     private final List<HubSearch.Entry> shown = new ArrayList<>();
     /** What the model offers as last searched; a change (connecting, another model) runs the search again. */
     private String offeredKey = "";
     /** The rides as last listed (data only; their lines are written when shown); null until listed. */
     private List<RideStore.Summary> rides;
     private boolean ridesLoading, closed;
+    /** Whether a ride was recording when the rides were listed: a change lists them again (#393 review, note 5). */
+    private boolean ridesRecording;
 
-    /** query: the text to start with (kept across recreation and Back); remember hears every change. */
+    /** query: the text to start with (kept across recreation and Back); remember hears every change. No Frame. */
     HubSearchScreen(ScreenHost host, HubSearch.Gates gates, String query, Consumer<String> remember, Opener opener) {
+        this(host, gates, query, remember, opener, null);
+    }
+
+    /** frame: the page around the search (its Cancel and header), or null for none. */
+    HubSearchScreen(ScreenHost host, HubSearch.Gates gates, String query, Consumer<String> remember, Opener opener, Frame frame) {
         this.host = host;
         this.ui = host.ui();
         this.gates = gates;
         this.remember = remember;
         this.opener = opener;
+        this.frame = frame;
         this.query = query == null ? "" : query;
         view = new LinearLayout(host.activity());
         view.setOrientation(LinearLayout.VERTICAL);
@@ -76,8 +103,31 @@ final class HubSearchScreen implements AppScreen {
         search.setContentDescription(HubText.searchDescription());
         search.setTag(TAG_FIELD);
         search.setText(this.query);
-        view.addView(search, ui.searchLayout());
+        // The long placeholder only where it fits whole; else the short "Search" (HubSearch.longHintFits).
+        search.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> fitHint());
+        // The field at the very top with Cancel beside it, as the Layout Plan's search mock-up.
+        LinearLayout top = new LinearLayout(host.activity());
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
+        CharSequence cancelLabel = frame == null ? null : frame.cancel();
+        if (cancelLabel != null) {
+            TextView cancel = ui.text(cancelLabel, 15, false);
+            cancel.setTypeface(ui.medium());
+            cancel.setTextColor(ui.accent);
+            cancel.setGravity(Gravity.CENTER);
+            cancel.setMinHeight(ui.dp(48));
+            cancel.setPaddingRelative(ui.dp(14), 0, ui.dp(4), 0);
+            cancel.setTag(TAG_CANCEL);
+            cancel.setClickable(true);
+            cancel.setFocusable(true);
+            cancel.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
+            cancel.setOnClickListener(v -> { if (!closed) frame.leave(); });
+            top.addView(cancel, new LinearLayout.LayoutParams(-2, -2));
+        }
+        view.addView(top, ui.searchLayout());
         SearchFocus.bind(search, host.activity().getWindow());
+        search.setOnFocusChangeListener((v, focused) -> showHeader());
         count = ui.caption("");
         count.setTag(TAG_COUNT);
         count.setPadding(ui.dp(3), 0, 0, ui.dp(8));
@@ -97,10 +147,31 @@ final class HubSearchScreen implements AppScreen {
                 HubSearchScreen.this.query = now;
                 if (remember != null) remember.accept(now);
                 applyFilter();
+                showHeader();
             }
             @Override public void afterTextChanged(Editable text) { }
         });
         applyFilter();
+        showHeader();
+    }
+
+    /** Tells the frame whether the page header shows (HubSearch.headerHidden); only a change is sent. */
+    private Boolean headerHidden;
+    private void showHeader() {
+        if (frame == null || closed) return;
+        boolean hidden = HubSearch.headerHidden(search.hasFocus(), query);
+        if (headerHidden != null && headerHidden == hidden) return;
+        headerHidden = hidden;
+        frame.headerHidden(hidden);
+    }
+
+    /** The long placeholder when it fits whole in the field's room for text, else the short one ("Search"). */
+    private void fitHint() {
+        int room = search.getWidth() - search.getCompoundPaddingLeft() - search.getCompoundPaddingRight();
+        Msg wanted = HubSearch.longHintFits(search.getPaint().measureText(HubText.searchHint().render()), room)
+                ? HubText.searchHint() : HubText.title(HubPages.SEARCH);
+        String hint = wanted.render();
+        if (search.getHint() == null || !hint.contentEquals(search.getHint())) search.post(() -> { if (!closed) search.setHint(hint); });
     }
 
     @Override public View view() { return view; }
@@ -110,6 +181,9 @@ final class HubSearchScreen implements AppScreen {
         subjects.refresh();
         if (HubSearch.normalize(query).isEmpty()) return;
         if (!offered().equals(offeredKey)) { applyFilter(); return; }
+        // A ride that started or ended while the results show: list the rides again (the one now saved joins them).
+        ScooterService service = host.service();
+        if (rides != null && service != null && service.isRecording() != ridesRecording) { rides = null; applyFilter(); return; }
         writeValues();
     }
 
@@ -143,7 +217,7 @@ final class HubSearchScreen implements AppScreen {
         index.addAll(HubSearch.controls(gates, HubText::experimentalBadge));
         index.addAll(HubSearch.rows(gates));
         index.addAll(HubSearch.settings());
-        index.addAll(StatsScreen.readingEntries(host.service(), ui));
+        index.addAll(StatsScreen.readingEntries(host));
         index.addAll(rideEntries());
         return index;
     }
@@ -188,9 +262,14 @@ final class HubSearchScreen implements AppScreen {
         }
     }
 
-    /** A result: its icon and name, the subject it lives in, its value at the end, and a chevron; it opens its page. */
+    /**
+     * A result as the Layout Plan's search mock-up draws it: no icon tile; its name over its path ("Battery & charging ›
+     * Modes"); a reading's value at the end, bold, with no chevron; every other result ends in a chevron. A value too
+     * wide to sit beside the name goes under it (HubSearch.valueBelow); a saved reading says so under its value, in Live
+     * Stats' own words ("Last seen ..."). TalkBack reads the row's texts in that order. It opens its page.
+     */
     private View row(HubSearch.Entry entry) {
-        LinearLayout line = new LinearLayout(host.activity());
+        ResultRow line = new ResultRow(entry.kind != HubSearch.Kind.READING);
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.setBaselineAligned(false);
@@ -199,30 +278,45 @@ final class HubSearchScreen implements AppScreen {
         line.setTag(tag(entry));
         LinearLayout words = new LinearLayout(host.activity());
         words.setOrientation(LinearLayout.VERTICAL);
-        TextView name = ui.text(entry.shown, 15, false);
+        TextView name = ui.text(entry.shown, 15.5f, false);
+        name.setTypeface(ui.medium());
         name.setMaxLines(2);
         name.setEllipsize(TextUtils.TruncateAt.END);
-        ui.decorate(name, HubPages.icon(entry.page));
         words.addView(name, new LinearLayout.LayoutParams(-1, -2));
-        Msg where = where(entry);
+        String where = path(entry);
         if (where != null) {
-            TextView caption = ui.caption(where.render());
-            caption.setMaxLines(1);
+            TextView caption = ui.caption(where);
+            caption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13 * ui.textScale);
+            caption.setMaxLines(2);
             caption.setEllipsize(TextUtils.TruncateAt.END);
-            caption.setPaddingRelative(ui.dp(42), ui.dp(2), 0, 0);
+            caption.setPadding(0, ui.dp(1), 0, 0);
             words.addView(caption, new LinearLayout.LayoutParams(-1, -2));
         }
+        // The value under the name: used when it is too wide to sit beside it (HubSearch.valueBelow).
+        line.below = value();
+        line.below.setMaxLines(3);
+        line.below.setEllipsize(TextUtils.TruncateAt.END);
+        line.below.setPadding(0, ui.dp(3), 0, 0);
+        words.addView(line.below, new LinearLayout.LayoutParams(-1, -2));
+        // A saved reading's age, under the name and the value, as Live Stats writes it beside a saved value.
+        line.note = ui.caption("");
+        line.note.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12 * ui.textScale);
+        line.note.setMaxLines(2);
+        line.note.setPadding(0, ui.dp(2), 0, 0);
+        line.note.setVisibility(View.GONE);
+        words.addView(line.note, new LinearLayout.LayoutParams(-1, -2));
         line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView value = ui.caption("");
-        value.setMaxLines(2);
-        value.setGravity(Gravity.END);
-        value.setVisibility(View.GONE);
+        line.beside = value();
+        line.beside.setMaxLines(2);
+        line.beside.setGravity(Gravity.END);
         LinearLayout.LayoutParams valueSize = new LinearLayout.LayoutParams(-2, -2);
-        valueSize.setMarginStart(ui.dp(10));
-        line.addView(value, valueSize);
-        LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
-        chevronSize.setMarginStart(ui.dp(8));
-        line.addView(ui.icon("chevron", 15, ui.muted), chevronSize);
+        valueSize.setMarginStart(ui.dp(VALUE_GAP_DP));
+        line.addView(line.beside, valueSize);
+        if (line.chevron) {
+            LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(CHEVRON_DP), ui.dp(CHEVRON_DP));
+            chevronSize.setMarginStart(ui.dp(CHEVRON_GAP_DP));
+            line.addView(ui.icon("chevron", CHEVRON_DP, ui.muted), chevronSize);
+        }
         line.setClickable(true);
         line.setFocusable(true);
         line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
@@ -233,35 +327,94 @@ final class HubSearchScreen implements AppScreen {
             search.clearFocus();
             opener.open(entry);
         });
-        values.add(value);
+        values.add(line);
         shown.add(entry);
         return line;
     }
 
+    /** The row's spacing (dp): the gap before the value, the chevron and the gap before it. */
+    private static final int VALUE_GAP_DP = 10, CHEVRON_DP = 15, CHEVRON_GAP_DP = 8;
+
+    /** A result's value: bold, in the text colour (a saved reading's muted), as the mock-up's readings. */
+    private TextView value() {
+        TextView value = ui.text("", 14, false);
+        value.setTypeface(ui.semibold());
+        value.setTextColor(ui.text);
+        value.setVisibility(View.GONE);
+        return value;
+    }
+
     /**
-     * "In <subject>": the subject (or Settings) every result lives in, a row on a subject's own page included ("In
-     * Controls", a reading "In Data"); null only for a page result that is that subject (or Settings) itself.
+     * A result row whose value sits beside the name while it fits in HubSearch.VALUE_SHARE of the row, and under the name
+     * otherwise, so the name always keeps its room (#393 review, finding 1: a raw serial answer, a ride's date and
+     * distance at large text).
      */
-    private static Msg where(HubSearch.Entry entry) {
-        String subject = HubPages.subjectOf(entry.page);
-        if (subject.equals(HubPages.HOME)) return null;
-        if (entry.kind == HubSearch.Kind.PAGE && subject.equals(entry.page)) return null;
-        Msg title = HubText.title(subject);
-        return title == null ? null : HubText.searchIn(title);
+    private final class ResultRow extends LinearLayout {
+        final boolean chevron;
+        TextView beside, below, note;
+        /** The value as last written; null or empty for none. */
+        CharSequence value;
+
+        ResultRow(boolean chevron) { super(host.activity()); this.chevron = chevron; }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            boolean has = value != null && value.length() > 0;
+            boolean under = false;
+            if (has && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                // The row's content: its width less the value's gap and the chevron with its gap.
+                int content = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight() - ui.dp(VALUE_GAP_DP)
+                        - (chevron ? ui.dp(CHEVRON_DP + CHEVRON_GAP_DP) : 0);
+                under = HubSearch.valueBelow(android.text.Layout.getDesiredWidth(value, beside.getPaint()), content);
+            }
+            show(beside, has && !under);
+            show(below, has && under);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+
+        private void show(TextView view, boolean on) {
+            if (on && !TextUtils.equals(view.getText(), value)) view.setText(value);
+            int state = on ? View.VISIBLE : View.GONE;
+            if (view.getVisibility() != state) view.setVisibility(state);
+        }
+
+        void write(CharSequence now, Integer colour, CharSequence age) {
+            boolean changed = !TextUtils.equals(now == null ? "" : now.toString(), value == null ? "" : value.toString());
+            value = now;
+            if (changed) { beside.setText(now); below.setText(now); }
+            if (colour != null) { beside.setTextColor(colour); below.setTextColor(colour); }
+            boolean dated = age != null && age.length() > 0;
+            if (dated && !TextUtils.equals(note.getText(), age)) note.setText(age);
+            note.setVisibility(dated ? View.VISIBLE : View.GONE);
+            if (changed) requestLayout();
+        }
+    }
+
+    /**
+     * The result's path, as the Layout Plan's mock-up captions it: the page titles from its subject down to the page
+     * that holds it ("Battery & charging › Modes", "Data", "Settings"), joined with "›" (HubSearch.captionPages); null
+     * for a subject page itself.
+     */
+    private static String path(HubSearch.Entry entry) {
+        StringBuilder text = new StringBuilder();
+        for (String page : HubSearch.captionPages(entry)) {
+            Msg title = HubText.title(page);
+            if (title == null) continue;
+            if (text.length() > 0) text.append(" \u203a ");
+            text.append(title.render());
+        }
+        return text.length() == 0 ? null : text.toString();
     }
 
     /** Writes each shown result's value as it is now (a live reading's value changes while the results show). */
     private void writeValues() {
         for (int i = 0; i < shown.size(); i++) {
             HubSearch.Entry entry = shown.get(i);
-            TextView value = values.get(i);
             CharSequence now = entry.value == null ? null : entry.value.get();
-            if (now == null || now.length() == 0) { value.setText(""); value.setVisibility(View.GONE); continue; }
-            // As written (a raw reading keeps Live Stats' RAW chip); rewritten only when its text changed.
-            if (!TextUtils.equals(now.toString(), value.getText().toString())) value.setText(now);
-            // A reading's value as Live Stats colours it: live in the text colour, a saved one muted.
-            if (entry.live != null) value.setTextColor(Boolean.TRUE.equals(entry.live.get()) ? ui.text : ui.muted);
-            value.setVisibility(View.VISIBLE);
+            // As written (a raw reading keeps Live Stats' RAW chip); a reading's value as Live Stats colours it: live in the
+            // text colour, a saved one muted, with its age under it (shown, so TalkBack reads it with the row).
+            Integer colour = entry.live == null ? null : Boolean.TRUE.equals(entry.live.get()) ? ui.text : ui.muted;
+            CharSequence age = entry.note == null || now == null || now.length() == 0 ? null : entry.note.get();
+            values.get(i).write(now, colour, age);
         }
     }
 
@@ -273,6 +426,8 @@ final class HubSearchScreen implements AppScreen {
         List<HubSearch.Entry> entries = new ArrayList<>();
         ScooterService service = host.service();
         if (service == null || service.rides == null) return entries;
+        boolean recording = service.isRecording();
+        if (recording != ridesRecording) { ridesRecording = recording; rides = null; }
         if (rides == null) rides = service.rides.listCached();
         if (rides == null) { loadRides(service.rides); return entries; }
         String units = service.settings == null ? "mi" : service.settings.getString("units", "mi");
