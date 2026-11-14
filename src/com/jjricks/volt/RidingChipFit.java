@@ -387,6 +387,32 @@ final class RidingChipFit {
     }
 
     /**
+     * A chip's no-reading text: the dash in place of the number, with the unit the reading's values carry where the
+     * language puts it. The unit is the text after the number, as written ("— Wh/mi", "—%" in English, "— %" in French);
+     * with nothing after it, the text before it when that's a unit (Turkish writes "%72", so "%—"), never a sign of its own
+     * ("≈", "±"). A value with no text around its number (a clock, whose AM/PM is in its text; a stopwatch) is the dash
+     * alone.
+     *
+     * @param prefix the text before a sample value's number
+     * @param suffix the text after it
+     */
+    static String emptyValue(String dash, CharSequence prefix, CharSequence suffix) {
+        String after = suffix == null ? "" : suffix.toString(), before = prefix == null ? "" : prefix.toString();
+        if (!after.trim().isEmpty()) return dash + after;
+        if (unitLike(before)) return before + dash;
+        return dash;
+    }
+
+    /** True for text that holds a letter or a percent or per-mille sign: a unit, not a sign like "≈" or "±". */
+    private static boolean unitLike(String text) {
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (Character.isLetter(c) || c == '%' || c == '\u066A' || c == '\u2030' || c == '\uFF05') return true;
+        }
+        return false;
+    }
+
+    /**
      * A reading's text with every figure set to the font's widest one, so its width is the most that many figures can
      * take: "12.3 km/h" becomes "88.8 km/h" where 8 is the widest. digits holds the language's ten figures, 0 to 9, one
      * character each; widest is the index of the widest. Other characters stay.

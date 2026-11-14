@@ -3058,10 +3058,16 @@ final class RidingScreen implements AppScreen {
             String spokenName = s.rungs.length > 0 ? s.name() : s.main.toString();
             setContentDescription(spokenReading(spokenName, s.spoken == null ? null : s.spokenFull()));
         }
-        /** The no-reading dash with the unit the reading's values end in, or the dash alone for one without. */
+        /**
+         * The no-reading dash with the unit the reading's values carry, where the language puts it (RidingChipFit.emptyValue:
+         * "— Wh/mi", "—%", Turkish "%—"), or the dash alone for a reading without one (a clock, a stopwatch).
+         */
         private String emptyValue(String dash, String units) {
-            for (Shown x : samples(content, units, false))
-                if (x.spoken != null && x.suffix.length() > 0 && (Character.isWhitespace(x.suffix.charAt(0)) || Character.isSpaceChar(x.suffix.charAt(0)))) return dash + x.suffix;
+            for (Shown x : samples(content, units, false)) {
+                if (x.spoken == null) continue;
+                String value = RidingChipFit.emptyValue(dash, x.prefix, x.suffix);
+                if (!value.equals(dash)) return value;
+            }
             return dash;
         }
         @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
