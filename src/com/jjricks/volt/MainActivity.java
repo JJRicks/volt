@@ -2149,7 +2149,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * The HISTORY card's charges: loaded off the main thread from the saved charge recordings when the page opens,
-         * and again when the scooter changes or a recording ends, so a finished charge shows up.
+         * and again when the scooter changes, a recording ends or the app comes back, so a finished charge shows up.
          */
         private void refreshHistory(){
             if(history==null||historyLoading)return;
@@ -2163,7 +2163,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             historyLoading=true;
             // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": the card says it
             // could not load them, as the Charge history dialog does, and forgets the key so a later refresh loads again.
-            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;if(sessions==null)historyFailed(key);showHistory(sessions==null,sessions);}))
+            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;
+                    // The scooter changed mid-load (the service answers null then too): load the new scooter's at once,
+                    // not "Could not load recordings." and a 5 s wait.
+                    String now=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
+                    if(sessions==null&&!key.startsWith(now+"|")){if(key.equals(historyKey))historyKey=null;refreshHistory();return;}
+                    if(sessions==null)historyFailed(key);showHistory(sessions==null,sessions);}))
                 {historyLoading=false;historyFailed(key);showHistory(true,null);}
         }
         private void historyFailed(String key){if(key.equals(historyKey))historyKey=null;historyRetryAt=SystemClock.uptimeMillis()+5000;}
