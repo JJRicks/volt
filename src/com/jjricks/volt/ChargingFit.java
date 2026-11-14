@@ -167,7 +167,7 @@ final class ChargingFit {
             this.insetDp = insetDp; this.icon = icon; this.labelMinScale = labelMinScale;
         }
 
-        @Override public String toString() { return insetDp + " dp inset" + (icon ? ", icon" : ", no icon") + ", label to " + labelMinScale; }
+        @Override public String toString() { return "inset=" + insetDp + " icon=" + icon + " labelMin=" + labelMinScale; }
     }
 
     /**
