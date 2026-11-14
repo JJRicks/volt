@@ -1586,6 +1586,9 @@ public final class OnboardingScreen implements AppScreen {
 
     private void done() {
         scaffold(false);
+        // Over this page, once: the key Volt made, to write down (MadeKeyPrompt). Checked on every refresh, since the
+        // service (and with it the profile) may bind after this page is drawn.
+        updaters.add(this::keyPrompt);
         ScooterProfiles.Profile p = onboardingProfile();
         boolean madeKey = NEW_KEY.equals(path()) && p != null && p.configured() && madeHere(p);
         // A made key pins its note and Back up Volt above Go to Home, so in a short window the hero gives up height
@@ -1625,9 +1628,6 @@ public final class OnboardingScreen implements AppScreen {
             group.addView(revoke, rp);
         }
         primary(T.onboardingDoneHome(), () -> finish(false));
-        // Over this page, once: the key Volt made, to write down (MadeKeyPrompt). Checked on every refresh, since the
-        // service (and with it the profile) may bind after this page is drawn.
-        updaters.add(this::keyPrompt);
     }
 
     // ---------------------------------------------------------------- write down your owner key
