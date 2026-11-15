@@ -26,8 +26,23 @@ final class HomeStyle {
      * left alone (HomeStylePrefs.markChosen).
      */
     static final String ORIGIN_KEY = "home_style_origin";
-    /** The one-time What's new sheet was shown on this installation (Device). Set when shown, not when answered. */
+    /**
+     * The one-time What's new sheet was answered on this installation (Device): set when the person closes it (a
+     * button, its X, Back, a tap outside) or acts in it (the background switch, a style choice), not when it appears.
+     * A rebuild, a service rebind or the activity going away while it shows leaves it due, so it shows again on the next
+     * clear Home ({@link #whatsNewAnswered}; the rule 1.13.2's recording note follows, AutoStartPolicy.backgroundNoticeClosed
+     * on release/1.13). Also set without showing when the sheet is settled ({@link #whatsNewSettled}).
+     */
     static final String WHATS_NEW_SHOWN_KEY = "home_whats_new_shown";
+    /**
+     * A restore made the background-recording notice due on this installation (Device, Boolean, never in a backup): a
+     * backup made before the background switch existed brought Record rides automatically back on, so automatic starts
+     * that ran in the background on the earlier phone now wait until Volt is in front ({@link #restoreMarksNotice}).
+     * The What's new sheet then shows the notice once whatever this installation's origin, without the offer to switch
+     * unless that is due too ({@link #showWhatsNew(String, boolean, boolean, boolean, boolean, boolean, boolean)}).
+     * Cleared with {@link #WHATS_NEW_SHOWN_KEY} when the sheet is answered, or when the notice no longer applies.
+     */
+    static final String RESTORED_NOTICE_KEY = "home_whats_new_restored_notice";
 
     static final String CLEAN = "clean", WIDGETS = "widgets";
     static final String ORIGIN_INSTALL = "install", ORIGIN_UPDATE = "update";
@@ -185,7 +200,73 @@ final class HomeStyle {
      */
     static boolean showWhatsNew(String origin, boolean shown, boolean onboardingShowing,
                                 boolean riding, boolean onHome, boolean resumed) {
-        return ORIGIN_UPDATE.equals(origin) && !shown && !onboardingShowing && !riding && onHome && resumed;
+        return showWhatsNew(origin, shown, false, onboardingShowing, riding, onHome, resumed);
+    }
+
+    /**
+     * As {@link #showWhatsNew(String, boolean, boolean, boolean, boolean, boolean)}, also when a restore made the
+     * background-recording notice due ({@link #RESTORED_NOTICE_KEY}, restoredNotice), whatever the origin: restoring a
+     * backup made before the background switch on a phone whose setup was skipped or finished (origin install) must
+     * still tell the owner (council's second review of part 9, finding 1). The same places and moments as the update's sheet.
+     */
+    static boolean showWhatsNew(String origin, boolean shown, boolean restoredNotice, boolean onboardingShowing,
+                                boolean riding, boolean onHome, boolean resumed) {
+        return (whatsNewUpdateDue(origin, shown) || restoredNotice) && !onboardingShowing && !riding && onHome && resumed;
+    }
+
+    /** Whether the update's sheet (offer, notice, notes) is still due: an installation the seed found updated that never answered it. */
+    static boolean whatsNewUpdateDue(String origin, boolean shown) {
+        return ORIGIN_UPDATE.equals(origin) && !shown;
+    }
+
+    /**
+     * Whether restoring a backup makes the background-recording notice due ({@link #RESTORED_NOTICE_KEY}): the restore
+     * brings App preferences (Replace everything or App preferences alone) from a backup made before Home styles
+     * (preHub: no home_style) and before the background switch (the backup holds no auto_record_background, so its
+     * automatic starts ran in the background), and after it Record rides automatically is on and Start recording in the
+     * background is not. A backup that already holds the switch was made by an owner who had it, and one with Record rides
+     * automatically off has nothing to tell. Holding the switch is not enough to recognise a 1.13.2 backup: 1.13.2 writes
+     * auto_record_background only once the switch is touched, so a 1.13.2 backup whose switch was never changed holds
+     * none; the backup's version code tells those apart (the overload below, {@link #madeWithBackgroundSwitch}).
+     */
+    static boolean restoreMarksNotice(boolean preHub, boolean backupHasBackgroundSwitch, Object restoredAutoRecord,
+                                      Object restoredBackground) {
+        return preHub && !backupHasBackgroundSwitch && Boolean.TRUE.equals(restoredAutoRecord) && !Boolean.TRUE.equals(restoredBackground);
+    }
+
+    /**
+     * The version code of Volt 1.13.2 (release/1.13), the first release with Start recording in the background. The
+     * releases before it have lower codes (1.13.1 is 58, 1.13.0 57, 1.12.0 55), and main's builds keep the last
+     * release's code between releases (59 since 1.13.2), so every build that has the switch writes at least this.
+     */
+    static final int BACKGROUND_SWITCH_VERSION_CODE = 59;
+
+    /**
+     * Whether a backup made by the app with this version code (its manifest's, BackupArchive.Prepared.appVersionCode; 0
+     * when the format records none) came from a build with the background switch: 1.13.2 or later. Its owner already
+     * lived with background starts off and was told so by 1.13.2's own note (council review 5907254138 on #390, P3-1).
+     */
+    static boolean madeWithBackgroundSwitch(int backupVersionCode) { return backupVersionCode >= BACKGROUND_SWITCH_VERSION_CODE; }
+
+    /**
+     * {@link #restoreMarksNotice(boolean, boolean, Object, Object)} for a backup made by the app with this version code:
+     * never for one from 1.13.2 or later, whether or not its switch was ever touched.
+     */
+    static boolean restoreMarksNotice(int backupVersionCode, boolean preHub, boolean backupHasBackgroundSwitch,
+                                      Object restoredAutoRecord, Object restoredBackground) {
+        return !madeWithBackgroundSwitch(backupVersionCode)
+                && restoreMarksNotice(preHub, backupHasBackgroundSwitch, restoredAutoRecord, restoredBackground);
+    }
+
+    /**
+     * Whether a closing of the What's new sheet answers it ({@link #WHATS_NEW_SHOWN_KEY} and {@link #RESTORED_NOTICE_KEY}
+     * settled): only the person can, by closing it themselves (a button, its X, Back, a tap outside; byPerson) or by
+     * acting in it (the background switch, a style choice; acted, so a later dismissal by Volt doesn't bring it back).
+     * A dismissal by Volt itself (a rebuild, the activity going away, a service rebind) is neither: the sheet stays due
+     * and shows again on the next clear Home, never two at once (MainActivity keeps the one showing).
+     */
+    static boolean whatsNewAnswered(boolean byPerson, boolean acted) {
+        return byPerson || acted;
     }
 
     /**
@@ -222,7 +303,9 @@ final class HomeStyle {
      * Whether the What's new sheet is settled for good without showing: an owner who already chose a style and gets no
      * background-recording notice has no offer and never sees the notes alone, so it is recorded as shown (not decided
      * again at each Home rebuild, which would open it weeks later if they turned Record rides automatically on).
-     * Only an owner who has not chosen, on an APK without notes and with nothing else to show, is left undecided.
+     * The same for a sheet due only for a restore's notice (WhatsNewSheet passes noticeOnly as chosen) once Record rides
+     * automatically is off: the restore's mark is cleared. Only an owner who has not chosen, on an APK without notes and
+     * with nothing else to show, is left undecided.
      */
     static boolean whatsNewSettled(boolean chosen, boolean backgroundNotice) {
         return chosen && !backgroundNotice;
@@ -267,6 +350,19 @@ final class HomeStyle {
      * of its own: it shows with the rest of the sheet, and the sheet shows once.
      */
     static boolean whatsNewBackgroundNotice(String origin, boolean autoRecordOn) {
-        return ORIGIN_UPDATE.equals(origin) && autoRecordOn;
+        return whatsNewBackgroundNotice(origin, autoRecordOn, null, false);
+    }
+
+    /**
+     * As {@link #whatsNewBackgroundNotice(String, boolean)}, with two more sources. restoredNotice: a restore made it due
+     * ({@link #RESTORED_NOTICE_KEY}), whatever the origin, while Record rides automatically is still on. legacyNotice:
+     * Volt 1.13.2's own recording note (AutoStartPolicy.BACKGROUND_NOTICE_KEY, "due" or "done"), which told an owner the
+     * same thing once in its What's new dialog: an owner updating from 1.13.2 who already closed it (or for whom it had
+     * nothing to say) is not told again, as 1.13.2 promised to tell them once; one whose note was still due is.
+     */
+    static boolean whatsNewBackgroundNotice(String origin, boolean autoRecordOn, Object legacyNotice, boolean restoredNotice) {
+        if (!autoRecordOn) return false;
+        if (restoredNotice) return true;
+        return ORIGIN_UPDATE.equals(origin) && !AutoStartPolicy.NOTICE_DONE.equals(legacyNotice);
     }
 }

@@ -61,6 +61,18 @@ final class RidingLayoutSheet {
         }
         content.addView(spots);
 
+        // Focus's chips under the speed, in a group of their own: each None until the rider picks a reading.
+        List<RidingLayout.Spot> beside = RidingEditor.besideChips(frame);
+        if (!beside.isEmpty()) {
+            content.addView(ui.sectionLabel(T.ridingEditorBesideSpeed()));
+            LinearLayout chips = ui.groupCard();
+            for (int i = 0; i < beside.size(); i++) {
+                if (i > 0) ui.divider(chips);
+                spotRow(chips, frame, beside.get(i));
+            }
+            content.addView(chips);
+        }
+
         TextView reset = ui.secondaryButton(T.ridingEditorReset(frameName(frame)), () -> {
             editor.reset();
             open = null;

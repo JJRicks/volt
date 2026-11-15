@@ -32,6 +32,42 @@ final class TileFit {
         return columns == 2 && twoRowHeight > room ? 3 : columns;
     }
 
+    /** {@link #layout}'s answers: how the three tiles stand. */
+    static final int THREE = 3, TWO = 2, TWO_TIGHT = 22, THREE_CUT = 33;
+
+    /**
+     * How the tiles stand in an area of fixed height (council's second review of part 9, finding 3: in a short split
+     * screen, Swedish "Medelhastighet" broke inside the word when the tiles were forced three in a row). A name is never
+     * broken inside a word:
+     * <ol>
+     * <li>{@link #THREE}, three in a row, while every name fits a third whole (at most nameLines lines);</li>
+     * <li>else {@link #TWO}, two in a row with the last spanning the second row, when those two rows (twoRowHeight) fit room;</li>
+     * <li>else {@link #TWO_TIGHT}, the same two rows with the tiles' tight padding (tightHeight), when they fit room;</li>
+     * <li>else {@link #THREE_CUT}: three in a row, and a name with a word wider than its third takes one line ending in an
+     * ellipsis ({@link #nameLines}): cut whole words at the end, never broken inside one. Only very large text in a
+     * very short window gets here.</li>
+     * </ol>
+     */
+    static int layout(String[] names, ToDoubleFunction<String> width, double thirdRoom, int nameLines, double twoRowHeight,
+                      double tightHeight, double room) {
+        if (columns(names, width, thirdRoom, nameLines) == 3) return THREE;
+        if (twoRowHeight <= room) return TWO;
+        if (tightHeight <= room) return TWO_TIGHT;
+        return THREE_CUT;
+    }
+
+    /**
+     * The lines a name may take in a tile room wide: nameLines while every word of it fits the room on its own (it wraps at
+     * spaces, and ends in an ellipsis at worst), else 1, so a word too wide is cut at the end with an ellipsis instead of
+     * being broken across lines inside the word.
+     */
+    static int nameLines(String name, ToDoubleFunction<String> width, double room, int nameLines) {
+        String trimmed = name == null ? "" : name.trim();
+        if (trimmed.isEmpty()) return nameLines;
+        for (String word : trimmed.split("\\s+")) if (width.applyAsDouble(word) > room) return 1;
+        return nameLines;
+    }
+
     /** The index of the first rung of rungs that fits room in maxLines lines; the last rung's index when none does. */
     static int pick(String[] rungs, ToDoubleFunction<String> width, double room, int maxLines) {
         for (int i = 0; i < rungs.length; i++) if (fits(rungs[i], width, room, maxLines)) return i;

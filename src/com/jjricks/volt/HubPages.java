@@ -108,29 +108,25 @@ public final class HubPages {
     }
 
     /**
-     * Whether a dock from dockTop to dockBottom covers a view from top to bottom of which shownTop to shownBottom is on
-     * screen (window pixels): any overlap of the dock with the shown part. A view scrolled out of sight is never covered.
-     * HubDock steps aside while this holds for Widgets' Lock bar (part 11: a short window at large text).
+     * Where Widgets Home's dock sits: its top, in the page frame's pixels, for a frame frameBottom tall, a dock dockHeight
+     * tall and its bottom margin. The dock is pinned to the bottom at all times (the contributor's decision, 14 Nov, #383):
+     * it never lifts above the Lock bar and never steps aside for it, because on Widgets the Lock bar is one of the
+     * rider's own widgets and they can move it. Nothing about the page's widgets goes into this.
      */
-    public static boolean dockCovers(int top, int bottom, int shownTop, int shownBottom, int dockTop, int dockBottom) {
-        int from = Math.max(top, shownTop), to = Math.min(bottom, shownBottom);
-        return to > from && dockBottom > from && dockTop < to;
-    }
-
-    /** dockLift's answer when the dock has no room above the bar it keeps clear: it steps aside (invisible) instead. */
-    public static final int DOCK_STEP_ASIDE = Integer.MIN_VALUE;
+    public static int dockTop(int frameBottom, int dockHeight, int bottomMargin) { return frameBottom - bottomMargin - dockHeight; }
 
     /**
-     * How far HubDock moves up (a negative offset, window pixels) so it floats gap above a bar that starts at barTop,
-     * where the dock would sit from dockTop to dockBottom unmoved (#392's sweep review: on a tall phone the Shortcuts card
-     * pushes Widgets' Lock bar to where the dock floats, and the page must keep its navigation in sight). 0 when the
-     * dock's own place already ends gap above the bar; DOCK_STEP_ASIDE when moving up would take the dock's top above
-     * minTop (the top of the page under the app's bars), so on a window too short for both it steps aside instead.
+     * The bottom padding Widgets Home's scroller needs so every widget, the Lock bar included, can be scrolled fully clear of
+     * the pinned dock with gap to spare: the dock's height, its bottom margin and the gap (window pixels). Scrolled to its
+     * end, the page's last widget then ends at frameBottom - this, which is gap above dockTop.
      */
-    public static int dockLift(int barTop, int dockTop, int dockBottom, int minTop, int gap) {
-        int lift = Math.min(0, barTop - gap - dockBottom);
-        return dockTop + lift < minTop ? DOCK_STEP_ASIDE : lift;
-    }
+    public static int dockClearance(int dockHeight, int bottomMargin, int gap) { return Math.max(0, dockHeight) + bottomMargin + gap; }
+
+    /**
+     * Where the bottom of the scroller's content sits once it is scrolled to its end, in the frame's pixels: a scroller
+     * frameBottom tall with paddingBottom under its content. Content shorter than the scroller ends higher still.
+     */
+    public static int scrolledEndBottom(int frameBottom, int paddingBottom) { return frameBottom - paddingBottom; }
 
     /**
      * Whether a move on the dock is its upward swipe (it opens the All sheet at once): more than twice the touch slop
@@ -205,6 +201,30 @@ public final class HubPages {
     public static String subjectOf(String id) {
         List<String> path = path(id);
         return path.size() > 1 ? path.get(1) : HOME;
+    }
+
+    /** Settings and its sub-pages: the app's own pages, which are not about the scooter. */
+    public static boolean appPage(String id) { return SETTINGS.equals(subjectOf(canonical(id))); }
+
+    /** headerConnectionLine's answers: no line and no room for it; its room kept, blank; the line shown. */
+    public static final int LINE_GONE = 0, LINE_ROOM = 1, LINE_SHOWN = 2;
+
+    /**
+     * The connection line in a page's header ("Disconnected · last seen 5 min ago" between the back link and the title;
+     * the contributor's decision, 14 Nov, #383): on a page it shows only while the scooter is not connected (disconnected,
+     * connecting, searching, Bluetooth off, a held release: every state but the plain connected one), so a connected
+     * page's header is the back link and the title, as in the Layout Plan's page mock-ups. Settings and its sub-pages
+     * never show it. Home keeps its own line above the scooter's name (LINE_SHOWN, not built from this).
+     * connected: the scooter is connected and ready. roomHeld: the line has shown on this page since it opened; then a
+     * connection made while the page is open blanks the line but keeps its room (LINE_ROOM), so the title keeps its place
+     * until the next page opens. A connection lost on an open page shows the line at once.
+     */
+    public static int headerConnectionLine(String page, boolean connected, boolean roomHeld) {
+        String id = canonical(page);
+        if (HOME.equals(id)) return LINE_SHOWN;
+        if (appPage(id)) return LINE_GONE;
+        if (!connected) return LINE_SHOWN;
+        return roomHeld ? LINE_ROOM : LINE_GONE;
     }
 
     /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */

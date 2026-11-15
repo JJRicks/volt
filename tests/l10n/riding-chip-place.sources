@@ -1,0 +1,8 @@
+# Where Focus's chips go (the owner, Nov 14): rows under the big number on a phone; on a wide screen, the unit line when
+# every chip picked fits there with the number at full size. tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/RidingChipPlace.java
+src/com/jjricks/volt/RidingChipRows.java
+src/com/jjricks/volt/RidingUnitLine.java
+src/com/jjricks/volt/RidingChipFit.java
+tests/l10n/RidingChipPlaceTest.java

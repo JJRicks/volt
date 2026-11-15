@@ -12,7 +12,6 @@ import android.widget.LinearLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 /**
  * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
@@ -50,13 +49,13 @@ final class HubDock {
     private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24;
     /** The plan's dock look: a 51 x 6 dp grab handle at the top, and each icon (20 dp) on a 39 dp raised tile with 12 dp corners. */
     private static final int HANDLE_W_DP = 51, HANDLE_H_DP = 6, HANDLE_TOP_DP = 4, HANDLE_BOTTOM_DP = 2, TILE_DP = 39, TILE_ICON_DP = 20;
+    /** The room left between the page's last widget, scrolled to the end, and the dock's top. */
+    private static final int CLEAR_GAP_DP = 16;
 
     private final ScreenHost host;
     private final Ui ui;
     private final boolean wide;
     private final BooleanSupplier hidden;
-    /** The view the dock never covers (Widgets' Lock bar), or null; read before every frame. */
-    private Supplier<View> keepClear;
     /** The sheet's Search and Settings rows: open those pages (Home's header buttons on Clean). */
     private final Runnable openSearch, openSettings;
     /** Wide: whether the items show their full names (else their short names, all alike). */
@@ -72,7 +71,7 @@ final class HubDock {
     private final ViewTreeObserver.OnPreDrawListener follow;
 
     /**
-     * hidden: whether the dock steps aside now (the dashboard is being edited); read before every frame. openSearch and
+     * hidden: whether the dock is gone now (the dashboard is being edited); read before every frame. openSearch and
      * openSettings: the sheet's Search and Settings rows.
      */
     HubDock(ScreenHost host, boolean wide, BooleanSupplier hidden, Runnable openSearch, Runnable openSettings) {
@@ -158,10 +157,29 @@ final class HubDock {
         return params;
     }
 
-    /** The room the page's scroller leaves under its last card so it can scroll clear of the dock. */
+    /**
+     * The room the page's scroller leaves under its last card so every widget, the Lock bar included, can be scrolled fully
+     * clear of the pinned dock (HubPages.dockClearance): the dock's height once it is laid out, else the height its parts
+     * add up to, plus its bottom margin and 16 dp.
+     */
     int clearance() {
-        return Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(HANDLE_TOP_DP + HANDLE_H_DP + HANDLE_BOTTOM_DP)
-                + ui.dp(BOTTOM_DP) + ui.dp(16);
+        int estimate = Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(HANDLE_TOP_DP + HANDLE_H_DP + HANDLE_BOTTOM_DP);
+        return HubPages.dockClearance(Math.max(estimate, view.getHeight()), ui.dp(BOTTOM_DP), ui.dp(CLEAR_GAP_DP));
+    }
+
+    /**
+     * Pads scroll's bottom by basePadding plus the clearance, and again whenever the dock's height changes (a caption that
+     * wraps at large text makes it taller than its parts add up to), so the page's end always scrolls clear of it.
+     */
+    void padScroller(android.widget.ScrollView scroll, int basePadding) {
+        scroll.setClipToPadding(false);
+        scroll.setPadding(scroll.getPaddingLeft(), scroll.getPaddingTop(), scroll.getPaddingRight(), basePadding + clearance());
+        view.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (closed || b - t == ob - ot) return;
+            int wanted = basePadding + clearance();
+            if (scroll.getPaddingBottom() != wanted)
+                scroll.post(() -> scroll.setPadding(scroll.getPaddingLeft(), scroll.getPaddingTop(), scroll.getPaddingRight(), wanted));
+        });
     }
 
     /** Service's dot and its spoken "check due" text, and the open sheet's summaries. */
@@ -179,60 +197,14 @@ final class HubDock {
         sheet = null; sheetSubjects = null;
     }
 
-    private void applyHidden() {
-        int visibility = View.VISIBLE;
-        float lift = 0;
-        if (hidden != null && hidden.getAsBoolean()) visibility = View.GONE;
-        else if (coversClearView()) {
-            int offset = liftOverClearView();
-            if (offset == HubPages.DOCK_STEP_ASIDE) visibility = View.INVISIBLE;
-            else lift = offset;
-        }
-        if (view.getVisibility() != visibility) view.setVisibility(visibility);
-        if (view.getTranslationY() != lift) view.setTranslationY(lift);
-    }
-
     /**
-     * The view the dock must never cover (Widgets' Lock bar). When the bar sits where the dock floats (the Shortcuts card
-     * pushes it down on a 344 or 412 dp phone; a 725x604 dp window at 1.4x text), the dock moves up to float 10 dp above
-     * the bar (HubPages.dockLift), so Home always shows its navigation, and drops back to its place once the page scrolls
-     * the bar above it. Only where moving up would take it above the page's top does it step aside (invisible, keeping its
-     * place, so it comes back as soon as the page scrolls the bar clear).
+     * The dock is pinned to the bottom of the page at all times (the contributor's decision, 14 Nov, #383): it never lifts
+     * over Widgets' Lock bar and never steps aside for it, since the bar is one of the rider's own widgets they can move;
+     * the scroller's padding (padScroller) lets every widget scroll clear of it. It is gone only while Home is edited.
      */
-    void keepClear(Supplier<View> clear) { keepClear = clear; applyHidden(); }
-
-    /** The dock's top and bottom in the window where it sits unmoved (its translation taken off). */
-    private int[] restingSpan() {
-        int[] dock = new int[2];
-        view.getLocationInWindow(dock);
-        int top = dock[1] - Math.round(view.getTranslationY());
-        return new int[] {top, top + view.getHeight()};
-    }
-
-    /** Whether the dock, in its own place (unmoved), is over any visible part of the view it keeps clear. */
-    private boolean coversClearView() {
-        View clear = keepClear == null ? null : keepClear.get();
-        if (clear == null || !clear.isShown() || !clear.isAttachedToWindow() || view.getHeight() == 0) return false;
-        int[] at = new int[2];
-        clear.getLocationInWindow(at);
-        int[] dock = restingSpan();
-        android.graphics.Rect visible = new android.graphics.Rect();
-        if (!clear.getGlobalVisibleRect(visible)) return false;
-        return HubPages.dockCovers(at[1], at[1] + clear.getHeight(), visible.top, visible.bottom, dock[0], dock[1]);
-    }
-
-    /** HubPages.dockLift for the view kept clear: the offset that floats the dock 10 dp above it, or DOCK_STEP_ASIDE. */
-    private int liftOverClearView() {
-        View clear = keepClear.get();
-        int[] at = new int[2];
-        clear.getLocationInWindow(at);
-        // The highest the dock may go: the top of the page frame it floats in (under the status bar and any banner).
-        int[] frame = new int[2];
-        View parent = view.getParent() instanceof View ? (View) view.getParent() : null;
-        if (parent != null) parent.getLocationInWindow(frame);
-        int minTop = frame[1] + (parent == null ? 0 : parent.getPaddingTop());
-        int[] dock = restingSpan();
-        return HubPages.dockLift(at[1], dock[0], dock[1], minTop, ui.dp(BOTTOM_DP));
+    private void applyHidden() {
+        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : View.VISIBLE;
+        if (view.getVisibility() != visibility) view.setVisibility(visibility);
     }
 
     /**

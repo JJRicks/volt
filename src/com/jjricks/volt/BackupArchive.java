@@ -67,6 +67,8 @@ final class BackupArchive {
         final Set<String> history;
         final int fileCount, preferenceCount; final long totalBytes;
         boolean consumed;
+        /** The version code of the app that made the backup, from its manifest (v2); 0 where the format records none. */
+        int appVersionCode;
         Prepared(String kind, File directory, File data, long created, boolean complete, LinkedHashMap<String, Integer> categories, LinkedHashMap<String, Source> sources,
                 Map<String, Map<String, Object>> preferences, List<BackupProfiles.Profile> profiles, List<Recording> rides, List<Recording> charges, List<String> orphans,
                 Set<String> history, int files, long bytes) {
@@ -297,12 +299,12 @@ final class BackupArchive {
         Map<String, Map<String, Object>> prefs = new LinkedHashMap<>();
         LinkedHashMap<String, long[]> declared = new LinkedHashMap<>(), actual = new LinkedHashMap<>();
         LinkedHashMap<String, Source> table = new LinkedHashMap<>();
-        long created, expectedBytes, total = 0; int expectedEntries, entries = 0, fileCount = 0; boolean complete;
+        long created, expectedBytes, total = 0; int expectedEntries, entries = 0, fileCount = 0, appCode; boolean complete;
         try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(archive)))) {
             zip.getNextEntry();
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(AppDataArchive.readBounded(zip, MAX_MANIFEST)));
             if (!FORMAT.equals(in.readUTF()) || in.readInt() != VERSION) throw new BackupException(M.backupEngineUnsupportedBackupFormat());
-            created = in.readLong(); int app = in.readInt(), registry = in.readInt(); complete = in.readBoolean();
+            created = in.readLong(); int app = in.readInt(), registry = in.readInt(); complete = in.readBoolean(); appCode = app;
             if (created <= 0 || app <= 0 || app > storage.versionCode() || registry <= 0 || registry > BackupRegistry.VERSION) throw new BackupException(M.backupEngineBackupNeedsNewerApp());
             int categories = in.readInt(); if (categories < 1 || categories > CATEGORIES.length) throw new BackupException(M.backupEngineBackupInvalidMetadata());
             for (int i = 0; i < categories; i++) {
@@ -350,7 +352,9 @@ final class BackupArchive {
             long[] sum = actual.containsKey(category.getKey()) ? actual.get(category.getKey()) : new long[2];
             if (sum[0] != category.getValue()[0] || sum[1] != category.getValue()[1]) throw new BackupException(M.backupEngineBackupIncompleteInconsistentContents());
         }
-        return finish(storage, "v2", directory, data, created, complete, declared.keySet(), prefs, table, fileCount, total);
+        Prepared prepared = finish(storage, "v2", directory, data, created, complete, declared.keySet(), prefs, table, fileCount, total);
+        prepared.appVersionCode = appCode;
+        return prepared;
     }
     private static String fileCategory(String name) {
         if (!AppDataArchive.allowedFile(name)) return null;
@@ -648,6 +652,14 @@ final class BackupArchive {
             result.get("app_settings").put(HomeStyle.KEY, HomeStyle.WIDGETS);
             result.get("app_settings").remove(HomeStyle.CHOSEN_KEY);
         }
+        // The background-recording notice (council's second review of part 9, finding 1): a backup made before the background
+        // switch that brings Record rides automatically back on stops its background starts, after setup as well as at the
+        // welcome screen, so the restore marks the notice due on this installation; What's new shows it whatever the origin.
+        // Never for a backup from 1.13.2 or later (its manifest's version code), whose owner already had the switch.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES))
+                && HomeStyle.restoreMarksNotice(prepared.appVersionCode, preHub, backedUp.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
+                        result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_KEY), result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY)))
+            result.get("app_settings").put(HomeStyle.RESTORED_NOTICE_KEY, true);
         // Clean Home's moment switches (HomeMoment): a backup made before them carries neither (nor home_style); restoring
         // it keeps this phone's switches as they are instead of dropping them (absent means on). One that has them applies them.
         if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && preHub
