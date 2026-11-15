@@ -493,8 +493,26 @@ public final class DockSheetValidation extends Instrumentation {
         await(() -> onMain(() -> !stray.isShowing()), "The sheet outlived the activity that pulled it");
         main(() -> require(field(dock(), "sheet") == null, "The new dock has a sheet"));
         tapAll();
+        // Recreated while the sheet settles closed (slowed): it goes at once with the old activity, and the new Home takes touches.
+        scale(10);
+        closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
+        Dialog closing = onMain(this::dialog);
+        require(closing != null && closing.isShowing(), "The closing sheet is not showing");
+        monitor = addMonitor(MainActivity.class.getName(), null, false);
+        MainActivity before = activity;
+        main(before::recreate);
+        next = waitForMonitorWithTimeout(monitor, 10000);
+        removeMonitor(monitor);
+        require(next instanceof MainActivity && next != before, "The activity was not recreated while the sheet closed");
+        activity = (MainActivity) next;
+        await(() -> activity.service() != null, "The recreated activity has no service");
+        settle();
+        requireHome();
+        await(() -> onMain(() -> !closing.isShowing()), "The closing sheet outlived the activity that showed it");
+        scale(1);
+        tapAll();
         back(); awaitGone("Back");
-        checks.add("The activity recreated mid-pull: the sheet goes with it, the new Widgets Home's dock has none, and All opens a new one");
+        checks.add("The activity recreated mid-pull or while the sheet settles closed: the sheet goes with it, the new Widgets Home's dock has none, and All opens a new one");
     }
 
     // ===== Frames =====
