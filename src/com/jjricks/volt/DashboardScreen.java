@@ -4001,6 +4001,8 @@ public final class DashboardScreen implements AppScreen {
             final ArrayList<LinearLayout> items = new ArrayList<>();
             int budget, readingColumns, fittedWidth = -1, fittedBudget = -1;
             String fittedRangeText;
+            /** Clean: the range line's width (dp) at the size it was last fitted at. */
+            float fittedWords;
             /** Clean: the growth the card's content is fitted at (1 on the 344 dp phone and on the widget dashboard). */
             float grown = 1f;
             boolean photoAllowed, fittedPhoto, fittedRange, rangeWanted, rangeFits = true;
@@ -4103,9 +4105,8 @@ public final class DashboardScreen implements AppScreen {
                 int width = MeasureSpec.getSize(widthSpec);
                 // Refit only when the space changes: repeated budget changes would request layout every frame. Clean's
                 // photo also gives way to a long range line, so a new line refits there.
-                String rangeText = fill ? range.getText().toString() : null;
                 if (width == fittedWidth && budget == fittedBudget && photoAllowed == fittedPhoto
-                        && rangeWanted == fittedRange && (!fill || rangeText.equals(fittedRangeText))) {
+                        && rangeWanted == fittedRange && (!fill || android.text.TextUtils.equals(range.getText(), fittedRangeText))) {
                     spread(widthSpec, heightSpec);
                     return;
                 }
@@ -4113,14 +4114,16 @@ public final class DashboardScreen implements AppScreen {
                 fittedBudget = budget;
                 fittedPhoto = photoAllowed;
                 fittedRange = rangeWanted;
-                fittedRangeText = rangeText;
+                fittedRangeText = fill ? range.getText().toString() : null;
                 // Clean: the content grows as the card does from the 344 dp phone (TopArea.parkedTextGrowth); if the
-                // grown sizes would cost a line (the range line or a row of readings), it fits at the 344 dp sizes
-                // instead, as before.
+                // grown sizes would cost a line (the range line or a row of readings) or the photo, it fits at the 344 dp
+                // sizes instead, as before.
                 float density = getResources().getDisplayMetrics().density;
-                float growth = fill && budget > 0 ? TopArea.parkedTextGrowth(width / density, budget / density, textFactor()) : 1f;
+                float card = budget > 0 ? budget / density : TopArea.PARKED_BASE_HEIGHT_DP;
+                float growth = fill && budget > 0 ? TopArea.parkedTextGrowth(width / density, card, textFactor()) : 1f;
                 fit(widthSpec, width, growth);
-                if (growth > 1 && (rangeWanted && !rangeFits || readingsShown() < readingsBox.getChildCount()))
+                if (growth > 1 && (rangeWanted && !rangeFits || readingsShown() < readingsBox.getChildCount()
+                        || photoAllowed && TopArea.parkedGrowthDropsPhoto(width / density, card, textFactor(), growth, fittedWords)))
                     fit(widthSpec, width, 1f);
                 speak();
                 spread(widthSpec, heightSpec);
@@ -4158,7 +4161,9 @@ public final class DashboardScreen implements AppScreen {
                 if (fill) {
                     grow(growth);
                     float density = getResources().getDisplayMetrics().density;
-                    float words = rangeWanted ? range.getPaint().measureText(range.getText().toString()) / density : 0;
+                    CharSequence line = range.getText();
+                    float words = rangeWanted ? range.getPaint().measureText(line, 0, line.length()) / density : 0;
+                    fittedWords = words;
                     float card = budget > 0 ? budget / density : TopArea.PARKED_BASE_HEIGHT_DP;
                     parkedSide = Math.round(TopArea.parkedPhotoDp(width / density, card, textFactor(), growth, words) * density);
                     photoWidth = parkedSide;
@@ -4234,15 +4239,19 @@ public final class DashboardScreen implements AppScreen {
                         int height = TopArea.parkedPhotoHeight(row, budget - getMeasuredHeight(), parkedSide);
                         if (height > row) { photoHeight(height); super.onMeasure(widthSpec, unbounded); }
                     }
-                    gaps = TopArea.parkedGaps(budget - getMeasuredHeight());
+                    gaps = TopArea.parkedGaps(budget - getMeasuredHeight(), ui.dp(TopArea.PARKED_GAP_MAX_DP), around());
                 }
                 margins(gaps);
                 super.onMeasure(widthSpec, heightSpec);
             }
 
+            /** The bar's 12 dp above and below; on Clean grown with the card's content (TopArea.parkedTextGrowth). */
+            private int around() {
+                return Math.round(ui.dp(12) * grown);
+            }
+
             private void margins(int[] gaps) {
-                // Clean: the bar's 12 dp above and below grow with the card's content (TopArea.parkedTextGrowth).
-                int around = Math.round(ui.dp(12) * grown);
+                int around = around();
                 int[] base = {0, around, around};
                 View[] views = {top, bar, readingsBox};
                 for (int i = 0; i < 3; i++) {
