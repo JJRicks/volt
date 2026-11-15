@@ -252,8 +252,7 @@ final class HubSearchTables {
             case HubPages.SETTINGS_SCOOTERS: return new String[] {"Connect automatically", "Stay connected in background", "Telemetry refresh"};
             case HubPages.SETTINGS_ABOUT: return new String[] {"Nearby devices", "Location", "Notifications", "Online map", "Connection activity",
                     "Licenses & attribution"};
-            case HubPages.SETTINGS_DEVELOPER: return new String[] {"Compatibility checker", "Simulate scooter as connected", "Simulated model",
-                    "Hide developer options"};
+            case HubPages.SETTINGS_DEVELOPER: return new String[] {"Compatibility checker", "Simulate scooter as connected", "Simulated model"};
             default: return new String[0];
         }
     }
@@ -295,8 +294,11 @@ final class HubSearchTables {
             case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect";
             // View full notices sits under Licenses & attribution; Connect selected scooter shows only while not connected.
             case HubPages.SETTINGS_ABOUT: return "about permissions version licenses view full notices connect selected scooter";
-            // Simulation scene, Drive mode and Load all widgets into slot 3 show only while simulating.
-            case HubPages.SETTINGS_DEVELOPER: return "developer options simulate simulation simulation scene drive mode load all widgets into slot 3";
+            // Simulation scene, Drive mode and Load all widgets into slot 3 show only while simulating. Hide developer options
+            // is no row any more (its string, more_dev_hide, is unused since Developer options always show), but
+            // HubSearchTest still finds every row string by its title, so its words open the page it belonged to.
+            case HubPages.SETTINGS_DEVELOPER: return "developer options simulate simulation simulation scene drive mode load all widgets into slot 3"
+                    + " hide developer options";
             default: return "";
         }
     }
