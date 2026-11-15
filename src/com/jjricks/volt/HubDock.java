@@ -15,8 +15,10 @@ import java.util.function.BooleanSupplier;
 
 /**
  * The Widgets Home dock (hub layout plan 1.10, PR 11), in the place the tab bar had and with its look (owner's answer 8
- * on #383: not cramped on a portrait phone, not drab or out of place): the same rounded floating bar, its surface,
- * outline, elevation and margins, under the plan's grab handle, holding the subjects' icons on the plan's raised tiles
+ * on #383: not cramped on a portrait phone, not drab or out of place): the tab bar's surface, outline and elevation as
+ * the plan's dock sheet, which runs down to the screen's bottom edge under the navigation bar with only its top corners
+ * rounded (the contributor's decision, 15 Nov, #383), edge to edge on a phone, under the plan's grab handle, holding the
+ * subjects' icons on the plan's raised tiles
  * (accent-coloured), each with its short name under it (Ui.nav, the rail's item, whose caption ladder falls back to the
  * tile alone) and an "All" item. Where all seven don't fit at a comfortable
  * width (HubPages.dockSubjects: a 344 dp phone shows four), it shows the most-used ones; "All" opens a sheet listing
@@ -40,12 +42,18 @@ final class HubDock {
     static String tag(String subject) { return "hub-dock-" + subject; }
 
     /**
-     * The old floating tab bar's place (as MainActivity added it before part 11): 14 dp from each side and 10 dp above the
-     * screen's edge, and its 26 dp corners. Items are Ui.nav's: at least 64 dp tall, growing with the text.
+     * The items keep the old floating tab bar's place (as MainActivity added it before part 11): 14 dp from each side
+     * and 10 dp above the screen's edge or the navigation bar; the sheet around them runs on to both sides of a phone and
+     * down to the screen's bottom edge (the Layout Plan's dock sheet: widgets-home.png draws it edge to edge, its top
+     * corners rounded like the old bar's 26 dp ones). Items are Ui.nav's: at least 64 dp tall, growing with the text.
      */
-    private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, BOTTOM_DP = 10, CORNER_DP = 26, ITEM_DP = 64,
+    private static final int SIDE_DP = HubPages.DOCK_SIDE_DP, LIFT_DP = HubPages.DOCK_LIFT_DP, CORNER_DP = 26, ITEM_DP = 64,
             PADDING_DP = HubPages.DOCK_PADDING_DP;
-    /** A wide window: each item is at most this wide, so the dock sits centred under the dashboard; narrower when room is short. */
+    /**
+     * A wide window: each item is at most this wide, so the dock sits centred under the dashboard; narrower when room is
+     * short. There the sheet keeps its side margins and runs only downward (the plan's wide-widgets.png: a centred sheet
+     * with the page on both sides of it, reaching the bottom edge).
+     */
     private static final int WIDE_ITEM_DP = 96, WIDE_SIDE_DP = 24;
     /** The plan's dock look: a 51 x 6 dp grab handle at the top, and each icon (20 dp) on a 39 dp raised tile with 12 dp corners. */
     private static final int HANDLE_W_DP = 51, HANDLE_H_DP = 6, HANDLE_TOP_DP = 4, HANDLE_BOTTOM_DP = 2, TILE_DP = 39, TILE_ICON_DP = 20;
@@ -69,6 +77,8 @@ final class HubDock {
     private CleanSubjects sheetSubjects;
     private boolean closed;
     private final ViewTreeObserver.OnPreDrawListener follow;
+    /** The navigation bar's (or gesture handle's) height under the window, px: the sheet runs on under it. */
+    private int inset;
 
     /**
      * hidden: whether the dock is gone now (the dashboard is being edited); read before every frame. openSearch and
@@ -87,9 +97,16 @@ final class HubDock {
         view.setOrientation(LinearLayout.VERTICAL);
         view.setGravity(Gravity.CENTER_HORIZONTAL);
         view.setTag(TAG);
-        view.setBackground(ui.shape(ui.surface, CORNER_DP, ui.raised));
+        view.setBackground(sheet());
+        // The shadow follows the sheet: its top corners rounded, its bottom square past the screen's edge.
+        view.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override public void getOutline(View v, android.graphics.Outline outline) {
+                int radius = ui.dp(CORNER_DP);
+                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight() + radius, radius);
+            }
+        });
         view.setElevation(ui.dp(6));
-        view.setPadding(ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP));
+        applyPadding();
         // The plan's grab handle (51 x 6 dp, the outline colour) centred at the top: the upward swipe opens the All sheet.
         View handle = new View(host.activity());
         handle.setBackground(ui.shape(ui.outline, 3, 0));
@@ -123,6 +140,42 @@ final class HubDock {
 
     View view() { return view; }
 
+    /**
+     * The sheet's look: the bar's surface and 1 dp outline with only its top corners rounded. The outline's bottom edge,
+     * and on a phone (edge to edge) its sides, lie just outside the view, so only the top edge and corners draw it.
+     */
+    private android.graphics.drawable.Drawable sheet() {
+        android.graphics.drawable.GradientDrawable shape = ui.shape(ui.surface, CORNER_DP, ui.raised);
+        float r = ui.dp(CORNER_DP);
+        shape.setCornerRadii(new float[] {r, r, r, r, 0, 0, 0, 0});
+        int line = ui.dp(1), side = wide ? 0 : -line;
+        return new android.graphics.drawable.InsetDrawable(shape, side, 0, side, -line);
+    }
+
+    /**
+     * Side padding (on a phone the old bar's margin plus its padding, so the items keep their place) and the bottom
+     * padding that keeps the items lift above the navigation bar (HubPages.dockBottomPadding).
+     */
+    private void applyPadding() {
+        int side = ui.dp(wide ? PADDING_DP : SIDE_DP + PADDING_DP);
+        view.setPadding(side, ui.dp(PADDING_DP), side, HubPages.dockBottomPadding(ui.dp(PADDING_DP), ui.dp(LIFT_DP), inset));
+    }
+
+    /**
+     * The navigation bar's height under the window (MainActivity's bottom inset, px): the sheet reaches down over it to the
+     * screen's bottom edge and keeps its items above it. Called as the dock is placed and whenever the inset changes.
+     */
+    void setInset(int px) {
+        int next = Math.max(0, px);
+        if (next == inset && view.getLayoutParams() != null) return;
+        inset = next;
+        applyPadding();
+        if (view.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            ((FrameLayout.LayoutParams) view.getLayoutParams()).bottomMargin = -inset;
+            view.requestLayout();
+        }
+    }
+
     /** The room a phone's dock gives its items in a window widthDp wide: the window less its margins and padding. */
     static int phoneRoom(int widthDp) { return HubPages.dockRoom(widthDp); }
 
@@ -149,22 +202,29 @@ final class HubDock {
         return Math.max(1f, ui.textScale * host.activity().getResources().getConfiguration().fontScale);
     }
 
-    /** The layout the dock takes at the bottom of the page frame: the old tab bar's margins on a phone, centred when wide. */
-    FrameLayout.LayoutParams layoutParams() {
+    /**
+     * The layout the dock takes at the bottom of MainActivity's root, whose bottom padding is the navigation inset: on a
+     * phone the window's full width, centred with side margins when wide, and on both the inset below its bottom (a
+     * negative margin), so the sheet reaches the screen's bottom edge. The root draws outside its padding for it.
+     */
+    FrameLayout.LayoutParams layoutParams(int navigationInset) {
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(wide ? -2 : -1, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.leftMargin = params.rightMargin = ui.dp(wide ? WIDE_SIDE_DP : SIDE_DP);
-        params.bottomMargin = ui.dp(BOTTOM_DP);
+        params.leftMargin = params.rightMargin = wide ? ui.dp(WIDE_SIDE_DP) : 0;
+        inset = Math.max(0, navigationInset);
+        params.bottomMargin = -inset;
+        applyPadding();
         return params;
     }
 
     /**
      * The room the page's scroller leaves under its last card so every widget, the Lock bar included, can be scrolled fully
-     * clear of the pinned dock (HubPages.dockClearance): the dock's height once it is laid out, else the height its parts
-     * add up to, plus its bottom margin and 16 dp.
+     * clear of the pinned dock (HubPages.dockClearance): the height the dock rises above the navigation bar (its height
+     * once it is laid out, else the height its parts add up to, less the inset it covers) and 16 dp.
      */
     int clearance() {
-        int estimate = Math.round(ui.dp(ITEM_DP) * textScale()) + 2 * ui.dp(PADDING_DP) + ui.dp(HANDLE_TOP_DP + HANDLE_H_DP + HANDLE_BOTTOM_DP);
-        return HubPages.dockClearance(Math.max(estimate, view.getHeight()), ui.dp(BOTTOM_DP), ui.dp(CLEAR_GAP_DP));
+        int estimate = Math.round(ui.dp(ITEM_DP) * textScale()) + ui.dp(PADDING_DP) + ui.dp(HANDLE_TOP_DP + HANDLE_H_DP + HANDLE_BOTTOM_DP)
+                + HubPages.dockBottomPadding(ui.dp(PADDING_DP), ui.dp(LIFT_DP), inset);
+        return HubPages.dockClearance(Math.max(estimate, view.getHeight()), inset, ui.dp(CLEAR_GAP_DP));
     }
 
     /**

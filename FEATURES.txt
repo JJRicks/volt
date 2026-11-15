@@ -847,8 +847,8 @@ DASHBOARD AND LOCAL HISTORY
 
 No tabs: Home is the hub for seven subjects, each with a summary (Ride,
 Battery & charging, Controls, Lights & sound, Security, Service, Data), listed
-on Clean Home and in the dock at the bottom of Widgets Home (the floating bar
-the tab bar was: the most-used subjects with short names, and All, or swipe
+on Clean Home and in the dock at the bottom of Widgets Home (a sheet in the tab
+bar's colours reaching the screen's bottom edge: the most-used subjects with short names, and All, or swipe
 up, for every subject with its summary). Each is a short page in a fixed, most-used-first
 order with sub-pages for settings set once (Assists, Speed limits, Battery
 modes, Estimates & charger, Line lights, Star lights); every page has a back

@@ -152,26 +152,48 @@ public final class HubPagesTest {
         require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
         require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
         // The dock is pinned to the bottom (the contributor's decision, 14 Nov, #383): it neither lifts above Widgets' Lock bar
-        // nor steps aside for it. Its place depends on the frame, its own height and its margin only: wherever the bar is
+        // nor steps aside for it. Its sheet runs down to the screen's bottom edge, under the navigation bar or gesture handle
+        // (15 Nov, #383, as the Layout Plan's dock sheet), with its items lift above that bar, where the old floating bar's
+        // items sat. Its place depends on the window, its own height and the navigation inset only: wherever the Lock bar is
         // (the old cases, in dp at 3 px per dp: 344x882 at 1x and 1.4x, 412x915, 725x604 at 1x and 1.4x, scrolled or not),
-        // the dock's top is the same. In px.
-        int px = 3, margin = 10 * px, gap = 16 * px;
-        int[][] frames = {{344, 847, 70}, {344, 847, 98}, {412, 880, 70}, {412, 880, 98}, {725, 569, 73}, {725, 530, 70}};
+        // the dock's top is the same. In px. Each frame: window width, the page frame's height, the dock's own height
+        // without the lift or the inset, and the navigation inset (gesture handle 24 dp, three buttons 48 dp, none).
+        int px = 3, lift = HubPages.DOCK_LIFT_DP * px, padding = HubPages.DOCK_PADDING_DP * px, gap = 16 * px;
+        require(HubPages.DOCK_LIFT_DP == 10, "The items keep the old floating bar's 10 dp above the bottom");
+        int[][] frames = {{344, 847, 70, 24}, {344, 847, 98, 24}, {412, 880, 70, 48}, {412, 880, 98, 0}, {725, 569, 73, 24}, {725, 530, 70, 0}};
         int[][] bars = {{791, 843}, {820, 872}, {830, 882}, {860, 912}, {561, 615}, {431, 489}, {372, 422}, {-200, -10}, {150, 210}};
         for (int[] frame : frames) {
-            int bottom = (frame[1] + 10) * px, height = frame[2] * px;
-            int top = HubPages.dockTop(bottom, height, margin);
-            require(top == bottom - margin - height, "The dock sits its margin above the frame's bottom: " + java.util.Arrays.toString(frame));
-            for (int[] bar : bars) require(HubPages.dockTop(bottom, height, margin) == top, "The Lock bar at " + bar[0] + "-" + bar[1] + " dp does not move the dock");
+            String name = java.util.Arrays.toString(frame);
+            int inset = frame[3] * px, frameBottom = (frame[1] + 10) * px, window = frameBottom + inset;
+            int bottomPadding = HubPages.dockBottomPadding(padding, lift, inset);
+            int height = frame[2] * px + lift + inset;
+            int top = HubPages.dockTop(window, height);
+            // The surface reaches the screen's bottom edge: nothing shows beneath it.
+            require(top + height == window, "The dock's sheet runs to the screen's bottom edge: " + name);
+            require(bottomPadding == padding + lift + inset, "The sheet's bottom padding: its padding, the lift and the inset: " + name);
+            // Its items stay above the navigation bar, lift above it, exactly where the floating bar's items were (its bottom
+            // margin above the frame's bottom, less its padding).
+            int itemsBottom = top + height - bottomPadding;
+            require(itemsBottom == frameBottom - lift - padding, "The dock's items keep their place above the navigation bar: " + name);
+            require(itemsBottom <= window - inset, "The dock's items are never under the navigation bar: " + name);
+            // Its top is where the floating bar's top was: the page shows no less above it.
+            require(top == frameBottom - lift - frame[2] * px, "The dock's top did not move: " + name);
+            for (int[] bar : bars) require(HubPages.dockTop(window, height) == top, "The Lock bar at " + bar[0] + "-" + bar[1] + " dp does not move the dock");
             // Scrolled to its end with the clearance as its bottom padding, the page's last widget (the Lock bar when the
-            // rider puts it last) ends gap above the dock: every widget can be scrolled fully clear of it.
-            int padding = HubPages.dockClearance(height, margin, gap);
-            require(HubPages.scrolledEndBottom(bottom, padding) == top - gap, "Scrolled to its end, the last widget clears the dock by the gap: " + java.util.Arrays.toString(frame));
-            require(HubPages.scrolledEndBottom(bottom, padding - 1) > top - gap, "One pixel less and it would not");
+            // rider puts it last) ends gap above the dock: every widget can be scrolled fully clear of it. The scroller
+            // ends at the navigation bar (frameBottom).
+            int clearance = HubPages.dockClearance(height, inset, gap);
+            require(HubPages.scrolledEndBottom(frameBottom, clearance) == top - gap, "Scrolled to its end, the last widget clears the dock by the gap: " + name);
+            require(HubPages.scrolledEndBottom(frameBottom, clearance - 1) > top - gap, "One pixel less and it would not");
+            // The same dock with no navigation inset clears by the same gap: the inset the sheet covers is not page room.
+            require(HubPages.dockClearance(height - inset, 0, gap) == clearance, "The inset does not change the room the page needs: " + name);
         }
-        require(HubPages.dockClearance(-5, 30, 48) == 78, "An unmeasured dock: its margin and the gap");
+        require(HubPages.dockClearance(-5, 72, 48) == 48, "An unmeasured dock: the gap");
+        require(HubPages.dockClearance(30, 72, 48) == 48, "A dock not yet as tall as its inset: the gap");
+        require(HubPages.dockClearance(100, -4, 48) == 148, "A negative inset counts as none");
+        require(HubPages.dockBottomPadding(12, 30, -9) == 42, "A negative inset adds nothing to the padding");
         // A taller dock (larger text, or captions on two lines) needs more room, never less.
-        require(HubPages.dockClearance(98 * px, margin, gap) > HubPages.dockClearance(70 * px, margin, gap), "A taller dock: more room");
+        require(HubPages.dockClearance(98 * px + 72, 72, gap) > HubPages.dockClearance(70 * px + 72, 72, gap), "A taller dock: more room");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
     }
 

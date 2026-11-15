@@ -85,7 +85,8 @@ import com.jjricks.volt.WideLayout;
  *   650 dp wide) or false (a narrower one), the dock must be the layout's: all seven when the window at this text size
  *   gets the wide layout (WideLayout.wide), else the phone's most-used ones (HubPages.dockSubjects; at 725x604 dp and
  *   1.4x text, a phone dock that holds all seven). The dock is pinned to the bottom, always (the contributor's decision,
- *   14 Nov, #383): shown, with no offset, at HubPages.dockTop (HubTestPages.showDock) and at the same place in the window
+ *   14 Nov, #383): shown, with no offset, at HubPages.dockTop with its sheet running down to the screen's bottom edge under
+ *   the navigation bar and its items above that bar (15 Nov; HubTestPages.showDock) and at the same place in the window
  *   as Home opens, with Home scrolled, and after every Back; it never lifts above Widgets' Lock bar or steps aside for it.
  *   Instead Home scrolls the Lock bar wholly clear of the dock where it opens under it (725x604 dp at 1.4x text), and
  *   scrolled to its end, its last card and the Lock bar end above the dock (HubTestPages.requireEndClearOfDock).</li>
@@ -758,7 +759,7 @@ public final class HubValidation extends Instrumentation {
 
     /**
      * Widgets Home's dock where a rider finds it (HubTestPages.showDock: shown, still, with no offset and at HubPages.dockTop
-     * in its frame, pinned to the bottom): its place in the window, x, y, width and height (px).
+     * in its frame, pinned to the bottom and reaching the screen's bottom edge): its place in the window, x, y, width and height (px).
      */
     private int[] dockPlace(String where) {
         HubTestPages.showDock(this, activity);

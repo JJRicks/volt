@@ -521,12 +521,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
-        getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);
+        getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);if(Build.VERSION.SDK_INT>=29)getWindow().setNavigationBarContrastEnforced(true);
         root.setPadding(leftInset,topInset,rightInset,bottomInset);
         root.setOnApplyWindowInsetsListener((v,insets)->{
             int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
-            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);
+            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);if(dock!=null)dock.setInset(b);
             if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
         if(OnboardingScreen.needed(this,scooterService)){
@@ -585,11 +585,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
-            // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
+            // Widgets Home: the dock sits over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
-            pageFrame.addView(dock.view(),dock.layoutParams());
+            // Its sheet runs down to the screen's bottom edge, under the navigation bar (the contributor's decision, 15 Nov):
+            // it goes in the root, over the page frame, reaching past the root's bottom padding (the inset), which the root
+            // draws through; the bar's own colour is clear so the sheet shows under it.
+            root.setClipToPadding(false);
+            root.addView(dock.view(),dock.layoutParams(bottomInset));
+            getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+            if(Build.VERSION.SDK_INT>=29)getWindow().setNavigationBarContrastEnforced(false);
             // Pinned to the bottom (the contributor's decision, 14 Nov): it never moves for the Lock bar, one of the rider's own
             // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
             dock.padScroller(scroll,scroll.getPaddingBottom());

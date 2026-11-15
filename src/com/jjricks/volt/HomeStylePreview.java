@@ -294,25 +294,38 @@ final class HomeStylePreview extends View {
     }
 
     /**
-     * The dock, floating over the bottom of the page where the tab bar was, with its look (HubDock): the rounded bar with
-     * the shown subjects' icons, each over its short name, then All.
+     * The dock over the bottom of the page where the tab bar was, with its look (HubDock): its sheet running edge to edge
+     * down to the picture's bottom edge with its top corners rounded and its outline along the top, the grab handle, and
+     * the shown subjects' icons on raised tiles, each over its short name, then All, where the old floating bar's were.
      */
     private void dock(Canvas c) {
-        float dockTop = VIRTUAL_HEIGHT - 82, dockBottom = VIRTUAL_HEIGHT - 10, l = 14, r = VIRTUAL_WIDTH - 14;
+        float dockTop = VIRTUAL_HEIGHT - 82, itemsBottom = VIRTUAL_HEIGHT - 10, l = 14, r = VIRTUAL_WIDTH - 14, corner = 26;
         paint.setColor(Ui.withAlpha(ui.bg, 200));
         c.drawRect(0, dockTop - 12, VIRTUAL_WIDTH, VIRTUAL_HEIGHT, paint);
-        card(c, l, dockTop, r, dockBottom, 26, ui.surface);
+        android.graphics.Path sheet = new android.graphics.Path();
+        box.set(0, dockTop, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        sheet.addRoundRect(box, new float[] {corner, corner, corner, corner, 0, 0, 0, 0}, android.graphics.Path.Direction.CW);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(ui.surface);
+        c.drawPath(sheet, paint);
+        // The outline along the top edge and corners only: the sides and bottom are the picture's edges.
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1);
         paint.setColor(ui.raised);
-        box.set(l, dockTop, r, dockBottom);
-        c.drawRoundRect(box, 26, 26, paint);
+        c.save();
+        c.clipRect(0.5f, dockTop - 1, VIRTUAL_WIDTH - 0.5f, VIRTUAL_HEIGHT - 0.5f);
+        box.set(0, dockTop, VIRTUAL_WIDTH, VIRTUAL_HEIGHT + corner);
+        c.drawRoundRect(box, corner, corner, paint);
+        c.restore();
         paint.setStyle(Paint.Style.FILL);
-        float step = (r - l - 8) / dockIcons.size(), middle = (dockTop + dockBottom) / 2;
+        // The grab handle, as HubDock's (51 x 6, 4 below the sheet's top, padding included).
+        card(c, VIRTUAL_WIDTH / 2 - 25.5f, dockTop + 8, VIRTUAL_WIDTH / 2 + 25.5f, dockTop + 14, 3, ui.outline);
+        float step = (r - l - 8) / dockIcons.size(), tileTop = dockTop + 18, tile = 30;
         for (int i = 0; i < dockIcons.size(); i++) {
             float x = l + 4 + step * (i + .5f);
-            ui.drawIcon(c, dockIcons.get(i), ui.muted, x, middle - 8, 22);
-            centred(c, dockLabels.get(i), x, middle + 18, step - 6, 10, ui.muted, false);
+            card(c, x - tile / 2, tileTop, x + tile / 2, tileTop + tile, 10, ui.raised);
+            ui.drawIcon(c, dockIcons.get(i), ui.accentText, x, tileTop + tile / 2, 16);
+            centred(c, dockLabels.get(i), x, itemsBottom - 8, step - 6, 10, ui.muted, false);
         }
     }
 
