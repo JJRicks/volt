@@ -446,11 +446,12 @@ public final class HubValidation extends Instrumentation {
         screenshot("search-typed");
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        main(() -> {
-            EditText now = firstEditText(activity.findViewById(android.R.id.content));
-            require(now != null && now.getText().length() == 0, "Back did not clear the search's query first");
-            require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back cleared the query but the subjects did not come back");
-        });
+        // Back reaches the page through the system's dispatch, which can land after settle() on a loaded emulator (hub-725
+        // failed here once on the council's pool): wait for the cleared query, then for the subjects, each with its message.
+        await(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
+                "Back did not clear the search's query first");
+        await(() -> onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))), "Back cleared the query but the subjects did not come back");
+        requireStack(HubPages.HOME, HubPages.SEARCH);
         systemBack();
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
