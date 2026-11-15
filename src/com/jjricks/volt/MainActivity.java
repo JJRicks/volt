@@ -796,7 +796,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         Motion.beforeNextDraw(pageScroll,()->{
             if(destroyed||screen!=page||scroll!=pageScroll)return;
             View target=page.anchor(anchor);
-            if(target==null)target=page.view().findViewWithTag(anchor);
+            // A page can hold the tag twice, once hidden (Service › Reports: More's index ends with the same Report an issue
+            // link, hidden on a section page): the shown one is the row.
+            if(target==null)target=shownWithTag(page.view(),anchor);
             if(target==null||!target.isShown())return;
             int y=0;
             for(View at=target;at!=null&&at!=pageScroll;at=at.getParent() instanceof View?(View)at.getParent():null)y+=at.getTop();
@@ -805,6 +807,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             pageScroll.scrollTo(0,top);
             if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);
         },null);
+    }
+    /** The first shown view under root with this tag, else the first with it (findViewWithTag), else null. */
+    private static View shownWithTag(View root,Object tag){
+        View first=root.findViewWithTag(tag);
+        if(first==null||first.isShown())return first;
+        java.util.ArrayDeque<View> queue=new java.util.ArrayDeque<>();queue.add(root);
+        while(!queue.isEmpty()){
+            View at=queue.poll();
+            if(tag.equals(at.getTag())&&at.isShown())return at;
+            if(at instanceof ViewGroup)for(int i=0;i<((ViewGroup)at).getChildCount();i++)queue.add(((ViewGroup)at).getChildAt(i));
+        }
+        return first;
     }
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
     private AppScreen securityLock(){

@@ -548,6 +548,14 @@ public final class HubValidation extends Instrumentation {
                 + ", not " + (reading == null ? "every reading" : "only " + reading));
     }
 
+    /** A shown view under view with this tag, or null. Main thread. */
+    private static View shownTagged(View view, String tag) {
+        if (view == null) return null;
+        if (tag.equals(view.getTag()) && view.isShown()) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View found = shownTagged(((ViewGroup) view).getChildAt(i), tag); if (found != null) return found; }
+        return null;
+    }
+
     /** The first shown view under view whose tag starts with prefix, or null. Main thread. */
     private static View firstTagged(View view, String prefix) {
         if (view == null || !view.isShown()) return null;
@@ -646,6 +654,8 @@ public final class HubValidation extends Instrumentation {
         try { Method method = screen.getClass().getMethod("anchor", String.class); method.setAccessible(true); target = (View) method.invoke(screen, anchor); }
         catch (Exception error) { throw new IllegalStateException(error); }
         View page = (View) invoke(screen, "view", new Class<?>[0]);
+        // The row is the shown view with the tag, as MainActivity.revealAnchor finds it (a page may hold a hidden one too).
+        if (target == null) target = shownTagged(page, anchor);
         if (target == null) target = page.findViewWithTag(anchor);
         if (target == null) return new String[]{"no view " + anchor + " on the page, and no sheet over it holds one", "page"};
         if (!shown(target)) return new String[]{anchor + " is on the page but not shown (" + chain(target) + ")", "page"};

@@ -442,6 +442,8 @@ public final class HubSearchTest {
                 && more.contains("return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;")
                 && more.contains("updatesSheet();\n        View control = updatesBox.findViewWithTag(id);"), "Settings opens the Updates sheet for the update results");
         check(read("src/com/jjricks/volt/MainActivity.java").contains("if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);"), "the host opens a sheet that holds a result");
+        // Service › Reports holds Report an issue twice, the index's hidden: the result brings the shown one on screen.
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("if(target==null)target=shownWithTag(page.view(),anchor);"), "the host reveals the shown view with a result's tag");
     }
 
     /**
