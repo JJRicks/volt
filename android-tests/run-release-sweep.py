@@ -18,9 +18,11 @@ left that way: on a read-only emulator it updates preinstalled apps, the keyboar
 minutes after every boot, replacing their processes mid-step, and re-enabling it between --only steps
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
-Android's animator duration scale goes back to the value the sweep found before every step and at the
-end. Several validations turn animations down and restore them only in their own finally block, which
-a killed process skips; without this, every later step on that emulator would run with animations off.
+Every step starts with Android's animator duration scale explicitly at 1, and the value the sweep found
+is put back at the end. Several validations turn animations down and restore them only in their own
+finally block, which a killed process skips. Deleting the setting is no restore either: Android keeps
+its in-memory scale when the setting is deleted, so a validation that found it unset, set 0 and then
+deleted it left animations off; with an explicit 1 in place, such a validation puts back 1 instead.
 
 Localization (l10n/README.md). Every step but the locale-* ones runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
@@ -487,11 +489,12 @@ STORE = 'com.android.vending'
 store_enabled = f'package:{STORE}' in adb('shell', 'pm', 'list', 'packages', '-e', STORE).split()
 heads_up = adb('shell', 'settings', 'get', 'global', 'heads_up_notifications_enabled').strip()
 animator = adb('shell', 'settings', 'get', 'global', 'animator_duration_scale').strip()
+if animator not in ('', 'null', '1', '1.0'):
+    print(f'animator_duration_scale was {animator} on {args.serial}: every step runs at 1, and {animator} is put back at the end', flush=True)
 
 
-def put_animator():
-    if animator in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'animator_duration_scale', check=False)
-    else: adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', animator, check=False)
+def animations_on():
+    adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', '1', check=False)
 
 
 results = []
@@ -506,7 +509,7 @@ try:
         if args.only and step['name'] not in args.only: continue
         started = time.monotonic()
         mark = adb('shell', "date '+%m-%d %H:%M:%S.000'").strip()
-        try: await_settled(); clear_error_dialogs(); put_animator(); passed, output = run_step(step)
+        try: await_settled(); clear_error_dialogs(); animations_on(); passed, output = run_step(step)
         except Exception as error: passed, output = False, f'{type(error).__name__}: {error}'
         if not passed:
             try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
@@ -534,7 +537,10 @@ finally:
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('shell', 'wm', 'size', 'reset', check=False); adb('shell', 'wm', 'density', 'reset', check=False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0', check=False)
-    put_animator()
+    # Put 1 first even when the sweep found the setting unset: deleting keeps Android's in-memory scale.
+    animations_on()
+    if animator in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'animator_duration_scale', check=False)
+    elif animator not in ('1', '1.0'): adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', animator, check=False)
     if heads_up in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'heads_up_notifications_enabled', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'heads_up_notifications_enabled', heads_up, check=False)
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
