@@ -182,6 +182,16 @@ public final class HubNavTest {
         require(nav.subPagesOpen(), "A Settings page: the clock starts");
         nav.reset(HubPages.HOME); nav.open(HubPages.BATTERY); nav.open(HubPages.DATA);
         require(nav.subPagesOpen(), "A subject opened through another subject: the clock starts");
+        // Part 12's search: Search itself has nothing to close; a page opened from a result sits above it, so the clock
+        // starts, and an expired return closes back to that page's subject (Search, a page like Home's buttons, goes).
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.SERVICE_MAINTENANCE);
+        require(nav.subPagesOpen(), "A sub-page opened from a search result: the clock starts");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.SERVICE), "An expired return from a result's sub-page lands on its subject");
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.BATTERY);
+        require(nav.subPagesOpen(), "A subject opened from a search result: the clock starts (Search is under it)");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.BATTERY), "An expired return from a result's subject keeps that subject");
+        require(HubNav.awayClockStarts(true, false, false, -1, 1_000) && !HubNav.awayClockStarts(false, false, false, -1, 1_000),
+                "Leaving over a result's page starts the clock; leaving Search itself does not");
         String[][] stacks = {
             {HubPages.HOME}, {HubPages.HOME, HubPages.BATTERY}, {HubPages.HOME, HubPages.SEARCH},
             {HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT}, {HubPages.HOME, HubPages.DATA, HubPages.DATA_STORAGE},
