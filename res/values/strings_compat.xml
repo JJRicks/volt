@@ -32,8 +32,8 @@
     <string name="compat_preview_report" volt:screen="Compatibility" volt:purpose="button">Preview report</string>
     <!-- Toast when there is no finished check to report yet. -->
     <string name="compat_no_finished_check" volt:screen="Compatibility" volt:purpose="toast">No finished check yet</string>
-    <!-- Caption at the foot of the panel. "More › Experimental controls" names a place in the app. -->
-    <string name="compat_footer" volt:screen="Compatibility" volt:purpose="caption" volt:safety="disclaimer">The check only reads. Tries are in More › Experimental controls, and the report includes their results. Never changes firmware.</string>
+    <!-- Caption at the foot of the panel. "Service › Experimental controls" names a place in the app: the Service subject and its Experimental controls page. -->
+    <string name="compat_footer" volt:screen="Compatibility" volt:purpose="caption" volt:safety="disclaimer">The check only reads. Tries are in Service › Experimental controls, and the report includes their results. Never changes firmware.</string>
     <!-- Shown when no scooter is connected. -->
     <string name="compat_connect_to_check" volt:screen="Compatibility" volt:purpose="status">Connect to check this scooter.</string>
     <!-- Title of the identity card when the scooter's model ID was not captured. -->
