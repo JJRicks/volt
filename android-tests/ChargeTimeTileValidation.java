@@ -54,6 +54,9 @@ import com.jjricks.volt.*;
  * Mode layout: every theme, text size (1x, 1.4x) and language (English, German, both Portuguese) at the emulator's
  * current size: labels whole, the dots clear of the label and the state pill, one height for both readings.
  * Mode restart: run after a default pass on the same install (no reinstall): the saved choices survive a new process.
+ * Mode sizes: at the emulator's current size, Clean and Widgets, 1x and 1.3x text, English and German, on the developer
+ * simulator: the time's value is drawn at Charging power's size, never larger, and smaller only where even its short
+ * rung is too wide there (never in English), also after a charge's first "Waiting for readings" (verifySizes).
  */
 public final class ChargeTimeTileValidation extends Instrumentation {
     private static final int LIMIT = 0, FULL = 1;
@@ -86,6 +89,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 });
                 launch();
                 if (mode.equals("layout")) verifyLayoutMatrix();
+                else if (mode.equals("sizes")) verifySizes();
                 else {
                     verifyOneReading();
                     verifyAlertReadings();
@@ -743,6 +747,132 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         }
         MainActivity old = activity; main(old::finish); SystemClock.sleep(800);
         setLocale("");
+    }
+
+    // ---- Sizes mode -------------------------------------------------------------------------------------------
+
+    /**
+     * The owner's report (Nov 15 2026): the time's value drew smaller than Charging power's beside it. At the emulator's
+     * current size, on Clean and Widgets, at 1x and 1.3x text, in English and German: the developer simulator's UT5 MAX
+     * charging (the owner's case: one reading), a simulated GT3 Max with a charge alert (Widgets: both readings), and a
+     * synthetic time of hours. Each time value is drawn at power's size, never larger; smaller only where even its
+     * compact rung is too wide at power's size (in English that fails the run at every size this mode is registered at).
+     */
+    private void verifySizes() throws Exception {
+        String size = args.getString("size_label", "size");
+        String only = args.getString("styles", "widgets,clean");
+        for (String style : only.split(",")) for (String text : new String[] {"1", "1.3"}) for (String locale : new String[] {"", "de"}) {
+            label = size + "-" + style + "-" + (locale.isEmpty() ? "en" : locale) + "-" + text;
+            MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle();
+            require(settings().edit().putBoolean("developer_options", true).putString("home_style", style)
+                    .putBoolean("home_style_chosen", true).commit(), "Could not seed the Home style");
+            seed("dark", text); setLocale(locale);
+            activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            await(() -> activity.service() != null && root().getWidth() > 0, "App did not launch"); service = activity.service();
+            SystemClock.sleep(1500); settle();
+            simulate("");
+            requireSizes("ut5", locale.isEmpty());
+            shot(label + "-ut5");
+            simulate("24182");
+            main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
+            simRedraw();
+            requireSizes("alert", locale.isEmpty());
+            shot(label + "-alert");
+            // A charge starting: the time's slot says Waiting for readings (too wide for the value's full size, so it is
+            // drawn smaller) until the first current reading, then the time. The time must come back to power's size
+            // without anything else laying Home out (the owner's phone, Nov 15 2026: "≈ 54m" stayed at the state's size).
+            Map<String, TelemetryHistory.Reading> waiting = readings(55, null, 2);
+            waiting.remove("current_a");
+            main(() -> {
+                ((android.os.Handler) field(activity, "handler")).removeCallbacks((Runnable) field(activity, "pulse"));
+                service.unlisten((Runnable) field(activity, "serviceChanged"));
+                invoke(anyHero(), "refresh", new Class<?>[]{Map.class}, waiting);
+            });
+            settle(); SystemClock.sleep(420); settle();
+            main(() -> { TextView[] slot = (TextView[]) field(field(anyHero(), "timeTile"), "values");
+                checks.add(label + " start: the time's slots say '" + slot[LIMIT].getText() + "' and '" + slot[FULL].getText() + "' at "
+                        + slot[FULL].getTextSize() / getTargetContext().getResources().getDisplayMetrics().scaledDensity + " sp"); });
+            Map<String, TelemetryHistory.Reading> started = readings(55, null, 2);
+            main(() -> invoke(anyHero(), "refresh", new Class<?>[]{Map.class}, started));
+            settle(); SystemClock.sleep(420); settle();
+            requireSizes("start", locale.isEmpty());
+            shot(label + "-start");
+            Map<String, TelemetryHistory.Reading> hours = readings(20, null, 2);
+            main(() -> invoke(anyHero(), "refresh", new Class<?>[]{Map.class}, hours));
+            settle(); SystemClock.sleep(420); settle();
+            requireSizes("hours", locale.isEmpty());
+            shot(label + "-hours");
+            main(() -> { require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"); service.setSimulation(false); });
+        }
+        MainActivity old = activity; main(old::finish); SystemClock.sleep(800);
+        setLocale("");
+    }
+
+    /** The developer simulator charging as model pid ("" its default, the UT5 MAX), shown on Home. */
+    private void simulate(String pid) throws Exception {
+        main(() -> {
+            if (!service.simulating()) require(service.setSimulation(true), "Simulation did not start");
+            service.ble.setSimulationModel(pid); service.ble.setSimulationCharging(true); service.ble.tickSimulation();
+        });
+        await(() -> service.ble.ready(), "The simulated scooter is not ready");
+        await(() -> field(activity, "screen") != null, "No screen");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home"));
+        simRedraw();
+    }
+    private void simRedraw() throws Exception {
+        long end = SystemClock.uptimeMillis() + 10000;
+        while (SystemClock.uptimeMillis() < end) {
+            AtomicReference<Boolean> ok = new AtomicReference<>();
+            main(() -> activity.redraw());
+            settle(); SystemClock.sleep(150);
+            main(() -> { View h = anyHero(); ok.set(h != null && h.isShown() && field(h, "reveal") == null); });
+            if (Boolean.TRUE.equals(ok.get())) { SystemClock.sleep(600); settle(); return; }
+        }
+        throw new IllegalStateException(label + ": the charging view did not show on the simulator");
+    }
+    /** The charging view: Clean's (tagged) when it shows, else Widgets'. */
+    private View anyHero() {
+        View clean = root().findViewWithTag("clean-home-charging");
+        if (clean != null) return clean;
+        Object screen = field(activity, "screen");
+        return screen instanceof DashboardScreen ? (View) field(screen, "chargingHero") : null;
+    }
+
+    /**
+     * Power's and each time value's drawn size, recorded in the checks. A time value smaller than power while its own
+     * text would fit on one line at power's size fails, in every language; so does one larger than power; in English
+     * (strict) any time smaller than power fails.
+     */
+    private void requireSizes(String what, boolean strict) {
+        main(() -> {
+            View h = anyHero();
+            TextView p = (TextView) field(h, "power");
+            Object tile = field(h, "timeTile");
+            TextView[] vals = (TextView[]) field(tile, "values");
+            boolean twoNow = Boolean.TRUE.equals(field(tile, "two"));
+            float sp = getTargetContext().getResources().getDisplayMetrics().scaledDensity;
+            float ps = p.getTextSize() / sp;
+            StringBuilder line = new StringBuilder(label + " " + what + ": power " + String.format(Locale.US, "%.1f", ps) + " sp '" + p.getText() + "'");
+            ArrayList<String> problems = new ArrayList<>();
+            for (int r : twoNow ? new int[] {LIMIT, FULL} : new int[] {FULL}) {
+                TextView t = vals[r];
+                float ts = t.getTextSize() / sp;
+                android.text.TextPaint at = new android.text.TextPaint(t.getPaint()); at.setTextSize(p.getTextSize());
+                float room = t.getWidth() - t.getCompoundPaddingLeft() - t.getCompoundPaddingRight();
+                boolean fits = at.measureText(t.getText().toString()) <= room;
+                line.append(String.format(Locale.US, " | time[%s] %.1f sp '%s' (room %.0f px, at power's size %s; lines %d)",
+                        r == FULL ? "full" : "limit", ts, t.getText(), room, fits ? "fits" : "too wide", t.getLineCount()));
+                if (args.getString("diagnose") != null) line.append(" {budget " + field(t, "heightBudget") + " shared " + field(t, "sharedMaximumSp")
+                        + " max " + field(t, "maximumSp") + " grown " + field(t, "grownMaximumSp") + " h " + t.getHeight() + " w " + t.getWidth() + " minH " + t.getMinHeight()
+                        + "; power budget " + field(p, "heightBudget") + " shared " + field(p, "sharedMaximumSp") + " h " + p.getHeight() + " w " + p.getWidth() + "}");
+                if (ts > ps + .01f) problems.add("time " + r + " larger than power");
+                if (ts < ps - .01f && (fits || strict)) problems.add("time " + r + " '" + t.getText() + "' " + ts + " sp below power's " + ps + " sp" + (fits ? " with room" : ""));
+            }
+            checks.add(line.toString());
+            Log.i("ChargeTimeTileValidation", line.toString());
+            if (args.getString("diagnose") != null) return;
+            require(problems.isEmpty(), line + " :: " + problems);
+        });
     }
 
     /** No broken or tiny text in the hero's tiles; the dots inside the card and clear of the caption's text and the pill. */
