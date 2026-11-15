@@ -662,6 +662,18 @@ public final class HubSearchTest {
      * steps aside while searching; the long placeholder only where it fits whole (344 dp at 1.4x, part 13's 262 dp pane).
      */
     private static void layoutRules() {
+        // The readings' heading says "Live readings" unless every reading shown is a saved value (the council's emulator
+        // check, second round): then Readings' own name (StatsScreen.readingsTitle).
+        HubSearch.Entry live = HubSearch.reading("speed_kmh", "Speed", "Speed", () -> "0", () -> true);
+        HubSearch.Entry saved = HubSearch.reading("battery_percent", "Battery", "Battery", () -> "80 %", () -> false);
+        HubSearch.Entry page = HubSearch.pages(ALL).get(0);
+        check(HubSearch.readingsAllSaved(Arrays.asList(page, saved)), "every reading saved");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(saved, live)), "one live reading keeps Live readings");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(page)), "no reading, no saved heading");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(HubSearch.reading("x", "X", "X", () -> "1", null))), "a reading that doesn't say is not saved");
+        check(read("src/com/jjricks/volt/StatsScreen.java").contains("static String readingsTitle() { return sectionLabels(new String[] {\"Readings\"})[0]; }"),
+                "the saved heading is Readings' tab label, through Live Stats' own labels");
+
         // Tabletop posture keeps the pane above the hinge: only the header's rows go, and Search's field sits in the pane
         // (#393 council review, second round, finding 7). Not reproducible on the emulator rig (no hinge to fake).
         check(HubSearch.hidesWholeHeader(false) && !HubSearch.hidesWholeHeader(true), "tabletop hides only the header's rows");

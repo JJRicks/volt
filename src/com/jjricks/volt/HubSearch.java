@@ -436,6 +436,20 @@ final class HubSearch {
     static boolean valueStrong(Kind kind) { return kind == Kind.READING; }
 
     /**
+     * Whether every reading among the results shows a saved value (none live: the scooter is not connected), so their
+     * heading must not say "Live readings" (the council's emulator check of #393, second round). False with no reading.
+     */
+    static boolean readingsAllSaved(List<Entry> results) {
+        boolean any = false;
+        for (Entry entry : results) {
+            if (entry == null || entry.kind != Kind.READING) continue;
+            if (entry.live == null || !Boolean.FALSE.equals(entry.live.get())) return false;
+            any = true;
+        }
+        return any;
+    }
+
+    /**
      * Whether the result count shows as a line under the field. The Layout Plan's mock-up has none: the groups follow the
      * field at once, which in a short window with the keyboard up (725 x 604 dp) is one more row of results. Only "No
      * matches" is shown, where there is nothing else to see; the count is still spoken (HubSearchScreen).

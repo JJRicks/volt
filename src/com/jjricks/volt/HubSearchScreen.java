@@ -72,6 +72,8 @@ final class HubSearchScreen implements AppScreen {
     private final TextView count;
     private final CleanSubjects subjects;
     private String query;
+    /** The readings group's heading while reading results show, or null: it follows whether they are live (writeValues). */
+    private TextView readingsLabel;
     /** The result rows shown, so a refresh writes their values again without rebuilding them. */
     private final List<ResultRow> values = new ArrayList<>();
     private final List<HubSearch.Entry> shown = new ArrayList<>();
@@ -242,6 +244,7 @@ final class HubSearchScreen implements AppScreen {
     private void applyFilter() {
         if (closed) return;
         results.removeAllViews();
+        readingsLabel = null;
         values.clear();
         shown.clear();
         boolean searching = !HubSearch.normalize(query).isEmpty();
@@ -271,6 +274,7 @@ final class HubSearchScreen implements AppScreen {
                 // makes field-to-label the same 14 dp as between groups, as the mock-up spaces them (#393 review).
                 if (results.getChildCount() == 0) label.setPaddingRelative(ui.dp(4), ui.dp(2), ui.dp(4), ui.dp(6));
                 if (android.os.Build.VERSION.SDK_INT >= 28) label.setAccessibilityHeading(true);
+                if (group == HubSearch.Kind.READING) readingsLabel = label;
                 results.addView(label);
                 card = ui.groupCard();
                 results.addView(card, new LinearLayout.LayoutParams(-1, -2));
@@ -477,6 +481,12 @@ final class HubSearchScreen implements AppScreen {
             Integer colour = entry.live == null ? null : Boolean.TRUE.equals(entry.live.get()) ? ui.text : ui.muted;
             CharSequence age = entry.note == null || now == null || now.length() == 0 ? null : entry.note.get();
             values.get(i).write(now, colour, age);
+        }
+        // Every reading shown is a saved one (not connected): their heading is Readings' own name, not "Live readings".
+        if (readingsLabel != null) {
+            String heading = (HubSearch.readingsAllSaved(shown) ? StatsScreen.readingsTitle() : groupTitle(HubSearch.Kind.READING).render())
+                    .toUpperCase(Fmt.locale(Locale.ROOT));
+            if (!heading.contentEquals(readingsLabel.getText())) readingsLabel.setText(heading);
         }
     }
 

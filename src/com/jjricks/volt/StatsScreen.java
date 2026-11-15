@@ -324,6 +324,11 @@ public final class StatsScreen implements AppScreen {
         for (int i = 0; i < sections.length; i++) labels[i] = T.render(SECTION_LABELS[known.indexOf(sections[i])]);
         return labels;
     }
+    /**
+     * Readings' tab label ("Readings"), in the current language: Hub search's heading over reading results when every one
+     * is a saved value (HubSearch.readingsAllSaved), where its own "Live readings" would be wrong.
+     */
+    static String readingsTitle() { return sectionLabels(new String[] {"Readings"})[0]; }
     private static String validSection(String section) {
         for (String known : SECTIONS) if (known.equals(section)) return known;
         return "Overview";
