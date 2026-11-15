@@ -114,7 +114,20 @@ final class ChargePictureFit {
             if (above.percent) least = Math.min(least, onPlan(above, width, foot, lift, padTop, baselineShare, textSize, textScale, density).text);
         }
         if (least < fit.text) fit = new Fit(least, fit.box, fit.percentTop, fit.floor);
-        return new SlotFit(plan, fit);
+        return new SlotFit(plan, attached(fit, baselineShare));
+    }
+
+    /**
+     * The number kept on its picture (#501's taller top area on wider phones): where the picture is as large as the
+     * width allows and the stage is taller than the number and the picture need, the number would stay at the stage's
+     * top and float over empty space above the stem. It moves down until its baseline is the prototype's
+     * {@link #OVERLAP_PER_BOX} into the box, as on the 344 dp phone; a number already that deep (every stage the
+     * height limits, so the 344 dp phone and the 725 dp window) does not move. No picture, no change.
+     */
+    static Fit attached(Fit fit, float baselineShare) {
+        if (fit.box <= 0) return fit;
+        float top = (float) (fit.floor - fit.box * (1 - OVERLAP_PER_BOX) - baselineShare * fit.text);
+        return top > fit.percentTop ? new Fit(fit.text, fit.box, top, fit.floor) : fit;
     }
 
     /** A slot's plan (ChargingFit) and the fit on it. */

@@ -2787,7 +2787,12 @@ public final class DashboardScreen implements AppScreen {
                         ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), density).fit;
                 if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
                 if (photoRoom) {
-                    ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift;
+                    // On a stage taller than the two need (a wide phone's taller top area, #501), the number moves down
+                    // onto its picture (ChargePictureFit.attached) and the line above it moves with it, so the line, the
+                    // number and the picture keep the 344 dp phone's spacing and the spare height sits above the line.
+                    int drop = Math.max(0, Math.round(planned.percentTop - (percent.getPaddingTop() - lift)));
+                    ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift + drop;
+                    lineDrop(drop);
                     fit = planned;
                     pictureFloorPx = pictureFloor(plan.stageHeight);
                     // And a little left of the centre, as the prototype's (its halo stays centred).
@@ -2799,6 +2804,7 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
             percent.setTranslationX(0);
+            lineDrop(0);
             fit = null;
             // No photo for this model: the percentage and the track centred together in the stage (whose height the
             // top area fixes), rather than an empty photo-sized band between them.
@@ -2815,6 +2821,12 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /** Clean: the percentage at a share of its full size. */
+        /** The line over the picture moved down with its number (ChargePictureFit.attached); 0 leaves it in place. */
+        private void lineDrop(int drop) {
+            if (chip.getTranslationY() != drop) chip.setTranslationY(drop);
+            if (chipShort.getTranslationY() != drop) chipShort.setTranslationY(drop);
+        }
+
         private void percentScale(float scale) {
             float size = percentFullPx * scale;
             if (percentFullPx > 0 && percent.getTextSize() != size) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);

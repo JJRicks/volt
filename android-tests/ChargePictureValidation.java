@@ -210,6 +210,10 @@ public final class ChargePictureValidation extends Instrumentation {
         float baseline = percent.getTop() + percent.getBaseline(), boxTop = floor - fit.box;
         require(baseline - boxTop <= ChargePictureFit.OVERLAP_PER_BOX * fit.box + (ChargePictureFit.SLACK_DP + 1) * density,
                 key + ": the baseline " + (baseline - boxTop) + " px into the " + fit.box + " px picture");
+        // On Clean the number stays on its picture however tall the stage (ChargePictureFit.attached): never above the
+        // prototype's overlap, so it never floats over empty space above the stem.
+        if (clean) require(baseline - boxTop >= ChargePictureFit.OVERLAP_PER_BOX * fit.box - density,
+                key + ": the number floats " + (ChargePictureFit.OVERLAP_PER_BOX * fit.box - (baseline - boxTop)) + " px above its picture");
         require(boxTop >= -1 && floor <= stage.getHeight(), key + ": the picture leaves the stage (" + boxTop + ", " + floor + " of " + stage.getHeight() + ")");
     }
 

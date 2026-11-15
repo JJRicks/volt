@@ -17,6 +17,7 @@ public final class ChargePictureTest {
         largeText();
         fit();
         withPlan();
+        tallerStage();
         shadeFromBox();
         layers();
         clipping();
@@ -283,6 +284,39 @@ public final class ChargePictureTest {
             }
             require(pictureGone && trackGone, text + "x: the picture and the track went in the shortest slots");
         }
+    }
+
+    /**
+     * #501's taller top area on wider phones (360x800, 393x852, 412x901, 430x932 dp; 344x882 and the short and wide
+     * windows keep theirs): the picture is as large as the width allows and the stage is taller than the number and the
+     * picture need. The number moves down onto its picture (ChargePictureFit.attached), its baseline the prototype's
+     * overlap into the box, never floating over empty space above the stem; its size and the picture's do not change.
+     * Where the height limits the picture (as on the stages measured on the emulator at 344x882 and 725x604 dp) nothing moves.
+     */
+    private static void tallerStage() {
+        for (int[] window : new int[][] {{344, 882}, {360, 800}, {393, 852}, {412, 901}, {430, 932}, {411, 731}, {360, 640}, {725, 604}})
+            for (float text : new float[] {1f, 1.4f}) {
+                String name = window[0] + "x" + window[1] + " at " + text + "x";
+                int[] s = slot(window[0], window[1], text);
+                ChargingFit.Plan plan = ChargingFit.plan(s[0], s[1], s[2], s[3], s[4], D);
+                if (!plan.photo()) continue;
+                float lift = plan.line ? ChargePicture_LIFT * D : 0;
+                ChargePictureFit.Fit f = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * text, text, D).fit;
+                float depth = f.percentTop + SHARE * f.text - (f.floor - f.box), rule = (float) (ChargePictureFit.OVERLAP_PER_BOX * f.box);
+                require(depth >= rule - .01f, name + ": the number on its picture (baseline " + depth / D + " dp into the box, the rule " + rule / D + ")");
+                require(depth <= rule + ChargePictureFit.SLACK_DP * D + .01f, name + ": no deeper than the prototype's overlap");
+                require(f.percentTop >= -lift - .01f && f.floor - f.box >= -.01f, name + ": the number and the picture inside the stage");
+            }
+        // The real stages the emulator measures (dp, 344 dp content 308 wide): 344x882 keeps its number where it was;
+        // 430x932's 247 dp stage moves it down about 46 dp onto the picture.
+        float width = 308 * D, near344 = 174 * D - FOOT, tall = 247 * D - FOOT, wide430 = 394 * D;
+        ChargePictureFit.Fit at344 = ChargePictureFit.clean(width, near344, -10 * D, SHARE, 60 * D, 60 * D, 1, D);
+        require(ChargePictureFit.attached(at344, SHARE) == at344, "344x882: the approved number does not move");
+        ChargePictureFit.Fit at430 = ChargePictureFit.clean(wide430, tall, -10 * D, SHARE, 60 * D, 60 * D, 1, D);
+        ChargePictureFit.Fit moved = ChargePictureFit.attached(at430, SHARE);
+        near(moved.percentTop - at430.percentTop, 46.3 * D, 1.5 * D, "430x932: the number moves down onto its picture");
+        require(moved.text == at430.text && moved.box == at430.box, "430x932: the same number and picture, only placed");
+        require(ChargePictureFit.attached(new ChargePictureFit.Fit(60, 0, 0, 100), SHARE).percentTop == 0, "no picture, no move");
     }
 
     /** ChargePicture.PERCENT_LIFT_DP (ChargePicture itself needs Android). */
