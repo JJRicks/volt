@@ -107,6 +107,27 @@ final class SheetSpring {
         return startedOpen ? shown > 1 - COMMIT : shown >= COMMIT;
     }
 
+    /**
+     * The release decision for a sheet a finger caught while it settled (DragSheet: a finger down on a sheet springing
+     * closed or open): true opens it. closing: it was settling closed when caught (else open). caughtAt: its offset then
+     * (px); the rest as for opens. A fling or a quick flick decides first, as for opens; otherwise the settle it was on
+     * carries on unless the catching drag moved the sheet against it by a quarter of the travel or more from where it was
+     * caught (up to reopen one that was closing, down to close one that was opening), or all the way to the other end
+     * (one caught closing with under a quarter to go to open, pushed back fully open, stays open), so a catch taken back
+     * to where it started, or a plain tap, changes nothing.
+     */
+    static boolean caughtOpens(boolean closing, double caughtAt, double offset, double travel, double velocity, double fling, double minFling, long gestureMs) {
+        if (velocity <= -fling) return true;
+        if (velocity >= fling) return false;
+        if (gestureMs >= 0 && gestureMs <= QUICK_MS) {
+            if (velocity <= -minFling) return true;
+            if (velocity >= minFling) return false;
+        }
+        if (!(travel > 0)) return !closing;
+        double moved = (caughtAt - offset) / travel;
+        return closing ? moved >= COMMIT || offset <= 0 : -moved < COMMIT && offset < travel;
+    }
+
     // ---- Past open: the rubber band while dragging, the soft limit on the bounce -------------------------------------------
 
     /**
