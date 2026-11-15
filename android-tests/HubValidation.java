@@ -81,13 +81,18 @@ import com.jjricks.volt.WideLayout;
  *   listing all seven subjects, whose rows open their subject and close the sheet. With -e wide true (a window at least
  *   650 dp wide) or false (a narrower one), the dock must be the layout's: all seven when the window at this text size
  *   gets the wide layout (WideLayout.wide), else the phone's most-used ones (HubPages.dockSubjects; at 725x604 dp and
- *   1.4x text, a phone dock that holds all seven). While the dock shows, it covers no shown part of Widgets' Lock bar,
- *   on arrival and after each Back; where it would, it lifts to end 10 dp above the bar (part 11; 725x604 dp at 1.4x
- *   text, and the phones whose Shortcuts card pushes the bar down). It may step aside only where lifted it would leave
- *   the page; then the walk scrolls Home as a rider would until the dock comes back (HubTestPages.showDock) before
- *   tapping it.</li>
- *   <li><b>Taps</b>: every tap first scrolls its view into sight, and the view's centre must then be on screen and, on a
- *   page with the dock, above the dock; a view an owner cannot see is not tapped.</li>
+ *   1.4x text, a phone dock that holds all seven). The dock is pinned to the bottom, always (the contributor's decision,
+ *   14 Nov, #383): shown, with no offset, at HubPages.dockTop (HubTestPages.showDock) and at the same place in the window
+ *   as Home opens, with Home scrolled, and after every Back; it never lifts above Widgets' Lock bar or steps aside for it.
+ *   Instead Home scrolls the Lock bar wholly clear of the dock where it opens under it (725x604 dp at 1.4x text), and
+ *   scrolled to its end, its last card and the Lock bar end above the dock (HubTestPages.requireEndClearOfDock).</li>
+ *   <li><b>Page headers</b>: connected, every page but Home shows its back link and its title and no connection line;
+ *   Settings never shows one. The walk ends the simulated connection on Battery & charging (the simulator's state only;
+ *   nothing reaches a scooter): the line shows there, tappable, and Settings still has none; reconnected on the page, the
+ *   line blanks with the title in place, and the page opened again has none.</li>
+ *   <li><b>Taps</b>: every tap first scrolls its view into sight and, on Widgets Home, out from under the pinned dock as a
+ *   rider would; the view's centre must then be on screen and, on a page with the dock, above the dock; a view an owner
+ *   cannot see is not tapped.</li>
  *   <li><b>No scooter command</b>: the simulator's settings are unchanged at the end, no radio object, queued frame,
  *   pending change or recording exists, and nothing on the walk taps the Lock bar or a quick action.</li>
  * </ul>
@@ -95,7 +100,8 @@ import com.jjricks.volt.WideLayout;
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
  * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
- * fixture runners. -e dock_arrival lifted|resting|aside requires that state of the dock as Widgets Home opens. Every
+ * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
+ * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
  */
 public final class HubValidation extends Instrumentation {
@@ -131,10 +137,10 @@ public final class HubValidation extends Instrumentation {
     private String simulatedModel = "";
     private MainActivity activity;
     private boolean admitted;
-    /** The gap the dock keeps above the Lock bar when it lifts (HubDock.BOTTOM_DP, HubPages.dockLift's gap). */
-    private static final int DOCK_GAP_DP = 10;
-    /** The dock was seen lifted above the Lock bar (dockClearOfLock). */
-    private boolean dockLifted;
+    /** The room a widget scrolled clear of the pinned dock keeps above it (HubTestPages.scrollClearOf's). */
+    private static final int CLEAR_DP = 16;
+    /** Widgets Home's dock's place in the window (x, y, width, height px) as Home opened: it stays there (dockStays). */
+    private int[] dockHome;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>(), routed = new ArrayList<>();
     /** The simulator's settings when the walk began: a command would change them. */
@@ -162,6 +168,7 @@ public final class HubValidation extends Instrumentation {
             else {
                 cleanSubjects();
                 pageStack();
+                connectionLine();
                 search();
                 moments();
                 widgets();
@@ -243,6 +250,57 @@ public final class HubValidation extends Instrumentation {
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Page stack: a page already open closes those above it, Home resets the stack, recreation keeps it and the page shown");
+    }
+
+    /**
+     * The page header's connection line follows the connection (the contributor's decision, 14 Nov, #383): the walk ends
+     * the simulated connection on Battery & charging (BleController.disconnect, which in simulation only sets the state:
+     * no radio, no command) and the line shows there, tappable, between the back link and the title; Settings still shows
+     * none. Reconnected on that page (BleController.connectLast, the simulator's own connect), the line blanks and keeps
+     * its room, so the title keeps its place; opened again, connected, the page has no line. The simulator's settings stay
+     * as they were (noCommands checks them at the end).
+     */
+    private void connectionLine() throws Exception {
+        requireHome("CleanHomeScreen");
+        tapTag("home-subject-" + HubPages.BATTERY);
+        arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
+        BleController ble = activity.service().ble;
+        main(ble::disconnect);
+        await(() -> onMain(() -> !ble.ready() && shown(root().findViewWithTag("hub-page-connection"))), "Battery's header shows no connection line once the scooter disconnected");
+        settle();
+        int titleTop = requireHeader(HubPages.BATTERY, true);
+        String said = onMain(() -> ((TextView) root().findViewWithTag("hub-page-connection")).getText().toString());
+        require(said.startsWith("Disconnected"), "Battery's connection line reads \"" + said + "\" while disconnected");
+        screenshot("page-disconnected");
+        systemBack();
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireHeader(HubPages.SETTINGS, false);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        tapTag("home-subject-" + HubPages.BATTERY);
+        arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
+        require(requireHeader(HubPages.BATTERY, true) == titleTop, "Battery's title moved between two disconnected visits");
+        main(ble::connectLast);
+        await(() -> onMain(() -> ble.ready() && root().findViewWithTag("hub-page-connection").getVisibility() == View.INVISIBLE),
+                () -> "Reconnected on Battery, its connection line is " + onMain(() -> root().findViewWithTag("hub-page-connection").getVisibility()) + ", not blank keeping its room");
+        settle();
+        int reconnectedTop = onMain(() -> {
+            View line = root().findViewWithTag("hub-page-connection");
+            ViewGroup header = (ViewGroup) line.getParent();
+            return windowRect(header.getChildAt(header.indexOfChild(line) + 1)).top;
+        });
+        require(reconnectedTop == titleTop, "Battery's title moved from " + titleTop + " to " + reconnectedTop + " px as the scooter reconnected");
+        systemBack();
+        requireHome("CleanHomeScreen");
+        tapTag("home-subject-" + HubPages.BATTERY);
+        arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
+        requireHeader(HubPages.BATTERY, false);
+        systemBack();
+        requireHome("CleanHomeScreen");
+        checks.add("Page header: connected, every page shows its back link and title and no connection line, Settings never; disconnected (the simulator's state only), Battery shows"
+                + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line blanks with the title in place, and the page opened again has none");
     }
 
     /**
@@ -445,19 +503,21 @@ public final class HubValidation extends Instrumentation {
         }
         require(!shown.isEmpty() && HubPages.SUBJECTS.containsAll(shown), "The dock shows " + shown);
         main(() -> require(root().findViewWithTag("hub-dock") != null && root().findViewWithTag("hub-dock-handle") != null, "Widgets Home has no dock or All item"));
-        boolean aside = dockClearOfLock("Widgets Home");
-        // -e dock_arrival names how the step's window shows the dock as Widgets Home opens: lifted above the Lock bar,
-        // resting in its own place, or aside (no room to lift it).
-        String arrival = aside ? "aside" : dockLifted ? "lifted" : "resting";
-        if (arguments.containsKey("dock_arrival"))
-            require(arrival.equals(arguments.getString("dock_arrival")), "Widgets Home opened with the dock " + arrival + ", expected " + arguments.getString("dock_arrival"));
-        // Pictured as Home opens: with the dock lifted above the Lock bar where it would cover it.
+        // The contributor's decision (14 Nov, #383): the dock is pinned to the bottom, always. It never lifts above the Lock
+        // bar or steps aside for it; the page scrolls the Lock bar (one of the rider's own widgets) clear of it instead.
+        dockHome = dockPlace("Widgets Home as it opens");
+        // Pictured as Home opens, at its top, with the dock in its place.
         screenshot("widgets-home");
-        dockInReach("Widgets Home");
+        String lockBar = lockBarScrollsClear("Widgets Home");
+        // -e lock_bar_arrival names where the step's window has Widgets' Lock bar as Home opens: under the dock (725x604 dp
+        // at 1.4x text, where part 11 used to lift the dock), above it, or below it (off screen).
+        if (arguments.containsKey("lock_bar_arrival"))
+            require(lockBar.equals(arguments.getString("lock_bar_arrival")), "Widgets Home opened with the Lock bar " + lockBar + " the dock, expected " + arguments.getString("lock_bar_arrival"));
         main(() -> require(shown(root().findViewWithTag("hub-dock")) && shown(root().findViewWithTag("hub-dock-handle")), "The dock or its All item is not shown"));
         widgetsPages(false);
+        dockStays("Widgets Home after Search and Settings");
         for (String subject : shown) {
-            dockInReach("Widgets Home before " + subject);
+            dockStays("Widgets Home before " + subject);
             main(() -> { View item = root().findViewWithTag("hub-dock-" + subject); require(shown(item), "The dock has no " + subject + " item");
                 require(item.getContentDescription() != null && item.getContentDescription().length() > 0, "The dock's " + subject + " item has no spoken name"); });
             tapTag("hub-dock-" + subject);
@@ -465,13 +525,13 @@ public final class HubValidation extends Instrumentation {
             main(() -> require(field(activity, "dock") == null, "The dock shows on " + subject));
             systemBack();
             requireHome("DashboardScreen");
-            dockClearOfLock("Widgets Home after " + subject);
+            dockStays("Widgets Home after Back from " + subject);
         }
         for (String subject : HubPages.SUBJECTS) if (!shown.contains(subject))
             main(() -> require(root().findViewWithTag("hub-dock-" + subject) == null, "The dock has an item for " + subject + ", which it does not list"));
         checks.add("Widgets dock (" + layout + " layout at " + widthDp() + " dp, " + textScale() + "x text): " + shown + " each open their subject over Home; Back returns to Widgets Home; "
-                + "no dock on subject pages; the dock never over the Lock bar" + (dockLifted ? "; it lifted " + DOCK_GAP_DP + " dp above the Lock bar where it would cover it" : "")
-                + (aside ? "; it stepped aside over the Lock bar as Home opened (no room to lift it) and came back once Home scrolled" : "; never aside"));
+                + "no dock on subject pages; the dock pinned to the bottom at " + describeDock(dockHome) + " as Home opens, scrolled, and after every Back (never lifted or aside); "
+                + "the Lock bar " + lockBar + " the dock as Home opens, and Home scrolls it fully clear of the dock");
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
             AlertDialog[] sheet = {openAllSheet()};
@@ -524,64 +584,87 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * Part 11 keeps the dock off Widgets' Lock bar: where it would cover any shown part of it, the dock lifts to float
-     * 10 dp above the bar (HubPages.dockLift), and steps aside only where lifted it would leave the page. While the dock
-     * shows, no shown part of the Lock bar (MainActivity.dashboardLock) is under it, and a lifted dock ends 10 dp above
-     * the bar; while it has stepped aside (invisible, keeping its place), it would cover the bar there AND lifted it would
-     * start above the page frame's top, so a dock aside where it had room fails. Measured in window pixels here, not with
-     * the app's own rules (HubPages.dockCovers, dockLift). True when the dock is aside.
+     * Widgets Home's dock where a rider finds it (HubTestPages.showDock: shown, still, with no offset and at HubPages.dockTop
+     * in its frame, pinned to the bottom): its place in the window, x, y, width and height (px).
      */
-    private boolean dockClearOfLock(String where) {
+    private int[] dockPlace(String where) {
+        HubTestPages.showDock(this, activity);
         return onMain(() -> {
-            View dock = root().findViewWithTag("hub-dock"), lock = (View) field(activity, "dashboardLock");
-            require(lock != null, where + " has no Lock bar");
-            require(dock != null && dock.getVisibility() != View.GONE, where + " has no dock");
-            Rect bar = new Rect();
-            boolean barShown = lock.isShown() && lock.getGlobalVisibleRect(bar);
-            int[] lockAt = new int[2]; lock.getLocationInWindow(lockAt);
-            int gap = Math.round(DOCK_GAP_DP * activity.getResources().getDisplayMetrics().density);
-            if (dock.getVisibility() == View.INVISIBLE) {
-                int[] at = new int[2]; dock.getLocationInWindow(at);
-                Rect place = new Rect(at[0], at[1], at[0] + dock.getWidth(), at[1] + dock.getHeight());
-                require(barShown && Rect.intersects(place, bar), where + ": the dock stepped aside but its place " + place.toShortString()
-                        + " is clear of the Lock bar's shown part " + (barShown ? bar.toShortString() : "(none)"));
-                // Aside only where there is no room to lift it: floated gap above the bar, its top would be above the
-                // top of the page frame it floats in (under the app's bars).
-                View frame = (View) dock.getParent();
-                int[] frameAt = new int[2]; frame.getLocationInWindow(frameAt);
-                int frameTop = frameAt[1] + frame.getPaddingTop(), liftedTop = lockAt[1] - gap - dock.getHeight();
-                require(liftedTop < frameTop, where + ": the dock stepped aside although lifted " + DOCK_GAP_DP + " dp above the Lock bar (top " + lockAt[1]
-                        + ") it would start at " + liftedTop + ", inside the page from " + frameTop);
-                return true;
-            }
-            if (!shown(dock) || !barShown) return false;
-            Rect over = new Rect();
-            require(!dock.getGlobalVisibleRect(over) || !Rect.intersects(over, bar), where + ": the dock " + over.toShortString() + " covers the Lock bar's shown part " + bar.toShortString());
-            if (dock.getTranslationY() < 0) {
-                // Lifted: it floats the gap above the bar, not anywhere higher (a dock lifted further than it needs hides
-                // more of the page for nothing).
-                int[] at = new int[2]; dock.getLocationInWindow(at);
-                int bottom = at[1] + dock.getHeight();
-                require(Math.abs(lockAt[1] - gap - bottom) <= 1, where + ": the lifted dock ends at " + bottom + ", not " + DOCK_GAP_DP + " dp above the Lock bar at " + lockAt[1]);
-                dockLifted = true;
-            }
-            return false;
+            View dock = root().findViewWithTag("hub-dock");
+            require(shown(dock), where + ": the dock is not shown");
+            require(dock.getTranslationY() == 0, where + ": the dock is moved " + dock.getTranslationY() + " px off its place");
+            int[] at = new int[2]; dock.getLocationInWindow(at);
+            return new int[]{at[0], at[1], dock.getWidth(), dock.getHeight()};
         });
     }
 
+    /** The dock is where it was as Widgets Home opened (dockHome): pinned, it never moves for the Lock bar or a scroll. */
+    private void dockStays(String where) {
+        int[] now = dockPlace(where);
+        // Alone (-e mode widgets-pages), the first place found is the one it keeps.
+        if (dockHome == null) { dockHome = now; return; }
+        require(Arrays.equals(dockHome, now), where + ": the dock moved from " + describeDock(dockHome) + " to " + describeDock(now));
+    }
+
+    private static String describeDock(int[] place) { return place[2] + "x" + place[3] + " px at " + place[0] + "," + place[1]; }
+
     /**
-     * The dock as a rider finds it before a tap (HubTestPages.showDock: shown and still; where it had stepped aside, Home
-     * scrolled to its end as a rider would until it shows again), then dockClearOfLock on it.
+     * Widgets' Lock bar (MainActivity.dashboardLock) and the pinned dock: with Home at its top, where the bar is (under the
+     * dock, above it, or below it off screen); where it is under, the walk scrolls it clear as it would before a tap
+     * (scrollClear) and requires the whole bar shown above the dock. Then HubTestPages.requireEndClearOfDock scrolls Home to
+     * its end (its last card and the bar above the dock), Home goes back to its top, and the dock stayed in its place
+     * throughout. The walk never taps the bar (it would send a command). Returns where the bar was.
      */
-    private void dockInReach(String where) {
-        HubTestPages.showDock(this, activity);
+    private String lockBarScrollsClear(String where) {
+        main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
         settle();
-        require(!dockClearOfLock(where + " with the dock shown"), where + ": the dock stepped aside again");
+        String arrival = onMain(() -> {
+            View bar = (View) field(activity, "dashboardLock"), dock = root().findViewWithTag("hub-dock");
+            require(bar != null && bar.isShown(), where + " has no Lock bar");
+            Rect barAt = windowRect(bar), dockAt = windowRect(dock);
+            return Rect.intersects(barAt, dockAt) ? "under" : barAt.bottom <= dockAt.top ? "above" : "below";
+        });
+        if (!arrival.equals("above")) {
+            main(() -> scrollClear((View) field(activity, "dashboardLock"), root().findViewWithTag("hub-dock")));
+            settle();
+            main(() -> {
+                View bar = (View) field(activity, "dashboardLock"), dock = root().findViewWithTag("hub-dock");
+                Rect barAt = windowRect(bar), dockAt = windowRect(dock), seen = new Rect();
+                require(bar.getGlobalVisibleRect(seen) && seen.height() >= bar.getHeight() - 1, where + ": the Lock bar scrolled toward the dock is not wholly shown (" + seen.toShortString() + ")");
+                require(barAt.bottom <= dockAt.top, where + ": scrolled clear, the Lock bar " + barAt.toShortString() + " still runs under the dock " + dockAt.toShortString());
+            });
+            dockStays(where + " with the Lock bar scrolled clear");
+        }
+        String end = HubTestPages.requireEndClearOfDock(this, activity);
+        dockStays(where + " scrolled to its end (" + end + ")");
+        main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
+        settle();
+        dockStays(where + " scrolled back to its top");
+        return arrival;
+    }
+
+    /** A view's place in the window (px). Main thread. */
+    private static Rect windowRect(View view) {
+        int[] at = new int[2]; view.getLocationInWindow(at);
+        return new Rect(at[0], at[1], at[0] + view.getWidth(), at[1] + view.getHeight());
+    }
+
+    /**
+     * As a rider scrolls a widget out from under Widgets Home's pinned dock: the view's page scroller moves it to end
+     * CLEAR_DP above the dock's top. Nothing where the view already ends above it. Main thread.
+     */
+    private void scrollClear(View view, View dock) {
+        Rect at = windowRect(view), dockAt = windowRect(dock);
+        int by = at.bottom - dockAt.top + Math.round(CLEAR_DP * activity.getResources().getDisplayMetrics().density);
+        if (at.bottom <= dockAt.top || by <= 0) return;
+        for (View parent = view.getParent() instanceof View ? (View) view.getParent() : null; parent != null;
+             parent = parent.getParent() instanceof View ? (View) parent.getParent() : null)
+            if (parent instanceof ScrollView) { parent.scrollBy(0, by); return; }
     }
 
     /** Taps the dock's All item and returns its sheet, open and settled. */
     private AlertDialog openAllSheet() {
-        dockInReach("Widgets Home before All");
+        dockStays("Widgets Home before All");
         tapTag("hub-dock-handle");
         AlertDialog[] sheet = new AlertDialog[1];
         await(() -> onMain(() -> { sheet[0] = (AlertDialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
@@ -651,6 +734,12 @@ public final class HubValidation extends Instrumentation {
             view.requestRectangleOnScreen(new Rect(0, 0, view.getWidth(), view.getHeight()), true);
         });
         settle();
+        // Widgets Home's dock is pinned over the page's bottom: a view under it is scrolled clear first, as a rider would.
+        main(() -> {
+            View view = window.get().findViewWithTag(tag), dock = root().findViewWithTag("hub-dock");
+            if (view.getRootView() == root() && shown(dock) && !isInside(view, dock)) scrollClear(view, dock);
+        });
+        settle();
         main(() -> click(window.get().findViewWithTag(tag), label));
         settle();
     }
@@ -717,6 +806,41 @@ public final class HubValidation extends Instrumentation {
             View back = root().findViewWithTag("hub-back");
             require(shown(back), page + " has no back link");
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
+        });
+        if (!HubPages.HOME.equals(page)) {
+            boolean connected = onMain(() -> activity.service().ble.ready());
+            // The contributor's decision (14 Nov, #383): the connection line only while not connected, never on Settings.
+            if (connected || HubPages.appPage(page)) requireHeader(page, false);
+        }
+    }
+
+    /**
+     * The page's header (part 11): its back link, then the connection line (MainActivity.TAG_PAGE_CONNECTION) and the
+     * page's title. line: whether the line must show ("Disconnected · last seen …", tappable for the connection details);
+     * false requires it gone (a page opened connected, and Settings always). The title follows the line, shown, with the
+     * page's own name (Data's is Live Stats' title with its dot). Returns the title's top in the window (px).
+     */
+    private int requireHeader(String page, boolean line) {
+        return onMain(() -> {
+            View connection = root().findViewWithTag("hub-page-connection");
+            require(connection instanceof TextView, page + "'s header has no connection line view (hub-page-connection)");
+            if (line) {
+                require(shown(connection) && ((TextView) connection).getText().length() > 0, page + "'s header shows no connection line while not connected");
+                require(connection.isClickable() || ((View) connection.getParent()).isClickable(), page + "'s connection line cannot be tapped for the connection details");
+            } else {
+                require(connection.getVisibility() == View.GONE, page + "'s header " + (connection.getVisibility() == View.VISIBLE ? "shows" : "keeps room for")
+                        + " the connection line \"" + ((TextView) connection).getText() + "\"" + (HubPages.appPage(page) ? " on a Settings page" : " while connected"));
+            }
+            ViewGroup header = (ViewGroup) connection.getParent();
+            int at = header.indexOfChild(connection);
+            require(at >= 0 && at + 1 < header.getChildCount(), page + "'s header has no title after its connection line");
+            View title = header.getChildAt(at + 1);
+            require(shown(title), page + "'s header shows no title");
+            if (!HubPages.DATA.equals(page) && title instanceof TextView)
+                require(HubText.title(page).render().contentEquals(((TextView) title).getText()), page + "'s title reads \"" + ((TextView) title).getText() + "\"");
+            require(shown(root().findViewWithTag("hub-back")), page + "'s header has no back link");
+            int[] where = new int[2]; title.getLocationInWindow(where);
+            return where[1];
         });
     }
     @SuppressWarnings("unchecked")

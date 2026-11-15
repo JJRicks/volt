@@ -245,13 +245,13 @@ STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden
 # and search on the simulator, phone (four dock items) and wide (all seven); the walk also opens Search and Settings from
 # Widgets Home's All sheet. hub-widgets-pages checks those two rows on their own, starting on Widgets Home. hub-344-large
 # walks the phone again at large text, where the dock holds fewer items. hub-725-large walks the wide window at large text,
-# where Volt takes the phone layout (725 / 1.4 < 650 dp), its dock holds all seven, and the dock lifts to float 10 dp above
-# Widgets' Lock bar where it would cover it (-e dock_arrival lifted: it must be lifted as Home opens). In every step
-# the dock never covers the Lock bar and never steps aside where it has room to lift.
+# where Volt takes the phone layout (725 / 1.4 < 650 dp), its dock holds all seven, and Widgets' Lock bar opens under the
+# pinned dock (-e lock_bar_arrival under). In every step the dock stays pinned to the bottom (it never lifts or steps
+# aside for the Lock bar; the contributor's decision of 14 Nov), and Home scrolls the Lock bar and its last card clear of it.
 STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-344-large', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', size='344x882'),
           inst('hub-725', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='725x604'),
-          inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'dock_arrival', 'lifted', size='725x604'),
+          inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'lock_bar_arrival', 'under', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
