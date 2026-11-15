@@ -221,7 +221,7 @@ public final class ChargePictureTest {
     /** Clean's slot at a window, in pixels (3 per dp), estimated as ChargingFitTest does: {inner, line, short line, percent, readings, width}. */
     private static int[] slot(int width, int height, float text) {
         boolean wide = WideLayout.wide(width, text);
-        int inner = TopArea.heightDp(height, wide, text);
+        int inner = TopArea.heightDp(width, height, wide, text);
         int across = Math.min(width - 36, 560);
         int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f);
         int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
