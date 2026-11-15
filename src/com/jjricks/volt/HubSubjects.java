@@ -5,27 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The subject rows of the Scooter tab's index (hub layout plan, PR 3): Controls, Battery & charging, Lights & sound,
- * Security and Service, each with a live one-line summary. HubSummaries decides which summary applies; the words come
- * from HubText. Ride and Data join the list when Home becomes the hub (PR 11).
+ * Rows and summaries for the Hub's subjects (hub layout plan, PRs 3 and 4): Service's own rows, the maintenance dot, and
+ * the live one-line summaries of Battery & charging, Controls, Lights & sound, Security and Service that Home's subject
+ * list (CleanSubjects: Clean Home, the Widgets dock's sheet, the search page) shows. HubSummaries decides which summary
+ * applies; the words come from HubText. The Scooter tab's index that listed five of them went with the tabs (PR 11).
  */
 final class HubSubjects {
     private HubSubjects() { }
-
-    /** The Scooter tab's subjects, in Home's order. */
-    static final String[] SCOOTER = {HubPages.BATTERY, HubPages.CONTROLS, HubPages.LIGHTS, HubPages.SECURITY, HubPages.SERVICE};
-
-    static List<HubListScreen.Row> scooterIndex(ScreenHost host) {
-        ArrayList<HubListScreen.Row> rows = new ArrayList<>();
-        for (String subject : SCOOTER) {
-            Msg title = HubText.title(subject);
-            rows.add(new HubListScreen.Row(subject, HubPages.icon(subject), title,
-                    () -> summary(host.service(), subject),
-                    subject.equals(HubPages.SERVICE) ? () -> serviceDue(host.service()) : null,
-                    null, () -> host.open(subject)));
-        }
-        return rows;
-    }
 
     /**
      * Service's rows (hub layout plan, PR 4): maintenance reminders (with the dot while a check is due), diagnostics and
@@ -63,7 +49,7 @@ final class HubSubjects {
 
     /**
      * A scooter subject's summary now (Battery & charging, Controls, Lights & sound, Security, Service), or null when its
-     * state isn't known or the subject has none here. The one source for the Scooter tab's index and Clean Home's list.
+     * state isn't known or the subject has none here. The one source for Home's subject list (CleanSubjects).
      */
     static CharSequence summary(ScooterService service, String subject) {
         if (service == null) return null;

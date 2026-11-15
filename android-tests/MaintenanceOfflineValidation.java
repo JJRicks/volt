@@ -44,6 +44,8 @@ import com.jjricks.volt.ScooterService;
  * <li>An app restart: the same document and one row per reminder, no duplicate.</li>
  * <li>A scooter last read 10 days ago (stale): the sheet's Distance note is the stale one, and the reminder
  *     counts from the last known odometer.</li>
+ * <li>A maintenance notice tapped after more than a minute away (hub layout PR 11's away clock), from a fresh start
+ *     and while Volt is open: it lands on Service › Maintenance reminders, not cut back to Service.</li>
  * </ol>
  * Synthesized profiles and readings only. Screenshots go to the app's external files (maintenance-offline-validation).
  */
@@ -70,6 +72,7 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
             neverReadScooter();
             restart();
             staleScooter();
+            noticeAfterAway();
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", android.util.Log.getStackTraceString(error));
@@ -205,6 +208,35 @@ public final class MaintenanceOfflineValidation extends Instrumentation {
         require(stem.getDouble("baseAccKm") == 250, "It counts from the last known odometer");
         require(document(neverRead).getJSONArray("reminders").length() == 4, "The other scooter's reminders are untouched");
         notConnected();
+    }
+
+    /** The notice's route beats an expired away clock, cold (onCreate) and warm (onNewIntent, then onResume). */
+    private void noticeAfterAway() throws Exception {
+        stop();
+        awayLongAgo();
+        activity = (MainActivity) startActivitySync(notice());
+        await(() -> activity.service() != null && activity.getWindow().getDecorView().getWidth() > 0, "App did not launch");
+        settle();
+        require("service.maintenance".equals(field(activity, "selectedPage")), "A cold notice tap after a long away lands on Maintenance reminders, not " + field(activity, "selectedPage"));
+        main(() -> invoke(activity, "open", new Class<?>[]{String.class}, "home")); settle();
+        awayLongAgo();
+        main(() -> activity.startActivity(notice())); settle();
+        await(() -> "service.maintenance".equals(field(activity, "selectedPage")), "A warm notice tap after a long away lands on Maintenance reminders, not " + field(activity, "selectedPage"));
+        SystemClock.sleep(500); settle();
+        require("service.maintenance".equals(field(activity, "selectedPage")), "onResume's away expiry kept Maintenance reminders");
+        screenshot("notice-after-away");
+    }
+    /** Volt has been away two minutes (MainActivity.markAway keeps the earliest time). */
+    private void awayLongAgo() {
+        int boot = android.provider.Settings.Global.getInt(getTargetContext().getContentResolver(), android.provider.Settings.Global.BOOT_COUNT, -1);
+        require(settings().edit().putLong("hub_away_elapsed", SystemClock.elapsedRealtime() - 120_000).putInt("hub_away_boot", boot).commit(), "Away fixture failed");
+    }
+    /** The intent MaintenanceNotices puts on the active scooter's notice. */
+    private Intent notice() {
+        String active = new ScooterProfiles(getTargetContext()).active().id;
+        return new Intent(getTargetContext(), MainActivity.class).setAction("open_maintenance")
+                .putExtra("open_maintenance", true).putExtra("maintenance_profile", active)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
 
     // ---- The sheet -----------------------------------------------------------------------------

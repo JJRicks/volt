@@ -1715,12 +1715,17 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             });settle();
             main(() -> invoke(activity,"quickAction",new Class<?>[]{String.class},"more:App"));settle();
             main(() -> {
-                require("settings".equals(field(activity,"selectedPage"))&&"App".equals(settings().getString("more_section", "")),"App preferences shortcut did not open its page");
+                // Since part 11 (#392) the app preferences are Settings' own first card and Settings no longer saves a
+                // More submenu: the shortcut opens Settings showing them, and leaves more_section as it was.
+                require("settings".equals(field(activity,"selectedPage")),"App preferences shortcut did not open its page");
+                View appearance=((View)field(activity,"root")).findViewWithTag("preference-appearance");
+                require(appearance!=null&&appearance.isShown(),"App preferences shortcut opened Settings without its app preferences");
+                require(settings().getString("more_section", "").equals(moreBefore),"App preferences shortcut changed the saved More submenu");
                 require(field(activity,"quickMenuDialog")==null,"App preferences shortcut opened a sheet");
                 invoke(activity,"select",new Class<?>[]{String.class},"home");
             });settle();
         }
-        check("Security and App preferences shortcuts open their pages, with no sheet; Security keeps the saved More submenu");
+        check("Security and App preferences shortcuts open their pages, with no sheet; neither changes the saved More submenu");
         main(() -> { activity.service().setSimulation(false); }); settleMotion(); stopUiPulse();
         assertNoScooterWork();
         check("Sample traction toggles in place; kick-start, energy recovery and settings sections open over Home and dismiss without navigation or real scooter work");

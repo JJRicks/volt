@@ -40,6 +40,9 @@ public final class QuickActionLayoutTest {
         order();
         narrow();
         states();
+        for (int window : new int[]{344, 412, 725})
+            for (float text : new float[]{1f, 1.4f}) row(window, text);
+        rowRule();
         System.out.println("QuickActionLayout: " + checks + " checks passed");
     }
 
@@ -207,6 +210,57 @@ public final class QuickActionLayoutTest {
             QuickActionLayout.Name fit = QuickActionLayout.name(60, w, text);
             if (!fit.iconOnly() && fit.scale < 1) require(length * 10 * (fit.scale + .05f) > 60, "the largest step that fits for " + text + ": " + fit);
         }
+    }
+
+    /**
+     * One row of four at one of the maintainers' sizes (part 10's note, built in part 11): each name as its own ladder
+     * chose it (#449's rule), all at one size, the smallest any shown name needs; never cut, never under 75%; the
+     * defaults stay at full size where all fit.
+     */
+    private static void row(int window, float text) {
+        String at = window + " dp at " + text + "x";
+        float room = QuickActionLayout.room(QuickActionLayout.column(Math.min(window - 36, 560), 4));
+        QuickActionLayout.Width names = width(QuickActionLayout.NAME_SP * text, 1f);
+        String[][][] rows = {
+                {{"Ride"}, {"Record"}, {"Charge by", "Charge done by"}, {"Cruise"}},
+                {{"Ride"}, {"Record"}, {"Alerts"}, {"Traction"}},
+                {{"Ride"}, {"Record"}, {"Recovery"}, {"Max. speed"}},
+                {{"Ride"}, {"Record"}, {"Charge done by"}, {"Cruise"}}};
+        for (String[][] four : rows) {
+            QuickActionLayout.Name[] fitted = QuickActionLayout.names(room, names, four);
+            float least = 1;
+            QuickActionLayout.Name[] alone = new QuickActionLayout.Name[4];
+            for (int i = 0; i < 4; i++) { alone[i] = QuickActionLayout.name(room, names, four[i]); if (!alone[i].iconOnly()) least = Math.min(least, alone[i].scale); }
+            QuickActionLayout.Name shown = null;
+            for (int i = 0; i < 4; i++) {
+                require(java.util.Objects.equals(fitted[i].text, alone[i].text), at + ": " + four[i][0] + " keeps its own ladder's name: " + fitted[i] + " beside " + alone[i]);
+                if (fitted[i].iconOnly()) continue;
+                if (shown == null) shown = fitted[i];
+                require(fitted[i].scale == shown.scale, at + ": the row shares one size: " + fitted[i] + " beside " + shown);
+                require(fitted[i].scale == least, at + ": the size the smallest shown name needs: " + fitted[i]);
+                whole(fitted[i], room, names, at);
+            }
+            if (four[2][0].equals("Charge by") && four[2].length == 2)
+                require(!fitted[2].iconOnly() && "Charge by".equals(fitted[2].text), at + ": Charge by is shown whole");
+            System.out.println("  " + at + " row: " + java.util.Arrays.toString(fitted));
+        }
+    }
+
+    /**
+     * The row rule on plain widths: one name a little too wide makes all four a little smaller; none too wide, none
+     * smaller; a column showing the icon alone shrinks no other.
+     */
+    private static void rowRule() {
+        QuickActionLayout.Width w = text -> text.length() * 10f;
+        QuickActionLayout.Name[] row = QuickActionLayout.names(60, w, new String[]{"Ab"}, new String[]{"Abcd"}, new String[]{"Abcdefg"}, new String[]{"Abc"});
+        for (QuickActionLayout.Name name : row) require(name.scale == row[2].scale && name.scale < 1 && !name.iconOnly(), "one too wide: all four smaller: " + name);
+        for (QuickActionLayout.Name name : row) require(w.of(name.text) * name.scale <= 60, "none cut: " + name);
+        row = QuickActionLayout.names(60, w, new String[]{"Ab"}, new String[]{"Abcd"}, new String[]{"Abcdef"}, new String[]{"Abc"});
+        for (QuickActionLayout.Name name : row) require(name.scale == 1 && !name.iconOnly(), "all fit: all at full size: " + name);
+        row = QuickActionLayout.names(60, w, new String[]{"Ab"}, new String[]{"Abcdefghijkl"}, new String[]{"Abc"}, new String[]{null});
+        require(row[0].scale == 1 && row[1].iconOnly() && row[2].scale == 1 && row[3].iconOnly(), "a column with the icon alone does not shrink the rest");
+        row = QuickActionLayout.names(60, w, new String[]{"Ab"}, new String[]{"Abcdefghijkl", "Abcde"}, new String[]{"Abc"});
+        require(row[1].text.equals("Abcde") && row[0].scale == 1 && row[1].scale == 1, "a shorter rung at full size keeps the row at full size");
     }
 
     /** A narrow column (a split screen, a small phone): the circle gets smaller, then two rows of two. */

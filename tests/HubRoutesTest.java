@@ -38,7 +38,7 @@ public final class HubRoutesTest {
      */
     private static void sheets() {
         String[][] expected = {
-                {"controls", HubPages.SCOOTER}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
+                {"controls", HubPages.SEARCH}, {"stats", HubPages.DATA}, {"rides", HubPages.RIDE},
                 {"section:Security", HubPages.SECURITY},
                 {"more:App", HubPages.SETTINGS}, {"more:Scooters", HubPages.SETTINGS_SCOOTERS}, {"more:Lab", HubPages.SERVICE_EXPERIMENTAL},
                 {"more:Data", HubPages.DATA_STORAGE}, {"more:About", HubPages.SETTINGS_ABOUT}};
@@ -105,9 +105,9 @@ public final class HubRoutesTest {
         for (String page : new String[] {HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING, HubPages.DATA})
             require(HubRoutes.moreSectionOf(page) == null, "Not a More section: " + page);
         require(HubPages.fromMoreSection("Recording").equals(HubPages.RIDE_RECORDING), "The Recording section's page");
-        // The Live Stats and Rides shortcuts open their tabs' roots, the Data and Ride pages.
+        // The Live Stats and Rides shortcuts open the Data and Ride subjects, directly under Home.
         for (String id : new String[] {"stats", "rides"})
-            require(HubPages.TABS.contains(HubRoutes.pageFor(id)), "A tab root: " + id);
+            require(HubPages.SUBJECTS.contains(HubRoutes.pageFor(id)), "A subject: " + id);
     }
 
     private static void require(boolean condition, String message) {

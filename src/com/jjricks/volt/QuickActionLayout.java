@@ -198,4 +198,31 @@ final class QuickActionLayout {
     static State schedule(boolean armed, boolean live) {
         return new State(armed ? Look.ON : Look.OFF, !live, false);
     }
+
+    /**
+     * The four names as one row (part 10's notes, built in part 11): each ladder fitted alone ({@link #name}), then all
+     * at the smallest size any shown name needs, so when one name has to get smaller the others match it and the row
+     * reads as one line of one size. Each keeps the name its own ladder chose; a column that shows the icon alone
+     * stays so and sets no size. The shared size is never under {@link #MIN_SCALE} (no name is ever chosen below it),
+     * and a name is never cut: one that would be wider than its room at the shared size (hinting) keeps its own size.
+     */
+    static Name[] names(float room, ScaledWidth width, String[]... ladders) {
+        Name[] alone = new Name[ladders.length];
+        float shared = 1;
+        for (int i = 0; i < ladders.length; i++) {
+            alone[i] = name(room, width, ladders[i] == null ? new String[0] : ladders[i]);
+            if (!alone[i].iconOnly()) shared = Math.min(shared, alone[i].scale);
+        }
+        Name[] out = new Name[ladders.length];
+        for (int i = 0; i < ladders.length; i++) {
+            Name own = alone[i];
+            out[i] = own.iconOnly() || own.scale == shared || width.of(own.text, shared) > room ? own : new Name(own.text, shared);
+        }
+        return out;
+    }
+
+    /** As {@link #names(float, ScaledWidth, String[]...)}, widths measured at the full size. */
+    static Name[] names(float room, Width width, String[]... ladders) {
+        return names(room, (text, scale) -> width.of(text) * scale, ladders);
+    }
 }
