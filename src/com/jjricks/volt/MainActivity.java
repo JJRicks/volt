@@ -2161,23 +2161,23 @@ public final class MainActivity extends Activity implements ScreenHost {
             banner.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             banner.addView(design.icon("bluetooth",18,design.text),new LinearLayout.LayoutParams(design.dp(18),design.dp(18)));
             bannerText=design.text(T.mainControlsLastSeen(),13,false);
-            LinearLayout.LayoutParams bannerWords=new LinearLayout.LayoutParams(0,-2,1);bannerWords.leftMargin=design.dp(10);bannerWords.rightMargin=design.dp(8);banner.addView(bannerText,bannerWords);
-            bannerAction=pill(T.mainActionConnect(),MainActivity.this::connect);bannerAction.setContentDescription(T.mainActionConnectDescription());banner.addView(bannerAction);
+            bannerAction=pill(T.mainActionConnect(),MainActivity.this::connect);bannerAction.setContentDescription(T.mainActionConnectDescription());
+            banner.addView(new BannerBody(bannerText,bannerAction),bannerBodyParams());
             LinearLayout.LayoutParams bannerParams=new LinearLayout.LayoutParams(-1,-2);bannerParams.bottomMargin=design.dp(10);view.addView(banner,bannerParams);
             // Connected to a model outside the UT5 MAX layer: one banner; unmapped controls are hidden.
             readOnlyBanner=row();readOnlyBanner.setGravity(Gravity.CENTER_VERTICAL);readOnlyBanner.setPadding(design.dp(14),design.dp(4),design.dp(14),design.dp(4));readOnlyBanner.setMinimumHeight(design.dp(52));
             readOnlyBanner.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             readOnlyBanner.addView(design.icon("lock",18,design.text),new LinearLayout.LayoutParams(design.dp(18),design.dp(18)));
-            TextView readOnlyText=design.text(T.bleLimitedModel(),13,false);LinearLayout.LayoutParams readOnlyWords=new LinearLayout.LayoutParams(0,-2,1);readOnlyWords.leftMargin=design.dp(10);readOnlyWords.rightMargin=design.dp(8);readOnlyBanner.addView(readOnlyText,readOnlyWords);
-            identifyAction=pill(T.mainControlsIdentify(),()->{if(scooterService!=null){scooterService.ble.identifyModel();toast(scooterService.ble.displayText());redraw();}});identifyAction.setContentDescription(T.mainControlsIdentifyDescription());identifyAction.setTag(TAG_IDENTIFY);readOnlyBanner.addView(identifyAction);
+            TextView readOnlyText=design.text(T.bleLimitedModel(),13,false);
+            identifyAction=pill(T.mainControlsIdentify(),()->{if(scooterService!=null){scooterService.ble.identifyModel();toast(scooterService.ble.displayText());redraw();}});identifyAction.setContentDescription(T.mainControlsIdentifyDescription());identifyAction.setTag(TAG_IDENTIFY);readOnlyBanner.addView(new BannerBody(readOnlyText,identifyAction),bannerBodyParams());
             readOnlyBanner.setVisibility(View.GONE);view.addView(readOnlyBanner,new LinearLayout.LayoutParams(-1,-2));
             ((LinearLayout.LayoutParams)readOnlyBanner.getLayoutParams()).bottomMargin=design.dp(10);
             // An unfinished guided test (restoration outstanding) stays visible until the owner reviews it.
             testBanner=row();testBanner.setGravity(Gravity.CENTER_VERTICAL);testBanner.setPadding(design.dp(14),design.dp(4),design.dp(14),design.dp(4));testBanner.setMinimumHeight(design.dp(52));
             testBanner.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             testBanner.addView(design.icon("lab",18,design.text),new LinearLayout.LayoutParams(design.dp(18),design.dp(18)));
-            testBannerText=design.text(T.mainControlsUnfinishedTest(),13,false);LinearLayout.LayoutParams testWords=new LinearLayout.LayoutParams(0,-2,1);testWords.leftMargin=design.dp(10);testWords.rightMargin=design.dp(8);testBanner.addView(testBannerText,testWords);
-            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();if(running!=null&&!running.terminal()&&running.keeps())open(HubPages.SERVICE_EXPERIMENTAL);else open(HubPages.SERVICE_COMPATIBILITY,HubNav.Args.recovery());});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(testReviewAction);
+            testBannerText=design.text(T.mainControlsUnfinishedTest(),13,false);
+            testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();if(running!=null&&!running.terminal()&&running.keeps())open(HubPages.SERVICE_EXPERIMENTAL);else open(HubPages.SERVICE_COMPATIBILITY,HubNav.Args.recovery());});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(new BannerBody(testBannerText,testReviewAction),bannerBodyParams());
             testBanner.setVisibility(View.GONE);view.addView(testBanner,new LinearLayout.LayoutParams(-1,-2));
             ((LinearLayout.LayoutParams)testBanner.getLayoutParams()).bottomMargin=design.dp(10);
             // The index: search over every page's rows. Other pages have no field (the index's search finds their rows).
@@ -2740,15 +2740,52 @@ public final class MainActivity extends Activity implements ScreenHost {
     private TextView pill(String label,Runnable action){
         TextView pill=design.text(label,12.5f,true);pill.setGravity(Gravity.CENTER);
         pill.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{design.dim,design.onAccent}));
-        pill.setPadding(design.dp(16),0,design.dp(16),0);pill.setMinHeight(design.dp(48));pill.setMinWidth(design.dp(64));
+        pill.setMinHeight(design.dp(48));pill.setMinWidth(design.dp(ActionBannerFit.PILL_MIN_DP));
         android.graphics.drawable.StateListDrawable fill=new android.graphics.drawable.StateListDrawable();
         fill.addState(new int[]{-android.R.attr.state_enabled},design.shape(design.raised,100,0));
         fill.addState(new int[]{},design.shape(design.accent,100,0));
         pill.setBackground(new android.graphics.drawable.InsetDrawable(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(android.graphics.Color.WHITE,50)),fill,null),0,design.dp(7),0,design.dp(7)));
+        // InsetDrawable supplies vertical padding but also resets both horizontal sides to zero: put the label's back, so
+        // it never reaches the pill's ends (at 1.4x text "Connect" filled a bare pill and lost its "t").
+        pill.setPadding(design.dp(ActionBannerFit.PILL_PAD_DP),pill.getPaddingTop(),design.dp(ActionBannerFit.PILL_PAD_DP),pill.getPaddingBottom());
         pill.setContentDescription(label);pill.setClickable(true);pill.setFocusable(true);
         pill.setOnClickListener(v->{if(action!=null)action.run();});
         design.pressFeedback(pill);
         return pill;
+    }
+    /** A banner's words and pill after its icon: the icon's 10 dp gap, the rest of the banner's width. */
+    private LinearLayout.LayoutParams bannerBodyParams(){
+        LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-2,1);params.leftMargin=design.dp(10);return params;
+    }
+    /**
+     * A banner's words with its pill: beside them while the words' longest word still fits on a line beside the pill,
+     * else the pill under the words (ActionBannerFit), so neither the label nor a word is cut at any text size or width.
+     * The order (words, then the pill) is the same either way, for TalkBack too.
+     */
+    private final class BannerBody extends LinearLayout {
+        private final TextView words,action;
+        BannerBody(TextView words,TextView action){
+            super(MainActivity.this);this.words=words;this.action=action;
+            setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);
+            addView(words,new LinearLayout.LayoutParams(0,-2,1));addView(action,new LinearLayout.LayoutParams(-2,-2));
+            arrange(false);
+        }
+        private void arrange(boolean below){
+            setOrientation(below?VERTICAL:HORIZONTAL);setGravity(below?Gravity.START|Gravity.CENTER_VERTICAL:Gravity.CENTER_VERTICAL);
+            LinearLayout.LayoutParams w=(LinearLayout.LayoutParams)words.getLayoutParams();
+            w.width=below?-1:0;w.weight=below?0:1;w.rightMargin=below?0:design.dp(ActionBannerFit.GAP_DP);
+        }
+        @Override protected void onMeasure(int widthSpec,int heightSpec){
+            boolean below=false;
+            if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
+                float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
+                float pill=ActionBannerFit.pill(action.getPaint().measureText(action.getText().toString()),action.getPaddingLeft(),action.getMinWidth());
+                float word=ActionBannerFit.longestWord(words.getText().toString(),text->words.getPaint().measureText(text));
+                below=ActionBannerFit.actionBelow(room,pill,design.dp(ActionBannerFit.GAP_DP),word);
+            }
+            if(below!=(getOrientation()==VERTICAL))arrange(below);
+            super.onMeasure(widthSpec,heightSpec);
+        }
     }
     /** "Label, value" as a row is spoken. */
     private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
