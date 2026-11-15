@@ -303,35 +303,22 @@ public final class HubTestPages {
         if (dock[0] == null) return false;
         View[] item = {null}, all = {null};
         String[] problem = {null};
-        // The dock can move or step aside after it was picked: Home's cards still settle (a tile's value arrives and the Lock
-        // bar moves under the dock), and HubDock.keepClear then lifts or hides it. The rider sees that and scrolls; so does this, once more, but
-        // only when the dock says it stepped aside for the Lock bar (any other hiding still fails).
-        for (int attempt = 1; ; attempt++) {
-            showDock(instrumentation, activity);
-            item[0] = null; all[0] = null; problem[0] = null;
-            onMain(instrumentation, () -> {
-                for (View view : descendants((View) call(dock[0], "view"))) {
-                    if (!view.isShown()) continue;
-                    if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
-                    else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
-                }
-                View pick = item[0] != null ? item[0] : all[0];
-                if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
-                else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
-                else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
-            });
-            if (problem[0] != null) throw new IllegalStateException(problem[0]);
-            View pick = item[0] != null ? item[0] : all[0];
-            String name = item[0] != null ? "the dock item " + item[0].getTag() + " on page " + HubPages.HOME : "the dock's All item on page " + HubPages.HOME;
-            try { tap(instrumentation, activity, pick, name); }
-            catch (IllegalStateException missed) {
-                boolean[] aside = {false};
-                onMain(instrumentation, () -> aside[0] = dockAsideForLockBar(dock[0]));
-                if (attempt >= 2 || !aside[0]) throw missed;
-                continue;
+        // The dock is pinned to the bottom (it never moves for the Lock bar): find it settled, then tap.
+        showDock(instrumentation, activity);
+        onMain(instrumentation, () -> {
+            for (View view : descendants((View) call(dock[0], "view"))) {
+                if (!view.isShown()) continue;
+                if (("hub-dock-" + target).equals(view.getTag())) item[0] = view;
+                else if ("hub-dock-handle".equals(view.getTag())) all[0] = view;
             }
-            break;
-        }
+            View pick = item[0] != null ? item[0] : all[0];
+            if (pick == null) problem[0] = "Widgets Home's dock shows no item to " + target + " and no All item";
+            else if (!pick.isEnabled()) problem[0] = "The dock item " + pick.getTag() + " is disabled";
+            else if (!pick.isClickable() || !pick.hasOnClickListeners()) problem[0] = "The dock item " + pick.getTag() + " is not tappable";
+        });
+        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+        tap(instrumentation, activity, item[0] != null ? item[0] : all[0],
+                item[0] != null ? "the dock item " + item[0].getTag() + " on page " + HubPages.HOME : "the dock's All item on page " + HubPages.HOME);
         if (item[0] != null) {
             awaitPage(instrumentation, activity, target, "the dock item " + item[0].getTag() + " on page " + HubPages.HOME);
             return true;
@@ -363,12 +350,10 @@ public final class HubTestPages {
     }
 
     /**
-     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, and still. Where Home's Lock bar sits where the
-     * dock floats, the dock moves up over it (HubDock.keepClear); only on a window too short for that does it step aside,
-     * coming back once the page scrolls the bar above it, so the rider scrolls Home to its end: so does this. Waits until the dock's visibility and place have
-     * held for several reads (Home's cards may still be settling and moving the bar), and throws when the dock is gone
-     * (Home's editor), hidden without the Lock bar under it, or still aside after the scroll. Instrumentation thread; a no-op
-     * on a Home without a dock (Clean Home).
+     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, still, and pinned to the bottom of the page
+     * frame (the contributor's decision, 14 Nov, #383: it never lifts over the Lock bar or steps aside for it). Waits until
+     * its place has held for several reads (Home's cards may still be settling) and throws when it is gone (Home's editor),
+     * hidden, moved off its place, or never settles. Instrumentation thread; a no-op on a Home without a dock (Clean Home).
      */
     public static void showDock(Instrumentation instrumentation, MainActivity activity) {
         Object[] dock = {null};
@@ -376,44 +361,68 @@ public final class HubTestPages {
         if (dock[0] == null) return;
         String[] state = {null}, last = {null};
         String[] problem = {null};
-        boolean scrolled = false;
         int still = 0;
         long until = SystemClock.uptimeMillis() + WAIT_MS;
         while (SystemClock.uptimeMillis() < until) {
             instrumentation.waitForIdleSync();
             onMain(instrumentation, () -> {
                 View view = (View) call(dock[0], "view");
-                int[] at = new int[2]; view.getLocationOnScreen(at);
-                View bar = clearView(dock[0]);
-                int[] barAt = new int[2]; if (bar != null) bar.getLocationOnScreen(barAt);
                 problem[0] = view.getVisibility() == View.GONE ? "Widgets Home's dock is gone (Home is being edited)"
-                        : view.getVisibility() == View.INVISIBLE && !dockAsideForLockBar(dock[0]) ? "Widgets Home's dock is hidden with no Lock bar under it" : null;
-                state[0] = view.getVisibility() + "@" + at[1] + "/" + view.getHeight() + " bar " + (bar == null ? "-" : barAt[1] + "/" + bar.getHeight());
+                        : view.getVisibility() != View.VISIBLE ? "Widgets Home's dock is hidden"
+                        : view.getTranslationY() != 0 ? "Widgets Home's dock moved off its place (" + view.getTranslationY() + " px)"
+                        : pinnedProblem(view);
+                int[] at = new int[2]; view.getLocationOnScreen(at);
+                state[0] = view.getVisibility() + "@" + at[1] + "/" + view.getHeight();
             });
             if (problem[0] != null) throw new IllegalStateException(problem[0]);
-            if (state[0].startsWith(View.INVISIBLE + "@")) {
-                if (!scrolled) { onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN)); scrolled = true; }
-                still = 0; last[0] = null; SystemClock.sleep(40); continue;
-            }
             if (state[0].equals(last[0])) { if (++still >= 3) return; }
             else still = 0;
             last[0] = state[0];
             SystemClock.sleep(60);
         }
-        throw new IllegalStateException(state[0] != null && state[0].startsWith(View.INVISIBLE + "@")
-                ? "Widgets Home's dock stayed aside after scrolling Home to its end (" + state[0] + ")"
-                : "Widgets Home's dock did not settle (" + state[0] + ")");
+        throw new IllegalStateException("Widgets Home's dock did not settle (" + state[0] + ")");
     }
 
-    /** The view Widgets Home's dock keeps clear (the Lock bar), or null. Main thread. */
-    private static View clearView(Object dock) {
-        Object supplier = field(dock, "keepClear");
-        return supplier == null ? null : (View) ((java.util.function.Supplier<?>) supplier).get();
+    /** Null when the dock sits at HubPages.dockTop in its frame (its bottom margin above the frame's bottom), else why not. Main thread. */
+    private static String pinnedProblem(View dock) {
+        if (!(dock.getParent() instanceof View) || !(dock.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return "Widgets Home's dock has no frame";
+        View frame = (View) dock.getParent();
+        int margin = ((ViewGroup.MarginLayoutParams) dock.getLayoutParams()).bottomMargin;
+        int want = HubPages.dockTop(frame.getHeight() - frame.getPaddingBottom(), dock.getHeight(), margin);
+        return dock.getTop() == want ? null : "Widgets Home's dock is not pinned to the bottom (top " + dock.getTop() + " px, pinned " + want + " px)";
     }
 
-    /** Whether the dock is aside because it would cover the Lock bar where it floats now (HubDock.coversClearView). Main thread. */
-    private static boolean dockAsideForLockBar(Object dock) {
-        return ((View) call(dock, "view")).getVisibility() == View.INVISIBLE && Boolean.TRUE.equals(call(dock, "coversClearView"));
+    /**
+     * Scrolls Widgets Home to its end and requires the page's last card, and the Lock bar wherever it is, fully clear of the
+     * pinned dock (above its top), as a rider scrolls a widget out from under it. Instrumentation thread; a no-op on a Home
+     * without a dock. Returns what it measured, for the step's record.
+     */
+    public static String requireEndClearOfDock(Instrumentation instrumentation, MainActivity activity) {
+        showDock(instrumentation, activity);
+        Object[] dock = {null};
+        onMain(instrumentation, () -> dock[0] = HubPages.HOME.equals(current(activity)) ? field(activity, "dock") : null);
+        if (dock[0] == null) return "no dock";
+        onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).fullScroll(View.FOCUS_DOWN));
+        instrumentation.waitForIdleSync();
+        SystemClock.sleep(300);
+        instrumentation.waitForIdleSync();
+        String[] problem = {null}, seen = {null};
+        onMain(instrumentation, () -> {
+            View view = (View) call(dock[0], "view");
+            ScrollView scroll = (ScrollView) field(activity, "scroll");
+            int[] dockAt = new int[2]; view.getLocationOnScreen(dockAt);
+            View content = scroll.getChildCount() > 0 ? scroll.getChildAt(0) : null;
+            int[] contentAt = new int[2]; if (content != null) content.getLocationOnScreen(contentAt);
+            int contentEnd = content == null ? Integer.MIN_VALUE : contentAt[1] + content.getHeight() - content.getPaddingBottom();
+            View bar = (View) field(activity, "dashboardLock");
+            int barEnd = Integer.MIN_VALUE;
+            if (bar != null && bar.isShown()) { int[] barAt = new int[2]; bar.getLocationOnScreen(barAt); barEnd = barAt[1] + bar.getHeight(); }
+            seen[0] = "dock top " + dockAt[1] + ", content end " + contentEnd + ", Lock bar end " + (barEnd == Integer.MIN_VALUE ? "-" : String.valueOf(barEnd));
+            if (contentEnd > dockAt[1]) problem[0] = "Scrolled to its end, Widgets Home's last card still runs under the dock (" + seen[0] + ")";
+            else if (barEnd > dockAt[1]) problem[0] = "Scrolled to its end, Widgets Home's Lock bar is still under the dock (" + seen[0] + ")";
+        });
+        if (problem[0] != null) throw new IllegalStateException(problem[0]);
+        return seen[0];
     }
 
     /** Whether the page shown has a row to target that a rider can see (shown; enabled or not). Main thread. */
@@ -492,7 +501,14 @@ public final class HubTestPages {
                 if (scrolling(view)) { problem[0] = "is in a page that is still scrolling"; return; }
                 // Nothing drawn over the row's centre may take the touch instead (a floating bar, a pane, an overlay).
                 View top = topAt(window, centre[0], centre[1]);
-                if (top != null && !inside(top, view)) { problem[0] = "is covered by " + describe(top); return; }
+                if (top != null && !inside(top, view)) {
+                    problem[0] = "is covered by " + describe(top);
+                    // Widgets Home's dock is pinned over the page's bottom: a rider scrolls a widget under it clear first.
+                    Object dock = root == null ? field(activity, "dock") : null;
+                    View dockView = dock == null ? null : (View) call(dock, "view");
+                    if (dockView != null && inside(top, dockView)) scrollClearOf(view, dockView);
+                    return;
+                }
                 ready[0] = true;
             });
             // Still: the same place on three reads in a row, so nothing is moving it any more.
@@ -539,6 +555,19 @@ public final class HubTestPages {
     }
 
     /** Scrolls the view's nearest page scroller so the view sits in its middle; false when it has no scroller or is already there. */
+    /** Scrolls view's page scroller so view ends 16 dp above dock's top (Widgets Home's pinned dock). Main thread. */
+    private static void scrollClearOf(View view, View dock) {
+        for (View parent = view.getParent() instanceof View ? (View) view.getParent() : null; parent != null;
+             parent = parent.getParent() instanceof View ? (View) parent.getParent() : null) {
+            if (!(parent instanceof ScrollView)) continue;
+            int[] at = new int[2], dockAt = new int[2];
+            view.getLocationInWindow(at); dock.getLocationInWindow(dockAt);
+            int by = at[1] + view.getHeight() - dockAt[1] + Math.round(16 * view.getResources().getDisplayMetrics().density);
+            if (by > 0) parent.scrollBy(0, by);
+            return;
+        }
+    }
+
     private static boolean centre(View view) {
         for (View parent = view.getParent() instanceof View ? (View) view.getParent() : null; parent != null;
              parent = parent.getParent() instanceof View ? (View) parent.getParent() : null) {

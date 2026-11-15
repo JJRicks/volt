@@ -1,0 +1,9 @@
+# A chip with no reading yet: the dash with its reading's unit where each shipped language puts it (RidingChipFit.emptyValue).
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the
+# repository root.
+src/com/jjricks/volt/RidingChipFit.java
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/GpsAccuracy.java
+src/com/jjricks/volt/GpsAccuracyText.java
+tests/l10n/L10nFiles.java
+tests/l10n/RidingChipEmptyTest.java

@@ -21,6 +21,7 @@ public final class HubPagesTest {
         hub();
         dock();
         riding();
+        connectionLine();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
         System.out.println("HubPages: " + checks + " checks passed");
@@ -150,41 +151,77 @@ public final class HubPagesTest {
         require(HubPages.dockSwipe(17, 0, 8), "17 dp up past a 8 dp slop: a swipe");
         require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
         require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
-        // The dock never covers the Lock bar (part 11), in dp at 3 px per dp as the emulator draws them. 725x604 dp at
-        // 1.4x text: the bar starts at 561 dp under a dock from 496 to 569 dp (it moves, below); scrolled 130 dp, the bar
-        // (431-489) is above the dock (it shows). 725x604 at 1x: the bar ends at 422 dp, the dock starts at 460 dp.
-        // A bar well above a dock at 790 dp (a 344 dp phone with no Shortcuts card above the bar).
-        require(HubPages.dockCovers(561 * 3, 615 * 3, 561 * 3, 604 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x: the dock is over the Lock bar");
-        require(!HubPages.dockCovers(431 * 3, 489 * 3, 431 * 3, 489 * 3, 496 * 3, 569 * 3), "725x604 at 1.4x, scrolled: the bar is clear of the dock");
-        require(!HubPages.dockCovers(372 * 3, 422 * 3, 372 * 3, 422 * 3, 460 * 3, 530 * 3), "725x604 at 1x: the dock is under the bar");
-        for (float text : new float[]{1f, 1.4f})
-            require(!HubPages.dockCovers(Math.round(420 * text), Math.round(474 * text), Math.round(420 * text), Math.round(474 * text), 790, 862), "344x882 at " + text + "x: clear");
-        require(!HubPages.dockCovers(-200, -10, 0, 0, 0, 70), "a bar scrolled out of sight is never covered");
-        require(HubPages.dockCovers(100, 160, 100, 160, 159, 200) && !HubPages.dockCovers(100, 160, 100, 160, 160, 200), "one pixel of overlap counts; touching does not");
-        require(!HubPages.dockCovers(500, 560, 500, 520, 530, 600), "only the bar's shown part counts");
-        // #392's sweep review: where the dock would cover the bar it floats 10 dp above it instead, so Widgets Home keeps
-        // its navigation in sight; it steps aside only where moving up would take it above the page's top (minTop: under
-        // the status bar and the 48 dp Simulation banner, 72 dp). In dp, times 3 for window pixels as the emulator draws.
-        int px = 3, gap = 10 * px, minTop = 72 * px;
-        // 344x882 dp, 1x: the Shortcuts card puts the bar at 791-843 dp, under a dock at 777-847 dp: up 66 dp, top at 711 dp.
-        require(HubPages.dockCovers(791 * px, 843 * px, 791 * px, 843 * px, 777 * px, 847 * px), "344x882 at 1x: the bar is under the dock");
-        require(HubPages.dockLift(791 * px, 777 * px, 847 * px, minTop, gap) == -66 * px, "344x882 at 1x: the dock floats 10 dp above the bar");
-        // 344x882 dp, 1.4x: a 98 dp dock at 749-847 dp, the bar at 820 dp: up 37 dp.
-        require(HubPages.dockLift(820 * px, 749 * px, 847 * px, minTop, gap) == -37 * px, "344x882 at 1.4x: the dock floats above the bar");
-        // 412x915 dp, 1x: the bar at 830-882 dp, the dock at 810-880 dp: up 60 dp.
-        require(HubPages.dockLift(830 * px, 810 * px, 880 * px, minTop, gap) == -60 * px, "412x915 at 1x: the dock floats above the bar");
-        // 412x915 dp at 1.4x: the bar at 860 dp, a 98 dp dock at 782-880 dp: up 30 dp.
-        require(HubPages.dockLift(860 * px, 782 * px, 880 * px, minTop, gap) == -30 * px, "412x915 at 1.4x: the dock floats above the bar");
-        // 725x604 dp, 1x: the bar (372-422 dp) is above the dock (460-530 dp), so the dock covers nothing and keeps its place
-        // (checked above). A bar that starts 10 dp or more under the dock's own place needs no move either.
-        require(HubPages.dockLift(540 * px, 460 * px, 530 * px, minTop, gap) == 0 && HubPages.dockLift(600 * px, 460 * px, 530 * px, minTop, gap) == 0,
-                "A bar 10 dp or more under the dock: no move");
-        // 725x604 dp, 1.4x: the bar at 561 dp under a dock at 496-569 dp: up 18 dp, its top at 478 dp, still on the page.
-        require(HubPages.dockLift(561 * px, 496 * px, 569 * px, minTop, gap) == -18 * px, "725x604 at 1.4x: the dock floats above the bar");
-        // A window too short for both: moving up would put the dock's top at 70 dp, above the page: it steps aside.
-        require(HubPages.dockLift(150 * px, 140 * px, 210 * px, minTop, gap) == HubPages.DOCK_STEP_ASIDE, "No room above the bar: step aside");
-        require(HubPages.dockLift(152 * px, 140 * px, 210 * px, minTop, gap) == -68 * px, "Exactly the room: the dock moves up");
+        // The dock is pinned to the bottom (the contributor's decision, 14 Nov, #383): it neither lifts above Widgets' Lock bar
+        // nor steps aside for it. Its place depends on the frame, its own height and its margin only: wherever the bar is
+        // (the old cases, in dp at 3 px per dp: 344x882 at 1x and 1.4x, 412x915, 725x604 at 1x and 1.4x, scrolled or not),
+        // the dock's top is the same. In px.
+        int px = 3, margin = 10 * px, gap = 16 * px;
+        int[][] frames = {{344, 847, 70}, {344, 847, 98}, {412, 880, 70}, {412, 880, 98}, {725, 569, 73}, {725, 530, 70}};
+        int[][] bars = {{791, 843}, {820, 872}, {830, 882}, {860, 912}, {561, 615}, {431, 489}, {372, 422}, {-200, -10}, {150, 210}};
+        for (int[] frame : frames) {
+            int bottom = (frame[1] + 10) * px, height = frame[2] * px;
+            int top = HubPages.dockTop(bottom, height, margin);
+            require(top == bottom - margin - height, "The dock sits its margin above the frame's bottom: " + java.util.Arrays.toString(frame));
+            for (int[] bar : bars) require(HubPages.dockTop(bottom, height, margin) == top, "The Lock bar at " + bar[0] + "-" + bar[1] + " dp does not move the dock");
+            // Scrolled to its end with the clearance as its bottom padding, the page's last widget (the Lock bar when the
+            // rider puts it last) ends gap above the dock: every widget can be scrolled fully clear of it.
+            int padding = HubPages.dockClearance(height, margin, gap);
+            require(HubPages.scrolledEndBottom(bottom, padding) == top - gap, "Scrolled to its end, the last widget clears the dock by the gap: " + java.util.Arrays.toString(frame));
+            require(HubPages.scrolledEndBottom(bottom, padding - 1) > top - gap, "One pixel less and it would not");
+        }
+        require(HubPages.dockClearance(-5, 30, 48) == 78, "An unmeasured dock: its margin and the gap");
+        // A taller dock (larger text, or captions on two lines) needs more room, never less.
+        require(HubPages.dockClearance(98 * px, margin, gap) > HubPages.dockClearance(70 * px, margin, gap), "A taller dock: more room");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
+    }
+
+    /**
+     * The connection line in page headers (the contributor's decision, 14 Nov, #383): every page kind by every connection
+     * state. Not connected covers disconnected, connecting, searching, Bluetooth off and a held release: only the plain
+     * connected state (ready) counts as connected.
+     */
+    private static void connectionLine() {
+        String[] subjects = {HubPages.RIDE, HubPages.BATTERY, HubPages.CONTROLS, HubPages.LIGHTS, HubPages.SECURITY, HubPages.SERVICE, HubPages.DATA, HubPages.SEARCH};
+        String[] subPages = {HubPages.BATTERY_MODES, HubPages.BATTERY_HISTORY, HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.SERVICE_COMPATIBILITY, HubPages.DATA_STORAGE};
+        String[] appPages = {HubPages.SETTINGS, HubPages.SETTINGS_HOME, HubPages.SETTINGS_UNITS, HubPages.SETTINGS_SCOOTERS, HubPages.SETTINGS_DEVELOPER, HubPages.SETTINGS_ABOUT};
+        String[] states = {"connected", "disconnected", "connecting", "searching", "Bluetooth off", "release held"};
+        for (String state : states) {
+            boolean connected = state.equals("connected");
+            for (boolean held : new boolean[] {false, true}) {
+                require(HubPages.headerConnectionLine(HubPages.HOME, connected, held) == HubPages.LINE_SHOWN, "Home keeps its own line: " + state);
+                for (String[] kind : new String[][] {subjects, subPages})
+                    for (String page : kind) {
+                        int want = !connected ? HubPages.LINE_SHOWN : held ? HubPages.LINE_ROOM : HubPages.LINE_GONE;
+                        require(HubPages.headerConnectionLine(page, connected, held) == want, page + " " + state + (held ? " (room held)" : "") + ": " + want);
+                    }
+                for (String page : appPages)
+                    require(HubPages.headerConnectionLine(page, connected, held) == HubPages.LINE_GONE, page + " never shows the line: " + state);
+            }
+        }
+        for (String page : HubPages.ALL) {
+            require(HubPages.appPage(page) == HubPages.path(page).contains(HubPages.SETTINGS), "App pages are Settings and under it: " + page);
+            if (HubPages.HOME.equals(page)) continue;
+            // A connected page opened fresh has no gap where the line was; one not connected shows it.
+            if (!HubPages.appPage(page)) {
+                require(HubPages.headerConnectionLine(page, true, false) == HubPages.LINE_GONE, "Connected: no line and no gap: " + page);
+                require(HubPages.headerConnectionLine(page, false, false) == HubPages.LINE_SHOWN, "Not connected: the line: " + page);
+            }
+        }
+        // The old tab ids resolve as their pages do: More is Settings (never), Live Stats is Data (only when not connected).
+        require(HubPages.headerConnectionLine("more", false, false) == HubPages.LINE_GONE, "More (Settings): never");
+        require(HubPages.headerConnectionLine("stats", false, false) == HubPages.LINE_SHOWN, "Live Stats (Data): not connected");
+        // While a page is open: shown (not connected), then connected keeps the room blank, then dropped shows it again; the
+        // title's place never changes after the line first showed.
+        String page = HubPages.BATTERY;
+        boolean held = false;
+        int[] seen = new int[4];
+        boolean[] walk = {false, true, false, true};
+        for (int i = 0; i < walk.length; i++) {
+            seen[i] = HubPages.headerConnectionLine(page, walk[i], held);
+            if (seen[i] == HubPages.LINE_SHOWN) held = true;
+        }
+        require(seen[0] == HubPages.LINE_SHOWN && seen[1] == HubPages.LINE_ROOM && seen[2] == HubPages.LINE_SHOWN && seen[3] == HubPages.LINE_ROOM,
+                "Drop, connect, drop, connect on an open page: " + java.util.Arrays.toString(seen));
     }
 
     private static void riding() {
