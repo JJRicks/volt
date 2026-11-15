@@ -71,8 +71,9 @@ import com.jjricks.volt.WideLayout;
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
  *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
- *   three tile values at one size on one baseline and their names on one line each; the Ride row under it shows that
- *   ride, not "No rides yet"), and
+ *   three tile values at one size on one baseline and their names on one line each; the route panel, where the card's fit
+ *   leaves it room, shown wholly inside the window with the route drawn, and otherwise reported as not shown; the Ride
+ *   row under it shows that ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -526,10 +527,15 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 2; }), "Clean Home does not show Just back for a ride that just ended");
         Object card = onMain(() -> field(clean, "justBack"));
         main(() -> require(ride.equals(invoke(card, "rideId", new Class<?>[0])), "Just back shows another ride than the one just saved"));
-        // The route is read on a worker once the card is bound.
-        await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back drew no route for the ride's GPS fixes");
         int[] justBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
+        // The route panel as it is on screen: shown with at least the room it draws in (JustBackView's MIN_ROUTE_DP; under it
+        // the panel draws nothing) and wholly inside the window. Where Just back's fit gives the panel up (a short area at
+        // large text, JustBackFit.split), the walk says the route was not shown. Shown, the route itself is read on a worker
+        // once the card is bound, and must arrive.
+        String routeShown = onMain(() -> routeOnScreen(card));
+        if (routeShown != null)
+            await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back's route panel shows (" + routeShown + ") but no route arrived for the ride's GPS fixes");
         main(() -> {
             for (String name : new String[]{"saved", "distance"}) {
                 TextView text = (TextView) field(card, name);
@@ -572,7 +578,26 @@ public final class HubValidation extends Instrumentation {
         int[] afterJustBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
-                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and route shown; the Ride row shows that ride); each pictured at that scroll");
+                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and "
+                + (routeShown != null ? "its route shown on screen (" + routeShown + ")" : "no route shown: Just back's fit gave up the route panel at this size")
+                + "; the Ride row shows that ride); each pictured at that scroll");
+    }
+
+    /**
+     * Just back's route panel (JustBackView's route, tag home-just-back-route) where an owner sees it: shown, at least
+     * MIN_ROUTE_DP high (under that it draws nothing) and wholly inside the window, unclipped. Its size and place, or null
+     * where the card's fit gave the panel up (gone, or too low to draw). Main thread.
+     */
+    private String routeOnScreen(Object card) {
+        View panel = (View) field(card, "route");
+        int least = Math.round(((Integer) field(card, "MIN_ROUTE_DP")) * activity.getResources().getDisplayMetrics().density);
+        if (!shown(panel) || panel.getHeight() < least) return null;
+        Rect seen = new Rect(), place = windowRect(panel);
+        require(panel.getGlobalVisibleRect(seen) && seen.width() >= panel.getWidth() - 1 && seen.height() >= panel.getHeight() - 1,
+                "Just back's route panel " + place.toShortString() + " is not wholly on screen (visible " + seen.toShortString() + ")");
+        Rect window = new Rect(0, 0, root().getWidth(), root().getHeight());
+        require(window.contains(place), "Just back's route panel " + place.toShortString() + " runs outside the window " + window.toShortString());
+        return panel.getWidth() + "x" + panel.getHeight() + " px at " + place.left + "," + place.top;
     }
 
     /**
