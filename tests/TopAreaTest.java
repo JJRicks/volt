@@ -25,16 +25,17 @@ public final class TopAreaTest {
                 require(size[1] - area >= TopArea.reserveDp(false, text) + TopArea.PHONE_SLACK_DP, size[0] + "x" + size[1] + " at " + text
                         + "x: the header, the Lock bar and the quick actions fit under it, with room to spare");
             }
-        // 16:9 phones: the height bounds the share, so the Lock bar and the quick actions keep the room main gives them
-        // (the reviewer's emulator captures: by the width alone, 411x731 took 351 dp and the bottom bar covered half of
-        // each quick action, and 360x640 took 260 dp).
+        // 16:9 phones: the height bounds the share (at most 40.5% of it, and 40 dp to spare beyond the reserve), so the
+        // Lock bar and the quick actions keep their room (the reviewer's emulator captures, under main's old bottom
+        // bar: by the width alone, 411x731 took 351 dp and the bar covered half of each quick action). Since part 11
+        // (#392) Home has no bottom bar and the reserve is 292 dp.
         require(TopArea.heightDp(411, 731, false, 1f) == 296, "411x731 at 1x: 40.5% of 731");
         require(731 - TopArea.heightDp(411, 731, false, 1f) - TopArea.reserveDp(false, 1f) >= 40, "411x731 at 1x: 40 dp or more to spare under the quick actions");
-        require(TopArea.heightDp(411, 731, false, 1.4f) == 291, "411x731 at 1.4x: the grown minimum, as on main");
-        require(TopArea.heightDp(360, 640, false, 1f) == 224 && TopArea.heightDp(412, 640, false, 1f) == 224,
-                "360x640 and 412x640 at 1x: the minimum, as on main (the share would leave less than 40 dp to spare)");
-        require(640 - 224 - TopArea.reserveDp(false, 1f) >= 36, "360x640 at 1x: what main leaves under the quick actions");
-        require(TopArea.heightDp(360, 640, false, 1.4f) == 212, "360x640 at 1.4x: as on main");
+        require(TopArea.heightDp(411, 731, false, 1.4f) == 296, "411x731 at 1.4x: 40.5% of 731 (more than the grown minimum)");
+        require(TopArea.heightDp(360, 640, false, 1f) == 259 && TopArea.heightDp(412, 640, false, 1f) == 259, "360x640 and 412x640 at 1x: 40.5% of 640");
+        require(640 - 259 - TopArea.reserveDp(false, 1f) >= 40, "360x640 at 1x: 40 dp or more to spare under the quick actions");
+        require(TopArea.heightDp(360, 640, false, 1.4f) == 291, "360x640 at 1.4x: the grown minimum, as on main");
+        require(TopArea.heightDp(344, 560, false, 1f) == 227, "344x560 at 1x: 560 less the reserve and 40 dp to spare (40.5% would be 227 too)");
         require(TopArea.heightDp(344, 882, false, 1.4f) == 304, "344x882 at 1.4x: the same area (the grown minimum, 291, is less)");
         require(TopArea.heightDp(300, 915, false, 1.4f) == 291, "Large text keeps at least 224 dp grown 1.3 times on a narrow window");
         require(TopArea.heightDp(260, 1100, false, 1.15f) == 258 && TopArea.heightDp(250, 700, false, 1f) == 224, "Text growth below the cap scales the minimum");

@@ -11,8 +11,8 @@ package com.jjricks.volt;
  * of 40 dp or more, and as much more as the phone is wider (the owner's first build on a 412 dp phone: a card sized by
  * the window's height had "way too much padding" there, its content the 344 dp size in a wider card). On a short phone
  * the height bounds it ({@link #PHONE_HEIGHT_CAP}, {@link #PHONE_SLACK_DP}), so the Lock bar and the quick actions keep
- * their room. A wide window (two panes) takes a share of its height. At least 224 dp grown with large text (up to 1.3 times), at most 380 dp on
- * a phone and 460 dp on a wide window.
+ * their room. A wide window (two panes) takes a share of its height. At least 224 dp grown with large text (up to 1.3
+ * times), at most 380 dp on a phone and 460 dp on a wide window.
  *
  * <p>On a short window, what has to show on first view comes first (checklist §4: the Lock bar and the quick
  * actions): the area never takes more than the window less {@link #reserveDp} (the header, the Lock bar and the quick

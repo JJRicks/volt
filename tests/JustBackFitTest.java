@@ -128,9 +128,10 @@ public final class JustBackFitTest {
                     System.out.println("  names " + at + ": scale " + scale + " (widest " + Math.round(widest) + " of " + Math.round(room) + ")");
                 }
         // The council's second review of part 9, finding 3: Swedish in a short split-screen window, 344x560 dp at 1x. Its
-        // top area was 208 dp (TopArea) under main's bottom bar; part 11 (#392) took the bar's reserve away, so it is 224 dp
-        // here. Less the ended line (48), the distance at its floor (28 sp x 1.16, about 32) and the tiles' gap (8), about
-        // 136 dp are left for the tiles (120 dp on main). As measured on the emulator, two rows of tiles take 144 dp; with
+        // top area was 208 dp (TopArea) under main's old bottom bar; part 11 (#392) took the bar's reserve away, and the
+        // phone rule (the width's share, bounded by the height) gives 227 dp here. Less the ended line (48), the distance at
+        // its floor (28 sp x 1.16, about 32) and the tiles' gap (8), about 139 dp are left for the tiles: still less than
+        // two normal rows. As measured on the emulator, two rows of tiles take 144 dp; with
         // the tight padding (4 dp above and below instead of 9, no gap above the value) 28 dp less, 116 dp: they fit, so
         // "Medelhastighet" stays whole on two tight rows instead of breaking inside the word three across.
         java.awt.Font floor = saira.deriveFont(12f);
@@ -138,7 +139,8 @@ public final class JustBackFitTest {
         java.util.function.ToDoubleFunction<String> sv = name -> floor.getStringBounds(name, context).getWidth();
         int area = TopArea.heightDp(344, 560, false, 1f), room344 = area - 48 - Math.round(28 * 1.16f) - 8;
         float third344 = (308 - 2 * 8) / 3f - 20;
-        require(area == 224 && room344 == 136, "344x560 at 1x: a 224 dp area (no tab bar since part 11) leaves 136 dp for the tiles: " + area + ", " + room344);
+        require(area == 227 && room344 == 139, "344x560 at 1x: a 227 dp area (no tab bar since part 11) leaves 139 dp for the tiles: " + area + ", " + room344);
+        require(room344 < 144, "344x560 at 1x: less room than two normal rows of tiles take (the case's premise)");
         require(TileFit.columns(swedish, sv, third344, 2) == 2, "Medelhastighet (" + Math.round(sv.applyAsDouble("Medelhastighet")) + " dp at 12 sp) does not fit a third (" + third344 + ")");
         require(TileFit.layout(swedish, sv, third344, 2, 144, 144 - 2 * (2 * (9 - 4) + 4), room344) == TileFit.TWO_TIGHT, "344x560 Swedish: two tight rows, the name whole");
         require(TileFit.nameLines("Medelhastighet", sv, (308 - 8) / 2f - 20, 2) == 2, "and half a row holds it whole");
