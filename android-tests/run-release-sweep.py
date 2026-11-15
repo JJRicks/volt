@@ -191,10 +191,10 @@ STEPS += [
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     # The time's value at Charging power's size (owner, Nov 15 2026): phones at 412, 360 and 344 dp and the Fold unfolded.
-    inst('charge-time-sizes-412', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'sizes', '1', '-e', 'size_label', '412', size='412x915'),
-    inst('charge-time-sizes-360', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'sizes', '1', '-e', 'size_label', '360', size='360x800'),
-    inst('charge-time-sizes-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'sizes', '1', '-e', 'size_label', '344', size=PHONE[0]),
-    inst('charge-time-sizes-fold', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'sizes', '1', '-e', 'size_label', 'fold', size='790x820'),
+    inst('charge-time-sizes-412', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),
+    inst('charge-time-sizes-344', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
