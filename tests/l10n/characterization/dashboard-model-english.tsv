@@ -3,8 +3,8 @@ entry lights icon	lights
 entry lights group	Menus
 entry lights featureKey	null
 entry lights directToggle	false
-entry controls label	Settings
-entry controls icon	settings
+entry controls label	Search settings
+entry controls icon	search
 entry controls group	Menus
 entry controls featureKey	null
 entry controls directToggle	false

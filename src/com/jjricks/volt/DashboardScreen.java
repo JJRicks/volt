@@ -46,6 +46,9 @@ public final class DashboardScreen implements AppScreen {
         /** Find it nearby (FindNearby): the scan sheet in find mode for the active scooter. */
         default void findNearby() { }
 
+        /** Home's editor just closed (Done or Back), with no rebuild: Home is clear again for what waited on it. */
+        default void editingEnded() { }
+
         /** Whether Home offers Find it nearby now (FindNearby.offerHome, and no recording). */
         default boolean findNearbyOffered() { return false; }
 
@@ -606,6 +609,7 @@ public final class DashboardScreen implements AppScreen {
             editTransition = transition;
             transition.start();
         }
+        if (!editing) actions.editingEnded();
     }
 
     private void stopEditTransition() {

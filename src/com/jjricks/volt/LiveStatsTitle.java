@@ -9,7 +9,7 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Connection-aware heading; its decorative pulse never announces sample updates to TalkBack. */
+/** Data's connection-aware heading; its decorative pulse never announces sample updates to TalkBack. */
 final class LiveStatsTitle extends LinearLayout {
     private final Ui ui;
     private final TextView title;
@@ -19,7 +19,8 @@ final class LiveStatsTitle extends LinearLayout {
     LiveStatsTitle(Ui ui) {
         super(ui.context); this.ui = ui;
         setGravity(Gravity.CENTER_VERTICAL); setPadding(0, ui.dp(2), 0, 0);
-        title = ui.text(M.uiLiveStatsTitle(), 24, true);
+        // The page is Data (live-stats-becomes-data, kept on #383): its subject name, with Live Stats' live dot.
+        title = ui.text(HubText.title(HubPages.DATA), 24, true);
         if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
         addView(title, new LayoutParams(-2, -2));
         signal = new Signal(); LayoutParams dot = new LayoutParams(ui.dp(28), ui.dp(34)); dot.leftMargin = 0;

@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A Hub page built from several screens stacked top to bottom (hub layout plan): the Scooter tab's index is its search
+ * A Hub page built from several screens stacked top to bottom (hub layout plan): the search page is its search
  * and the subject list. Refresh, close, Back and busy reach every part; Back goes to the first part that takes it.
  * A part must not be a ScrollView (MainActivity wraps the whole page in one).
  */

@@ -18,21 +18,23 @@ public final class TopAreaTest {
         require(TopArea.heightDp(2000, true, 1f) == 460, "Tall wide window: wide maximum");
         require(TopArea.heightDp(0, false, 1f) == TopArea.FLOOR_DP && TopArea.heightDp(-5, false, Float.NaN) == TopArea.FLOOR_DP, "Nonsense input still gives the floor");
         require(TopArea.heightPx(800, false, 1f, 2.75f) == 759, "Pixels at a density");
-        // 725x604 dp at 1x is wide (a rail, no bottom bar): the share fits under the header with the Lock bar and the
-        // quick actions below it.
+        // 725x604 dp at 1x is wide (no bar or rail since part 11): the share fits under the header with the Lock bar and
+        // the quick actions below it.
         require(TopArea.heightDp(604, true, 1f) == 254, "725x604 at 1x: 42% of 604");
         require(604 - TopArea.heightDp(604, true, 1f) >= TopArea.reserveDp(true, 1f), "725x604 at 1x: the Lock bar and quick actions fit under it");
-        // 725x604 dp at 1.4x keeps the phone layout (650 text-dp rule) with main's bottom bar: the grown minimum (291)
-        // would push the Lock bar under the bar (emulator, part 8b), so the area takes what the window leaves.
+        // 725x604 dp at 1.4x keeps the phone layout (650 text-dp rule). With main's bottom bar gone (part 11) the window
+        // keeps only the header, the Lock bar and the quick actions: the area takes what they leave, less than the
+        // grown minimum (291) and more than the floor it had under the bar (208).
         int short14 = TopArea.heightDp(604, false, 1.4f);
-        require(short14 < 291 && short14 >= TopArea.FLOOR_DP, "725x604 at 1.4x: smaller than the grown minimum, " + short14);
-        // With the header's two 48 dp targets (status line, name row), this window cannot also keep the quick actions
-        // in view: the area sits at its floor, which the charging view's worst case needs (ChargingFitTest, a wrapped
-        // pill at 1.4x), and the window keeps the header, the Lock bar and the bottom bar; the quick actions' names
-        // fall under the bottom bar (PR #449, deferred).
-        require(short14 == TopArea.FLOOR_DP, "725x604 at 1.4x: the floor, " + short14);
-        int quickActions = 12 + 54 + 6 + 16 + 14;
-        require(604 - short14 >= TopArea.reserveDp(false, 1.4f) - quickActions, "725x604 at 1.4x: the Lock bar fits on first view");
+        require(short14 < 291 && short14 > TopArea.FLOOR_DP, "725x604 at 1.4x: between the floor and the grown minimum, " + short14);
+        require(short14 == 604 - TopArea.reserveDp(false, 1.4f) && short14 == 264, "725x604 at 1.4x: what the window leaves, " + short14);
+        require(604 - short14 >= TopArea.reserveDp(false, 1.4f), "725x604 at 1.4x: the Lock bar and the quick actions fit on first view");
+        // No bottom bar or rail: a phone and a wide window keep the same room around the area (part 11).
+        for (float scale : new float[]{1f, 1.4f, 2f})
+            require(TopArea.reserveDp(true, scale) == TopArea.reserveDp(false, scale), "the same reserve wide and phone at " + scale);
+        require(TopArea.reserveDp(false, 1f) == 292 && TopArea.reserveDp(false, 1.4f) == 340, "the reserve: header, Lock bar and quick actions");
+        // 344x882 and 412x915 keep the Layout Plan's proportion at both text sizes (the reserve never limits them).
+        require(TopArea.heightDp(882, false, 1.4f) == 304 && TopArea.heightDp(915, false, 1.4f) == 316, "phones at 1.4x: the share");
         require(TopArea.heightDp(500, false, 1.4f) == TopArea.FLOOR_DP, "Large text on a short window: the floor");
         // The parked card's spare height: spread over three gaps, none of them a band of 40 dp at the checked sizes.
         for (int extra : new int[]{0, 1, 7, 60, 76, 90, 95}) {

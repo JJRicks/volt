@@ -96,8 +96,14 @@ public final class ChargeScheduleValidation extends Instrumentation {
         Object start=control("charge_start");
         assertImmediatelyAfter((View)field(start,"card"),summaryCard());
         assertImmediatelyAfter((View)field(field(done(false),"row"),"card"),(View)field(field(done(true),"row"),"card"));
-        require("Charge done by".contentEquals(((TextView)field(field(done(true),"row"),"name")).getText()),"Done time uses a different setting label");
-    });checks.add("Charge done by follows Charge start in Scooter > Battery; its sheet holds the done-by toggle, then the done-by time");}
+        // The sheet's rows read Enable and Finish charging by under its Charge done by title; the page's row keeps Charge
+        // done by (the contributor's decision, 14 Nov, #383), and the switch's spoken name still says what it enables.
+        require("Finish charging by".contentEquals(((TextView)field(field(done(true),"row"),"name")).getText()),"Done time uses a different setting label");
+        require("Enable".contentEquals(((TextView)field(field(done(false),"row"),"name")).getText()),"The done-by switch row uses a different label");
+        Object toggle=field(done(false),"toggle");
+        require(toggle instanceof View&&String.valueOf(((View)toggle).getContentDescription()).equals("Charge done by, Enable"),"The done-by switch does not say what it enables: "+(toggle instanceof View?((View)toggle).getContentDescription():null));
+        require(String.valueOf(summaryLine().getContentDescription()).startsWith("Charge done by, "),"The page's row is no longer Charge done by: "+summaryLine().getContentDescription());
+    });checks.add("Charge done by follows Charge start in Scooter > Battery; its sheet holds the done-by toggle (Enable), then the done-by time (Finish charging by)");}
     /** Only dividers, or rows not shown (GONE: Charge start's hidden Lab entry on the page since #452), may sit between the two rows. */
     private void assertImmediatelyAfter(View previous,View next){ViewGroup parent=(ViewGroup)previous.getParent();require(next.getParent()==parent,"Schedule rows have different sections");int i=parent.indexOfChild(previous)+1;while(i<parent.getChildCount()&&parent.getChildAt(i)!=next){View gap=parent.getChildAt(i++);require(!(gap instanceof ViewGroup)||gap.getVisibility()==View.GONE,"Another control separates related schedule rows");}require(i<parent.getChildCount(),"Done-by setting is not immediately after its matching schedule setting");}
     private void verifyUnplugged(){main(()->{

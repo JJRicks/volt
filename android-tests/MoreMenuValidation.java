@@ -13,29 +13,38 @@ import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import com.jjricks.volt.MainActivity;
+import com.jjricks.volt.HubText;
 import com.jjricks.volt.ScooterProfiles;
 
 /**
- * Fresh disposable emulator only. More's menu card lines up on every width: Back up & restore and each
- * section row put their icon and title at the same left edge, both in the phone layout and in the
- * wide (unfolded) layout beside its submenu. Pass -e wide true or false to say which layout the
- * emulator's size must produce, so a run can't pass on the other one.
+ * Fresh disposable emulator only. Settings (the gear page, More's index before the Hub layout) lines up on every width.
+ * Since part 11 (#392) it is one column at every width, as the Layout Plan's settings-page mock-up draws it, with no
+ * icon tiles: one card of app choices, then a card for the scooters and the data and one for Volt itself. Every row
+ * shares one title edge, is a 48 dp target with a spoken name, and keeps its words whole and uncut. Pass -e wide true
+ * or false to say which window class the emulator's size must give (Ui.wideLayout), so a run can't pass on the other.
  */
 public final class MoreMenuValidation extends Instrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;
     private final ArrayList<String> screenshots = new ArrayList<>();
+    /** The Settings cards' rows in the plan's order, by tag (null: the row has no tag; it is found by its menu section). */
+    private static final String[][] CARDS = {
+            {"home-style-menu", "preference-appearance", "preference-units-menu", "preference_haptics"},
+            {"#Scooters", "data-backup"},
+            {"settings-updates", "#About", "developer-options-menu"}};
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
@@ -44,17 +53,22 @@ public final class MoreMenuValidation extends Instrumentation {
             admit();
             require(arguments.containsKey("wide"), "Pass -e wide true or false");
             boolean wide = Boolean.parseBoolean(arguments.getString("wide"));
+            // A saved More submenu (the old tab's) must not change what Settings opens on.
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("developer_options", true)
-                    .putString("theme", arguments.getString("theme", "dark")).putString("more_section", wide ? "App" : "").commit(), "Fixture settings failed");
+                    .putString("theme", arguments.getString("theme", "dark")).putString("more_section", wide ? "App" : "Scooters").commit(), "Fixture settings failed");
             seed();
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null, "App did not launch"); settle();
-            main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
+            // The rider's way in: Home's gear (or the dock's All sheet on Widgets), tapped.
+            HubTestPages.reach(this, activity, "settings"); settle();
+            main(() -> require("settings".equals(HubTestPages.current(activity)), "Settings did not open from Home"));
             Object more = more();
-            require((Boolean) field(more, "wide") == wide, "Expected the " + (wide ? "wide" : "phone") + " More layout at this size");
+            main(() -> require(Boolean.TRUE.equals(field(activity, "expanded")) == wide, "Expected the " + (wide ? "wide" : "phone") + " window at "
+                    + activity.getResources().getConfiguration().screenWidthDp + " dp"));
+            oneColumn(more);
             screenshot(wide ? "wide-menu" : "phone-menu");
-            aligned((LinearLayout) field(more, "sectionMenu"));
-            if (wide) longTitles(more);
+            aligned(more);
+            longTitle(more, wide ? "wide-long-title" : "phone-long-title");
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -66,99 +80,179 @@ public final class MoreMenuValidation extends Instrumentation {
         }
     }
 
-    /** Every row in the menu card, Back up & restore included, shares one icon edge and one title edge. */
-    private void aligned(LinearLayout menu) {
+    /**
+     * Settings is one column at this width: no two-pane menu and submenu (More's Panes), it opens on its index whatever
+     * submenu the old More tab saved, and its cards share one left and one right edge inside the window.
+     */
+    private void oneColumn(Object more) {
+        main(() -> {
+            require(!Boolean.TRUE.equals(field(more, "wide")) && field(more, "menuScroll") == null && field(more, "sectionScroll") == null,
+                    "Settings built More's two-pane layout");
+            require(classNamed(((com.jjricks.volt.AppScreen) more).view(), "Panes") == null, "Settings holds a two-pane layout");
+            require("".equals(field(more, "selectedSection")), "Settings opened on a saved submenu instead of its index");
+            require(((View) field(more, "indexView")).isShown(), "Settings' index is hidden");
+            List<LinearLayout> cards = cards(more);
+            require(cards.size() == CARDS.length, "Settings shows " + cards.size() + " cards, not " + CARDS.length);
+            int window = activity.getWindow().getDecorView().getWidth();
+            int[] first = bounds(cards.get(0));
+            require(first[0] >= 0 && first[1] <= window, "The first card runs past the window: " + first[0] + "-" + first[1] + " in " + window);
+            for (LinearLayout card : cards) {
+                int[] at = bounds(card);
+                require(Math.abs(at[0] - first[0]) <= 1 && Math.abs(at[1] - first[1]) <= 1,
+                        "Cards are not one column: " + at[0] + "-" + at[1] + " beside " + first[0] + "-" + first[1]);
+            }
+            headings(cards);
+        });
+    }
+    /**
+     * The plan's headings: none over the first card, "Scooters & data" right above the second and "About" right above
+     * the third (part 10's text), each shown whole, above its card and inside the cards' column.
+     */
+    private void headings(List<LinearLayout> cards) {
+        LinearLayout index = (LinearLayout) cards.get(0).getParent();
+        View beforeFirst = index.indexOfChild(cards.get(0)) > 0 ? index.getChildAt(index.indexOfChild(cards.get(0)) - 1) : null;
+        require(beforeFirst == null || !(beforeFirst instanceof TextView) || !beforeFirst.isShown()
+                || !(String.valueOf(beforeFirst.getTag()).startsWith("settings-heading-")), "A heading sits over Settings' first card");
+        String[][] expected = {{"settings-heading-scooters", HubText.settingsSectionScooters().render()},
+                {"settings-heading-about", HubText.settingsSectionAbout().render()}};
+        for (int c = 1; c <= 2; c++) {
+            LinearLayout card = cards.get(c);
+            int at = index.indexOfChild(card);
+            require(at > 0 && index.getChildAt(at - 1) instanceof TextView, "Settings card " + (c + 1) + " has no heading right above it");
+            TextView heading = (TextView) index.getChildAt(at - 1);
+            String tag = expected[c - 1][0], text = expected[c - 1][1];
+            require(tag.equals(heading.getTag()), "Settings card " + (c + 1) + "'s heading has tag " + heading.getTag() + ", not " + tag);
+            require(heading.isShown() && text.contentEquals(heading.getText()), "Settings card " + (c + 1) + "'s heading reads \"" + heading.getText() + "\", not \"" + text + "\"");
+            int[] h = bounds(heading), k = bounds(card);
+            require(h[0] >= k[0] - 1 && h[1] <= k[1] + 1, "The " + text + " heading runs outside the cards' column");
+            int[] top = new int[2], cardTop = new int[2];
+            heading.getLocationOnScreen(top); card.getLocationOnScreen(cardTop);
+            require(top[1] + heading.getHeight() <= cardTop[1] + 1, "The " + text + " heading overlaps its card");
+            wholeAndUncut(heading, index, text + " heading");
+        }
+    }
+    /**
+     * Every row in every card: in the plan's card and order, no icon tile, one title edge for all, a 48 dp target with a
+     * spoken name, the title's words whole (a break only at a space) and nothing cut, the value and chevron inside the row.
+     */
+    private void aligned(Object more) {
         AtomicReference<String> problem = new AtomicReference<>();
         AtomicReference<Integer> rows = new AtomicReference<>(0);
         main(() -> {
-            Integer iconLeft = null, titleLeft = null; String first = null; int count = 0;
-            for (int i = 0; i < menu.getChildCount(); i++) {
-                View child = menu.getChildAt(i);
-                if (!(child instanceof LinearLayout) || child.getVisibility() != View.VISIBLE || ((LinearLayout) child).getChildCount() < 2) continue;
-                View icon = ((LinearLayout) child).getChildAt(0);
-                TextView title = firstText(((LinearLayout) child).getChildAt(1));
-                if (title == null) continue;
-                int[] at = new int[2]; icon.getLocationOnScreen(at); int ix = at[0]; title.getLocationOnScreen(at); int tx = at[0];
+            List<LinearLayout> cards = cards(more);
+            for (int c = 0; c < CARDS.length; c++) {
+                int last = -1;
+                for (String key : CARDS[c]) {
+                    View row = key.startsWith("#") ? (View) field(menuRow(more, key.substring(1)), "view") : cards.get(c).findViewWithTag(key);
+                    require(row != null && row.getParent() == cards.get(c), "The " + key + " row is not in Settings card " + (c + 1));
+                    int at = cards.get(c).indexOfChild(row);
+                    require(at > last, "The " + key + " row is out of the plan's order in card " + (c + 1)); last = at;
+                }
+            }
+            Integer titleLeft = null; String first = null; int count = 0; int dp48 = activity.ui().dp(48);
+            for (LinearLayout card : cards) for (int i = 0; i < card.getChildCount(); i++) {
+                View child = card.getChildAt(i);
+                if (!"RowLine".equals(child.getClass().getSimpleName()) || child.getVisibility() != View.VISIBLE) continue;
+                Object row = field(child, "row");
+                TextView title = (TextView) field(row, "title");
                 String label = String.valueOf(title.getText());
-                if (iconLeft == null) { iconLeft = ix; titleLeft = tx; first = label; }
-                else if ((Math.abs(ix - iconLeft) > 1 || Math.abs(tx - titleLeft) > 1) && problem.get() == null)
-                    problem.set(label + " starts at icon x=" + ix + ", title x=" + tx + " but " + first + " at icon x=" + iconLeft + ", title x=" + titleLeft);
+                require(field(row, "icon") == null, label + " has an icon tile; the plan's rows have none");
+                require(child.getHeight() >= dp48, label + " is " + child.getHeight() + " px tall, under 48 dp");
+                Switch toggle = (Switch) field(row, "toggle");
+                if (toggle != null) {
+                    require(toggle.getWidth() >= dp48 && toggle.getHeight() >= dp48, label + "'s switch is under 48 dp");
+                    require(label.contentEquals(toggle.getContentDescription()), label + "'s switch is not spoken by its title");
+                } else {
+                    require(child.isClickable() && child.hasOnClickListeners() && child.isFocusable(), label + " is not a tappable, focusable row");
+                    require(field(row, "chevron") != null && ((View) field(row, "chevron")).isShown(), label + " has no chevron");
+                }
+                require(child.getImportantForAccessibility() != View.IMPORTANT_FOR_ACCESSIBILITY_NO && label.trim().length() > 0, label + " has no spoken name");
+                wholeAndUncut(title, child, label);
+                TextView value = (TextView) field(row, "value");
+                if (value.getVisibility() == View.VISIBLE) wholeAndUncut(value, child, label + "'s value");
+                int[] at = new int[2]; title.getLocationOnScreen(at);
+                if (titleLeft == null) { titleLeft = at[0]; first = label; }
+                else if (Math.abs(at[0] - titleLeft) > 1 && problem.get() == null)
+                    problem.set(label + " starts at title x=" + at[0] + " but " + first + " at x=" + titleLeft);
                 count++;
             }
             rows.set(count);
         });
-        require(rows.get() >= 4, "Menu card shows " + rows.get() + " rows");
+        require(rows.get() >= 9, "Settings shows " + rows.get() + " rows");
         require(problem.get() == null, String.valueOf(problem.get()));
     }
     /**
-     * Wide only. The 20 dp gutter between the panes stays centred on the window, where a book-posture fold
-     * falls, even for a menu title with a long word. A word that fits only without the row's icon keeps two
-     * panes with the icon stepped aside; a word too long even then turns More into one pane. Neither breaks
-     * the word or moves the menu across the centre.
+     * (Was: the wide menu's narrow-label ladder, which stepped a row's icon aside and then dropped to one pane.) With one
+     * column and no icons, a title word as wide as the title's whole room stays whole and uncut, wraps at its space, and
+     * the row grows to hold it with its chevron still inside the card.
      */
-    private void longTitles(Object more) throws Exception {
-        gutterCentred(more, "English titles");
-        Object row = aboutRow(more);
+    private void longTitle(Object more, String shot) throws Exception {
+        Object row = menuRow(more, "About");
         TextView title = (TextView) field(row, "title");
-        View icon = (View) field(row, "icon");
-        Object line = field(row, "view");
-        int[] room = new int[2];
-        main(() -> { room[0] = (Integer) invoke(line, "titleRoomWithIcon", new Class<?>[0]); room[1] = (Integer) invoke(line, "titleRoomAtMost", new Class<?>[0]); });
-        require(room[1] > room[0], "About row icon cannot step aside: room " + room[0] + " / " + room[1]);
-        String aside = word(title, (room[0] + room[1]) / 2);
-        main(() -> title.setText("Long " + aside)); settle();
-        require(more() == more && (Boolean) field(more, "wide"), "A word that fits without the icon must keep two panes");
-        main(() -> require(icon.getWidth() == 0, "The About row's icon did not step aside for " + aside.length() + " letters"));
-        wholeWords(title);
-        gutterCentred(more, "a word that fits only without the icon");
-        screenshot("wide-long-title");
-        String huge = word(title, room[1] + activity.ui().dp(40));
-        main(() -> title.setText("Long " + huge));
-        await(() -> more() != more, "A word too long even without the icon did not rebuild More"); settle();
-        Object onePane = more();
-        require(!(Boolean) field(onePane, "wide"), "A word too long even without the icon must give More one pane");
-        screenshot("wide-long-title-one-pane");
+        View line = (View) field(row, "view");
+        int[] room = new int[1];
+        main(() -> { View words = (View) title.getParent(); room[0] = words.getWidth() - title.getCompoundPaddingLeft() - title.getCompoundPaddingRight(); });
+        require(room[0] > activity.ui().dp(100), "The About row's title has " + room[0] + " px of room");
+        String word = word(title, room[0] - 2);
+        main(() -> title.setText("Long " + word)); settle();
+        main(() -> {
+            require(title.getLayout() != null && title.getLayout().getLineCount() >= 2, "A title as wide as its room did not wrap at its space");
+            wholeAndUncut(title, line, "The long About title");
+            require(line.getHeight() >= title.getHeight(), "The About row did not grow with its title");
+            View chevron = (View) field(row, "chevron");
+            require(chevron.isShown() && within(chevron, line), "The About row's chevron left the row");
+            require(within(line, (View) line.getParent()), "The About row left its card");
+        });
+        screenshot(shot);
     }
-    /**
-     * The About section's menu row, which has a plain (not numbered) icon. This used the Lab row until the Hub layout
-     * (#387) moved Experimental controls to Scooter › Service, out of More's menu.
-     */
-    private Object aboutRow(Object more) {
+    /** text: laid out, no ellipsis, breaks only at spaces, every line within its width, and inside container on screen. */
+    private void wholeAndUncut(TextView text, View container, String label) {
+        android.text.Layout layout = text.getLayout(); CharSequence s = text.getText();
+        require(layout != null, label + " is not laid out");
+        int width = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
+        for (int i = 0; i < layout.getLineCount(); i++) {
+            require(layout.getEllipsisCount(i) == 0, label + " is cut with an ellipsis: " + s);
+            require(layout.getLineWidth(i) <= width + 1, label + " runs past its width: " + s);
+            int end = layout.getLineEnd(i);
+            if (i + 1 < layout.getLineCount()) require(end > 0 && Character.isWhitespace(s.charAt(end - 1)), label + " breaks a word: " + s);
+        }
+        require(layout.getLineEnd(layout.getLineCount() - 1) == s.length(), label + " lost text: " + s);
+        require(layout.getHeight() <= text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() + 1, label + " is cut at the bottom: " + s);
+        require(within(text, container), label + " is outside its row");
+    }
+    private boolean within(View view, View container) {
+        int[] a = new int[2], b = new int[2]; view.getLocationOnScreen(a); container.getLocationOnScreen(b);
+        return a[0] >= b[0] - 1 && a[1] >= b[1] - 1 && a[0] + view.getWidth() <= b[0] + container.getWidth() + 1 && a[1] + view.getHeight() <= b[1] + container.getHeight() + 1;
+    }
+    private int[] bounds(View view) { int[] at = new int[2]; view.getLocationOnScreen(at); return new int[]{at[0], at[0] + view.getWidth()}; }
+    /** The shown group cards of Settings' index, top to bottom: the LinearLayouts directly in it that hold rows. */
+    private List<LinearLayout> cards(Object more) {
+        LinearLayout index = (LinearLayout) field(more, "indexView");
+        List<LinearLayout> found = new ArrayList<>();
+        for (int i = 0; i < index.getChildCount(); i++) {
+            View child = index.getChildAt(i);
+            if (!(child instanceof LinearLayout) || !child.isShown()) continue;
+            for (int j = 0; j < ((LinearLayout) child).getChildCount(); j++)
+                if ("RowLine".equals(((LinearLayout) child).getChildAt(j).getClass().getSimpleName())) { found.add((LinearLayout) child); break; }
+        }
+        return found;
+    }
+    /** A section's row on Settings (More's SECTIONS id, e.g. About), which has no tag of its own. */
+    private Object menuRow(Object more, String section) {
         String[] sections = (String[]) field(more, "SECTIONS"); Object[] rows = (Object[]) field(more, "menuRows");
-        for (int i = 0; i < sections.length; i++) if ("About".equals(sections[i]) && rows[i] != null) return rows[i];
-        throw new IllegalStateException("No About menu row");
+        for (int i = 0; i < sections.length; i++) if (section.equals(sections[i]) && rows[i] != null) return rows[i];
+        throw new IllegalStateException("No " + section + " row on Settings");
+    }
+    private View classNamed(View view, String simpleName) {
+        if (view.getClass().getSimpleName().equals(simpleName)) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View found = classNamed(((ViewGroup) view).getChildAt(i), simpleName); if (found != null) return found; }
+        return null;
     }
     /** A single word of repeated letters as wide as px in the title's paint. */
     private String word(TextView title, int px) {
         StringBuilder text = new StringBuilder("W");
         while (title.getPaint().measureText(text.toString() + "m") <= px) text.append('m');
         return text.toString();
-    }
-    private void wholeWords(TextView title) {
-        main(() -> {
-            android.text.Layout layout = title.getLayout(); CharSequence text = title.getText();
-            require(layout != null, "Title not laid out");
-            for (int lineIndex = 0; lineIndex + 1 < layout.getLineCount(); lineIndex++) {
-                int end = layout.getLineEnd(lineIndex);
-                require(end > 0 && Character.isWhitespace(text.charAt(end - 1)), "Title breaks a word: " + text);
-            }
-        });
-    }
-    /** The menu ends at least half the gutter before the window's centre and the submenu starts as far after it. */
-    private void gutterCentred(Object more, String label) {
-        View menu = (View) field(more, "menuScroll"), section = (View) field(more, "sectionScroll");
-        main(() -> {
-            int centre = activity.getWindow().getDecorView().getWidth() / 2, half = activity.ui().dp(10);
-            int[] at = new int[2]; menu.getLocationInWindow(at); int menuRight = at[0] + menu.getWidth();
-            section.getLocationInWindow(at); int sectionLeft = at[0];
-            require(menuRight <= centre - half + 1, "With " + label + " the menu ends at " + menuRight + ", past the centre " + centre + " minus half the gutter");
-            require(sectionLeft >= centre + half - 1, "With " + label + " the submenu starts at " + sectionLeft + ", before the centre " + centre + " plus half the gutter");
-        });
-    }
-    private TextView firstText(View view) {
-        if (view instanceof TextView && ((TextView) view).getText().length() > 0) return (TextView) view;
-        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = firstText(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
-        return null;
     }
 
     private void admit() {

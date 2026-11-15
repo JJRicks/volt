@@ -379,7 +379,23 @@ public final class BackupPlanTest {
         withSwitch.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true); withSwitch.put("app_settings", AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
         BackupTestStore from1132 = BackupArchiveTest.phone(new File(root, "notice-1132"));
         from1132.restore(withSwitch.export(BackupTestStore.all()), set(BackupRegistry.PREFERENCES), false, null);
-        check(!from1132.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "a backup that holds the background switch (1.13.2) marks nothing");
+        check(!from1132.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "a backup that holds the background switch (1.13.2 or later, its switch once changed) marks nothing");
+        // A 1.13.2 backup whose switch was never touched holds no switch (1.13.2 writes it only on a change): its manifest's
+        // version code (59) says it was made with the switch, so it marks nothing; the same backup from 1.13.1 (58) does.
+        for (int code : new int[]{58, 59}) {
+            BackupTestStore untouched = BackupTestStore.rich(new File(root, "notice-source-untouched-" + code));
+            untouched.version = code; untouched.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true);
+            byte[] backup = untouched.export(BackupTestStore.all());
+            for (boolean replace : new boolean[]{true, false}) {
+                BackupTestStore phone = BackupArchiveTest.phone(new File(root, "notice-untouched-" + code + "-" + replace));
+                phone.version = 59;
+                phone.restore(backup, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+                Map<String, Object> app = phone.preferences().get("app_settings");
+                check((code < 59) == Boolean.TRUE.equals(app.get(HomeStyle.RESTORED_NOTICE_KEY)),
+                        "a backup without the switch from version code " + code + ", " + (replace ? "Replace everything" : "App preferences")
+                                + ": the notice is due only before 1.13.2: " + app);
+            }
+        }
         BackupTestStore hubSource = BackupTestStore.rich(new File(root, "notice-source-hub"));
         hubSource.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true); hubSource.put("app_settings", HomeStyle.KEY, HomeStyle.WIDGETS);
         BackupTestStore fromHub = BackupArchiveTest.phone(new File(root, "notice-hub"));
