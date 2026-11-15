@@ -374,10 +374,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Deneme sonuçları, gönderdiğiniz bir uyumluluk raporu bunları içerene veya siz temizleyene kadar bu telefonda kalır."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Resmî uygulamanın modeliniz için sunduğu özellikler “Scooter ayarları” ekranında kalır. Hız sınırları, şarj, kilit, PIN, yakınlıkla kilit açma ve saat buraya hiçbir zaman eklenmez. Volt aygıt yazılımını asla değiştirmez.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Resmî uygulamanın modeliniz için sunduğu özellikler “Scooter ayarları” ekranında kalır. Volt aygıt yazılımını asla değiştirmez.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt aygıt yazılımını asla değiştirmez.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -398,8 +394,6 @@
     <string name="more_lab_intro_untested">Resmî uygulama bunları %1$s için sunmuyor. Scooter park hâlindeyken birini deneyin; Volt ayarı geri okur.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">Resmî uygulama bunları %1$s için sunuyor, ancak Volt bunları o modelde denemedi. Scooter park hâlindeyken birini deneyin; Volt ayarı geri okur.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">%1$s için denenecek bir şey yok: Resmî uygulama Volt’un deneyebileceği özellikleri zaten sunuyor. Bunlar “Scooter ayarları” ekranında.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt bu ürüne hiçbir scooter komutu göndermez.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -408,8 +402,6 @@
     <string name="more_lab_empty_conflict">Bu scooter’ın Model ID’si seri numarasıyla eşleşmiyor, bu yüzden Volt denenecek bir şey sunmuyor.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">Resmî uygulamada bu model listelenmiyor. Bu yüzden Volt hangi özelliklerin eksik olduğunu belirleyemiyor. Henüz denenecek bir şey yok.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Önce “Scooter” sayfasında modelinizi belirleyin. Volt daha sonra deneyebileceğiniz özellikleri listeler.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Deneyebileceğiniz özellikleri görmek için scooter’a bağlanın.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
