@@ -65,7 +65,7 @@ import com.jjricks.volt.WideLayout;
  *   <li><b>Search</b>: the header's search opens the search page with its field focused and the subjects listed;
  *   typing ("batt", as the plan's mock-up) hides the subjects and finds at least one row (pictured with the keyboard gone); the system Back first clears the query (the subjects come back), then returns to Home;
  *   the page's back link returns to Home at once, even with a query typed. A result opens its page over Search:
- *   "maintenance" finds Maintenance reminders, whose tap opens Service › Maintenance reminders with Search under it, and
+ *   "star" finds the Star lights link, whose tap opens Lights & sound › Star lights with Search under it, and
  *   Back returns to Search, built afresh (its query empty, the subjects listed). Search's own results (settings, readings,
  *   rides) arrive with part 12, which checks them.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
@@ -138,8 +138,8 @@ public final class HubValidation extends Instrumentation {
         SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
     }
     private Bundle arguments;
-    /** Maintenance reminders' row in search (HubSearchTables.ROW_MAINTENANCE, MaintenanceScreen.ROW): its view tag. */
-    private static final String SEARCH_MAINTENANCE = "maintenance_reminders";
+    /** The search result the walk opens: "star" finds the Star lights link (ControlsPages.SEARCHED_LINKS), by its view tag. */
+    private static final String SEARCH_QUERY = "star", SEARCH_RESULT = "hub-link-" + HubPages.LIGHTS_STAR;
     /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
     private static final String NO_NEARBY = "no-nearby";
     private boolean noNearby;
@@ -463,18 +463,23 @@ public final class HubValidation extends Instrumentation {
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        // A result opens its page over Search: "maintenance" finds Service's Maintenance reminders row
-        // (HubSearchTables.ROW_MAINTENANCE), whose tap opens Service › Maintenance reminders with Search under it; Back returns
-        // to Search, which the app builds afresh (each page's screen is new when it shows again), so its query is gone and
-        // the subjects are listed again.
+        // A result opens its page over Search: "star" finds the Star lights link (and Line lights', which shares its words),
+        // whose tap opens Lights & sound › Star lights with Search under it; Back returns to Search, which the app builds
+        // afresh (each page's screen is new when it shows again), so its query is gone and the subjects are listed again.
+        // Not "maintenance", as the first draft: in English search finds Maintenance reminders by no word at all (its
+        // English words are MaintenanceScreen.NO_WORDS, and StatsLabels.matchesShown, which reads its catalog words, matches
+        // nothing in English), so the walk would fail on main's search, which part 12 replaces.
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText("maintenance")); settle();
-        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while \"maintenance\" is typed"));
+        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText(SEARCH_QUERY)); settle();
+        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while \"" + SEARCH_QUERY + "\" is typed"));
         hideKeyboard();
-        tapTag(SEARCH_MAINTENANCE);
-        arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
-        screenshot("search-opened-maintenance");
+        main(() -> require(shown(root().findViewWithTag(SEARCH_RESULT)), "Search for \"" + SEARCH_QUERY + "\" does not show the Star lights link ("
+                + resultCount(activity.findViewById(android.R.id.content)) + " found; " + chain(root().findViewWithTag(SEARCH_RESULT)) + ")"));
+        screenshot("search-star");
+        tapTag(SEARCH_RESULT);
+        arrived(HubPages.LIGHTS_STAR, HubPages.HOME, HubPages.SEARCH, HubPages.LIGHTS_STAR);
+        screenshot("search-opened-star-lights");
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         String[] kept = new String[1];
@@ -482,14 +487,14 @@ public final class HubValidation extends Instrumentation {
             EditText now = firstEditText(activity.findViewById(android.R.id.content));
             kept[0] = now == null ? null : now.getText().toString();
             return now != null && now.getText().length() == 0 && shown(root().findViewWithTag("home-subject-" + HubPages.RIDE));
-        }), () -> "Back from the Maintenance result shows Search with the query \"" + kept[0] + "\" and the subjects " + (onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))) ? "listed" : "not listed")
+        }), () -> "Back from the Star lights result shows Search with the query \"" + kept[0] + "\" and the subjects " + (onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))) ? "listed" : "not listed")
                 + "; the app builds Search afresh (empty, subjects listed)");
         hideKeyboard();
         systemBack();
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once;"
-                + " \"maintenance\" finds Maintenance reminders, whose tap opens Service › Maintenance reminders over Search (stack Home, Search, Maintenance); Back returns to Search, built afresh (query empty, subjects listed)");
+                + " \"star\" finds the Star lights link, whose tap opens Lights & sound › Star lights over Search (stack Home, Search, Star lights); Back returns to Search, built afresh (query empty, subjects listed)");
     }
 
     /**
@@ -1203,6 +1208,14 @@ public final class HubValidation extends Instrumentation {
         }
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { int found = resultCount(((ViewGroup) view).getChildAt(i)); if (found > 0) return found; }
         return 0;
+    }
+    /** A view and its ancestors' classes and visibility (V, I, G) and heights, for a failure message. Main thread. */
+    private static String chain(View view) {
+        if (view == null) return "no such view";
+        StringBuilder out = new StringBuilder();
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null)
+            out.append(out.length() == 0 ? "" : " < ").append(at.getClass().getSimpleName()).append(at.getVisibility() == View.VISIBLE ? "/V" : at.getVisibility() == View.INVISIBLE ? "/I" : "/G").append(at.getHeight());
+        return out.toString();
     }
     /** Whether a shown TextView in view reads text. */
     private static boolean hasText(View view, String text) {
