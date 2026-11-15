@@ -18,11 +18,12 @@ left that way: on a read-only emulator it updates preinstalled apps, the keyboar
 minutes after every boot, replacing their processes mid-step, and re-enabling it between --only steps
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
-Every step starts with Android's animator duration scale explicitly at 1, and the value the sweep found
-is put back at the end. Several validations turn animations down and restore them only in their own
-finally block, which a killed process skips. Deleting the setting is no restore either: Android keeps
-its in-memory scale when the setting is deleted, so a validation that found it unset, set 0 and then
-deleted it left animations off; with an explicit 1 in place, such a validation puts back 1 instead.
+Every step starts with Android's animator duration scale explicitly at 1, and at the end a value the
+sweep found is put back; a setting it found unset stays at an explicit 1, Android's default. Several
+validations turn animations down and restore them only in their own finally block, which a killed
+process skips. Deleting the setting is no restore either: Android keeps its in-memory scale when the
+setting is deleted, so a validation that found it unset, set 0 and then deleted it left animations off;
+with an explicit 1 in place, such a validation puts back 1 instead.
 
 Localization (l10n/README.md). Every step but the locale-* ones runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
@@ -537,10 +538,10 @@ finally:
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('shell', 'wm', 'size', 'reset', check=False); adb('shell', 'wm', 'density', 'reset', check=False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0', check=False)
-    # Put 1 first even when the sweep found the setting unset: deleting keeps Android's in-memory scale.
-    animations_on()
-    if animator in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'animator_duration_scale', check=False)
-    elif animator not in ('1', '1.0'): adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', animator, check=False)
+    # A setting found unset stays at an explicit 1: deleting it keeps Android's in-memory scale, and
+    # Android applies a put asynchronously, so a delete straight after putting 1 could still keep a 0.
+    if animator in ('', 'null', '1', '1.0'): animations_on()
+    else: adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', animator, check=False)
     if heads_up in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'heads_up_notifications_enabled', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'heads_up_notifications_enabled', heads_up, check=False)
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
