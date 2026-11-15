@@ -79,6 +79,43 @@ final class ChargeWirePulses {
      */
     static double timeScale(float scale) { return scale > 0 && !Float.isInfinite(scale) ? scale : 1; }
 
+    /**
+     * The animation's time (s) from the frame clock (ms) under an animator duration scale that can change while it runs
+     * (Developer options, with Home on screen in split screen; review of #483, P3): a change carries the time on from
+     * where it is at the new speed, so the pulses neither jump nor restart, and a scale of 0 or an unknown one runs as
+     * {@link #timeScale} does. Pure; the view keeps one and asks it for each frame's time.
+     */
+    static final class Clock {
+        /** The frame clock (ms) and the animation's time (s) at its start or its last change of speed. */
+        private long fromMs;
+        private double fromSeconds;
+        /** The divisor in force (timeScale of the scale). */
+        private double divisor = 1;
+        /** The frame clock (ms) when it last started, for android-tests (a change of speed never moves it). */
+        private long startedMs;
+
+        /** Starts it at time 0 at this moment, at this scale. */
+        void start(long nowMs, float scale) {
+            fromMs = startedMs = nowMs;
+            fromSeconds = 0;
+            divisor = timeScale(scale);
+        }
+
+        /** The scale from this moment on: the time so far is kept, and it runs at the new speed from here. */
+        void rescale(long nowMs, float scale) {
+            double next = timeScale(scale);
+            if (next == divisor) return;
+            fromSeconds = seconds(nowMs);
+            fromMs = nowMs;
+            divisor = next;
+        }
+
+        /** The animation's time at this moment. */
+        double seconds(long nowMs) { return fromSeconds + (nowMs - fromMs) / 1000.0 / divisor; }
+
+        double divisor() { return divisor; }
+    }
+
     /** How brightly a landing x seconds ago lights the cells: a quick rise, then an exponential fade. */
     static double landing(double x, double decay) {
         if (x < 0) return 0;

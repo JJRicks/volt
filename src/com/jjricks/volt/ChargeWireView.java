@@ -1,6 +1,7 @@
 package com.jjricks.volt;
 
 import android.content.Context;
+import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -13,6 +14,8 @@ import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
@@ -62,12 +65,36 @@ final class ChargeWireView extends ChargePicture {
     private ChargeWireModels.Placement placement = new ChargeWireModels.Placement(0, 0, 0);
     private Double watts;
     private boolean running;
-    private long startMs;
+    /** The animation's time, which follows a change of the animator duration scale without restarting. */
+    private final ChargeWirePulses.Clock clock = new ChargeWirePulses.Clock();
     /**
-     * The animator duration scale (Developer options), read from Settings.Global when the animation starts and when the
-     * layer is attached or its window shown again, never per frame (ChargeWirePulses.timeScale; review of #483, P1).
+     * The animator duration scale (Developer options), read from Settings.Global when the animation starts, when the
+     * layer is attached or its window shown again, and whenever the setting changes while the layer is attached
+     * ({@link #scaleWatch}), never per frame (ChargeWirePulses.timeScale; review of #483, P1 and P3).
      */
     private float durationScale = 1;
+    /**
+     * Watches the setting while the live layer is attached (registered on attach, unregistered on detach, so it cannot
+     * outlive the view): with Home on screen (split screen) a new scale changes the pulses' speed at once, and the host
+     * hears of it ({@link #motionChanged}) so a scale of 0 rests the picture and one back from 0 runs it again.
+     */
+    private final ContentObserver scaleWatch = new ContentObserver(new Handler(Looper.getMainLooper())) {
+        @Override public void onChange(boolean selfChange) { scaleChanged(); }
+    };
+    private boolean watching;
+    /** The host's check of whether the animation should run (DashboardScreen's updatePulse); null: none. */
+    private Runnable motionChanged;
+    /**
+     * Tells the host again until the platform's animators agree with the setting: the app's animators learn of a new
+     * scale from the window manager, which can come a little after this observer's call. At most 20 times, 100 ms apart.
+     */
+    private final Runnable agree = new Runnable() {
+        @Override public void run() {
+            if (motionChanged != null) motionChanged.run();
+            if ((durationScale > 0) != Ui.motionEnabled() && ++agreeTries < 20) live.postDelayed(this, 100);
+        }
+    };
+    private int agreeTries;
     /** The pulses over time as the power changes (the band and the phase carried across a switch). */
     private final ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
 
@@ -137,7 +164,8 @@ final class ChargeWireView extends ChargePicture {
         };
         live = new LayerView(context) {
             @Override protected void onDraw(Canvas canvas) { drawLive(canvas); }
-            @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); readDurationScale(); }
+            @Override protected void onAttachedToWindow() { super.onAttachedToWindow(); readDurationScale(); watchScale(true); }
+            @Override protected void onDetachedFromWindow() { watchScale(false); super.onDetachedFromWindow(); }
             @Override protected void onWindowVisibilityChanged(int visibility) {
                 super.onWindowVisibilityChanged(visibility);
                 if (visibility == View.VISIBLE) readDurationScale();
@@ -212,22 +240,51 @@ final class ChargeWireView extends ChargePicture {
     @Override void start() {
         if (running) return;
         running = true;
-        startMs = AnimationUtils.currentAnimationTimeMillis();
         schedule.reset();
         readDurationScale();
+        clock.start(AnimationUtils.currentAnimationTimeMillis(), durationScale);
         live.invalidate();
     }
+
+    @Override void onMotionChange(Runnable check) { motionChanged = check; }
 
     /**
      * The animator duration scale from Settings.Global (as RidingNight does), not ValueAnimator.getDurationScale(),
      * which is public only from Android 13 and throws on Android 9 and 10 (minSdk is 26; review of #483, P1).
      */
     private void readDurationScale() {
+        float scale;
         try {
-            durationScale = Settings.Global.getFloat(live.getContext().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
+            scale = Settings.Global.getFloat(live.getContext().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f);
         } catch (RuntimeException unavailable) {
-            durationScale = 1;
+            scale = 1;
         }
+        durationScale = scale;
+        // A running animation carries on from where it is at the new speed (a resting one starts afresh in start()).
+        clock.rescale(AnimationUtils.currentAnimationTimeMillis(), scale);
+    }
+
+    /** Watches the setting from attach to detach ({@link #scaleWatch}). */
+    private void watchScale(boolean on) {
+        if (on == watching) return;
+        try {
+            if (on) live.getContext().getContentResolver().registerContentObserver(
+                    Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, scaleWatch);
+            else live.getContext().getContentResolver().unregisterContentObserver(scaleWatch);
+            watching = on;
+        } catch (RuntimeException unavailable) {
+            watching = false;
+        }
+        if (!on) live.removeCallbacks(agree);
+    }
+
+    /** The setting changed while attached: the pulses take the new speed, and the host decides whether they run. */
+    private void scaleChanged() {
+        readDurationScale();
+        live.invalidate();
+        live.removeCallbacks(agree);
+        agreeTries = 0;
+        agree.run();
     }
 
     /** Stops it: the picture rests (grey cable and cells, no pulses). */
@@ -542,7 +599,7 @@ final class ChargeWireView extends ChargePicture {
             ChargeWirePulses.state(t, mode, state);
         } else {
             // The animator duration scale (Developer options) slows or speeds it as it does every other animation.
-            t = (AnimationUtils.currentAnimationTimeMillis() - startMs) / 1000.0 / ChargeWirePulses.timeScale(durationScale);
+            t = clock.seconds(AnimationUtils.currentAnimationTimeMillis());
             mode = schedule.follow(watts, t);
             schedule.state(t, state);
         }

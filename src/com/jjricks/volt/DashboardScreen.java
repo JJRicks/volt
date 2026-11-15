@@ -2907,6 +2907,8 @@ public final class DashboardScreen implements AppScreen {
             }
             picture = next;
             if (picture != null) {
+                // A new animator duration scale while Home stays on screen: rest at 0, run again back from it.
+                picture.onMotionChange(this::updatePulse);
                 View[] layers = picture.layers();
                 for (int i = 0; i < layers.length; i++) stage.addView(layers[i], i, new FrameLayout.LayoutParams(-1, -1));
             }
