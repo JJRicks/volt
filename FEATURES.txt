@@ -1432,7 +1432,7 @@ too; a dash only without a distance or a time) and Battery with the signed chang
 first, then the distance gets smaller. The Ride row shows a
 running recording and its time while a ride records, else the last ride.
 Settings > Home style shows the two styles side by side, a Quick actions row
-naming Clean's four (opening the same picker as Edit Home) and the two moment
+naming Clean's four as their buttons do (opening the same picker as Edit Home) and the two moment
 switches, both on by default.
 Setup's last step offers the choice (Clean selected on a new install), each
 style drawn in detail with the scooter's photo and sample readings. Owners
