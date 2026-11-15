@@ -1488,8 +1488,11 @@ with a link to its release page. It counts as seen only when the owner closes
 it (a button, X, Back, a tap outside) or acts in it; one Volt closes itself (a
 rebuild) shows again on the next clear Home. An owner who closed 1.13.2's own
 recording note is not shown the notice again. Restoring App preferences from a
-backup made before 1.13.2 and before Home styles, with Record rides
-automatically on, shows the recording notice once on its own, on any phone.
+backup made before Home styles, with Record rides automatically on and no
+Start recording in the background setting in it, shows the recording notice
+once on its own, on any phone: every backup from before 1.13.2, and one from
+1.13.2 or later whose switch was never changed (1.13.2 keeps whether its own
+note was read out of backups, so an owner who read it may see it twice).
 
 QUICK ACCESS
 
