@@ -15,6 +15,7 @@ public final class HubNavTest {
         restore();
         arguments();
         retention();
+        keptReading();
         System.out.println("HubNav: " + checks + " checks passed");
     }
 
@@ -119,6 +120,24 @@ public final class HubNavTest {
         HubNav.Args back = HubNav.Args.rideAndBack("r2");
         require("r2".equals(back.ride) && back.backAfterRide && back.anchor == null && back.reading == null, "A search result's ride closes back to the search");
         require(!HubNav.Args.ride("r1").backAfterRide, "Home's last ride keeps All rides under its details");
+    }
+
+    /**
+     * A search result's reading stays Readings' filter through rebuilds while Data is in the stack, and the next ordinary
+     * visit shows every reading (#393 council review, second round, finding 6; the first review's finding 4 stays fixed).
+     */
+    private static void keptReading() {
+        java.util.List<String> onData = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        java.util.List<String> above = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA, HubPages.DATA_STORAGE);
+        require("speed_kmh".equals(HubNav.keptReading(HubNav.Args.reading("speed_kmh"), null, onData, false)), "A result's reading filters this visit");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)), "A rebuild (rotation, unfold) keeps it while Data is shown");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", above, false)), "A page above Data keeps it for the return to Data");
+        require("battery_percent".equals(HubNav.keptReading(HubNav.Args.reading("battery_percent"), "speed_kmh", onData, false)), "A new result's reading replaces it");
+        require(HubNav.keptReading(null, "speed_kmh", java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH), false) == null, "Data left the stack: it is dropped");
+        require(HubNav.keptReading(null, null, java.util.Arrays.asList(HubPages.HOME, HubPages.DATA), false) == null, "The next ordinary visit shows every reading");
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null, "The owner typed their own search: a rebuild doesn't bring the reading back");
+        require(HubNav.keptReading(HubNav.Args.anchor("row"), null, onData, false) == null, "Other arguments carry no reading");
+        require(HubNav.keptReading(null, "speed_kmh", null, false) == null, "No stack, no reading");
     }
 
     private static void retention() {

@@ -125,6 +125,9 @@ public final class StatsScreen implements AppScreen {
     /** paneHosted: shown in a pane beside another page (hub layout plan, PR 13), so never in two panes of its own. */
     StatsScreen(ScreenHost host, boolean paneHosted) { this(host, paneHosted, null); }
 
+    /** The reading Readings shows by itself (a Hub search result's), or null: none, or the owner typed a search of their own. */
+    String pinnedReading() { return pinned; }
+
     /** pin: a reading's key to show by itself on Readings for this visit (a Hub search result), or null. */
     StatsScreen(ScreenHost host, boolean paneHosted, String pin) {
         this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings;

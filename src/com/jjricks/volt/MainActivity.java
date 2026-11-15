@@ -143,6 +143,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean compatibilityRecovery;
     /** The search page's query: kept across recreation and while a result's page is open above it; a fresh search starts empty. */
     private String searchQuery="";
+    /** The reading a search result opened Data's Readings on, kept through rebuilds while Data is in the stack (HubNav.keptReading). */
+    private String searchReading;
     private boolean bound,binding,resumed,destroyed,pendingConnect,pendingScan,expanded,rebuilding,applyingOwnerImport,importWaitNotified,bodyRefreshScheduled;
     /**
      * The waiting scan (pendingScan) is a find (FindNearby): every resume reopens it in the mode it was asked in
@@ -241,7 +243,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -379,7 +381,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
-        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);saved.putString("search_query",searchQuery);
+        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);saved.putString("search_query",searchQuery);saved.putString("search_reading",searchReading);
         saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
@@ -440,7 +442,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean inData(){return inData(selectedPage);}
     private static boolean inData(String page){return HubPages.DATA.equals(HubPages.subjectOf(HubPages.canonical(page)));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;searchReading=null;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -516,6 +518,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
+        // Readings let a search result's reading go (the owner typed their own search): a rebuild doesn't bring it back.
+        boolean readingDropped=screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark:R.style.VoltLight);
@@ -576,6 +580,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         HubNav.Args args=pageArgs;pageArgs=null;
+        // A search result's reading stays Readings' filter through rebuilds (rotation, unfolding) while Data is in the stack.
+        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
         screen=createScreen(selectedPage,args);
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
             // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
@@ -643,7 +649,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(scooterService==null)return new LoadingScreen();
         switch(page){
-            case HubPages.DATA:return new StatsScreen(this,false,args==null?null:args.reading);
+            case HubPages.DATA:return new StatsScreen(this,false,searchReading);
             case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
             case HubPages.RIDE_RIDES:{
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);

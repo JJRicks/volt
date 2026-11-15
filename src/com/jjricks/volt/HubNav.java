@@ -42,6 +42,18 @@ final class HubNav {
         static Args rideAndBack(String id) { return new Args(null, false, id, null, null, true); }
     }
 
+    /**
+     * The reading Data's Readings shows by itself (#393 council review, second round, finding 6): the one this visit's
+     * arguments name (a search result's), else the one kept from that visit while Data stays in the page stack, so a
+     * rebuild (rotating, unfolding, a theme or text size change, a recreation) keeps it; else none. Once Data has left
+     * the stack (Back to the search, Home), the next ordinary visit shows every reading; and once the owner typed a
+     * search of their own on Readings (dropped: Readings let the reading go), a rebuild doesn't bring it back.
+     */
+    static String keptReading(Args args, String kept, List<String> stack, boolean dropped) {
+        if (args != null && args.reading != null) return args.reading;
+        return kept != null && !dropped && stack != null && stack.contains(HubPages.DATA) ? kept : null;
+    }
+
     private final ArrayList<String> stack = new ArrayList<>();
 
     HubNav() { stack.add(HubPages.HOME); }

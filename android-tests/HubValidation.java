@@ -501,7 +501,59 @@ public final class HubValidation extends Instrumentation {
         }
         checks.add("Search targets: " + checked + " results opened their page" + " (" + anchored + " with their row revealed inside the window, " + held
                 + " of them in the sheet that holds them), " + titles + " row titles found on the page their words open" + (notes.isEmpty() ? "" : "; notes: " + notes));
+        try { readingKept(); }
+        catch (RuntimeException failure) { problems.add("a reading result: " + failure.getMessage()); }
         require(problems.isEmpty(), problems.size() + " search results do not land on what they name:\n  " + String.join("\n  ", problems));
+    }
+
+    /**
+     * A reading opened from Search keeps Readings filtered to it through a rebuild (as a rotation or an unfold makes,
+     * MainActivity.onConfigurationChanged) and an activity recreation while Data stays open, and the next ordinary visit
+     * to Data shows every reading (#393 council review, second round, finding 6; the first review's finding 4).
+     */
+    private void readingKept() throws Exception {
+        String[] key = new String[1];
+        main(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); field.setText("battery"); });
+        settle();
+        main(() -> {
+            View found = firstTagged(root().findViewWithTag("hub-search-results"), "hub-search-reading-");
+            require(found != null, "Search for \"battery\" lists no reading");
+            key[0] = ((String) found.getTag()).substring("hub-search-reading-".length());
+        });
+        tapTag("hub-search-reading-" + key[0]);
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(key[0], "opened from Search");
+        main(() -> activity.rebuild()); settle();
+        requirePinned(key[0], "after a rebuild (as a rotation or an unfold makes)");
+        recreateActivity();
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(key[0], "after an activity recreation");
+        screenshot("search-reading-recreated");
+        backToSearch();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        tapTag("home-subject-" + HubPages.DATA);
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.DATA);
+        requirePinned(null, "on the next ordinary visit");
+        systemBack();
+        requireHome("CleanHomeScreen");
+        checks.add("A reading opened from Search (" + key[0] + ") keeps Readings filtered to it through a rebuild and a recreation; the next ordinary visit shows every reading");
+    }
+
+    /** Data's Readings shows reading by itself (StatsScreen's pinned reading), or none for null. */
+    private void requirePinned(String reading, String when) {
+        await(() -> onMain(() -> field(activity, "screen").getClass().getSimpleName().equals("StatsScreen")), "Data's Readings did not open " + when);
+        Object pinned = onMain(() -> field(field(activity, "screen"), "pinned"));
+        require(reading == null ? pinned == null : reading.equals(pinned), "Readings " + when + " shows " + (pinned == null ? "every reading" : "only " + pinned)
+                + ", not " + (reading == null ? "every reading" : "only " + reading));
+    }
+
+    /** The first shown view under view whose tag starts with prefix, or null. Main thread. */
+    private static View firstTagged(View view, String prefix) {
+        if (view == null || !view.isShown()) return null;
+        if (view.getTag() instanceof String && ((String) view.getTag()).startsWith(prefix)) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View found = firstTagged(((ViewGroup) view).getChildAt(i), prefix); if (found != null) return found; }
+        return null;
     }
 
     /** Search's entries for pages, settings, hand-built rows and controls (those that open a page), as search builds them now. Main thread. */
