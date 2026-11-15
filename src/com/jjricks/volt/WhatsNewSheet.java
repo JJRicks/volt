@@ -121,7 +121,8 @@ final class WhatsNewSheet {
         }
         float scale = ui.textScale * host.activity().getResources().getConfiguration().fontScale;
         boolean stacked = host.activity().getResources().getConfiguration().screenWidthDp < 360 || scale > 1.15f;
-        LinearLayout styles = new LinearLayout(host.activity());
+        // The two cards take the taller one's height (EqualHeights), whichever description wraps further.
+        LinearLayout styles = new EqualHeights(host.activity());
         styles.setOrientation(stacked ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         for (boolean clean : new boolean[] {true, false}) {
             LinearLayout.LayoutParams space = stacked ? new LinearLayout.LayoutParams(-1, -2) : new LinearLayout.LayoutParams(0, -2, 1);
