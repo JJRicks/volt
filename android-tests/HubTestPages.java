@@ -331,6 +331,9 @@ public final class HubTestPages {
             onMain(instrumentation, () -> {
                 Object sheet = field(dock[0], "sheet");
                 if (!(sheet instanceof android.app.Dialog) || !((android.app.Dialog) sheet).isShowing()) { problem[0] = "The dock's All item did not open its sheet"; return; }
+                // Springing open (DragSheet): its rows are still moving, so a tap waits for it to settle (state OPEN).
+                Object drag = field(dock[0], "drag");
+                if (drag == null || !Integer.valueOf(4).equals(field(drag, "state"))) { problem[0] = "The dock's All sheet did not settle open"; return; }
                 View decor = ((android.app.Dialog) sheet).getWindow().getDecorView();
                 List<View> shown = new ArrayList<>();
                 for (View view : descendants(decor)) if (rowTag.equals(view.getTag()) && view.isShown()) shown.add(view);
