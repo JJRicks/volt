@@ -45,6 +45,31 @@ public final class HubSearchTest {
         @Override public String language() { return "es"; }
     };
 
+    /** A shipped language as the app shows it: res/values-<dir>/strings_*.xml, English (T's own) where a key has none. */
+    private static final class Catalog implements T.Source {
+        private final java.util.Map<String, String> text = new java.util.HashMap<>();
+        private final String language;
+        Catalog(String dir, String tag) {
+            language = tag;
+            load("res/values-" + dir);
+        }
+        private void load(String folder) {
+            java.util.regex.Pattern string = java.util.regex.Pattern.compile("<string name=\"([^\"]+)\"[^>]*>(.*?)</string>", java.util.regex.Pattern.DOTALL);
+            try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get(folder))) {
+                for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                    if (!file.getFileName().toString().startsWith("strings_")) continue;
+                    java.util.regex.Matcher m = string.matcher(read(file.toString()));
+                    while (m.find()) text.put(m.group(1), m.group(2).replace("\\'", "'").replace("\\\"", "\"").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"));
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        @Override public String string(int id) { return text.get(T.key(id)); }
+        @Override public String plural(int id, long quantity) { return null; }
+        @Override public String language() { return language; }
+    }
+
     private static void check(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
 
     private static final HubSearch.Gates ALL = new HubSearch.Gates() {
@@ -59,6 +84,7 @@ public final class HubSearchTest {
      * same strings): the names Recording settings shows on rows whose text only MoreScreen reads.
      */
     private static String recordingTitle(String tag) {
+        if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return T.morePrefsAutoStop();
         if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return T.moreAutoSaveJson();
         if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return T.moreAutoSaveFolder();
         return null;
@@ -93,6 +119,8 @@ public final class HubSearchTest {
             layoutRules();
             T.install(ZONES);
             zones();
+            T.install(new Catalog("pt", "pt-PT"));
+            recordingInPortuguese();
             T.install(FOREIGN);
             shown();
         } finally {
@@ -251,6 +279,30 @@ public final class HubSearchTest {
         check(firstPage(HubSearch.pages(ALL), "live stats").equals(HubPages.DATA), "Live Stats finds Data");
     }
 
+    /**
+     * Recording settings' switches by the names they show in Portuguese (Portugal), as the app ships them (#393 council
+     * review, second round, finding 5: they were found by English words only), and the rows this round moved, which the
+     * gates and HubText name in every language.
+     */
+    private static void recordingInPortuguese() {
+        check("Terminar viagens automaticamente".equals(T.morePrefsAutoStop()), "Portuguese (Portugal) is installed: " + T.morePrefsAutoStop());
+        List<HubSearch.Entry> index = everything();
+        String[][] cases = {
+                {"Terminar viagens automaticamente", HubSearchTables.SETTING_RIDE_AUTO_STOP, HubPages.RIDE_RECORDING},
+                {"Iniciar a gravação em segundo plano", HubSearchTables.SETTING_RECORD_BACKGROUND, HubPages.RIDE_RECORDING},
+                {"terminar viagens", HubSearchTables.SETTING_RIDE_AUTO_STOP, HubPages.RIDE_RECORDING},
+                {"gravacao em segundo plano", HubSearchTables.SETTING_RECORD_BACKGROUND, HubPages.RIDE_RECORDING},
+                {"Guardar viagens automaticamente", HubSearchTables.SETTING_AUTO_SAVE, HubPages.RIDE_RECORDING},
+                {"Pasta", HubSearchTables.SETTING_AUTO_SAVE_FOLDER, HubPages.RIDE_RECORDING},
+                {"Cópias de segurança de viagens", HubSearchTables.SETTING_RIDE_BACKUPS, HubPages.RIDE},
+        };
+        for (String[] c : cases) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, c[0])) found |= c[1].equals(e.anchor) && c[2].equals(e.page) && e.kind == HubSearch.Kind.SETTING;
+            check(found, "\"" + c[0] + "\" finds " + c[1] + " on " + c[2] + " in Portuguese (Portugal)");
+        }
+    }
+
     private static String firstPage(List<HubSearch.Entry> index, String query) {
         List<HubSearch.Entry> found = HubSearch.search(index, query);
         check(!found.isEmpty(), "something matches " + query);
@@ -349,6 +401,10 @@ public final class HubSearchTest {
         // their results open that page at the row, named as MoreScreen names them, and Data & history's words don't name them.
         for (String tag : new String[] {HubSearchTables.SETTING_AUTO_SAVE, HubSearchTables.SETTING_AUTO_SAVE_FOLDER})
             check(HubSearchTables.settingPage(tag).equals(HubPages.RIDE_RECORDING) && tag.equals(HubSearchTables.settingAnchor(tag)), "auto-save on Recording settings: " + tag);
+        check(more.contains("private static String autoStopTitle() { return T.morePrefsAutoStop(); }")
+                && more.contains("if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();")
+                && more.contains("Row autoStop = preferenceToggle(connection, \"walk\", autoStopTitle(),") && more.contains("autoStop.view.setTag(HubSearchTables.SETTING_RIDE_AUTO_STOP);")
+                && more.contains("inBackground.view.setTag(HubSearchTables.SETTING_RECORD_BACKGROUND);"), "Recording settings names and tags its two switches for search");
         check(more.contains("private static String autoSaveTitle() { return T.moreAutoSaveJson(); }")
                 && more.contains("private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }")
                 && more.contains("if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();")

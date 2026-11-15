@@ -528,6 +528,7 @@ public final class HubText {
             case HubSearchTables.SETTING_REPORT_ISSUE: return M.moreReportIssue();
             case HubSearchTables.SETTING_DEVELOPER: return M.moreSectionDeveloper();
             case HubSearchTables.SETTING_RIDE_BACKUPS: return rideBackupsRow();
+            case HubSearchTables.SETTING_RECORD_BACKGROUND: return recordInBackground();
             default: return null;
         }
     }

@@ -78,20 +78,27 @@ final class HubSearchTables {
      * (MoreScreen.searchTitle), the one file that reads their text.
      */
     static final String SETTING_AUTO_SAVE = "preference-auto-save-rides", SETTING_AUTO_SAVE_FOLDER = "preference-auto-save-folder";
+    /**
+     * Recording settings' End rides automatically and Start recording in the background switches: entries of their own,
+     * so the names shown on them find them in every language, not only their English words (#393 council review, second
+     * round, finding 5). Their tags: a new one on End rides automatically (MoreScreen.recording, named through the gates:
+     * MoreScreen.searchTitle) and the background switch's own.
+     */
+    static final String SETTING_RIDE_AUTO_STOP = "preference_ride_auto_stop", SETTING_RECORD_BACKGROUND = "preference-auto-record-background";
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
             SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_HAPTICS, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
-            SETTING_REPORT_ISSUE, SETTING_DEVELOPER, SETTING_RIDE_BACKUPS,
+            SETTING_REPORT_ISSUE, SETTING_DEVELOPER, SETTING_RIDE_BACKUPS, SETTING_RECORD_BACKGROUND,
     };
 
     /**
      * Settings rows search names through its gates (HubSearch.Gates.settingTitle), not HubText: rows whose text only
      * their own screen's file reads (MoreScreen.searchTitle). HubText names every row in SETTINGS.
      */
-    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER};
+    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_RIDE_AUTO_STOP, SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER};
 
     /**
      * The page that holds a hand-built row. Rows still on a scooter page are found in ControlsPages; the rows no
@@ -142,7 +149,8 @@ final class HubSearchTables {
 
     /**
      * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
-     * automatically and ride auto-save (Ride › Recording settings), the issue report (Service › Reports) and Ride backups
+     * automatically, End rides automatically, Start recording in the background and ride auto-save (Ride › Recording
+     * settings), the issue report (Service › Reports) and Ride backups
      * (the Ride page).
      */
     static String settingPage(String tag) {
@@ -151,7 +159,9 @@ final class HubSearchTables {
             case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_HIDE_STATUS_BAR:
             case SETTING_RIDING_CLOCK_SECONDS: case SETTING_RIDING_BRIGHTNESS: case SETTING_RIDING_NIGHT:
                 return HubPages.RIDE_RIDING;
-            case SETTING_RIDING_AUTO_RECORD: case SETTING_AUTO_SAVE: case SETTING_AUTO_SAVE_FOLDER: return HubPages.RIDE_RECORDING;
+            case SETTING_RIDING_AUTO_RECORD: case SETTING_AUTO_SAVE: case SETTING_AUTO_SAVE_FOLDER:
+            case SETTING_RIDE_AUTO_STOP: case SETTING_RECORD_BACKGROUND:
+                return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
             case SETTING_RIDE_BACKUPS: return HubPages.RIDE;
             default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
@@ -199,6 +209,8 @@ final class HubSearchTables {
             // Their titles are in their words: the gates name them (Gates.settingTitle), with no English of their own.
             case SETTING_AUTO_SAVE: return "auto-save rides autosave auto save rides save rides automatically export rides json csv";
             case SETTING_AUTO_SAVE_FOLDER: return "folder auto-save rides folder autosave folder save rides to folder";
+            case SETTING_RIDE_AUTO_STOP: return "end rides automatically auto stop stop rides automatically ride end";
+            case SETTING_RECORD_BACKGROUND: return "start recording in the background background recording auto record";
             default: return null;
         }
     }
@@ -226,8 +238,8 @@ final class HubSearchTables {
         if (page == null) return new String[0];
         switch (page) {
             case HubPages.RIDE_RIDES: return new String[] {"Compare two rides"};
-            case HubPages.RIDE_RECORDING: return new String[] {"Keep screen awake", "End rides automatically", "Start recording in the background",
-                    "Background recording", "Map settings", "GPS route", "Barometer elevation", "Motion sensors"};
+            case HubPages.RIDE_RECORDING: return new String[] {"Keep screen awake", "Background recording", "Map settings", "GPS route",
+                    "Barometer elevation", "Motion sensors"};
             case HubPages.RIDE_RIDING: return new String[] {"Screen rotation"};
             case HubPages.BATTERY_HISTORY: return new String[] {"Record charges automatically", "Export charge recordings"};
             case HubPages.SECURITY: return new String[] {"PIN unlock", "Set or change PIN", "Pair this phone with scooter", "Unlock without phone"};

@@ -970,7 +970,9 @@ public final class MoreScreen implements AppScreen {
         connection.setTag("preference-recording-options");
         preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        Row autoStop = preferenceToggle(connection, "walk", autoStopTitle(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        // Search's End rides automatically result opens this page at this switch (HubSearchTables.SETTING_RIDE_AUTO_STOP).
+        autoStop.view.setTag(HubSearchTables.SETTING_RIDE_AUTO_STOP);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
         // Its one home in the Hub: search's Record rides automatically result opens this page and finds the switch by its tag
         // (HubSearchTables.SETTING_RIDING_AUTO_RECORD, as on riding mode's own menu; #393 review, finding 3).
@@ -982,7 +984,8 @@ public final class MoreScreen implements AppScreen {
         // (AutoStartPolicy.backgroundSwitchDrawnOn). AutoStartPolicy.recordsNow decides.
         Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
                 enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
-        inBackground.view.setTag("preference-auto-record-background");
+        // Search's Start recording in the background result opens this page at this switch (HubSearchTables.SETTING_RECORD_BACKGROUND).
+        inBackground.view.setTag(HubSearchTables.SETTING_RECORD_BACKGROUND);
         valueRefreshers.add(() -> {
             boolean autoRecord = settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
             refreshSwitch(inBackground, AutoStartPolicy.backgroundSwitchDrawnOn(autoRecord, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)), autoRecord);
@@ -1637,6 +1640,8 @@ public final class MoreScreen implements AppScreen {
         self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);
         valueRefreshers.add(() -> refreshSwitch(self[0], RideAutoExportFolder.on(settings()), true));
     }
+    /** End rides automatically's title, shown on the switch and named by search (searchTitle). */
+    private static String autoStopTitle() { return T.morePrefsAutoStop(); }
     /** The auto-save switch's title, shown on it and named by search (searchTitle). */
     private static String autoSaveTitle() { return T.moreAutoSaveJson(); }
     /** The auto-save folder row's title, shown on it and named by search (searchTitle). */
@@ -1646,6 +1651,7 @@ public final class MoreScreen implements AppScreen {
      * MainActivity's search gates); null for any other tag.
      */
     static String searchTitle(String tag) {
+        if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();
         if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
         if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
         return null;

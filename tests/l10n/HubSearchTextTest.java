@@ -161,6 +161,7 @@ public final class HubSearchTextTest {
         equal("Report an issue", HubText.settingTitle(HubSearchTables.SETTING_REPORT_ISSUE), "report");
         equal("Developer options", HubText.settingTitle(HubSearchTables.SETTING_DEVELOPER), "developer");
         equal("Ride backups", HubText.settingTitle(HubSearchTables.SETTING_RIDE_BACKUPS), "ride backups");
+        equal("Start recording in the background", HubText.settingTitle(HubSearchTables.SETTING_RECORD_BACKGROUND), "record in the background");
         // Rows only their own screen names (MoreScreen.searchTitle, through the search gates) have no HubText name.
         for (String tag : HubSearchTables.SCREEN_NAMED_SETTINGS) check(HubText.settingTitle(tag) == null, "named by its screen, not HubText: " + tag);
         // The two pages that are also settings rows share their page's title.
