@@ -411,14 +411,18 @@ final class DragSheet {
         }
     }
 
-    /** While it settles closed the window lets touches through to Volt's own, so the dock can pull it back. */
+    /**
+     * While it settles closed the window lets touches through to Volt's own, so the dock can pull it back, and gives up
+     * focus, so a Back pressed meanwhile goes to the page (not to a sheet already on its way out).
+     */
     private void touchable(boolean on) {
         if (touchable == on) return;
         touchable = on;
         Window window = dialog.getWindow();
         if (window == null) return;
-        if (on) window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
-        else window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+        int flags = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        if (on) window.clearFlags(flags);
+        else window.addFlags(flags);
     }
 
     /** Back (and anything else that cancels the dialog) closes it the animated way. */

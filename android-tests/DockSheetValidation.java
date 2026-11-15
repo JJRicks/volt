@@ -185,14 +185,11 @@ public final class DockSheetValidation extends Instrumentation {
         // The dock goes with Home as the subject opens; the sheet it opened settles closed over the subject all the same.
         Object sheet = onMain(this::drag);
         Dialog window = onMain(this::dialog);
+        States states = new States(sheet);
         tapCentre(row, "the All sheet's " + subject + " row");
-        seen = new ArrayList<>();
         long end = SystemClock.uptimeMillis() + 5000;
-        while (SystemClock.uptimeMillis() < end && onMain(window::isShowing)) {
-            Integer state = onMain(() -> (Integer) field(sheet, "state"));
-            if (seen.isEmpty() || !seen.get(seen.size() - 1).equals(state)) seen.add(state);
-            SystemClock.sleep(10);
-        }
+        while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
+        seen = states.stop();
         require(!onMain(window::isShowing), "The All sheet stayed open after its " + subject + " row");
         require(seen.contains(CLOSING), "The " + subject + " row closed the sheet without its settle (states " + seen + ")");
         await(() -> onMain(() -> subject.equals(HubTestPages.current(activity))), "The All sheet's " + subject + " row did not open it");
@@ -327,7 +324,7 @@ public final class DockSheetValidation extends Instrumentation {
         scale(1);
         back(); awaitGone("Back");
         checks.add("ACTION_CANCEL settles a pull where it is (a tenth closes, two fifths opens); a second finger settles it at once and the rest of the touch moves nothing; "
-                + "a pull taken back to its start closes; a new pull and a tap on All catch the sheet as it settles closed and bring the same sheet back");
+                + "a pull taken back to its start closes; the page has focus while the sheet settles closed, and a new pull and a tap on All catch it and bring the same sheet back");
     }
 
     /** Every frame at animator scale 5: the opening, the snap-back and the close, and no gap under the sheet at any frame. */
@@ -506,18 +503,57 @@ public final class DockSheetValidation extends Instrumentation {
 
     // ===== Steps =====
 
+    /**
+     * The sheet's states, read on the main thread at every frame (a Choreographer callback), so a settle is seen even when
+     * a slow machine stalls the main thread: polling from this thread can miss a whole settle that a stall swallowed, but
+     * a settle lasts at least one frame. Records each change; a missing sheet is not recorded.
+     */
+    private final class States {
+        private final List<Integer> seen = new ArrayList<>();
+        private final Object only;
+        private boolean run, gone;
+        private Choreographer.FrameCallback tick;
+        /** Watches whichever sheet the dock has, or only sheet when it is not null (one that outlives the dock). */
+        States(Object sheet) {
+            only = sheet;
+            main(() -> {
+                run = true;
+                tick = t -> {
+                    if (!run) return;
+                    record();
+                    Choreographer.getInstance().postFrameCallback(tick);
+                };
+                record();
+                Choreographer.getInstance().postFrameCallback(tick);
+            });
+        }
+        /** On the main thread: notes the sheet's state now. */
+        private void record() {
+            Object sheet = only != null ? only : activity == null ? null : drag();
+            if (sheet == null) { gone = true; return; }
+            Integer state = (Integer) field(sheet, "state");
+            gone = only != null && !((Dialog) field(sheet, "dialog")).isShowing();
+            if (seen.isEmpty() || !seen.get(seen.size() - 1).equals(state)) seen.add(state);
+        }
+        /** The last state seen (null before any). */
+        Integer last() { return onMain(() -> { record(); return seen.isEmpty() ? null : seen.get(seen.size() - 1); }); }
+        /** True once the sheet is gone (the dock has none, or the watched sheet's window is down). */
+        boolean gone() { return onMain(() -> { record(); return gone; }); }
+        List<Integer> stop() { return onMain(() -> { run = false; record(); return new ArrayList<>(seen); }); }
+    }
+
     /** Taps the dock's All item and waits for the sheet to be open and still; returns the sheet's states seen meanwhile. */
     private List<Integer> tapAll() {
         HubTestPages.showDock(this, activity);
-        List<Integer> seen = new ArrayList<>();
+        States states = new States(null);
         tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
         long end = SystemClock.uptimeMillis() + 15000;
         while (SystemClock.uptimeMillis() < end) {
-            Integer state = onMain(() -> drag() == null ? null : (Integer) field(drag(), "state"));
-            if (state != null && (seen.isEmpty() || !seen.get(seen.size() - 1).equals(state))) seen.add(state);
+            Integer state = states.last();
             if (state != null && state == OPEN) break;
             SystemClock.sleep(10);
         }
+        List<Integer> seen = states.stop();
         require(!seen.isEmpty() && seen.get(seen.size() - 1) == OPEN, "All did not open the sheet (states " + seen + ")");
         settle();
         return seen;
@@ -525,15 +561,11 @@ public final class DockSheetValidation extends Instrumentation {
 
     /** Runs action (a close) on the open sheet and waits for it to be gone; returns the states seen meanwhile. */
     private List<Integer> closeBy(Runnable action) {
-        List<Integer> seen = new ArrayList<>();
+        States states = new States(null);
         action.run();
         long end = SystemClock.uptimeMillis() + 15000;
-        while (SystemClock.uptimeMillis() < end) {
-            Integer state = onMain(() -> drag() == null ? null : (Integer) field(drag(), "state"));
-            if (state == null) break;
-            if (seen.isEmpty() || !seen.get(seen.size() - 1).equals(state)) seen.add(state);
-            SystemClock.sleep(10);
-        }
+        while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
+        List<Integer> seen = states.stop();
         awaitGone("a close");
         return seen;
     }
@@ -542,7 +574,8 @@ public final class DockSheetValidation extends Instrumentation {
     private void closeStarts(Runnable action) {
         action.run();
         await(() -> onMain(() -> drag() != null && field(drag(), "state").equals(CLOSING)), "The sheet did not start settling closed");
-        SystemClock.sleep(150);
+        // On its way out it gives up focus: a Back pressed meanwhile goes to the page.
+        await(() -> onMain(() -> activity.hasWindowFocus()), "The page did not get focus back while the sheet settled closed");
         main(() -> require(drag() != null && field(drag(), "state").equals(CLOSING), "The slowed close ended too soon to catch"));
     }
 
