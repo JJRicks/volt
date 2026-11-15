@@ -134,8 +134,14 @@ final class CleanHomeScreen implements AppScreen {
         findSize.bottomMargin = ui.dp(12);
         page.addView(parts.findCard(), findSize);
 
-        // The top area: one height for every moment, so the Lock bar and the quick actions never move.
-        top = new FrameLayout(host.activity());
+        // The top area: one height for every moment, so the Lock bar and the quick actions never move. Its height is
+        // TopArea's for the window, less what Find it nearby takes over it, and within the pane above a hinge.
+        View find = parts.findCard();
+        top = new FrameLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(topHeight(find), MeasureSpec.EXACTLY));
+            }
+        };
         top.setTag(TAG_TOP);
         overview = parts.overview();
         charging = parts.chargingView();
@@ -146,7 +152,7 @@ final class CleanHomeScreen implements AppScreen {
         top.addView(justBack, new FrameLayout.LayoutParams(-1, -1));
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
-        page.addView(top, new LinearLayout.LayoutParams(-1, topHeight()));
+        page.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout lock = new FrameLayout(host.activity());
         lock.setTag(TAG_LOCK);
@@ -183,6 +189,7 @@ final class CleanHomeScreen implements AppScreen {
      * header does; the Lock bar, quick actions and subjects stay below it. The same views keep updating.
      */
     View takeHeader() {
+        tabletop = true;
         LinearLayout pane = column();
         for (View part : new View[] {header, top}) {
             ViewGroup.LayoutParams params = part.getLayoutParams();
@@ -398,11 +405,50 @@ final class CleanHomeScreen implements AppScreen {
 
     // ===== Sizes and small views =====
 
-    /** TopArea's share of this window, with the app's and the system's text scale together. */
-    private int topHeight() {
+    /**
+     * TopArea's height for this window (pixels), with the app's and the system's text scale together. Measured with the
+     * page, after the header and Find it nearby: while that card shows over the area, its height and margins come out of
+     * the room the area may take (TopArea.heightDp's aboveDp). The card shows over every moment alike, so the area keeps
+     * one height for all three; it changes only when the card comes or goes, as the Lock bar always moved for it. In
+     * tabletop posture the area stays within the pane above the hinge, less the header and the pane's padding
+     * (TopArea.tabletopDp), in every moment alike.
+     */
+    private int topHeight(View find) {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        float density = host.activity().getResources().getDisplayMetrics().density;
+        int above = 0;
+        if (find != null && find.getVisibility() == View.VISIBLE && find.getParent() == top.getParent()) {
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) find.getLayoutParams();
+            above = Math.round((find.getMeasuredHeight() + margins.topMargin + margins.bottomMargin) / density);
+        }
+        int area = TopArea.heightDp(configuration.screenWidthDp, configuration.screenHeightDp, ui.wideLayout(), scale, above);
+        int pane = tabletop ? paneRoom() : -1;
+        if (pane >= 0) area = TopArea.tabletopDp(area, Math.round(pane / density));
+        return Math.round(area * density);
+    }
+
+    /** Set by takeHeader: the header and the area are in the pane above a hinge. */
+    private boolean tabletop;
+
+    /**
+     * Tabletop posture: the pane's height (MainActivity's upper scroller, a fixed height) less the header's measured
+     * height and every padding between that pane and the area, in pixels; -1 while it cannot be known.
+     */
+    private int paneRoom() {
+        int used = header.getMeasuredHeight();
+        ViewGroup.LayoutParams headerSize = header.getLayoutParams();
+        if (headerSize instanceof ViewGroup.MarginLayoutParams)
+            used += ((ViewGroup.MarginLayoutParams) headerSize).topMargin + ((ViewGroup.MarginLayoutParams) headerSize).bottomMargin;
+        for (android.view.ViewParent parent = top.getParent(); parent instanceof View; parent = parent.getParent()) {
+            View view = (View) parent;
+            if (view instanceof android.widget.ScrollView) {
+                int height = view.getLayoutParams() == null ? -1 : view.getLayoutParams().height;
+                return height > 0 ? Math.max(0, height - used - view.getPaddingTop() - view.getPaddingBottom()) : -1;
+            }
+            used += view.getPaddingTop() + view.getPaddingBottom();
+        }
+        return -1;
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */

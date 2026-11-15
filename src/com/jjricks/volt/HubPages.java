@@ -227,6 +227,22 @@ public final class HubPages {
         return roomHeld ? LINE_ROOM : LINE_GONE;
     }
 
+    /**
+     * headerConnectionLine with the service's state: what a page's header shows while ScooterService is bound or not.
+     * serviceBound: the activity holds the service. bindCanCome: unbound, a bind will follow (Nearby devices permission is
+     * granted, so ensureService binds), as after an activity recreation, where the page is built before the service binds:
+     * then the connection is not known yet, and the line waits, gone and holding no room, for the rebuild the binding
+     * makes, so a connected page never keeps a blank line from that first build; a line that has already shown on the
+     * page (roomHeld) stays shown meanwhile, as the scooter is still not connected. With no bind to come (Nearby devices
+     * not granted: the service never binds) the scooter is not connected and the line shows, with its tap into the
+     * connection details and their button that grants the permission. connected counts only while the service is bound.
+     */
+    public static int pageConnectionLine(String page, boolean serviceBound, boolean bindCanCome, boolean connected, boolean roomHeld) {
+        String id = canonical(page);
+        if (!serviceBound && bindCanCome && !HOME.equals(id) && !appPage(id)) return roomHeld ? LINE_SHOWN : LINE_GONE;
+        return headerConnectionLine(page, serviceBound && connected, roomHeld);
+    }
+
     /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */
     public static String icon(String id) {
         switch (subjectOf(id)) {

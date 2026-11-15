@@ -66,13 +66,16 @@ import com.jjricks.volt.WideLayout;
  *   stepped aside, Cancel beside the field) and the subjects listed; typing ("batt", as the plan's mock-up) hides the
  *   subjects and finds at least one result row (pictured with the keyboard gone); "maintenance" finds Reminders, which
  *   opens over the search, and Back returns to the search with its query and results; the next Back clears the query
- *   (the subjects come back), and the one after returns to Home; Cancel, and the page's back link once the field is
- *   empty and left, return to Home at once.</li>
+ *   (the subjects come back), and the one after returns to Home; Cancel returns to Home at once, with a query typed or
+ *   with the field empty and left (the header stays hidden). Main's result check (#410's round) stays: "star" finds the
+ *   Star lights page, whose tap opens Lights & sound › Star lights with Search under it, and Back returns to Search with its query
+ *   and results kept (this part's search keeps them; main's Search was built afresh, empty).</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
  *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
- *   three tile values at one size on one baseline and their names on one line each; the Ride row under it shows that
- *   ride, not "No rides yet"), and
+ *   three tile values at one size on one baseline and their names on one line each; the route panel, where the card's fit
+ *   leaves it room, shown wholly inside the window with the route drawn, and otherwise reported as not shown; the Ride
+ *   row under it shows that ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -101,7 +104,10 @@ import com.jjricks.volt.WideLayout;
  *
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
- * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
+ * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
+ * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
+ * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none
+ * (withoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -134,6 +140,11 @@ public final class HubValidation extends Instrumentation {
         SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
     }
     private Bundle arguments;
+    /** The search result the walk opens: "star" finds the Star lights page (HubSearchTables' page words), by its result row's tag (HubSearchScreen.tag). */
+    private static final String SEARCH_QUERY = "star", SEARCH_RESULT = "hub-search-page-" + HubPages.LIGHTS_STAR;
+    /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
+    private static final String NO_NEARBY = "no-nearby";
+    private boolean noNearby;
     /** ROUTED's list for the simulated model the walk runs on. */
     private List<String> mayRoute = Collections.emptyList();
     private String simulatedModel = "";
@@ -152,10 +163,11 @@ public final class HubValidation extends Instrumentation {
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
-            admit(); admitted = true;
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-pages"), "Unknown -e mode " + mode + " (all or widgets-pages)");
+            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY), "Unknown -e mode " + mode + " (all, widgets-pages or " + NO_NEARBY + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
+            noNearby = mode.equals(NO_NEARBY);
+            admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
@@ -165,6 +177,10 @@ public final class HubValidation extends Instrumentation {
                     .commit(), "Fixture settings failed");
             seed();
             launch();
+            if (noNearby) {
+                withoutNearby();
+                noBind();
+            } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
             else {
@@ -176,6 +192,7 @@ public final class HubValidation extends Instrumentation {
                 widgets();
             }
             noCommands();
+            }
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -184,7 +201,7 @@ public final class HubValidation extends Instrumentation {
             result.putStringArrayList("routed_pages", routed); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             if (admitted && activity != null) try {
-                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false);
+                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); if (controlDialog() != null) controlDialog().dismiss(); activity.finish(); ScooterService.setUiVisible(false);
                     getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
             } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -306,6 +323,106 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
+     * -e mode no-nearby (#410 review): without Nearby devices permission ScooterService never binds (MainActivity's
+     * ensureService), so the scooter is not connected: every subject page, Search and every sub-page shows the connection
+     * line between its back link and its title (HubPages.pageConnectionLine), and Settings and its pages show none. The
+     * subjects open from Home's rows; their sub-pages open by the page stack's route (without the service a hosted page
+     * holds no rows; the full walk checks the rows). On Battery & charging and on its first sub-page the line's tap opens
+     * the connection details, whose state reads "No permission" and whose button is "Allow Nearby devices" (pictured, not
+     * tapped: it would ask for the permission). That sub-page rebuilt by an activity recreation (as a rotation makes) shows
+     * the line again at once, as no bind is coming. Nothing binds the service (noBind).
+     */
+    private void withoutNearby() throws Exception {
+        screenshot("no-nearby-home");
+        String subPage = children(HubPages.BATTERY).get(0);
+        for (String subject : HubPages.SUBJECTS) {
+            tapTag("home-subject-" + subject);
+            arrived(subject, HubPages.HOME, subject);
+            requireHeader(subject, true);
+            if (subject.equals(HubPages.BATTERY)) {
+                screenshot("no-nearby-battery");
+                connectionDetails(subject, "no-nearby-battery-details");
+            }
+            for (String child : children(subject)) {
+                open(child);
+                arrived(child, HubPages.HOME, subject, child);
+                requireHeader(child, true);
+                if (child.equals(subPage)) {
+                    screenshot("no-nearby-" + child);
+                    connectionDetails(child, "no-nearby-" + child + "-details");
+                    recreateActivity();
+                    arrived(child, HubPages.HOME, subject, child);
+                    requireHeader(child, true);
+                    screenshot("no-nearby-" + child + "-recreated");
+                }
+                systemBack();
+                arrived(subject, HubPages.HOME, subject);
+                requireHeader(subject, true);
+            }
+            systemBack();
+            requireHome("CleanHomeScreen");
+        }
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        requireHeader(HubPages.SEARCH, true);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireHeader(HubPages.SETTINGS, false);
+        for (String child : children(HubPages.SETTINGS)) {
+            open(child);
+            arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireHeader(child, false);
+            systemBack();
+            arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        }
+        screenshot("no-nearby-settings");
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        checks.add("Without Nearby devices permission (none granted; the service never binds): every subject, Search and every sub-page shows the connection line"
+                + " between its back link and title; on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
+                + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none");
+    }
+
+    /**
+     * Taps the page's connection line and requires the connection details it opens to say the permission is missing and
+     * offer "Allow Nearby devices" (the button is not tapped); pictured as shot, then closed.
+     */
+    private void connectionDetails(String page, String shot) throws Exception {
+        main(() -> click(root().findViewWithTag("hub-page-connection"), page + "'s connection line"));
+        AlertDialog[] dialog = new AlertDialog[1];
+        await(() -> onMain(() -> { dialog[0] = controlDialog(); return dialog[0] != null && dialog[0].isShowing(); }), page + "'s connection line did not open the connection details");
+        settle();
+        main(() -> {
+            View content = dialog[0].getWindow().getDecorView();
+            require(hasText(content, "No permission"), "The connection details from " + page + " do not say \"No permission\"");
+            android.widget.Button allow = dialog[0].getButton(AlertDialog.BUTTON_NEGATIVE);
+            require(shown(allow) && "Allow Nearby devices".equalsIgnoreCase(allow.getText().toString()), "The connection details from " + page + " offer \""
+                    + (allow == null ? null : allow.getText()) + "\", not \"Allow Nearby devices\"");
+        });
+        screenshot(shot, onMain(() -> dialog[0].getWindow().getDecorView()));
+        main(() -> dialog[0].dismiss());
+        await(() -> onMain(() -> !dialog[0].isShowing()), "The connection details did not close");
+        settle();
+    }
+
+    /** MainActivity's connection details dialog (its controlDialog), or null. Main thread. */
+    private AlertDialog controlDialog() { return activity == null ? null : (AlertDialog) field(activity, "controlDialog"); }
+
+    /** Without Nearby permission nothing bound the service, so nothing could reach a scooter or start a recording. */
+    private void noBind() {
+        main(() -> {
+            require(activity.service() == null, "ScooterService bound without Nearby permission");
+            require(field(activity, "riding") == null, "Riding mode opened during the walk");
+        });
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "The walk granted " + permission);
+        checks.add("No scooter work: the service never bound, Nearby permission is still not granted, no riding mode");
+    }
+
+    /**
      * The header's search (Hub layout part 12): its field focused at the very top, the page header stepped aside while
      * the owner searches, the subjects listed until typing; a result opens over the search and Back returns to it with
      * its query and results; Back then clears the query, then leaves. Cancel leaves at once with a query typed; with
@@ -373,11 +490,12 @@ public final class HubValidation extends Instrumentation {
         hideKeyboard();
         systemBack();
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        main(() -> {
-            EditText now = firstEditText(activity.findViewById(android.R.id.content));
-            require(now != null && now.getText().length() == 0, "Back did not clear the search's query first");
-            require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back cleared the query but the subjects did not come back");
-        });
+        // Back reaches the page through the system's dispatch, which can land after settle() on a loaded emulator (hub-725
+        // failed here once on the council's pool): wait for the cleared query, then for the subjects, each with its message.
+        await(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
+                "Back did not clear the search's query first");
+        await(() -> onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))), "Back cleared the query but the subjects did not come back");
+        requireStack(HubPages.HOME, HubPages.SEARCH);
         systemBack();
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
@@ -400,7 +518,34 @@ public final class HubValidation extends Instrumentation {
         tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
+        // A result opens its page over Search (#410's round, adapted): "star" finds the Star lights page (and not Line
+        // lights), whose tap opens Lights & sound › Star lights with Search under it; Back returns to Search with "star"
+        // and its results kept, as this part's search keeps them (main's Search was built afresh, empty).
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText(SEARCH_QUERY)); settle();
+        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while \"" + SEARCH_QUERY + "\" is typed"));
+        hideKeyboard();
+        main(() -> require(shown(root().findViewWithTag(SEARCH_RESULT)), "Search for \"" + SEARCH_QUERY + "\" does not show the Star lights page ("
+                + resultRows(root().findViewWithTag("hub-search-results")) + " result rows; " + chain(root().findViewWithTag(SEARCH_RESULT)) + ")"));
+        screenshot("search-star");
+        tapTag(SEARCH_RESULT);
+        arrived(HubPages.LIGHTS_STAR, HubPages.HOME, HubPages.SEARCH, HubPages.LIGHTS_STAR);
+        screenshot("search-opened-star-lights");
+        systemBack();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        String[] kept = new String[1];
+        await(() -> onMain(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            kept[0] = now == null ? null : now.getText().toString();
+            return now != null && SEARCH_QUERY.contentEquals(now.getText()) && shown(root().findViewWithTag(SEARCH_RESULT));
+        }), () -> "Back from the Star lights result shows Search with the query \"" + kept[0] + "\"; this part's search keeps \"" + SEARCH_QUERY + "\" and its results");
+        hideKeyboard();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left;"
+                + " \"star\" finds Star lights, whose tap opens it over Search (stack Home, Search, Star lights); Back returns to Search with \"star\" and its results kept");
     }
 
     /**
@@ -439,10 +584,15 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 2; }), "Clean Home does not show Just back for a ride that just ended");
         Object card = onMain(() -> field(clean, "justBack"));
         main(() -> require(ride.equals(invoke(card, "rideId", new Class<?>[0])), "Just back shows another ride than the one just saved"));
-        // The route is read on a worker once the card is bound.
-        await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back drew no route for the ride's GPS fixes");
         int[] justBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
+        // The route panel as it is on screen: shown with at least the room it draws in (JustBackView's MIN_ROUTE_DP; under it
+        // the panel draws nothing) and wholly inside the window. Where Just back's fit gives the panel up (a short area at
+        // large text, JustBackFit.split), the walk says the route was not shown. Shown, the route itself is read on a worker
+        // once the card is bound, and must arrive.
+        String routeShown = onMain(() -> routeOnScreen(card));
+        if (routeShown != null)
+            await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back's route panel shows (" + routeShown + ") but no route arrived for the ride's GPS fixes");
         main(() -> {
             for (String name : new String[]{"saved", "distance"}) {
                 TextView text = (TextView) field(card, name);
@@ -485,7 +635,26 @@ public final class HubValidation extends Instrumentation {
         int[] afterJustBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
-                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and route shown; the Ride row shows that ride); each pictured at that scroll");
+                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and "
+                + (routeShown != null ? "its route shown on screen (" + routeShown + ")" : "no route shown: Just back's fit gave up the route panel at this size")
+                + "; the Ride row shows that ride); each pictured at that scroll");
+    }
+
+    /**
+     * Just back's route panel (JustBackView's route, tag home-just-back-route) where an owner sees it: shown, at least
+     * MIN_ROUTE_DP high (under that it draws nothing) and wholly inside the window, unclipped. Its size and place, or null
+     * where the card's fit gave the panel up (gone, or too low to draw). Main thread.
+     */
+    private String routeOnScreen(Object card) {
+        View panel = (View) field(card, "route");
+        int least = Math.round(((Integer) field(card, "MIN_ROUTE_DP")) * activity.getResources().getDisplayMetrics().density);
+        if (!shown(panel) || panel.getHeight() < least) return null;
+        Rect seen = new Rect(), place = windowRect(panel);
+        require(panel.getGlobalVisibleRect(seen) && seen.width() >= panel.getWidth() - 1 && seen.height() >= panel.getHeight() - 1,
+                "Just back's route panel " + place.toShortString() + " is not wholly on screen (visible " + seen.toShortString() + ")");
+        Rect window = new Rect(0, 0, root().getWidth(), root().getHeight());
+        require(window.contains(place), "Just back's route panel " + place.toShortString() + " runs outside the window " + window.toShortString());
+        return panel.getWidth() + "x" + panel.getHeight() + " px at " + place.left + "," + place.top;
     }
 
     /**
@@ -872,7 +1041,7 @@ public final class HubValidation extends Instrumentation {
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
         });
         if (!HubPages.HOME.equals(page)) {
-            boolean connected = onMain(() -> activity.service().ble.ready());
+            boolean connected = onMain(() -> activity.service() != null && activity.service().ble.ready());
             // Search with Cancel beside its field hides the whole header, the connection line with it (part 12).
             if (searchHeaderAside(page)) main(() -> require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line with its header stepped aside"));
             // The contributor's decision (14 Nov, #383): the connection line only while not connected, never on Settings.
@@ -1020,7 +1189,7 @@ public final class HubValidation extends Instrumentation {
         removeMonitor(monitor);
         require(next instanceof MainActivity && next != before, "The activity was not recreated");
         activity = (MainActivity) next;
-        await(() -> activity.service() != null, "The recreated activity has no service");
+        if (!noNearby) await(() -> activity.service() != null, "The recreated activity has no service");
         settle();
     }
 
@@ -1034,7 +1203,8 @@ public final class HubValidation extends Instrumentation {
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Refusing existing private data");
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
-            require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
+            if (noNearby) require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "-e mode " + NO_NEARBY + " needs Nearby permission not granted (" + permission + " is)");
+            else require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
         BluetoothManager manager = getTargetContext().getSystemService(BluetoothManager.class);
         require(manager == null || manager.getAdapter() == null || !manager.getAdapter().isEnabled(), "Emulator Bluetooth must stay off");
     }
@@ -1048,7 +1218,10 @@ public final class HubValidation extends Instrumentation {
     }
     private void launch() {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        await(() -> activity.service() != null, "App did not launch"); settle();
+        // Without Nearby permission the service never binds (MainActivity.ensureService); Home shows instead.
+        if (noNearby) requireHome("CleanHomeScreen");
+        else await(() -> activity.service() != null, "App did not launch");
+        settle();
     }
     /** The developer simulator's UT5 MAX, connected; its settings now are the ones a command would change. */
     private void simulate() {
@@ -1101,6 +1274,20 @@ public final class HubValidation extends Instrumentation {
         int found = 0;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) found += resultRows(((ViewGroup) view).getChildAt(i));
         return found;
+    }
+    /** A view and its ancestors' classes and visibility (V, I, G) and heights, for a failure message. Main thread. */
+    private static String chain(View view) {
+        if (view == null) return "no such view";
+        StringBuilder out = new StringBuilder();
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null)
+            out.append(out.length() == 0 ? "" : " < ").append(at.getClass().getSimpleName()).append(at.getVisibility() == View.VISIBLE ? "/V" : at.getVisibility() == View.INVISIBLE ? "/I" : "/G").append(at.getHeight());
+        return out.toString();
+    }
+    /** Whether a shown TextView in view reads text. */
+    private static boolean hasText(View view, String text) {
+        if (view instanceof TextView && view.isShown() && text.contentEquals(((TextView) view).getText())) return true;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (hasText(((ViewGroup) view).getChildAt(i), text)) return true;
+        return false;
     }
     private static EditText firstEditText(View view) {
         if (view instanceof EditText && view.isShown()) return (EditText) view;

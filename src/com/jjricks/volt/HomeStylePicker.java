@@ -40,7 +40,8 @@ final class HomeStylePicker {
         // Side by side as the mock-up, while each half has room for its drawing and name (HomeStyle.pickerSideBySide).
         float scale = ui.textScale * host.activity().getResources().getConfiguration().fontScale;
         boolean stacked = !HomeStyle.pickerSideBySide(host.activity().getResources().getConfiguration().screenWidthDp, scale);
-        LinearLayout choices = new LinearLayout(host.activity());
+        // Both cards the same height, as in What's new (EqualHeights), whatever their names' lengths.
+        LinearLayout choices = new EqualHeights(host.activity());
         choices.setOrientation(stacked ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL);
         View[] cards = new View[2];
         Ui.RadioDot[] dots = new Ui.RadioDot[2];
