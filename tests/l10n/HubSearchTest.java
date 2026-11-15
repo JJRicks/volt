@@ -51,7 +51,18 @@ public final class HubSearchTest {
         @Override public boolean row(String id) { return true; }
         @Override public boolean lab(String key) { return false; }
         @Override public boolean page(String page) { return true; }
+        @Override public CharSequence settingTitle(String tag) { return recordingTitle(tag); }
     };
+
+    /**
+     * As MoreScreen.searchTitle (MainActivity's gates name these rows through it; rowsOnTheirPages checks it reads the
+     * same strings): the names Recording settings shows on rows whose text only MoreScreen reads.
+     */
+    private static String recordingTitle(String tag) {
+        if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return T.moreAutoSaveJson();
+        if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return T.moreAutoSaveFolder();
+        return null;
+    }
     private static final HubSearch.Gates NONE = new HubSearch.Gates() {
         @Override public boolean row(String id) { return false; }
         @Override public boolean lab(String key) { return false; }
@@ -182,7 +193,7 @@ public final class HubSearchTest {
         all.addAll(pages);
         all.addAll(HubSearch.controls(ALL, () -> "Experimental"));
         all.addAll(HubSearch.rows(ALL));
-        all.addAll(HubSearch.settings());
+        all.addAll(HubSearch.settings(ALL));
         for (HubSearch.Entry e : all) {
             check(HubPages.known(e.page), "a known page: " + e.page);
             check(e.page.equals(HubPages.canonical(e.page)), "a canonical page: " + e.page);
@@ -208,8 +219,9 @@ public final class HubSearchTest {
         check(HubSearchTables.rowPage(HubSearchTables.ROW_CHARGE_DONE_BY).equals(ControlsPages.pageOf("timed_charging")), "Done by follows its parent");
         // Settings rows: every tag has its page and words; the riding switches are on Ride › Riding mode, except Record
         // rides automatically, whose one home is Ride › Recording settings (#393 review, finding 3).
-        check(HubSearch.settings().size() == HubSearchTables.SETTINGS.length, "every settings row");
-        for (String tag : HubSearchTables.SETTINGS) {
+        check(HubSearch.settings(ALL).size() == HubSearchTables.SETTINGS.length + HubSearchTables.SCREEN_NAMED_SETTINGS.length, "every settings row");
+        check(HubSearch.settings(NONE).size() == HubSearchTables.SETTINGS.length, "a row the gates don't name is not listed");
+        for (String tag : allSettings()) {
             check(HubSearchTables.settingPage(tag) != null && HubSearchTables.settingWords(tag) != null, "page and words for " + tag);
             if (tag.startsWith("preference_riding_") && !tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD))
                 check(HubSearchTables.settingPage(tag).equals(HubPages.RIDE_RIDING), "riding switch " + tag);
@@ -235,7 +247,7 @@ public final class HubSearchTest {
         List<HubSearch.Entry> index = new ArrayList<>(HubSearch.rows(ALL));
         check(firstPage(index, "deadline").equals(HubPages.BATTERY), "deadline finds Done by");
         check(firstPage(index, "km/h").equals(HubPages.CONTROLS), "km/h finds the top speed card");
-        check(firstPage(HubSearch.settings(), "backup").equals(HubPages.SETTINGS), "backup finds Back up & restore");
+        check(firstPage(HubSearch.settings(ALL), "backup").equals(HubPages.SETTINGS), "backup finds Back up & restore");
         check(firstPage(HubSearch.pages(ALL), "live stats").equals(HubPages.DATA), "Live Stats finds Data");
     }
 
@@ -319,7 +331,7 @@ public final class HubSearchTest {
         check(more.contains("autoRecordRow.view.setTag(HubSearchTables.SETTING_RIDING_AUTO_RECORD);"),
                 "Recording settings tags its Record rides automatically switch");
         check(read("src/com/jjricks/volt/HubRidingSettings.java").contains(".withoutAutoRecord()"), "Riding mode leaves the switch out");
-        for (String tag : HubSearchTables.SETTINGS) {
+        for (String tag : allSettings()) {
             String page = HubSearchTables.settingPage(tag);
             // Every other settings row is built by MoreScreen (Settings, its pages, Reports and riding mode's menu), but Ride
             // backups, which RidesScreen builds on the Ride page only.
@@ -333,6 +345,29 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/RidingBrightness.java").contains("\"riding_brightness\"")
                 && read("src/com/jjricks/volt/NightSchedule.java").contains("\"riding_night_vision\""), "by their preference keys");
         check(HubSearchTables.settingAnchor(HubSearchTables.SETTING_UNITS).equals(HubSearchTables.SETTING_UNITS), "other rows by their own tag");
+        // Auto-save rides and its folder live on Ride › Recording settings only (#393 council review, second round, finding 3):
+        // their results open that page at the row, named as MoreScreen names them, and Data & history's words don't name them.
+        for (String tag : new String[] {HubSearchTables.SETTING_AUTO_SAVE, HubSearchTables.SETTING_AUTO_SAVE_FOLDER})
+            check(HubSearchTables.settingPage(tag).equals(HubPages.RIDE_RECORDING) && tag.equals(HubSearchTables.settingAnchor(tag)), "auto-save on Recording settings: " + tag);
+        check(more.contains("private static String autoSaveTitle() { return T.moreAutoSaveJson(); }")
+                && more.contains("private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }")
+                && more.contains("if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();")
+                && more.contains("if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();"), "MoreScreen names the auto-save rows for search");
+        check(more.contains("self[0] = toggleRow(box, \"download\", autoSaveTitle(),") && more.contains("self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);")
+                && more.contains("Row folder = row(box, \"export\", autoSaveFolderTitle(),") && more.contains("folder.view.setTag(HubSearchTables.SETTING_AUTO_SAVE_FOLDER);"),
+                "the auto-save switch and folder row show those names and carry those tags");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("@Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}"),
+                "MainActivity's search gates name them through MoreScreen.searchTitle");
+        for (String word : new String[] {"auto-save", "autosave", "Auto-save rides", "folder"}) {
+            List<HubSearch.Entry> found = HubSearch.search(everything(), word);
+            check(!found.isEmpty(), "\"" + word + "\" finds something");
+            boolean recording = false;
+            for (HubSearch.Entry e : found) {
+                check(!e.page.equals(HubPages.DATA_STORAGE), "\"" + word + "\" does not list Data & history");
+                recording |= e.page.equals(HubPages.RIDE_RECORDING) && e.anchor != null && e.anchor.startsWith("preference-auto-save-");
+            }
+            check(recording, "\"" + word + "\" lists Recording settings' auto-save row");
+        }
         // Ride backups has one home, the Ride page (#393 council review, second round, finding 2): its result opens that page
         // with the row on screen, and All rides & compare's words no longer name it.
         String rides = read("src/com/jjricks/volt/RidesScreen.java");
@@ -373,7 +408,7 @@ public final class HubSearchTest {
         }
         String all = code.toString();
         List<String> unbuilt = new ArrayList<>();
-        for (String tag : HubSearchTables.SETTINGS) {
+        for (String tag : allSettings()) {
             String anchor = HubSearchTables.settingAnchor(tag);
             if (anchor == null) continue;
             boolean built = all.contains("\"" + anchor + "\"") || constant(anchor) != null && all.contains("setTag(HubSearchTables." + constant(anchor) + ")");
@@ -402,6 +437,13 @@ public final class HubSearchTest {
                 check(HubSearchTables.pageWords(page).contains(title.toLowerCase(Locale.ROOT)), "a page's words hold its rows' titles: " + title);
             }
         check(unnamed.isEmpty(), "row titles in HubSearchTables.pageRows that no catalog string reads: " + unnamed);
+    }
+
+    /** HubSearchTables.SETTINGS and SCREEN_NAMED_SETTINGS. */
+    private static List<String> allSettings() {
+        List<String> all = new ArrayList<>(Arrays.asList(HubSearchTables.SETTINGS));
+        all.addAll(Arrays.asList(HubSearchTables.SCREEN_NAMED_SETTINGS));
+        return all;
     }
 
     private static String constant(String tag) {
@@ -456,7 +498,7 @@ public final class HubSearchTest {
         List<HubSearch.Entry> all = new ArrayList<>(HubSearch.pages(ALL));
         all.addAll(HubSearch.controls(ALL, () -> "Experimental"));
         all.addAll(HubSearch.rows(ALL));
-        all.addAll(HubSearch.settings());
+        all.addAll(HubSearch.settings(ALL));
         return all;
     }
 

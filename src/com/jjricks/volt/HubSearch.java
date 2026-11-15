@@ -95,6 +95,12 @@ final class HubSearch {
          * short label a control's row shows, a hand-built row's main_search_* words); null for none.
          */
         default CharSequence[] words(String id) { return null; }
+        /**
+         * The name a settings row shows, in the current language, for a row HubText names none for: one only its own
+         * screen's file reads (Recording settings' Auto-save rides and Folder; #393 council review, second round); null
+         * for none (the row is then not listed).
+         */
+        default CharSequence settingTitle(String tag) { return null; }
     }
 
     /** The Scooter tab's search normalization (MainActivity.normalize): lower case, no spaces, underscores or hyphens. */
@@ -318,14 +324,21 @@ final class HubSearch {
         return all;
     }
 
-    /** The settings rows (HubSearchTables.SETTINGS), by their shown names and English words. */
-    static List<Entry> settings() {
+    /**
+     * The settings rows (HubSearchTables.SETTINGS, then SCREEN_NAMED_SETTINGS), by their shown names and English words:
+     * the name HubText gives, else the one the gates give (Gates.settingTitle), whose English is in the row's words.
+     */
+    static List<Entry> settings(Gates gates) {
         List<Entry> entries = new ArrayList<>();
-        for (String tag : HubSearchTables.SETTINGS) {
+        List<String> tags = new ArrayList<>(java.util.Arrays.asList(HubSearchTables.SETTINGS));
+        tags.addAll(java.util.Arrays.asList(HubSearchTables.SCREEN_NAMED_SETTINGS));
+        for (String tag : tags) {
             Msg title = HubText.settingTitle(tag);
+            CharSequence shown = title != null ? title : gates == null ? null : gates.settingTitle(tag);
             String page = HubSearchTables.settingPage(tag);
-            if (title == null || page == null) continue;
-            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
+            if (shown == null || page == null) continue;
+            String english = (title == null ? "" : title.english() + " ") + HubSearchTables.settingWords(tag);
+            entries.add(new Entry(Kind.SETTING, page, english, shown, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
         }
         return entries;
     }

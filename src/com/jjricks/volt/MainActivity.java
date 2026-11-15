@@ -731,6 +731,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(HubSearchTables.rowWords(id)!=null)return null;
                 return new CharSequence[]{shortLabel(ScooterCommands.find(id))};
             }
+            // Recording settings' rows whose names only MoreScreen reads (#393 council review, second round).
+            @Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}
         };
     }
     /** A feature row or a hand-built row (HubSearchTables.ROWS) shows on its page now (ControlsScreen.applyFilter's rules). */

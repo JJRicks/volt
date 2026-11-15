@@ -222,7 +222,7 @@ final class HubSearchScreen implements AppScreen {
         List<HubSearch.Entry> index = new ArrayList<>(HubSearch.pages(gates));
         index.addAll(HubSearch.controls(gates, HubText::experimentalBadge));
         index.addAll(HubSearch.rows(gates));
-        index.addAll(HubSearch.settings());
+        index.addAll(HubSearch.settings(gates));
         index.addAll(StatsScreen.readingEntries(host));
         index.addAll(rideEntries());
         return index;

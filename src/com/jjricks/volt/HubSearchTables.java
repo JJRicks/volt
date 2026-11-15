@@ -71,6 +71,13 @@ final class HubSearchTables {
      * All rides & compare, which no longer shows it).
      */
     static final String SETTING_RIDE_BACKUPS = "ride-backups-menu";
+    /**
+     * Recording settings' ride auto-save switch and its folder row (MoreScreen.autoSaveGroup, built only on Ride ›
+     * Recording settings): entries of their own that open that page at the row (#393 council review, second round,
+     * finding 3: their words were on Data & history, which no longer shows them). Named through the gates
+     * (MoreScreen.searchTitle), the one file that reads their text.
+     */
+    static final String SETTING_AUTO_SAVE = "preference-auto-save-rides", SETTING_AUTO_SAVE_FOLDER = "preference-auto-save-folder";
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
@@ -79,6 +86,12 @@ final class HubSearchTables {
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
             SETTING_REPORT_ISSUE, SETTING_DEVELOPER, SETTING_RIDE_BACKUPS,
     };
+
+    /**
+     * Settings rows search names through its gates (HubSearch.Gates.settingTitle), not HubText: rows whose text only
+     * their own screen's file reads (MoreScreen.searchTitle). HubText names every row in SETTINGS.
+     */
+    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER};
 
     /**
      * The page that holds a hand-built row. Rows still on a scooter page are found in ControlsPages; the rows no
@@ -129,7 +142,8 @@ final class HubSearchTables {
 
     /**
      * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
-     * automatically (Ride › Recording settings), the issue report (Service › Reports) and Ride backups (the Ride page).
+     * automatically and ride auto-save (Ride › Recording settings), the issue report (Service › Reports) and Ride backups
+     * (the Ride page).
      */
     static String settingPage(String tag) {
         if (tag == null) return null;
@@ -137,7 +151,7 @@ final class HubSearchTables {
             case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_HIDE_STATUS_BAR:
             case SETTING_RIDING_CLOCK_SECONDS: case SETTING_RIDING_BRIGHTNESS: case SETTING_RIDING_NIGHT:
                 return HubPages.RIDE_RIDING;
-            case SETTING_RIDING_AUTO_RECORD: return HubPages.RIDE_RECORDING;
+            case SETTING_RIDING_AUTO_RECORD: case SETTING_AUTO_SAVE: case SETTING_AUTO_SAVE_FOLDER: return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
             case SETTING_RIDE_BACKUPS: return HubPages.RIDE;
             default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
@@ -182,6 +196,9 @@ final class HubSearchTables {
             case SETTING_REPORT_ISSUE: return "report issue bug problem email";
             case SETTING_DEVELOPER: return "developer options simulate simulation debug";
             case SETTING_RIDE_BACKUPS: return "ride backups backup restore import export rides";
+            // Their titles are in their words: the gates name them (Gates.settingTitle), with no English of their own.
+            case SETTING_AUTO_SAVE: return "auto-save rides autosave auto save rides save rides automatically export rides json csv";
+            case SETTING_AUTO_SAVE_FOLDER: return "folder auto-save rides folder autosave folder save rides to folder";
             default: return null;
         }
     }
@@ -217,8 +234,7 @@ final class HubSearchTables {
             case HubPages.SERVICE: return new String[] {"Diagnostics & connection activity"};
             case HubPages.SERVICE_EXPERIMENTAL: return new String[] {"Controls to try", "Command evidence", "Clear try results"};
             case HubPages.DATA: return new String[] {"Favorites"};
-            case HubPages.DATA_STORAGE: return new String[] {"Save readings history", "Clear this scooter's history", "Clear all readings history",
-                    "Auto-save rides", "Folder"};
+            case HubPages.DATA_STORAGE: return new String[] {"Save readings history", "Clear this scooter's history", "Clear all readings history"};
             case HubPages.SETTINGS: return new String[] {"Appearance"};
             case HubPages.SETTINGS_HOME: return new String[] {"Show charging automatically", "Show the last ride after riding"};
             case HubPages.SETTINGS_SCOOTERS: return new String[] {"Connect automatically", "Stay connected in background", "Telemetry refresh"};

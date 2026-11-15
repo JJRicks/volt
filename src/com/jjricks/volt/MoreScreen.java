@@ -1612,9 +1612,11 @@ public final class MoreScreen implements AppScreen {
         label(T.moreAutoSaveHeading());
         LinearLayout box = group();
         autoSaveSwitch(box);
-        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+        Row folder = row(box, "export", autoSaveFolderTitle(), T.moreAutoSaveNoFolder(), () -> {
             if (RideAutoExportFolder.on(settings())) chooseAutoSaveFolder(false);
         });
+        // Search's Folder result opens this page at this row (HubSearchTables.SETTING_AUTO_SAVE_FOLDER).
+        folder.view.setTag(HubSearchTables.SETTING_AUTO_SAVE_FOLDER);
         valueRefreshers.add(() -> {
             RideAutoExport.RowState state = autoSaveFolderState();
             folder.enabled(state != RideAutoExport.RowState.OFF);
@@ -1627,11 +1629,26 @@ public final class MoreScreen implements AppScreen {
     }
     private void autoSaveSwitch(LinearLayout box) {
         Row[] self = new Row[1];
-        self[0] = toggleRow(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), on -> {
+        self[0] = toggleRow(box, "download", autoSaveTitle(), T.moreAutoSaveJsonSub(), on -> {
             if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(true); }
             else { RideAutoExportFolder.set(host.activity(), settings(), on); host.redraw(); }
         });
+        // Search's Auto-save rides result opens this page at this switch (HubSearchTables.SETTING_AUTO_SAVE).
+        self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);
         valueRefreshers.add(() -> refreshSwitch(self[0], RideAutoExportFolder.on(settings()), true));
+    }
+    /** The auto-save switch's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveTitle() { return T.moreAutoSaveJson(); }
+    /** The auto-save folder row's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }
+    /**
+     * The name Recording settings shows on a row search lists whose text only this file reads (HubSearch.Gates.settingTitle,
+     * MainActivity's search gates); null for any other tag.
+     */
+    static String searchTitle(String tag) {
+        if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
+        if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
+        return null;
     }
     /** The folder row's state: the switch, the stored folder, its grant and the failure id. */
     private RideAutoExport.RowState autoSaveFolderState() {
