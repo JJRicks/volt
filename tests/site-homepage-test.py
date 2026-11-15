@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Homepage variants (site/README.md, "Variants"): the build contract, the variant markup check, the nginx
 configuration and the live-variant switch. Temporary folders only; no network, server or browser."""
-import hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
+import fcntl, hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, time, unittest
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # loading the extensionless switch script must leave no __pycache__ in site/
@@ -706,21 +706,71 @@ class DeployRelease(unittest.TestCase):
         self.config = self.nginx / 'sites-available' / 'volt-homepage'
         self.config.write_text('server {\n    root /var/www/volt-home/live;\n}\n')
         self.switch_bin = SITE / 'server' / 'volt-homepage-switch'
-        (self.bin / 'nginx').write_text('#!/bin/sh\nexit 0\n')
+        # nginx -t fails while the flag file "nginx-fails" exists, and sends the deploy SIGTERM (an operator's
+        # interrupt, a dropped session) while "nginx-term" does; systemctl knows no unit while "no-unit" does.
+        self.flags = base
+        (self.bin / 'nginx').write_text('#!/bin/sh\n[ -e "%s" ] && { echo "nginx: test failed" >&2; exit 1; }\n'
+                                        '[ -e "%s" ] && kill -TERM "$PPID"\nexit 0\n' % (base / 'nginx-fails', base / 'nginx-term'))
         # systemctl start runs the real switch ("run"), fails ("fail"), succeeds without doing anything ("noop"),
         # moves live and then fails ("movefail"), or moves live, locks the home folder so no link in it can be
-        # replaced, and fails ("movelock"). Every start after the first fails, so a rollback cannot lean on it.
-        self.starts = base / 'starts'
+        # replaced, and fails ("movelock"), sends the deploy SIGTERM and fails ("term"), or runs the real switch
+        # and then sends the deploy SIGTERM ("runterm"). "detach" and "detachslow" are a client that dies at once
+        # (exit 143) while the job it started goes on inside "systemd": the unit is activating (show, list-jobs)
+        # for 1 s (4 s), then the real switch runs and the unit goes idle. Every start after the first fails, so a
+        # rollback cannot lean on it.
+        self.starts, self.unit_state = base / 'starts', base / 'unit-state'
+        self.settle = '3'
         run = '"%s" -I "%s" --home "%s" --request "%s" --state-dir "%s"' % (
             sys.executable, self.switch_bin, self.home, self.request, self.state)
+        job = lambda seconds: ('echo activating > "%s"; ( sleep %d; %s; echo inactive > "%s" ) </dev/null >/dev/null 2>&1 & exit 143'
+                               % (self.unit_state, seconds, run, self.unit_state))
+        # "queued" is a start job systemd has queued but not begun: show still says inactive, list-jobs lists it,
+        # and list-jobs fails ("listjobs-fails") until the job has run, or for good with "listjobs-keeps-failing".
+        queued = ('echo queued > "%s"; touch "%s"; ( sleep 1; echo activating > "%s"; sleep 0.3; %s; echo inactive > "%s";'
+                  ' [ -e "%s" ] || rm -f "%s" ) </dev/null >/dev/null 2>&1 & exit 143'
+                  % (self.unit_state, base / 'listjobs-fails', self.unit_state, run, self.unit_state,
+                     base / 'listjobs-keeps-failing', base / 'listjobs-fails'))
+        # Fault injection (test_every_probe_that_fails_reads_as_unknown): the file "fault" names probes
+        # (comma-separated), "fault-when" says from when (always; moving: from the rename of current into the
+        # new release on; moved: once current points there), "fault-how" says how (exit1: fails, printing
+        # nothing; empty: exit 0, printing nothing). Every stand-in below sources this.
+        (base / 'faulty.sh').write_text(
+            'faulty() {\n  [ -e "%(b)s/fault" ] || return 1\n  case ",$(cat "%(b)s/fault")," in *",$1,"*) ;; *) return 1 ;; esac\n'
+            '  when="$(cat "%(b)s/fault-when")"\n  [ "$when" = always ] || [ -e "%(b)s/$when" ]\n}\n'
+            'fault_out() { [ "$(cat "%(b)s/fault-how" 2>/dev/null)" = empty ] && exit 0; exit "${1:-1}"; }\n' % {'b': base})
         (self.bin / 'systemctl').write_text(
-            '#!/bin/sh\ncase "$1" in\n  cat) exit 0 ;;\n  start)\n'
+            '#!/bin/sh\n. "%s"\ncase "$1" in\n'
+            '  show) case "$*" in\n'
+            '      *LoadState*) faulty loadstate && fault_out; [ -e "%s" ] && echo not-found || echo loaded ;;\n'
+            '      *) faulty show && fault_out; s="$(cat "%s" 2>/dev/null || echo inactive)"; [ "$s" = queued ] && s=inactive; echo "$s" ;;\n'
+            '    esac; exit 0 ;;\n'
+            '  list-jobs) faulty list-jobs && fault_out; [ -e "%s" ] && exit 1\n'
+            '    case "$(cat "%s" 2>/dev/null)" in activating|queued) echo "7 volt-homepage-switch.service start running" ;; esac\n'
+            '    cat "%s" 2>/dev/null; exit 0 ;;\n'
+            '  start)\n'
             '    [ -s "%s" ] && { echo again >> "%s"; exit 1; }\n    echo start >> "%s"\n'
             '    case "$(cat "%s")" in\n'
             '    run) exec %s ;;\n    fail) exit 1 ;;\n    movefail) %s; exit 1 ;;\n'
-            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n  esac ;;\nesac\nexit 0\n'
-            % (self.starts, self.starts, self.starts, self.mode, run, run, run, self.home))
-        for stub in ('nginx', 'systemctl'):
+            '    movelock) %s; chmod 555 "%s"; exit 1 ;;\n    term) kill -TERM "$PPID"; exit 1 ;;\n'
+            '    runterm) %s; kill -TERM "$PPID"; exit 0 ;;\n    detach) %s ;;\n    detachslow) %s ;;\n    queued) %s ;;\n'
+            '  esac ;;\nesac\nexit 0\n'
+            % (base / 'faulty.sh', base / 'no-unit', self.unit_state, base / 'listjobs-fails', self.unit_state,
+               base / 'jobs-extra', self.starts, self.starts, self.starts, self.mode,
+               run, run, run, self.home, run, job(1), job(4), queued))
+        # readlink and grep can fail too (the deploy's fallback link reader, and its nginx configuration check).
+        for name in ('readlink', 'grep'):
+            (self.bin / name).write_text('#!/bin/sh\n. "%s"\nfaulty %s && fault_out 2\nexec "%s" "$@"\n'
+                                         % (base / 'faulty.sh', name, shutil.which(name)))
+            os.chmod(self.bin / name, 0o755)
+        # chown is the real one; it runs right after the release is staged, so it can also change what the deploy
+        # meets next: "releases-0700-after-staging" takes the world bits off releases/ (a served folder, checked
+        # again before current moves), "home-locked-after-staging" makes the home folder read-only, so current
+        # cannot be moved.
+        (self.bin / 'chown').write_text(
+            '#!/bin/sh\n"%s" "$@" || exit 1\n[ -e "%s" ] && chmod 700 "%s"\n[ -e "%s" ] && chmod 555 "%s"\nexit 0\n'
+            % (shutil.which('chown'), base / 'releases-0700-after-staging', self.home / 'releases',
+               base / 'home-locked-after-staging', self.home))
+        for stub in ('nginx', 'systemctl', 'chown'):
             os.chmod(self.bin / stub, 0o755)
         self.mode.write_text('run')
         # The previous release, with refined live.
@@ -769,7 +819,7 @@ class DeployRelease(unittest.TestCase):
         folder = self.home / 'current' / 'variants' / m.group(1) if m else self.home / 'live'
         return (folder / (m.group(2) if m else path.lstrip('/'))).read_bytes()
 
-    def deploy(self, switch_installed=True, contents=None, umask=None):
+    def deploy(self, switch_installed=True, contents=None, umask=None, before=None):
         contents = contents or self.contents('new')
         tar_path = self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
         with tarfile.open(tar_path, 'w:gz') as tar:
@@ -783,9 +833,17 @@ class DeployRelease(unittest.TestCase):
         env = dict(os.environ, VOLT_HOME_DIR=str(self.home), VOLT_NGINX_DIR=str(self.nginx), VOLT_UPLOAD_DIR=str(self.uploads),
                    VOLT_SWITCH_BIN=str(self.switch_bin if switch_installed else self.bin / 'missing'),
                    VOLT_SWITCH_STATUS=str(self.state / 'status.json'), VOLT_RELEASE_OWNER='%d:%d' % (os.getuid(), os.getgid()),
-                   PATH=str(self.bin) + os.pathsep + os.environ['PATH'])
-        return subprocess.run(['bash', str(SITE / 'server' / 'deploy-release.sh'), self.NEW, digest(tar_path), digest(manifest),
-                               self.PREV, digest(self.config)], capture_output=True, text=True, env=env,
+                   VOLT_SWITCH_SETTLE_SECONDS=self.settle, PATH=str(self.bin) + os.pathsep + os.environ['PATH'])
+        self.command = (['bash', str(SITE / 'server' / 'deploy-release.sh'), self.NEW, digest(tar_path), digest(manifest),
+                         self.PREV, digest(self.config)], env, umask)
+        if before:
+            before()
+        return self.rerun()
+
+    def rerun(self):
+        """The last deploy command again, exactly: same arguments, environment and umask."""
+        argv, env, umask = self.command
+        return subprocess.run(argv, capture_output=True, text=True, env=env,
                               preexec_fn=None if umask is None else (lambda: os.umask(umask)))
 
     def current(self):
@@ -979,6 +1037,498 @@ class DeployRelease(unittest.TestCase):
         self.assertEqual(self.current(), self.PREV)
         self.assertEqual(self.live(), self.variant(self.PREV, 'refined'))
         self.assertEqual(self.perm(self.home / 'releases'), 0o700, 'left as it was')
+
+    def test_every_refusal_before_current_moves_can_be_retried(self):
+        """The retry contract (site/README.md, "Failure modes"): each failure before current moves prints its marker,
+        leaves links, status and the release folders as they were, and the identical command succeeds once the
+        cause is fixed. No hand cleanup in between."""
+        # Paths are looked up when used: each case starts from a fresh fixture in a new folder.
+        tar = lambda: self.uploads / ('volt-home-%s.tar.gz' % self.NEW)
+        new_card = lambda: self.home / 'cards' / self.card_url('new').rsplit('/', 1)[1]
+        flag = lambda name: self.flags / name
+        saved = {}
+
+        def corrupt_archive():
+            saved['tar'] = tar().read_bytes()
+            tar().write_bytes(b'not the archive')
+
+        def change_config():
+            saved['config'] = self.config.read_bytes()
+            self.config.write_bytes(saved['config'] + b'# edited\n')
+
+        def hold_lock():
+            # Another deploy running: it holds the lock for as long as its file is open.
+            saved['lock'] = open(self.home / '.deploy.lock', 'a')
+            fcntl.flock(saved['lock'].fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+        def unflag(name, path):
+            def repair():
+                flag(name).unlink()
+                os.chmod(path(), 0o755)
+            return repair
+
+        cases = [
+            # name, break, repair, markers on the refusal, whether a release folder was staged (and removed again)
+            ('archive hash', corrupt_archive, lambda: tar().write_bytes(saved['tar']), ['DEPLOY_REFUSED the archive'], False),
+            ('nginx site file hash', change_config, lambda: self.config.write_bytes(saved['config']),
+             ['DEPLOY_REFUSED current is not'], False),
+            ('another deploy running', hold_lock, lambda: saved['lock'].close(),
+             ['DEPLOY_REFUSED another deploy holds'], False),
+            ('switch unit missing', lambda: flag('no-unit').touch(), lambda: flag('no-unit').unlink(),
+             ['DEPLOY_REFUSED nginx serves', 'the switch is not installed'], False),
+            # Codex's #361 finding: a folder the deploy doesn't own, fixed by chmod, then the same command.
+            ('releases folder unreadable', lambda: os.chmod(self.home / 'releases', 0o700),
+             lambda: os.chmod(self.home / 'releases', 0o755), ['PERMISSIONS_BAD', 'releases mode=700', 'DEPLOY_REFUSED'], False),
+            ('home folder unreadable', lambda: os.chmod(self.home, 0o700),
+             lambda: os.chmod(self.home, 0o755), ['PERMISSIONS_BAD', 'volt-home mode=700', 'DEPLOY_REFUSED'], False),
+            # The same, found by the second check (after staging): the staged folder must go.
+            ('served folder unreadable after staging', lambda: flag('releases-0700-after-staging').touch(),
+             unflag('releases-0700-after-staging', lambda: self.home / 'releases'),
+             ['PERMISSIONS_BAD', 'releases mode=700', 'DEPLOY_REFUSED a served path'], True),
+            ('card conflict', lambda: new_card().write_bytes(b'other bytes'), lambda: new_card().unlink(),
+             ['CARD_CONFLICT', 'DEPLOY_REFUSED'], True),
+            ('nginx -t', lambda: flag('nginx-fails').touch(), lambda: flag('nginx-fails').unlink(),
+             ['DEPLOY_REFUSED nginx -t failed'], True),
+            # A signal is an exit like any other: the trap runs and removes what this run staged.
+            ('interrupted (SIGTERM)', lambda: flag('nginx-term').touch(), lambda: flag('nginx-term').unlink(),
+             ['DEPLOY_REFUSED unexpected failure (exit 143'], True),
+        ]
+        exit_codes = {'interrupted (SIGTERM)': 143}
+        if os.geteuid() != 0:   # root ignores the read-only folder
+            cases.append(('current cannot move', lambda: flag('home-locked-after-staging').touch(),
+                          unflag('home-locked-after-staging', lambda: self.home), ['DEPLOY_REFUSED could not move current'], True))
+        for name, breaks, repair, markers, staged in cases:
+            with self.subTest(name):
+                self.tearDown()
+                self.setUp()
+                status = (self.state / 'status.json').read_bytes()
+                cards = sorted(p.name for p in (self.home / 'cards').iterdir())
+                out = self.deploy(before=breaks)
+                self.assertEqual(out.returncode, exit_codes.get(name, 1), out.stdout + out.stderr)
+                for marker in markers:
+                    self.assertIn(marker, out.stderr)
+                if staged:
+                    self.assertIn('STAGED_RELEASE_REMOVED %s (staged by this run, never served)'
+                                  % (self.home / 'releases' / self.NEW), out.stderr)
+                else:
+                    self.assertNotIn('STAGED_RELEASE', out.stderr, 'refused before anything was created')
+                self.assertNotIn('UPDATE_OK', out.stdout)
+                self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+                self.assertFalse(os.path.lexists(self.home / 'releases' / self.NEW), 'nothing staged is left behind')
+                self.assertEqual((self.state / 'status.json').read_bytes(), status)
+                self.assertFalse(self.starts.exists(), 'the switch never ran')
+                # The store is append-only: a refusal after the cards step may leave this release's own
+                # card (content-addressed, so harmless), never anything else.
+                self.assertLessEqual(set(cards), {p.name for p in (self.home / 'cards').iterdir()})
+                self.assertLessEqual({p.name for p in (self.home / 'cards').iterdir()}, set(cards) | {new_card().name})
+                repair()
+                out = self.rerun()
+                self.assertEqual(out.returncode, 0, out.stderr)
+                self.assertNotIn('STAGED_RELEASE', out.stderr, 'the retry found nothing left over')
+                self.assertRegex(out.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
+                self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+                self.assertEqual(self.unreadable_by_other(self.home / 'current', self.home / 'live', self.home / 'cards'), [])
+                self.assertEqual(self.fetch(self.card_url('new')), b'refined card new')
+                self.assertEqual(self.fetch(self.card_url('old')), b'refined card old')
+                self.assertEqual(json.loads((self.state / 'status.json').read_text())['release'], self.NEW)
+
+    def interrupt_when(self, link, target, hammer=False):
+        """A stand-in python3 (the deploy renames links with Python) that sends the deploy shell SIGTERM right
+        after the call that made <link> point at <target>: after the rename, before the shell runs its next
+        command. Fires once; with hammer, it keeps sending SIGTERM every 10 ms until the shell has exited, so
+        every point after the rename gets one, the outcome lines included."""
+        armed = self.flags / 'interrupt-armed'
+        armed.touch()
+        kill = ('( while kill -TERM "$PPID" 2>/dev/null; do sleep 0.01; done ) </dev/null >/dev/null 2>&1 &'
+                if hammer else 'kill -TERM "$PPID"')
+        shim = self.bin / 'python3'
+        shim.write_text('#!/bin/sh\nbefore="$(readlink "%s")"\n"%s" "$@"\nrc=$?\nafter="$(readlink "%s")"\n'
+                        'if [ -e "%s" ] && [ "$before" != "%s" ] && [ "$after" = "%s" ]; then\n  rm -f "%s"\n  %s\nfi\n'
+                        'exit $rc\n' % (self.home / link, sys.executable, self.home / link, armed, target, target, armed, kill))
+        os.chmod(shim, 0o755)
+        self.addCleanup(lambda: shim.unlink() if shim.exists() else None)
+
+    def outcome(self, out):
+        """The one outcome a deploy reported, checked to be complete, plus whether a signal was held."""
+        found = [m for m in ('UPDATE_OK', 'DEPLOY_FAILED', 'DEPLOY_INCOMPLETE', 'DEPLOY_REFUSED', 'DEPLOY_INTERRUPTED')
+                 if m in out.stdout + out.stderr]
+        self.assertEqual(len(found), 1, out.stdout + out.stderr)
+        if found == ['UPDATE_OK']:
+            self.assertRegex(out.stdout, r'UPDATE_OK .*\nRollback: ')
+        if found == ['DEPLOY_INCOMPLETE']:
+            self.assertEqual(out.stderr.count('DEPLOY_INCOMPLETE'), 2, 'both lines, always')
+        return found[0], 'DEPLOY_SIGNAL_HELD a signal (exit 143)' in out.stderr
+
+    def retry_succeeds(self):
+        self.mode.write_text('run')
+        if self.starts.exists():
+            self.starts.unlink()
+        again = self.rerun()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertRegex(again.stdout, r'UPDATE_OK .* live=refined result=ok in_new_release=yes')
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_signals_after_current_moves_are_held_until_the_outcome_is_reported(self):
+        # From the rename on, SIGTERM is held: one at the rename itself (Codex's round-1 boundary), one while the
+        # switch runs, one inside the rollback, one after the rollback put both links back, and a stream of them
+        # through every line that follows the rename. Each run completes and reports exactly one outcome, whole,
+        # that matches the links; the signal is acted on afterwards (a success exits 143).
+        new_live, old_live = self.variant(self.NEW, 'refined'), self.variant(self.PREV, 'refined')
+        prev = str(self.home / 'releases' / self.PREV)
+        cases = [
+            # name, switch mode, (link, target) to interrupt at, hammer, outcome, exit code, links afterwards
+            ('at the rename', 'run', ('current', 'NEW'), False, 'UPDATE_OK', 143, 'new'),
+            ('while the switch runs', 'term', None, False, 'DEPLOY_FAILED', 1, 'old'),
+            ('after the switch moved live', 'runterm', None, False, 'UPDATE_OK', 143, 'new'),
+            ('inside the rollback', 'movefail', ('current', 'PREV'), False, 'DEPLOY_FAILED', 1, 'old'),
+            ('after the rollback put both back', 'movefail', ('live', 'OLD_LIVE'), False, 'DEPLOY_FAILED', 1, 'old'),
+            ('a stream, success', 'run', ('current', 'NEW'), True, 'UPDATE_OK', 143, 'new'),
+            ('a stream, rollback', 'movefail', ('current', 'NEW'), True, 'DEPLOY_FAILED', 1, 'old'),
+        ]
+        if os.geteuid() != 0:   # root ignores the locked folder
+            cases.append(('a stream, through both DEPLOY_INCOMPLETE lines', 'movelock', ('current', 'NEW'), True,
+                          'DEPLOY_INCOMPLETE', 2, None))
+        for name, mode, at, hammer, want, code, links in cases:
+            with self.subTest(name):
+                self.tearDown()
+                self.setUp()
+                self.mode.write_text(mode)
+                if at:
+                    targets = {'NEW': str(self.home / 'releases' / self.NEW), 'PREV': str(self.home / 'releases' / self.PREV),
+                               'OLD_LIVE': self.variant(self.PREV, 'refined')}
+                    self.interrupt_when(at[0], targets[at[1]], hammer=hammer)
+                out = self.deploy()
+                os.chmod(self.home, 0o755)
+                self.assertEqual(self.outcome(out), (want, True), out.stderr)
+                self.assertEqual(out.returncode, code, out.stderr)
+                self.assertNotIn('STAGED_RELEASE', out.stderr, 'nothing is removed once a link has moved')
+                if links == 'new':
+                    self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+                elif links == 'old':
+                    self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+                    self.retry_succeeds()
+                else:
+                    steps = re.search(r'DEPLOY_INCOMPLETE finish by hand, as root: (.*)', out.stderr).group(1)
+                    steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
+                    subprocess.run(['sh', '-c', steps], check=True, capture_output=True, env=dict(os.environ))
+                    self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+                    self.retry_succeeds()
+
+    def test_switch_job_that_outlives_its_client_is_awaited(self):
+        # The systemctl client dies at once (exit 143); the job it started goes on and moves live into the new
+        # release a second later. The deploy waits for the unit to be idle before reading the links, so its
+        # rollback comes after the switch, not before, and nothing changes afterwards.
+        self.mode.write_text('detach')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_FAILED', False), out.stderr)
+        self.assertIn('switch_ok=0 live_after_switch=%s' % self.variant(self.NEW, 'refined'), out.stderr)
+        self.assertEqual(self.unit_state.read_text().strip(), 'inactive', 'the job had finished')
+        subprocess.run(['sleep', '1.5'])
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.retry_succeeds()
+
+    def test_switch_job_that_does_not_settle_gets_no_put_back_commands(self):
+        # The job runs longer than the deploy waits: DEPLOY_INCOMPLETE names the unit as still running, and prints
+        # no commands that would race it. Once it has finished, both links are in the new release.
+        self.settle = '1'
+        self.mode.write_text('detachslow')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertIn('DEPLOY_INCOMPLETE volt-homepage-switch.service is still running after 1s (activating)', out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr)
+        for _ in range(60):
+            if self.unit_state.read_text().strip() == 'inactive':
+                break
+            subprocess.run(['sleep', '0.1'])
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_a_switch_job_still_running_holds_the_next_deploy(self):
+        # A job left by an earlier deploy (one that was killed, say) is awaited before the retry decides anything
+        # from the links; one that doesn't finish in time refuses the deploy before anything changes.
+        self.settle = '1'
+        self.unit_state.write_text('activating\n')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('volt-homepage-switch.service is still running after 1s (activating)', out.stderr)
+        self.assertFalse(os.path.lexists(self.home / 'releases' / self.NEW))
+        self.unit_state.write_text('inactive\n')
+        out = self.rerun()
+        self.assertEqual(out.returncode, 0, out.stderr)
+
+    def fault(self, probes, when='always', how='exit1'):
+        """Makes the named probes fail (see faulty.sh in setUp) and puts a stand-in python3 on the path that
+        honours it: a Python step names itself with a tag:<name> argument, and "python" fails them all. The
+        stand-in also marks the rename of current into the new release: "moving" just before, "moved" once
+        current points there."""
+        for name, text in (('fault', ','.join(probes)), ('fault-when', when), ('fault-how', how)):
+            (self.flags / name).write_text(text)
+        new = str(self.home / 'releases' / self.NEW)
+        shim = self.bin / 'python3'
+        shim.write_text(
+            '#!%(py)s -I\nimport os, subprocess, sys\nbase, new, current = %(base)r, %(new)r, %(current)r\n'
+            'args = sys.argv[1:]\ntag = next((a[4:] for a in args if a.startswith("tag:")), "")\n'
+            'def read(name):\n    try:\n        return open(os.path.join(base, name)).read().strip()\n'
+            '    except OSError:\n        return ""\n'
+            'def faulty(name):\n    when = read("fault-when")\n'
+            '    return name in read("fault").split(",") and (when == "always" or os.path.exists(os.path.join(base, when)))\n'
+            'swap_in = args[-2:] == [current, new]   # the rename of current into the new release\n'
+            'if swap_in:\n    open(os.path.join(base, "moving"), "a").close()\n'
+            'if faulty(tag) or faulty("python"):\n    sys.exit(0 if read("fault-how") == "empty" else 1)\n'
+            'if not swap_in:\n    os.execv(%(py)r, [%(py)r] + args)\n'
+            'rc = subprocess.call([%(py)r] + args, close_fds=False)\n'
+            'if swap_in and os.path.islink(current) and os.readlink(current) == new:\n'
+            '    open(os.path.join(base, "moved"), "a").close()\n'
+            'sys.exit(rc)\n' % {'py': sys.executable, 'base': str(self.flags), 'new': new, 'current': str(self.home / 'current')})
+        os.chmod(shim, 0o755)
+        self.addCleanup(lambda: shim.unlink() if shim.exists() else None)
+
+    def clear_fault(self):
+        for name in ('fault', 'fault-when', 'fault-how', 'moving', 'moved'):
+            if (self.flags / name).exists():
+                (self.flags / name).unlink()
+
+    def wait_for_idle_unit(self):
+        for _ in range(100):
+            if not self.unit_state.exists() or self.unit_state.read_text().strip() == 'inactive':
+                return
+            subprocess.run(['sleep', '0.1'])
+        self.fail('the switch job never finished')
+
+    def put_back_by_hand(self):
+        """site/README.md, "Rollback", done by the test: current to the previous release, live to its variant."""
+        for link, target in (('current', str(self.home / 'releases' / self.PREV)), ('live', self.variant(self.PREV, 'refined'))):
+            os.symlink(target, self.home / (link + '.by-hand'))
+            os.replace(self.home / (link + '.by-hand'), self.home / link)
+
+    def assert_safe_recovery_lines(self, out):
+        """A put-back command is printed only as the exact restore (current to the previous release, live to the
+        variant it held), never rm -f of a live link that existed, and never while the switch isn't confirmed idle."""
+        for line in out.stderr.splitlines():
+            if 'ln -sfn' not in line:
+                continue
+            self.assertNotRegex(out.stderr, r'could not be confirmed idle|is still running after', 'commands racing the switch')
+            self.assertIn('ln -sfn %s %s/current.new' % (self.home / 'releases' / self.PREV, self.home), line)
+            self.assertIn('ln -sfn %s %s/live.new' % (self.variant(self.PREV, 'refined'), self.home), line)
+            self.assertNotIn('rm -f %s/live' % self.home, line)
+
+    def test_every_probe_that_fails_reads_as_unknown(self):
+        """The class behind Codex's round-3 findings: a probe that fails must not read as a pass. Each probe the
+        deploy decides on (site/README.md, "Probes") fails in turn, by exiting non-zero and by printing nothing;
+        before current moves and, where it is used there, after. Never a success marker, never a put-back command
+        that could race the switch or delete live, and the outcome matches the links; then, once the probe works
+        again (and the links are put back where the report says to), the same command succeeds."""
+        leftover = lambda: [((self.home / 'releases' / self.NEW / n).parent.mkdir(parents=True, exist_ok=True),
+                             (self.home / 'releases' / self.NEW / n).write_bytes(d)) for n, d in self.contents('new').items()]
+        cases = [
+            # probes, when, hows, setup (a leftover release folder, or a switch mode), marker, text in the report
+            (['sha'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'the archive'),
+            (['real', 'readlink'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not resolve'),
+            (['link', 'readlink'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'current is not'),
+            (['lock'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'another deploy holds'),
+            (['kind'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'releases/%s exists' % self.NEW),
+            (['exec'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'is installed'),
+            (['loadstate'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not tell whether volt-homepage-switch.service is installed'),
+            (['show'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not be confirmed idle'),
+            (['list-jobs'], 'always', ('exit1',), None, 'DEPLOY_REFUSED', 'could not be confirmed idle after 1s (unknown: systemctl list-jobs failed)'),
+            (['grep'], 'always', ('exit1',), None, 'DEPLOY_REFUSED', 'could not read'),
+            (['modes'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not be checked'),
+            (['archive'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'the archive does not match its manifest'),
+            (['matches'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'does not match the manifest, or could not be checked'),
+            (['matches'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'could not check'),
+            (['unserved'], 'always', ('exit1', 'empty'), leftover, 'DEPLOY_REFUSED', 'cannot be staged over'),
+            (['cards'], 'always', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'card'),
+            # The rename itself fails and so does every Python step after it (Codex's second finding): the
+            # fallback reader confirms current never moved.
+            (['python'], 'moving', ('exit1', 'empty'), None, 'DEPLOY_REFUSED', 'could not move current'),
+            (['python', 'readlink'], 'moving', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not confirm where current points'),
+            (['link', 'readlink'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not confirm where current points'),
+            (['show'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
+            (['list-jobs'], 'moved', ('exit1',), None, 'DEPLOY_INCOMPLETE', 'could not be confirmed idle'),
+            (['start'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_FAILED', 'live was not left inside the new release'),
+            (['python'], 'moved', ('exit1', 'empty'), None, 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
+            # The switch moves live and fails, and the rollback's renames fail: confirmed not back, so the exact commands.
+            (['swap'], 'moved', ('exit1', 'empty'), 'movefail', 'DEPLOY_INCOMPLETE', 'the rollback could not be confirmed'),
+        ]
+        for probes, when, hows, setup, marker, text in cases:
+            for how in hows:
+                with self.subTest(probes=probes, when=when, how=how, setup=bool(setup)):
+                    self.tearDown()
+                    self.setUp()
+                    self.settle = '1'
+                    old_links = (self.PREV, self.variant(self.PREV, 'refined'))
+                    if setup == 'movefail':
+                        self.mode.write_text(setup)
+                    elif setup:
+                        setup()
+                    self.fault(probes, when, how)
+                    out = self.deploy()
+                    self.wait_for_idle_unit()
+                    os.chmod(self.home, 0o755)
+                    self.assertNotIn('UPDATE_OK', out.stdout, out.stderr)
+                    self.assertEqual(self.outcome(out)[0], marker, out.stderr)
+                    self.assertIn(text, out.stderr)
+                    self.assertEqual(out.returncode, {'DEPLOY_REFUSED': 1, 'DEPLOY_FAILED': 1, 'DEPLOY_INCOMPLETE': 2}[marker], out.stderr)
+                    self.assert_safe_recovery_lines(out)
+                    self.clear_fault()
+                    if marker in ('DEPLOY_REFUSED', 'DEPLOY_FAILED'):
+                        self.assertEqual((self.current(), self.live()), old_links, 'nothing served changed')
+                    elif 'finish by hand' in out.stderr:
+                        steps = re.search(r'DEPLOY_INCOMPLETE finish by hand, as root: (.*)', out.stderr).group(1)
+                        steps = steps.replace('mv -Tf', 'python3 -I -c "import os,sys; os.replace(*sys.argv[1:])"')
+                        subprocess.run(['sh', '-c', steps], check=True, capture_output=True, env=dict(os.environ))
+                        self.assertEqual((self.current(), self.live()), old_links)
+                    else:
+                        self.assertNotIn('ln -sfn', out.stderr)
+                        self.put_back_by_hand()
+                    self.retry_succeeds()
+
+    def test_a_failed_job_list_is_unknown_not_idle(self):
+        # Codex's round-3 probe: the start job is queued (show still says inactive) and list-jobs fails. That is
+        # not idle: the deploy waits until both queries answer, so its rollback comes after the switch moved live,
+        # not before, and nothing changes afterwards.
+        self.mode.write_text('queued')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_FAILED', False), out.stderr)
+        self.assertIn('switch_ok=0 live_after_switch=%s' % self.variant(self.NEW, 'refined'), out.stderr)
+        subprocess.run(['sleep', '1.5'])
+        self.assertEqual((self.current(), self.live()), (self.PREV, self.variant(self.PREV, 'refined')))
+        self.retry_succeeds()
+        # When list-jobs keeps failing, the deploy never calls the unit idle: DEPLOY_INCOMPLETE, no commands.
+        self.tearDown()
+        self.setUp()
+        (self.flags / 'listjobs-keeps-failing').touch()
+        self.mode.write_text('queued')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertIn('volt-homepage-switch.service could not be confirmed idle after 3s (unknown: systemctl list-jobs failed)', out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        self.wait_for_idle_unit()
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_a_healthy_idle_answer_is_idle(self):
+        # Inactive, and list-jobs answers with other units' jobs only: idle at once. An unreadable job line is not.
+        (self.flags / 'jobs-extra').write_text('12 apt-daily.service start waiting\n')
+        started = time.monotonic()
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertLess(time.monotonic() - started, float(self.settle), 'no waiting on an idle unit')
+        self.tearDown()
+        self.setUp()
+        self.settle = '1'
+        (self.flags / 'jobs-extra').write_text('Job for something went wrong\n')
+        out = self.deploy()
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('could not be confirmed idle after 1s (unknown: systemctl list-jobs gave an unreadable line)', out.stderr)
+
+    def test_first_deploy_rename_and_path_lookups_failing(self):
+        # Codex's round-3 probe, on the first-deploy path (nginx serves current, no switch): Python fails from the
+        # rename on, so the rename doesn't happen and every lookup after it fails. Two failed lookups used to
+        # compare equal (UPDATE_OK current=, exit 0). Now: the fallback reader confirms current never moved.
+        def first_deploy(when, probes):
+            self.tearDown()
+            self.setUp()
+            self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')
+            self.fault(probes, when)
+            return self.deploy(switch_installed=False)
+        out = first_deploy('moving', ['python'])
+        self.assertNotIn('UPDATE_OK', out.stdout)
+        self.assertEqual(self.outcome(out), ('DEPLOY_REFUSED', False), out.stderr)
+        self.assertIn('could not move current', out.stderr)
+        self.assertEqual(self.current(), self.PREV)
+        self.clear_fault()
+        again = self.rerun()
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(self.current(), self.NEW)
+        # Neither Python nor readlink can read current: unknown, so no success and no commands.
+        out = first_deploy('moving', ['python', 'readlink'])
+        self.assertEqual(out.returncode, 2, out.stderr)
+        self.assertEqual(self.outcome(out), ('DEPLOY_INCOMPLETE', False), out.stderr)
+        self.assertNotIn('ln -sfn', out.stderr)
+        # The rename finished and Python fails only afterwards: the link still reads (coreutils readlink), so
+        # the deploy went through, and says so with the confirmed path.
+        out = first_deploy('moved', ['python'])
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('UPDATE_OK current=%s ' % (self.home / 'releases' / self.NEW), out.stdout)
+        self.assertEqual(self.current(), self.NEW)
+
+    def test_retry_after_a_rolled_back_deploy(self):
+        # A failure after current moved is rolled back (DEPLOY_FAILED) and leaves the new release for a look.
+        # It matches the manifest and nothing serves it, so the identical command reuses it; a refusal of that
+        # retry leaves it in place (this run did not create it), and the next one succeeds.
+        rel = self.home / 'releases' / self.NEW
+        self.mode.write_text('fail')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('DEPLOY_FAILED', out.stderr)
+        self.assertTrue(rel.is_dir())
+        self.mode.write_text('run')
+        self.starts.unlink()
+        (self.flags / 'nginx-fails').touch()
+        out = self.rerun()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('STAGED_RELEASE_REUSED %s' % rel, out.stderr)
+        self.assertIn('DEPLOY_REFUSED nginx -t failed', out.stderr)
+        self.assertNotIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.assertTrue((rel / 'variants' / 'refined' / 'index.html').is_file(), 'a folder this run did not create stays')
+        (self.flags / 'nginx-fails').unlink()
+        out = self.rerun()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('STAGED_RELEASE_REUSED %s' % rel, out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+
+    def test_leftover_that_does_not_match_is_replaced(self):
+        # A crash while staging (no trap runs on SIGKILL or power loss): a partial folder nothing serves.
+        # It is not this release, so the identical command replaces it. A stray link inside counts as a mismatch.
+        rel = self.home / 'releases' / self.NEW
+        (rel / 'variants').mkdir(parents=True)
+        (rel / 'index.html').write_bytes(b'half written')
+        os.chmod(rel / 'variants', 0o700)
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('STAGED_RELEASE_REMOVED %s (left by an earlier attempt, not served, did not match' % rel, out.stderr)
+        self.assertEqual((self.current(), self.live()), (self.NEW, self.variant(self.NEW, 'refined')))
+        self.assertEqual(self.unreadable_by_other(self.home / 'current', self.home / 'live'), [])
+        # A complete copy plus one link: replaced too, never reused.
+        self.tearDown()
+        self.setUp()
+        rel = self.home / 'releases' / self.NEW
+        for name, data in self.contents('new').items():
+            (rel / name).parent.mkdir(parents=True, exist_ok=True)
+            (rel / name).write_bytes(data)
+        os.symlink('/etc/passwd', rel / 'variants' / 'refined' / 'extra')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertIn('STAGED_RELEASE_REMOVED', out.stderr)
+        self.assertFalse(os.path.lexists(rel / 'variants' / 'refined' / 'extra'))
+
+    def test_existing_release_that_is_served_is_never_removed(self):
+        # The new commit is already current (a repeated deploy): refused with its reason, nothing removed.
+        self.PREV = self.NEW = 'a' * 40
+        out = self.deploy()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('DEPLOY_REFUSED', out.stderr)
+        self.assertIn('is served (it holds current and live)', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr)
+        self.assertTrue((self.home / 'releases' / self.NEW / 'variants' / 'refined' / 'index.html').is_file())
+
+    def test_release_holding_live_is_never_removed(self):
+        # current is the previous release but live points into the new one (a rollback not finished by hand):
+        # the folder is served, so it is refused before anything changes and nothing is removed.
+        rel = self.home / 'releases' / self.NEW
+        for name, data in self.contents('other').items():
+            (rel / name).parent.mkdir(parents=True, exist_ok=True)
+            (rel / name).write_bytes(data)
+        os.unlink(self.home / 'live')
+        os.symlink(str(rel / 'variants' / 'refined'), self.home / 'live')
+        out = self.deploy()
+        self.assertEqual(out.returncode, 1)
+        self.assertIn('is served (it holds live)', out.stderr)
+        self.assertNotIn('STAGED_RELEASE', out.stderr)
+        self.assertEqual((rel / 'index.html').read_bytes(), self.contents('other')['index.html'])
+        self.assertEqual(self.live(), str(rel / 'variants' / 'refined'))
 
     def test_first_deploy_before_the_switch_exists(self):
         self.config.write_text('server {\n    root /var/www/volt-home/current;\n}\n')
