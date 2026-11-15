@@ -94,14 +94,23 @@ public final class TopAreaTest {
         }
         // Capped: no gap of 40 dp or more, counting the bar's margins, at the real spare heights of the larger cards
         // (emulator: 412x901 about 72 dp, 430x932 about 76, 600x960 about 77, with the bar's margins at 15 dp).
-        for (int extra : new int[]{0, 1, 53, 60, 72, 76, 77, 85}) {
+        // Every spare height up to the four caps together (39 + 24 + 24 + 39 with the bar's margins at 15 dp), which
+        // covers the sparse cards (the council's review of #501, finding 4: no photo and no reading at 412x901 leaves
+        // about 113 dp).
+        for (int extra = 0; extra <= 126; extra++) {
             int[] gaps = TopArea.parkedGaps(extra, TopArea.PARKED_GAP_MAX_DP, 15);
-            require(gaps[0] + gaps[1] + gaps[2] == extra && gaps[0] >= 0 && gaps[1] >= 0 && gaps[2] >= 0, "capped gaps share exactly " + extra);
-            require(gaps[0] < 40 && gaps[1] + 15 < 40 && gaps[2] + 15 < 40, "no band of 40 dp for " + extra + ": " + gaps[0] + "/" + gaps[1] + "/" + gaps[2]);
+            require(gaps.length == 4 && gaps[0] + gaps[1] + gaps[2] + gaps[3] == extra && gaps[0] >= 0 && gaps[1] >= 0 && gaps[2] >= 0 && gaps[3] >= 0,
+                    "capped gaps share exactly " + extra);
+            require(gaps[0] < 40 && gaps[1] + 15 < 40 && gaps[2] + 15 < 40 && gaps[3] < 40,
+                    "no band of 40 dp for " + extra + ": " + gaps[0] + "/" + gaps[1] + "/" + gaps[2] + "/" + gaps[3]);
         }
-        require(java.util.Arrays.equals(TopArea.parkedGaps(53, 39, 12), TopArea.parkedGaps(53)), "the 344 dp card's gaps are under the cap: unchanged");
-        require(TopArea.parkedGaps(72, 39, 15)[1] == 24 && TopArea.parkedGaps(72, 39, 15)[0] == 32, "412x901: the gap over the bar is held at 39 dp, the rest goes above the top row");
-        require(TopArea.parkedGaps(200, 39, 15)[0] == 200 - 48, "beyond every cap the rest goes above the top row");
+        int[] at344 = TopArea.parkedGaps(53, 39, 12), weights = TopArea.parkedGaps(53);
+        require(at344[0] == weights[0] && at344[1] == weights[1] && at344[2] == weights[2] && at344[3] == 0, "the 344 dp card's gaps are under the cap: unchanged");
+        require(TopArea.parkedGaps(72, 39, 15)[1] == 24 && TopArea.parkedGaps(72, 39, 15)[0] == 32 && TopArea.parkedGaps(72, 39, 15)[3] == 0,
+                "412x901: the gap over the bar is held at 39 dp, the rest goes above the top row");
+        int[] sparse = TopArea.parkedGaps(113, 39, 15);
+        require(sparse[0] == 39 && sparse[1] == 24 && sparse[2] == 24 && sparse[3] == 26, "a sparse card at 412x901: the rest under the readings, " + java.util.Arrays.toString(sparse));
+        require(TopArea.parkedGaps(200, 39, 15)[0] == 39 + 37 && TopArea.parkedGaps(200, 39, 15)[3] == 39 + 37, "beyond every cap: the top and bottom gaps by equal halves");
         // Weighted as the mock-up spreads it (about 36, 37 and 20 dp of 93): the readings sit close under the bar.
         int[] mock = TopArea.parkedGaps(93);
         require(Math.abs(mock[0] - 36) <= 1 && Math.abs(mock[1] - 37) <= 1 && Math.abs(mock[2] - 20) <= 1,
@@ -151,9 +160,15 @@ public final class TopAreaTest {
             int spare = Math.round(card - lines);
             int[] gaps = TopArea.parkedGaps(spare, TopArea.PARKED_GAP_MAX_DP, around);
             require(spare >= 0, at + ": the lines fit the card: " + spare);
-            require(gaps[0] + gaps[1] + gaps[2] == spare, at + ": the gaps share exactly the spare height");
-            require(gaps[0] < 40 && gaps[1] + around < 40 && gaps[2] + around < 40,
-                    at + ": no band of 40 dp: " + gaps[0] + "/" + (gaps[1] + around) + "/" + (gaps[2] + around));
+            require(gaps[0] + gaps[1] + gaps[2] + gaps[3] == spare, at + ": the gaps share exactly the spare height");
+            require(gaps[0] < 40 && gaps[1] + around < 40 && gaps[2] + around < 40 && gaps[3] < 40,
+                    at + ": no band of 40 dp: " + gaps[0] + "/" + (gaps[1] + around) + "/" + (gaps[2] + around) + "/" + gaps[3]);
+            // The sparse card (finding 4): no photo, "—" and no range line, the readings still there.
+            float sparseRow = 20.3f * small + 91 * text;
+            int sparseSpare = Math.round(card - (sparseRow + 8 + 2 * around + 51 * small));
+            int[] few = TopArea.parkedGaps(sparseSpare, TopArea.PARKED_GAP_MAX_DP, around);
+            require(few[0] < 40 && few[1] + around < 40 && few[2] + around < 40 && few[3] < 40,
+                    at + ": a card with no photo and no reading has no band of 40 dp either: " + java.util.Arrays.toString(few) + " of " + sparseSpare);
         }
         require(TopArea.parkedSmallGrowth(1f) == 1f && TopArea.parkedSmallGrowth(1.3f) == 1.15f && TopArea.parkedSmallGrowth(.5f) == 1f,
                 "the label, range line and readings grow half as much");

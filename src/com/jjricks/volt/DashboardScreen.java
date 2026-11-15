@@ -4160,7 +4160,7 @@ public final class DashboardScreen implements AppScreen {
             /** Fits the card's lines into the budget: the photo, then the percentage, then what gives way. */
             private void fit(int widthSpec, int width, float growth) {
                 // Fit with no spread gaps: they are what is left over afterwards.
-                margins(new int[3]);
+                margins(new int[4]);
                 arrangeReadings(width);
                 // The photo only takes width the percentage and range can spare (Clean: the mock-up's size, TopArea).
                 int photoWidth = Math.min(ui.dp(150), Math.round(width * .42f));
@@ -4234,7 +4234,7 @@ public final class DashboardScreen implements AppScreen {
 
             /** Clean: the spare height under the budget goes to three gaps (TopArea.parkedGaps); otherwise none. */
             private void spread(int widthSpec, int heightSpec) {
-                int[] gaps = {0, 0, 0};
+                int[] gaps = {0, 0, 0, 0};
                 if (fill && budget > 0) {
                     margins(gaps);
                     int unbounded = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
@@ -4265,6 +4265,10 @@ public final class DashboardScreen implements AppScreen {
                     LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) views[i].getLayoutParams();
                     if (params.topMargin != base[i] + gaps[i]) params.topMargin = base[i] + gaps[i];
                 }
+                // Clean: what is left under the readings (TopArea.parkedGaps), 0 otherwise.
+                int under = gaps.length > 3 ? gaps[3] : 0;
+                LinearLayout.LayoutParams readingsSize = (LinearLayout.LayoutParams) readingsBox.getLayoutParams();
+                if (readingsSize.bottomMargin != under) readingsSize.bottomMargin = under;
             }
 
             /** Fits the percentage to what the other lines leave; false when it is over budget at its floor. */

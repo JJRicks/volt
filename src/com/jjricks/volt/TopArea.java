@@ -194,22 +194,27 @@ final class TopArea {
 
     /**
      * {@link #parkedGaps(int)} where no gap passes {@code most} (pixels), counting the {@code around} pixels the bar
-     * keeps above and below itself in the two gaps around it. What a gap cannot take goes above the top row first (where
-     * the mock-up has its largest space), then to the other gaps, and only when all are full back above the top row.
+     * keeps above and below itself in the two gaps around it, with a fourth gap under the readings. What a gap cannot
+     * take goes above the top row first (where the mock-up has its largest space), then to the other gaps, then under
+     * the readings, so a card with little in it (no photo, no reading yet) keeps its gaps under the cap rather than a
+     * band above "Battery". Only a spare height over all four caps (none of the checked cards) makes the top and bottom
+     * gaps pass it, by equal halves.
      */
     static int[] parkedGaps(int extra, int most, int around) {
-        int[] gaps = parkedGaps(extra);
+        int[] three = parkedGaps(extra);
+        int[] gaps = {three[0], three[1], three[2], 0};
         int max0 = Math.max(0, most), max12 = Math.max(0, most - Math.max(0, around));
-        int[] limit = {max0, max12, max12};
+        int[] limit = {max0, max12, max12, max0};
         int over = 0;
         for (int i = 0; i < 3; i++)
             if (gaps[i] > limit[i]) { over += gaps[i] - limit[i]; gaps[i] = limit[i]; }
-        for (int i = 0; i < 3 && over > 0; i++) {
+        for (int i = 0; i < 4 && over > 0; i++) {
             int room = Math.min(over, limit[i] - gaps[i]);
             gaps[i] += room;
             over -= room;
         }
-        gaps[0] += over;
+        gaps[0] += over / 2;
+        gaps[3] += over - over / 2;
         return gaps;
     }
 
