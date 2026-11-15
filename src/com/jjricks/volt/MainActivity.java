@@ -2217,9 +2217,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(lightsBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(lightsBody.getChildAt(0));lightsBody.addView(line,0,new LinearLayout.LayoutParams(-1,design.dp(1)));}
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             clockLine=new SettingLine("history",M.mainRowClock(),null);
-            clockSpinner=new Spinner();clockSpinner.setVisibility(View.GONE);clockLine.line.addView(clockSpinner,rowSpinnerSize());
+            clockSpinner=new Spinner();clockSpinner.setVisibility(View.GONE);
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
-            LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-2,-2);clockParams.leftMargin=design.dp(10);clockLine.line.addView(clockButton,clockParams);
+            // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
+            // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
+            LinearLayout clockActions=row();clockActions.setGravity(Gravity.CENTER_VERTICAL);LinearLayout.LayoutParams clockSpin=rowSpinnerSize();clockSpin.setMarginStart(0);clockSpin.setMarginEnd(design.dp(10));clockActions.addView(clockSpinner,clockSpin);clockActions.addView(clockButton,new LinearLayout.LayoutParams(-2,-2));
+            clockLine.line.removeView(clockLine.words);
+            clockLine.line.addView(new BannerBody(clockLine.words,clockLine.name,clockActions,10,true),0,new LinearLayout.LayoutParams(0,-2,1));
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
             shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
@@ -2758,30 +2762,41 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(0,-2,1);params.leftMargin=design.dp(10);return params;
     }
     /**
-     * A banner's words with its pill: beside them while the words' longest word still fits on a line beside the pill,
-     * else the pill under the words (ActionBannerFit), so neither the label nor a word is cut at any text size or width.
-     * The order (words, then the pill) is the same either way, for TalkBack too.
+     * A row's words with its pill: beside them while the words' longest word still fits on a line beside the pill, else
+     * the pill under the words (ActionBannerFit), so neither the label nor a word is cut at any text size or width. The
+     * subject pages' banners, and the clock row's Sync. The order (words, then the pill) is the same either way, for
+     * TalkBack too.
      */
     private final class BannerBody extends LinearLayout {
-        private final TextView words,action;
-        BannerBody(TextView words,TextView action){
-            super(MainActivity.this);this.words=words;this.action=action;
-            setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);
-            addView(words,new LinearLayout.LayoutParams(0,-2,1));addView(action,new LinearLayout.LayoutParams(-2,-2));
+        private final View content,action;private final TextView words;private final int gap;private final boolean indent;
+        /** A banner: its words and pill, 8 dp apart. */
+        BannerBody(TextView words,View action){this(words,words,action,ActionBannerFit.GAP_DP,false);}
+        /**
+         * @param content what stays first (a row's words column), measured by {@code words} (its name, with its icon tile)
+         * @param indent under the words, the pill starts where the name's text does (after its icon tile)
+         */
+        BannerBody(View content,TextView words,View action,int gapDp,boolean indent){
+            super(MainActivity.this);this.content=content;this.words=words;this.action=action;this.gap=design.dp(gapDp);this.indent=indent;
+            setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setBaselineAligned(false);
+            addView(content,new LinearLayout.LayoutParams(0,-2,1));addView(action,new LinearLayout.LayoutParams(-2,-2));
             arrange(false);
         }
         private void arrange(boolean below){
             setOrientation(below?VERTICAL:HORIZONTAL);setGravity(below?Gravity.START|Gravity.CENTER_VERTICAL:Gravity.CENTER_VERTICAL);
-            LinearLayout.LayoutParams w=(LinearLayout.LayoutParams)words.getLayoutParams();
-            w.width=below?-1:0;w.weight=below?0:1;w.rightMargin=below?0:design.dp(ActionBannerFit.GAP_DP);
+            LinearLayout.LayoutParams w=(LinearLayout.LayoutParams)content.getLayoutParams();
+            w.width=below?-1:0;w.weight=below?0:1;w.rightMargin=below?0:gap;
+            LinearLayout.LayoutParams a=(LinearLayout.LayoutParams)action.getLayoutParams();
+            a.leftMargin=below&&indent?words.getCompoundPaddingLeft():0;
         }
         @Override protected void onMeasure(int widthSpec,int heightSpec){
             boolean below=false;
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
-                float pill=ActionBannerFit.pill(action.getPaint().measureText(action.getText().toString()),action.getPaddingLeft(),action.getMinWidth());
-                float word=ActionBannerFit.longestWord(words.getText().toString(),text->words.getPaint().measureText(text));
-                below=ActionBannerFit.actionBelow(room,pill,design.dp(ActionBannerFit.GAP_DP),word);
+                // The pill's own width: its label with its padding (ActionBannerFit.pill), with a spinner beside it if shown.
+                action.measure(MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED),MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED));
+                float word=ActionBannerFit.longestWord(words.getText().toString(),text->words.getPaint().measureText(text))
+                        +words.getCompoundPaddingLeft()+words.getCompoundPaddingRight();
+                below=ActionBannerFit.actionBelow(room,action.getMeasuredWidth(),gap,word);
             }
             if(below!=(getOrientation()==VERTICAL))arrange(below);
             super.onMeasure(widthSpec,heightSpec);
