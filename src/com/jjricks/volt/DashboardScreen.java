@@ -1399,6 +1399,22 @@ public final class DashboardScreen implements AppScreen {
                 : (value >= 60 ? T.dashboardDurationHours(Fmt.integer(value / 60), Fmt.integer(value % 60)) : T.dashboardDurationMinutes(Fmt.integer(value % 60)));
     }
 
+    /**
+     * The charging time's narrow-label ladder: duration's text, then where it has hours its narrow form ("≈1h 20m"),
+     * which a fitted value draws only where the full text is too wide at its size (FitLadder).
+     */
+    private String[] durationRungs(Double minutes) {
+        String full = duration(minutes);
+        if (minutes == null || !Double.isFinite(minutes) || Math.round(minutes) < 60) return new String[] {full};
+        long value = Math.round(minutes);
+        return new String[] {full, T.dashboardDurationHoursNarrow(Fmt.integer(value / 60), Fmt.integer(value % 60))};
+    }
+
+    /** What a value says in full, for speech and tooltips: a fitted value's first rung, else its text. */
+    private static CharSequence fullText(TextView value) {
+        return value instanceof FittedValue ? ((FittedValue) value).fullText() : value.getText();
+    }
+
     private ChargingEstimate.Value chargeValue(
             Map<String, TelemetryHistory.Reading> values, String key) {
         TelemetryHistory.Reading r = values.get(key);
@@ -1599,8 +1615,16 @@ public final class DashboardScreen implements AppScreen {
         int sharedMaximumSp = Integer.MAX_VALUE;
         /** Clean's parked card: a larger maximum on a larger card (TopArea.parkedTextGrowth); 0 keeps maximumSp. */
         int grownMaximumSp;
+        /**
+         * The narrow-label ladder's rungs, full first (setRungs): the value draws the first that fits at the largest
+         * size (FitLadder), so it takes a short rung before smaller text. null: its text as set.
+         */
+        String[] rungs;
+        int fittedRung;
         /** The size the last fit could reach at most (pixels): a value fitted below it may grow back. */
         float fittedCeiling;
+        /** The fit is setting a rung's text itself (no refit for that). */
+        boolean picking;
 
         FittedValue(String text, int minimum, int maximum, int lines) {
             super(host.activity());
@@ -1641,19 +1665,64 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /**
-         * A TextView whose text changes but keeps its line height lays out the new text without measuring again
+         * Rungs for the text (full first; none: the text as set by setText). The first is set as the text, which is
+         * what a reader of getText() gets until the next measure; fullText() keeps it for speech after that.
+         */
+        void setRungs(String... texts) {
+            String[] next = texts == null || texts.length == 0 ? null : texts.clone();
+            if (Arrays.equals(next, rungs)) return;
+            rungs = next;
+            fittedText = null;
+            if (next != null && !next[0].contentEquals(getText())) setText(next[0]);
+            requestLayout();
+        }
+
+        /** The value in full: its first rung where it has rungs (the drawn text may be the short one), else its text. */
+        CharSequence fullText() { return rungs != null ? rungs[0] : getText(); }
+
+        /** What the fit was made for: the rungs (a list's form, never equal to one plain text in practice) or the text. */
+        private String fitKey(String text) { return rungs != null ? Arrays.asList(rungs).toString() : text; }
+
+        /**
+         * A TextView whose text changes but keeps its line height lays out its new text without measuring again
          * (TextView.checkForRelayout), so a value fitted smaller for a longer text kept that size for a shorter one
-         * (the owner's phone, Nov 15 2026: the charging time "≈ 54m" stayed at the size "Waiting for readings" had
-         * taken, about 80% of Charging power's beside it). A new text measures again unless it is still drawn whole,
-         * on one line, at the most the value could reach.
+         * (the owner's phone, Nov 15 2026: "≈ 54m" stayed at the size "Waiting for readings" took, about 80% of
+         * Charging power's beside it). A new text measures again where its size or rung may differ.
          */
         @Override protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
             super.onTextChanged(text, start, lengthBefore, lengthAfter);
             // fittedText is null in TextView's own constructor (before these fields are set) and until the first fit.
-            if (fittedText == null || fittedText.contentEquals(text)) return;
-            if (fittedPixels >= fittedCeiling && targetLines == 1 && fittedWidth > 0
-                    && getPaint().measureText(text, 0, text.length()) <= fittedWidth) return;
+            if (picking || fittedText == null) return;
+            String now = text.toString();
+            if (rungs != null && !Arrays.asList(rungs).contains(now)) rungs = null;
+            boolean sameKey = fitKey(now).equals(fittedText);
+            if (sameKey && (rungs == null || now.equals(rungs[Math.min(fittedRung, rungs.length - 1)]))) return;
+            // Still drawn whole at the most it could reach, on one line: nothing to change.
+            if (!sameKey && rungs == null && fittedRung == 0 && fittedPixels >= fittedCeiling && targetLines == 1
+                    && getPaint().measureText(now) <= fittedWidth) return;
             requestLayout();
+        }
+
+        /** Whether text fits on its lines in width (pixels) at size (pixels), measured by this TextView's own layout. */
+        private boolean probe(String text, float size, int widthSpec, int width) {
+            picking = true;
+            try {
+                if (!text.contentEquals(getText())) setText(text);
+            } finally { picking = false; }
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
+            // Probe this TextView's actual layout, including styled units,
+            // font padding and platform fallback-line spacing. A separate
+            // StaticLayout can be a few pixels shorter than BoringLayout.
+            // An unconstrained height also avoids mistaking clipping for fit.
+            super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            android.text.Layout layout = getLayout();
+            int count = layout == null ? 0 : layout.getLineCount();
+            boolean fits = layout != null && count <= targetLines
+                    && getMeasuredHeight() <= heightBudget
+                    && (count == 0 || layout.getLineEnd(count - 1) == text.length());
+            for (int line = 0; fits && line < count; line++)
+                fits = layout.getLineMax(line) <= width;
+            return fits;
         }
 
         @Override
@@ -1662,31 +1731,27 @@ public final class DashboardScreen implements AppScreen {
                     - getCompoundPaddingLeft() - getCompoundPaddingRight();
             String text = getText().toString();
             float density = getResources().getDisplayMetrics().scaledDensity;
-            if (width != fittedWidth || !text.equals(fittedText)) {
+            if (rungs != null && !Arrays.asList(rungs).contains(text)) rungs = null;  // a plain setText since setRungs
+            String[] options = rungs != null ? rungs : new String[] {text};
+            String key = fitKey(text);
+            if (width != fittedWidth || !key.equals(fittedText)) {
                 fittedWidth = width;
-                fittedText = text;
+                fittedText = key;
                 int ceiling = Math.min(Math.max(maximumSp, grownMaximumSp), sharedMaximumSp);
+                fittedCeiling = ceiling * density;
                 fittedPixels = ceiling * density;
-                fittedCeiling = fittedPixels;
+                fittedRung = 0;
                 if (width > 0 && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
-                    for (int size = ceiling; size >= minimumSp; size--) {
-                        fittedPixels = size * density;
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fittedPixels);
-                        // Probe this TextView's actual layout, including styled units,
-                        // font padding and platform fallback-line spacing. A separate
-                        // StaticLayout can be a few pixels shorter than BoringLayout.
-                        // An unconstrained height also avoids mistaking clipping for fit.
-                        super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                        android.text.Layout layout = getLayout();
-                        int count = layout == null ? 0 : layout.getLineCount();
-                        boolean fits = layout != null && count <= targetLines
-                                && getMeasuredHeight() <= heightBudget
-                                && (count == 0 || layout.getLineEnd(count - 1) == text.length());
-                        for (int line = 0; fits && line < count; line++)
-                            fits = layout.getLineMax(line) <= width;
-                        if (fits) break;
-                    }
+                    int[] pick = FitLadder.pick(options.length, ceiling, minimumSp,
+                            (rung, size) -> probe(options[rung], size * density, widthSpec, width));
+                    fittedRung = pick[0];
+                    fittedPixels = pick[1] * density;
                 }
+            }
+            String shown = options[Math.min(fittedRung, options.length - 1)];
+            if (!shown.contentEquals(getText())) {
+                picking = true;
+                try { setText(shown); } finally { picking = false; }
             }
             if (getTextSize() != fittedPixels)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fittedPixels);
@@ -1778,6 +1843,8 @@ public final class DashboardScreen implements AppScreen {
         // The state as shown: Low current in the current language, any other state its own display message.
         if (state == estimate.label) state = low ? T.dashboardLowCurrent() : estimate.labelMsg.render();
         value.setText(minutes != null ? duration(minutes) : low && tag != null ? "—" : state);
+        // A time takes its short rung where the full one is too wide at the size of the value beside it (Charging power).
+        if (value instanceof FittedValue) ((FittedValue) value).setRungs(minutes != null ? durationRungs(minutes) : null);
         value.setTextColor(minutes == null ? ui.muted : ui.text);
         if (tag != null)
             styleTag(tag, minutes == null && low ? state : null,
@@ -2158,7 +2225,7 @@ public final class DashboardScreen implements AppScreen {
         private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {
             captions[reading].setLabels(names[0], names[1], names[2]);
             showChargeTime(values[reading], tags[reading], estimate, minutes);
-            spoken[reading] = spokenChargeTime(names[0], values[reading].getText(), tags[reading], status);
+            spoken[reading] = spokenChargeTime(names[0], fullText(values[reading]), tags[reading], status);
             values[reading].setContentDescription(spoken[reading]);
         }
 
@@ -5062,8 +5129,8 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = detail.isEmpty() ? readingSpoken(label, value.getText())
-                    : T.dashboardChargingDescriptionDetail(label, value.getText(), detail);
+            String description = detail.isEmpty() ? readingSpoken(label, fullText(value))
+                    : T.dashboardChargingDescriptionDetail(label, fullText(value), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.
             View holder = value.getParent() instanceof View ? (View) value.getParent() : null;
