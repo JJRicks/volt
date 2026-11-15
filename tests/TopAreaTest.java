@@ -36,6 +36,21 @@ public final class TopAreaTest {
         require(640 - 259 - TopArea.reserveDp(false, 1f) >= 40, "360x640 at 1x: 40 dp or more to spare under the quick actions");
         require(TopArea.heightDp(360, 640, false, 1.4f) == 291, "360x640 at 1.4x: the grown minimum, as on main");
         require(TopArea.heightDp(344, 560, false, 1f) == 227, "344x560 at 1x: 560 less the reserve and 40 dp to spare (40.5% would be 227 too)");
+        // The council's review of #501, finding 2: Find it nearby shows over the area (a three-line card, 104 dp and its
+        // 12 dp margin, at 411x731). It comes out of the room the area may take, so the Lock bar and the quick actions keep
+        // their room on first view; never below the area's minimum, and nothing changes where the room is ample.
+        require(TopArea.heightDp(411, 731, false, 1f, 116) == 283, "411x731 with a three-line Find it nearby card: 283 dp");
+        for (int[] size : new int[][]{{411, 731}, {360, 640}, {344, 560}, {412, 901}, {344, 882}})
+            for (int above : new int[]{0, 60, 116, 160})
+                for (float text : new float[]{1f, 1.4f}) {
+                    int area = TopArea.heightDp(size[0], size[1], false, text, above);
+                    int least = Math.max(TopArea.FLOOR_DP, Math.min(Math.round(TopArea.MIN_DP * Math.min(1.3f, text)), size[1] - TopArea.reserveDp(false, text)));
+                    require(area == least || size[1] - above - area - TopArea.reserveDp(false, text) >= TopArea.PHONE_SLACK_DP,
+                            size[0] + "x" + size[1] + " at " + text + "x under a " + above + " dp card: room to spare, or the minimum: " + area);
+                    require(area <= TopArea.heightDp(size[0], size[1], false, text), "the card never makes the area taller");
+                }
+        require(TopArea.heightDp(412, 901, false, 1f, 116) == 364 && TopArea.heightDp(344, 882, false, 1f, 116) == 304, "tall phones: unchanged under the card");
+        require(TopArea.heightDp(360, 640, false, 1f, 160) == 224, "never below the minimum");
         require(TopArea.heightDp(344, 882, false, 1.4f) == 304, "344x882 at 1.4x: the same area (the grown minimum, 291, is less)");
         require(TopArea.heightDp(300, 915, false, 1.4f) == 291, "Large text keeps at least 224 dp grown 1.3 times on a narrow window");
         require(TopArea.heightDp(260, 1100, false, 1.15f) == 258 && TopArea.heightDp(250, 700, false, 1f) == 224, "Text growth below the cap scales the minimum");

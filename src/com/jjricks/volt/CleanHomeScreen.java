@@ -134,8 +134,14 @@ final class CleanHomeScreen implements AppScreen {
         findSize.bottomMargin = ui.dp(12);
         page.addView(parts.findCard(), findSize);
 
-        // The top area: one height for every moment, so the Lock bar and the quick actions never move.
-        top = new FrameLayout(host.activity());
+        // The top area: one height for every moment, so the Lock bar and the quick actions never move. Its height is
+        // TopArea's for the window, less what Find it nearby takes over it.
+        View find = parts.findCard();
+        top = new FrameLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(topHeight(find), MeasureSpec.EXACTLY));
+            }
+        };
         top.setTag(TAG_TOP);
         overview = parts.overview();
         charging = parts.chargingView();
@@ -146,7 +152,7 @@ final class CleanHomeScreen implements AppScreen {
         top.addView(justBack, new FrameLayout.LayoutParams(-1, -1));
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
-        page.addView(top, new LinearLayout.LayoutParams(-1, topHeight()));
+        page.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout lock = new FrameLayout(host.activity());
         lock.setTag(TAG_LOCK);
@@ -398,11 +404,23 @@ final class CleanHomeScreen implements AppScreen {
 
     // ===== Sizes and small views =====
 
-    /** TopArea's height for this window, with the app's and the system's text scale together. */
-    private int topHeight() {
+    /**
+     * TopArea's height for this window (pixels), with the app's and the system's text scale together. Measured with the
+     * page, after the header and Find it nearby: while that card shows over the area, its height and margins come out of
+     * the room the area may take (TopArea.heightDp's aboveDp). The card shows over every moment alike, so the area keeps
+     * one height for all three; it changes only when the card comes or goes, as the Lock bar always moved for it.
+     */
+    private int topHeight(View find) {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenWidthDp, configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        float density = host.activity().getResources().getDisplayMetrics().density;
+        int above = 0;
+        if (find != null && find.getVisibility() == View.VISIBLE && find.getParent() == top.getParent()) {
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) find.getLayoutParams();
+            above = Math.round((find.getMeasuredHeight() + margins.topMargin + margins.bottomMargin) / density);
+        }
+        int area = TopArea.heightDp(configuration.screenWidthDp, configuration.screenHeightDp, ui.wideLayout(), scale, above);
+        return Math.round(area * density);
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */

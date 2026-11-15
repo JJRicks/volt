@@ -55,13 +55,24 @@ final class TopArea {
      * combined.
      */
     static int heightDp(int screenWidthDp, int screenHeightDp, boolean wide, float textScale) {
+        return heightDp(screenWidthDp, screenHeightDp, wide, textScale, 0);
+    }
+
+    /**
+     * The same, with {@code aboveDp} taken by something shown over the area (Home's Find it nearby card and its 12 dp
+     * margin): it comes out of the room a phone's area may take beyond the reserve, so the Lock bar and the quick actions
+     * keep their room on first view, never below the area's minimum. The card shows over every moment alike, so the
+     * area keeps one height for all three.
+     */
+    static int heightDp(int screenWidthDp, int screenHeightDp, boolean wide, float textScale, int aboveDp) {
         float growth = Float.isNaN(textScale) ? 1f : Math.max(1f, Math.min(MAX_TEXT_GROWTH, textScale));
         int min = Math.round(MIN_DP * growth);
         int max = wide ? WIDE_MAX_DP : PHONE_MAX_DP;
         int height = Math.max(0, screenHeightDp);
         int share = wide ? Math.round(height * WIDE_SHARE)
                 : Math.min(Math.round(Math.max(0, screenWidthDp) * PHONE_WIDTH_SHARE),
-                        Math.min(Math.round(height * PHONE_HEIGHT_CAP), height - reserveDp(false, textScale) - PHONE_SLACK_DP));
+                        Math.min(Math.round(height * PHONE_HEIGHT_CAP),
+                                height - reserveDp(false, textScale) - PHONE_SLACK_DP - Math.max(0, aboveDp)));
         int wanted = Math.max(min, Math.min(max, share));
         return Math.max(FLOOR_DP, Math.min(wanted, height - reserveDp(wide, textScale)));
     }
