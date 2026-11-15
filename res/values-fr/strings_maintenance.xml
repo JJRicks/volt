@@ -26,8 +26,6 @@
     <string name="maintenance_switch">Rappels d’entretien</string>
     <!-- src:d1fbdd4a68e6cf0de2c872f396f24b42153d058a -->
     <string name="maintenance_switch_detail">Afficher les vérifications définies quand elles sont à faire</string>
-    <!-- src:a906c19d7128632b6edd0749881f390ab3393e59 -->
-    <string name="maintenance_off_explain">Activez cette option pour ajouter vos propres rappels, par exemple pour vérifier la pression des pneus toutes les 2 semaines ou les freins tous les 300 mi. Volt affiche la vérification ici et dans l’onglet « Trottinette » lorsqu’elle est à faire.</string>
     <!-- src:33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1 -->
     <string name="maintenance_disclaimer">Ce sont des rappels que vous définissez. Vérifiez votre trottinette dès que quelque chose vous semble anormal, peu importe ce qu’indique un rappel.</string>
     <!-- src:5ab9cc59ff86341c67ec3f486583edb6a86bd537 -->
@@ -288,8 +286,6 @@
     <string name="maintenance_notify_detail">Une seule notification, à l’échéance</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Rappels d’entretien</string>
-    <!-- src:253b821ce1c206197ea1313c4e06e6f5f91387bd -->
-    <string name="maintenance_channel_detail">Vérifications que vous définissez dans Trottinette › Maintenance › Entretien, une seule fois quand chacune est à faire</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%1$d vérification à faire · Trottinette : %2$s</item>

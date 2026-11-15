@@ -122,8 +122,6 @@
     <string name="onboarding_finish_import_first">Schließe zuerst den Import deiner ausgewählten Besitzerdatei ab.</string>
     <!-- src:a0e1b8855a5a0586cbf31d9ca0589ca93c83c695 -->
     <string name="onboarding_skip_title">Einrichtung vorerst überspringen?</string>
-    <!-- src:2ebd2136ff09aba32eb39b4fc15c6ce9f462415c -->
-    <string name="onboarding_skip_message">Füge deinen Scooter später unter „Mehr“ hinzu.</string>
     <!-- src:9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9 -->
     <string name="onboarding_skip_keep_going">Weitermachen</string>
     <!-- src:ea9dc58d381ab136f8d8332bf41d32f90bd93983 -->

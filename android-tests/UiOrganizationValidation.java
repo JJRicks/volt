@@ -486,10 +486,12 @@ public final class UiOrganizationValidation extends Instrumentation {
         }); waitForIdleSync();
         main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "A reboot left " + HubTestPages.current(activity) + " open"));
         requireScreenText(APP_PREFERENCES_ROW);
-        // A subject is never closed: an expired return to Settings itself stays there.
+        // A subject is never closed: leaving Settings itself starts no clock (nothing to close), and an expired return
+        // to it (a clock left from before) stays there.
         main(() -> {
             callActivityOnPause(activity);
-            settings.edit().putInt(HUB_AWAY_BOOT, -2).commit();
+            require(!settings.contains(HUB_AWAY_AT) && !settings.contains(HUB_AWAY_BOOT), "Leaving Settings itself started the away clock");
+            settings.edit().putLong(HUB_AWAY_AT, SystemClock.elapsedRealtime() - 60_000).putInt(HUB_AWAY_BOOT, -2).commit();
             callActivityOnResume(activity);
         }); waitForIdleSync();
         main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "An expired return closed Settings itself"));

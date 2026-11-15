@@ -40,7 +40,7 @@ import com.jjricks.volt.ScooterService;
 
 /**
  * Pseudo-locale and shipped-language layout checks (plan sections 6.2 and 7.2 step 6), skeleton: B0b walks
- * the five main pages and the More sections, B17 the setup pages; later batches add the sheets, BackupActivity
+ * the five main pages and the More sections (each the Hub page that holds it since part 11, reached by touch), B17 the setup pages; later batches add the sheets, BackupActivity
  * and ShizukuSetupActivity. Report only: the result is PASS whenever the walk completes, and the findings are
  * counted in the result bundle and listed in locale-validation/<variant>-report.txt. Needs API 33 or later.
  * en-XA and ar-XB need the pseudo APK (VOLT_PSEUDO_LOCALES=1 build.sh); with the release APK it says the
@@ -140,12 +140,11 @@ public final class LocaleValidation extends Instrumentation {
                 for (String page : PAGES) {
                     select(page); check("page-" + page);
                 }
-                select("more");
                 for (String section : MORE_SECTIONS) {
-                    main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, section)); settle();
+                    sectionPage(section);
                     check("more-" + section.toLowerCase(Locale.ROOT));
                 }
-                main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "")); settle();
+                select("home");
                 walkSetup();
             }
             writeReport();
@@ -165,6 +164,37 @@ public final class LocaleValidation extends Instrumentation {
             if (immersiveSet) try { restoreImmersiveNotice(); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
+    }
+
+    /** Settings' rows that open its sub-pages, by their tags (MoreScreen; HubValidation's SETTINGS_ROWS). */
+    private static final java.util.Map<String, String> SETTINGS_ROWS = new java.util.TreeMap<>();
+    static {
+        SETTINGS_ROWS.put(HubPages.SETTINGS_SCOOTERS, "my-scooters-menu");
+        SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
+        SETTINGS_ROWS.put(HubPages.SETTINGS_DEVELOPER, "developer-options-menu");
+    }
+
+    /**
+     * One of More's sections, on the page that holds it now (HubPages.fromMoreSection): the old More tab's selectSection
+     * showed each in place, and since the Hub replaced the tabs (part 11, #392) Settings is one page and each other
+     * section is a page of its own (App: Settings; Scooters, About, Developer: Settings' pages; Security: its subject;
+     * Lab: Service › Experimental controls; Data: Data › storage). Reached the rider's way, by touch from Home
+     * (HubTestPages.reach; Settings' own sub-pages by their tagged rows on Settings), and required on top.
+     */
+    private void sectionPage(String section) {
+        String page = HubPages.fromMoreSection(section);
+        String tag = SETTINGS_ROWS.get(page);
+        if (tag == null) HubTestPages.reach(this, activity, page);
+        else {
+            HubTestPages.reach(this, activity, HubPages.SETTINGS); settle();
+            AtomicReference<View> row = new AtomicReference<>();
+            main(() -> row.set(HubTestPages.shownTag(activity, tag)));
+            HubTestPages.tapView(this, activity, row.get(), "Settings' row " + tag);
+            await(() -> page.equals(HubTestPages.current(activity)), "Settings' row " + tag + " did not open " + page);
+        }
+        settle();
+        main(() -> require(page.equals(HubTestPages.current(activity)), "More's " + section + " section: " + page + " is not on top ("
+                + HubTestPages.current(activity) + ")"));
     }
 
     /**

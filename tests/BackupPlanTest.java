@@ -380,8 +380,10 @@ public final class BackupPlanTest {
         BackupTestStore from1132 = BackupArchiveTest.phone(new File(root, "notice-1132"));
         from1132.restore(withSwitch.export(BackupTestStore.all()), set(BackupRegistry.PREFERENCES), false, null);
         check(!from1132.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY), "a backup that holds the background switch (1.13.2 or later, its switch once changed) marks nothing");
-        // A 1.13.2 backup whose switch was never touched holds no switch (1.13.2 writes it only on a change): its manifest's
-        // version code (59) says it was made with the switch, so it marks nothing; the same backup from 1.13.1 (58) does.
+        // A 1.13.2 backup whose switch was never touched holds no switch (1.13.2 writes it only on a change), and 1.13.2 keeps
+        // whether its own note was read out of backups. Council review 5908466131 on #392, finding 2: such a backup from
+        // version code 59 marked nothing until then, so an owner who exported before 1.13.2's note appeared was never told;
+        // now it marks the notice due like the same backup from 1.13.1 (58), and an owner who read that note is told twice.
         for (int code : new int[]{58, 59}) {
             BackupTestStore untouched = BackupTestStore.rich(new File(root, "notice-source-untouched-" + code));
             untouched.version = code; untouched.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true);
@@ -391,9 +393,24 @@ public final class BackupPlanTest {
                 phone.version = 59;
                 phone.restore(backup, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
                 Map<String, Object> app = phone.preferences().get("app_settings");
-                check((code < 59) == Boolean.TRUE.equals(app.get(HomeStyle.RESTORED_NOTICE_KEY)),
+                check(Boolean.TRUE.equals(app.get(HomeStyle.RESTORED_NOTICE_KEY)),
                         "a backup without the switch from version code " + code + ", " + (replace ? "Replace everything" : "App preferences")
-                                + ": the notice is due only before 1.13.2: " + app);
+                                + ": the notice is due, before 1.13.2 and from it: " + app);
+            }
+        }
+        // A backup from 1.13.2 (59) that holds the switch, on or off: its owner changed it, so it marks nothing.
+        for (boolean background : new boolean[]{false, true}) {
+            BackupTestStore changed = BackupTestStore.rich(new File(root, "notice-source-changed-" + background));
+            changed.version = 59; changed.put("app_settings", AutoStartPolicy.AUTO_RECORD_KEY, true);
+            changed.put("app_settings", AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, background);
+            byte[] backup = changed.export(BackupTestStore.all());
+            for (boolean replace : new boolean[]{true, false}) {
+                BackupTestStore phone = BackupArchiveTest.phone(new File(root, "notice-changed-" + background + "-" + replace));
+                phone.version = 59;
+                phone.restore(backup, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
+                check(!phone.preferences().get("app_settings").containsKey(HomeStyle.RESTORED_NOTICE_KEY),
+                        "a version code 59 backup holding the background switch (" + background + "), " + (replace ? "Replace everything" : "App preferences")
+                                + ": marks nothing");
             }
         }
         BackupTestStore hubSource = BackupTestStore.rich(new File(root, "notice-source-hub"));

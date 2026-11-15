@@ -192,8 +192,8 @@
         volt:safety="owner-key">Finish importing your selected owner file first.</string>
     <!-- Dialog title after tapping Skip. -->
     <string name="onboarding_skip_title" volt:screen="Skip dialog" volt:purpose="title">Skip setup for now?</string>
-    <!-- Dialog message: the scooter can be added later from the More tab. "More" is the name of Volt's tab. -->
-    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add your scooter later in More.</string>
+    <!-- Dialog message: the scooter can be added later from Settings › My scooters. "Settings" and "My scooters" are the names of Volt's pages (hub_page_settings, more_section_scooters). -->
+    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add your scooter later in Settings › My scooters.</string>
     <!-- Dialog button: stay in setup. -->
     <string name="onboarding_skip_keep_going" volt:screen="Skip dialog" volt:purpose="button">Keep going</string>
 
