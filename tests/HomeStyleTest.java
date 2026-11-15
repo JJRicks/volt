@@ -260,9 +260,21 @@ public final class HomeStyleTest {
         for (int code : new int[] {0, 53, 55, 57, 58})
             require(!HomeStyle.madeWithBackgroundSwitch(code) && HomeStyle.restoreMarksNotice(code, true, false, true, null),
                     "Made by version code " + code + " (before 1.13.2, or unrecorded): due");
-        for (int code : new int[] {59, 60, 120})
-            require(HomeStyle.madeWithBackgroundSwitch(code) && !HomeStyle.restoreMarksNotice(code, true, false, true, null),
-                    "Made by version code " + code + " (1.13.2 or later), its switch never touched: not due");
+        // Council review 5908466131 on #392, finding 2: this case was "not due" until then. 1.13.2 keeps
+        // auto_record_background_notice out of backups, so the backup can't say whether its owner read 1.13.2's note; an
+        // owner who exported before it appeared would never be told. Told again (the cheaper failure) instead.
+        for (int code : new int[] {59, 60, 120}) {
+            require(HomeStyle.madeWithBackgroundSwitch(code) && HomeStyle.restoreMarksNotice(code, true, false, true, null)
+                    && HomeStyle.restoreMarksNotice(code, true, false, true, false),
+                    "Made by version code " + code + " (1.13.2 or later), its switch never touched, Record rides automatically on: due");
+            require(!HomeStyle.restoreMarksNotice(code, true, true, true, false) && !HomeStyle.restoreMarksNotice(code, true, true, true, null)
+                    && !HomeStyle.restoreMarksNotice(code, true, true, true, true),
+                    "Made by version code " + code + " with the switch in the backup (once changed): not due, whatever it holds");
+            require(!HomeStyle.restoreMarksNotice(code, true, false, false, null) && !HomeStyle.restoreMarksNotice(code, true, false, null, null),
+                    "Made by version code " + code + ", Record rides automatically off or absent: nothing to tell");
+            require(!HomeStyle.restoreMarksNotice(code, true, false, true, true), "Made by version code " + code + ", background starts on after the restore: nothing to tell");
+            require(!HomeStyle.restoreMarksNotice(code, false, false, true, null), "Made by version code " + code + " with Home styles (a Hub backup): not due");
+        }
         require(!HomeStyle.restoreMarksNotice(58, false, false, true, null) && !HomeStyle.restoreMarksNotice(58, true, true, true, false)
                 && !HomeStyle.restoreMarksNotice(58, true, false, false, null) && !HomeStyle.restoreMarksNotice(58, true, false, true, true),
                 "An older version code keeps every other rule");
