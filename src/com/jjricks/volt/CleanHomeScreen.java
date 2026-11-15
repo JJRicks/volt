@@ -398,11 +398,11 @@ final class CleanHomeScreen implements AppScreen {
 
     // ===== Sizes and small views =====
 
-    /** TopArea's share of this window, with the app's and the system's text scale together. */
+    /** TopArea's height for this window, with the app's and the system's text scale together. */
     private int topHeight() {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        return TopArea.heightPx(configuration.screenWidthDp, configuration.screenHeightDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */

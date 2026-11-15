@@ -135,16 +135,16 @@ public final class JustBackFitTest {
         java.awt.Font floor = saira.deriveFont(12f);
         String[] swedish = {"Tripptid", "Medelhastighet", "Batteri"};
         java.util.function.ToDoubleFunction<String> sv = name -> floor.getStringBounds(name, context).getWidth();
-        int area = TopArea.heightDp(560, false, 1f), room344 = area - 48 - Math.round(28 * 1.16f) - 8;
+        int area = TopArea.heightDp(344, 560, false, 1f), room344 = area - 48 - Math.round(28 * 1.16f) - 8;
         float third344 = (308 - 2 * 8) / 3f - 20;
         require(area == 208 && room344 == 120, "344x560 at 1x: a 208 dp area leaves 120 dp for the tiles: " + area + ", " + room344);
         require(TileFit.columns(swedish, sv, third344, 2) == 2, "Medelhastighet (" + Math.round(sv.applyAsDouble("Medelhastighet")) + " dp at 12 sp) does not fit a third (" + third344 + ")");
         require(TileFit.layout(swedish, sv, third344, 2, 144, 144 - 2 * (2 * (9 - 4) + 4), room344) == TileFit.TWO_TIGHT, "344x560 Swedish: two tight rows, the name whole");
         require(TileFit.nameLines("Medelhastighet", sv, (308 - 8) / 2f - 20, 2) == 2, "and half a row holds it whole");
         // Full-size windows keep their layouts: 344x882 two rows at 1x and 1.4x (room to spare), 725x604 the same.
-        int room882 = TopArea.heightDp(882, false, 1f) - 48 - 32 - 8;
+        int room882 = TopArea.heightDp(344, 882, false, 1f) - 48 - 32 - 8;
         require(TileFit.layout(swedish, sv, third344, 2, 144, 116, room882) == TileFit.TWO, "344x882 Swedish: two rows as before (room " + room882 + ")");
-        int roomWide = TopArea.heightDp(604, true, 1f) - 48 - 32 - 8;
+        int roomWide = TopArea.heightDp(725, 604, true, 1f) - 48 - 32 - 8;
         require(TileFit.layout(swedish, sv, (330 - 16) / 3f - 20, 2, 144, 116, roomWide) == TileFit.TWO, "725x604 Swedish: two rows (room " + roomWide + ")");
         // The rule alone.
         require(JustBackFit.nameScale(new float[]{50, 70}, 70, 12.5f, 12) == 1, "fits: full size");
