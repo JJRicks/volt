@@ -151,6 +151,7 @@ public final class DockSheetValidation extends Instrumentation {
         travel = onMain(() -> (Integer) field(drag(), "travel"));
         require(travel > 0, "The open sheet has no travel");
         fits();
+        checks.add("The open sheet sits below the status bar with its list above the navigation bar, and its background reaches the screen's bottom edge on screen");
         // The close button: the animated close, then gone.
         seen = closeBy(() -> tapCentre(closeButton(), "the sheet's close button"));
         require(seen.contains(CLOSING), "The close button closed the sheet without its settle (states " + seen + ")");
@@ -588,6 +589,19 @@ public final class DockSheetValidation extends Instrumentation {
             require(p[1] >= f[1] + top, "The open sheet's top is under the status bar");
             require(l[1] + list.getHeight() <= f[1] + frame.getHeight() - bottom + 1, "The sheet's list ends under the navigation bar");
         });
+        // On screen: the sheet's own background reaches the screen's bottom edge, under the navigation bar too (a window
+        // that draws no bar backgrounds gets a black strip painted there).
+        settle();
+        android.graphics.Bitmap shot = getUiAutomation().takeScreenshot();
+        require(shot != null, "Screenshot unavailable");
+        try {
+            int bg = onMain(() -> activity.ui().bg) | 0xff000000;
+            for (int y : new int[]{shot.getHeight() - 1, shot.getHeight() - Math.round(4 * dp)}) {
+                int seen = shot.getPixel(Math.round(shot.getWidth() * .1f), y) | 0xff000000;
+                int diff = Math.abs(((seen >> 16) & 255) - ((bg >> 16) & 255)) + Math.abs(((seen >> 8) & 255) - ((bg >> 8) & 255)) + Math.abs((seen & 255) - (bg & 255));
+                require(diff <= 12, String.format(Locale.ROOT, "The screen's bottom (row %d) under the open sheet is #%06x, not the sheet's background #%06x", y, seen & 0xffffff, bg & 0xffffff));
+            }
+        } finally { shot.recycle(); }
     }
 
     // ===== Touches =====
@@ -595,6 +609,8 @@ public final class DockSheetValidation extends Instrumentation {
     /** One finger's touch, injected with explicit event times (real time: what the app sees is a real gesture's pace). */
     private final class Finger {
         private final long down;
+        /** The last event's time: the lift follows it as a finger's would, however long the injection itself took. */
+        private long last;
         private float x, y;
         private boolean two;
         Finger(float[] at) {
@@ -624,17 +640,18 @@ public final class DockSheetValidation extends Instrumentation {
             }
         }
         void up() {
-            if (two) send(MotionEvent.ACTION_POINTER_UP | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), SystemClock.uptimeMillis());
+            if (two) send(MotionEvent.ACTION_POINTER_UP | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), last + 8);
             two = false;
-            send(MotionEvent.ACTION_UP, SystemClock.uptimeMillis());
+            send(MotionEvent.ACTION_UP, last + 8);
         }
-        void cancel() { send(MotionEvent.ACTION_CANCEL, SystemClock.uptimeMillis()); }
+        void cancel() { send(MotionEvent.ACTION_CANCEL, last + 8); }
         /** A second finger down, 40 dp beside the first. */
         void secondFinger() {
             two = true;
-            send(MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), SystemClock.uptimeMillis());
+            send(MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), Math.max(last + 8, SystemClock.uptimeMillis()));
         }
         private void send(int action, long time) {
+            last = time;
             int count = two ? 2 : 1;
             MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[count];
             MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[count];

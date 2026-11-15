@@ -168,6 +168,17 @@ final class DragSheet {
                 params.setFitInsetsTypes(0);
                 params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
                 window.setAttributes(params);
+                // Bar backgrounds of its own, both clear (a window that draws none gets a black strip painted under the
+                // navigation bar): the dim shows under the status bar and the sheet's own background under the
+                // navigation bar, whose icons suit that background.
+                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                window.setStatusBarColor(Color.TRANSPARENT);
+                window.setNavigationBarColor(Color.TRANSPARENT);
+                window.setStatusBarContrastEnforced(false);
+                window.setNavigationBarContrastEnforced(false);
+                android.view.WindowInsetsController bars = window.getInsetsController();
+                if (bars != null) bars.setSystemBarsAppearance(ui.dark ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
             }
         }
         dialog.setOnDismissListener(d -> {
