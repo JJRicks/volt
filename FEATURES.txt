@@ -850,10 +850,11 @@ charging, Controls, Lights & sound, Security, Service, Data). Clean Home lists
 them on the page and has no dock; Widgets Home has a dock, a floating bar at
 the bottom with the most-used subjects under short names and All (or swipe up)
 for a sheet with Search and Settings first, then every subject with its
-summary. Each dock icon sits on a raised tile under a grab handle. While the
-dock would cover the Lock bar it lifts to float just above it, and steps aside
-only where there is no room for that; it also steps aside while Home is being
-edited. On a wide window (650 dp after
+summary. Each dock icon sits on a raised tile under a grab handle. The dock
+is always pinned to the bottom (it steps aside only while Home is being
+edited): Home scrolls far enough for every widget, the Lock bar included, to
+clear it, and the Lock bar, like any widget, can be moved in Edit Home. On a
+wide window (650 dp after
 text size) Clean Home takes two panes: the scooter (header with the gear, top
 area, Lock bar, quick actions and a Service card with the next maintenance
 checks, orange only when one is due, "40 mi left") stays put while search,
@@ -1464,7 +1465,10 @@ the card colour (green start, white end) and three tiles: Ride time
 saved no average, the rule the ride's page and compare sheet on Rides use
 too; a dash only without a distance or a time) and Battery with the signed change ("−18%"); on a short area the route goes
 first, then the distance gets smaller; the three values share one size and
-one baseline, each name on one line. The Ride row shows a running recording
+one baseline. The names get a little smaller before one wraps and are never
+broken inside a word: where a name doesn't fit a third in two lines, the
+tiles stand two to a row (Battery across the second), the route giving up
+the height. The Ride row shows a running recording
 and its time while a ride records, else the last ride, the same one Just back
 shows.
 Settings > Home style shows the two styles side by side, a Quick actions row
@@ -1480,7 +1484,12 @@ recording in the background switch and a link to Recording settings; then
 Switch to Clean or Keep Widgets (left out once they chose a style or Home is
 already Clean; an owner who already chose sees the sheet only for the notice);
 then the installed version's changelog, bundled in the APK,
-with a link to its release page.
+with a link to its release page. It counts as seen only when the owner closes
+it (a button, X, Back, a tap outside) or acts in it; one Volt closes itself (a
+rebuild) shows again on the next clear Home. An owner who closed 1.13.2's own
+recording note is not shown the notice again. Restoring App preferences from a
+backup made before 1.13.2 and before Home styles, with Record rides
+automatically on, shows the recording notice once on its own, on any phone.
 
 QUICK ACCESS
 
