@@ -110,6 +110,7 @@ public final class DockSheetValidation extends Instrumentation {
                     drags();
                     scrolledList();
                     interruptions();
+                    relayout();
                     frames();
                     animationsOff();
                     activityGoes();
@@ -151,7 +152,7 @@ public final class DockSheetValidation extends Instrumentation {
         travel = onMain(() -> (Integer) field(drag(), "travel"));
         require(travel > 0, "The open sheet has no travel");
         fits();
-        checks.add("The open sheet sits below the status bar with its list above the navigation bar, its bar icons suit the theme (dark on light), and its background reaches the screen's bottom edge on screen");
+        checks.add("The open sheet sits below the status bar with its list above the navigation bar, its bar icons suit the theme (light theme: white status icons over the full dim, dark navigation icons over the sheet), and its background reaches the screen's bottom edge on screen");
         // The close button: the animated close, then gone.
         seen = closeBy(() -> tapCentre(closeButton(), "the sheet's close button"));
         require(seen.contains(CLOSING), "The close button closed the sheet without its settle (states " + seen + ")");
@@ -451,6 +452,72 @@ public final class DockSheetValidation extends Instrumentation {
     }
 
     /**
+     * A new height while the sheet settles open (slowed to scale 10): its restart is posted from the layout pass, and a
+     * click handled before that runs (here: run at the front of the main queue straight after the layout) must win. Three
+     * ways: nothing else, so the opening carries on to open at the new height; close(), so the stale restart must not
+     * reopen it; close() then leave() (a row's close as its page opens), so it must not reopen and must finish closing.
+     */
+    private void relayout() {
+        scale(10);
+        String[] ways = {"a new height mid-open", "a new height mid-open, then close() before its restart runs", "a new height mid-open, then close() and leave() before its restart runs"};
+        for (int way = 0; way < ways.length; way++) {
+            int which = way;
+            HubTestPages.showDock(this, activity);
+            tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
+            await(() -> onMain(() -> drag() != null && Integer.valueOf(OPENING).equals(field(drag(), "state")) && field(drag(), "settling") != null
+                    && (Integer) field(drag(), "travel") > 0), () -> "All did not start settling open (" + describe() + ")");
+            Object sheet = onMain(this::drag);
+            Dialog window = onMain(this::dialog);
+            int before = onMain(() -> (Integer) field(sheet, "travel"));
+            States states = new States(sheet);
+            boolean[] ran = new boolean[2];
+            main(() -> {
+                View panel = (View) field(sheet, "panel");
+                ScrollView list = (ScrollView) field(sheet, "list");
+                panel.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                    @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                        if ((Integer) field(sheet, "travel") == before) return;
+                        v.removeOnLayoutChangeListener(this);
+                        // The sheet's own listener ran first (it was added first) and posted its restart; this goes ahead of it.
+                        ran[0] = true;
+                        if (which > 0) new android.os.Handler(android.os.Looper.getMainLooper()).postAtFrontOfQueue(() -> {
+                            invoke(sheet, "close");
+                            if (which == 2) invoke(sheet, "leave");
+                            ran[1] = true;
+                        });
+                    }
+                });
+                ViewGroup.LayoutParams size = list.getLayoutParams();
+                size.height = Math.max(Math.round(48 * dp), list.getHeight() - Math.round(48 * dp));
+                list.setLayoutParams(size);
+            });
+            await(() -> onMain(() -> ran[0] && (which == 0 || ran[1])), () -> ways[which] + ": the new height was never laid out (" + describe() + ")");
+            int after = onMain(() -> (Integer) field(sheet, "travel"));
+            require(after < before, ways[which] + ": the travel did not change (" + before + " -> " + after + " px)");
+            if (which == 0) {
+                awaitOpen(ways[which]);
+                List<Integer> seen = states.stop();
+                require(!seen.contains(CLOSING), ways[which] + ": the opening did not carry on (states " + seen + ")");
+                main(() -> require(drag() == sheet && Math.abs(offset()) < .5f && (Integer) field(sheet, "travel") == after, ways[which] + ": not open at the new height"));
+                back(); awaitGone("Back");
+            } else {
+                if (which == 2) main(() -> require(Boolean.TRUE.equals(field(sheet, "letGo")), ways[which] + ": the sheet was not let go"));
+                long end = SystemClock.uptimeMillis() + 20000;
+                while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
+                List<Integer> seen = states.stop();
+                require(!onMain(window::isShowing), ways[which] + ": the sheet never finished closing (states " + seen + ", " + onMain(() -> "state " + field(sheet, "state") + ", offset " + field(sheet, "offset")) + ")");
+                List<Integer> sinceClose = seen.contains(CLOSING) ? seen.subList(seen.indexOf(CLOSING), seen.size()) : seen;
+                require(seen.contains(CLOSING) && !sinceClose.contains(OPENING) && !sinceClose.contains(OPEN), ways[which] + ": the stale restart reopened it (states " + seen + ")");
+                awaitGone(ways[which]);
+                requireHome();
+            }
+        }
+        scale(1);
+        checks.add("A new height while the sheet settles open: the opening carries on to open at the new height; with close() handled before its posted restart runs, "
+                + "the stale restart does not reopen it and it finishes closing; the same with close() and leave() (let go): no reopening, it finishes closing and goes");
+    }
+
+    /**
      * Back on the open sheet (scale 10), then a finger down on the sheet once it is two fifths of the way closed: returns
      * that finger, held, with the sheet caught (DRAGGED) where it was.
      */
@@ -742,6 +809,12 @@ public final class DockSheetValidation extends Instrumentation {
         main(() -> require(drag() != null && field(drag(), "state").equals(PULLED), "The pull did not take the sheet"));
         float shown = onMain(() -> travel - offset());
         require(Math.abs(shown - fraction * travel) < 6 * dp, "The pulled sheet shows " + shown + " px for a finger " + fraction * travel + " px up (it should follow 1:1)");
+        if (fraction <= .1 && Build.VERSION.SDK_INT >= 30) main(() -> {
+            // A short pull's light dim: the light theme's status icons stay dark (light on the dark theme).
+            int status = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
+            int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & status;
+            require(look == (activity.ui().dark ? 0 : status), "At a short pull the sheet's status icons are " + (look == 0 ? "light" : "dark") + " on the " + (activity.ui().dark ? "dark" : "light") + " theme");
+        });
         if (hold) finger.hold(150);
         finger.up();
     }
@@ -777,10 +850,14 @@ public final class DockSheetValidation extends Instrumentation {
             require(p[1] >= f[1] + top, "The open sheet's top is under the status bar");
             require(l[1] + list.getHeight() <= f[1] + frame.getHeight() - bottom + 1, "The sheet's list ends under the navigation bar");
             if (Build.VERSION.SDK_INT >= 30) {
-                // The bars' icons: dark on the light theme (as on the page under it), light on the dark one.
-                int both = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & both;
-                require(look == (activity.ui().dark ? 0 : both), "The sheet's bar icons do not suit the " + (activity.ui().dark ? "dark" : "light") + " theme (appearance " + look + ")");
+                // The bars' icons at full open: light on the dark theme; on the light one, dark on the navigation bar (over
+                // the sheet's own background) and white on the status bar (the full dim over the page is past the crossover).
+                int status = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS, nav = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & (status | nav);
+                float dim = (Float) field(drag(), "dim");
+                boolean white = whiteIcons(activity.ui().bg, dim);
+                require(activity.ui().dark || white, "The light theme's full dim (" + dim + ") is not past the status icons' crossover");
+                require(look == (activity.ui().dark ? 0 : nav), "The open sheet's bar icons do not suit the " + (activity.ui().dark ? "dark" : "light") + " theme (appearance " + look + ", dim " + dim + ")");
             }
         });
         // On screen: the sheet's own background reaches the screen's bottom edge, under the navigation bar too (a window
@@ -904,6 +981,10 @@ public final class DockSheetValidation extends Instrumentation {
 
     private int state(String name) {
         try { Field f = Class.forName("com.jjricks.volt.DragSheet").getDeclaredField(name); f.setAccessible(true); return f.getInt(null); }
+        catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private static boolean whiteIcons(int background, double alpha) {
+        try { java.lang.reflect.Method m = Class.forName("com.jjricks.volt.SheetSpring").getDeclaredMethod("whiteIcons", int.class, double.class); m.setAccessible(true); return (Boolean) m.invoke(null, background, alpha); }
         catch (Exception error) { throw new IllegalStateException(error); }
     }
     private static double spring(String name) {

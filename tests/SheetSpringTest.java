@@ -21,6 +21,7 @@ public final class SheetSpringTest {
         releaseDecision();
         quickFlickStillOpens();
         caughtCarriesOn();
+        statusIcons();
         rubberBand();
         endsExactly();
         System.out.println("SheetSpring: " + checks + " checks passed");
@@ -199,44 +200,92 @@ public final class SheetSpringTest {
         double travel = 1800;
         long slow = 900;
         // Caught closing with half of it showing (offset 900).
-        require(!SheetSpring.caughtOpens(true, 900, 900, travel, 0, FLING, MIN_FLING, slow), "a plain tap on a closing sheet: carries on closing");
-        require(!SheetSpring.caughtOpens(true, 900, 900, travel, 0, FLING, MIN_FLING, 80), "a quick plain tap: carries on closing");
-        require(!SheetSpring.caughtOpens(true, 900, 900 - .24 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing, up 24%: carries on closing");
-        require(SheetSpring.caughtOpens(true, 900, 900 - .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing, up exactly 25%: reopens");
-        require(!SheetSpring.caughtOpens(true, 900, 900 + 100, travel, 0, FLING, MIN_FLING, slow), "caught closing, taken lower: closes");
+        require(!caught(true, 900, 900, travel, 0, FLING, MIN_FLING, slow), "a plain tap on a closing sheet: carries on closing");
+        require(!caught(true, 900, 900, travel, 0, FLING, MIN_FLING, 80), "a quick plain tap: carries on closing");
+        require(!caught(true, 900, 900 - .24 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing, up 24%: carries on closing");
+        require(caught(true, 900, 900 - .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing, up exactly 25%: reopens");
+        require(!caught(true, 900, 900 + 100, travel, 0, FLING, MIN_FLING, slow), "caught closing, taken lower: closes");
         // Taken up a third and back to where it was caught: carries on closing (opens() would reopen half a sheet).
-        require(!SheetSpring.caughtOpens(true, 900, 900, travel, 0, FLING, MIN_FLING, slow) && SheetSpring.opens(false, 900, travel, 0, FLING, MIN_FLING, slow),
+        require(!caught(true, 900, 900, travel, 0, FLING, MIN_FLING, slow) && SheetSpring.opens(false, 900, travel, 0, FLING, MIN_FLING, slow),
                 "caught closing and back to its start: closes, where a pull from closed at the same place would open");
         // Caught low (a tenth showing): up 25% of the travel reopens though only 35% shows.
-        require(SheetSpring.caughtOpens(true, .9 * travel, .65 * travel, travel, 0, FLING, MIN_FLING, slow), "caught at a tenth, up 25%: reopens");
+        require(caught(true, .9 * travel, .65 * travel, travel, 0, FLING, MIN_FLING, slow), "caught at a tenth, up 25%: reopens");
         // Flings decide first.
-        require(SheetSpring.caughtOpens(true, 900, 900, travel, -FLING, FLING, MIN_FLING, slow), "caught closing, flung up: reopens");
-        require(!SheetSpring.caughtOpens(true, 900, 900 - .4 * travel, travel, FLING, FLING, MIN_FLING, slow), "caught closing, up 40% but flung down: closes");
-        require(SheetSpring.caughtOpens(true, 900, 900 - 50, travel, -MIN_FLING, FLING, MIN_FLING, 120), "caught closing, a quick flick up: reopens");
+        require(caught(true, 900, 900, travel, -FLING, FLING, MIN_FLING, slow), "caught closing, flung up: reopens");
+        require(!caught(true, 900, 900 - .4 * travel, travel, FLING, FLING, MIN_FLING, slow), "caught closing, up 40% but flung down: closes");
+        require(caught(true, 900, 900 - 50, travel, -MIN_FLING, FLING, MIN_FLING, 120), "caught closing, a quick flick up: reopens");
         // Caught opening (offset 300): keeps opening unless dragged down a quarter, or flung down.
-        require(SheetSpring.caughtOpens(false, 300, 300, travel, 0, FLING, MIN_FLING, slow), "a plain catch on an opening sheet: keeps opening");
-        require(SheetSpring.caughtOpens(false, 300, 300 + .24 * travel, travel, 0, FLING, MIN_FLING, slow), "caught opening, down 24%: keeps opening");
-        require(!SheetSpring.caughtOpens(false, 300, 300 + .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught opening, down exactly 25%: closes");
-        require(SheetSpring.caughtOpens(false, 300, 250, travel, 0, FLING, MIN_FLING, slow), "caught opening, taken higher: opens");
-        require(!SheetSpring.caughtOpens(false, 300, 300, travel, FLING, FLING, MIN_FLING, slow), "caught opening, flung down: closes");
-        require(!SheetSpring.caughtOpens(false, 300, 300 + 50, travel, MIN_FLING, FLING, MIN_FLING, 120), "caught opening, a quick flick down: closes");
+        require(caught(false, 300, 300, travel, 0, FLING, MIN_FLING, slow), "a plain catch on an opening sheet: keeps opening");
+        require(caught(false, 300, 300 + .24 * travel, travel, 0, FLING, MIN_FLING, slow), "caught opening, down 24%: keeps opening");
+        require(!caught(false, 300, 300 + .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught opening, down exactly 25%: closes");
+        require(caught(false, 300, 250, travel, 0, FLING, MIN_FLING, slow), "caught opening, taken higher: opens");
+        require(!caught(false, 300, 300, travel, FLING, FLING, MIN_FLING, slow), "caught opening, flung down: closes");
+        require(!caught(false, 300, 300 + 50, travel, MIN_FLING, FLING, MIN_FLING, 120), "caught opening, a quick flick down: closes");
         // Caught near an end, pushed all the way to the other: that end, though under a quarter from the catch.
-        require(SheetSpring.caughtOpens(true, .1 * travel, 0, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed fully open: stays open");
-        require(SheetSpring.caughtOpens(true, .1 * travel, -10, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed past open: stays open");
-        require(!SheetSpring.caughtOpens(true, .1 * travel, 1, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed to just under open: closes");
-        require(!SheetSpring.caughtOpens(false, .9 * travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled fully down: closes");
-        require(SheetSpring.caughtOpens(false, .9 * travel, travel - 1, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled almost down: keeps opening");
-        // A close that started during the opening bounce (past open) and was caught there: only a real drag or a fling reopens it.
-        require(!SheetSpring.caughtOpens(true, -5, -5, travel, 0, FLING, MIN_FLING, slow), "caught closing past open (bounce), a plain tap: carries on closing");
-        require(!SheetSpring.caughtOpens(true, -5, -5, travel, 0, FLING, MIN_FLING, 80), "caught closing past open, a quick plain tap: carries on closing");
-        require(!SheetSpring.caughtOpens(true, -5, -12, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, nudged further past open, slow: carries on closing");
-        require(SheetSpring.caughtOpens(true, -5, -5, travel, -FLING, FLING, MIN_FLING, slow), "caught closing past open, flung up: reopens");
-        require(SheetSpring.caughtOpens(true, -5, -5 - .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, up a quarter (in theory): reopens");
+        require(caught(true, .1 * travel, 0, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed fully open: stays open");
+        require(caught(true, .1 * travel, -10, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed past open: stays open");
+        require(!caught(true, .1 * travel, 1, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed to just under open: closes");
+        require(!caught(false, .9 * travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled fully down: closes");
+        require(caught(false, .9 * travel, travel - 1, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled almost down: keeps opening");
+        // A close that started during the opening bounce (past open) and was caught there: the sheet barely moves under the
+        // finger (the rubber band), so the finger's own distance decides. A plain tap or a nudge carries on closing; a
+        // deliberate drag up a quarter of the travel, or a fling, reopens it.
+        double bounce = -5, bounceRaw = SheetSpring.undragged(bounce, CAP);
+        require(!SheetSpring.caughtOpens(true, bounce, bounce, 0, travel, 0, FLING, MIN_FLING, slow), "caught closing past open (bounce), a plain tap: carries on closing");
+        require(!SheetSpring.caughtOpens(true, bounce, bounce, 0, travel, 0, FLING, MIN_FLING, 80), "caught closing past open, a quick plain tap: carries on closing");
+        double nudged = SheetSpring.dragged(bounceRaw - 30, travel, CAP);
+        require(!SheetSpring.caughtOpens(true, bounce, nudged, 30, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, nudged 30 px up, slow: carries on closing");
+        require(SheetSpring.caughtOpens(true, bounce, bounce, 0, travel, -FLING, FLING, MIN_FLING, slow), "caught closing past open, flung up: reopens");
+        for (double share : new double[]{.25, .4}) {
+            double up = share * travel, to = SheetSpring.dragged(bounceRaw - up, travel, CAP);
+            // The sheet itself moved under a quarter (it is held near the cap): measured by the sheet, this never reopened.
+            require((bounce - to) / travel < SheetSpring.COMMIT && to >= -CAP, "the rubber band holds the sheet within the cap (" + to + " px)");
+            require(SheetSpring.caughtOpens(true, bounce, to, up, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, a slow drag up " + share + " of the travel: reopens");
+        }
+        double short24 = .24 * travel;
+        require(!SheetSpring.caughtOpens(true, bounce, SheetSpring.dragged(bounceRaw - short24, travel, CAP), short24, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, up 24%: carries on closing");
+        // An opening caught in its bounce, dragged down a quarter by the finger: closes; a plain catch keeps it opening.
+        double down = .25 * travel;
+        require(!SheetSpring.caughtOpens(false, bounce, SheetSpring.dragged(bounceRaw + down, travel, CAP), -down, travel, 0, FLING, MIN_FLING, slow), "caught opening past open, dragged down a quarter: closes");
+        require(SheetSpring.caughtOpens(false, bounce, bounce, 0, travel, 0, FLING, MIN_FLING, slow), "caught opening past open, a plain catch: keeps opening");
         // The mirror: an opening caught at closed (its first frame), a plain tap: keeps opening.
-        require(SheetSpring.caughtOpens(false, travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at closed, a plain tap: keeps opening");
-        require(!SheetSpring.caughtOpens(false, travel, travel, travel, FLING, FLING, MIN_FLING, slow), "caught opening at closed, flung down: closes");
+        require(caught(false, travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at closed, a plain tap: keeps opening");
+        require(!caught(false, travel, travel, travel, FLING, FLING, MIN_FLING, slow), "caught opening at closed, flung down: closes");
         // No travel yet: the settle it was on.
-        require(!SheetSpring.caughtOpens(true, 0, 0, 0, 0, FLING, MIN_FLING, slow) && SheetSpring.caughtOpens(false, 0, 0, 0, 0, FLING, MIN_FLING, slow), "no travel: carries on");
+        require(!caught(true, 0, 0, 0, 0, FLING, MIN_FLING, slow) && caught(false, 0, 0, 0, 0, FLING, MIN_FLING, slow), "no travel: carries on");
+    }
+
+    /** Where the finger and the sheet move together (between open and closed): caughtOpens with the finger's move. */
+    private static boolean caught(boolean closing, double at, double to, double travel, double velocity, double fling, double minFling, long ms) {
+        return SheetSpring.caughtOpens(closing, at, to, at - to, travel, velocity, fling, minFling, ms);
+    }
+
+    /**
+     * The light theme's status bar over the dim: white icons past the crossover, dark ones before it, so the icons that
+     * show have at least 4.5:1 at every dim (black and white icons, WCAG 2), and they change once as the dim rises.
+     */
+    private static void statusIcons() {
+        near(SheetSpring.contrast(1, SheetSpring.ICON_CROSSOVER), SheetSpring.contrast(0, SheetSpring.ICON_CROSSOVER), 1e-9, "both icons contrast equally at the crossover");
+        require(SheetSpring.contrast(1, SheetSpring.ICON_CROSSOVER) >= 4.5, "the crossover gives both at least 4.5:1");
+        near(SheetSpring.luminance(0xffffff), 1, 1e-9, "white is 1");
+        near(SheetSpring.luminance(0), 0, 0, "black is 0");
+        // Volt's light background (Ui.bg), white, and a mid grey, under every dim from none to full.
+        for (int background : new int[]{0xF3F3F0, 0xFFFFFF, 0xC8C8C8}) {
+            int flips = 0;
+            boolean was = SheetSpring.whiteIcons(background, 0);
+            require(!was, "no dim: dark icons on " + Integer.toHexString(background));
+            for (double alpha = 0; alpha <= 1.0000001; alpha += .001) {
+                boolean white = SheetSpring.whiteIcons(background, alpha);
+                double l = SheetSpring.dimmed(background, alpha);
+                double ratio = SheetSpring.contrast(white ? 1 : 0, l);
+                require(ratio >= 4.5, String.format("%06x at dim %.3f: %s icons at %.2f:1", background, alpha, white ? "white" : "dark", ratio));
+                if (white != was) flips++;
+                was = white;
+            }
+            require(flips == 1, "the icons change once as the dim rises over " + Integer.toHexString(background) + " (" + flips + ")");
+        }
+        // The light theme's sheet: dark icons at a short pull (a tenth of the dialog dim, 0.6), white at full open.
+        require(!SheetSpring.whiteIcons(0xF3F3F0, .06) && SheetSpring.whiteIcons(0xF3F3F0, .6), "a short pull keeps dark icons; full open has white ones");
     }
 
     private static void quickFlickStillOpens() {

@@ -110,13 +110,16 @@ final class SheetSpring {
     /**
      * The release decision for a sheet a finger caught while it settled (DragSheet: a finger down on a sheet springing
      * closed or open): true opens it. closing: it was settling closed when caught (else open). caughtAt: its offset then
-     * (px); the rest as for opens. A fling or a quick flick decides first, as for opens; otherwise the settle it was on
-     * carries on unless the catching drag moved the sheet against it by a quarter of the travel or more from where it was
-     * caught (up to reopen one that was closing, down to close one that was opening), or all the way to the other end
-     * (one caught closing with under a quarter to go to open, pushed back fully open, stays open; only when the catch
-     * began short of that end), so a catch taken back to where it started, or a plain tap, changes nothing.
+     * (px); offset: where it is now; moved: how far (px) the finger went toward open since the catch (up positive), before
+     * the rubber band past open; the rest as for opens. A fling or a quick flick decides first, as for opens; otherwise the
+     * settle it was on carries on unless the finger moved against it by a quarter of the travel or more (up to reopen one
+     * that was closing, down to close one that was opening), or took the sheet all the way to the other end (one caught
+     * closing with under a quarter to go to open, pushed back fully open, stays open; only when the catch began short of
+     * that end), so a catch taken back to where it started, or a plain tap, changes nothing. The finger's own distance
+     * counts, not the sheet's: a close that began during the opening bounce is caught past open, where the sheet barely
+     * moves (the rubber band, at most CAP_DP), and a deliberate drag up a quarter there still reopens it.
      */
-    static boolean caughtOpens(boolean closing, double caughtAt, double offset, double travel, double velocity, double fling, double minFling, long gestureMs) {
+    static boolean caughtOpens(boolean closing, double caughtAt, double offset, double moved, double travel, double velocity, double fling, double minFling, long gestureMs) {
         if (velocity <= -fling) return true;
         if (velocity >= fling) return false;
         if (gestureMs >= 0 && gestureMs <= QUICK_MS) {
@@ -124,12 +127,44 @@ final class SheetSpring {
             if (velocity >= minFling) return false;
         }
         if (!(travel > 0)) return !closing;
-        double moved = (caughtAt - offset) / travel;
+        double up = moved / travel;
         // All the way to the other end counts only for a catch that began short of it: a close that started while the
         // opening bounce was past open is caught at or past open already, and a plain tap there must not reopen it (and
         // an opening caught at closed, its first frame, must not close on a plain tap).
-        if (closing) return moved >= COMMIT || offset <= 0 && caughtAt > 0;
-        return -moved < COMMIT && (offset < travel || caughtAt >= travel);
+        if (closing) return up >= COMMIT || offset <= 0 && caughtAt > 0;
+        return -up < COMMIT && (offset < travel || caughtAt >= travel);
+    }
+
+    // ---- The light theme's status bar over the dim --------------------------------------------------------------------
+
+    /**
+     * The relative luminance (WCAG 2) at which white and black icons contrast equally with what is behind them, both
+     * 4.58:1: (1 + .05) / (L + .05) = (L + .05) / .05. Darker than this, white icons have more (and at least 4.58:1),
+     * lighter, black ones do.
+     */
+    static final double ICON_CROSSOVER = Math.sqrt(1.05 * .05) - .05;
+
+    /** WCAG 2 relative luminance of an sRGB colour (its alpha ignored). */
+    static double luminance(int rgb) {
+        return .2126 * linear((rgb >> 16) & 255) + .7152 * linear((rgb >> 8) & 255) + .0722 * linear(rgb & 255);
+    }
+
+    /** The luminance of colour with black at alpha (0..1) over it, blended as Android composites (in sRGB). */
+    static double dimmed(int rgb, double alpha) {
+        double keep = 1 - Math.max(0, Math.min(1, alpha));
+        int r = (int) Math.round(((rgb >> 16) & 255) * keep), g = (int) Math.round(((rgb >> 8) & 255) * keep), b = (int) Math.round((rgb & 255) * keep);
+        return luminance((r << 16) | (g << 8) | b);
+    }
+
+    /** Whether the status bar's icons should be white over background dimmed by alpha (else dark): past the crossover. */
+    static boolean whiteIcons(int background, double alpha) { return dimmed(background, alpha) < ICON_CROSSOVER; }
+
+    /** WCAG 2 contrast ratio of two luminances. */
+    static double contrast(double a, double b) { return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }
+
+    private static double linear(int channel) {
+        double c = channel / 255d;
+        return c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4);
     }
 
     // ---- Past open: the rubber band while dragging, the soft limit on the bounce -------------------------------------------

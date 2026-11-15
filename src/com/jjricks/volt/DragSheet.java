@@ -54,7 +54,42 @@ import java.util.function.Consumer;
  * does while it hides), so nothing under it is touched by accident, not even a lock control on the page: a finger down
  * on the sheet catches it and drags it from where it is (it then carries on closing unless dragged back up a quarter of
  * its travel, SheetSpring.caughtOpens, so a plain tap lets it go), and a touch on the dim is swallowed. It gives up focus
- * meanwhile, so a Back pressed then goes to the page.
+ * meanwhile, so a Back pressed then goes to the page. On the light theme the status bar's icons turn white once the dim
+ * behind them passes the contrast crossover (SheetSpring.whiteIcons), and dark again below it.
+ *
+ * <p><b>Deferred work and its token.</b> Nothing done later acts on a sheet that has moved on since. {@code epoch} goes up
+ * with every change of what the sheet is doing: stop() (so every settle, catch, pull, take, finish and dismiss), the end
+ * of a settle, and leave(). A posted settle (the first layout's, and the restart for a new height mid-settle) acts only
+ * while the epoch it was posted in is current, the restart only while the settle it restarts still runs; a running
+ * settle's animator acts only while it is still {@code settling} (its identity); the dock's pull (Pull) and the sheet's
+ * own drag (Frame) act only in the epoch they began in, so anything else that moves the sheet ends the rest of that
+ * touch; a waiting release or open (waiting) is dropped by stop(). And a let-go sheet never moves toward open again:
+ * settle(true) refuses it.
+ *
+ * <p><b>States and what each ignores</b> (anything not listed acts as its method says):
+ * <ul>
+ *   <li>NEW (not shown): open and pull show it; close and leave make it GONE with nothing shown; follow, release and
+ *   measured cannot reach it (no window yet).</li>
+ *   <li>PULLED (a dock finger pulls it, or a tap waits for its first layout): follow and release from that pull only
+ *   (its epoch); a finger down on the sheet's window settles the pull where it is and the rest of that touch does
+ *   nothing; open, close (Back) settle it, and the pull's later moves are ignored; leave goes at once.</li>
+ *   <li>DRAGGED (its own finger holds it): open and pull are ignored; close (Back, the close button) settles it closed
+ *   and the rest of that touch does nothing; leave goes at once; measured only places it.</li>
+ *   <li>OPENING: open is ignored; close settles closed from where it is; a finger may take it (DRAGGED); measured
+ *   restarts the opening for the new height (posted, its token); leave goes at once.</li>
+ *   <li>OPEN: open is ignored; close settles closed; leave goes at once; measured only places it.</li>
+ *   <li>CLOSING: close is ignored; open springs back open; a finger on the sheet catches it (DRAGGED, focused again), on
+ *   the dim is swallowed; a touch that began on its views while it was open does nothing more; Back goes to the page
+ *   (not focusable); measured restarts the close for the new height; leave lets it go (below), or goes at once if
+ *   nothing settles it or its activity is ending.</li>
+ *   <li>CLOSING, let go: open, close, pull and leave are ignored (leave goes at once if the activity is ending), every
+ *   touch is swallowed, settle(true) refuses; it only finishes its settle (a restart for a new height is still a close)
+ *   and goes, or goes at once with its activity.</li>
+ *   <li>GONE: everything is ignored; its window, until removed, swallows touches. The dialog's dismiss listener
+ *   (posted by Dialog) only confirms GONE: a GONE sheet is never shown again.</li>
+ * </ul>
+ * Inset changes only set margins and padding (a layout, so measured). The activity ending: leave() from its owner (Home
+ * closing), and each settle frame dismisses at once if its activity is finishing or destroyed.
  *
  * Another sheet opts in by building its body with ScreenHost.sheetContent as before and calling
  * host.dragSheet(body, DragSheet.header(body)).open() where it called host.showSheet(body); its close button then calls
@@ -109,6 +144,10 @@ final class DragSheet {
      * catches it (its window still takes every touch, which does nothing), and open(), close() and pull() do nothing.
      */
     private boolean letGo;
+    /** The token of every deferred action (the class comment): up by one with each change of what the sheet is doing. */
+    private int epoch;
+    /** Light theme: the status bar's icons are white now (the dim behind them passed the crossover). */
+    private boolean whiteIcons;
     private Runnable onDismiss;
 
     /**
@@ -191,7 +230,8 @@ final class DragSheet {
                 window.setStatusBarContrastEnforced(false);
                 window.setNavigationBarContrastEnforced(false);
                 android.view.WindowInsetsController bars = window.getInsetsController();
-                // Light theme: dark icons on both bars, as on the page under it (the dim never makes white ones needed).
+                // Light theme: dark icons on both bars at first, as on the page under it; the status bar's turn white
+                // once the dim behind them passes the contrast crossover (statusIcons()).
                 if (bars != null) bars.setSystemBarsAppearance(ui.dark ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
             }
@@ -238,8 +278,8 @@ final class DragSheet {
 
     /** Closes it with the closing settle, then dismisses it (the close button, Back, a row, a tap on the dim). */
     void close() {
-        if (letGo) return;
-        if (state == NEW || state == GONE || state == CLOSING) { if (state == NEW) state = GONE; return; }
+        if (letGo || state == GONE || state == CLOSING) return;
+        if (state == NEW) { state = GONE; return; }
         if (travel == 0) { dismissNow(); return; }
         settle(false, state == PULLED || state == DRAGGED ? 0 : velocityNow());
     }
@@ -251,7 +291,12 @@ final class DragSheet {
      * activity that is ending.
      */
     void leave() {
-        if (state == CLOSING && settling != null && !activity.isFinishing() && !activity.isDestroyed()) { letGo = true; return; }
+        if (state == CLOSING && settling != null && !activity.isFinishing() && !activity.isDestroyed()) {
+            // Its running close carries on (the animator is its own token); anything else posted for it is dropped.
+            letGo = true;
+            epoch++;
+            return;
+        }
         dismissNow();
     }
 
@@ -269,13 +314,15 @@ final class DragSheet {
 
     /**
      * A finger outside the sheet starts pulling it up: shown now (off screen) if it is new, or caught where it is if it
-     * was settling. False when it cannot show (the activity is going away).
+     * was settling. Returns the pull's token for follow and release, or -1 when it cannot be pulled (gone, let go, held
+     * by its own finger, or the activity is going away).
      */
-    boolean pull() {
-        if (state == GONE || letGo) return false;
+    int pull() {
+        if (state == GONE || letGo || state == DRAGGED) return -1;
         if (state == NEW) {
-            if (!show()) return false;
+            if (!show()) return -1;
             pullBase = 0;
+            epoch++;
         } else {
             caught();
             stop();
@@ -285,28 +332,33 @@ final class DragSheet {
         pulled = pullBase;
         state = PULLED;
         place();
-        return true;
+        return epoch;
     }
 
-    /** The pulling finger has gone up by distance (px) since it went down. */
-    void follow(float distance) {
-        if (state != PULLED) return;
+    /** The pull (its token) has gone up by distance (px) since its finger went down. */
+    void follow(int pull, float distance) {
+        if (pull != epoch || state != PULLED) return;
         pulled = pullBase + distance;
         place();
     }
 
     /**
-     * The pulling finger let go: velocity px/s (downward positive), gestureMs from its down. A settle by position alone
+     * The pull (its token) let go: velocity px/s (downward positive), gestureMs from its down. A settle by position alone
      * (ACTION_CANCEL, a second finger) passes 0 and -1.
      */
-    void release(float velocity, long gestureMs) {
-        if (state != PULLED) return;
+    void release(int pull, float velocity, long gestureMs) {
+        if (pull != epoch || state != PULLED) return;
+        letPull(velocity, gestureMs);
+    }
+
+    /** The pull ends: settles by position and speed, or, before the first layout, waits for it (waiting). */
+    private void letPull(float velocity, long gestureMs) {
         if (travel == 0) {
             if (waiting != WAIT_OPEN) { waiting = WAIT_RELEASE; waitVelocity = velocity; waitMs = gestureMs; }
             return;
         }
         float raw = travel - pulled;
-        settle(decide(false, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
+        settle(decide(false, pulled - pullBase, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
     }
 
     /** Notes a catch: the sheet is settling (open or closed) and a finger takes it now. Before stop(). */
@@ -318,12 +370,13 @@ final class DragSheet {
 
     /**
      * A finger let go of the sheet: opens it or not. startedOpen: the drag began on the open sheet (else a pull from
-     * closed). A sheet the finger caught mid-settle decides by SheetSpring.caughtOpens from where it was caught.
+     * closed). moved: how far (px) the finger went toward open since the drag began. A sheet the finger caught
+     * mid-settle decides by SheetSpring.caughtOpens from where it was caught.
      */
-    private boolean decide(boolean startedOpen, float velocity, long gestureMs) {
+    private boolean decide(boolean startedOpen, float moved, float velocity, long gestureMs) {
         float at = caughtAt;
         caughtAt = Float.NaN;
-        if (!Float.isNaN(at)) return SheetSpring.caughtOpens(caughtClosing, at, offset, travel, velocity, fling, minFling, gestureMs);
+        if (!Float.isNaN(at)) return SheetSpring.caughtOpens(caughtClosing, at, offset, moved, travel, velocity, fling, minFling, gestureMs);
         return SheetSpring.opens(startedOpen, offset, travel, velocity, fling, minFling, gestureMs);
     }
 
@@ -355,13 +408,18 @@ final class DragSheet {
             boolean opens = waiting == WAIT_OPEN || SheetSpring.opens(false, offset, travel, waitVelocity, fling, minFling, waitMs);
             float velocity = waiting == WAIT_OPEN ? 0 : waitVelocity;
             waiting = WAIT_NONE;
-            // Posted: a settle starts an animator, which is not for the middle of a layout pass.
-            frame.post(() -> { if (state == PULLED) settle(opens, velocity); });
+            // Posted: a settle starts an animator, which is not for the middle of a layout pass. Only if nothing has
+            // changed what the sheet does since (a close, a new pull, a dismiss all move the epoch on).
+            int token = epoch;
+            frame.post(() -> { if (token == epoch && state == PULLED) settle(opens, velocity); });
         } else if (!first && settling != null && plan != null) {
-            // A new height mid-settle: the same end, from where it is now, at the speed it had.
+            // A new height mid-settle: the same end, from where it is now, at the speed it had; only if that settle still
+            // runs and nothing else happened since (a click handled before this runs, a close, Back, leave(), a dismiss).
+            ValueAnimator running = settling;
             boolean open = plan.open;
             float velocity = velocityNow();
-            frame.post(() -> { if (state == OPENING || state == CLOSING) settle(open, velocity); });
+            int token = epoch;
+            frame.post(() -> { if (token == epoch && settling == running) settle(open, velocity); });
         }
         place();
     }
@@ -388,15 +446,37 @@ final class DragSheet {
         panel.setTranslationY(offset);
         float showing = Math.max(0, Math.min(1, 1 - offset / travel));
         scrim.setAlpha(dim * showing);
+        statusIcons(dim * showing);
     }
 
-    /** Starts the settle to open or closed from where the sheet is, at velocity (px/s downward); instant without animations. */
+    /**
+     * Light theme (edge to edge): the status bar's icons turn white once the dim behind them (over the page's background)
+     * passes the contrast crossover, and dark again below it, so whichever shows has at least 4.5:1. Only on a crossing.
+     */
+    private void statusIcons(float alpha) {
+        if (ui.dark || Build.VERSION.SDK_INT < 30) return;
+        boolean white = SheetSpring.whiteIcons(ui.bg, alpha);
+        if (white == whiteIcons) return;
+        whiteIcons = white;
+        Window window = dialog.getWindow();
+        android.view.WindowInsetsController bars = window == null ? null : window.getInsetsController();
+        if (bars != null) bars.setSystemBarsAppearance(white ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
+    }
+
+    /**
+     * Starts the settle to open or closed from where the sheet is, at velocity (px/s downward); instant without animations.
+     * A let-go sheet only ever closes: settle(true) leaves it as it is. Starting one ends whatever else was going on (stop()
+     * moves the epoch on): a held drag's rest of the touch, a pull, a posted settle, a waiting release.
+     */
     private void settle(boolean open, float velocity) {
+        if (state == GONE || open && letGo) return;
         stop();
-        if (travel == 0) return;
-        // A settle started from outside a finger's drag (Back, the close button): the rest of that touch does nothing.
-        frame.endGesture();
         focusable(open);
+        if (travel == 0) {
+            if (open) { offset = 0; state = OPEN; } else finish();
+            return;
+        }
         if (!Motion.enabled()) {
             if (open) { offset = 0; state = OPEN; place(); } else finish();
             return;
@@ -417,7 +497,8 @@ final class DragSheet {
         animator.addListener(new AnimatorListenerAdapter() {
             @Override public void onAnimationEnd(Animator a) {
                 if (a != settling) return;
-                settling = null; plan = null;
+                settling = null;
+                stop();
                 if (next.open) { offset = 0; state = OPEN; place(); } else finish();
             }
         });
@@ -433,15 +514,21 @@ final class DragSheet {
         return (float) running.velocity(animator.getAnimatedFraction() * running.seconds);
     }
 
-    /** Stops a settle where it is (a finger caught it, or it is going away). */
+    /**
+     * Stops a settle where it is (a finger caught it, another settle replaces it, it is going away), and moves the epoch
+     * on: whatever was posted or waiting for the old motion, and the rest of a touch that drove it, now does nothing.
+     */
     private void stop() {
         ValueAnimator animator = settling;
         settling = null; plan = null;
+        waiting = WAIT_NONE;
+        epoch++;
         if (animator != null) animator.cancel();
     }
 
     /** Closed: the dialog goes. */
     private void finish() {
+        stop();
         offset = travel;
         place();
         state = GONE;
@@ -474,13 +561,17 @@ final class DragSheet {
      * the list cannot scroll that way (and takes over once a list scrolled back to its top keeps going down); a tap on
      * the dim closes it. Everything else goes to the sheet's views as usual. While it settles closed (or is gone but its
      * window not yet removed) no touch reaches its views or anything under it: a finger down on the sheet catches it
-     * (catch), one on the dim is swallowed.
+     * (catch), one on the dim is swallowed, and a touch that began on its views while it was open loses them (cancelled)
+     * and does nothing more. The sheet's own drag acts only in the epoch it began in (gesture): a settle, a dismiss or
+     * anything else that moved the sheet on since ends the rest of that touch.
      */
     private final class Frame extends FrameLayout {
         private static final int NONE = 0, VIEWS = 1, DRAG = 2, IGNORE = 3;
         private static final int OUTSIDE = 0, HEAD = 1, LIST = 2;
         private VelocityTracker tracker;
         private int mode, region;
+        /** The epoch the sheet's own drag (DRAG) began in. */
+        private int gesture;
         private float downX, downY, lastY, dragY, dragRaw;
         private boolean moved;
 
@@ -496,12 +587,19 @@ final class DragSheet {
                 // A second finger while one on the dock pulls the sheet: that pull settles where it is, and this touch does nothing.
                 // Let go by its page: no finger catches it; the touch does nothing (and reaches nothing under it).
                 if (letGo) { mode = IGNORE; return true; }
-                if (state == PULLED) { release(0, -1); mode = IGNORE; return true; }
+                if (state == PULLED) { letPull(0, -1); mode = IGNORE; return true; }
                 // Settling closed: a finger on the sheet catches it (its rows never get the touch); the dim swallows it.
                 if (state == CLOSING && region != OUTSIDE) { catchAt(y); track(event); return true; }
                 mode = state == OPEN || state == OPENING ? NONE : IGNORE;
             }
             track(event);
+            // The sheet moved on without this touch (Back, the close button, a dismiss): the rest of its drag does nothing.
+            if (mode == DRAG && (gesture != epoch || state != DRAGGED)) mode = IGNORE;
+            // A touch on its views while it was open, and it is no longer (it settles closed or is gone): they lose it.
+            if ((mode == NONE || mode == VIEWS) && state != OPEN && state != OPENING) {
+                if (action != MotionEvent.ACTION_DOWN) cancelViews(event);
+                mode = IGNORE;
+            }
             if (mode == IGNORE) return true;
             switch (action) {
                 case MotionEvent.ACTION_POINTER_DOWN:
@@ -546,12 +644,10 @@ final class DragSheet {
 
         /** The sheet's own drag starts here: the views lose the touch, and the sheet moves from where it is (no jump). */
         private void take(MotionEvent event, float y) {
-            MotionEvent cancel = MotionEvent.obtain(event);
-            cancel.setAction(MotionEvent.ACTION_CANCEL);
-            super.dispatchTouchEvent(cancel);
-            cancel.recycle();
+            cancelViews(event);
             caught();
             stop();
+            gesture = epoch;
             dragY = y; lastY = y;
             dragRaw = (float) SheetSpring.undragged(offset, cap);
             mode = DRAG;
@@ -566,6 +662,7 @@ final class DragSheet {
         private void catchAt(float y) {
             caught();
             stop();
+            gesture = epoch;
             focusable(true);
             dragY = y; lastY = y;
             dragRaw = (float) SheetSpring.undragged(offset, cap);
@@ -573,22 +670,25 @@ final class DragSheet {
             state = DRAGGED;
         }
 
-        /** A settle started from outside this touch (Back, the close button): the rest of the touch does nothing. */
-        void endGesture() {
-            if (mode == DRAG) mode = IGNORE;
+        /** The sheet's views lose this touch (an ACTION_CANCEL to them). */
+        private void cancelViews(MotionEvent event) {
+            MotionEvent cancel = MotionEvent.obtain(event);
+            cancel.setAction(MotionEvent.ACTION_CANCEL);
+            super.dispatchTouchEvent(cancel);
+            cancel.recycle();
         }
 
         private void drag(float y) {
-            if (state != DRAGGED) return;
+            if (state != DRAGGED || gesture != epoch) return;
             offset = (float) SheetSpring.dragged(dragRaw + (y - dragY), travel, cap);
             place();
         }
 
         /** The sheet's own drag let go (or cancelled: velocity 0, gestureMs -1). */
         private void let(float velocity, long gestureMs) {
-            if (state != DRAGGED) return;
+            if (state != DRAGGED || gesture != epoch) return;
             float raw = dragRaw + (lastY - dragY);
-            settle(decide(true, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
+            settle(decide(true, dragY - lastY, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
         }
 
         private void track(MotionEvent event) {
@@ -630,6 +730,8 @@ final class DragSheet {
     static final class Pull {
         private VelocityTracker tracker;
         private DragSheet sheet;
+        /** The pull's token (DragSheet.pull): the sheet ignores it once anything else has moved the sheet on. */
+        private int token;
         private float downY;
 
         /** Every event of the touch, from its ACTION_DOWN, each once (the view's onInterceptTouchEvent and onTouchEvent). */
@@ -648,7 +750,8 @@ final class DragSheet {
 
         /** The swipe is recognised on event: the sheet (null when none can show) is pulled from here. */
         void start(DragSheet pulled, MotionEvent event) {
-            sheet = pulled != null && pulled.pull() ? pulled : null;
+            token = pulled == null ? -1 : pulled.pull();
+            sheet = token >= 0 ? pulled : null;
             handle(event);
         }
 
@@ -658,18 +761,18 @@ final class DragSheet {
             if (pulled == null) return;
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_MOVE:
-                    pulled.follow(downY - event.getRawY());
+                    pulled.follow(token, downY - event.getRawY());
                     break;
                 case MotionEvent.ACTION_UP:
-                    pulled.follow(downY - event.getRawY());
+                    pulled.follow(token, downY - event.getRawY());
                     tracker.computeCurrentVelocity(1000);
-                    pulled.release(tracker.getYVelocity(), event.getEventTime() - event.getDownTime());
+                    pulled.release(token, tracker.getYVelocity(), event.getEventTime() - event.getDownTime());
                     sheet = null;
                     break;
                 case MotionEvent.ACTION_CANCEL:
                 case MotionEvent.ACTION_POINTER_DOWN:
                     // Settles by where it is; the rest of this touch moves nothing.
-                    pulled.release(0, -1);
+                    pulled.release(token, 0, -1);
                     sheet = null;
                     break;
                 default:
