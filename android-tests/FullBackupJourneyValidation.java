@@ -49,24 +49,33 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     /**
      * Device and pending keys planted before export; a backup never carries them. more_away_boot is the retired More
      * clock's (still registered, so an older phone's copy stays out); hub_away_* is the Hub's away clock (BackupRegistry,
-     * Device scope): the exporting phone's clock means nothing on another phone.
+     * Device scope): the exporting phone's clock means nothing on another phone. home_style_origin is this installation's
+     * history (HomeStyle, Device scope), which the app's start-up seed writes on its own once it sees an earlier owner.
      */
     private static final String[] EXCLUDED={"app_settings/last_page","app_settings/more_away_boot","app_settings/hub_away_elapsed","app_settings/hub_away_boot",
-        "app_settings/owner_import_applied","app_settings/notification_prompted","onboarding/nearby_asked"};
+        "app_settings/home_style_origin","app_settings/owner_import_applied","app_settings/notification_prompted","onboarding/nearby_asked"};
     /**
-     * Real launch creates these target-local navigation keys; exact restore intentionally retains them. The Hub's away
-     * clock (hub_away_*) is the target phone's own Device navigation state like the section keys: Replace everything keeps
-     * whatever the phone held before the restore, and never the backup's planted values (restoreFromWelcome, verifyRestored).
+     * The target phone's own Device keys, which Replace everything keeps as the phone held them before the restore and
+     * never takes from the backup (restoreFromWelcome, verifyRestored). Real launch creates the navigation keys
+     * (more_section, stats_section); the Hub's away clock (hub_away_*) is written when Volt leaves the screen; the Home
+     * style seed writes home_style_origin at app start on an installation it finds was used before. The backup's own
+     * hub_away_* and home_style_origin are planted (EXCLUDED), so the restore must also leave those out.
      */
-    private static final String[] LOCAL_NAVIGATION={"more_section","stats_section","hub_away_elapsed","hub_away_boot"};
-    /** The target phone's own LOCAL_NAVIGATION values just before the restore was applied. */
-    private final Map<String,Object> localNavigation=new LinkedHashMap<>();
+    private static final String[] TARGET_LOCAL={"more_section","stats_section","hub_away_elapsed","hub_away_boot","home_style_origin"};
+    /** The target phone's own TARGET_LOCAL values just before the restore was applied. */
+    private final Map<String,Object> targetLocal=new LinkedHashMap<>();
     private String mode;private int assertions;private Context app;private Activity current;
     @Override public void onCreate(Bundle args){mode=args==null?null:args.getString("mode");start();}
     @Override public void onStart(){
         Bundle result=new Bundle();
         try {
-            app=getTargetContext();admitFresh();
+            app=getTargetContext();
+            // Instrumentation.onCreate starts this thread before Android runs the app's own start (VoltApp.onCreate) on the
+            // main thread: the Home style seed and the start-up migrations. Wait for that start to finish, so it reads the
+            // empty storage admitFresh checks and never the data populate() plants (seeing a planted profile, the seed would
+            // store Widgets and origin update part-way through populate: before the digest, after it, or after the export).
+            waitForIdleSync();
+            admitFresh();
             File external=app.getExternalFilesDir(null);require(external!=null,"External document fixture storage is unavailable");
             File archive=new File(external,"backup-journey.voltbackup");
             if("export".equals(mode)) {
@@ -126,8 +135,8 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         await(()->view(backup,"restore-choose")!=null,"Restore file picker entry missing");
         require(DataMaintenance.active(),"Restore did not pause app data");
         String before=preferenceDigest();
-        localNavigation.clear();
-        for(String key:LOCAL_NAVIGATION)if(prefs("app_settings").contains(key))localNavigation.put(key,prefs("app_settings").getAll().get(key));
+        targetLocal.clear();
+        for(String key:TARGET_LOCAL)if(prefs("app_settings").contains(key))targetLocal.put(key,prefs("app_settings").getAll().get(key));
         IntentFilter files=new IntentFilter(Intent.ACTION_OPEN_DOCUMENT);files.addCategory(Intent.CATEGORY_OPENABLE);files.addDataType("*/*");
         ActivityMonitor picker=addMonitor(files,new ActivityResult(Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(archive))),true);
         click(backup,"restore-choose");
@@ -148,7 +157,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         click(backup,"restore-apply");
         await(()->Boolean.TRUE.equals(field(backup,"terminal")),"Approved restore did not finish");
         require("Restored. Reopen Volt.".contentEquals(((TextView)field(backup,"status")).getText()),"Restore ended with an error");
-        for(String key:LOCAL_NAVIGATION)require(Objects.equals(localNavigation.get(key),prefs("app_settings").getAll().get(key)),"Restore changed target-local navigation: "+key);
+        for(String key:TARGET_LOCAL)require(Objects.equals(targetLocal.get(key),prefs("app_settings").getAll().get(key)),"Restore changed target-local state: "+key);
         return staged.fileCount;
     }
     private View view(Activity activity,String tag){return activity.getWindow().getDecorView().findViewWithTag(tag);}
@@ -289,9 +298,15 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         require(history.closeAndAwait(10000),"History writer did not close");
         JSONObject hashes=new JSONObject();for(File file:durableFiles())hashes.put(relative(file),hash(Files.readAllBytes(file.toPath())));
         require(settings.edit().putString("fixture_file_hashes",hashes.toString()).commit(),"Store dataset byte expectations");
+        // The app's start finished before admitFresh (onStart), so its seed saw empty storage and wrote nothing: no Home
+        // style travels in this backup and the digest holds exactly what populate() stored.
+        require(!settings.contains("home_style")&&!settings.contains("home_style_chosen")&&!settings.contains("home_style_origin"),"The Home style seed wrote into the planted data");
         require(settings.edit().putString(DIGEST,preferenceDigest()).commit(),"Store all-preferences expectation");
         require(settings.edit().putString("last_page","rides").putInt("more_away_boot",4).putLong("hub_away_elapsed",424242L).putInt("hub_away_boot",4).putString("owner_import_applied","fixture-import").putBoolean("notification_prompted",true).commit()
             &&prefs("onboarding").edit().putBoolean("nearby_asked",true).commit(),"Plant excluded device keys");
+        // The backup phone's own Home style origin, as its seed stores it on a phone it finds was used before. Export only:
+        // the owner-file modes open Home next, where origin update would bring up the What's new sheet.
+        if("export".equals(mode))require(settings.edit().putString("home_style_origin","update").commit(),"Plant the Home style origin");
     }
     private void verifyLegacy()throws Exception {
         String id="8c1f3a52-0d7e-4b8e-9a41-5b2f6c7d8e90";SharedPreferences settings=prefs("app_settings");
@@ -307,10 +322,10 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     }
     private void verifyRestored()throws Exception {
         SharedPreferences settings=prefs("app_settings");require(settings.getString(DIGEST,"").equals(preferenceDigest()),"Exact full preference inventory differs after clear-storage restore; keys: "+preferenceKeys());
-        // An excluded key the target phone keeps as its own navigation (the away clock) must hold the phone's own value
-        // (absent when it had none), never the backup's planted one; every other excluded key must be absent.
+        // An excluded key the target phone keeps as its own (the away clock, the Home style origin) must hold the phone's own
+        // value (absent when it had none), never the backup's planted one; every other excluded key must be absent.
         for(String key:EXCLUDED){String[] part=key.split("/");
-            if(part[0].equals("app_settings")&&Arrays.asList(LOCAL_NAVIGATION).contains(part[1]))require(Objects.equals(localNavigation.get(part[1]),prefs(part[0]).getAll().get(part[1])),"Excluded key restored: "+key);
+            if(part[0].equals("app_settings")&&Arrays.asList(TARGET_LOCAL).contains(part[1]))require(Objects.equals(targetLocal.get(part[1]),prefs(part[0]).getAll().get(part[1])),"Excluded key restored: "+key);
             else require(!prefs(part[0]).contains(part[1]),"Excluded key restored: "+key);}
         JSONObject hashes=new JSONObject(settings.getString("fixture_file_hashes","{}"));List<File> files=durableFiles();require(hashes.length()==5&&files.size()==5,"Restored durable file inventory differs");
         for(File file:files)require(hashes.getString(relative(file)).equals(hash(Files.readAllBytes(file.toPath()))),"Restored file byte hash differs: "+relative(file));
@@ -340,7 +355,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     private String preferenceDigest()throws Exception {
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();DataOutputStream out=new DataOutputStream(bytes);
         for(String name:PREFS){text(out,name);Map<String,?> all=new TreeMap<>(prefs(name).getAll());for(Map.Entry<String,?> e:all.entrySet()){
-            if(e.getKey().equals(DIGEST)||Arrays.asList(EXCLUDED).contains(name+"/"+e.getKey())||(name.equals("app_settings")&&Arrays.asList(LOCAL_NAVIGATION).contains(e.getKey())))continue;text(out,e.getKey());Object v=e.getValue();text(out,v.getClass().getSimpleName());
+            if(e.getKey().equals(DIGEST)||Arrays.asList(EXCLUDED).contains(name+"/"+e.getKey())||(name.equals("app_settings")&&Arrays.asList(TARGET_LOCAL).contains(e.getKey())))continue;text(out,e.getKey());Object v=e.getValue();text(out,v.getClass().getSimpleName());
             if(v instanceof Set){for(String s:new TreeSet<>((Set<String>)v))text(out,s);}else text(out,String.valueOf(v));
         }}out.flush();return hash(bytes.toByteArray());
     }
