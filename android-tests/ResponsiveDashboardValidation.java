@@ -195,7 +195,6 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             screenshot("tiles-" + count);
         }
         check("Home's Reading tiles with one to four readings: the last tile spans any part-filled last row, full rows unchanged");
-        verifyThreeReadingSplit();
         main(() -> {
             DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
             widget.keys.clear();
@@ -223,6 +222,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             }
         });
         check("Three Reading tiles in 230 and 312 x 182 dp cards: a wrapped third tile spans from the first tile's edge to the second's, LTR and RTL");
+        verifyThreeReadingSplit();
     }
 
     /**
