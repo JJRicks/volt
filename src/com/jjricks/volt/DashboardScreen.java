@@ -1599,6 +1599,8 @@ public final class DashboardScreen implements AppScreen {
         int sharedMaximumSp = Integer.MAX_VALUE;
         /** Clean's parked card: a larger maximum on a larger card (TopArea.parkedTextGrowth); 0 keeps maximumSp. */
         int grownMaximumSp;
+        /** The size the last fit could reach at most (pixels): a value fitted below it may grow back. */
+        float fittedCeiling;
 
         FittedValue(String text, int minimum, int maximum, int lines) {
             super(host.activity());
@@ -1638,6 +1640,22 @@ public final class DashboardScreen implements AppScreen {
             fittedWidth = -1;
         }
 
+        /**
+         * A TextView whose text changes but keeps its line height lays out the new text without measuring again
+         * (TextView.checkForRelayout), so a value fitted smaller for a longer text kept that size for a shorter one
+         * (the owner's phone, Nov 15 2026: the charging time "≈ 54m" stayed at the size "Waiting for readings" had
+         * taken, about 80% of Charging power's beside it). A new text measures again unless it is still drawn whole,
+         * on one line, at the most the value could reach.
+         */
+        @Override protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+            super.onTextChanged(text, start, lengthBefore, lengthAfter);
+            // fittedText is null in TextView's own constructor (before these fields are set) and until the first fit.
+            if (fittedText == null || fittedText.contentEquals(text)) return;
+            if (fittedPixels >= fittedCeiling && targetLines == 1 && fittedWidth > 0
+                    && getPaint().measureText(text, 0, text.length()) <= fittedWidth) return;
+            requestLayout();
+        }
+
         @Override
         protected void onMeasure(int widthSpec, int heightSpec) {
             int width = MeasureSpec.getSize(widthSpec)
@@ -1649,6 +1667,7 @@ public final class DashboardScreen implements AppScreen {
                 fittedText = text;
                 int ceiling = Math.min(Math.max(maximumSp, grownMaximumSp), sharedMaximumSp);
                 fittedPixels = ceiling * density;
+                fittedCeiling = fittedPixels;
                 if (width > 0 && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                     for (int size = ceiling; size >= minimumSp; size--) {
                         fittedPixels = size * density;
