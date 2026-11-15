@@ -334,6 +334,29 @@ public final class HubValidation extends Instrumentation {
         hideKeyboard();
         main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
         screenshot("search-typed");
+        // The connection dropping while the owner searches moves nothing: the header, connection line included, stays
+        // stepped aside, the field at the very top with Cancel beside it (part 11's line shows only while not connected).
+        BleController ble = activity.service().ble;
+        Rect fieldAt = onMain(() -> windowRect(field[0])), cancelAt = onMain(() -> windowRect(root().findViewWithTag("hub-search-cancel")));
+        main(ble::disconnect);
+        await(() -> onMain(() -> !ble.ready()), "The simulated scooter stayed connected");
+        settle();
+        main(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            require(now != null && "batt".contentEquals(now.getText()), "The search's query was lost as the connection dropped");
+            require(!shown(root().findViewWithTag("hub-back")) && !shown(root().findViewWithTag("hub-page-connection")), "The page header came back as the connection dropped while searching");
+            require(windowRect(now).equals(fieldAt), "The search field moved from " + fieldAt + " to " + windowRect(now) + " as the connection dropped");
+            require(windowRect(root().findViewWithTag("hub-search-cancel")).equals(cancelAt), "Cancel moved as the connection dropped while searching");
+        });
+        screenshot("search-disconnected");
+        main(ble::connectLast);
+        await(() -> onMain(() -> ble.ready()), "The simulated scooter did not reconnect");
+        settle();
+        main(() -> {
+            field[0] = firstEditText(activity.findViewById(android.R.id.content));
+            require(field[0] != null && windowRect(field[0]).equals(fieldAt), "The search field moved as the scooter reconnected");
+            require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line after reconnecting");
+        });
         // "maintenance" finds the Reminders setting.
         main(() -> field[0].setText("maintenance")); settle();
         // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
@@ -377,7 +400,7 @@ public final class HubValidation extends Instrumentation {
         tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
     }
 
     /**
