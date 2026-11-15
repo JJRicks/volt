@@ -134,6 +134,9 @@ public final class StatsScreen implements AppScreen {
         String[] sections = wide ? WIDE_SECTIONS : SECTIONS;
         sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sectionLabels(sections), choice -> selectSection(sections[choice]));
         sectionTabs.useCompactPadding();
+        // Every section's name whole at every width and text size: one row while the names fit, else balanced rows of
+        // equal columns (SelectorWrap), never a name cut at the strip's end (344 dp at 1.4x showed "Diagno").
+        sectionTabs.setWrapChoices(true); sectionTabs.setBalancedRows(true);
         sectionTabs.setTag("live-stats-sections");
         sectionTabs.select(java.util.Arrays.asList(sections).indexOf(selectedSection), false);
         LinearLayout tabHolder = vertical();
