@@ -662,6 +662,14 @@ public final class HubSearchTest {
      * steps aside while searching; the long placeholder only where it fits whole (344 dp at 1.4x, part 13's 262 dp pane).
      */
     private static void layoutRules() {
+        // Tabletop posture keeps the pane above the hinge: only the header's rows go, and Search's field sits in the pane
+        // (#393 council review, second round, finding 7). Not reproducible on the emulator rig (no hinge to fake).
+        check(HubSearch.hidesWholeHeader(false) && !HubSearch.hidesWholeHeader(true), "tabletop hides only the header's rows");
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
+                && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
+                && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
+
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
         int phone = 344 - 2 * 18 - 2 * 14 - 10, phoneChevron = phone - 23, wide = 725 - 2 * 24 - 2 * 14 - 10;

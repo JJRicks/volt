@@ -391,6 +391,15 @@ final class HubSearch {
     }
 
     /**
+     * Whether Search hides the whole page header when headerHidden says so, or only its own rows (back link, connection
+     * line, title). In tabletop posture (a horizontal hinge) the header is the pane above the hinge, and Search's field
+     * sits in it under those rows (MainActivity), so only the rows go: the field stays above the hinge and the results
+     * start below it, as Clean Home keeps its header and top area in that pane (TopArea.tabletopDp). Hiding the whole
+     * pane would run the field and results across the hinge (#393 council review, second round, finding 7).
+     */
+    static boolean hidesWholeHeader(boolean tabletop) { return !tabletop; }
+
+    /**
      * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
      * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
      * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)

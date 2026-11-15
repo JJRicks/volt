@@ -179,6 +179,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
     private View pageHeader;
+    /**
+     * The header's own rows (back link, connection line, title): pageHeader itself, except in tabletop posture, where
+     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them).
+     */
+    private View pageHeaderRows;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
         if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
@@ -536,7 +541,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
         if(OnboardingScreen.needed(this,scooterService)){
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;pageHeaderRows=null;
             onboarding=new OnboardingScreen(this,new OnboardingScreen.Listener(){public void onFinished(){onboarding=null;showPage(HubPages.HOME);rebuild();}});
             screen=onboarding;root.addView(onboarding.view(),new FrameLayout.LayoutParams(-1,-1));
             Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();styleSystemBars();
@@ -547,7 +552,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;pageHeaderRows=null;
             screen=new RidingScreen(this,riding,this::riderClosedRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
@@ -571,9 +576,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         shell.addView(simulationNotice, new LinearLayout.LayoutParams(-1, -2));
         // The Hub has no tab bar or side rail (PR 11): the page has the window's full width; Home is the root of every stack.
         LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout header=makeHeader();
+        LinearLayout header=makeHeader();pageHeaderRows=header;
+        LinearLayout tabletopPane=null;
         if(horizontalHinge()){
-            ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
+            ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);pageHeader=upper;
+            // Search's field joins the header in this pane (below), so the field stays above the hinge and its results start below it.
+            if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,new LinearLayout.LayoutParams(-1,-2));upper.addView(tabletopPane);}
+            else upper.addView(header);
             int upperHeight=Math.max(1,fold.hinge.top-topInset);
             content.addView(upper,new LinearLayout.LayoutParams(-1,upperHeight));
             View spacer=new View(this);spacer.setBackgroundColor(design.bg);content.addView(spacer,new LinearLayout.LayoutParams(-1,Math.max(design.dp(12),fold.hinge.height())));
@@ -587,6 +596,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
             header.addView(screen instanceof CleanHomeScreen?((CleanHomeScreen)screen).takeHeader():((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
+        }
+        if(tabletopPane!=null&&screen instanceof HubSearchScreen){
+            // Tabletop posture: Search's field and Cancel in the pane above the hinge (its header rows stay hidden there:
+            // HubSearch.hidesWholeHeader), the results below, as Clean Home keeps its header and top area above it.
+            tabletopPane.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),0);
+            tabletopPane.addView(((HubSearchScreen)screen).takeTop());
         }
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
@@ -720,7 +735,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             // As the header's back link: leaves at once (HubNav.linkSkipsPageBack), the query with it.
             @Override public void leave(){navigateBack(true);}
             // The field at the very top with Cancel: the header (back link, status line, title) stays hidden (HubSearch.headerHidden).
-            @Override public void headerHidden(boolean hidden){if(pageHeader!=null)pageHeader.setVisibility(hidden?View.GONE:View.VISIBLE);}
+            // In tabletop posture only the header's own rows go: the pane above the hinge stays, holding the field (#393 council
+            // review, second round, finding 7).
+            @Override public void headerHidden(boolean hidden){
+                View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;
+                if(aside!=null)aside.setVisibility(hidden?View.GONE:View.VISIBLE);
+            }
         });
     }
     /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */

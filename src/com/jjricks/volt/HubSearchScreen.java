@@ -65,6 +65,8 @@ final class HubSearchScreen implements AppScreen {
     /** Whether Cancel shows beside the field (the frame names one): the page header then stays hidden. */
     private final boolean hasCancel;
     private final LinearLayout view, results;
+    /** The field with Cancel beside it: the page's top, or the tabletop pane's (takeTop). */
+    private final LinearLayout top;
     /** Named like the other search fields (validations find a screen's field by this name). */
     private final EditText search;
     private final TextView count;
@@ -111,7 +113,7 @@ final class HubSearchScreen implements AppScreen {
         // The long placeholder only where it fits whole; else the short "Search" (HubSearch.longHintFits).
         search.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> fitHint());
         // The field at the very top with Cancel beside it, as the Layout Plan's search mock-up.
-        LinearLayout top = new LinearLayout(host.activity());
+        top = new LinearLayout(host.activity());
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
@@ -181,6 +183,15 @@ final class HubSearchScreen implements AppScreen {
     }
 
     @Override public View view() { return view; }
+
+    /**
+     * Tabletop posture: takes the field and Cancel out of the page for MainActivity to put in the pane above the hinge
+     * (HubSearch.hidesWholeHeader), keeping their layout; the results stay in the page, below the hinge.
+     */
+    View takeTop() {
+        if (top.getParent() == view) view.removeView(top);
+        return top;
+    }
 
     @Override public void refresh() {
         if (closed) return;
