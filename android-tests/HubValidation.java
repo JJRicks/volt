@@ -74,7 +74,8 @@ import com.jjricks.volt.WideLayout;
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
  *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
  *   three tile values at one size on one baseline and their names on one line each; the route panel, where the card's fit
- *   leaves it room, shown wholly inside the window with the route drawn, and otherwise reported as not shown; the Ride
+ *   leaves it room, shown wholly inside the window with the route drawn (at least four points), required unless the step
+ *   declares -e just_back_route optional, and then reported as not shown only where JustBackFit.split gives it up; the Ride
  *   row under it shows that ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
@@ -596,12 +597,24 @@ public final class HubValidation extends Instrumentation {
         int[] justBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
         // The route panel as it is on screen: shown with at least the room it draws in (JustBackView's MIN_ROUTE_DP; under it
-        // the panel draws nothing) and wholly inside the window. Where Just back's fit gives the panel up (a short area at
-        // large text, JustBackFit.split), the walk says the route was not shown. Shown, the route itself is read on a worker
-        // once the card is bound, and must arrive.
-        String routeShown = onMain(() -> routeOnScreen(card));
-        if (routeShown != null)
-            await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back's route panel shows (" + routeShown + ") but no route arrived for the ride's GPS fixes");
+        // the panel draws nothing) and wholly inside the window, with the ride's route drawn in it: at least ROUTE_POINTS
+        // points, read on a worker once the card is bound (an unreadable journal or a ride with no usable fixes gives the
+        // empty route, drawn as a placeholder icon, which fails here; #410 council, final review, finding 1). The route is
+        // required unless the step declares -e just_back_route optional (the sweep's four Hub steps declare nothing, so
+        // 344x882 and 725x604 at 1x and 1.4x text must draw it); then the panel may be gone only where JustBackFit.split,
+        // given the room the card's own layout leaves it, gives it up, and the walk says the route was not shown.
+        String panelShown = onMain(() -> routeOnScreen(card)), routeShown = panelShown;
+        boolean routeOptional = "optional".equals(arguments.getString("just_back_route", "required"));
+        if (routeShown == null) {
+            require(routeOptional, "Just back shows no route panel at this window (" + onMain(() -> routeFit(card)) + "); this step requires the route (-e just_back_route optional for a window where the fit gives it up)");
+            require(onMain(() -> routeFit(card)[1] == 0), "Just back's route panel is not shown, though JustBackFit.split gives it room (" + Arrays.toString(onMain(() -> routeFit(card))) + ")");
+        } else {
+            int[] points = {0};
+            await(() -> onMain(() -> { float[] route = (float[]) field(field(card, "route"), "route"); points[0] = route == null ? -1 : (route.length - 2) / 2; return points[0] >= ROUTE_POINTS; }),
+                    () -> "Just back's route panel shows (" + panelShown + ") but its route has " + (points[0] < 0 ? "not arrived" : points[0] + " points") + ", not at least " + ROUTE_POINTS + " from the ride's 121 GPS fixes");
+            routeShown = panelShown + ", " + points[0] + " points";
+        }
+        String routeSaid = routeShown;
         main(() -> {
             for (String name : new String[]{"saved", "distance"}) {
                 TextView text = (TextView) field(card, name);
@@ -645,8 +658,37 @@ public final class HubValidation extends Instrumentation {
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
                 + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and "
-                + (routeShown != null ? "its route shown on screen (" + routeShown + ")" : "no route shown: Just back's fit gave up the route panel at this size")
+                + (routeSaid != null ? "its route drawn on screen (" + routeSaid + ")" : "no route shown: -e just_back_route optional, and JustBackFit.split gives up the route panel at this size")
                 + "; the Ride row shows that ride); each pictured at that scroll");
+    }
+
+    /** The least number of route points Just back must draw for the seeded ride (a start, an end and two between). */
+    private static final int ROUTE_POINTS = 4;
+
+    /**
+     * JustBackFit.split (package-private in the app, reached by reflection) for the room the card's own layout leaves
+     * between its ended line and its tiles, as JustBackView.onMeasure asks it: {distance box, route panel, route gap} px.
+     * Main thread.
+     */
+    private int[] routeFit(Object card) {
+        ViewGroup view = (ViewGroup) card;
+        View first = (View) field(card, "first"), tiles = (View) field(card, "tiles");
+        int room = view.getHeight() - view.getPaddingTop() - view.getPaddingBottom() - outer(first) - outer(tiles);
+        float density = activity.getResources().getDisplayMetrics().density;
+        try {
+            Class<?> fit = Class.forName("com.jjricks.volt.JustBackFit", true, card.getClass().getClassLoader());
+            Method split = fit.getDeclaredMethod("split", int.class, int.class, int.class, int.class, int.class);
+            split.setAccessible(true);
+            Field gap = card.getClass().getDeclaredField("ROUTE_GAP_DP");
+            gap.setAccessible(true);
+            return (int[]) split.invoke(null, room, (Integer) field(card, "distanceFull"), (Integer) field(card, "distanceFloor"),
+                    Math.round(((Integer) field(card, "MIN_ROUTE_DP")) * density), Math.round(gap.getInt(null) * density));
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    /** A child's height with its top and bottom margins (JustBackView.outer). */
+    private static int outer(View child) {
+        ViewGroup.MarginLayoutParams size = (ViewGroup.MarginLayoutParams) child.getLayoutParams();
+        return child.getHeight() + size.topMargin + size.bottomMargin;
     }
 
     /**
