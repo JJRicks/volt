@@ -68,7 +68,7 @@ public final class DockSheetValidation extends Instrumentation {
             FIXTURE_SERIAL = "X2538-SYNTHETIC", FIXTURE_MAC = "C0:FF:EE:12:34:57";
     private static final String STYLE_KEY = "home_style", STYLE_CHOSEN = "home_style_chosen", STYLE_ORIGIN = "home_style_origin", WIDGETS = "widgets";
     /** DragSheet's states (package-private in the app, read once by reflection). */
-    private int OPENING, OPEN, CLOSING, PULLED;
+    private int OPENING, OPEN, CLOSING, PULLED, DRAGGED;
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;
@@ -99,7 +99,7 @@ public final class DockSheetValidation extends Instrumentation {
                 checks.add("Widgets Home held for recordings");
                 SystemClock.sleep(Long.parseLong(arguments.getString("hold_seconds", "600")) * 1000);
             } else {
-                OPENING = state("OPENING"); OPEN = state("OPEN"); CLOSING = state("CLOSING"); PULLED = state("PULLED");
+                OPENING = state("OPENING"); OPEN = state("OPEN"); CLOSING = state("CLOSING"); PULLED = state("PULLED"); DRAGGED = state("DRAGGED");
                 cap = (float) (spring("CAP_DP") * dp());
                 dp = dp();
                 scaleBefore = shell("settings get global animator_duration_scale").trim();
@@ -151,7 +151,7 @@ public final class DockSheetValidation extends Instrumentation {
         travel = onMain(() -> (Integer) field(drag(), "travel"));
         require(travel > 0, "The open sheet has no travel");
         fits();
-        checks.add("The open sheet sits below the status bar with its list above the navigation bar, and its background reaches the screen's bottom edge on screen");
+        checks.add("The open sheet sits below the status bar with its list above the navigation bar, its bar icons suit the theme (dark on light), and its background reaches the screen's bottom edge on screen");
         // The close button: the animated close, then gone.
         seen = closeBy(() -> tapCentre(closeButton(), "the sheet's close button"));
         require(seen.contains(CLOSING), "The close button closed the sheet without its settle (states " + seen + ")");
@@ -305,28 +305,97 @@ public final class DockSheetValidation extends Instrumentation {
         finger.hold(120);
         finger.up();
         awaitGone("a pull taken back to its start");
-        // A sheet settling closed (slowed, so it is caught on its way) is caught by a new pull and by a tap on All. Scale 10
-        // (a close of about 3 s): on a loaded machine the page's focus coming back and the pull's first moves take a while.
+        // A sheet settling closed (slowed to scale 10, a close of about 3 s, so it is caught on its way) keeps every touch:
+        // nothing reaches the page under it (Widgets Home's dock and cards, its lock control among them).
         scale(10);
         tapAll();
-        closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
+        // A plain tap on the closing sheet, right over a dock item (which would open its subject): the sheet stops under
+        // the finger and carries on closing; neither the item nor the sheet's row under the finger opens anything.
+        String item = onMain(() -> {
+            for (String each : HubPages.SUBJECTS) { View view = root().findViewWithTag("hub-dock-" + each); if (shown(view)) return "hub-dock-" + each; }
+            return null;
+        });
+        require(item != null, "The dock shows no subject item");
+        float[] under = onMain(() -> centreOf(root().findViewWithTag(item)));
         Object before = onMain(this::drag);
-        finger = new Finger(dockCentre());
-        finger.moveBy(-.45f * travel, 600, 30);
-        boolean same = onMain(() -> drag() == before), caught = onMain(() -> drag() != null && field(drag(), "state").equals(PULLED));
-        require(same && caught, "A pull while the sheet settled closed did not catch it (" + (same ? "" : "a new sheet, ") + describe() + ")");
-        finger.hold(150);
-        finger.up();
-        awaitOpen("a pull that caught the closing sheet");
         closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
-        Object closing = onMain(this::drag);
-        tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
-        awaitOpen("All tapped while the sheet settled closed");
-        require(onMain(() -> drag() == closing), "All tapped while the sheet settled closed made a second sheet (" + describe() + ")");
+        main(() -> { int[] at = new int[2]; panel().getLocationOnScreen(at); require(at[1] < under[1] - 8 * dp, "The closing sheet no longer covers the dock item to tap"); });
+        // Down: caught (DRAGGED) at once. Up straight after, as a tap: carries on closing.
+        Finger tapping = new Finger(under);
+        Object caughtState = onMain(() -> drag() == null ? null : field(drag(), "state"));
+        require(Integer.valueOf(DRAGGED).equals(caughtState), "A finger down on the closing sheet did not stop it under the finger (" + describe() + ")");
+        States states = new States(before);
+        tapping.up();
+        long end = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
+        List<Integer> seen = states.stop();
+        require(!seen.contains(OPENING) && !seen.contains(OPEN), "A plain tap on the closing sheet brought it back (states " + seen + ")");
+        awaitGone("a tap on the closing sheet");
+        requireHome();
+        checks.add("A plain tap on the sheet while it settles closed, over a dock item: the sheet stops under the finger and carries on closing; nothing under it (the dock item, the sheet's own row) opens");
+        // Caught low (two fifths of the way closed), taken up 30% of the travel: it springs back open, the same sheet.
+        tapAll();
+        Object reopened = onMain(this::drag);
+        Finger finger2 = catchLow();
+        finger2.moveBy(-.30f * travel, 500, 25);
+        finger2.hold(150);
+        finger2.up();
+        awaitOpen("a catch taken up 30%");
+        require(onMain(() -> drag() == reopened), "The caught sheet's reopening is a second sheet");
+        // Caught low, taken up 30% and back to where it was caught: it carries on closing (a quarter from the catch decides).
+        Object again = onMain(this::drag);
+        Finger finger3 = catchLow();
+        finger3.moveBy(-.30f * travel, 500, 25);
+        finger3.moveBy(.30f * travel, 500, 25);
+        States back = new States(again);
+        finger3.hold(150);
+        finger3.up();
+        end = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < end && !back.gone()) SystemClock.sleep(10);
+        seen = back.stop();
+        require(!seen.contains(OPENING) && !seen.contains(OPEN), "A catch taken back to where it was caught reopened the sheet (states " + seen + ")");
+        awaitGone("a catch taken back to its start");
+        requireHome();
+        // A tap on the dim while the sheet settles closed is swallowed: the close carries on, and the page under it is not touched.
+        tapAll();
+        float[] dim = onMain(() -> {
+            View panel = panel(); int[] at = new int[2]; panel.getLocationOnScreen(at);
+            android.view.WindowInsets insets = panel.getRootWindowInsets();
+            int bar = insets != null && Build.VERSION.SDK_INT >= 30 ? insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout()).top : 0;
+            return new float[]{at[0] + panel.getWidth() / 2f, (bar + at[1]) / 2f, at[1] - bar};
+        });
+        if (dim[2] > 16 * dp) {
+            Object dimmed = onMain(this::drag);
+            closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
+            States swallowed = new States(dimmed);
+            tap(dim[0], dim[1]);
+            end = SystemClock.uptimeMillis() + 15000;
+            while (SystemClock.uptimeMillis() < end && !swallowed.gone()) SystemClock.sleep(10);
+            seen = swallowed.stop();
+            require(!seen.contains(DRAGGED) && !seen.contains(OPENING), "A tap on the dim while the sheet settled closed did more than nothing (states " + seen + ")");
+            awaitGone("a tap on the dim while closing");
+            requireHome();
+        } else {
+            back(); awaitGone("Back");
+        }
         scale(1);
-        back(); awaitGone("Back");
         checks.add("ACTION_CANCEL settles a pull where it is (a tenth closes, two fifths opens); a second finger settles it at once and the rest of the touch moves nothing; "
-                + "a pull taken back to its start closes; the page has focus while the sheet settles closed, and a new pull and a tap on All catch it and bring the same sheet back");
+                + "a pull taken back to its start closes; the page has focus while the sheet settles closed; a finger on the closing sheet catches it: taken up 30% from where it "
+                + "was caught it reopens (the same sheet), taken back to that point it carries on closing; a tap on the dim meanwhile is swallowed");
+    }
+
+    /**
+     * Back on the open sheet (scale 10), then a finger down on the sheet once it is two fifths of the way closed: returns
+     * that finger, held, with the sheet caught (DRAGGED) where it was.
+     */
+    private Finger catchLow() {
+        closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
+        await(() -> onMain(() -> drag() != null && offset() >= .40f * travel), () -> "The slowed close never reached two fifths (" + describe() + ")");
+        float[] at = onMain(() -> { int[] p = new int[2]; panel().getLocationOnScreen(p); return new float[]{p[0] + panel().getWidth() / 2f, p[1] + 30 * dp}; });
+        Finger finger = new Finger(at);
+        Object state = onMain(() -> drag() == null ? null : field(drag(), "state"));
+        require(Integer.valueOf(DRAGGED).equals(state), "A finger down on the closing sheet did not catch it (" + describe() + ")");
+        return finger;
     }
 
     /** Every frame at animator scale 5: the opening, the snap-back and the close, and no gap under the sheet at any frame. */
@@ -623,6 +692,12 @@ public final class DockSheetValidation extends Instrumentation {
             }
             require(p[1] >= f[1] + top, "The open sheet's top is under the status bar");
             require(l[1] + list.getHeight() <= f[1] + frame.getHeight() - bottom + 1, "The sheet's list ends under the navigation bar");
+            if (Build.VERSION.SDK_INT >= 30) {
+                // The bars' icons: dark on the light theme (as on the page under it), light on the dark one.
+                int both = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & both;
+                require(look == (activity.ui().dark ? 0 : both), "The sheet's bar icons do not suit the " + (activity.ui().dark ? "dark" : "light") + " theme (appearance " + look + ")");
+            }
         });
         // On screen: the sheet's own background reaches the screen's bottom edge, under the navigation bar too (a window
         // that draws no bar backgrounds gets a black strip painted there).

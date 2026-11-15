@@ -50,8 +50,11 @@ import java.util.function.Consumer;
  * The sheet is a window of its own (a Dialog, so TalkBack, Back and focus behave as for every other sheet) that fills the
  * screen, edge to edge from Android 11: its own scrim, and the sheet at its bottom. The sheet's background reaches
  * CAP_DP below the screen's edge, so the bounce and the rubber band never show a gap under it. Its window animations
- * are off: this class moves it. While it settles closed the window takes no touches, so a new pull on the dock (or a tap
- * on All) catches it and brings it back.
+ * are off: this class moves it. While it settles closed it still takes every touch (as Material's BottomSheetDialog
+ * does while it hides), so nothing under it is touched by accident, not even a lock control on the page: a finger down
+ * on the sheet catches it and drags it from where it is (it then carries on closing unless dragged back up a quarter of
+ * its travel, SheetSpring.caughtOpens, so a plain tap lets it go), and a touch on the dim is swallowed. It gives up focus
+ * meanwhile, so a Back pressed then goes to the page.
  *
  * Another sheet opts in by building its body with ScreenHost.sheetContent as before and calling
  * host.dragSheet(body, DragSheet.header(body)).open() where it called host.showSheet(body); its close button then calls
@@ -94,7 +97,13 @@ final class DragSheet {
     /** The running settle and its plan; null at rest. */
     private ValueAnimator settling;
     private SheetSpring.Plan plan;
-    private boolean touchable = true;
+    private boolean focusable = true;
+    /**
+     * A finger caught the sheet while it settled (SheetSpring.caughtOpens decides its release): where it was then (px),
+     * and whether it was settling closed. NaN when the drag or pull did not catch a settle.
+     */
+    private float caughtAt = Float.NaN;
+    private boolean caughtClosing;
     private Runnable onDismiss;
 
     /**
@@ -177,7 +186,8 @@ final class DragSheet {
                 window.setStatusBarContrastEnforced(false);
                 window.setNavigationBarContrastEnforced(false);
                 android.view.WindowInsetsController bars = window.getInsetsController();
-                if (bars != null) bars.setSystemBarsAppearance(ui.dark ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                // Light theme: dark icons on both bars, as on the page under it (the dim never makes white ones needed).
+                if (bars != null) bars.setSystemBarsAppearance(ui.dark ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);
             }
         }
@@ -260,10 +270,10 @@ final class DragSheet {
             if (!show()) return false;
             pullBase = 0;
         } else {
+            caught();
             stop();
             pullBase = travel > 0 ? Math.max(0, travel - offset) : 0;
         }
-        touchable(true);
         waiting = WAIT_NONE;
         pulled = pullBase;
         state = PULLED;
@@ -289,7 +299,25 @@ final class DragSheet {
             return;
         }
         float raw = travel - pulled;
-        settle(SheetSpring.opens(false, offset, travel, velocity, fling, minFling, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
+        settle(decide(false, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
+    }
+
+    /** Notes a catch: the sheet is settling (open or closed) and a finger takes it now. Before stop(). */
+    private void caught() {
+        boolean settles = state == OPENING || state == CLOSING;
+        caughtAt = settles ? offset : Float.NaN;
+        caughtClosing = state == CLOSING;
+    }
+
+    /**
+     * A finger let go of the sheet: opens it or not. startedOpen: the drag began on the open sheet (else a pull from
+     * closed). A sheet the finger caught mid-settle decides by SheetSpring.caughtOpens from where it was caught.
+     */
+    private boolean decide(boolean startedOpen, float velocity, long gestureMs) {
+        float at = caughtAt;
+        caughtAt = Float.NaN;
+        if (!Float.isNaN(at)) return SheetSpring.caughtOpens(caughtClosing, at, offset, travel, velocity, fling, minFling, gestureMs);
+        return SheetSpring.opens(startedOpen, offset, travel, velocity, fling, minFling, gestureMs);
     }
 
     // ---- Inside -----------------------------------------------------------------------------------------------------
@@ -359,7 +387,7 @@ final class DragSheet {
     private void settle(boolean open, float velocity) {
         stop();
         if (travel == 0) return;
-        touchable(open);
+        focusable(open);
         if (!Motion.enabled()) {
             if (open) { offset = 0; state = OPEN; place(); } else finish();
             return;
@@ -412,17 +440,16 @@ final class DragSheet {
     }
 
     /**
-     * While it settles closed the window lets touches through to Volt's own, so the dock can pull it back, and gives up
-     * focus, so a Back pressed meanwhile goes to the page (not to a sheet already on its way out).
+     * While it settles closed the window gives up focus, so a Back pressed meanwhile goes to the page (not to a sheet
+     * already on its way out). It keeps taking touches (Frame): the window fills the screen, so none reach the page.
      */
-    private void touchable(boolean on) {
-        if (touchable == on) return;
-        touchable = on;
+    private void focusable(boolean on) {
+        if (focusable == on) return;
+        focusable = on;
         Window window = dialog.getWindow();
         if (window == null) return;
-        int flags = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
-        if (on) window.clearFlags(flags);
-        else window.addFlags(flags);
+        if (on) window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
+        else window.addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
     }
 
     /** Back (and anything else that cancels the dialog) closes it the animated way. */
@@ -434,7 +461,9 @@ final class DragSheet {
     /**
      * The sheet's window: its own touches. A drag on the header moves the sheet; on the list it moves the sheet only where
      * the list cannot scroll that way (and takes over once a list scrolled back to its top keeps going down); a tap on
-     * the dim closes it. Everything else goes to the sheet's views as usual.
+     * the dim closes it. Everything else goes to the sheet's views as usual. While it settles closed (or is gone but its
+     * window not yet removed) no touch reaches its views or anything under it: a finger down on the sheet catches it
+     * (catch), one on the dim is swallowed.
      */
     private final class Frame extends FrameLayout {
         private static final int NONE = 0, VIEWS = 1, DRAG = 2, IGNORE = 3;
@@ -455,6 +484,8 @@ final class DragSheet {
                 region = regionAt(x, y);
                 // A second finger while one on the dock pulls the sheet: that pull settles where it is, and this touch does nothing.
                 if (state == PULLED) { release(0, -1); mode = IGNORE; return true; }
+                // Settling closed: a finger on the sheet catches it (its rows never get the touch); the dim swallows it.
+                if (state == CLOSING && region != OUTSIDE) { catchAt(y); track(event); return true; }
                 mode = state == OPEN || state == OPENING ? NONE : IGNORE;
             }
             track(event);
@@ -506,6 +537,17 @@ final class DragSheet {
             cancel.setAction(MotionEvent.ACTION_CANCEL);
             super.dispatchTouchEvent(cancel);
             cancel.recycle();
+            caught();
+            stop();
+            dragY = y; lastY = y;
+            dragRaw = (float) SheetSpring.undragged(offset, cap);
+            mode = DRAG;
+            state = DRAGGED;
+        }
+
+        /** A finger down on the sheet settling closed: it stops where it is and follows the finger from there. */
+        private void catchAt(float y) {
+            caught();
             stop();
             dragY = y; lastY = y;
             dragRaw = (float) SheetSpring.undragged(offset, cap);
@@ -522,7 +564,7 @@ final class DragSheet {
         private void let(float velocity, long gestureMs) {
             if (state != DRAGGED) return;
             float raw = dragRaw + (lastY - dragY);
-            settle(SheetSpring.opens(true, offset, travel, velocity, fling, minFling, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
+            settle(decide(true, velocity, gestureMs), velocity * (float) SheetSpring.dragSlope(raw, cap));
         }
 
         private void track(MotionEvent event) {

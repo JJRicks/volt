@@ -258,7 +258,7 @@ final class HubDock {
         host.open(subject);
     }
 
-    /** All's tap: the sheet springs open (or, settling closed, back open). */
+    /** All's tap: the sheet springs open. */
     private void showAll() {
         DragSheet all = allSheet();
         if (all != null) all.open();
@@ -266,7 +266,7 @@ final class HubDock {
 
     /**
      * The sheet with every subject's name and live summary, built when none shows; a row opens its subject and closes the
-     * sheet. One still settling closed is the same sheet (a tap or a new pull brings it back), never a second.
+     * sheet. One still settling closed is the same sheet (its window covers the dock until it is gone), never a second.
      */
     private DragSheet allSheet() {
         if (closed) return null;
