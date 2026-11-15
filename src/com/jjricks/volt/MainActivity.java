@@ -730,7 +730,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller. */
     private void fillPagePane(HubNav.Args args){
         rightPage.removeAllViews();
-        pageHeader=null;liveStatsTitle=null;
+        // The old page's connection line goes with its header; Home in the page pane has none (the scooter pane shows the state).
+        pageHeader=null;liveStatsTitle=null;connectionTitle=null;
+        if(HubPages.HOME.equals(selectedPage))connectionLinePage=null;
         LinearLayout header=HubPages.HOME.equals(selectedPage)?null:makePaneHeader();
         if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;}
         paneHosted=true;
@@ -1474,15 +1476,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
     }
     /**
-     * A page's header in the wide Home's page pane: its back link and title (the scooter pane beside it has the connection
-     * line). A subject's page goes back to the pane's list of subjects, so its link says "All" (TalkBack: "Back to All
-     * subjects"); a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
+     * A page's header in the wide Home's page pane: its back link, the connection line by one pane's rule (only while not
+     * connected, never on Settings; connected, the scooter pane beside it already shows the state) and its title. A
+     * subject's page goes back to the pane's list of subjects, so its link says "All" (TalkBack: "Back to All subjects");
+     * a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
      */
     private LinearLayout makePaneHeader(){
         // In the page pane, the header keeps the scroll bar's room at its end too, so it ends where the cards end.
         LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_BAR_DP),design.dp(6));
         String parent=nav.size()>1?nav.pages().get(nav.size()-2):HubPages.HOME;
         header.addView(HubPages.HOME.equals(parent)?backLink(HubText.all(),HubText.backTo(HubText.dockAll())):backLink(parent),new LinearLayout.LayoutParams(-2,-2));
+        connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
+        addConnectionLine(header);
         addPageTitle(header);
         profileTitle=null;
         return header;

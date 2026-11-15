@@ -294,6 +294,8 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> !ble.ready() && shown(root().findViewWithTag("hub-page-connection"))), "Battery's header shows no connection line once the scooter disconnected");
         settle();
         int titleTop = requireHeader(HubPages.BATTERY, true);
+        // On two panes the line is the page pane's own (part 13): it sits in the pane's header, not over the scooter pane.
+        requireInPage("hub-page-connection", "Battery's connection line");
         String said = onMain(() -> ((TextView) root().findViewWithTag("hub-page-connection")).getText().toString());
         require(said.startsWith("Disconnected"), "Battery's connection line reads \"" + said + "\" while disconnected");
         screenshot("page-disconnected");
