@@ -222,6 +222,45 @@ public final class HubPagesTest {
         }
         require(seen[0] == HubPages.LINE_SHOWN && seen[1] == HubPages.LINE_ROOM && seen[2] == HubPages.LINE_SHOWN && seen[3] == HubPages.LINE_ROOM,
                 "Drop, connect, drop, connect on an open page: " + java.util.Arrays.toString(seen));
+        serviceStates(subjects, subPages, appPages);
+    }
+
+    /**
+     * pageConnectionLine: the same rule with the service's state (#410 review). Every page kind by service bound or not,
+     * Nearby devices granted or not (a bind can come only with it), connected or not, and the room held or not.
+     */
+    private static void serviceStates(String[] subjects, String[] subPages, String[] appPages) {
+        for (boolean bound : new boolean[] {false, true})
+            for (boolean permission : new boolean[] {false, true})
+                for (boolean connected : new boolean[] {false, true})
+                    for (boolean held : new boolean[] {false, true}) {
+                        String state = (bound ? "bound" : "unbound") + (permission ? ", Nearby granted" : ", no Nearby permission")
+                                + (connected ? ", connected" : ", not connected") + (held ? ", room held" : "");
+                        require(HubPages.pageConnectionLine(HubPages.HOME, bound, permission, connected, held) == HubPages.LINE_SHOWN, "Home keeps its own line: " + state);
+                        for (String page : appPages)
+                            require(HubPages.pageConnectionLine(page, bound, permission, connected, held) == HubPages.LINE_GONE, page + " never shows the line: " + state);
+                        for (String[] kind : new String[][] {subjects, subPages})
+                            for (String page : kind) {
+                                int want;
+                                // Bound: the page rule as it is (connected only counts here).
+                                if (bound) want = !connected ? HubPages.LINE_SHOWN : held ? HubPages.LINE_ROOM : HubPages.LINE_GONE;
+                                // Waiting for a bind that will come (a page rebuilt by a recreation): no line and no gap,
+                                // unless the line already showed on this page, which stays shown (still not connected).
+                                else if (permission) want = held ? HubPages.LINE_SHOWN : HubPages.LINE_GONE;
+                                // No Nearby permission: no bind ever comes, the scooter is not connected, the line shows.
+                                else want = HubPages.LINE_SHOWN;
+                                require(HubPages.pageConnectionLine(page, bound, permission, connected, held) == want, page + " " + state + ": " + want);
+                            }
+                    }
+        // The review's case: no permission, every scooter page and sub-page, opened fresh, shows the line (its tap leads to
+        // the connection details and the button that grants the permission).
+        for (String page : HubPages.ALL)
+            if (!HubPages.HOME.equals(page) && !HubPages.appPage(page))
+                require(HubPages.pageConnectionLine(page, false, false, false, false) == HubPages.LINE_SHOWN, "No Nearby permission: the line on " + page);
+        // The rotation case: a connected page rebuilt before the bind has no line and no gap, and after the bind still none.
+        require(HubPages.pageConnectionLine(HubPages.SERVICE_MAINTENANCE, false, true, false, false) == HubPages.LINE_GONE
+                && HubPages.pageConnectionLine(HubPages.SERVICE_MAINTENANCE, true, true, true, false) == HubPages.LINE_GONE,
+                "A connected page rebuilt before the service binds keeps no blank line");
     }
 
     private static void riding() {

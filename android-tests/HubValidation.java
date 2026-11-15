@@ -99,7 +99,10 @@ import com.jjricks.volt.WideLayout;
  *
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
- * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
+ * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
+ * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
+ * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none
+ * (withoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -132,6 +135,9 @@ public final class HubValidation extends Instrumentation {
         SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
     }
     private Bundle arguments;
+    /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
+    private static final String NO_NEARBY = "no-nearby";
+    private boolean noNearby;
     /** ROUTED's list for the simulated model the walk runs on. */
     private List<String> mayRoute = Collections.emptyList();
     private String simulatedModel = "";
@@ -150,10 +156,11 @@ public final class HubValidation extends Instrumentation {
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
-            admit(); admitted = true;
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-pages"), "Unknown -e mode " + mode + " (all or widgets-pages)");
+            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY), "Unknown -e mode " + mode + " (all, widgets-pages or " + NO_NEARBY + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
+            noNearby = mode.equals(NO_NEARBY);
+            admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
@@ -163,6 +170,10 @@ public final class HubValidation extends Instrumentation {
                     .commit(), "Fixture settings failed");
             seed();
             launch();
+            if (noNearby) {
+                withoutNearby();
+                noBind();
+            } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
             else {
@@ -174,6 +185,7 @@ public final class HubValidation extends Instrumentation {
                 widgets();
             }
             noCommands();
+            }
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -182,7 +194,7 @@ public final class HubValidation extends Instrumentation {
             result.putStringArrayList("routed_pages", routed); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             if (admitted && activity != null) try {
-                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false);
+                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); if (controlDialog() != null) controlDialog().dismiss(); activity.finish(); ScooterService.setUiVisible(false);
                     getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
             } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -301,6 +313,106 @@ public final class HubValidation extends Instrumentation {
         requireHome("CleanHomeScreen");
         checks.add("Page header: connected, every page shows its back link and title and no connection line, Settings never; disconnected (the simulator's state only), Battery shows"
                 + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line blanks with the title in place, and the page opened again has none");
+    }
+
+    /**
+     * -e mode no-nearby (#410 review): without Nearby devices permission ScooterService never binds (MainActivity's
+     * ensureService), so the scooter is not connected: every subject page, Search and every sub-page shows the connection
+     * line between its back link and its title (HubPages.pageConnectionLine), and Settings and its pages show none. The
+     * subjects open from Home's rows; their sub-pages open by the page stack's route (without the service a hosted page
+     * holds no rows; the full walk checks the rows). On Battery & charging and on its first sub-page the line's tap opens
+     * the connection details, whose state reads "No permission" and whose button is "Allow Nearby devices" (pictured, not
+     * tapped: it would ask for the permission). That sub-page rebuilt by an activity recreation (as a rotation makes) shows
+     * the line again at once, as no bind is coming. Nothing binds the service (noBind).
+     */
+    private void withoutNearby() throws Exception {
+        screenshot("no-nearby-home");
+        String subPage = children(HubPages.BATTERY).get(0);
+        for (String subject : HubPages.SUBJECTS) {
+            tapTag("home-subject-" + subject);
+            arrived(subject, HubPages.HOME, subject);
+            requireHeader(subject, true);
+            if (subject.equals(HubPages.BATTERY)) {
+                screenshot("no-nearby-battery");
+                connectionDetails(subject, "no-nearby-battery-details");
+            }
+            for (String child : children(subject)) {
+                open(child);
+                arrived(child, HubPages.HOME, subject, child);
+                requireHeader(child, true);
+                if (child.equals(subPage)) {
+                    screenshot("no-nearby-" + child);
+                    connectionDetails(child, "no-nearby-" + child + "-details");
+                    recreateActivity();
+                    arrived(child, HubPages.HOME, subject, child);
+                    requireHeader(child, true);
+                    screenshot("no-nearby-" + child + "-recreated");
+                }
+                systemBack();
+                arrived(subject, HubPages.HOME, subject);
+                requireHeader(subject, true);
+            }
+            systemBack();
+            requireHome("CleanHomeScreen");
+        }
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        requireHeader(HubPages.SEARCH, true);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireHeader(HubPages.SETTINGS, false);
+        for (String child : children(HubPages.SETTINGS)) {
+            open(child);
+            arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireHeader(child, false);
+            systemBack();
+            arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        }
+        screenshot("no-nearby-settings");
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        checks.add("Without Nearby devices permission (none granted; the service never binds): every subject, Search and every sub-page shows the connection line"
+                + " between its back link and title; on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
+                + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none");
+    }
+
+    /**
+     * Taps the page's connection line and requires the connection details it opens to say the permission is missing and
+     * offer "Allow Nearby devices" (the button is not tapped); pictured as shot, then closed.
+     */
+    private void connectionDetails(String page, String shot) throws Exception {
+        main(() -> click(root().findViewWithTag("hub-page-connection"), page + "'s connection line"));
+        AlertDialog[] dialog = new AlertDialog[1];
+        await(() -> onMain(() -> { dialog[0] = controlDialog(); return dialog[0] != null && dialog[0].isShowing(); }), page + "'s connection line did not open the connection details");
+        settle();
+        main(() -> {
+            View content = dialog[0].getWindow().getDecorView();
+            require(hasText(content, "No permission"), "The connection details from " + page + " do not say \"No permission\"");
+            android.widget.Button allow = dialog[0].getButton(AlertDialog.BUTTON_NEGATIVE);
+            require(shown(allow) && "Allow Nearby devices".equalsIgnoreCase(allow.getText().toString()), "The connection details from " + page + " offer \""
+                    + (allow == null ? null : allow.getText()) + "\", not \"Allow Nearby devices\"");
+        });
+        screenshot(shot, onMain(() -> dialog[0].getWindow().getDecorView()));
+        main(() -> dialog[0].dismiss());
+        await(() -> onMain(() -> !dialog[0].isShowing()), "The connection details did not close");
+        settle();
+    }
+
+    /** MainActivity's connection details dialog (its controlDialog), or null. Main thread. */
+    private AlertDialog controlDialog() { return activity == null ? null : (AlertDialog) field(activity, "controlDialog"); }
+
+    /** Without Nearby permission nothing bound the service, so nothing could reach a scooter or start a recording. */
+    private void noBind() {
+        main(() -> {
+            require(activity.service() == null, "ScooterService bound without Nearby permission");
+            require(field(activity, "riding") == null, "Riding mode opened during the walk");
+        });
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "The walk granted " + permission);
+        checks.add("No scooter work: the service never bound, Nearby permission is still not granted, no riding mode");
     }
 
     /**
@@ -810,7 +922,7 @@ public final class HubValidation extends Instrumentation {
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
         });
         if (!HubPages.HOME.equals(page)) {
-            boolean connected = onMain(() -> activity.service().ble.ready());
+            boolean connected = onMain(() -> activity.service() != null && activity.service().ble.ready());
             // The contributor's decision (14 Nov, #383): the connection line only while not connected, never on Settings.
             if (connected || HubPages.appPage(page)) requireHeader(page, false);
         }
@@ -950,7 +1062,7 @@ public final class HubValidation extends Instrumentation {
         removeMonitor(monitor);
         require(next instanceof MainActivity && next != before, "The activity was not recreated");
         activity = (MainActivity) next;
-        await(() -> activity.service() != null, "The recreated activity has no service");
+        if (!noNearby) await(() -> activity.service() != null, "The recreated activity has no service");
         settle();
     }
 
@@ -964,7 +1076,8 @@ public final class HubValidation extends Instrumentation {
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Refusing existing private data");
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
-            require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
+            if (noNearby) require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "-e mode " + NO_NEARBY + " needs Nearby permission not granted (" + permission + " is)");
+            else require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
         BluetoothManager manager = getTargetContext().getSystemService(BluetoothManager.class);
         require(manager == null || manager.getAdapter() == null || !manager.getAdapter().isEnabled(), "Emulator Bluetooth must stay off");
     }
@@ -978,7 +1091,10 @@ public final class HubValidation extends Instrumentation {
     }
     private void launch() {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        await(() -> activity.service() != null, "App did not launch"); settle();
+        // Without Nearby permission the service never binds (MainActivity.ensureService); Home shows instead.
+        if (noNearby) requireHome("CleanHomeScreen");
+        else await(() -> activity.service() != null, "App did not launch");
+        settle();
     }
     /** The developer simulator's UT5 MAX, connected; its settings now are the ones a command would change. */
     private void simulate() {
@@ -1031,6 +1147,12 @@ public final class HubValidation extends Instrumentation {
         }
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { int found = resultCount(((ViewGroup) view).getChildAt(i)); if (found > 0) return found; }
         return 0;
+    }
+    /** Whether a shown TextView in view reads text. */
+    private static boolean hasText(View view, String text) {
+        if (view instanceof TextView && view.isShown() && text.contentEquals(((TextView) view).getText())) return true;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (hasText(((ViewGroup) view).getChildAt(i), text)) return true;
+        return false;
     }
     private static EditText firstEditText(View view) {
         if (view instanceof EditText && view.isShown()) return (EditText) view;

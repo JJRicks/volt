@@ -1206,11 +1206,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         // same page keeps what the line had (its room, and the state it last showed); another page starts afresh.
         if(!selectedPage.equals(connectionLinePage)){connectionLinePage=selectedPage;connectionRoomHeld=false;connectionLineReady=null;}
         BleController headerBle=scooterService==null?null:scooterService.ble;
-        // Until the service binds (a page rebuilt by an activity recreation, as a rotation makes) the connection is not
-        // known yet: the line waits, gone and holding no room, for the rebuild the binding makes, so a connected page
-        // never keeps a blank line from that first build.
-        if(headerBle==null)connectionTitle.setVisibility(View.GONE);
-        else applyPageConnectionLine(headerBle.ready(),false);
+        // Until the service binds (a page rebuilt by an activity recreation, as a rotation makes) the line waits for the
+        // rebuild the binding makes; without Nearby devices permission no bind comes and the line shows (pageConnectionLine).
+        applyPageConnectionLine(headerBle!=null&&headerBle.ready(),false);
         header.addView(connectionTitle);
         liveStatsTitle=null;
         // Data's own page keeps Live Stats' title with its live dot; every other page shows its own title (HubText).
@@ -1235,7 +1233,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private void applyPageConnectionLine(boolean ready,boolean announce){
         if(connectionTitle==null)return;
-        int state=HubPages.headerConnectionLine(selectedPage,ready,connectionRoomHeld);
+        // Unbound with Nearby devices granted, a bind is coming (ensureService); without it none ever does.
+        int state=HubPages.pageConnectionLine(selectedPage,scooterService!=null,hasBluetoothPermission(),ready,connectionRoomHeld);
         int visibility=state==HubPages.LINE_SHOWN?View.VISIBLE:state==HubPages.LINE_ROOM?View.INVISIBLE:View.GONE;
         if(connectionTitle.getVisibility()!=visibility)connectionTitle.setVisibility(visibility);
         if(state==HubPages.LINE_SHOWN)connectionRoomHeld=true;
@@ -1417,8 +1416,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
                 design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
                 connectionTitle.setContentDescription(T.bleReleaseHeld());}
-            // A page's line follows the connection only once the service is bound (makeCompactHeader).
-            if(scooterService!=null||HubPages.HOME.equals(selectedPage))applyPageConnectionLine(ready,true);
+            applyPageConnectionLine(ready,true);
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
