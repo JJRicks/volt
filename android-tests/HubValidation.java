@@ -108,7 +108,9 @@ import com.jjricks.volt.WideLayout;
  * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
  * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
  * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none
- * (withoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
+ * (withoutNearby). -e mode search-targets checks that every search result lands on what it names (searchTargets: every
+ * page, setting, hand-built row and control search lists, and every row title a page's search words name; #393 council
+ * review, second round). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -145,6 +147,8 @@ public final class HubValidation extends Instrumentation {
     private static final String SEARCH_QUERY = "star", SEARCH_RESULT = "hub-search-page-" + HubPages.LIGHTS_STAR;
     /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
     private static final String NO_NEARBY = "no-nearby";
+    /** -e mode search-targets: every search result lands on what it names (searchTargets). */
+    private static final String SEARCH_TARGETS = "search-targets";
     private boolean noNearby;
     /** ROUTED's list for the simulated model the walk runs on. */
     private List<String> mayRoute = Collections.emptyList();
@@ -165,7 +169,8 @@ public final class HubValidation extends Instrumentation {
         Bundle result = new Bundle();
         try {
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY), "Unknown -e mode " + mode + " (all, widgets-pages or " + NO_NEARBY + ")");
+            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY) || mode.equals(SEARCH_TARGETS),
+                    "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY + " or " + SEARCH_TARGETS + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
             noNearby = mode.equals(NO_NEARBY);
             admit(); admitted = true;
@@ -184,6 +189,7 @@ public final class HubValidation extends Instrumentation {
             } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
+            else if (mode.equals(SEARCH_TARGETS)) searchTargets();
             else {
                 cleanSubjects();
                 pageStack();
@@ -430,6 +436,209 @@ public final class HubValidation extends Instrumentation {
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
             require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "The walk granted " + permission);
         checks.add("No scooter work: the service never bound, Nearby permission is still not granted, no riding mode");
+    }
+
+    /**
+     * -e mode search-targets (#393 council review, second round: three results opened a page that no longer held what
+     * was searched for, after pages were rebuilt): every search result lands on what it names. The entries come from
+     * search's own sources (HubSearch.pages, settings, rows and controls, read by reflection with MainActivity's own
+     * gates), so an entry added later is covered as it is added. For each one the walk types the name it shows, taps its
+     * result, and requires its page on top and, for an entry naming a row, that row shown and inside the window once
+     * revealed; for a control a sheet over the page holds (Settings' Updates sheet: Automatic update checks and Check for
+     * updates), the sheet open with the control shown in it. Then every row title a page's search words name
+     * (HubSearchTables.pageRows): it types the title, opens that page's result and requires a row reading the title on
+     * the page. Back returns to Search after each (closing a sheet first). Every mismatch is collected, and the step
+     * fails listing them all. A setting search leaves out for a page of the same name (HubSearch.search) is checked
+     * through that page's result.
+     */
+    private void searchTargets() throws Exception {
+        requireHome("CleanHomeScreen");
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        List<String> problems = new ArrayList<>(), notes = new ArrayList<>();
+        int checked = 0, anchored = 0, held = 0;
+        for (Object entry : onMain(this::searchEntries)) {
+            String kind = String.valueOf(field(entry, "kind")), page = (String) field(entry, "page"), anchor = (String) field(entry, "anchor");
+            String name = onMain(() -> String.valueOf(field(entry, "shown")));
+            String what = kind.toLowerCase(Locale.ROOT) + " \"" + name + "\" (" + page + (anchor == null ? "" : ", " + anchor) + ")";
+            String tag = "hub-search-" + kind.toLowerCase(Locale.ROOT) + "-" + (anchor != null ? anchor : page);
+            if (!typeAndFind(name, tag)) {
+                String instead = "hub-search-page-" + samePage(name);
+                if (!"SETTING".equals(kind) || samePage(name) == null || !onMain(() -> shown(root().findViewWithTag(instead)))) {
+                    problems.add(what + ": typing its name lists no result for it (" + onMain(() -> resultRows(root().findViewWithTag("hub-search-results"))) + " result rows)");
+                    continue;
+                }
+                notes.add(what + " is listed as the page " + samePage(name) + " of the same name");
+                continue;
+            }
+            String problem = openResult(tag, page);
+            if (problem == null && anchor != null) {
+                String[] place = onMain(() -> placeOf(anchor));
+                problem = place[0];
+                if (problem == null) { anchored++; if ("sheet".equals(place[1])) held++; }
+            }
+            if (problem != null) problems.add(what + ": " + problem);
+            else checked++;
+            backToSearch();
+        }
+        int titles = 0;
+        for (String page : HubPages.ALL) {
+            for (String title : pageRows(page)) {
+                String tag = "hub-search-page-" + page, what = "\"" + title + "\" (a row title in " + page + "'s search words)";
+                if (!typeAndFind(title, tag)) {
+                    if (onMain(() -> !pageListed(page))) notes.add(what + ": " + page + " is not offered on this model");
+                    else problems.add(what + ": typing it does not list " + page);
+                    continue;
+                }
+                String problem = openResult(tag, page);
+                if (problem == null && !onMain(() -> hasFoldedText(((View) invoke(field(activity, "screen"), "view", new Class<?>[0])), fold(title))))
+                    problem = page + " has no row reading \"" + title + "\"";
+                if (problem != null) problems.add(what + ": " + problem);
+                else titles++;
+                backToSearch();
+            }
+        }
+        checks.add("Search targets: " + checked + " results opened their page" + " (" + anchored + " with their row revealed inside the window, " + held
+                + " of them in the sheet that holds them), " + titles + " row titles found on the page their words open" + (notes.isEmpty() ? "" : "; notes: " + notes));
+        require(problems.isEmpty(), problems.size() + " search results do not land on what they name:\n  " + String.join("\n  ", problems));
+    }
+
+    /** Search's entries for pages, settings, hand-built rows and controls (those that open a page), as search builds them now. Main thread. */
+    private List<Object> searchEntries() {
+        try {
+            ClassLoader loader = activity.getClassLoader();
+            Class<?> search = Class.forName("com.jjricks.volt.HubSearch", true, loader), gatesType = Class.forName("com.jjricks.volt.HubSearch$Gates", true, loader);
+            Object gates = invoke(activity, "searchGates", new Class<?>[0]);
+            List<Object> all = new ArrayList<>();
+            all.addAll((List<?>) staticCall(search, "pages", new Class<?>[]{gatesType}, gates));
+            Object settings;
+            try { settings = staticCall(search, "settings", new Class<?>[]{gatesType}, gates); }
+            catch (IllegalStateException older) { settings = staticCall(search, "settings", new Class<?>[0]); }
+            all.addAll((List<?>) settings);
+            all.addAll((List<?>) staticCall(search, "rows", new Class<?>[]{gatesType}, gates));
+            Supplier<CharSequence> badge = () -> "Experimental";
+            all.addAll((List<?>) staticCall(search, "controls", new Class<?>[]{gatesType, Supplier.class}, gates, badge));
+            List<Object> opening = new ArrayList<>();
+            for (Object entry : all) if ("PAGE".equals(String.valueOf(field(entry, "target")))) opening.add(entry);
+            return opening;
+        } catch (ClassNotFoundException missing) { throw new IllegalStateException(missing); }
+    }
+
+    /** HubSearchTables.pageRows(page) (the row titles a page's words name); none where the table has no such list. */
+    private String[] pageRows(String page) {
+        try { return (String[]) staticCall(Class.forName("com.jjricks.volt.HubSearchTables", true, activity.getClassLoader()), "pageRows", new Class<?>[]{String.class}, page); }
+        catch (ClassNotFoundException missing) { throw new IllegalStateException(missing); }
+    }
+
+    /** Whether search lists page as a page result on this model (HubSearch.pages with MainActivity's gates). Main thread. */
+    private boolean pageListed(String page) {
+        for (Object entry : searchEntries()) if ("PAGE".equals(String.valueOf(field(entry, "kind"))) && page.equals(field(entry, "page"))) return true;
+        return false;
+    }
+
+    /** The page whose title is name (folded), or null: a setting of that name is listed as that page (HubSearch.search). Main thread. */
+    private String samePage(String name) {
+        return onMain(() -> {
+            for (Object entry : searchEntries())
+                if ("PAGE".equals(String.valueOf(field(entry, "kind"))) && fold(String.valueOf(field(entry, "shown"))).equals(fold(name))) return (String) field(entry, "page");
+            return null;
+        });
+    }
+
+    /** Types text into Search's field and returns whether the result row with this tag is shown. */
+    private boolean typeAndFind(String text, String tag) {
+        main(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); require(field != null, "Search has no field"); field.setText(text); });
+        settle();
+        return onMain(() -> shown(root().findViewWithTag(tag)));
+    }
+
+    /** Taps the result with this tag; null once page is on top, else what went wrong. */
+    private String openResult(String tag, String page) {
+        try { tapTag(tag); }
+        catch (RuntimeException failure) { return "its result could not be tapped (" + failure.getMessage() + ")"; }
+        long end = SystemClock.uptimeMillis() + 6000;
+        while (SystemClock.uptimeMillis() < end && !onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))))
+            SystemClock.sleep(50);
+        String now = onMain(() -> (String) field(activity, "selectedPage"));
+        if (!page.equals(now)) return "opened " + now + ", not " + page;
+        settle();
+        return null;
+    }
+
+    /**
+     * Where the row named by anchor is once the page revealed it: {problem or null, "page" or "sheet"}. In a sheet one of
+     * the page's parts shows over it (its "dialogs"), the control must be shown and wholly inside the sheet's window;
+     * on the page, the row the page names for it (AppScreen.anchor) or the view with that tag must be shown and inside
+     * the window (at least 40 dp of it, or all of a shorter row). Main thread.
+     */
+    private String[] placeOf(String anchor) {
+        Object screen = field(activity, "screen");
+        List<Object> parts = new ArrayList<>();
+        parts.add(screen);
+        if (screen.getClass().getSimpleName().equals("HubPageScreen")) parts.addAll((List<?>) field(screen, "parts"));
+        for (Object part : parts) {
+            Object dialogs = fieldOrNull(part, "dialogs");
+            if (!(dialogs instanceof List)) continue;
+            for (Object dialog : (List<?>) dialogs) {
+                if (!(dialog instanceof android.app.Dialog) || !((android.app.Dialog) dialog).isShowing() || ((android.app.Dialog) dialog).getWindow() == null) continue;
+                View control = ((android.app.Dialog) dialog).getWindow().getDecorView().findViewWithTag(anchor);
+                if (control == null) continue;
+                Rect visible = new Rect();
+                if (!shown(control) || !control.getGlobalVisibleRect(visible) || visible.height() < control.getHeight())
+                    return new String[]{"the sheet over the page holds " + anchor + " but it is not shown wholly (" + chain(control) + ")", "sheet"};
+                return new String[]{null, "sheet"};
+            }
+        }
+        View target;
+        try { Method method = screen.getClass().getMethod("anchor", String.class); method.setAccessible(true); target = (View) method.invoke(screen, anchor); }
+        catch (Exception error) { throw new IllegalStateException(error); }
+        View page = (View) invoke(screen, "view", new Class<?>[0]);
+        if (target == null) target = page.findViewWithTag(anchor);
+        if (target == null) return new String[]{"no view " + anchor + " on the page, and no sheet over it holds one", "page"};
+        if (!shown(target)) return new String[]{anchor + " is on the page but not shown (" + chain(target) + ")", "page"};
+        Rect visible = new Rect();
+        int least = Math.min(target.getHeight(), Math.round(40 * activity.getResources().getDisplayMetrics().density));
+        if (!target.getGlobalVisibleRect(visible) || visible.height() < least)
+            return new String[]{anchor + " was not brought inside the window (" + visible.toShortString() + " of " + target.getHeight() + " px shown)", "page"};
+        return new String[]{null, "page"};
+    }
+
+    /** Back to Search: Back closes a sheet over the result's page first, then leaves the page. */
+    private void backToSearch() {
+        for (int i = 0; i < 4; i++) {
+            if (onMain(() -> HubPages.SEARCH.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))) && !dialogShown()) return;
+            sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+            settle();
+        }
+        require(onMain(() -> HubPages.SEARCH.equals(field(activity, "selectedPage"))), "Back did not return to Search from " + onMain(() -> field(activity, "selectedPage")));
+    }
+
+    /** Whether one of the shown screen's parts has a sheet open (its "dialogs"). */
+    private boolean dialogShown() {
+        return onMain(() -> {
+            Object screen = field(activity, "screen");
+            List<Object> parts = new ArrayList<>();
+            parts.add(screen);
+            if (screen.getClass().getSimpleName().equals("HubPageScreen")) parts.addAll((List<?>) field(screen, "parts"));
+            for (Object part : parts) {
+                Object dialogs = fieldOrNull(part, "dialogs");
+                if (dialogs instanceof List) for (Object dialog : (List<?>) dialogs) if (dialog instanceof android.app.Dialog && ((android.app.Dialog) dialog).isShowing()) return true;
+            }
+            return false;
+        });
+    }
+
+    /** Lower case, one space between words, a typographic apostrophe as a plain one: how a row's title is compared. */
+    private static String fold(String text) {
+        return text == null ? "" : text.replace('’', '\'').replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Whether a shown TextView in view reads folded (fold) text. */
+    private static boolean hasFoldedText(View view, String folded) {
+        if (view instanceof TextView && view.isShown() && fold(((TextView) view).getText().toString()).equals(folded)) return true;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (hasFoldedText(((ViewGroup) view).getChildAt(i), folded)) return true;
+        return false;
     }
 
     /**
@@ -1387,5 +1596,17 @@ public final class HubValidation extends Instrumentation {
         try { Class<?> type = target.getClass(); while (type != null) { try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); } catch (NoSuchMethodException next) { type = type.getSuperclass(); } }
             throw new NoSuchMethodException(name);
         } catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private Object staticCall(Class<?> type, String name, Class<?>[] types, Object... args) {
+        try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(null, args); }
+        catch (Exception error) { throw new IllegalStateException(type.getSimpleName() + "." + name, error); }
+    }
+    private Object fieldOrNull(Object target, String name) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+            catch (NoSuchFieldException next) { /* the superclass may declare it */ }
+            catch (IllegalAccessException error) { throw new IllegalStateException(error); }
+        }
+        return null;
     }
 }

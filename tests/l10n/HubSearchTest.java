@@ -77,6 +77,7 @@ public final class HubSearchTest {
             reviewNotes();
             earlyReview();
             settingsRowsFindable();
+            anchorsBuilt();
             maintenanceFindable();
             layoutRules();
             T.install(ZONES);
@@ -331,6 +332,57 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/RidingBrightness.java").contains("\"riding_brightness\"")
                 && read("src/com/jjricks/volt/NightSchedule.java").contains("\"riding_night_vision\""), "by their preference keys");
         check(HubSearchTables.settingAnchor(HubSearchTables.SETTING_UNITS).equals(HubSearchTables.SETTING_UNITS), "other rows by their own tag");
+    }
+
+    /**
+     * Every place search names is one some page builds (#393 council review, second round: three results pointed at a
+     * place that no longer held what was searched for). Each settings row's anchor is a view tag page code sets: its
+     * literal outside search's own files, a setTag of its HubSearchTables constant, or a setTag of a prefix and a key
+     * ("preference-selector-" + key); each row title a page's words name (HubSearchTables.pageRows) is the English of a
+     * catalog string. Whether the row is on that page, or in a sheet over it, is HubValidation's search-targets walk.
+     */
+    private static void anchorsBuilt() {
+        StringBuilder code = new StringBuilder();
+        try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get("src/com/jjricks/volt"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                String name = file.getFileName().toString();
+                if (!name.endsWith(".java") || name.equals("HubSearchTables.java") || name.equals("HubSearch.java") || name.equals("HubText.java")) continue;
+                code.append(read(file.toString())).append('\n');
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        String all = code.toString();
+        List<String> unbuilt = new ArrayList<>();
+        for (String tag : HubSearchTables.SETTINGS) {
+            String anchor = HubSearchTables.settingAnchor(tag);
+            if (anchor == null) continue;
+            boolean built = all.contains("\"" + anchor + "\"") || constant(anchor) != null && all.contains("setTag(HubSearchTables." + constant(anchor) + ")");
+            for (int cut = anchor.length() - 1; !built && cut > 0; cut--) {
+                char c = anchor.charAt(cut - 1);
+                if (c == '-' || c == '_') built = all.contains("setTag(\"" + anchor.substring(0, cut) + "\" + ");
+            }
+            if (!built) unbuilt.add(tag + " -> " + anchor);
+        }
+        check(unbuilt.isEmpty(), "search anchors no page code builds: " + unbuilt);
+        Set<String> english = new HashSet<>();
+        java.util.regex.Pattern string = java.util.regex.Pattern.compile("<string name=\"[^\"]+\"[^>]*>(.*?)</string>", java.util.regex.Pattern.DOTALL);
+        try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get("res/values"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                if (!file.getFileName().toString().startsWith("strings_")) continue;
+                java.util.regex.Matcher m = string.matcher(read(file.toString()));
+                while (m.find()) english.add(m.group(1).replace("\\'", "'").replace("&amp;", "&").trim());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        List<String> unnamed = new ArrayList<>();
+        for (String page : HubPages.ALL)
+            for (String title : HubSearchTables.pageRows(page)) {
+                if (!english.contains(title)) unnamed.add(page + ": " + title);
+                check(HubSearchTables.pageWords(page).contains(title.toLowerCase(Locale.ROOT)), "a page's words hold its rows' titles: " + title);
+            }
+        check(unnamed.isEmpty(), "row titles in HubSearchTables.pageRows that no catalog string reads: " + unnamed);
     }
 
     private static String constant(String tag) {

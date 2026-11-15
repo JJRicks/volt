@@ -255,6 +255,12 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
           inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'lock_bar_arrival', 'under', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-no-nearby-344', T + 'HubValidation', '-e', 'mode', 'no-nearby', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])]
+# Search lands on what it names (#393 council review, second round): every page, setting, hand-built row and control search
+# lists on the simulator, and every row title a page's search words name, opened from its result (HubValidation -e mode
+# search-targets), at the walk's four sizes.
+STEPS += [inst(f'hub-search-targets-{w}', T + 'HubValidation', '-e', 'mode', 'search-targets', '-e', 'theme', theme, '-e', 'text_scale', text, size=size)
+          for w, size, theme, text in (('344', '344x882', 'dark', '1'), ('344-large', '344x882', 'dark', '1.4'),
+                                       ('725', '725x604', 'light', '1'), ('725-large', '725x604', 'light', '1.4'))]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (
