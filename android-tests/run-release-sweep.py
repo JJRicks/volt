@@ -151,6 +151,10 @@ STEPS = [
     # The default matrix leaves out the modes whose checks run nowhere else.
     runner('responsive-modes', 'run-responsive.py', [], *[arg for mode in ('chart', 'followup', 'gauge', 'quick', 'motion')
                                                           for size in ('344x882', '725x604') for arg in ('--case', f'{size}:1.0:{mode}')]),
+    # Reading tiles' spanning last tile and the 2 + 1 wrap of three readings (owner, Nov 15 2026): the unfolded Fold
+    # (normal and large text) and phones at 344, 360 and 412 dp.
+    runner('responsive-tiles', 'run-responsive.py', [], *[arg for case in ('790x820:1.0', '790x820:1.3', '344x882:1.0', '360x800:1.0', '412x915:1.0')
+                                                          for arg in ('--case', f'{case}:tiles')]),
     runner('motion-polish', 'run-motion-polish.py', ['MotionPolishValidation']),
     runner('haptics', 'run-haptics.py', ['QuickHapticsValidation', 'ConnectionHapticsValidation']),
 ]

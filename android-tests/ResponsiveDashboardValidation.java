@@ -190,10 +190,12 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 View card = (View)tile("tiles");
                 ((ScrollView)field(activity, "scroll")).scrollTo(0, Math.max(0, card.getTop() - activity.ui().dp(160)));
                 overlayGeometry.add("tiles home count=" + shown + " " + assertReadingSpan(card, shown));
+                if (shown == 3) assertThreeOnHome(card);
             });
             screenshot("tiles-" + count);
         }
         check("Home's Reading tiles with one to four readings: the last tile spans any part-filled last row, full rows unchanged");
+        verifyThreeReadingSplit();
         main(() -> {
             DashboardConfig.Widget widget = (DashboardConfig.Widget)field(tile("tiles"), "widget");
             widget.keys.clear();
@@ -221,6 +223,69 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             }
         });
         check("Three Reading tiles in 230 and 312 x 182 dp cards: a wrapped third tile spans from the first tile's edge to the second's, LTR and RTL");
+    }
+
+    /**
+     * Three readings on Home at normal text (owner, Nov 15 2026): the unfolded Fold's Widgets Home (wide window, the
+     * card beside the overview) shows 2 + 1 full tiles, the third spanning; phones keep one row of three.
+     */
+    private void assertThreeOnHome(View card) {
+        ViewGroup readings = (ViewGroup)field(card, "readingTiles");
+        int columns = ((Number)field(readings, "columns")).intValue();
+        int mode = ((Number)field(readings, "mode")).intValue();
+        float density = activity.getResources().getDisplayMetrics().density;
+        float windowDp = activity.getWindow().getDecorView().getWidth() / density;
+        float factor = activity.ui().textScale * activity.getResources().getConfiguration().fontScale;
+        String where = "window " + Math.round(windowDp) + " dp, card " + Math.round(card.getWidth() / density) + " x "
+                + Math.round(card.getHeight() / density) + " dp, columns " + columns + ", mode " + mode;
+        // At larger text the unfolded window takes the phone layout (790 / 1.3 < 650 dp): no fixed expectation there.
+        if (windowDp >= 760 && windowDp <= 860 && factor <= 1.05f) {
+            // The unfolded Fold: tall and narrow beside the overview, so 2 + 1 with full tiles (icon, name, value).
+            require(columns == 2, "Unfolded Widgets Home keeps 3 readings in one row: " + where);
+            require(mode == 0, "Unfolded Widgets Home's 2 + 1 tiles are not full tiles: " + where);
+            View first = readings.getChildAt(0), last = readings.getChildAt(2);
+            require(last.getTop() > first.getBottom() && last.getWidth() > first.getWidth() * 2,
+                    "Unfolded Widgets Home's third tile does not span the second row: " + where);
+        } else if (windowDp < 450 && factor <= 1.05f) {
+            require(columns == 3, "A phone's Widgets Home no longer keeps 3 readings in one row: " + where);
+        }
+        overlayGeometry.add("tiles home three " + where);
+    }
+
+    /**
+     * The 2 + 1 rule's sizes on one card (normal text only, where the expectations are fixed): the unfolded Fold's
+     * 291 x 246 dp card wraps, with full tiles; the phones' 118 dp cards, a full-width wide card and a three-row
+     * card keep one row. LTR and RTL.
+     */
+    private void verifyThreeReadingSplit() throws Exception {
+        if (activity.ui().textScale * activity.getResources().getConfiguration().fontScale > 1.05f) return;
+        main(() -> {
+            View card = (View)tile("tiles");
+            ViewGroup readings = (ViewGroup)field(card, "readingTiles");
+            int width = card.getWidth(), height = card.getHeight();
+            try {
+                for (int direction : new int[] {View.LAYOUT_DIRECTION_LTR, View.LAYOUT_DIRECTION_RTL}) {
+                    card.setLayoutDirection(direction);
+                    String rtl = direction == View.LAYOUT_DIRECTION_RTL ? "rtl" : "ltr";
+                    for (int[] size : new int[][] {{291, 246, 2}, {312, 118, 3}, {328, 118, 3}, {380, 118, 3},
+                            {758, 246, 3}, {291, 182, 3}}) {
+                        measureCard(card, activity.ui().dp(size[0]), activity.ui().dp(size[1]));
+                        int columns = ((Number)field(readings, "columns")).intValue();
+                        String label = size[0] + "x" + size[1] + " " + rtl;
+                        require(columns == size[2], "Three readings in a " + label + " dp card: " + columns
+                                + " columns, expected " + size[2]);
+                        if (size[2] == 2) require(((Number)field(readings, "mode")).intValue() == 0,
+                                "Three readings in a " + label + " dp card wrap without full tiles");
+                        overlayGeometry.add("tiles split " + label + " " + assertReadingSpan(card, 3));
+                        if (size[0] == 291 && size[1] == 246) saveCardBitmap(card, "tiles-split-" + size[0] + "x" + size[1] + "-" + rtl);
+                    }
+                }
+            } finally {
+                card.setLayoutDirection(View.LAYOUT_DIRECTION_INHERIT);
+                measureCard(card, width, height);
+            }
+        });
+        check("Three Reading tiles wrap 2 + 1 in the unfolded Fold's tall card (full tiles, LTR and RTL); phone, full-width and three-row cards keep one row");
     }
 
     /** The last tile covers its own column to the row's far edge; every other tile stays one cell. */
