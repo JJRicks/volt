@@ -12,7 +12,7 @@
 <p align="center">
   <img src="docs/images/readme-home.webp" height="380" alt="Volt's home dashboard: battery, odometer, drive mode, the Lock bar and live readings">
   &nbsp;
-  <img src="docs/images/readme-scooter.webp" height="380" alt="Scooter settings: maximum speed per mode and riding settings">
+  <img src="docs/images/readme-scooter.webp" height="380" alt="An earlier Volt's scooter settings: maximum speed per mode and riding settings">
   &nbsp;
   <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery and trip readouts">
 </p>
