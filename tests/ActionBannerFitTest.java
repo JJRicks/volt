@@ -46,7 +46,58 @@ public final class ActionBannerFitTest {
         require(!ActionBannerFit.actionBelow(225, 97, 8, 120), "exactly the word's width beside the pill: it stays beside");
         require(ActionBannerFit.actionBelow(224.5f, 97, 8, 120), "half a dp short: under");
         require(!ActionBannerFit.actionBelow(256, 97, 8, 0), "no words: beside");
+        clockRow(regular, bold, context);
         System.out.println("ActionBannerFitTest: " + checks + " checks passed");
+    }
+
+    private static float width(java.awt.Font font, String text, java.awt.font.FontRenderContext context) {
+        return (float) font.getStringBounds(text, context).getWidth();
+    }
+
+    /**
+     * The clock row on Lights & sound (council review of #506, findings 1 and 2): Sync is decided from the pill alone, with
+     * the spinner's 30 dp always kept out of the name's room, so the row is the same whether a sync is pending or not; and
+     * under the name the pill alone has the row's width (the spinner stays with the name), so its label is whole down to
+     * a 280 dp window. The row's room is the window less 60 dp (page and card padding, measured on the emulator: 220 dp at
+     * 280, 284 dp at 344, 352 dp at 412); the name is 15 sp with its 45 dp icon tile, the label 12.5 sp bold.
+     */
+    private static void clockRow(java.awt.Font regular, java.awt.Font bold, java.awt.font.FontRenderContext context) {
+        float spinner = 30, gap = 10, tile = 45;
+        String[][] languages = {{"en", "Scooter clock", "Sync"}, {"de", "Scooter-Uhr", "Synchronisieren"}, {"nl", "Klok van de step", "Synchroniseren"}};
+        for (int window : new int[]{280, 300, 320, 344, 360, 412})
+            for (float scale : new float[]{1f, 1.1f, 1.15f, 1.3f, 1.35f, 1.4f})
+                for (String[] language : languages) {
+                    float room = window - 60;
+                    java.awt.Font name = regular.deriveFont(15 * scale), label = bold.deriveFont(12.5f * scale);
+                    float word = ActionBannerFit.longestWord(language[1], text -> width(name, text, context)) + tile;
+                    float pill = ActionBannerFit.pill(width(label, language[2], context), ActionBannerFit.PILL_PAD_DP, ActionBannerFit.PILL_MIN_DP);
+                    String at = language[0] + " at " + window + " dp, " + scale + "x";
+                    boolean below = ActionBannerFit.actionBelow(room, pill, gap, word, spinner);
+                    // The decision never depends on the spinner showing: the same call either way, so only the inputs above.
+                    require(below == ActionBannerFit.actionBelow(room, pill, gap, word, spinner), at + ": the same with the spinner shown and hidden");
+                    if (!below) {
+                        // Beside: the name keeps its longest word whole with the spinner showing (and so with it hidden).
+                        require(room - spinner - pill - gap >= word, at + ": the name whole beside Sync while it syncs");
+                    } else {
+                        // Under the name: the pill alone on its line, after the name's indent where that still fits.
+                        float indent = ActionBannerFit.stackedIndent(room, pill, tile);
+                        require(pill <= room - indent, at + ": \"" + language[2] + "\" whole under the name");
+                        require(room - spinner >= word, at + ": the name whole beside the spinner");
+                    }
+                }
+        // The council's cases. German at 1.4x on 412 dp: under the name, syncing or not (main put it beside, then under).
+        java.awt.Font name14 = regular.deriveFont(15 * 1.4f), label14 = bold.deriveFont(12.5f * 1.4f);
+        float deWord = width(name14, "Scooter-Uhr", context) + tile, dePill = width(label14, "Synchronisieren", context) + 32;
+        require(ActionBannerFit.actionBelow(352, dePill, gap, deWord, spinner), "de 412 dp 1.4x: Sync under the name in both states");
+        require(!ActionBannerFit.actionBelow(352, dePill, gap, deWord) && ActionBannerFit.actionBelow(352 - spinner, dePill, gap, deWord),
+                "de 412 dp 1.4x: deciding with the spinner's room counted only while it shows would move the pill (#506)");
+        // German at 1.4x on 280 dp: 220 dp of room; the pill (about 164 dp) is whole after the 45 dp indent, and the
+        // spinner no longer takes room from it (on #506 it left 145 dp and "Synchronisieren" broke).
+        require(dePill <= 220 - ActionBannerFit.stackedIndent(220, dePill, tile) && 220 - tile - spinner < dePill, "de 280 dp 1.4x: Synchronisieren whole");
+        require(ActionBannerFit.stackedIndent(150, 120, 45) == 0 && ActionBannerFit.stackedIndent(200, 120, 45) == 45, "the indent goes before the label does");
+        for (float room = 0; room <= 400; room += 5)
+            for (float pill = 0; pill <= 400; pill += 5)
+                if (pill <= room) require(pill <= room - ActionBannerFit.stackedIndent(room, pill, 45), "a pill that fits the row keeps its whole label");
     }
 
     private static void require(boolean condition, String message) {
