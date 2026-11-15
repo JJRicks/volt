@@ -253,7 +253,19 @@ public final class HomeStyleTest {
         require(HomeStyle.restoreMarksNotice(true, false, true, false), "background switch stored off: due");
         require(!HomeStyle.restoreMarksNotice(true, false, false, null) && !HomeStyle.restoreMarksNotice(true, false, null, null),
                 "Record rides automatically off or absent: nothing to tell");
-        require(!HomeStyle.restoreMarksNotice(true, true, true, false), "A backup that holds the switch (1.13.2 and later): already lived with it");
+        require(!HomeStyle.restoreMarksNotice(true, true, true, false), "A backup that holds the switch (1.13.2 or later, its switch once changed): already lived with it");
+        // A 1.13.2 backup whose switch was never touched holds no auto_record_background (1.13.2 writes it only on a change);
+        // its manifest's version code (59, 1.13.2's; every later build keeps at least that) tells it apart (#390's P3-1).
+        require(HomeStyle.BACKGROUND_SWITCH_VERSION_CODE == 59, "1.13.2's version code");
+        for (int code : new int[] {0, 53, 55, 57, 58})
+            require(!HomeStyle.madeWithBackgroundSwitch(code) && HomeStyle.restoreMarksNotice(code, true, false, true, null),
+                    "Made by version code " + code + " (before 1.13.2, or unrecorded): due");
+        for (int code : new int[] {59, 60, 120})
+            require(HomeStyle.madeWithBackgroundSwitch(code) && !HomeStyle.restoreMarksNotice(code, true, false, true, null),
+                    "Made by version code " + code + " (1.13.2 or later), its switch never touched: not due");
+        require(!HomeStyle.restoreMarksNotice(58, false, false, true, null) && !HomeStyle.restoreMarksNotice(58, true, true, true, false)
+                && !HomeStyle.restoreMarksNotice(58, true, false, false, null) && !HomeStyle.restoreMarksNotice(58, true, false, true, true),
+                "An older version code keeps every other rule");
         require(!HomeStyle.restoreMarksNotice(false, false, true, null), "A Hub backup: not due");
         require(!HomeStyle.restoreMarksNotice(true, false, true, true), "Background starts on after the restore: nothing to tell");
         require(!HomeStyle.restoreMarksNotice(true, false, "true", null), "A wrong-typed switch counts as off");

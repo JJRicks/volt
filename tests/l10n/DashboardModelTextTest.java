@@ -75,7 +75,9 @@ public final class DashboardModelTextTest {
      * Shortcuts whose short rung has English of its own, for a Setting tile too narrow for the full name (the owner's
      * ladder: full name, a shorter whole-word name, then the icon). Every other shortcut's short rung is its label.
      */
-    static final java.util.Map<String, String> SHORT_ENGLISH = java.util.Collections.singletonMap("charge_alerts", "Alerts");
+    /** Entries whose short rung differs in English: Battery alerts' Alerts, and the search tile's Search (part 11). */
+    static final java.util.Map<String, String> SHORT_ENGLISH = new java.util.HashMap<>();
+    static { SHORT_ENGLISH.put("charge_alerts", "Alerts"); SHORT_ENGLISH.put("controls", "Search"); }
     static String shortEnglish(QuickAccessActions.Entry e) { return SHORT_ENGLISH.getOrDefault(e.id, e.label); }
 
     private static void english() {

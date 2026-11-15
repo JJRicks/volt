@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 import java.util.Arrays;
 
-/** HubNav: MainActivity's page stack, its Back, tab resets and Bundle restore (hub layout plan, PR 1). */
+/** HubNav: MainActivity's page stack, its Back, resets, Bundle restore and retention (hub layout plan, PRs 1 and 11). */
 public final class HubNavTest {
     private static int checks;
 
@@ -14,6 +14,7 @@ public final class HubNavTest {
         direction();
         restore();
         arguments();
+        retention();
         System.out.println("HubNav: " + checks + " checks passed");
     }
 
@@ -41,7 +42,7 @@ public final class HubNavTest {
     }
 
     private static void tabs() {
-        // While the tab bar remains, a tab tap resets the stack to that tab's root, so Back from any tab goes Home.
+        // A reset (a notification, an old tab id from a validation or a Bundle) keeps only the page's parents, so Back goes Home.
         HubNav nav = new HubNav();
         for (String legacy : new String[] {"stats", "controls", "rides", "more"}) {
             nav.reset(legacy);
@@ -54,6 +55,9 @@ public final class HubNavTest {
         require(stack(nav, HubPages.HOME), "Reset to Home");
         nav.reset("lights");
         require(stack(nav, HubPages.HOME, HubPages.LIGHTS), "Reset to a subject");
+        // The Scooter tab's old index is Home now (PR 11).
+        nav.reset("scooter");
+        require(stack(nav, HubPages.HOME), "The Scooter tab's id resets to Home");
     }
 
     private static void limit() {
@@ -97,6 +101,9 @@ public final class HubNavTest {
             HubNav nav = HubNav.restore(stack, HubPages.SETTINGS_ABOUT);
             require(stack(nav, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT), "Broken stack falls back: " + Arrays.toString(stack));
         }
+        // A stack saved by parts 3-10 under the Scooter tab's index opens the saved page under Home.
+        require(stack(HubNav.restore(new String[] {"home", "scooter", "service", "service.maintenance"}, HubPages.SERVICE_MAINTENANCE),
+                HubPages.HOME, HubPages.SERVICE, HubPages.SERVICE_MAINTENANCE), "A Scooter-tab stack falls back to the page's parents");
         HubNav restored = HubNav.restore(saved.toArray(), HubPages.HOME);
         require(HubPages.SERVICE.equals(restored.back()), "A restored stack keeps its Back");
     }
@@ -106,6 +113,42 @@ public final class HubNavTest {
         require("cruise_control".equals(inspect.inspect) && !inspect.recovery && inspect.ride == null && inspect.anchor == null, "Inspect argument");
         require(HubNav.Args.recovery().recovery, "Recovery argument");
         require("r1".equals(HubNav.Args.ride("r1").ride) && "row".equals(HubNav.Args.anchor("row").anchor), "Ride and anchor arguments");
+    }
+
+    private static void retention() {
+        // A long time away closes sub-pages back to their subject; Home and a subject's own page stay.
+        HubNav nav = new HubNav();
+        nav.open(HubPages.SETTINGS); nav.open(HubPages.SETTINGS_SCOOTERS);
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.SETTINGS), "Sub-page closes to its subject");
+        require(!nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.SETTINGS), "A subject stays");
+        nav.reset(HubPages.HOME);
+        require(!nav.closeSubPages() && stack(nav, HubPages.HOME), "Home is never forced");
+        nav.open(HubPages.BATTERY); nav.open(HubPages.DATA); nav.open(HubPages.DATA_STORAGE);
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.DATA), "Pages opened through other subjects close too");
+        // The clock rules: a minute, a clock that went backwards, a reboot; never when Volt didn't leave.
+        long minute = HubNav.RETENTION_MS;
+        require(minute == 60_000, "One minute, as More's submenu kept");
+        require(!HubNav.awayExpired(-1, 3, 999_999, 3), "Never away");
+        require(!HubNav.awayExpired(1_000, 3, 1_000 + minute - 1, 3), "A short return keeps the stack");
+        require(HubNav.awayExpired(1_000, 3, 1_000 + minute, 3), "A minute closes sub-pages");
+        require(HubNav.awayExpired(1_000, 3, 500, 3), "A clock that went backwards closes them");
+        require(HubNav.awayExpired(1_000, 3, 1_001, 4), "A reboot closes them");
+        // When leaving starts that clock (#392 early review): not over Volt's own dialog (a ride's notes being typed),
+        // not when a page itself opened another app just before (an email, a file picker).
+        require(HubNav.awayClockStarts(false, -1, 50_000), "Plain leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
+        require(HubNav.awayClockStarts(false, -1, 50_000),
+                "Focus lost to a window that is not Volt's (the notification shade, split screen), then leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, 40_000, 50_000), "A dialog showing and an old launch: kept");
+        require(!HubNav.awayClockStarts(false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
+        require(!HubNav.awayClockStarts(false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
+        require(HubNav.awayClockStarts(false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
+        require(HubNav.awayClockStarts(false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        // The page header's link goes where it says: on Search it skips the query-clearing step; elsewhere the page's own Back runs.
+        require(HubNav.linkSkipsPageBack(HubPages.SEARCH), "Search's link goes to the page it names");
+        require(!HubNav.linkSkipsPageBack(HubPages.SETTINGS), "Settings' link keeps the page's own Back step");
+        require(!HubNav.linkSkipsPageBack(HubPages.RIDE), "Ride's link keeps the page's own Back step");
+        require(!HubNav.linkSkipsPageBack(null), "No page: the page's own Back step");
     }
 
     private static boolean stack(HubNav nav, String... pages) { return Arrays.equals(nav.toArray(), pages); }

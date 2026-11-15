@@ -56,9 +56,6 @@ final class HomeQuickEditor {
         return String.join(HubText.listSeparator().render(), names);
     }
 
-    /** The plain comma summary used before part 10's HubText.listSeparator; no longer read (an ordinary part removes it). */
-    static final String SEPARATOR = ", ";
-
     /**
      * One of the four in an editing list: its icon and full name, a chevron; a tap runs tapped (which opens the
      * picker for that position). Tagged {@code CleanHomeScreen.TAG_SLOT + (index + 1)}, as Clean's Edit sheet always was.

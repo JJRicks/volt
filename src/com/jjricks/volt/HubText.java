@@ -520,7 +520,7 @@ public final class HubText {
 
     // ===== Widgets Home's dock and the wide Home's right pane =====
 
-    /** The dock's handle, what TalkBack reads for the dock's "All" item, and the title of the sheet listing every subject. */
+    /** What TalkBack reads for the dock's "All" item (and its long-press name), and the title of the sheet listing every subject. */
     public static Msg dockAll() { return M.hubDockAll(); }
     /**
      * The right pane's link back to the list of all subjects, and the short label under the dock's "All" item on a

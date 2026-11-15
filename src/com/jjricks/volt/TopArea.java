@@ -11,8 +11,8 @@ package com.jjricks.volt;
  * the charging view with its large photo and leaves the parked card no band of 40 dp or more.
  *
  * <p>On a short window, what has to show on first view comes first (checklist §4: the Lock bar and the quick
- * actions): the area never takes more than the window less {@link #reserveDp} (the header, the Lock bar, the quick
- * actions and, on a phone, the bottom bar), down to {@link #FLOOR_DP}. So large text does not grow the area past
+ * actions): the area never takes more than the window less {@link #reserveDp} (the header, the Lock bar and the quick
+ * actions; Home has no bottom bar since part 11), down to {@link #FLOOR_DP}. So large text does not grow the area past
  * what fits; the moment views give way inside it in their own order (ChargingFit, the battery card's fit).
  */
 final class TopArea {
@@ -20,12 +20,12 @@ final class TopArea {
     static final int MIN_DP = 224, PHONE_MAX_DP = 380, WIDE_MAX_DP = 460;
     static final float MAX_TEXT_GROWTH = 1.3f;
     /**
-     * What a phone window keeps under and over the area at 1x (dp): the status bar (24), the header (about 100), the
-     * Lock bar (12 + 54), the quick actions' circles and names (12 + 54 + 6 + 16 + 14) and the bottom bar (88). The
-     * parts made of text grow with it: {@link #RESERVE_TEXT_DP} more per 1x of text scale. A wide window has a rail
-     * instead of the bottom bar: {@link #RAIL_SAVES_DP} less.
+     * What a window keeps under and over the area at 1x (dp): the status bar (24), the header (about 100), the Lock bar
+     * (12 + 54) and the quick actions' circles and names (12 + 54 + 6 + 16 + 14). The parts made of text grow with it:
+     * {@link #RESERVE_TEXT_DP} more per 1x of text scale. Phone and wide windows keep the same: the tab bar (88 dp on a
+     * phone) and the side rail went in part 11, and Clean Home has no dock.
      */
-    static final int RESERVE_DP = 380, RESERVE_TEXT_DP = 120, RAIL_SAVES_DP = 88;
+    static final int RESERVE_DP = 292, RESERVE_TEXT_DP = 120;
     /**
      * The least the area gets on a short window: the charging view's readings still fit in their worst cases
      * (ChargingFitTest: the state pill wrapped under the time, at 1.4x text on 725x604 dp with the percentage and its
@@ -49,7 +49,7 @@ final class TopArea {
     /** What the window keeps for everything that must show with the area on first view (dp). */
     static int reserveDp(boolean wide, float textScale) {
         float scale = Float.isNaN(textScale) ? 1f : Math.max(1f, Math.min(2f, textScale));
-        return Math.round(RESERVE_DP + RESERVE_TEXT_DP * (scale - 1)) - (wide ? RAIL_SAVES_DP : 0);
+        return Math.round(RESERVE_DP + RESERVE_TEXT_DP * (scale - 1));
     }
 
     /** The same height in pixels for a display density (pixels per dp). */

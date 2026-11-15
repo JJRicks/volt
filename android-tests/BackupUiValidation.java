@@ -29,6 +29,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.BackupActivity;
 import com.jjricks.volt.DataMaintenance;
 import com.jjricks.volt.MainActivity;
+import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MoreScreen;
 import com.jjricks.volt.OnboardingScreen;
 
@@ -77,21 +78,26 @@ public final class BackupUiValidation extends Instrumentation {
             onMain(()->invoke(main,"ensureService",new Class<?>[]{}));
             await(()->main.service()!=null,"Local workspace did not initialize after emulator permissions");
             verifySetupSuccessBackup(main);
-            onMain(()->{OnboardingScreen.markDone(getTargetContext());main.rebuild();invoke(main,"select",new Class<?>[]{String.class},"more");});
-            MoreScreen more=(MoreScreen)field(main,"screen");
-            onMain(()->invoke(more,"selectSection",new Class<?>[]{String.class},"App"));
+            // Since part 11 (#392) More is Settings, reached from Home by the rider's taps; App preferences are its own first
+            // card, and its sections (Developer options here) are pages of their own, opened by their rows.
+            onMain(()->{OnboardingScreen.markDone(getTargetContext());main.rebuild();});
+            HubTestPages.reach(this,main,HubPages.SETTINGS);
+            require(field(main,"screen") instanceof MoreScreen&&HubPages.SETTINGS.equals(HubTestPages.current(main)),"Settings did not open from Home");
+            require(text(root(main),"Haptic feedback")!=null,"Settings' index does not show the app preferences");
             require(text(root(main),"Dashboard backups")==null,"Settings no longer carry a separate dashboard backup");
-            onMain(()->invoke(more,"selectSection",new Class<?>[]{String.class},""));
-            await(()->root(main).findViewWithTag("data-backup")!=null&&root(main).findViewWithTag("data-backup").isShown(),"Back up & restore missing from the More menu");
+            await(()->root(main).findViewWithTag("data-backup")!=null&&root(main).findViewWithTag("data-backup").isShown(),"Back up & restore missing from Settings");
             require(text(root(main),"Save private owner backup")==null,"Confusing separate owner backup export remains");
             require(text(root(main),"Back up & restore")!=null,"Back up & restore label missing");
-            onMain(()->{settings().edit().putBoolean("developer_options",true).putString("more_section","Developer").commit();main.rebuild();});
-            await(()->root(main).findViewWithTag("developer-example-slot")!=null,"Developer section did not rebuild");
+            onMain(()->{settings().edit().putBoolean("developer_options",true).commit();main.rebuild();});
+            View[] developerRow={null};
+            onMain(()->developerRow[0]=HubTestPages.shownTag(main,"developer-options-menu"));
+            HubTestPages.tapView(this,main,developerRow[0],"the Developer options row");
+            await(()->HubPages.SETTINGS_DEVELOPER.equals(HubTestPages.current(main))&&root(main).findViewWithTag("developer-example-slot")!=null,"Developer options did not open from Settings");
             require(root(main).findViewWithTag("developer-full-export")==null&&root(main).findViewWithTag("developer-full-restore")==null,"Developer options no longer duplicate the backup");
-            checks.add("One obvious Back up & restore entry in More; no separate owner, settings dashboard or developer full export; slot 3 example kept");
+            checks.add("One obvious Back up & restore entry in Settings; no separate owner, settings dashboard or developer full export; slot 3 example kept");
 
-            onMain(()->{settings().edit().putString("more_section","").commit();main.rebuild();});
-            await(()->root(main).findViewWithTag("data-backup")!=null,"More backup menu did not rebuild");
+            onMain(()->invoke(main,"navigateBack",new Class<?>[]{}));
+            await(()->HubPages.SETTINGS.equals(HubTestPages.current(main))&&root(main).findViewWithTag("data-backup")!=null&&root(main).findViewWithTag("data-backup").isShown(),"Back from Developer options did not return to Settings' backup row");
             onMain(()->root(main).findViewWithTag("data-backup").performClick());
             AlertDialog chooser=(AlertDialog)field(main,"controlDialog");
             require(chooser.isShowing()&&chooser.getWindow().getDecorView().findViewWithTag("data-backup-create")!=null&&chooser.getWindow().getDecorView().findViewWithTag("data-backup-restore")!=null,"Back up and Restore offered");
