@@ -54,7 +54,7 @@ import com.jjricks.volt.*;
  * Mode layout: every theme, text size (1x, 1.4x) and language (English, German, both Portuguese) at the emulator's
  * current size: labels whole, the dots clear of the label and the state pill, one height for both readings.
  * Mode restart: run after a default pass on the same install (no reinstall): the saved choices survive a new process.
- * Mode sizes: at the emulator's current size, Clean and Widgets, 1x and 1.3x text, English and German, on the developer
+ * Mode layout with argument sizes: at the emulator's current size, Clean and Widgets, 1x and 1.3x text, English and German, on the developer
  * simulator: the time's value is drawn at Charging power's size, never larger, and smaller only where even its short
  * rung is too wide there (never in English), also after a charge's first "Waiting for readings" (verifySizes).
  */
@@ -89,7 +89,6 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 });
                 launch();
                 if (mode.equals("layout")) verifyLayoutMatrix();
-                else if (mode.equals("sizes")) verifySizes();
                 else {
                     verifyOneReading();
                     verifyAlertReadings();
@@ -714,6 +713,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
 
     /** Every theme, text size and language at this size: labels whole, dots clear, one height for both readings. */
     private void verifyLayoutMatrix() throws Exception {
+        if (args.getString("sizes") != null) { verifySizes(); return; }
         String size = args.getString("size_label", "size");
         for (String locale : new String[] {"", "de", "pt-PT", "pt-BR"}) {
             for (String theme : new String[] {"dark", "light"}) for (String text : new String[] {"1", "1.4"}) {
@@ -758,11 +758,13 @@ public final class ChargeTimeTileValidation extends Instrumentation {
      * synthetic time of hours. Each time value is drawn at power's size, never larger; smaller only where even its
      * compact rung is too wide at power's size (in English that fails the run at every size this mode is registered at).
      */
+    /** The sizes case under way (size, Home, language, text scale), naming its checks and screenshots. */
+    private String sizeCase = "";
     private void verifySizes() throws Exception {
         String size = args.getString("size_label", "size");
         String only = args.getString("styles", "widgets,clean");
         for (String style : only.split(",")) for (String text : new String[] {"1", "1.3"}) for (String locale : new String[] {"", "de"}) {
-            label = size + "-" + style + "-" + (locale.isEmpty() ? "en" : locale) + "-" + text;
+            sizeCase = size + "-" + style + "-" + (locale.isEmpty() ? "en" : locale) + "-" + text;
             MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle();
             require(settings().edit().putBoolean("developer_options", true).putString("home_style", style)
                     .putBoolean("home_style_chosen", true).commit(), "Could not seed the Home style");
@@ -772,12 +774,12 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             SystemClock.sleep(1500); settle();
             simulate("");
             requireSizes("ut5", locale.isEmpty());
-            shot(label + "-ut5");
+            shot(sizeCase + "-ut5");
             simulate("24182");
             main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
             simRedraw();
             requireSizes("alert", locale.isEmpty());
-            shot(label + "-alert");
+            shot(sizeCase + "-alert");
             // A charge starting: the time's slot says Waiting for readings (too wide for the value's full size, so it is
             // drawn smaller) until the first current reading, then the time. The time must come back to power's size
             // without anything else laying Home out (the owner's phone, Nov 15 2026: "≈ 54m" stayed at the state's size).
@@ -790,18 +792,18 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             });
             settle(); SystemClock.sleep(420); settle();
             main(() -> { TextView[] slot = (TextView[]) field(field(anyHero(), "timeTile"), "values");
-                checks.add(label + " start: the time's slots say '" + slot[LIMIT].getText() + "' and '" + slot[FULL].getText() + "' at "
+                checks.add(sizeCase + " start: the time's slots say '" + slot[LIMIT].getText() + "' and '" + slot[FULL].getText() + "' at "
                         + slot[FULL].getTextSize() / getTargetContext().getResources().getDisplayMetrics().scaledDensity + " sp"); });
             Map<String, TelemetryHistory.Reading> started = readings(55, null, 2);
             main(() -> invoke(anyHero(), "refresh", new Class<?>[]{Map.class}, started));
             settle(); SystemClock.sleep(420); settle();
             requireSizes("start", locale.isEmpty());
-            shot(label + "-start");
+            shot(sizeCase + "-start");
             Map<String, TelemetryHistory.Reading> hours = readings(20, null, 2);
             main(() -> invoke(anyHero(), "refresh", new Class<?>[]{Map.class}, hours));
             settle(); SystemClock.sleep(420); settle();
             requireSizes("hours", locale.isEmpty());
-            shot(label + "-hours");
+            shot(sizeCase + "-hours");
             main(() -> { require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"); service.setSimulation(false); });
         }
         MainActivity old = activity; main(old::finish); SystemClock.sleep(800);
@@ -828,7 +830,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             main(() -> { View h = anyHero(); ok.set(h != null && h.isShown() && field(h, "reveal") == null); });
             if (Boolean.TRUE.equals(ok.get())) { SystemClock.sleep(600); settle(); return; }
         }
-        throw new IllegalStateException(label + ": the charging view did not show on the simulator");
+        throw new IllegalStateException(sizeCase + ": the charging view did not show on the simulator");
     }
     /** The charging view: Clean's (tagged) when it shows, else Widgets'. */
     private View anyHero() {
@@ -852,7 +854,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             boolean twoNow = Boolean.TRUE.equals(field(tile, "two"));
             float sp = getTargetContext().getResources().getDisplayMetrics().scaledDensity;
             float ps = p.getTextSize() / sp;
-            StringBuilder line = new StringBuilder(label + " " + what + ": power " + String.format(Locale.US, "%.1f", ps) + " sp '" + p.getText() + "'");
+            StringBuilder line = new StringBuilder(sizeCase + " " + what + ": power " + String.format(Locale.US, "%.1f", ps) + " sp '" + p.getText() + "'");
             ArrayList<String> problems = new ArrayList<>();
             for (int r : twoNow ? new int[] {LIMIT, FULL} : new int[] {FULL}) {
                 TextView t = vals[r];

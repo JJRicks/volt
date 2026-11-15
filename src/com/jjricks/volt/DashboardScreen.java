@@ -1680,7 +1680,8 @@ public final class DashboardScreen implements AppScreen {
         /** The value in full: its first rung where it has rungs (the drawn text may be the short one), else its text. */
         CharSequence fullText() { return rungs != null ? rungs[0] : getText(); }
 
-        private String fitKey(String text) { return rungs != null ? String.join("\n", rungs) : text; }
+        /** What the fit was made for: the rungs (a list's form, never equal to one plain text in practice) or the text. */
+        private String fitKey(String text) { return rungs != null ? Arrays.asList(rungs).toString() : text; }
 
         /**
          * A TextView whose text changes but keeps its line height lays out its new text without measuring again
