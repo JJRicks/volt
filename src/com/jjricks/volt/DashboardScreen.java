@@ -1597,6 +1597,8 @@ public final class DashboardScreen implements AppScreen {
         float fittedPixels;
         int heightBudget = Integer.MAX_VALUE;
         int sharedMaximumSp = Integer.MAX_VALUE;
+        /** Clean's parked card: a larger maximum on a larger card (TopArea.parkedTextGrowth); 0 keeps maximumSp. */
+        int grownMaximumSp;
 
         FittedValue(String text, int minimum, int maximum, int lines) {
             super(host.activity());
@@ -1622,6 +1624,14 @@ public final class DashboardScreen implements AppScreen {
             requestLayout();
         }
 
+        /** Lets the value grow to its maximum times factor (at least 1); the floor stays. */
+        void grow(float factor) {
+            int next = Math.round(maximumSp * Math.max(1f, factor));
+            if (grownMaximumSp == next) return;
+            grownMaximumSp = next;
+            fittedWidth = -1;
+        }
+
         void capAt(int sizeSp) {
             if (sharedMaximumSp == sizeSp) return;
             sharedMaximumSp = sizeSp;
@@ -1637,7 +1647,7 @@ public final class DashboardScreen implements AppScreen {
             if (width != fittedWidth || !text.equals(fittedText)) {
                 fittedWidth = width;
                 fittedText = text;
-                int ceiling = Math.min(maximumSp, sharedMaximumSp);
+                int ceiling = Math.min(Math.max(maximumSp, grownMaximumSp), sharedMaximumSp);
                 fittedPixels = ceiling * density;
                 if (width > 0 && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
                     for (int size = ceiling; size >= minimumSp; size--) {
@@ -4214,6 +4224,11 @@ public final class DashboardScreen implements AppScreen {
             CharSequence spoken = "";
             final ArrayList<LinearLayout> items = new ArrayList<>();
             int budget, readingColumns, fittedWidth = -1, fittedBudget = -1;
+            String fittedRangeText;
+            /** Clean: the range line's width (dp) at the size it was last fitted at. */
+            float fittedWords;
+            /** Clean: the growth the card's content is fitted at (1 on the 344 dp phone and on the widget dashboard). */
+            float grown = 1f;
             boolean photoAllowed, fittedPhoto, fittedRange, rangeWanted, rangeFits = true;
             /**
              * Clean Home's card (CleanParts): it fills its fixed-height area as the Layout Plan's mock-up does, the
@@ -4312,9 +4327,10 @@ public final class DashboardScreen implements AppScreen {
 
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 int width = MeasureSpec.getSize(widthSpec);
-                // Refit only when the space changes: repeated budget changes would request layout every frame.
+                // Refit only when the space changes: repeated budget changes would request layout every frame. Clean's
+                // photo also gives way to a long range line, so a new line refits there.
                 if (width == fittedWidth && budget == fittedBudget && photoAllowed == fittedPhoto
-                        && rangeWanted == fittedRange) {
+                        && rangeWanted == fittedRange && (!fill || android.text.TextUtils.equals(range.getText(), fittedRangeText))) {
                     spread(widthSpec, heightSpec);
                     return;
                 }
@@ -4322,24 +4338,72 @@ public final class DashboardScreen implements AppScreen {
                 fittedBudget = budget;
                 fittedPhoto = photoAllowed;
                 fittedRange = rangeWanted;
+                fittedRangeText = fill ? range.getText().toString() : null;
+                // Clean: the content grows as the card does from the 344 dp phone (TopArea.parkedTextGrowth); if the
+                // grown sizes would cost a line (the range line or a row of readings) or the photo, or cut the range line
+                // (wider than its room: on a model with no photo nothing gives way first), it fits at the 344 dp sizes
+                // instead, as before.
+                float density = getResources().getDisplayMetrics().density;
+                float card = budget > 0 ? budget / density : TopArea.PARKED_BASE_HEIGHT_DP;
+                float growth = fill && budget > 0 ? TopArea.parkedTextGrowth(width / density, card, textFactor()) : 1f;
+                fit(widthSpec, width, growth);
+                if (growth > 1 && (rangeWanted && !rangeFits || readingsShown() < readingsBox.getChildCount()
+                        || photoAllowed && TopArea.parkedGrowthDropsPhoto(width / density, card, textFactor(), growth, fittedWords)
+                        || rangeWanted && TopArea.parkedGrowthCutsLine(width / density,
+                                picture.getVisibility() == VISIBLE ? parkedSide / density : 0, fittedWords)))
+                    fit(widthSpec, width, 1f);
+                speak();
+                spread(widthSpec, heightSpec);
+            }
+
+            /** The rows of readings showing now. */
+            private int readingsShown() {
+                if (readingsBox.getVisibility() != VISIBLE) return 0;
+                int shown = 0;
+                for (int i = 0; i < readingsBox.getChildCount(); i++) if (readingsBox.getChildAt(i).getVisibility() == VISIBLE) shown++;
+                return shown;
+            }
+
+            /** Clean: the label, percentage, range line and readings at the 344 dp sizes times growth (TopArea). */
+            private void grow(float growth) {
+                grown = growth;
+                float small = TopArea.parkedSmallGrowth(growth);
+                percent.grow(growth);
+                caption.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13 * ui.textScale * small);
+                range.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15 * ui.textScale * small);
+                for (LinearLayout item : items) {
+                    ((TextView) item.getChildAt(0)).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale * small);
+                    ((FittedValue) item.getChildAt(1)).grow(small);
+                }
+            }
+
+            /** Fits the card's lines into the budget: the photo, then the percentage, then what gives way. */
+            private void fit(int widthSpec, int width, float growth) {
                 // Fit with no spread gaps: they are what is left over afterwards.
-                margins(new int[3]);
+                margins(new int[4]);
                 arrangeReadings(width);
                 // The photo only takes width the percentage and range can spare (Clean: the mock-up's size, TopArea).
                 int photoWidth = Math.min(ui.dp(150), Math.round(width * .42f));
                 boolean photo = photoAllowed && width - photoWidth - ui.dp(10) >= ui.dp(116 * textFactor());
                 if (fill) {
+                    grow(growth);
                     float density = getResources().getDisplayMetrics().density;
-                    parkedSide = Math.round(TopArea.parkedPhotoDp(width / density, textFactor()) * density);
+                    CharSequence line = range.getText();
+                    float words = rangeWanted ? range.getPaint().measureText(line, 0, line.length()) / density : 0;
+                    fittedWords = words;
+                    float card = budget > 0 ? budget / density : TopArea.PARKED_BASE_HEIGHT_DP;
+                    parkedSide = Math.round(TopArea.parkedPhotoDp(width / density, card, textFactor(), growth, words) * density);
                     photoWidth = parkedSide;
                     photo = photoAllowed && parkedSide > 0;
-                    LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
-                    photoSize.height = -1;
-                    photoSize.setMarginStart(ui.dp(TopArea.PARKED_PHOTO_GAP_DP));
+                    photoHeight(-1);
+                    ((LinearLayout.LayoutParams) picture.getLayoutParams()).setMarginStart(ui.dp(TopArea.PARKED_PHOTO_GAP_DP));
                 }
                 picture.setVisibility(photo ? VISIBLE : GONE);
                 LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
-                if (photoSize.width != photoWidth) photoSize.width = photoWidth;
+                if (photoSize.width != photoWidth) {
+                    photoSize.width = photoWidth;
+                    if (fill) { picture.forceLayout(); top.forceLayout(); }
+                }
                 rangeFits = true;
                 range.setVisibility(rangeWanted ? VISIBLE : GONE);
                 for (int i = 0; i < readingsBox.getChildCount(); i++) readingsBox.getChildAt(i).setVisibility(VISIBLE);
@@ -4373,38 +4437,58 @@ public final class DashboardScreen implements AppScreen {
                     break;
                 }
                 fitPercent(widthSpec);
-                speak();
-                spread(widthSpec, heightSpec);
+            }
+
+            /**
+             * Clean: the photo's height in its row. The row and the photo are measured again for it: a row measured
+             * before for the same space would otherwise keep that size from Android's measure cache while the photo
+             * keeps the other (main drew the photo at the words' height, 135 dp on the 344 dp phone, in its 144 dp row).
+             */
+            private void photoHeight(int height) {
+                LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
+                if (photoSize.height == height) return;
+                photoSize.height = height;
+                picture.forceLayout();
+                top.forceLayout();
             }
 
             /** Clean: the spare height under the budget goes to three gaps (TopArea.parkedGaps); otherwise none. */
             private void spread(int widthSpec, int heightSpec) {
-                int[] gaps = {0, 0, 0};
+                int[] gaps = {0, 0, 0, 0};
                 if (fill && budget > 0) {
                     margins(gaps);
                     int unbounded = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
-                    LinearLayout.LayoutParams photoSize = (LinearLayout.LayoutParams) picture.getLayoutParams();
-                    photoSize.height = -1;
+                    photoHeight(-1);
                     super.onMeasure(widthSpec, unbounded);
                     // The photo grows into the spare height first, up to the mock-up's size; the gaps share what is left.
                     if (picture.getVisibility() == VISIBLE && parkedSide > 0) {
                         int row = top.getMeasuredHeight();
                         int height = TopArea.parkedPhotoHeight(row, budget - getMeasuredHeight(), parkedSide);
-                        if (height > row) { photoSize.height = height; super.onMeasure(widthSpec, unbounded); }
+                        if (height > row) { photoHeight(height); super.onMeasure(widthSpec, unbounded); }
                     }
-                    gaps = TopArea.parkedGaps(budget - getMeasuredHeight());
+                    gaps = TopArea.parkedGaps(budget - getMeasuredHeight(), ui.dp(TopArea.PARKED_GAP_MAX_DP), around());
                 }
                 margins(gaps);
                 super.onMeasure(widthSpec, heightSpec);
             }
 
+            /** The bar's 12 dp above and below; on Clean grown with the card's content (TopArea.parkedTextGrowth). */
+            private int around() {
+                return Math.round(ui.dp(12) * grown);
+            }
+
             private void margins(int[] gaps) {
-                int[] base = {0, ui.dp(12), ui.dp(12)};
+                int around = around();
+                int[] base = {0, around, around};
                 View[] views = {top, bar, readingsBox};
                 for (int i = 0; i < 3; i++) {
                     LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) views[i].getLayoutParams();
                     if (params.topMargin != base[i] + gaps[i]) params.topMargin = base[i] + gaps[i];
                 }
+                // Clean: what is left under the readings (TopArea.parkedGaps), 0 otherwise.
+                int under = gaps.length > 3 ? gaps[3] : 0;
+                LinearLayout.LayoutParams readingsSize = (LinearLayout.LayoutParams) readingsBox.getLayoutParams();
+                if (readingsSize.bottomMargin != under) readingsSize.bottomMargin = under;
             }
 
             /** Fits the percentage to what the other lines leave; false when it is over budget at its floor. */
