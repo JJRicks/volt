@@ -31,7 +31,10 @@ import com.jjricks.volt.*;
  * is a little too small on the 'time to full' estimation, ideally it matches the charging power text size"). At the
  * emulator's current size, on Clean and Widgets, at 1x and 1.3x text, in English and German, on the developer simulator:
  * <ul>
- *   <li>ut5: the simulator's UT5 MAX charging (the owner's case: a built-in limit, one reading);</li>
+ *   <li>ut5: the simulator's UT5 MAX charging (a built-in limit, one reading);</li>
+ *   <li>owner: the owner's phone (UT5 MAX, one reading): the slot says Waiting for readings, then the app's own live
+ *       updates (its pulse and service listener, nothing else laying Home out) bring "≈ 54m", which must be drawn at
+ *       power's size;</li>
  *   <li>alert: a simulated GT3 Max with a charge alert (Widgets: both readings, the alert's and 100%);</li>
  *   <li>start: a charge's first readings without a current (the slot says Waiting for readings, too wide for the full
  *       size), then with one: the time must come back to power's size with nothing else laying Home out (the owner's
@@ -58,7 +61,13 @@ public final class ChargeTimeSizeValidation extends Instrumentation {
         Bundle result = new Bundle();
         try {
             admit();
-            main(() -> OnboardingScreen.markDone(getTargetContext()));
+            main(() -> {
+                // The simulator needs a saved scooter; it charges as the model each case names.
+                ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
+                ScooterProfiles.Profile p = profiles.create("Synthetic GT3 Max", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
+                p.advertisedPid = "24182"; p.advertisedPidWall = System.currentTimeMillis(); profiles.update(p);
+                profiles.select(p.id); OnboardingScreen.markDone(getTargetContext());
+            });
             verifySizes();
             result.putString("result", "PASS");
         } catch (Throwable failure) {
@@ -92,6 +101,23 @@ public final class ChargeTimeSizeValidation extends Instrumentation {
             simulate("");
             requireSizes("ut5", locale.isEmpty());
             shot(label + "-ut5");
+            // The owner's case (Nov 15 2026, UT5 MAX on the simulator, one reading): the slot says Waiting for readings,
+            // then the simulator's own live updates (the app's pulse and service listener, no rebuild) bring the time.
+            Map<String, TelemetryHistory.Reading> held = readings(55, 2);
+            held.remove("current_a");
+            main(() -> {
+                ((android.os.Handler) field(activity, "handler")).removeCallbacks((Runnable) field(activity, "pulse"));
+                service.unlisten((Runnable) field(activity, "serviceChanged"));
+            });
+            refresh(held);
+            main(() -> checks.add(label + " owner: the time's slot says '" + values()[FULL].getText() + "'"));
+            main(() -> {
+                service.listen((Runnable) field(activity, "serviceChanged"));
+                ((android.os.Handler) field(activity, "handler")).post((Runnable) field(activity, "pulse"));
+            });
+            SystemClock.sleep(2500); settle();
+            requireSizes("owner", locale.isEmpty());
+            shot(label + "-owner");
             simulate("24182");
             main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
             redrawUntilShown();
