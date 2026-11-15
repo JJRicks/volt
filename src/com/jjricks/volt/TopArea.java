@@ -78,6 +78,16 @@ final class TopArea {
     }
 
     /**
+     * Whether the grown sizes would cut the range line that the room beside the photo ({@code photoDp}, 0 for none)
+     * cannot hold: its width at the grown size ({@code grownWordsDp}) is wider than the content less the photo. The card
+     * then fits at the 344 dp sizes (a model with no photo has no photo to give way first).
+     */
+    static boolean parkedGrowthCutsLine(float contentDp, float photoDp, float grownWordsDp) {
+        float room = contentDp - (photoDp > 0 ? photoDp + PARKED_PHOTO_GAP_DP : 0);
+        return grownWordsDp > room + .5f;
+    }
+
+    /**
      * The parked card's photo, as the Layout Plan's mock-up places it (the contributor's decisions on #383): right of
      * the percentage and the range line, the square picture {@link #PARKED_PHOTO_DP} dp a side (the scooter about
      * 90 x 135 dp on a 344 dp phone). The words keep {@link #PARKED_WORDS_DP} dp times the text scale beside it, so

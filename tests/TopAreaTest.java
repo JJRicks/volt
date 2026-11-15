@@ -167,6 +167,16 @@ public final class TopAreaTest {
         require(!TopArea.parkedGrowthDropsPhoto(348, 340, 1f, grown412, 120.3f * TopArea.parkedSmallGrowth(grown412)), "a usual line: the grown sizes stay");
         require(!TopArea.parkedGrowthDropsPhoto(348, 340, 1f, grown412, 340 * TopArea.parkedSmallGrowth(grown412)), "no photo either way: the grown sizes stay");
         require(!TopArea.parkedGrowthDropsPhoto(280, 280, 1f, 1f, 260), "no growth: nothing to give way");
+        // The council's review of #501, finding 1: a model with no photo (the XT5 Pro) at 375x812 dp, Italian, dual
+        // units, Volt text 1.2x: "Autonomia residua: ca. 31 mi / 49 km" is 16.84 em in Saira Regular, 303.0 dp at 18 sp
+        // (15 sp times 1.2), whole in the 311 dp card; at the grown size it was cut with "...". The card falls back.
+        int area375 = TopArea.heightDp(375, 812, false, 1.2f), card375 = area375 - 24;
+        float text375 = TopArea.parkedTextGrowth(311, card375, 1.2f), italian = 16.836f * 18;
+        require(text375 > 1f, "375x812 at 1.2x: the text grows, " + text375);
+        require(!TopArea.parkedGrowthCutsLine(311, 0, italian), "no photo, the 344 dp size: the line fits (" + italian + " of 311)");
+        require(TopArea.parkedGrowthCutsLine(311, 0, italian * TopArea.parkedSmallGrowth(text375)), "no photo, the grown size: it would be cut, so the card falls back");
+        require(!TopArea.parkedGrowthCutsLine(348, 174, 120.3f * TopArea.parkedSmallGrowth(1.21f)), "412 dp with its photo, a usual line: no fall back");
+        require(TopArea.parkedGrowthCutsLine(348, 174, 170), "beside a 174 dp photo, a 170 dp line is cut (164 dp of room)");
         // Its height: the mock-up's size where the card has the height, else the words' row (it never pushes them out).
         require(TopArea.parkedPhotoHeight(100, 80, 144) == 144, "spare height: the photo takes its full side");
         require(TopArea.parkedPhotoHeight(100, 20, 144) == 120, "a little spare: the photo grows by it");
