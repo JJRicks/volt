@@ -226,6 +226,15 @@ public final class SheetSpringTest {
         require(!SheetSpring.caughtOpens(true, .1 * travel, 1, travel, 0, FLING, MIN_FLING, slow), "caught closing at 90% shown, pushed to just under open: closes");
         require(!SheetSpring.caughtOpens(false, .9 * travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled fully down: closes");
         require(SheetSpring.caughtOpens(false, .9 * travel, travel - 1, travel, 0, FLING, MIN_FLING, slow), "caught opening at 10% shown, pulled almost down: keeps opening");
+        // A close that started during the opening bounce (past open) and was caught there: only a real drag or a fling reopens it.
+        require(!SheetSpring.caughtOpens(true, -5, -5, travel, 0, FLING, MIN_FLING, slow), "caught closing past open (bounce), a plain tap: carries on closing");
+        require(!SheetSpring.caughtOpens(true, -5, -5, travel, 0, FLING, MIN_FLING, 80), "caught closing past open, a quick plain tap: carries on closing");
+        require(!SheetSpring.caughtOpens(true, -5, -12, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, nudged further past open, slow: carries on closing");
+        require(SheetSpring.caughtOpens(true, -5, -5, travel, -FLING, FLING, MIN_FLING, slow), "caught closing past open, flung up: reopens");
+        require(SheetSpring.caughtOpens(true, -5, -5 - .25 * travel, travel, 0, FLING, MIN_FLING, slow), "caught closing past open, up a quarter (in theory): reopens");
+        // The mirror: an opening caught at closed (its first frame), a plain tap: keeps opening.
+        require(SheetSpring.caughtOpens(false, travel, travel, travel, 0, FLING, MIN_FLING, slow), "caught opening at closed, a plain tap: keeps opening");
+        require(!SheetSpring.caughtOpens(false, travel, travel, travel, FLING, FLING, MIN_FLING, slow), "caught opening at closed, flung down: closes");
         // No travel yet: the settle it was on.
         require(!SheetSpring.caughtOpens(true, 0, 0, 0, 0, FLING, MIN_FLING, slow) && SheetSpring.caughtOpens(false, 0, 0, 0, 0, FLING, MIN_FLING, slow), "no travel: carries on");
     }

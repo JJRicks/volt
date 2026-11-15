@@ -113,8 +113,8 @@ final class SheetSpring {
      * (px); the rest as for opens. A fling or a quick flick decides first, as for opens; otherwise the settle it was on
      * carries on unless the catching drag moved the sheet against it by a quarter of the travel or more from where it was
      * caught (up to reopen one that was closing, down to close one that was opening), or all the way to the other end
-     * (one caught closing with under a quarter to go to open, pushed back fully open, stays open), so a catch taken back
-     * to where it started, or a plain tap, changes nothing.
+     * (one caught closing with under a quarter to go to open, pushed back fully open, stays open; only when the catch
+     * began short of that end), so a catch taken back to where it started, or a plain tap, changes nothing.
      */
     static boolean caughtOpens(boolean closing, double caughtAt, double offset, double travel, double velocity, double fling, double minFling, long gestureMs) {
         if (velocity <= -fling) return true;
@@ -125,7 +125,11 @@ final class SheetSpring {
         }
         if (!(travel > 0)) return !closing;
         double moved = (caughtAt - offset) / travel;
-        return closing ? moved >= COMMIT || offset <= 0 : -moved < COMMIT && offset < travel;
+        // All the way to the other end counts only for a catch that began short of it: a close that started while the
+        // opening bounce was past open is caught at or past open already, and a plain tap there must not reopen it (and
+        // an opening caught at closed, its first frame, must not close on a plain tap).
+        if (closing) return moved >= COMMIT || offset <= 0 && caughtAt > 0;
+        return -moved < COMMIT && (offset < travel || caughtAt >= travel);
     }
 
     // ---- Past open: the rubber band while dragging, the soft limit on the bounce -------------------------------------------
