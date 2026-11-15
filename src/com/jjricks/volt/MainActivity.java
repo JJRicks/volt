@@ -2773,7 +2773,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * A row's words with its pill: beside them while the words' longest word still fits on a line beside the pill, else
      * the pill under the words (ActionBannerFit), so neither the label nor a word is cut at any text size or width. The
-     * subject pages' banners, and the clock row's Sync. The order (words, then the pill) is the same either way, for
+     * subject pages' banners, the clock row's Sync and the sheets' Allow rows: every pill() row. The order (words, then the pill) is the same either way, for
      * TalkBack too.
      */
     private final class BannerBody extends LinearLayout {
@@ -3012,9 +3012,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
             permission.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             TextView permissionText=design.text(T.chargeLivePerm(),13,false);
-            LinearLayout.LayoutParams pw=new LinearLayout.LayoutParams(0,-2,1);pw.rightMargin=design.dp(8);permission.addView(permissionText,pw);
             TextView allow=pill(T.mainAlertAllow(),MainActivity.this::allowChargeAlertNotifications);allow.setContentDescription(T.mainAlertAllowDescription());
-            permission.addView(allow);
+            // Allow beside the text while its longest word fits beside it, else under it (ActionBannerFit).
+            permission.addView(new BannerBody(permissionText,allow),new LinearLayout.LayoutParams(0,-2,1));
             LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=design.dp(12);body.addView(permission,pp);
             TextView when=design.caption(T.chargeLiveWhen());
             when.setPadding(design.dp(4),design.dp(12),design.dp(4),0);body.addView(when);
@@ -3088,8 +3088,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge-alert-permission");
             permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
             permission.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
-            permissionText=design.text("",13,false);LinearLayout.LayoutParams pw=new LinearLayout.LayoutParams(0,-2,1);pw.rightMargin=design.dp(8);permission.addView(permissionText,pw);
-            permissionAction=pill(T.mainAlertAllow(),MainActivity.this::allowChargeAlertNotifications);permissionAction.setTag("charge-alert-allow");permission.addView(permissionAction);
+            permissionText=design.text("",13,false);
+            permissionAction=pill(T.mainAlertAllow(),MainActivity.this::allowChargeAlertNotifications);permissionAction.setTag("charge-alert-allow");
+            // Allow beside the text while its longest word fits beside it, else under it (ActionBannerFit).
+            permission.addView(new BannerBody(permissionText,permissionAction),new LinearLayout.LayoutParams(0,-2,1));
             LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=design.dp(12);body.addView(permission,pp);
             TextView background=design.caption(T.mainAlertBackground());
             background.setPadding(design.dp(4),design.dp(12),design.dp(4),0);background.setTag("charge-alert-background");body.addView(background);

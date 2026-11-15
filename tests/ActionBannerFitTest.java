@@ -47,6 +47,7 @@ public final class ActionBannerFitTest {
         require(ActionBannerFit.actionBelow(224.5f, 97, 8, 120), "half a dp short: under");
         require(!ActionBannerFit.actionBelow(256, 97, 8, 0), "no words: beside");
         clockRow(regular, bold, context);
+        allowRows(regular, bold, context);
         System.out.println("ActionBannerFitTest: " + checks + " checks passed");
     }
 
@@ -98,6 +99,30 @@ public final class ActionBannerFitTest {
         for (float room = 0; room <= 400; room += 5)
             for (float pill = 0; pill <= 400; pill += 5)
                 if (pill <= room) require(pill <= room - ActionBannerFit.stackedIndent(room, pill, 45), "a pill that fits the row keeps its whole label");
+    }
+
+    /**
+     * The Allow rows of the Live charging and Battery alerts sheets (council review of #506, finding 3): on the same rule,
+     * Allow goes under the text when the text's longest word no longer fits beside it. The row's room is the window less
+     * 58 dp (the sheet's 18 dp a side and the row's 14 + 8 dp padding); the text is 13 sp, the label 12.5 sp bold.
+     */
+    private static void allowRows(java.awt.Font regular, java.awt.Font bold, java.awt.font.FontRenderContext context) {
+        // word, label, window, text scale: each fitted beside the bare pill on main before #506, and would break beside the
+        // padded pill: so the rule puts the pill under the text, where the word has the row's whole room.
+        Object[][] cases = {
+                {"Verbindungsbenachrichtigung", "Zulassen", 412, 1.35f}, {"Verbindungsbenachrichtigung", "Zulassen", 412, 1.4f},
+                {"Verbindungsbenachrichtigung", "Zulassen", 344, 1.1f}, {"Verbindungsbenachrichtigung", "Zulassen", 344, 1.15f},
+                {"accuwaarschuwingen", "Toestaan", 344, 1.4f},
+                {"Benachrichtigungen", "Zulassen", 310, 1.4f}, {"Benachrichtigungen", "Zulassen", 320, 1.4f}, {"Benachrichtigungen", "Zulassen", 340, 1.4f}};
+        for (Object[] c : cases) {
+            String word = (String) c[0], allow = (String) c[1]; int window = (Integer) c[2]; float scale = (Float) c[3];
+            float room = window - 58, w = width(regular.deriveFont(13 * scale), word, context), label = width(bold.deriveFont(12.5f * scale), allow, context);
+            String at = word + " at " + window + " dp, " + scale + "x";
+            require(room - Math.max(64, label) - ActionBannerFit.GAP_DP >= w, at + ": fitted beside the bare pill before #506");
+            float pill = ActionBannerFit.pill(label, ActionBannerFit.PILL_PAD_DP, ActionBannerFit.PILL_MIN_DP);
+            require(room - pill - ActionBannerFit.GAP_DP < w, at + ": would break beside the padded pill");
+            require(ActionBannerFit.actionBelow(room, pill, ActionBannerFit.GAP_DP, w) && room >= w && room >= pill, at + ": Allow under the text, the word and the label whole");
+        }
     }
 
     private static void require(boolean condition, String message) {

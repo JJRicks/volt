@@ -2,7 +2,8 @@ package com.jjricks.volt;
 
 /**
  * A row with a pill action: a subject page's banner ("Last seen (disconnected)" with Connect, and the read-only and
- * unfinished test banners built the same way) and the clock row's Sync: the pill always shows its whole label at its own padding, and sits beside the
+ * unfinished test banners built the same way), the clock row's Sync and the Allow rows of the Live charging and Battery
+ * alerts sheets: the pill always shows its whole label at its own padding, and sits beside the
  * banner's words while their longest word still fits on a line beside it; otherwise it goes under the words, so neither
  * the pill's label nor a word is ever cut. Pure Java.
  */
