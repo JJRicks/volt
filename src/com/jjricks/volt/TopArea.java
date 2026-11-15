@@ -2,13 +2,17 @@ package com.jjricks.volt;
 
 /**
  * The height of Clean Home's top area (hub layout plan 1.6): one value for every moment (parked, charging,
- * just back), so the Lock bar and the quick actions below it never move (owner, #383: the fixed height stands,
- * with no large blank band in any moment). Pure Java.
+ * just back), so the Lock bar and the quick actions below it never move between them (owner, #383: the fixed height
+ * stands, with no large blank band in any moment). Pure Java.
  *
- * <p>A share of the window's height (Configuration.screenHeightDp, recomputed on every rebuild, which folding and
- * rotation trigger), at least 224 dp grown with large text (up to 1.3 times), at most 380 dp on a phone and 460 dp
- * on a wide window. The phone share is the Layout Plan's proportion: about 304 dp on a 344x882 dp phone, which holds
- * the charging view with its large photo and leaves the parked card no band of 40 dp or more.
+ * <p>On a phone it follows the window's width (Configuration.screenWidthDp, recomputed on every rebuild, which folding
+ * and rotation trigger), so the parked card keeps the Layout Plan's proportions on every phone: 304 dp on the 344x882 dp
+ * phone the mock-up is drawn on, which holds the charging view with its large photo and leaves the parked card no band
+ * of 40 dp or more, and as much more as the phone is wider (the owner's first build on a 412 dp phone: a card sized by
+ * the window's height had "way too much padding" there, its content the 344 dp size in a wider card). On a short phone
+ * the height bounds it ({@link #PHONE_HEIGHT_CAP}, {@link #PHONE_SLACK_DP}), so the Lock bar and the quick actions keep
+ * their room. A wide window (two panes) takes a share of its height. At least 224 dp grown with large text (up to 1.3
+ * times), at most 380 dp on a phone and 460 dp on a wide window.
  *
  * <p>On a short window, what has to show on first view comes first (checklist §4: the Lock bar and the quick
  * actions): the area never takes more than the window less {@link #reserveDp} (the header, the Lock bar and the quick
@@ -16,7 +20,18 @@ package com.jjricks.volt;
  * what fits; the moment views give way inside it in their own order (ChargingFit, the battery card's fit).
  */
 final class TopArea {
-    static final float PHONE_SHARE = 0.345f, WIDE_SHARE = 0.42f;
+    /** A phone's area per dp of the window's width (304 of 344 dp); a wide window's per dp of its height. */
+    static final float PHONE_WIDTH_SHARE = 304f / 344f, WIDE_SHARE = 0.42f;
+    /**
+     * A phone's area is at most this share of the window's height (the Layout Plan's card takes 38% of its screen), so a
+     * short, wide phone (16:9, such as 411x731 dp) does not take the room the Lock bar and the quick actions need.
+     */
+    static final float PHONE_HEIGHT_CAP = 0.405f;
+    /**
+     * And it leaves at least this much (dp) beyond {@link #reserveDp}, which is an estimate: on 360x640 dp the quick
+     * actions stay where main has them (the area at its minimum).
+     */
+    static final int PHONE_SLACK_DP = 40;
     static final int MIN_DP = 224, PHONE_MAX_DP = 380, WIDE_MAX_DP = 460;
     static final float MAX_TEXT_GROWTH = 1.3f;
     /**
@@ -35,13 +50,29 @@ final class TopArea {
 
     private TopArea() {}
 
-    /** The top area's height in dp for a window screenHeightDp tall, with the app and system text scale combined. */
-    static int heightDp(int screenHeightDp, boolean wide, float textScale) {
+    /**
+     * The top area's height in dp for a window screenWidthDp by screenHeightDp, with the app and system text scale
+     * combined.
+     */
+    static int heightDp(int screenWidthDp, int screenHeightDp, boolean wide, float textScale) {
+        return heightDp(screenWidthDp, screenHeightDp, wide, textScale, 0);
+    }
+
+    /**
+     * The same, with {@code aboveDp} taken by something shown over the area (Home's Find it nearby card and its 12 dp
+     * margin): it comes out of the room a phone's area may take beyond the reserve, so the Lock bar and the quick actions
+     * keep their room on first view, never below the area's minimum. The card shows over every moment alike, so the
+     * area keeps one height for all three.
+     */
+    static int heightDp(int screenWidthDp, int screenHeightDp, boolean wide, float textScale, int aboveDp) {
         float growth = Float.isNaN(textScale) ? 1f : Math.max(1f, Math.min(MAX_TEXT_GROWTH, textScale));
         int min = Math.round(MIN_DP * growth);
         int max = wide ? WIDE_MAX_DP : PHONE_MAX_DP;
         int height = Math.max(0, screenHeightDp);
-        int share = Math.round(height * (wide ? WIDE_SHARE : PHONE_SHARE));
+        int share = wide ? Math.round(height * WIDE_SHARE)
+                : Math.min(Math.round(Math.max(0, screenWidthDp) * PHONE_WIDTH_SHARE),
+                        Math.min(Math.round(height * PHONE_HEIGHT_CAP),
+                                height - reserveDp(false, textScale) - PHONE_SLACK_DP - Math.max(0, aboveDp)));
         int wanted = Math.max(min, Math.min(max, share));
         return Math.max(FLOOR_DP, Math.min(wanted, height - reserveDp(wide, textScale)));
     }
@@ -53,8 +84,18 @@ final class TopArea {
     }
 
     /** The same height in pixels for a display density (pixels per dp). */
-    static int heightPx(int screenHeightDp, boolean wide, float textScale, float density) {
-        return Math.round(heightDp(screenHeightDp, wide, textScale) * density);
+    static int heightPx(int screenWidthDp, int screenHeightDp, boolean wide, float textScale, float density) {
+        return Math.round(heightDp(screenWidthDp, screenHeightDp, wide, textScale) * density);
+    }
+
+    /**
+     * Whether the grown sizes would cut the range line that the room beside the photo ({@code photoDp}, 0 for none)
+     * cannot hold: its width at the grown size ({@code grownWordsDp}) is wider than the content less the photo. The card
+     * then fits at the 344 dp sizes (a model with no photo has no photo to give way first).
+     */
+    static boolean parkedGrowthCutsLine(float contentDp, float photoDp, float grownWordsDp) {
+        float room = contentDp - (photoDp > 0 ? photoDp + PARKED_PHOTO_GAP_DP : 0);
+        return grownWordsDp > room + .5f;
     }
 
     /**
@@ -65,11 +106,66 @@ final class TopArea {
      */
     static final int PARKED_PHOTO_DP = 144, PARKED_WORDS_DP = 120, PARKED_PHOTO_MIN_DP = 64, PARKED_PHOTO_GAP_DP = 10;
 
-    /** The parked photo's side (dp) in a card whose content is {@code contentDp} wide, or 0 when it does not show. */
-    static int parkedPhotoDp(float contentDp, float textScale) {
+    /**
+     * The parked card's content width and height (dp) on the phone the Layout Plan draws, 344x882 dp (the area's 304 dp
+     * less the card's 12 dp padding above and below): there the card matches the mock-up, and every size below is the
+     * one it had there.
+     */
+    static final float PARKED_BASE_CONTENT_DP = 280f, PARKED_BASE_HEIGHT_DP = 280f;
+    /** The most the parked card's content grows: 1.3 times (the percentage 58 sp to 75 sp at 1x text). */
+    static final float PARKED_MAX_GROWTH = 1.3f;
+
+    /**
+     * How much the parked card's content grows with the card (owner on #383, a first build on a 412 dp phone: the card
+     * had "way too much padding"): as much as the card grew in both directions from the 344 dp phone, from 1 there up to
+     * {@link #PARKED_MAX_GROWTH}. A phone's card grows in both (its area follows the window's width); a wide window's
+     * pane, or a window too short for the area's share, gives no growth.
+     */
+    static float parkedGrowth(float contentDp, float cardDp) {
+        if (Float.isNaN(contentDp) || Float.isNaN(cardDp)) return 1f;
+        float grown = Math.min(contentDp / PARKED_BASE_CONTENT_DP, cardDp / PARKED_BASE_HEIGHT_DP);
+        return Math.max(1f, Math.min(PARKED_MAX_GROWTH, grown));
+    }
+
+    /**
+     * The percentage's growth: {@link #parkedGrowth}, but large text is large already: the text grows only as far as 1x
+     * text grows at most, so at 1.3x text and above it keeps its size.
+     */
+    static float parkedTextGrowth(float contentDp, float cardDp, float textScale) {
         float scale = Float.isNaN(textScale) ? 1f : Math.max(1f, textScale);
-        int side = (int) Math.floor(Math.min(PARKED_PHOTO_DP, contentDp - PARKED_PHOTO_GAP_DP - PARKED_WORDS_DP * scale));
+        return Math.max(1f, Math.min(parkedGrowth(contentDp, cardDp), PARKED_MAX_GROWTH / scale));
+    }
+
+    /** The label, the range line and the readings grow half as much as the percentage. */
+    static float parkedSmallGrowth(float growth) {
+        return 1f + (Math.max(1f, growth) - 1f) / 2f;
+    }
+
+    /**
+     * The parked photo's side (dp): {@link #PARKED_PHOTO_DP} on the 344 dp phone, growing as the card does ({@link
+     * #parkedGrowth}), while the words keep their room beside it: {@link #PARKED_WORDS_DP} dp times the text scale and
+     * the text's growth ({@code textGrowth}), or the range line's own width ({@code wordsDp}) when that is wider, so a
+     * long line such as "about 124 km left" at 1.4x stays whole and the photo gets narrower instead. Under {@link
+     * #PARKED_PHOTO_MIN_DP} it does not show (0).
+     */
+    static int parkedPhotoDp(float contentDp, float cardDp, float textScale, float textGrowth, float wordsDp) {
+        float scale = Float.isNaN(textScale) ? 1f : Math.max(1f, textScale);
+        float growth = Float.isNaN(textGrowth) ? 1f : Math.max(1f, Math.min(PARKED_MAX_GROWTH, textGrowth));
+        float words = Math.max(PARKED_WORDS_DP * scale * growth, Float.isNaN(wordsDp) ? 0f : wordsDp);
+        // A hair over the exact product, so the 344 dp card gives exactly 144 dp after flooring.
+        int side = (int) Math.floor(Math.min(PARKED_PHOTO_DP * parkedGrowth(contentDp, cardDp) + 1e-3f,
+                contentDp - PARKED_PHOTO_GAP_DP - words));
         return side >= PARKED_PHOTO_MIN_DP ? side : 0;
+    }
+
+    /**
+     * Whether the grown sizes would drop the photo that the 344 dp sizes keep: a range line ({@code wordsDp} wide at the
+     * grown size) too long for the photo beside it at {@code textGrowth}, but not at 1. The card then fits at the 344 dp
+     * sizes, as it does when growing would cost the range line or a row of readings.
+     */
+    static boolean parkedGrowthDropsPhoto(float contentDp, float cardDp, float textScale, float textGrowth, float wordsDp) {
+        if (!(textGrowth > 1f) || parkedPhotoDp(contentDp, cardDp, textScale, textGrowth, wordsDp) > 0) return false;
+        return parkedPhotoDp(contentDp, cardDp, textScale, 1f, wordsDp / parkedSmallGrowth(textGrowth)) > 0;
     }
 
     /**
@@ -91,5 +187,42 @@ final class TopArea {
         int e = Math.max(0, extra);
         int above = Math.round(e * .39f), under = Math.round(e * .22f);
         return new int[] {above, e - above - under, under};
+    }
+
+    /** The most any of the parked card's gaps may be (dp): under 40, so none reads as a band. */
+    static final int PARKED_GAP_MAX_DP = 39;
+
+    /**
+     * {@link #parkedGaps(int)} where no gap passes {@code most} (pixels), counting the {@code around} pixels the bar
+     * keeps above and below itself in the two gaps around it, with a fourth gap under the readings. What a gap cannot
+     * take goes above the top row first (where the mock-up has its largest space), then to the other gaps, then under
+     * the readings, so a card with little in it (no photo, no reading yet) keeps its gaps under the cap rather than a
+     * band above "Battery". Only a spare height over all four caps (none of the checked cards) makes the top and bottom
+     * gaps pass it, by equal halves.
+     */
+    static int[] parkedGaps(int extra, int most, int around) {
+        int[] three = parkedGaps(extra);
+        int[] gaps = {three[0], three[1], three[2], 0};
+        int max0 = Math.max(0, most), max12 = Math.max(0, most - Math.max(0, around));
+        int[] limit = {max0, max12, max12, max0};
+        int over = 0;
+        for (int i = 0; i < 3; i++)
+            if (gaps[i] > limit[i]) { over += gaps[i] - limit[i]; gaps[i] = limit[i]; }
+        for (int i = 0; i < 4 && over > 0; i++) {
+            int room = Math.min(over, limit[i] - gaps[i]);
+            gaps[i] += room;
+            over -= room;
+        }
+        gaps[0] += over / 2;
+        gaps[3] += over - over / 2;
+        return gaps;
+    }
+
+    /**
+     * Tabletop posture (a horizontal hinge): the header and the area sit in the pane above the hinge, so the area is at
+     * most what that pane leaves under the header ({@code paneRoomDp}), never under {@link #FLOOR_DP}.
+     */
+    static int tabletopDp(int areaDp, int paneRoomDp) {
+        return Math.min(areaDp, Math.max(FLOOR_DP, paneRoomDp));
     }
 }
