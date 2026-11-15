@@ -109,8 +109,8 @@ public final class SearchFocusValidation extends Instrumentation {
         showKeyboard(search, activity.getWindow(), "speed"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, activity.getWindow(), "speed", "System Back");
         require(screen() == page, "Hiding the keyboard also navigated away");
-        // The navigation outside the field is Search's Cancel (part 12): the page header steps aside while the field has
-        // the cursor or a query, and Cancel beside the field is its way back. A tap on it while the keyboard is up must
+        // The navigation outside the field is Search's Cancel (part 12): with Cancel beside the field the page header stays
+        // hidden on every visit (HubSearch.headerHidden), and Cancel is its way back. A tap on it while the keyboard is up must
         // still navigate (to Home) and close the keyboard.
         showKeyboard(search, activity.getWindow(), "speed"); tap(root().findViewWithTag("hub-search-cancel"), activity.getWindow());
         await(() -> HubPages.HOME.equals(HubTestPages.current(activity)) && !imeVisible(activity.getWindow()), 4000,
