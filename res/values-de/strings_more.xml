@@ -609,8 +609,6 @@
     <string name="more_about_notifications_sub">Benachrichtigung zur Aufzeichnung mit Stopp</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Deine Daten</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Alle Daten bleiben auf diesem Telefon. „Backup &amp; Wiederherstellung“ findest du unter „Mehr“.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Online-Karte</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->

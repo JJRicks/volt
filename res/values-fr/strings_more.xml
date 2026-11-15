@@ -612,8 +612,6 @@
     <string name="more_about_notifications_sub">Notification d’enregistrement avec « Arrêter »</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Vos données</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Toutes les données restent sur ce téléphone. « Sauvegarde et restauration » se trouve dans « Plus ».</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Carte en ligne</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->
