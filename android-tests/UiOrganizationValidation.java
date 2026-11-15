@@ -70,7 +70,11 @@ public final class UiOrganizationValidation extends Instrumentation {
             requireFreshEmulator(); admitted = true;
             SharedPreferences settings = settings();
             require(settings.edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                    .putString("theme", "dark").putString("more_section", "App").commit(), "Cannot set emulator UI preferences");
+                    .putString("theme", "dark").putString("more_section", "App")
+                    // This fixture reads as an updated install (settings saved, setup done), for which part 9's What's new
+                    // sheet is due; since part 9's final round it stays until answered (HomeStyle.whatsNewAnswered), so it
+                    // would cover Home's dock for every tap below. These runners check navigation: it counts as answered.
+                    .putBoolean("home_whats_new_shown", true).commit(), "Cannot set emulator UI preferences");
             // These runners check the navigation, so skip the first-run onboarding a fresh install shows. A saved More
             // submenu ("App") stays in the fixture: Settings must open on its index whatever the old tab saved.
             OnboardingScreen.markDone(getTargetContext());
@@ -87,9 +91,20 @@ public final class UiOrganizationValidation extends Instrumentation {
                 waitForIdleSync(); hideKeyboard();
                 main(() -> require(page.equals(HubTestPages.current(activity)), "Navigation did not reach " + page + " (" + HubTestPages.current(activity) + ")"));
                 assertNoScooterWork(); assertNavigationFits();
+                // No scooter is connected here: a page's header shows its connection line, tappable for the details; Settings
+                // never does (HubPages.headerConnectionLine, the contributor's decision of 14 Nov on #383). Search with Cancel
+                // beside its field hides its whole header, the line with it (part 12, HubSearch.headerHidden).
+                if (!HubPages.HOME.equals(page)) main(() -> {
+                    View line = root().findViewWithTag("hub-page-connection");
+                    View cancel = root().findViewWithTag("hub-search-cancel");
+                    if (HubPages.SETTINGS.equals(page)) require(line == null || line.getVisibility() == View.GONE, "Settings shows the connection line");
+                    else if (HubPages.SEARCH.equals(page) && cancel != null && cancel.isShown())
+                        require(line == null || !line.isShown(), "Search shows the connection line with its header stepped aside for the field");
+                    else require(line != null && line.isShown() && line.isClickable() && line.getHeight() > 0, "Not connected, " + page + "'s header shows no tappable connection line");
+                });
             }
             requireScreenText(APP_PREFERENCES_ROW);
-            check("Home and the four pages that replaced the tabs are reachable by touch; Home's ways in and every page's back link remain visible");
+            check("Home and the four pages that replaced the tabs are reachable by touch; Home's ways in and every page's back link remain visible; not connected, each page but Settings shows its connection line (Search none while its header steps aside for the field)");
             screenshot("more-index-dark");
 
             // The Hub layout (#385) made the Scooter tab an index of subject pages: its RIDE, BATTERY and PROFILE groups

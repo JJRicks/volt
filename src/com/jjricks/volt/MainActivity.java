@@ -78,7 +78,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
     private static final long STATS_RETENTION_MS=10000L;
-    /** Home's Lock bar as last built (HubDock keeps it clear on Widgets); null before any. */
+    /** Home's Lock bar as last built; null before any. Validations scroll it clear of Widgets' pinned dock. */
     private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
@@ -620,15 +620,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
-            // Widgets Home: the dock floats over the page where the tab bar was; pad the scroller so the last card scrolls clear of it.
+            // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
             pageFrame.addView(dock.view(),dock.layoutParams());
-            // The dock never covers the Lock bar: where the bar sits under it, it floats 10 dp above the bar (or, with no room, steps aside) until the page scrolls the bar above it.
-            dock.keepClear(()->dashboardLock);
-            scroll.setClipToPadding(false);
-            scroll.setPadding(scroll.getPaddingLeft(),scroll.getPaddingTop(),scroll.getPaddingRight(),scroll.getPaddingBottom()+dock.clearance());
+            // Pinned to the bottom (the contributor's decision, 14 Nov): it never moves for the Lock bar, one of the rider's own
+            // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
+            dock.padScroller(scroll,scroll.getPaddingBottom());
         }
         }
         Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();
@@ -645,9 +644,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AlertDialog whatsNewSheet;
     /**
      * Shows the one-time What's new sheet (Joel 6, 10) when HomeStyle.showWhatsNew says so: an updated installation
-     * that never saw it, on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open,
-     * whether or not the owner already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch).
-     * The sheet records itself as shown (committed) before it appears, so a crash or rotation never shows it again.
+     * that never answered it, or one where a restore made the background-recording notice due (HomeStyle.RESTORED_NOTICE_KEY),
+     * on Home (Clean or the widget dashboard), resumed, with neither setup nor riding mode open, whether or not the owner
+     * already chose a style (that only hides the offer to switch: HomeStyle.offerSwitch). It counts as shown only once
+     * the person answers it (HomeStyle.whatsNewAnswered): onDestroy's dismissal records nothing, so a sheet lost to a
+     * recreation, a relaunch or the process ending shows again on the next clear Home; never two at once (the one showing
+     * is kept here).
      */
     private void maybeShowWhatsNew(){
         if(destroyed||rebuilding||design==null||whatsNewSheet!=null&&whatsNewSheet.isShowing())return;
@@ -658,7 +660,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // The wide Clean Home counts too: its page pane shows Home (HubHomePane) beside the scooter pane (#394 early review, 4).
         boolean homeShown=screen instanceof DashboardScreen||screen instanceof CleanHomeScreen?!screen.busy():screen instanceof HubHomePane&&homeScreen!=null&&!homeScreen.busy();
         boolean onHome=HubPages.HOME.equals(selectedPage)&&homeShown;
-        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
+        if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.RESTORED_NOTICE_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
     }
     /**
@@ -976,6 +978,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // (the wide Home's page-pane field opens it the same way, from HubHomePane).
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
+            // A What's new notice that came due while Widgets was being edited (a restore meanwhile) shows as editing ends, not
+            // at the next rebuild (council review 5907254138 on #390, P3-2); maybeShowWhatsNew never opens a second sheet.
+            public void editingEnded(){handler.post(MainActivity.this::maybeShowWhatsNew);}
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
             public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
     }
@@ -1071,7 +1076,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private LinearLayout makeHeader(){
         if(!selectedPage.equals(HubPages.HOME))return makeCompactHeader();
         // Home's header (status line, scooter name and edit pencil) belongs to the dashboard toolbar.
-        clearDashboardLock();profileTitle=null;return column();
+        clearDashboardLock();profileTitle=null;connectionLinePage=null;return column();
     }
     /** Volt lock card: a full-width bar you tap anywhere on, or slide, to lock and unlock. */
     private View makeDashboardLock(boolean showDisconnect,boolean compact){
@@ -1434,10 +1439,28 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Home is the root of every stack, so every other page has a back link to the page under it (Home for a subject).
         if(nav.size()>1)header.addView(backLink(nav.pages().get(nav.size()-2)),new LinearLayout.LayoutParams(-2,-2));
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
-        connectionTitle.setTypeface(design.regular());header.addView(connectionTitle);
+        addConnectionLine(header);
         addPageTitle(header);
         profileTitle=null;
         return header;
+    }
+    /**
+     * The page header's connection line under its back link, by HubPages.headerConnectionLine: on one pane and in the wide
+     * Home's page pane alike, shown only while the scooter is not connected and never on Settings (the contributor's
+     * decision, 14 Nov, #383). connectionTitle must be the new line's label, sized and set in the header's style.
+     */
+    private void addConnectionLine(LinearLayout header){
+        connectionTitle.setTypeface(design.regular());connectionTitle.setTag(TAG_PAGE_CONNECTION);
+        // Shown only while the scooter is not connected, never on Settings (HubPages.headerConnectionLine). A rebuild of the
+        // same page keeps what the line had (its room, and the state it last showed); another page starts afresh.
+        if(!selectedPage.equals(connectionLinePage)){connectionLinePage=selectedPage;connectionRoomHeld=false;connectionLineReady=null;}
+        BleController headerBle=scooterService==null?null:scooterService.ble;
+        // Until the service binds (a page rebuilt by an activity recreation, as a rotation makes) the connection is not
+        // known yet: the line waits, gone and holding no room, for the rebuild the binding makes, so a connected page
+        // never keeps a blank line from that first build.
+        if(headerBle==null)connectionTitle.setVisibility(View.GONE);
+        else applyPageConnectionLine(headerBle.ready(),false);
+        header.addView(connectionTitle);
     }
     /** The page's title under its back link and connection line: Data keeps Live Stats' title with its live dot. */
     private void addPageTitle(LinearLayout header){
@@ -1463,6 +1486,28 @@ public final class MainActivity extends Activity implements ScreenHost {
         addPageTitle(header);
         profileTitle=null;
         return header;
+    }
+    /** The page header's connection line (validations find it by this tag). */
+    static final String TAG_PAGE_CONNECTION="hub-page-connection";
+    /** The page whose header the connection line belongs to; whether it has shown there; the connection it last showed. */
+    private String connectionLinePage;private boolean connectionRoomHeld;private Boolean connectionLineReady;
+    /**
+     * The page header's connection line by HubPages.headerConnectionLine: shown while not connected, its room kept blank
+     * once the scooter connects with the page open (the title keeps its place; the room goes when the next page opens),
+     * and gone on a connected page and on Settings. A connection lost while the page is open shows the line at once,
+     * without an animation (the page under the header moves with it, in one step), and TalkBack announces it.
+     */
+    private void applyPageConnectionLine(boolean ready,boolean announce){
+        if(connectionTitle==null)return;
+        int state=HubPages.headerConnectionLine(selectedPage,ready,connectionRoomHeld);
+        int visibility=state==HubPages.LINE_SHOWN?View.VISIBLE:state==HubPages.LINE_ROOM?View.INVISIBLE:View.GONE;
+        if(connectionTitle.getVisibility()!=visibility)connectionTitle.setVisibility(visibility);
+        if(state==HubPages.LINE_SHOWN)connectionRoomHeld=true;
+        if(announce&&state==HubPages.LINE_SHOWN&&Boolean.TRUE.equals(connectionLineReady)&&!ready){
+            CharSequence spoken=connectionTitle.getContentDescription();
+            connectionTitle.announceForAccessibility(spoken!=null?spoken:connectionTitle.getText());
+        }
+        connectionLineReady=ready;
     }
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
@@ -1650,6 +1695,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!ready&&!connecting&&active!=null&&ble!=null&&ble.releaseHeld(active.id)){
                 design.statusRungs(connectionTitle,new String[]{T.bleReleaseHeld(),T.bleReleaseHeldShort(),T.bleStatusDisconnectedShort()});
                 connectionTitle.setContentDescription(T.bleReleaseHeld());}
+            // A page's line follows the connection only once the service is bound (makeCompactHeader).
+            if(scooterService!=null||HubPages.HOME.equals(selectedPage))applyPageConnectionLine(ready,true);
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
@@ -2943,7 +2990,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             ControlRow row = new ControlRow(f); quickMenuRows.add(row);
             settings.addView(row.card); row.refresh();
             if((f.key.equals("timed_charging")||f.key.equals("charge_start"))&&chargeDoneOffered()){
-                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"));
+                design.divider(settings);ChargeDoneRow done=new ChargeDoneRow(f.key.equals("charge_start"),false);
                 quickChargeRows.add(done);settings.addView(done.row.card);done.refresh();
             }
         }
@@ -3593,19 +3640,25 @@ public final class MainActivity extends Activity implements ScreenHost {
         AlertDialog dialog=showSheet(body);self[0]=dialog;chargeDoneSheet=dialog;
         dialog.setOnDismissListener(d->{if(chargeDoneSheet==dialog){chargeDoneSheet=null;doneSheetRows.clear();}if(!destroyed)redraw();});
     }
-    /** "Charge done by": the rows' name, the time picker's and the sheet's title. */
+    /** "Charge done by": the page's row, the time picker's and the sheet's title (the sheet's own rows are Enable and Finish charging by). */
     private String doneByTitle(){return T.mainScheduleDoneBy();}
     /**
      * Local charge planning uses the same row and picker language as scooter-owned settings. A row is the on/off switch,
      * the finish time, or (summary) Battery & charging's one Charge done by row (the Layout Plan: "Charge done by
      * 7:30 am ›"): the finish time while it is on, Off, or the measuring minutes (PageRows.doneBy); a tap opens the
-     * sheet that holds the other two. Same preferences and schedule.
+     * sheet that holds the other two. Same preferences and schedule. In that sheet (inSheet, under its "Charge done by"
+     * title; the contributor's decision, 14 Nov) the switch row reads "Enable" and the time row "Finish charging by"
+     * (HubText.doneByEnable, doneByFinish); the switch's spoken name keeps the sheet's title in front ("Charge done by,
+     * Enable"), so it makes sense alone. Elsewhere (the quick menu's charging sheet) both rows keep "Charge done by".
      */
     private final class ChargeDoneRow {
-        final SettingLine row;final Switch toggle;final boolean time,summary;final View spinner;
-        ChargeDoneRow(boolean time){this(time,false);}
-        ChargeDoneRow(boolean time,boolean summary){
-            this.time=time;this.summary=summary;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
+        final SettingLine row;final Switch toggle;final boolean time,summary,inSheet;final View spinner;
+        /** A row of the Charge done by sheet: the switch ("Enable") or the time ("Finish charging by"). */
+        ChargeDoneRow(boolean time){this(time,false,true);}
+        ChargeDoneRow(boolean time,boolean summary){this(time,summary,false);}
+        ChargeDoneRow(boolean time,boolean summary,boolean inSheet){
+            this.time=time;this.summary=summary;this.inSheet=inSheet&&!summary;
+            row=new SettingLine("clock",this.inSheet?(time?HubText.doneByFinish():HubText.doneByEnable()):M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
             row.line.setTag(summary?"charge-done-row":time?"charge-done-time":"charge-done-toggle");
             spinner=new Spinner();spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());
             if(summary){toggle=null;row.chevron(MainActivity.this::showChargeDoneSheet);}
@@ -3613,13 +3666,23 @@ public final class MainActivity extends Activity implements ScreenHost {
             else{
                 row.value.setVisibility(View.GONE);
                 toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));
-                toggle.setMinimumWidth(design.dp(54));design.styleSwitch(toggle);toggle.setContentDescription(T.mainScheduleDoneBy());
+                toggle.setMinimumWidth(design.dp(54));design.styleSwitch(toggle);toggle.setContentDescription(spokenName());
                 toggle.setOnClickListener(v->{toggle.setChecked(scooterService!=null&&scooterService.chargeSchedule().doneByEnabled);toggleChargeDoneBy(false);});
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.leftMargin=design.dp(10);row.line.addView(toggle,p);
                 row.line.setClickable(true);row.line.setFocusable(true);row.line.setBackground(rowRipple());
                 row.line.setOnClickListener(v->toggleChargeDoneBy());
             }
         }
+        /**
+         * The row's name for TalkBack: in the sheet the switch row is "Charge done by, Enable" and the time row "Finish
+         * charging by"; elsewhere "Charge done by" and "Charge done by time".
+         */
+        String spokenName(){
+            if(inSheet)return time?HubText.doneByFinish().render():labelValue(doneByTitle(),HubText.doneByEnable().render());
+            return time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy();
+        }
+        /** A name and its value (or a name and what it enables) as TalkBack reads them: "Charge done by, Off". */
+        private String labelValue(String label,String value){return T.mainLabelValue(label,value);}
         void refresh(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
             // The summary row is held back only without a scooter (as the time row is); its sheet says why for each row.
@@ -3634,9 +3697,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!time&&!summary)row.value.setVisibility(measuring?View.VISIBLE:View.GONE);
             row.name.setTextColor(blocked==null?design.text:design.muted);row.value.setText(value);
             row.line.setAlpha(blocked==null?1f:.5f);row.line.setEnabled(true);
-            row.line.setContentDescription(blocked==null?T.mainLabelValue(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value):T.mainLabelValueDetail(time?T.mainScheduleDoneByTime():T.mainScheduleDoneBy(),value,blocked));
+            row.line.setContentDescription(blocked==null?labelValue(spokenName(),value):T.mainLabelValueDetail(spokenName(),value,blocked));
             boolean pending=charge!=null&&charge.busy||measuring;spinner.setVisibility(pending&&!summary?View.VISIBLE:View.GONE);
-            if(toggle!=null){toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
+            if(toggle!=null){toggle.setChecked(on);toggle.setContentDescription(spokenName());toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);toggle.setVisibility(pending?View.GONE:View.VISIBLE);}
         }
     }
     private final class ControlRow {

@@ -1,0 +1,6 @@
+# Focus's chips on the unit line (the owner, Nov 14): the big number keeps its size and the chips sit right of its unit.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the
+# repository root.
+src/com/jjricks/volt/RidingUnitLine.java
+src/com/jjricks/volt/RidingChipFit.java
+tests/l10n/RidingUnitLineTest.java

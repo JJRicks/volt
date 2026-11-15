@@ -2195,14 +2195,15 @@ public final class DashboardValidation extends Instrumentation {
     private void scrollHomeTop() { main(() -> ((ScrollView)field(activity, "scroll")).scrollTo(0, 0)); waitForIdleSync(); }
     /**
      * The navigation a rider has on the page shown, all fully on screen, 48 dp tall and with uncut captions. The tab bar's
-     * five targets went in part 11 (#392): on Home they are Widgets Home's dock (its items and its All item, after the
-     * rider scrolls the dock clear of the Lock bar where it stepped aside: HubTestPages.showDock); on every other page the
-     * page's back link, and on Search, whose header steps aside for its field (part 12), Cancel beside the field.
+     * five targets went in part 11 (#392): on Home they are Widgets Home's dock (its items and its All item), pinned to the
+     * page's bottom (HubTestPages.showDock), with the page's end, the Lock bar included, scrolling fully clear of it
+     * (HubTestPages.requireEndClearOfDock); on every other page the page's back link, and on Search, whose header steps
+     * aside for its field (part 12), Cancel beside the field.
      */
     private void assertNavigationFits() {
         boolean[] home = {false};
         main(() -> home[0] = HubPages.HOME.equals(HubTestPages.current(activity)));
-        if (home[0]) HubTestPages.showDock(this, activity);
+        if (home[0]) { HubTestPages.requireEndClearOfDock(this, activity); scrollHomeTop(); HubTestPages.showDock(this, activity); }
         main(() -> {
             List<View> targets = new ArrayList<>();
             if (home[0]) {
