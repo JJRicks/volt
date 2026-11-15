@@ -135,20 +135,57 @@ public final class HubNavTest {
         require(HubNav.awayExpired(1_000, 3, 1_001, 4), "A reboot closes them");
         // When leaving starts that clock (#392 early review): not over Volt's own dialog (a ride's notes being typed),
         // not when a page itself opened another app just before (an email, a file picker).
-        require(HubNav.awayClockStarts(false, -1, 50_000), "Plain leave: the clock starts");
-        require(!HubNav.awayClockStarts(true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
-        require(HubNav.awayClockStarts(false, -1, 50_000),
+        require(HubNav.awayClockStarts(true, false, false, -1, 50_000), "Plain leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, false, true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
+        require(HubNav.awayClockStarts(true, false, false, -1, 50_000),
                 "Focus lost to a window that is not Volt's (the notification shade, split screen), then leave: the clock starts");
-        require(!HubNav.awayClockStarts(true, 40_000, 50_000), "A dialog showing and an old launch: kept");
-        require(!HubNav.awayClockStarts(false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
-        require(!HubNav.awayClockStarts(false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
-        require(HubNav.awayClockStarts(false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
-        require(HubNav.awayClockStarts(false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        require(!HubNav.awayClockStarts(true, false, true, 40_000, 50_000), "A dialog showing and an old launch: kept");
+        require(!HubNav.awayClockStarts(true, false, false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
+        require(!HubNav.awayClockStarts(true, false, false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
+        require(HubNav.awayClockStarts(true, false, false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
+        require(HubNav.awayClockStarts(true, false, false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        // Only where it has something to close: Home, a subject's own page and setup never start it (nothing is written).
+        require(!HubNav.awayClockStarts(false, false, false, -1, 50_000), "Nothing a minute away would close: no clock");
+        require(!HubNav.awayClockStarts(true, true, false, -1, 50_000), "Setup fills the window: no clock");
+        require(!HubNav.awayClockStarts(false, true, false, -1, 50_000), "First-run setup over Home: no clock");
+        require(!HubNav.awayClockStarts(false, false, true, -1, 50_000) && !HubNav.awayClockStarts(false, false, false, 49_500, 50_000),
+                "No sub-page, with a dialog or a launch: still no clock");
+        awayClock();
         // The page header's link goes where it says: on Search it skips the query-clearing step; elsewhere the page's own Back runs.
         require(HubNav.linkSkipsPageBack(HubPages.SEARCH), "Search's link goes to the page it names");
         require(!HubNav.linkSkipsPageBack(HubPages.SETTINGS), "Settings' link keeps the page's own Back step");
         require(!HubNav.linkSkipsPageBack(HubPages.RIDE), "Ride's link keeps the page's own Back step");
         require(!HubNav.linkSkipsPageBack(null), "No page: the page's own Back step");
+    }
+
+    /** HubNav.subPagesOpen, which feeds awayClockStarts, is true exactly where closeSubPages would change the stack. */
+    private static void awayClock() {
+        HubNav nav = new HubNav();
+        require(!nav.subPagesOpen(), "Home: nothing to close, no clock");
+        nav.open(HubPages.BATTERY);
+        require(!nav.subPagesOpen(), "A subject's own page: nothing to close, no clock");
+        nav.reset(HubPages.SETTINGS);
+        require(!nav.subPagesOpen(), "Settings' own page: no clock");
+        nav.reset(HubPages.SEARCH);
+        require(!nav.subPagesOpen(), "Search: no clock");
+        nav.reset(HubPages.DATA);
+        require(!nav.subPagesOpen(), "Data's own page: no clock (Live Stats keeps its own section reset)");
+        nav.open(HubPages.DATA_STORAGE);
+        require(nav.subPagesOpen(), "A sub-page: the clock starts, as before");
+        nav.reset(HubPages.SETTINGS_SCOOTERS);
+        require(nav.subPagesOpen(), "A Settings page: the clock starts");
+        nav.reset(HubPages.HOME); nav.open(HubPages.BATTERY); nav.open(HubPages.DATA);
+        require(nav.subPagesOpen(), "A subject opened through another subject: the clock starts");
+        String[][] stacks = {
+            {HubPages.HOME}, {HubPages.HOME, HubPages.BATTERY}, {HubPages.HOME, HubPages.SEARCH},
+            {HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT}, {HubPages.HOME, HubPages.DATA, HubPages.DATA_STORAGE},
+            {HubPages.HOME, HubPages.SERVICE, HubPages.SERVICE_MAINTENANCE}};
+        for (String[] pages : stacks) {
+            HubNav a = HubNav.restore(pages, pages[pages.length - 1]);
+            boolean open = a.subPagesOpen();
+            require(open == a.closeSubPages() && !a.subPagesOpen(), "Clock and close agree: " + Arrays.toString(pages));
+            require(open == (pages.length > 2), "Only a page above its subject has something to close: " + Arrays.toString(pages));
+        }
     }
 
     private static boolean stack(HubNav nav, String... pages) { return Arrays.equals(nav.toArray(), pages); }

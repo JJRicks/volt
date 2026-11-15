@@ -325,9 +325,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void onPause(){
         connectionHaptics.cancel();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
-        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review).
+        // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review). The clock
+        // starts only over a sub-page it could close, never on Home, a subject's own page or in setup: nothing is written there.
         long now=SystemClock.elapsedRealtime();
-        if(HubNav.awayClockStarts(OwnDialogs.showing(),launchedAt,now))markAway();
+        if(HubNav.awayClockStarts(nav.subPagesOpen(),onboarding!=null,OwnDialogs.showing(),launchedAt,now))markAway();
         launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
         resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
@@ -1307,7 +1308,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scroll!=null&&HubPages.DATA.equals(scrollPage))scroll.scrollTo(0,0);
         return changed;
     }
-    /** Volt left the screen: the first time since it was last on screen starts the away clock (HubNav.awayExpired). */
+    /** Volt left the screen over a sub-page: the first time since it was last on screen starts the away clock (HubNav.awayExpired). */
     private void markAway(){
         if(preferences.contains(HUB_AWAY_AT))return;
         preferences.edit().putLong(HUB_AWAY_AT,SystemClock.elapsedRealtime()).putInt(HUB_AWAY_BOOT,bootCount()).apply();
