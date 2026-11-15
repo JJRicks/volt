@@ -65,13 +65,19 @@ final class HubSearchTables {
     static final String SETTING_BACKUP = "data-backup";
     static final String SETTING_REPORT_ISSUE = "more-report-issue";
     static final String SETTING_DEVELOPER = "developer-options-menu";
+    /**
+     * Ride backups: its one home is the Ride page (RidesScreen builds the row only there), so it has an entry of its own
+     * that opens the Ride page with the row on screen (#393 council review, second round, finding 2: its words were on
+     * All rides & compare, which no longer shows it).
+     */
+    static final String SETTING_RIDE_BACKUPS = "ride-backups-menu";
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
             SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_HAPTICS, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
-            SETTING_REPORT_ISSUE, SETTING_DEVELOPER,
+            SETTING_REPORT_ISSUE, SETTING_DEVELOPER, SETTING_RIDE_BACKUPS,
     };
 
     /**
@@ -123,7 +129,7 @@ final class HubSearchTables {
 
     /**
      * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
-     * automatically (Ride › Recording settings) and the issue report (Service › Reports).
+     * automatically (Ride › Recording settings), the issue report (Service › Reports) and Ride backups (the Ride page).
      */
     static String settingPage(String tag) {
         if (tag == null) return null;
@@ -133,6 +139,7 @@ final class HubSearchTables {
                 return HubPages.RIDE_RIDING;
             case SETTING_RIDING_AUTO_RECORD: return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
+            case SETTING_RIDE_BACKUPS: return HubPages.RIDE;
             default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
         }
     }
@@ -174,6 +181,7 @@ final class HubSearchTables {
             case SETTING_BACKUP: return "back up backup restore export import";
             case SETTING_REPORT_ISSUE: return "report issue bug problem email";
             case SETTING_DEVELOPER: return "developer options simulate simulation debug";
+            case SETTING_RIDE_BACKUPS: return "ride backups backup restore import export rides";
             default: return null;
         }
     }
@@ -200,7 +208,7 @@ final class HubSearchTables {
     static String[] pageRows(String page) {
         if (page == null) return new String[0];
         switch (page) {
-            case HubPages.RIDE_RIDES: return new String[] {"Compare two rides", "Ride backups"};
+            case HubPages.RIDE_RIDES: return new String[] {"Compare two rides"};
             case HubPages.RIDE_RECORDING: return new String[] {"Keep screen awake", "End rides automatically", "Start recording in the background",
                     "Background recording", "Map settings", "GPS route", "Barometer elevation", "Motion sensors"};
             case HubPages.RIDE_RIDING: return new String[] {"Screen rotation"};

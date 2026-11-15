@@ -321,8 +321,9 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/HubRidingSettings.java").contains(".withoutAutoRecord()"), "Riding mode leaves the switch out");
         for (String tag : HubSearchTables.SETTINGS) {
             String page = HubSearchTables.settingPage(tag);
-            // Every other settings row is built by MoreScreen (Settings, its pages, Reports and riding mode's menu).
-            if (!tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD))
+            // Every other settings row is built by MoreScreen (Settings, its pages, Reports and riding mode's menu), but Ride
+            // backups, which RidesScreen builds on the Ride page only.
+            if (!tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD) && !tag.equals(HubSearchTables.SETTING_RIDE_BACKUPS))
                 check(more.contains("\"" + tag + "\"") || more.contains("HubSearchTables." + constant(tag)), "MoreScreen carries the tag " + tag + " (" + page + ")");
         }
         // Brightness and Night vision bring their selectors on screen, not the cards below them (#393 review, note 6).
@@ -332,6 +333,18 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/RidingBrightness.java").contains("\"riding_brightness\"")
                 && read("src/com/jjricks/volt/NightSchedule.java").contains("\"riding_night_vision\""), "by their preference keys");
         check(HubSearchTables.settingAnchor(HubSearchTables.SETTING_UNITS).equals(HubSearchTables.SETTING_UNITS), "other rows by their own tag");
+        // Ride backups has one home, the Ride page (#393 council review, second round, finding 2): its result opens that page
+        // with the row on screen, and All rides & compare's words no longer name it.
+        String rides = read("src/com/jjricks/volt/RidesScreen.java");
+        check(HubSearchTables.settingPage(HubSearchTables.SETTING_RIDE_BACKUPS).equals(HubPages.RIDE)
+                && HubSearchTables.SETTING_RIDE_BACKUPS.equals(HubSearchTables.settingAnchor(HubSearchTables.SETTING_RIDE_BACKUPS)), "Ride backups opens the Ride page at its row");
+        check(rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(null, M.ridesBackups(), \"\", \"\", this::rideBackups);\n            backups.view.setTag(\"ride-backups-menu\");"),
+                "RidesScreen builds the Ride backups row, so tagged, on the Ride page only");
+        check(!HubSearchTables.pageWords(HubPages.RIDE_RIDES).contains("backup"), "All rides & compare's words do not name Ride backups");
+        List<HubSearch.Entry> backups = HubSearch.search(everything(), "ride backups");
+        check(!backups.isEmpty() && backups.get(0).page.equals(HubPages.RIDE) && HubSearchTables.SETTING_RIDE_BACKUPS.equals(backups.get(0).anchor),
+                "\"ride backups\" lists the Ride page's Ride backups row first");
+        for (HubSearch.Entry e : backups) check(!e.page.equals(HubPages.RIDE_RIDES), "\"ride backups\" does not list All rides & compare");
         // Automatic update checks and Check for updates are in the Updates sheet (part 11): Settings brings its Updates row on
         // screen for them and opens the sheet over it (#393 council review, second round, finding 1).
         check(more.contains("return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);")
