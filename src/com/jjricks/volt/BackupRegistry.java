@@ -65,6 +65,8 @@ final class BackupRegistry {
         // Auto-record's background switch (AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY) travels with it; absent is off.
         add(app, "auto_record_background", Boolean.class, PREFERENCES);
         exclude(app, AutoStartPolicy.LOCATION_ASKED_KEY, Boolean.class, PERMISSION);
+        // Volt 1.13.2's recording note state, still held by an installation updated from it (read, never written here).
+        exclude(app, AutoStartPolicy.BACKGROUND_NOTICE_KEY, String.class, PENDING);
         // Record charges automatically: the switch travels; a hand stop's hold belongs to this phone and the charge it was in.
         add(app, ChargeAutoRecordPolicy.KEY, Boolean.class, PREFERENCES);
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
@@ -129,6 +131,8 @@ final class BackupRegistry {
         add(app, HomeStyle.CHOSEN_KEY, Boolean.class, PREFERENCES);
         exclude(app, HomeStyle.ORIGIN_KEY, String.class, DEVICE);
         exclude(app, HomeStyle.WHATS_NEW_SHOWN_KEY, Boolean.class, DEVICE);
+        // A restore's own mark that the background-recording notice is due describes this installation too.
+        exclude(app, HomeStyle.RESTORED_NOTICE_KEY, Boolean.class, DEVICE);
         // Clean Home's moments (HomeMoment): the two switches are app preferences; a closed Just back card names a
         // ride on this phone.
         add(app, HomeMoment.CHARGING_KEY, Boolean.class, PREFERENCES);
