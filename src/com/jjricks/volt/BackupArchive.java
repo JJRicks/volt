@@ -655,7 +655,8 @@ final class BackupArchive {
         // The background-recording notice (council's second review of part 9, finding 1): a backup made before the background
         // switch that brings Record rides automatically back on stops its background starts, after setup as well as at the
         // welcome screen, so the restore marks the notice due on this installation; What's new shows it whatever the origin.
-        // Never for a backup from 1.13.2 or later (its manifest's version code), whose owner already had the switch.
+        // A backup from 1.13.2 or later (its manifest's version code) that holds the switch marks nothing: its owner changed it.
+        // One from 1.13.2 without it still does (council review 5908466131 on #392, finding 2: its note may never have been read).
         if ((replace || categories.contains(BackupRegistry.PREFERENCES))
                 && HomeStyle.restoreMarksNotice(prepared.appVersionCode, preHub, backedUp.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
                         result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_KEY), result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY)))
