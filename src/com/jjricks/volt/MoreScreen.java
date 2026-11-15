@@ -237,6 +237,7 @@ public final class MoreScreen implements AppScreen {
         cardDestination = indexView;
         Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
         updatesRow.view.setTag("settings-updates");
+        updatesIndexRow = standalone ? null : updatesRow.view;
         valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? ((RowLine) updatesAuto.view).fallback : null));
         indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
@@ -1397,6 +1398,27 @@ public final class MoreScreen implements AppScreen {
     }
     /** The open Updates sheet's title, or null: hidden while GitHub's consent opens over the sheet (showOverUpdates). */
     private View updatesSheetTitle;
+    /** Settings' Updates row (the index's), or null on a page that shows one section. */
+    private View updatesIndexRow;
+    /** Whether a search anchor names a control the Updates sheet holds (its switch, its manual check). */
+    private static boolean heldByUpdates(String id) {
+        return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);
+    }
+    /**
+     * Search's Automatic update checks and Check for updates (#393 council review, second round, finding 1): both are in
+     * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
+     */
+    @Override public View anchor(String id) {
+        return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
+    }
+    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    @Override public boolean openHeld(String id) {
+        if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
+        updatesSheet();
+        View control = updatesBox.findViewWithTag(id);
+        if (control != null) Motion.beforeNextDraw(control, () -> { if (!closed) HubSearchScreen.flash(control, ui); }, null);
+        return true;
+    }
     /**
      * Shows a dialog that opens from the Updates sheet's switch or Check for updates. The sheet stays open under it, and
      * the dialog sits a little lower than the sheet's top, so its edge would cut through the sheet's "Updates" title:

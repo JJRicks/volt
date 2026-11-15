@@ -332,6 +332,12 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/RidingBrightness.java").contains("\"riding_brightness\"")
                 && read("src/com/jjricks/volt/NightSchedule.java").contains("\"riding_night_vision\""), "by their preference keys");
         check(HubSearchTables.settingAnchor(HubSearchTables.SETTING_UNITS).equals(HubSearchTables.SETTING_UNITS), "other rows by their own tag");
+        // Automatic update checks and Check for updates are in the Updates sheet (part 11): Settings brings its Updates row on
+        // screen for them and opens the sheet over it (#393 council review, second round, finding 1).
+        check(more.contains("return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);")
+                && more.contains("return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;")
+                && more.contains("updatesSheet();\n        View control = updatesBox.findViewWithTag(id);"), "Settings opens the Updates sheet for the update results");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);"), "the host opens a sheet that holds a result");
     }
 
     /**

@@ -780,7 +780,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /**
      * Brings a search result's row on screen once the page is laid out: the page names it (AppScreen.anchor), or its view
-     * tag finds it; then it flashes once (not with reduced motion). Nothing happens when the row isn't shown.
+     * tag finds it; then it flashes once (not with reduced motion), or, where a sheet over the page holds what the result
+     * names (AppScreen.openHeld: Settings' Updates sheet), that sheet opens over the row with it brought on screen and
+     * flashed there (#393 council review, second round, finding 1). Nothing happens when the row isn't shown.
      */
     private void revealAnchor(AppScreen page,ScrollView pageScroll,String anchor){
         Motion.beforeNextDraw(pageScroll,()->{
@@ -793,7 +795,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             int visible=pageScroll.getHeight()-pageScroll.getPaddingTop()-pageScroll.getPaddingBottom();
             int top=Math.max(0,y-pageScroll.getPaddingTop()-Math.max(design.dp(24),(visible-target.getHeight())/3));
             pageScroll.scrollTo(0,top);
-            HubSearchScreen.flash(target,design);
+            if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);
         },null);
     }
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
