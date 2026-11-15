@@ -64,7 +64,9 @@ import com.jjricks.volt.WideLayout;
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
  *   <li><b>Search</b>: the header's search opens the search page with its field focused and the subjects listed;
  *   typing ("batt", as the plan's mock-up) hides the subjects and finds at least one row (pictured with the keyboard gone); the system Back first clears the query (the subjects come back), then returns to Home;
- *   the page's back link returns to Home at once, even with a query typed. Search's own results (settings, readings,
+ *   the page's back link returns to Home at once, even with a query typed. A result opens its page over Search:
+ *   "maintenance" finds Maintenance reminders, whose tap opens Service › Maintenance reminders with Search under it, and
+ *   Back returns to Search, built afresh (its query empty, the subjects listed). Search's own results (settings, readings,
  *   rides) arrive with part 12, which checks them.</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
@@ -135,6 +137,8 @@ public final class HubValidation extends Instrumentation {
         SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
     }
     private Bundle arguments;
+    /** Maintenance reminders' row in search (HubSearchTables.ROW_MAINTENANCE, MaintenanceScreen.ROW): its view tag. */
+    private static final String SEARCH_MAINTENANCE = "maintenance_reminders";
     /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
     private static final String NO_NEARBY = "no-nearby";
     private boolean noNearby;
@@ -457,7 +461,33 @@ public final class HubValidation extends Instrumentation {
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once");
+        // A result opens its page over Search: "maintenance" finds Service's Maintenance reminders row
+        // (HubSearchTables.ROW_MAINTENANCE), whose tap opens Service › Maintenance reminders with Search under it; Back returns
+        // to Search, which the app builds afresh (each page's screen is new when it shows again), so its query is gone and
+        // the subjects are listed again.
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText("maintenance")); settle();
+        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while \"maintenance\" is typed"));
+        hideKeyboard();
+        tapTag(SEARCH_MAINTENANCE);
+        arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
+        screenshot("search-opened-maintenance");
+        systemBack();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        String[] kept = new String[1];
+        await(() -> onMain(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            kept[0] = now == null ? null : now.getText().toString();
+            return now != null && now.getText().length() == 0 && shown(root().findViewWithTag("home-subject-" + HubPages.RIDE));
+        }), () -> "Back from the Maintenance result shows Search with the query \"" + kept[0] + "\" and the subjects " + (onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))) ? "listed" : "not listed")
+                + "; the app builds Search afresh (empty, subjects listed)");
+        hideKeyboard();
+        systemBack();
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once;"
+                + " \"maintenance\" finds Maintenance reminders, whose tap opens Service › Maintenance reminders over Search (stack Home, Search, Maintenance); Back returns to Search, built afresh (query empty, subjects listed)");
     }
 
     /**
