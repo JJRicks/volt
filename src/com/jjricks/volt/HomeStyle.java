@@ -227,7 +227,8 @@ final class HomeStyle {
      * background is not. A backup that already holds the switch was made by an owner who had it, and one with Record rides
      * automatically off has nothing to tell. Holding the switch is not enough to recognise a 1.13.2 backup: 1.13.2 writes
      * auto_record_background only once the switch is touched, so a 1.13.2 backup whose switch was never changed holds
-     * none; the backup's version code tells those apart (the overload below, {@link #madeWithBackgroundSwitch}).
+     * none; the overload below, with the backup's version code ({@link #madeWithBackgroundSwitch}), says what such a
+     * backup gets.
      */
     static boolean restoreMarksNotice(boolean preHub, boolean backupHasBackgroundSwitch, Object restoredAutoRecord,
                                       Object restoredBackground) {
@@ -244,18 +245,25 @@ final class HomeStyle {
     /**
      * Whether a backup made by the app with this version code (its manifest's, BackupArchive.Prepared.appVersionCode; 0
      * when the format records none) came from a build with the background switch: 1.13.2 or later. Its owner already
-     * lived with background starts off and was told so by 1.13.2's own note (council review 5907254138 on #390, P3-1).
+     * lived with background starts off, and 1.13.2's own note told them so once they saw it (council review 5907254138
+     * on #390, P3-1); whether they had seen it, the backup cannot say ({@link #restoreMarksNotice(int, boolean, boolean, Object, Object)}).
      */
     static boolean madeWithBackgroundSwitch(int backupVersionCode) { return backupVersionCode >= BACKGROUND_SWITCH_VERSION_CODE; }
 
     /**
-     * {@link #restoreMarksNotice(boolean, boolean, Object, Object)} for a backup made by the app with this version code:
-     * never for one from 1.13.2 or later, whether or not its switch was ever touched.
+     * {@link #restoreMarksNotice(boolean, boolean, Object, Object)} for a backup made by the app with this version code.
+     * One from 1.13.2 or later that holds auto_record_background never marks it: its owner changed the switch, so they
+     * knew it. One from 1.13.2 or later without that key still marks it when the rule above does (Record rides
+     * automatically on, the backup made before Home styles): 1.13.2 writes the switch only once it is changed and keeps
+     * auto_record_background_notice (whether its own note was read) out of backups, so an owner who exported before
+     * that note appeared and restores onto a new install would otherwise never learn that background starts are off.
+     * Telling twice, to an owner who did read 1.13.2's note, is the cheaper failure (council review 5908466131 on #392,
+     * finding 2). Backups from before 1.13.2 keep the rule above as it is.
      */
     static boolean restoreMarksNotice(int backupVersionCode, boolean preHub, boolean backupHasBackgroundSwitch,
                                       Object restoredAutoRecord, Object restoredBackground) {
-        return !madeWithBackgroundSwitch(backupVersionCode)
-                && restoreMarksNotice(preHub, backupHasBackgroundSwitch, restoredAutoRecord, restoredBackground);
+        if (madeWithBackgroundSwitch(backupVersionCode) && backupHasBackgroundSwitch) return false;
+        return restoreMarksNotice(preHub, backupHasBackgroundSwitch, restoredAutoRecord, restoredBackground);
     }
 
     /**
