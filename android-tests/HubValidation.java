@@ -850,9 +850,17 @@ public final class HubValidation extends Instrumentation {
         });
         if (!HubPages.HOME.equals(page)) {
             boolean connected = onMain(() -> activity.service().ble.ready());
+            // Search with Cancel beside its field hides the whole header, the connection line with it (part 12).
+            if (searchHeaderAside(page)) main(() -> require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line with its header stepped aside"));
             // The contributor's decision (14 Nov, #383): the connection line only while not connected, never on Settings.
-            if (connected || HubPages.appPage(page)) requireHeader(page, false);
+            else if (connected || HubPages.appPage(page)) requireHeader(page, false);
         }
+    }
+
+    /** Whether page is Search with Cancel beside its field, where the page header steps aside (HubSearch.headerHidden). */
+    private boolean searchHeaderAside(String page) {
+        return HubPages.SEARCH.equals(page) && onMain(() -> firstEditText(activity.findViewById(android.R.id.content)) != null
+                && shown(root().findViewWithTag("hub-search-cancel")));
     }
 
     /**
