@@ -46,10 +46,21 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     // Synthetic, non-empty C1 profile fields: the round trip must keep each exactly, not fall back to defaults.
     private static final String C1_PID="24431";private static final long C1_PID_WALL=1700000000000L,C1_FW_WALL=1700000000001L;
     private static final String[] C1_FW={"2.0.1.2","1.4.0.7","3.1","0.9.2","u1"}; // meter, controller, BMS, screen, UWB
-    /** Device and pending keys planted before export; a backup never carries them. */
-    private static final String[] EXCLUDED={"app_settings/last_page","app_settings/more_away_boot","app_settings/owner_import_applied","app_settings/notification_prompted","onboarding/nearby_asked"};
-    /** Real launch creates these target-local navigation keys; exact restore intentionally retains them. */
-    private static final String[] LOCAL_NAVIGATION={"more_section","stats_section"};
+    /**
+     * Device and pending keys planted before export; a backup never carries them. more_away_boot is the retired More
+     * clock's (still registered, so an older phone's copy stays out); hub_away_* is the Hub's away clock (BackupRegistry,
+     * Device scope): the exporting phone's clock means nothing on another phone.
+     */
+    private static final String[] EXCLUDED={"app_settings/last_page","app_settings/more_away_boot","app_settings/hub_away_elapsed","app_settings/hub_away_boot",
+        "app_settings/owner_import_applied","app_settings/notification_prompted","onboarding/nearby_asked"};
+    /**
+     * Real launch creates these target-local navigation keys; exact restore intentionally retains them. The Hub's away
+     * clock (hub_away_*) is the target phone's own Device navigation state like the section keys: Replace everything keeps
+     * whatever the phone held before the restore, and never the backup's planted values (restoreFromWelcome, verifyRestored).
+     */
+    private static final String[] LOCAL_NAVIGATION={"more_section","stats_section","hub_away_elapsed","hub_away_boot"};
+    /** The target phone's own LOCAL_NAVIGATION values just before the restore was applied. */
+    private final Map<String,Object> localNavigation=new LinkedHashMap<>();
     private String mode;private int assertions;private Context app;private Activity current;
     @Override public void onCreate(Bundle args){mode=args==null?null:args.getString("mode");start();}
     @Override public void onStart(){
@@ -115,7 +126,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         await(()->view(backup,"restore-choose")!=null,"Restore file picker entry missing");
         require(DataMaintenance.active(),"Restore did not pause app data");
         String before=preferenceDigest();
-        Map<String,Object> localNavigation=new LinkedHashMap<>();
+        localNavigation.clear();
         for(String key:LOCAL_NAVIGATION)if(prefs("app_settings").contains(key))localNavigation.put(key,prefs("app_settings").getAll().get(key));
         IntentFilter files=new IntentFilter(Intent.ACTION_OPEN_DOCUMENT);files.addCategory(Intent.CATEGORY_OPENABLE);files.addDataType("*/*");
         ActivityMonitor picker=addMonitor(files,new ActivityResult(Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(archive))),true);
@@ -279,7 +290,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         JSONObject hashes=new JSONObject();for(File file:durableFiles())hashes.put(relative(file),hash(Files.readAllBytes(file.toPath())));
         require(settings.edit().putString("fixture_file_hashes",hashes.toString()).commit(),"Store dataset byte expectations");
         require(settings.edit().putString(DIGEST,preferenceDigest()).commit(),"Store all-preferences expectation");
-        require(settings.edit().putString("last_page","rides").putInt("more_away_boot",4).putString("owner_import_applied","fixture-import").putBoolean("notification_prompted",true).commit()
+        require(settings.edit().putString("last_page","rides").putInt("more_away_boot",4).putLong("hub_away_elapsed",424242L).putInt("hub_away_boot",4).putString("owner_import_applied","fixture-import").putBoolean("notification_prompted",true).commit()
             &&prefs("onboarding").edit().putBoolean("nearby_asked",true).commit(),"Plant excluded device keys");
     }
     private void verifyLegacy()throws Exception {
@@ -296,7 +307,11 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     }
     private void verifyRestored()throws Exception {
         SharedPreferences settings=prefs("app_settings");require(settings.getString(DIGEST,"").equals(preferenceDigest()),"Exact full preference inventory differs after clear-storage restore; keys: "+preferenceKeys());
-        for(String key:EXCLUDED){String[] part=key.split("/");require(!prefs(part[0]).contains(part[1]),"Excluded key restored: "+key);}
+        // An excluded key the target phone keeps as its own navigation (the away clock) must hold the phone's own value
+        // (absent when it had none), never the backup's planted one; every other excluded key must be absent.
+        for(String key:EXCLUDED){String[] part=key.split("/");
+            if(part[0].equals("app_settings")&&Arrays.asList(LOCAL_NAVIGATION).contains(part[1]))require(Objects.equals(localNavigation.get(part[1]),prefs(part[0]).getAll().get(part[1])),"Excluded key restored: "+key);
+            else require(!prefs(part[0]).contains(part[1]),"Excluded key restored: "+key);}
         JSONObject hashes=new JSONObject(settings.getString("fixture_file_hashes","{}"));List<File> files=durableFiles();require(hashes.length()==5&&files.size()==5,"Restored durable file inventory differs");
         for(File file:files)require(hashes.getString(relative(file)).equals(hash(Files.readAllBytes(file.toPath()))),"Restored file byte hash differs: "+relative(file));
         String profileId=settings.getString("fixture_profile_id",""),ride=settings.getString("fixture_ride_id","");

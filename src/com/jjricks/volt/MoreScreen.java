@@ -247,7 +247,9 @@ public final class MoreScreen implements AppScreen {
             Row row = row(scooterGroup.getChildCount() == 0 ? scooterGroup : laterGroup, null, sectionLabel(i), null, () -> selectSection(section));
             indexRow(row);
             menuRows[i] = row;
-            if (section.equals("Scooters")) scootersIndexRow = row;
+            // Each row has a tag, as Home style's and Developer options' have, so a validation taps the row an owner would.
+            if (section.equals("Scooters")) { scootersIndexRow = row; row.view.setTag("my-scooters-menu"); }
+            else if (section.equals("About")) row.view.setTag("about-menu");
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
                 row.view.setTag("developer-options-menu");
