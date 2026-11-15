@@ -104,6 +104,11 @@ final class DragSheet {
      */
     private float caughtAt = Float.NaN;
     private boolean caughtClosing;
+    /**
+     * What opened it let go of it while it settled closed (leave()): it only finishes that settle and goes. No finger
+     * catches it (its window still takes every touch, which does nothing), and open(), close() and pull() do nothing.
+     */
+    private boolean letGo;
     private Runnable onDismiss;
 
     /**
@@ -219,7 +224,7 @@ final class DragSheet {
 
     /** Opens it from closed with the opening spring (a tap); one already settling closed springs back open from where it is. */
     void open() {
-        if (state == GONE) return;
+        if (state == GONE || letGo) return;
         if (state == NEW) {
             if (!show()) return;
             // Closed (nothing pulled) until the first layout gives its travel; then it springs open from there.
@@ -233,6 +238,7 @@ final class DragSheet {
 
     /** Closes it with the closing settle, then dismisses it (the close button, Back, a row, a tap on the dim). */
     void close() {
+        if (letGo) return;
         if (state == NEW || state == GONE || state == CLOSING) { if (state == NEW) state = GONE; return; }
         if (travel == 0) { dismissNow(); return; }
         settle(false, state == PULLED || state == DRAGGED ? 0 : velocityNow());
@@ -240,11 +246,12 @@ final class DragSheet {
 
     /**
      * What opened it goes (Home rebuilt for a page a row opened, a rotation, the activity ending): a sheet already settling
-     * closed (that row's own close) finishes its settle over the new page; any other goes at once, and so does every
-     * sheet of an activity that is ending.
+     * closed (that row's own close) finishes its settle over the new page, let go (letGo: nothing can catch or reopen
+     * it, as nothing owns its rows now); any other goes at once (one a finger holds too), and so does every sheet of an
+     * activity that is ending.
      */
     void leave() {
-        if (state == CLOSING && !activity.isFinishing() && !activity.isDestroyed()) return;
+        if (state == CLOSING && settling != null && !activity.isFinishing() && !activity.isDestroyed()) { letGo = true; return; }
         dismissNow();
     }
 
@@ -265,7 +272,7 @@ final class DragSheet {
      * was settling. False when it cannot show (the activity is going away).
      */
     boolean pull() {
-        if (state == GONE) return false;
+        if (state == GONE || letGo) return false;
         if (state == NEW) {
             if (!show()) return false;
             pullBase = 0;
@@ -387,6 +394,8 @@ final class DragSheet {
     private void settle(boolean open, float velocity) {
         stop();
         if (travel == 0) return;
+        // A settle started from outside a finger's drag (Back, the close button): the rest of that touch does nothing.
+        frame.endGesture();
         focusable(open);
         if (!Motion.enabled()) {
             if (open) { offset = 0; state = OPEN; place(); } else finish();
@@ -400,6 +409,8 @@ final class DragSheet {
         animator.setInterpolator(new LinearInterpolator());
         animator.addUpdateListener(a -> {
             if (a != settling) return;
+            // Its activity went (a let-go sheet has no owner to say so): it goes at once.
+            if (activity.isFinishing() || activity.isDestroyed()) { dismissNow(); return; }
             offset = (float) next.offset(a.getAnimatedFraction() * next.seconds);
             place();
         });
@@ -483,6 +494,8 @@ final class DragSheet {
                 downX = x; downY = y; lastY = y; moved = false;
                 region = regionAt(x, y);
                 // A second finger while one on the dock pulls the sheet: that pull settles where it is, and this touch does nothing.
+                // Let go by its page: no finger catches it; the touch does nothing (and reaches nothing under it).
+                if (letGo) { mode = IGNORE; return true; }
                 if (state == PULLED) { release(0, -1); mode = IGNORE; return true; }
                 // Settling closed: a finger on the sheet catches it (its rows never get the touch); the dim swallows it.
                 if (state == CLOSING && region != OUTSIDE) { catchAt(y); track(event); return true; }
@@ -545,17 +558,28 @@ final class DragSheet {
             state = DRAGGED;
         }
 
-        /** A finger down on the sheet settling closed: it stops where it is and follows the finger from there. */
+        /**
+         * A finger down on the sheet settling closed: it stops where it is and follows the finger from there, focused again
+         * (so Back goes to it, and the page doesn't act as if no sheet were over it); a release that closes it gives the
+         * focus back to the page.
+         */
         private void catchAt(float y) {
             caught();
             stop();
+            focusable(true);
             dragY = y; lastY = y;
             dragRaw = (float) SheetSpring.undragged(offset, cap);
             mode = DRAG;
             state = DRAGGED;
         }
 
+        /** A settle started from outside this touch (Back, the close button): the rest of the touch does nothing. */
+        void endGesture() {
+            if (mode == DRAG) mode = IGNORE;
+        }
+
         private void drag(float y) {
+            if (state != DRAGGED) return;
             offset = (float) SheetSpring.dragged(dragRaw + (y - dragY), travel, cap);
             place();
         }

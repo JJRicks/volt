@@ -345,6 +345,11 @@ public final class DockSheetValidation extends Instrumentation {
         // Caught low, taken up 30% and back to where it was caught: it carries on closing (a quarter from the catch decides).
         Object again = onMain(this::drag);
         Finger finger3 = catchLow();
+        // Held, the caught sheet has the focus again (Back goes to it, and the page knows a sheet is over it).
+        Dialog held = onMain(this::dialog);
+        await(() -> onMain(() -> (held.getWindow().getAttributes().flags & android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) == 0
+                && held.getWindow().getDecorView().hasWindowFocus() && !activity.hasWindowFocus()),
+                () -> "The caught sheet did not take the focus back (" + describe() + ")");
         finger3.moveBy(-.30f * travel, 500, 25);
         finger3.moveBy(.30f * travel, 500, 25);
         States back = new States(again);
@@ -355,6 +360,65 @@ public final class DockSheetValidation extends Instrumentation {
         seen = back.stop();
         require(!seen.contains(OPENING) && !seen.contains(OPEN), "A catch taken back to where it was caught reopened the sheet (states " + seen + ")");
         awaitGone("a catch taken back to its start");
+        requireHome();
+        // Caught and held, then Back: the sheet settles closed, and the rest of that touch (moves up, the lift) does nothing.
+        tapAll();
+        Object backed = onMain(this::drag);
+        Dialog backedDialog = onMain(this::dialog);
+        Finger finger4 = catchLow();
+        await(() -> onMain(() -> backedDialog.getWindow().getDecorView().hasWindowFocus()), () -> "The caught sheet did not take the focus back (" + describe() + ")");
+        States afterBack = new States(backed);
+        sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+        await(() -> onMain(() -> Integer.valueOf(CLOSING).equals(field(backed, "state")) || !backedDialog.isShowing()), () -> "Back on a held sheet did not close it (" + describe() + ")");
+        float fromBack = onMain(() -> (Float) field(backed, "offset"));
+        finger4.moveBy(-.30f * travel, 400, 20);
+        float afterMoves = onMain(() -> (Float) field(backed, "offset"));
+        require(!onMain(backedDialog::isShowing) || afterMoves >= fromBack - 1, "After Back, the held sheet still followed the finger up (" + fromBack + " -> " + afterMoves + " px)");
+        finger4.up();
+        end = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < end && !afterBack.gone()) SystemClock.sleep(10);
+        seen = afterBack.stop();
+        // From the close Back started (the watch began on the held sheet, DRAGGED): nothing but closing and gone.
+        List<Integer> sinceBack = seen.contains(CLOSING) ? seen.subList(seen.indexOf(CLOSING), seen.size()) : seen;
+        require(!sinceBack.contains(OPENING) && !sinceBack.contains(OPEN) && !sinceBack.contains(DRAGGED), "After Back on a held sheet, the rest of the touch moved or reopened it (states " + seen + ")");
+        awaitGone("Back on a held sheet");
+        requireHome();
+        // A row's close, let go by Widgets Home as the subject opens: no finger catches it (a pull of 30% does not reopen
+        // it), it finishes closing, the subject stays, and nothing under the finger is clicked.
+        tapAll();
+        String rowSubject = onMain(() -> {
+            for (String each : HubPages.SUBJECTS) { View view = dialog().getWindow().getDecorView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
+            return null;
+        });
+        require(rowSubject != null, "The All sheet shows no subject row");
+        Object rowSheet = onMain(this::drag);
+        Dialog rowDialog = onMain(this::dialog);
+        View rowView = onMain(() -> rowDialog.getWindow().getDecorView().findViewWithTag("home-subject-" + rowSubject));
+        main(() -> rowView.requestRectangleOnScreen(new Rect(0, 0, rowView.getWidth(), rowView.getHeight()), true));
+        settle();
+        tapCentre(rowView, "the All sheet's " + rowSubject + " row");
+        await(() -> onMain(() -> Boolean.TRUE.equals(field(rowSheet, "letGo"))), () -> "Opening " + rowSubject + " did not let its closing sheet go (state " + onMain(() -> field(rowSheet, "state")) + ")");
+        float[] onPanel = onMain(() -> {
+            View panel = (View) field(rowSheet, "panel"); int[] p = new int[2]; panel.getLocationOnScreen(p);
+            return new float[]{p[0] + panel.getWidth() / 2f, p[1] + 30 * dp, (Float) field(rowSheet, "offset")};
+        });
+        require(onPanel[2] < .6f * travel, "The row's close was too far along to touch (" + onPanel[2] + " of " + travel + " px)");
+        States letGo = new States(rowSheet);
+        Finger finger5 = new Finger(onPanel);
+        Object stateDown = onMain(() -> field(rowSheet, "state"));
+        require(Integer.valueOf(CLOSING).equals(stateDown) || !onMain(rowDialog::isShowing), "A finger down on a let-go sheet caught it (state " + stateDown + ")");
+        finger5.moveBy(-.30f * travel, 500, 25);
+        finger5.hold(150);
+        finger5.up();
+        end = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < end && !letGo.gone()) SystemClock.sleep(10);
+        seen = letGo.stop();
+        require(!onMain(rowDialog::isShowing), "The let-go sheet stayed after its settle");
+        require(!seen.contains(DRAGGED) && !seen.contains(OPENING) && !seen.contains(OPEN), "A pull on the let-go sheet caught or reopened it (states " + seen + ")");
+        await(() -> onMain(() -> rowSubject.equals(HubTestPages.current(activity))), "The subject the row opened did not stay (" + HubTestPages.current(activity) + ")");
+        settle();
+        require(onMain(() -> rowSubject.equals(HubTestPages.current(activity))), "A touch on the let-go sheet reached the page under it (now on " + onMain(() -> HubTestPages.current(activity)) + ")");
+        back();
         requireHome();
         // A tap on the dim while the sheet settles closed is swallowed: the close carries on, and the page under it is not touched.
         tapAll();
@@ -381,7 +445,9 @@ public final class DockSheetValidation extends Instrumentation {
         scale(1);
         checks.add("ACTION_CANCEL settles a pull where it is (a tenth closes, two fifths opens); a second finger settles it at once and the rest of the touch moves nothing; "
                 + "a pull taken back to its start closes; the page has focus while the sheet settles closed; a finger on the closing sheet catches it: taken up 30% from where it "
-                + "was caught it reopens (the same sheet), taken back to that point it carries on closing; a tap on the dim meanwhile is swallowed");
+                + "was caught it reopens (the same sheet), taken back to that point it carries on closing; held, it has the focus (the page has none); Back while held closes it and the rest "
+                + "of that touch does nothing; a row's close, let go by Home as the subject opens, cannot be caught (a 30% pull does not reopen it) and reaches nothing under it; "
+                + "a tap on the dim meanwhile is swallowed");
     }
 
     /**
