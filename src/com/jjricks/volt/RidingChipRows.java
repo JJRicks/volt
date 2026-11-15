@@ -11,7 +11,8 @@ package com.jjricks.volt;
  * an earlier one with a narrower later chip in its place. Before that happens, a GPS chip shows its compact dash when that
  * lets more chips show (as RidingChipFit.steadyStepping does for Halo and Trace). The rung kept is the one that keeps the
  * earliest chips in slot order, then needs the fewest rows (names shorten before a chip moves down), then reads widest.
- * The widths are each chip's widest value, so the split never changes while riding.
+ * The widths are each chip's widest value, so the split never changes while riding: a usual-room reading drawn narrower
+ * than that, or widened once, never moves a chip to another row (fitting).
  */
 final class RidingChipRows {
     /** Each chip's row (-1: hidden), its name step and whether it shows its compact form. */
@@ -81,6 +82,30 @@ final class RidingChipRows {
         int most = 0;
         for (int i = 0; i < row.length; i++) if (left[i] >= 0) most = Math.max(most, left[i] + widths[i]);
         return most;
+    }
+
+    /**
+     * The chips that show at the widths they draw at now: showing, less each row's last chips while that row is wider than
+     * room (its first chip always stays). The split comes from each chip's widest values, and a chip draws at most that
+     * wide until it keeps a value past them (a ±1000 ft fix): then its row's last chip steps aside, as Halo's does. No
+     * chip ever changes row, so the rows, how many there are and the number above them never change (the council on #500).
+     */
+    boolean[] fitting(int[] widths, boolean[] showing, int gap, int room) {
+        boolean[] out = showing.clone();
+        for (int r = 0; r < rows; r++) {
+            while (true) {
+                int used = 0, count = 0, last = -1;
+                for (int i = 0; i < row.length; i++) {
+                    if (row[i] != r || !out[i]) continue;
+                    used += (count > 0 ? gap : 0) + widths[i];
+                    count++;
+                    last = i;
+                }
+                if (used <= room || count <= 1) break;
+                out[last] = false;
+            }
+        }
+        return out;
     }
 
     /**

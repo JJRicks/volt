@@ -36,6 +36,7 @@ public final class QuickActionLayoutTest {
                 for (float wider : new float[]{1f, 1.15f}) size(window, text, wider);
         ladder();
         languages();
+        oneWord();
         order();
         narrow();
         states();
@@ -165,7 +166,29 @@ public final class QuickActionLayoutTest {
             QuickActionLayout.Name wide = QuickActionLayout.name(room(725), names, "Controle de cruzeiro", "Cruzeiro");
             whole(wide, room(725), names, "725 dp at " + text + "x");
             require(!wide.iconOnly(), "725 dp at " + text + "x: pt-BR cruise control whole: " + wide);
+            // Review of #449 (f5540133), finding 3: the one-word name comes first (oneWordFirst), so pt-BR cruise
+            // control reads "Cruzeiro" at full size in every column, wide ones included, never "Controle de cruzeiro".
+            String[] ptCruise = QuickActionLayout.oneWordFirst("Controle de cruzeiro", "Cruzeiro", "Cruzeiro");
+            for (int window : new int[]{344, 412, 725}) {
+                QuickActionLayout.Name pt = QuickActionLayout.name(room(window), names, ptCruise);
+                require("Cruzeiro".equals(pt.text) && pt.scale == 1, window + " dp at " + text + "x: one word first, Cruzeiro at full size: " + pt);
+            }
         }
+    }
+
+    /** oneWordFirst: a one-word name moves to the front only when the first has more than one word. */
+    private static void oneWord() {
+        require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Controle de cruzeiro", "Cruzeiro", "Cruzeiro"),
+                new String[]{"Cruzeiro", "Controle de cruzeiro", "Cruzeiro"}), "pt-BR: Cruzeiro first, the rest in order");
+        require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Cruise", "Cruise ctrl", "Cruise"),
+                new String[]{"Cruise", "Cruise ctrl", "Cruise"}), "en: Cruise is one word already: unchanged");
+        require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Contrôle traction", null, "Antipatinage"),
+                new String[]{"Antipatinage", "Contrôle traction", null}), "a null rung is kept in place, the word moves first");
+        require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Max. speed", "Max speed"),
+                new String[]{"Max. speed", "Max speed"}), "no one-word name: unchanged");
+        require(QuickActionLayout.oneWordFirst().length == 0, "no names: none");
+        require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Controle\u00a0de cruzeiro", "Cruzeiro"),
+                new String[]{"Cruzeiro", "Controle\u00a0de cruzeiro"}), "a no-break space counts as a space");
     }
 
     /** Full size when it fits; smaller (never below the least share) while that keeps it whole; else the next rung. */

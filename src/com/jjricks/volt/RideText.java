@@ -15,8 +15,13 @@ final class RideText {
 
     /** A distance in the "units" preference: "1.24 mi", "2.00 km" or "1.24 mi / 2.00 km". */
     static Formatted distance(double km, String units) {
-        Formatted metric = Fmt.quantity(Fmt.decimalNumber(Locale.US, km, 2), Fmt.unit(UnitCode.KM));
-        Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, km / RideStore.KM_PER_MILE, 2), Fmt.unit(UnitCode.MI));
+        return distance(km, units, 2);
+    }
+
+    /** The same with decimals places ("6.2 mi" with one, as Clean's Just back and Ride row show it). */
+    static Formatted distance(double km, String units, int decimals) {
+        Formatted metric = Fmt.quantity(Fmt.decimalNumber(Locale.US, km, decimals), Fmt.unit(UnitCode.KM));
+        Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, km / RideStore.KM_PER_MILE, decimals), Fmt.unit(UnitCode.MI));
         return units.equals("dual") ? Fmt.dual(miles, metric) : units.equals("km") ? metric : miles;
     }
 

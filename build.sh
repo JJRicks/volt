@@ -176,7 +176,7 @@ navee_build_pseudo() {
     rm -rf -- "$work"
     mkdir -p "$work/generated" "$out_dir"
     "$BUILD_TOOLS/aapt" package -f -m --pseudo-localize \
-        -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
+        -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$BUILD_DIR/assets" -I "$ANDROID_JAR" \
         -J "$work/generated" -F "$work/resources.apk"
     # Pseudo-localization adds configurations, not resources, so the ids and classes.dex are unchanged.
     cmp -s "$BUILD_DIR/generated/com/jjricks/volt/R.java" "$work/generated/com/jjricks/volt/R.java" || {
@@ -236,7 +236,7 @@ def aapt_skips(rel):
 RULES = (('src/', lambda rel: rel.endswith('.java')), ('aidl/', lambda rel: rel.endswith('.aidl')),
          ('res/', lambda rel: not aapt_skips(rel)), ('licenses/', lambda rel: not aapt_skips(rel)),
          ('tools/l10n/', lambda rel: rel.endswith('.py')), ('l10n/lang/', lambda rel: True))
-SINGLE = ('AndroidManifest.xml', 'build.sh', 'setup/owner-capture-guard.sh', 'setup/shizuku-dependencies.py')
+SINGLE = ('AndroidManifest.xml', 'build.sh', 'CHANGELOG.md', 'setup/owner-capture-guard.sh', 'setup/shizuku-dependencies.py')
 def is_input(rel):
     return rel in SINGLE or any(rel.startswith(top) and keep(rel) for top, keep in RULES)
 head = {}
@@ -312,6 +312,40 @@ navee_release_translations() {
     }
 }
 
+# The APK's assets: the licence texts as they are in licenses/, and this version's section of
+# CHANGELOG.md as whats-new/notes.md for the one-time What's new sheet (WhatsNewNotes; owner's
+# answers 9, 10 and 12 on #383). The section is the "## <manifest versionName>" heading and every
+# line up to the next "## " heading; without one (a version whose notes aren't written yet) the
+# file is left out and the sheet shows no notes. The app checks the heading against the installed
+# version, so a stale file never shows.
+navee_stage_assets() {
+    mkdir -p "$BUILD_DIR/assets"
+    cp -R "$APP_DIR/licenses/." "$BUILD_DIR/assets/"
+    python3 -I - "$APP_DIR/AndroidManifest.xml" "$APP_DIR/CHANGELOG.md" "$BUILD_DIR/assets/whats-new/notes.md" <<'PYNOTES'
+import pathlib, re, sys
+from xml.etree import ElementTree
+version = ElementTree.parse(sys.argv[1]).getroot().get('{http://schemas.android.com/apk/res/android}versionName') or ''
+changelog = pathlib.Path(sys.argv[2])
+lines = changelog.read_text(encoding='utf-8').replace('\r\n', '\n').replace('\r', '\n').split('\n') if changelog.exists() else []
+section = None
+for line in lines:
+    if line.startswith('## '):
+        if section is not None:
+            break
+        words = line[3:].split()
+        if words and re.sub(r'^[vV]', '', words[0]) == version:
+            section = []
+    if section is not None:
+        section.append(line)
+if section is None:
+    print('What\'s new notes: CHANGELOG.md has no "## %s" section; the APK carries none' % version, file=sys.stderr)
+else:
+    target = pathlib.Path(sys.argv[3])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('\n'.join(section).rstrip('\n') + '\n', encoding='utf-8')
+PYNOTES
+}
+
 navee_build_app() {
     navee_find_sdk
     navee_find_java
@@ -323,8 +357,9 @@ navee_build_app() {
     fi
     mkdir -p "$BUILD_DIR" "$(dirname -- "$APK_PATH")"
     rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies" \
-        "$BUILD_DIR/l10n" "$BUILD_DIR/pseudo"
+        "$BUILD_DIR/l10n" "$BUILD_DIR/pseudo" "$BUILD_DIR/assets"
     mkdir -p "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
+    navee_stage_assets
 
     python3 - "$APP_DIR/setup/owner-capture-guard.sh" "$BUILD_DIR/generated" <<'PYGUARD'
 import json, pathlib, sys
@@ -353,7 +388,7 @@ PYGUARD
     fi
 
     "$BUILD_TOOLS/aapt" package -f -m --version-name "$version_name" --replace-version \
-        -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
+        -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$BUILD_DIR/assets" -I "$ANDROID_JAR" \
         -J "$BUILD_DIR/generated" -F "$BUILD_DIR/resources.apk"
     navee_l10n_roundtrip "$BUILD_DIR/resources.apk"
 

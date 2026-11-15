@@ -627,9 +627,40 @@ final class BackupArchive {
         }
         // Home style (HomeStyle): a backup made before Home styles existed carries no home_style; restoring it leaves this
         // phone's style and the owner's choice as they are (hub layout plan, open question 6). One that has it applies it.
-        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && !prepared.preferences.get("app_settings").containsKey(HomeStyle.KEY))
+        Map<String, Object> backedUp = prepared.preferences.get("app_settings"), mineNow = live.get("app_settings");
+        boolean preHub = !backedUp.containsKey(HomeStyle.KEY);
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && preHub)
             for (String key : new String[]{HomeStyle.KEY, HomeStyle.CHOSEN_KEY}) {
-                Object mine = live.get("app_settings").get(key);
+                Object mine = mineNow.get(key);
+                if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
+            }
+        // A pre-Hub backup's App preferences are an earlier owner's: on a phone with neither a style nor an origin yet (a
+        // fresh installation restoring from the welcome screen) they store that owner's Widgets, unchosen, so setup's end
+        // records origin update and What's new with its background-recording notice still shows. Not on Replace
+        // everything: that brings the backup's finished setup back, which the seed already reads as an earlier owner.
+        if (!replace && categories.contains(BackupRegistry.PREFERENCES) && preHub
+                && HomeStyle.preHubRestoreStoresWidgets(mineNow.containsKey(HomeStyle.KEY), mineNow.get(HomeStyle.ORIGIN_KEY)))
+            result.get("app_settings").put(HomeStyle.KEY, HomeStyle.WIDGETS);
+        // ...except a style this phone's owner never chose (the new install's Clean after setup was skipped, or a seeded
+        // style): the backup owner's dashboards and preferences come back, and so does their Home, Widgets.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES) || categories.contains(BackupRegistry.DASHBOARDS)) && preHub
+                && HomeStyle.preHubRestoreGivesWidgets(Boolean.TRUE.equals(mineNow.get(HomeStyle.CHOSEN_KEY)), mineNow.containsKey(HomeStyle.KEY), mineNow.get(HomeStyle.ORIGIN_KEY))) {
+            result.get("app_settings").put(HomeStyle.KEY, HomeStyle.WIDGETS);
+            result.get("app_settings").remove(HomeStyle.CHOSEN_KEY);
+        }
+        // The background-recording notice (council's second review of part 9, finding 1): a backup made before the background
+        // switch that brings Record rides automatically back on stops its background starts, after setup as well as at the
+        // welcome screen, so the restore marks the notice due on this installation; What's new shows it whatever the origin.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES))
+                && HomeStyle.restoreMarksNotice(preHub, backedUp.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
+                        result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_KEY), result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY)))
+            result.get("app_settings").put(HomeStyle.RESTORED_NOTICE_KEY, true);
+        // Clean Home's moment switches (HomeMoment): a backup made before them carries neither (nor home_style); restoring
+        // it keeps this phone's switches as they are instead of dropping them (absent means on). One that has them applies them.
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && preHub
+                && !backedUp.containsKey(HomeMoment.CHARGING_KEY) && !backedUp.containsKey(HomeMoment.RIDE_KEY))
+            for (String key : new String[]{HomeMoment.CHARGING_KEY, HomeMoment.RIDE_KEY}) {
+                Object mine = mineNow.get(key);
                 if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
             }
         if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))) lines.add(M.backupEnginePlanOnlineMap());

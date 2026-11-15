@@ -162,6 +162,16 @@ final class RidingLayout {
         return DRIVE_MODE.equals(contentId) || BATTERY_TEMPERATURE.equals(contentId) || CLOCK.equals(contentId);
     }
 
+    /**
+     * True for the chips sized from their usual values rather than their widest (the owner, Nov 14): efficiency, battery
+     * temperature, Volt's range and GPS accuracy. Each widens once if a value goes past that (RidingChipFit.Reserve). The
+     * others keep their widest values: the clock's widest comes every day, and a speed or trip has no usual ceiling.
+     */
+    static boolean chipHasUsualRoom(String contentId) {
+        return EFFICIENCY.equals(contentId) || BATTERY_TEMPERATURE.equals(contentId) || RANGE_VOLT.equals(contentId)
+                || GPS_ACCURACY.equals(contentId);
+    }
+
     /** A place in a frame. Its id is stable storage; its default is the shipped choice. */
     static final class Spot {
         final String id, fallback;
