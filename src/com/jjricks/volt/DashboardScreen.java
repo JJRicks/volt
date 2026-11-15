@@ -462,6 +462,7 @@ public final class DashboardScreen implements AppScreen {
             overview.active = false;
             chargingHero.shown = false;
             chargingHero.stopReveal();
+            ChargePicture.clearCache();
             // The odometer's rings stop with the page, as DashboardScreen.close() stops them.
             pulsing.clear();
             runOdometerPulse();
@@ -604,6 +605,8 @@ public final class DashboardScreen implements AppScreen {
         clearRestoreUndo();
         editing = !editing;
         preferences.edit().putBoolean("dashboard_editing", editing).apply();
+        // The charging picture clips again before anything is dragged (ChargePictureFit.atRest).
+        chargingHero.updateClip();
         render();
         if (transition != null) {
             editTransition = transition;
@@ -2491,6 +2494,30 @@ public final class DashboardScreen implements AppScreen {
         float percentFullPx;
         /** Clean: the photo's side in the stage (the square picture, centred under the percentage); 0 while it does not show. */
         int photoSide;
+        /**
+         * Clean: the model's charging picture (ChargePicture: the animated wire or the folded still; the contributor's
+         * charging pictures, 14 Nov 2026), drawn in the photo's place under the percentage; null for every other
+         * model, which keeps its photo. The photo view stays (it keeps its place for TalkBack) but draws nothing while
+         * the picture shows.
+         */
+        ChargePicture picture;
+        /** The last photo key that has no charging picture (not looked up again). */
+        String missingPicture;
+        /** The percentage's shade over the picture (the wire's halo or the folded picture's cut-off). */
+        final ChargePicture.Shade shade = new ChargePicture.Shade();
+        /**
+         * The percentage's and the picture's sizes over each other (ChargePictureFit: the prototype's relationship at
+         * every text size and window), from the last measure; null while no picture shows.
+         */
+        ChargePictureFit.Fit fit;
+        /** Where the picture's tyres stand in the stage (pixels from its top), from the last measure. */
+        int pictureFloorPx;
+        /** Widgets: the percentage's own size, padding and place above the stage (restored when the picture goes). */
+        float percentWidgetsPx;
+        int[] percentWidgetsPadding;
+        LinearLayout.LayoutParams percentWidgetsSize;
+        FrameLayout.LayoutParams photoWidgetsSize;
+        final Paint.FontMetrics percentMetrics = new Paint.FontMetrics();
 
         ChargingHero(boolean clean) {
             super(host.activity());
@@ -2538,7 +2565,12 @@ public final class DashboardScreen implements AppScreen {
                 percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, percent.getTextSize() * ChargingFit.PERCENT_SP / 72f);
                 percent.setPadding(0, 0, 0, 0);
                 percentFullPx = percent.getTextSize();
-            } else addView(percent, percentSize);
+            } else {
+                addView(percent, percentSize);
+                percentWidgetsPx = percent.getTextSize();
+                percentWidgetsSize = percentSize;
+                percentWidgetsPadding = new int[] {percent.getPaddingLeft(), percent.getPaddingTop(), percent.getPaddingRight(), percent.getPaddingBottom()};
+            }
             stage = new Stage();
             photo = new ImageView(host.activity());
             photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -2554,6 +2586,7 @@ public final class DashboardScreen implements AppScreen {
                 stage.setClipToPadding(false);
             }
             stage.addView(photo, photoSize);
+            if (!clean) photoWidgetsSize = photoSize;
             // Clean: the number in front of the photo (its fade is drawn just before it, Stage.drawChild).
             if (clean) stage.addView(percent, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
             bar = clean ? null : new ChargeBar(host.activity(), ui, barHost(), .06f, 3, 18);
@@ -2621,17 +2654,20 @@ public final class DashboardScreen implements AppScreen {
          * editing, stale, backgrounded, detached, closed, reduced motion) leaves the static glow.
          */
         void updatePulse() {
+            updateClip();
             boolean run = shown && !closed && !editing && Ui.motionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
                 android.animation.ValueAnimator old = pulse;
                 pulse = null; old.cancel();
+                if (picture != null) picture.stop();
                 if (glow != 1) { glow = 1; stage.invalidate(); }
                 return;
             }
+            if (picture != null) picture.start();
             pulse = android.animation.ValueAnimator.ofFloat(0, 1);
-            pulse.setDuration(3200);
+            pulse.setDuration(picture != null ? 4400 : 3200);
             pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
             pulse.setInterpolator(new android.view.animation.LinearInterpolator());
             final android.animation.ValueAnimator owner = pulse;
@@ -2640,8 +2676,20 @@ public final class DashboardScreen implements AppScreen {
                 if (!Ui.motionEnabled() || closed) { updatePulse(); return; }
                 glow = (float) (.5 + .5 * Math.cos(2 * Math.PI * a.getAnimatedFraction()));
                 stage.invalidate();
+                if (picture != null) picture.invalidateLive();
             });
             pulse.start();
+        }
+
+        /**
+         * The picture may draw past its stage (the cable off the screen's edge) only while it shows at rest: shown and
+         * charging, visible, not animating open or closed, not editing, not closed (ChargePictureFit.atRest). Called
+         * whenever one of those changes (updatePulse, the reveal's start); it clips again at once otherwise.
+         */
+        void updateClip() {
+            if (picture == null) return;
+            picture.clip(ChargePictureFit.atRest(shown && getVisibility() == View.VISIBLE && stage.isAttachedToWindow(),
+                    photo.getVisibility() == View.VISIBLE, reveal != null, editing, closed));
         }
 
         private void showAnimated(boolean show) {
@@ -2676,6 +2724,7 @@ public final class DashboardScreen implements AppScreen {
             });
             getLayoutParams().height = start; requestLayout();
             reveal.start();
+            updateClip();
         }
 
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
@@ -2720,10 +2769,45 @@ public final class DashboardScreen implements AppScreen {
                 size.topMargin = plan.photoHeight - photoSide;
             }
             showPhoto();
-            // No photo for this model: the percentage and the track centred together in the stage (whose height the
-            // top area fixes), rather than an empty photo-sized band between them.
+            // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
             if (trackShown != plan.track) stage.invalidate();
             trackShown = plan.track;
+            if (picture != null) {
+                // The picture's percentage sits a little higher (into the line's gap; only while the line shows above it).
+                int lift = plan.line && photoRoom ? ui.dp(ChargePicture.PERCENT_LIFT_DP) : 0;
+                // Its tyres stand the picture's gap above the track (ChargingFit's track and its tick at the stage's foot);
+                // the number and the picture keep the prototype's relationship (ChargePictureFit): the number no larger
+                // than the picture allows at 1.0x text, growing with a larger Text size up to its 1.0x size; the picture
+                // smaller and lower where the number must stay larger. A slot too short for the picture keeps ChargingFit's
+                // placement, the number no larger than over the smallest picture and never larger than in a taller slot
+                // (ChargePictureFit.cleanSlot).
+                float density = getResources().getDisplayMetrics().density;
+                ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
+                        fullPercent, rows.getMeasuredHeight(), width, plan.stageHeight - pictureFloor(plan.stageHeight),
+                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), density).fit;
+                if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
+                if (photoRoom) {
+                    // On a stage taller than the two need (a wide phone's taller top area, #501), the number moves down
+                    // onto its picture (ChargePictureFit.attached) and the line above it moves with it, so the line, the
+                    // number and the picture keep the 344 dp phone's spacing and the spare height sits above the line.
+                    int drop = Math.max(0, Math.round(planned.percentTop - (percent.getPaddingTop() - lift)));
+                    ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = -lift + drop;
+                    lineDrop(drop);
+                    fit = planned;
+                    pictureFloorPx = pictureFloor(plan.stageHeight);
+                    // And a little left of the centre, as the prototype's (its halo stays centred).
+                    percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
+                    picture.size(width, pictureFloorPx, fit.box);
+                    if (trackEnd != 0) { trackEnd = 0; stage.invalidate(); }
+                    super.onMeasure(widthSpec, heightSpec);
+                    return;
+                }
+            }
+            percent.setTranslationX(0);
+            lineDrop(0);
+            fit = null;
+            // No photo for this model: the percentage and the track centred together in the stage (whose height the
+            // top area fixes), rather than an empty photo-sized band between them.
             int under = ui.dp(ChargingFit.TRACK_DP + ChargingFit.TICK_DP + ChargingFit.PHOTO_GAP_DP), top = 0;
             if (!photoKnown && plan.track && plan.percent) {
                 percent.measure(free, free);
@@ -2737,6 +2821,12 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /** Clean: the percentage at a share of its full size. */
+        /** The line over the picture moved down with its number (ChargePictureFit.attached); 0 leaves it in place. */
+        private void lineDrop(int drop) {
+            if (chip.getTranslationY() != drop) chip.setTranslationY(drop);
+            if (chipShort.getTranslationY() != drop) chipShort.setTranslationY(drop);
+        }
+
         private void percentScale(float scale) {
             float size = percentFullPx * scale;
             if (percentFullPx > 0 && percent.getTextSize() != size) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
@@ -2751,6 +2841,80 @@ public final class DashboardScreen implements AppScreen {
         private void showPhoto() {
             int visibility = photoKnown && photoRoom ? View.VISIBLE : View.GONE;
             if (photo.getVisibility() != visibility) photo.setVisibility(visibility);
+            if (picture != null) for (View layer : picture.layers()) if (layer.getVisibility() != visibility) layer.setVisibility(visibility);
+        }
+
+        /**
+         * Clean: where the picture's tyres stand in a stage this tall: the prototype's gap above its 8 dp track, measured
+         * from the track's foot (the app's track is 7 dp, its tick reaching below it to the stage's foot).
+         */
+        private int pictureFloor(int stageHeight) {
+            return Math.round(stageHeight - ui.dp(ChargingFit.TICK_DP) - ui.dp(ChargePicture.TRACK_DP + ChargePicture.tyreGapDp()));
+        }
+
+        /** The percentage's baseline below its top per pixel of text size (its font's ascent, as its layout places it). */
+        private float baselineShare() {
+            float size = percent.getTextSize();
+            if (size <= 0) return 0;
+            percent.getPaint().getFontMetrics(percentMetrics);
+            return (percent.getIncludeFontPadding() ? -percentMetrics.top : -percentMetrics.ascent) / size;
+        }
+
+        /**
+         * Widgets: the percentage on the picture, as on Clean (review of #483, D3): it moves from above the stage into
+         * the stage's top, at Clean's 60 sp (times the Text size) and its relationship to the picture; the stage's
+         * height follows the picture (Stage.onMeasure). Without a picture it goes back, at its own size and place.
+         */
+        private void placePercent(boolean onPicture) {
+            if (clean || (percent.getParent() == stage) == onPicture) return;
+            ((ViewGroup) percent.getParent()).removeView(percent);
+            if (onPicture) {
+                percent.setPadding(0, 0, 0, 0);
+                // Over the layers and the photo, under the charge bar (its label above its mark).
+                stage.addView(percent, stage.indexOfChild(bar), new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+                stage.setMinimumHeight(0);
+            } else {
+                percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, percentWidgetsPx);
+                percent.setTranslationX(0);
+                int[] p = percentWidgetsPadding;
+                percent.setPadding(p[0], p[1], p[2], p[3]);
+                addView(percent, indexOfChild(stage), percentWidgetsSize);
+                photoWidgetsSize.height = ui.dp(196);
+                photoWidgetsSize.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+                photoWidgetsSize.topMargin = 0;
+                photoWidgetsSize.bottomMargin = ui.dp(20);
+                photo.setLayoutParams(photoWidgetsSize);
+                fit = null;
+            }
+        }
+
+        /**
+         * Shows the charging picture for this photo key in the photo's place (ChargePicture; null: the photo, as before),
+         * on Clean's charging view and Widgets' takeover alike. The percentage gets its shade (and on Clean moves up a
+         * little over it), and the floor glow follows its tyres; the photo view keeps its place and description but
+         * draws nothing.
+         */
+        private void showPicture(String key) {
+            String shown = key == null ? null : ChargePicture.shownKey(key);
+            if (picture == null ? shown == null || shown.equals(missingPicture) : picture.key.equals(shown)) return;
+            ChargePicture next = shown == null ? null : ChargePicture.create(host.activity(), ui, key);
+            // A key with no picture (or one that cannot be decoded) is not tried again on every refresh.
+            missingPicture = next == null ? shown : null;
+            if (picture == null && next == null) return;
+            if (picture != null) {
+                picture.stop();
+                for (View layer : picture.layers()) stage.removeView(layer);
+            }
+            picture = next;
+            if (picture != null) {
+                View[] layers = picture.layers();
+                for (int i = 0; i < layers.length; i++) stage.addView(layers[i], i, new FrameLayout.LayoutParams(-1, -1));
+            }
+            placePercent(picture != null);
+            photo.setImageAlpha(picture != null ? 0 : 255);
+            // The glow's breathing follows the picture's (4.4 s) or the photo's (3.2 s): restart it.
+            if (pulse != null) { android.animation.ValueAnimator old = pulse; pulse = null; old.cancel(); }
+            requestLayout();
         }
 
         void refresh(Map<String, TelemetryHistory.Reading> values) {
@@ -2781,8 +2945,11 @@ public final class DashboardScreen implements AppScreen {
             // Clean places the percentage and the track by whether there is a photo (onMeasure).
             if (clean && photoKnown != known) requestLayout();
             photoKnown = known;
+            showPicture(known ? ModelRegistry.photo(activeModel()) : null);
+            if (picture != null) { picture.watts(estimate.inputWatts); picture.invalidateLive(); }
             showPhoto();
-            stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
+            // Widgets with a picture: the stage's height follows it (Stage.onMeasure).
+            if (clean || picture == null) stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
             timeTile.update(estimate, chargeAlertEstimate(values), level);
             String watts = estimate.inputWatts == null ? null
@@ -2795,6 +2962,15 @@ public final class DashboardScreen implements AppScreen {
                             : (hasLimit ? T.dashboardHeroChargeLimitCount(Math.round(level), Fmt.integer(Math.round(level)), T.dashboardHeroLimitPercent(Math.round(limit), Fmt.integer(Math.round(limit)))) : T.dashboardHeroChargeCount(Math.round(level), Fmt.integer(Math.round(level)))));
             stage.invalidate();
             showAnimated(true);
+        }
+
+        /**
+         * How much larger than at 1.0x the percentage's text is: Volt's Text size times Android's font size, as Ui.wide
+         * reads it (ChargePictureFit.growth; review of #483, P3-4), so either one grows the number where the picture
+         * limits it.
+         */
+        private float textGrowth() {
+            return ChargePictureFit.growth(ui.textScale, getResources().getConfiguration().fontScale);
         }
 
         /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
@@ -2853,9 +3029,47 @@ public final class DashboardScreen implements AppScreen {
                 super.onDetachedFromWindow();
             }
 
+            /**
+             * Widgets with a picture: the percentage on it at the prototype's relationship (ChargePictureFit.widgets),
+             * the stage as tall as the picture's floor plus the charge bar's line under it (its least height, which
+             * the bar never exceeds); the photo view keeps its place for TalkBack over the picture.
+             */
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                if (!clean && picture != null && percent.getParent() == this) {
+                    int width = MeasureSpec.getSize(widthSpec);
+                    float full = percentWidgetsPx * ChargingFit.PERCENT_SP / 72f;
+                    float growth = textGrowth();
+                    fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, growth), growth,
+                            getResources().getDisplayMetrics().density);
+                    if (percent.getTextSize() != fit.text) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fit.text);
+                    percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
+                    ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = Math.round(fit.percentTop);
+                    pictureFloorPx = Math.round(fit.floor);
+                    FrameLayout.LayoutParams photoSize = (FrameLayout.LayoutParams) photo.getLayoutParams();
+                    photoSize.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+                    photoSize.height = pictureFloorPx;
+                    photoSize.topMargin = photoSize.bottomMargin = 0;
+                    int height = pictureFloorPx + ui.dp(ChargePictureFit.WIDGETS_FOOT_DP);
+                    if (getMinimumHeight() != height) setMinimumHeight(height);
+                    picture.size(width, pictureFloorPx, fit.box);
+                }
+                super.onMeasure(widthSpec, heightSpec);
+            }
+
             @Override
             protected void onDraw(Canvas canvas) {
                 float w = getWidth(), floor = getHeight() - ui.dp(18);
+                if (!clean && picture != null) {
+                    // Widgets with a charging picture: its floor glow, as Clean's (the charge bar draws the floor line),
+                    // kept inside the stage (its parents may not clip while the cable runs off the edge).
+                    if (photo.getVisibility() == View.VISIBLE && w > 0) {
+                        canvas.save();
+                        canvas.clipRect(0, 0, w, getHeight());
+                        drawCleanGlow(canvas, w);
+                        canvas.restore();
+                    }
+                    return;
+                }
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
                     // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
@@ -2892,14 +3106,26 @@ public final class DashboardScreen implements AppScreen {
             /**
              * Clean: the mock-up's red glow, a wide soft ellipse under the scooter's wheels (about 286 x 60 dp on a 344 dp
              * phone, at most 1.7 times the photo's side on a wide window), centred under the photo; it breathes with
-             * {@link #glow} while charging is on screen.
+             * {@link #glow} while charging is on screen. With a charging picture (Clean or Widgets) it is the picture's.
              */
             private void drawCleanGlow(Canvas canvas, float w) {
                 float cx = w / 2, floor = photo.getBottom() - photoSide * .04f;
                 // As wide as the mock-up's on a phone (0.46 of the width), never much wider than the scooter itself.
                 float rx = Math.min(w * .46f, photoSide * .85f);
-                if (rx <= 0) return;
                 float ry = Math.max(ui.dp(10), Math.min(ui.dp(30), photoSide * .2f));
+                float alpha = .72f + .28f * glow;
+                if (picture != null) {
+                    // The charging picture's floor glow, as the prototype draws it under the tyres for every model (129 x
+                    // 34 dp round a point 10 dp left of the 283.6 x 136.3 dp wire picture's centre, at its foot),
+                    // breathing a little (0.85 at rest, 0.74 to 0.88 while it runs).
+                    ChargeWireModels.Placement at = picture.glowPlacement((int) w, pictureFloorPx, fit == null ? 0 : fit.box);
+                    float pw = at.width(ChargeWireModels.UT5_MAX), ph = at.height(ChargeWireModels.UT5_MAX);
+                    if (pw <= 0) return;
+                    cx = at.left + pw * .4644f; floor = at.top + ph * .9956f;
+                    rx = pw * .4549f; ry = ph * .2494f;
+                    alpha = pulse == null ? .85f : .81f + .07f * (2 * glow - 1);
+                }
+                if (rx <= 0) return;
                 int color = ui.accent;
                 if (glowShader == null || rx != glowRadius || color != glowColor) {
                     glowShader = new RadialGradient(0, 0, rx,
@@ -2909,10 +3135,10 @@ public final class DashboardScreen implements AppScreen {
                 }
                 canvas.save();
                 canvas.translate(cx, floor);
-                canvas.scale(.94f + .06f * glow, ry / rx);
+                canvas.scale(picture != null ? 1 : .94f + .06f * glow, ry / rx);
                 paint.setStyle(Paint.Style.FILL);
                 paint.setShader(glowShader);
-                paint.setAlpha(Math.round(255 * (.72f + .28f * glow)));
+                paint.setAlpha(Math.round(255 * alpha));
                 canvas.drawCircle(0, 0, rx, paint);
                 paint.setShader(null);
                 paint.setAlpha(255);
@@ -2921,6 +3147,12 @@ public final class DashboardScreen implements AppScreen {
 
             /** Clean: a soft dark fade behind the number, drawn over the photo and under the number (the mock-up's). */
             @Override protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+                if (child == percent && picture != null && photo.getVisibility() == View.VISIBLE) {
+                    // Over a charging picture (Clean or Widgets): its own shade (the wire's halo, the folded picture's
+                    // cut-off), reaching out by the size the picture allows (ChargePictureFit.Fit.shadeSize).
+                    shade.draw(canvas, percent, picture.shade(), ui.bg, ui.dark, fit == null ? 0 : fit.shadeSize());
+                    return super.drawChild(canvas, child, drawingTime);
+                }
                 if (clean && child == percent && percent.getVisibility() == View.VISIBLE && photo.getVisibility() == View.VISIBLE
                         && percent.getWidth() > 0) {
                     float cx = (percent.getLeft() + percent.getRight()) / 2f, cy = (percent.getTop() + percent.getBottom()) / 2f;
@@ -8857,6 +9089,7 @@ public final class DashboardScreen implements AppScreen {
         finishPendingStart();
         closed = true;
         chargingHero.stopReveal();
+        ChargePicture.clearCache();
         cancelWidgetReveal();
         pendingAddedWidgetId = revealWidgetId = null;
         stopRemovalEffect();
