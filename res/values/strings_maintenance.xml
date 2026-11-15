@@ -34,7 +34,7 @@
     <string name="maintenance_switch" volt:screen="Maintenance" volt:purpose="switch label">Maintenance reminders</string>
     <string name="maintenance_switch_detail" volt:screen="Maintenance" volt:purpose="switch detail">Show checks you set when they\'re due</string>
     <!-- Shown under the switch while it is off. -->
-    <string name="maintenance_off_explain" volt:screen="Maintenance" volt:purpose="explanation">Turn this on to add your own reminders, like checking tire pressure every 2 weeks or the brakes every 300 mi. Volt shows a check here and on the Scooter tab when it\'s due.</string>
+    <string name="maintenance_off_explain" volt:screen="Maintenance" volt:purpose="explanation">Turn this on to add your own reminders, like checking tire pressure every 2 weeks or the brakes every 300 mi. Volt shows a check here and on Home when it\'s due.</string>
     <!-- A short note at the bottom of the page. -->
     <string name="maintenance_disclaimer" volt:screen="Maintenance" volt:purpose="note" volt:safety="disclaimer">These are reminders you set. Check your scooter whenever something feels wrong, whatever a reminder says.</string>
 
@@ -214,8 +214,8 @@
     <string name="maintenance_notify_detail" volt:screen="Add reminder" volt:purpose="switch detail">A notification once when it\'s due</string>
     <!-- Name of the notification channel in Android's settings. It makes no sound. -->
     <string name="maintenance_channel" volt:screen="Android notification settings" volt:purpose="channel name">Maintenance reminders</string>
-    <!-- Description of the Maintenance reminders channel in Android's settings. "Scooter › Service › Maintenance" is where reminders are set: the Scooter tab, its Service page, and the Maintenance page on it. -->
-    <string name="maintenance_channel_detail" volt:screen="Android notification settings" volt:purpose="channel description">Checks you set in Scooter › Service › Maintenance, once when each is due</string>
+    <!-- Description of the Maintenance reminders channel in Android's settings. "Service › Maintenance" is where reminders are set: the Service subject and the Maintenance page on it. -->
+    <string name="maintenance_channel_detail" volt:screen="Android notification settings" volt:purpose="channel description">Checks you set in Service › Maintenance, once when each is due</string>
     <!-- The notice's title: %1$d is how many checks are due, %2$s is the scooter's name. -->
     <plurals name="maintenance_notice_title" volt:screen="Notifications" volt:purpose="title">
         <item quantity="one">%1$d check due on %2$s</item>

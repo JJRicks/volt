@@ -18,8 +18,6 @@
     <string name="compat_preview_report">Förhandsgranska rapport</string>
     <!-- src:7393e79b1d7b7004e922147bbd058fb347783333 -->
     <string name="compat_no_finished_check">Ingen slutförd kontroll ännu</string>
-    <!-- src:86d3d6fcbcee53279410f8c97de4654f969c217a -->
-    <string name="compat_footer">Kontrollen läser bara. Försök finns i Mer › Experimentella reglage och rapporten innehåller provresultaten. Firmware ändras aldrig.</string>
     <!-- src:465b99a776e3987ff95e10fad6eac713fc821b6e -->
     <string name="compat_connect_to_check">Anslut till elsparkcykeln för att kontrollera den.</string>
     <!-- src:dba08d09f91ad6e2257006954ea15fc634a57b8c -->

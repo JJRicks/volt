@@ -731,8 +731,8 @@
     <string name="more_about_notifications_sub" volt:screen="About &amp; permissions" volt:purpose="caption">Recording notification with Stop</string>
     <!-- Group label: where Volt keeps data. -->
     <string name="more_about_your_data" volt:screen="About &amp; permissions" volt:purpose="label" volt:safety="privacy">Your data</string>
-    <!-- "Back up & restore" and "More" name places in the app (more_backup_restore, more_title). -->
-    <string name="more_about_data_note" volt:screen="About &amp; permissions" volt:purpose="note" volt:safety="privacy">All data stays on this phone. Back up &amp; restore is in More.</string>
+    <!-- "Back up & restore" and "Settings" name places in the app (more_backup_restore, hub_page_settings): the Back up & restore row is on the Settings page. -->
+    <string name="more_about_data_note" volt:screen="About &amp; permissions" volt:purpose="note" volt:safety="privacy">All data stays on this phone. Back up &amp; restore is in Settings.</string>
     <!-- Row: the ride map's online background. -->
     <string name="more_about_online_map" volt:screen="About &amp; permissions" volt:purpose="row" volt:safety="privacy">Online map</string>
     <!-- Row: open the connection log. -->
