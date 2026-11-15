@@ -650,16 +650,18 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * As a rider scrolls a widget out from under Widgets Home's pinned dock: the view's page scroller moves it to end
-     * CLEAR_DP above the dock's top. Nothing where the view already ends above it. Main thread.
+     * As a rider scrolls a widget out from under Widgets Home's pinned dock: the page's own scroller (MainActivity.scroll)
+     * moves it to end CLEAR_DP above the dock's top. Not the nearest ScrollView: every Widgets card has its own inner
+     * viewport (DashboardScreen's WidgetScrollView), and scrolling that leaves the card where it is (hub-725-large on
+     * 91f8c0e5). Nothing where the view already ends above the dock. Main thread.
      */
     private void scrollClear(View view, View dock) {
         Rect at = windowRect(view), dockAt = windowRect(dock);
         int by = at.bottom - dockAt.top + Math.round(CLEAR_DP * activity.getResources().getDisplayMetrics().density);
         if (at.bottom <= dockAt.top || by <= 0) return;
-        for (View parent = view.getParent() instanceof View ? (View) view.getParent() : null; parent != null;
-             parent = parent.getParent() instanceof View ? (View) parent.getParent() : null)
-            if (parent instanceof ScrollView) { parent.scrollBy(0, by); return; }
+        View page = (View) field(activity, "scroll");
+        require(page != null && isInside(view, page), "The view under the dock is not on Widgets Home's page scroller");
+        page.scrollBy(0, by);
     }
 
     /** Taps the dock's All item and returns its sheet, open and settled. */
