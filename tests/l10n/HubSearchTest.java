@@ -77,6 +77,7 @@ public final class HubSearchTest {
             reviewNotes();
             earlyReview();
             settingsRowsFindable();
+            maintenanceFindable();
             layoutRules();
             T.install(ZONES);
             zones();
@@ -406,6 +407,25 @@ public final class HubSearchTest {
      * catalog entry says it is on a Hub settings page (volt:screen), so a row added there later fails here until search
      * finds it (an entry in HubSearchTables or its page's words).
      */
+    /**
+     * Service › Maintenance reminders by its English words (#410 review, notes for part 12: main's Scooter tab search
+     * found it by no English word, its words being MaintenanceScreen.NO_WORDS). Here its page and its Reminders row carry
+     * HubSearchTables' words, so each word an owner might type finds a result that opens Service › Maintenance.
+     */
+    private static void maintenanceFindable() {
+        List<HubSearch.Entry> index = everything();
+        for (String word : new String[] {"maintenance", "Maintenance", "service", "tyre", "tire", "reminder", "reminders"}) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, word)) found |= e.page.equals(HubPages.SERVICE_MAINTENANCE);
+            check(found, "\"" + word + "\" finds Service › Maintenance");
+        }
+        // "maintenance" ranks it near the top: among the first three results (it is the page's title word).
+        List<HubSearch.Entry> first = HubSearch.search(index, "maintenance");
+        boolean early = false;
+        for (int i = 0; i < Math.min(3, first.size()); i++) early |= first.get(i).page.equals(HubPages.SERVICE_MAINTENANCE);
+        check(early, "\"maintenance\" lists Service › Maintenance among its first results");
+    }
+
     private static void settingsRowsFindable() {
         List<HubSearch.Entry> index = everything();
         String[] walked = {

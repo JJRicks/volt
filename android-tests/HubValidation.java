@@ -64,8 +64,8 @@ import com.jjricks.volt.WideLayout;
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
  *   <li><b>Search</b>: the header's search opens the search page with its field focused at the top (the page header
  *   stepped aside, Cancel beside the field) and the subjects listed; typing ("batt", as the plan's mock-up) hides the
- *   subjects and finds at least one result row (pictured with the keyboard gone); "maintenance" finds Reminders, which
- *   opens over the search, and Back returns to the search with its query and results; the next Back clears the query
+ *   subjects and finds at least one result row (pictured with the keyboard gone); "service", "tyre", "tire" and
+ *   "reminder" list Service › Maintenance's Reminders, and "maintenance" finds it and opens it over the search, and Back returns to the search with its query and results; the next Back clears the query
  *   (the subjects come back), and the one after returns to Home; Cancel returns to Home at once, with a query typed or
  *   with the field empty and left (the header stays hidden). Main's result check (#410's round) stays: "star" finds the
  *   Star lights page, whose tap opens Lights & sound › Star lights with Search under it, and Back returns to Search with its query
@@ -484,10 +484,16 @@ public final class HubValidation extends Instrumentation {
             require(field[0] != null && windowRect(field[0]).equals(fieldAt), "The search field moved as the scooter reconnected");
             require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line after reconnecting");
         });
-        // "maintenance" finds the Reminders setting.
-        main(() -> field[0].setText("maintenance")); settle();
-        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
+        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>". Each word an owner
+        // might type for it finds it (#410 review: main's search found Maintenance reminders by no English word).
         String reminders = "hub-search-setting-" + HubPages.SERVICE_MAINTENANCE;
+        for (String word : new String[] {"service", "tyre", "tire", "reminder"}) {
+            main(() -> field[0].setText(word)); settle();
+            main(() -> require(shown(root().findViewWithTag(reminders)), "Search for \"" + word + "\" does not list Service › Maintenance's Reminders ("
+                    + resultRows(root().findViewWithTag("hub-search-results")) + " result rows)"));
+        }
+        // "maintenance" finds the Reminders setting, whose tap opens Service › Maintenance over Search.
+        main(() -> field[0].setText("maintenance")); settle();
         tapTag(reminders);
         arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
         systemBack();
@@ -554,7 +560,7 @@ public final class HubValidation extends Instrumentation {
         tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left;"
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"service\", \"tyre\", \"tire\" and \"reminder\" list Service › Maintenance's Reminders, and \"maintenance\" finds it and opens Service › Maintenance over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left;"
                 + " \"star\" finds Star lights, whose tap opens it over Search (stack Home, Search, Star lights); Back returns to Search with \"star\" and its results kept");
     }
 
