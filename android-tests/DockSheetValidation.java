@@ -305,14 +305,16 @@ public final class DockSheetValidation extends Instrumentation {
         finger.hold(120);
         finger.up();
         awaitGone("a pull taken back to its start");
-        // A sheet settling closed (slowed, so it is caught on its way) is caught by a new pull and by a tap on All.
-        scale(5);
+        // A sheet settling closed (slowed, so it is caught on its way) is caught by a new pull and by a tap on All. Scale 10
+        // (a close of about 3 s): on a loaded machine the page's focus coming back and the pull's first moves take a while.
+        scale(10);
         tapAll();
         closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
         Object before = onMain(this::drag);
         finger = new Finger(dockCentre());
         finger.moveBy(-.45f * travel, 600, 30);
-        main(() -> require(drag() == before && field(drag(), "state").equals(PULLED), "A pull while the sheet settled closed did not catch it"));
+        boolean same = onMain(() -> drag() == before), caught = onMain(() -> drag() != null && field(drag(), "state").equals(PULLED));
+        require(same && caught, "A pull while the sheet settled closed did not catch it (" + (same ? "" : "a new sheet, ") + describe() + ")");
         finger.hold(150);
         finger.up();
         awaitOpen("a pull that caught the closing sheet");
@@ -320,7 +322,7 @@ public final class DockSheetValidation extends Instrumentation {
         Object closing = onMain(this::drag);
         tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
         awaitOpen("All tapped while the sheet settled closed");
-        main(() -> require(drag() == closing, "All tapped while the sheet settled closed made a second sheet"));
+        require(onMain(() -> drag() == closing), "All tapped while the sheet settled closed made a second sheet (" + describe() + ")");
         scale(1);
         back(); awaitGone("Back");
         checks.add("ACTION_CANCEL settles a pull where it is (a tenth closes, two fifths opens); a second finger settles it at once and the rest of the touch moves nothing; "
