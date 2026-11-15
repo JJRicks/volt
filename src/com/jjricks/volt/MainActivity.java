@@ -629,6 +629,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * storage page, Settings and its sub-pages each have a screen. args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
+        // Pages that need the service show the card that grants Nearby devices (or a spinner while it binds) until it binds.
+        if(scooterService==null&&!HubPages.withoutService(page))return new LoadingScreen();
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
         if(HubPages.HOME.equals(page))return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
@@ -637,7 +639,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             case HubPages.BATTERY:case HubPages.CONTROLS:case HubPages.LIGHTS:case HubPages.SECURITY:case HubPages.SERVICE:return scooterPage(page,args);
             default:break;
         }
-        if(scooterService==null)return new LoadingScreen();
         switch(page){
             case HubPages.DATA:return new StatsScreen(this);
             case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
@@ -650,7 +651,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             case HubPages.RIDE_RECORDING:return new HubPageScreen(this,new MoreScreen(this,MoreScreen.RECORDING_SECTION,true),new RidesScreen(this,RidesScreen.SENSORS));
             case HubPages.RIDE_RIDING:return new HubRidingSettings(this);
-            case HubPages.SETTINGS:return new MoreScreen(this);
+            case HubPages.SETTINGS:return settingsPage();
             default:break;
         }
         // Settings' sub-pages and Data & history: More's section as the page's body.
@@ -660,9 +661,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A scooter subject's page (hub layout plan, PRs 3 and 4): Battery & charging, Controls, Lights & sound, Security, Service. */
     private AppScreen scooterPage(String page,HubNav.Args args){
         ControlsPages.Spec spec=ControlsPages.spec(page);
-        // Pages with More's sections need the service (as the More tab does); their rows read its settings.
-        boolean moreHosted=page.equals(HubPages.SECURITY)||page.equals(HubPages.BATTERY_HISTORY)||page.startsWith(HubPages.SERVICE+".")&&!page.equals(HubPages.SERVICE_MAINTENANCE);
-        if(moreHosted&&scooterService==null)return new LoadingScreen();
+        // Pages with More's scooter sections (Security, Charge history, Service's pages but Maintenance reminders) need the
+        // service: createScreen showed them the permission card without it (HubPages.withoutService).
         switch(page){
             case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
             // Usable ride energy (Experimental) below the page's rows: Clean Home has no widgets to hold it (part 8).
@@ -711,6 +711,27 @@ public final class MainActivity extends Activity implements ScreenHost {
             @Override public void close(){subjects.close();}
         });
     }
+    /**
+     * Settings. Without Nearby devices permission (the contributor's decision, 15 Nov, #383) its rows show and the app's
+     * own choices work; the card that grants the permission (LoadingScreen's) leads them, and the rows that need the
+     * scooter wait for it (MoreScreen). Granted, the service binds and its rebuild drops the card: Settings' kept scroll
+     * then loses the card's height, so the rows stay where they were.
+     */
+    private AppScreen settingsPage(){
+        MoreScreen settings=new MoreScreen(this);
+        settingsNearbyCard=null;
+        if(scooterService==null&&!hasBluetoothPermission()){
+            View card=new LoadingScreen().view();
+            settings.lead(card);settingsNearbyCard=card;
+        }else if(settingsNearbyHeight>0){
+            Integer kept=scrollPositions.get(HubPages.SETTINGS);
+            if(kept!=null)scrollPositions.put(HubPages.SETTINGS,Math.max(0,kept-settingsNearbyHeight));
+            settingsNearbyHeight=0;
+        }
+        return settings;
+    }
+    /** Settings' Nearby devices card while Settings shows one; its height (with its margin) as Settings' scroll was last kept. */
+    private View settingsNearbyCard;private int settingsNearbyHeight;
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
     private AppScreen securityLock(){
         // makeCompactHeader dropped any earlier lock before this page was built.
@@ -1352,7 +1373,11 @@ public final class MainActivity extends Activity implements ScreenHost {
      * every other route (PR 11), so Back returns to where the shortcut was used.
      */
     private void openRoute(String page,HubNav.Args args){open(page,args);}
-    private void captureScroll(){if(scroll!=null)scrollPositions.put(scrollPage,scroll.getScrollY());}
+    private void captureScroll(){
+        if(scroll==null)return;scrollPositions.put(scrollPage,scroll.getScrollY());
+        // Settings' scroll kept with its Nearby devices card on screen counts the card (settingsPage).
+        if(HubPages.SETTINGS.equals(scrollPage))settingsNearbyHeight=settingsNearbyCard!=null&&settingsNearbyCard.isAttachedToWindow()?settingsNearbyCard.getHeight():0;
+    }
     private boolean horizontalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.width()>fold.hinge.height()&&fold.hinge.top>0&&fold.hinge.width()>0;}
     private boolean verticalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.height()>fold.hinge.width()&&fold.hinge.left>0&&fold.hinge.height()>0;}
     private LinearLayout column(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.VERTICAL);return v;}
@@ -1736,6 +1761,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile active=scooterService.profiles.active();
         if(active!=null&&active.id.equals(id))connect();else redraw();
     }
+    @Override public boolean nearbyAllowed(){return hasBluetoothPermission();}
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
     @Override public void requestRideLocation(Runnable ready){
@@ -2088,7 +2114,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(hasBluetoothPermission()){
                 Spinner spinner=new Spinner();card.addView(spinner,new LinearLayout.LayoutParams(design.dp(28),design.dp(28)));
             }else{
-                TextView allow=design.button(T.mainActionAllowNearby(),MainActivity.this::requestBluetooth);
+                TextView allow=design.button(T.mainActionAllowNearby(),MainActivity.this::requestBluetooth);allow.setTag("nearby-allow");
                 android.graphics.drawable.Drawable glyph=new android.graphics.drawable.Drawable(){
                     @Override public void draw(Canvas canvas){android.graphics.Rect b=getBounds();design.drawIcon(canvas,"bluetooth",design.onAccent,b.exactCenterX(),b.exactCenterY(),b.width());}
                     @Override public void setAlpha(int alpha){}
@@ -2100,6 +2126,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 LinearLayout.LayoutParams allowSize=new LinearLayout.LayoutParams(-2,-2);allowSize.bottomMargin=design.dp(6);card.addView(allow,allowSize);
                 TextView needed=design.caption(T.mainLoadingNeeded());needed.setGravity(Gravity.CENTER);card.addView(needed,new LinearLayout.LayoutParams(-1,-2));
             }
+            card.setTag("nearby-card");
             LinearLayout.LayoutParams top=new LinearLayout.LayoutParams(-1,-2);top.topMargin=design.dp(12);view.addView(card,top);
         }
         @Override public View view(){return view;}

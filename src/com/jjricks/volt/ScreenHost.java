@@ -19,6 +19,19 @@ public interface ScreenHost {
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();
+    /**
+     * Whether Nearby devices permission (Bluetooth) is granted: without it the service never binds and service() stays
+     * null. True by default, for a host that doesn't say.
+     */
+    default boolean nearbyAllowed() { return true; }
+    /**
+     * Volt's settings ("app_settings"): the service's own copy while it is bound, and the same preferences read here while
+     * it is not (Settings' app rows work without Nearby devices permission, the contributor's decision, 15 Nov, #383).
+     */
+    default android.content.SharedPreferences appSettings() {
+        ScooterService service = service();
+        return service != null ? service.settings : activity().getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE);
+    }
     void requestRideLocation(Runnable ready);
     /** The same request, made for auto-record: it also keeps the note of a decline. */
     void requestAutoRecordLocation(Runnable ready);

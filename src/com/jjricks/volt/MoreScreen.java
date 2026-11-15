@@ -248,7 +248,12 @@ public final class MoreScreen implements AppScreen {
             indexRow(row);
             menuRows[i] = row;
             // Each row has a tag, as Home style's and Developer options' have, so a validation taps the row an owner would.
-            if (section.equals("Scooters")) { scootersIndexRow = row; row.view.setTag("my-scooters-menu"); }
+            if (section.equals("Scooters")) {
+                // My scooters needs the service (its cards, adding, connecting and editing are the service's): without it,
+                // its row asks for the permission instead of opening the page (MainActivity shows that page the card).
+                scootersIndexRow = needsService(row); row.view.setTag("my-scooters-menu");
+                row.view.setOnClickListener(v -> { if (!closed && serviceReady()) selectSection(section); });
+            }
             else if (section.equals("About")) row.view.setTag("about-menu");
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
@@ -446,7 +451,34 @@ public final class MoreScreen implements AppScreen {
 
     private ScooterService service() { return host.service(); }
     private ScooterProfiles.Profile active() { return service() == null ? null : service().profiles.active(); }
-    private SharedPreferences settings() { return service().settings; }
+    /** Volt's settings, the service's while it is bound, the same preferences while it is not (ScreenHost.appSettings). */
+    private SharedPreferences settings() { return host.appSettings(); }
+    /**
+     * Without the service (Nearby devices permission not granted, so it never binds; the contributor's decision, 15 Nov,
+     * #383) Settings shows its rows: the app's own choices work, and these, which need the scooter or the service, are
+     * dimmed and ask for the permission when tapped (serviceReady), as the Lock bar's Allow Nearby devices does.
+     */
+    private final List<Row> serviceRows = new ArrayList<>();
+    /** A row that needs the service: dimmed without it; its action asks for the permission then (serviceReady). */
+    private Row needsService(Row row) { serviceRows.add(row); return row; }
+    /**
+     * A tap on something that needs the service while it is not bound: ask for Nearby devices permission, or, granted
+     * and the service still binding, say it is starting. True when the service is there and the tap may go on.
+     */
+    private boolean serviceReady() {
+        if (service() != null) return true;
+        if (!host.nearbyAllowed()) host.requestBluetooth(); else host.toast(T.moreServiceStarting());
+        return false;
+    }
+    /**
+     * Settings without Nearby devices permission: the card that grants it (MainActivity's, the one every page that needs
+     * the service shows) above the index's rows, with the gap the index keeps between its cards (padding, so the card's
+     * height counts it: MainActivity takes that height off Settings' scroll once the card goes).
+     */
+    void lead(View card) {
+        card.setPadding(card.getPaddingLeft(), card.getPaddingTop(), card.getPaddingRight(), card.getPaddingBottom() + ui.dp(12));
+        indexView.addView(card, 0, new LinearLayout.LayoutParams(-1, -2));
+    }
     private LinearLayout column() {
         LinearLayout view = new LinearLayout(host.activity()); view.setOrientation(LinearLayout.VERTICAL); return view;
     }
@@ -849,7 +881,7 @@ public final class MoreScreen implements AppScreen {
         // The setup checklist: each step shows its number until it is done, then a check.
         LinearLayout actions = ui.groupCard(); actions.setBackground(null); actions.setPadding(0, 0, 0, 0);
         c.addView(actions);
-        onboardingImport = row(actions, "download", T.moreOnboardingImport(), null, () -> { if (canEditProfiles()) host.importOwner(); });
+        onboardingImport = needsService(row(actions, "download", T.moreOnboardingImport(), null, () -> { if (canEditProfiles()) host.importOwner(); }));
         profileEditActions.add(onboardingImport);
         onboardingNearby = row(actions, "bluetooth", M.moreOnboardingNearby(), null, host::requestBluetooth);
         onboardingConnect = row(actions, "scooter", T.moreConnect(), null, () -> {
@@ -875,8 +907,8 @@ public final class MoreScreen implements AppScreen {
     }
 
     private boolean canEditProfiles() {
+        if (!serviceReady()) return false;
         ScooterService s = service();
-        if (s == null) { host.toast(T.moreServiceStarting()); return false; }
         String unavailable = s.scooterChangeUnavailable();
         if (unavailable != null) { host.toast(unavailable); return false; }
         if (s.ble.state() != BleController.State.DISCONNECTED || s.ble.pending() != null) {
@@ -1344,6 +1376,7 @@ public final class MoreScreen implements AppScreen {
         valueRefreshers.add(() -> units.value(unitsSummary()));
         indexRow(units);
         Row text = row(display, null, T.morePrefsTextSize(), null, this::textSize);
+        text.view.setTag("preference-text-size");
         valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
         indexRow(text);
         // Its own tag, so search (HubSearchTables.SETTING_HAPTICS, PR 12) finds the switch apart from the card.
@@ -2525,6 +2558,7 @@ public final class MoreScreen implements AppScreen {
                 : T.moreLabWhyNone();
     }
     private void commandEvidence() {
+        if (!serviceReady()) return;
         LinearLayout box = dialogBox(T.moreLabEvidence(), T.moreLabEvidenceHidden());
         Map<String,String> results = service().ble.commandResults();
         if (results.isEmpty()) note(box, T.moreLabNoChanges());
@@ -2568,9 +2602,10 @@ public final class MoreScreen implements AppScreen {
         Row online = row(maps, "map", T.moreAboutOnlineMap(), null, this::mapSettings);
         valueRefreshers.add(() -> online.value(basemapSummary()));
         LinearLayout more = group();
-        row(more, "stats", T.moreAboutActivity(), null, this::commandEvidence);
+        needsService(row(more, "stats", T.moreAboutActivity(), null, this::commandEvidence));
         row(more, "copy", T.moreAboutLicenses(), null, this::licenses);
-        row(more, "bluetooth", T.moreAboutConnect(), null, host::connect);
+        // Connect asks for the permission itself while it is missing (MainActivity.connect).
+        needsService(row(more, "bluetooth", T.moreAboutConnect(), null, host::connect));
     }
 
     // ---- Updates ------------------------------------------------------------------------
@@ -2637,7 +2672,7 @@ public final class MoreScreen implements AppScreen {
     /** Manual update check. The first time, say what asking GitHub reveals; Volt never downloads or installs (the browser does). */
     void checkForUpdates() {
         if (closed) return;
-        SharedPreferences settings = service().settings;
+        SharedPreferences settings = settings();
         if (settings.getBoolean(UpdateCheck.CONSENT, false)) { runUpdateCheck(); return; }
         LinearLayout box = dialogBox(T.moreUpdateAskTitle(),
                 T.moreUpdateAskBody());
@@ -3238,8 +3273,8 @@ public final class MoreScreen implements AppScreen {
             card.connect.setAlpha(unavailable == null ? 1f : .5f); card.use.setAlpha(unavailable == null ? 1f : .5f);
         }
     }
-    private void refreshPermissions(ScooterService s) {
-        boolean nearby = s.ble.permissions();
+    /** About & permissions' rows; nearby: Nearby devices permission is granted (the service's check while it is bound). */
+    private void refreshPermissions(boolean nearby) {
         permissionValue(nearbyRow, nearby ? T.morePermissionAllowed() : T.morePermissionNotAllowed(), nearby);
         boolean fine = granted(Manifest.permission.ACCESS_FINE_LOCATION), coarse = granted(Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionValue(locationRow, fine ? T.morePermissionAllowed() : coarse ? T.morePermissionApproximate() : T.morePermissionNotAllowed(), fine || coarse);
@@ -3259,7 +3294,8 @@ public final class MoreScreen implements AppScreen {
 
     @Override public void refresh() {
         if(chargeHistoryDialog!=null)chargeHistoryDialog.refresh();
-        ScooterService s = service(); if (s == null) return;
+        ScooterService s = service(); if (s == null) { refreshWithoutService(); return; }
+        for (Row row : serviceRows) row.enabled(true);
         refreshSimulation(); refreshCharging();
         if (shownSection().equals("Data")) refreshHistoryStorage();
         if (compatibilityPanel != null) compatibilityPanel.refresh();
@@ -3277,7 +3313,7 @@ public final class MoreScreen implements AppScreen {
         onboardingConnect.title.setTextColor(configured ? ui.text : ui.muted);
         onboardingConnect.icon.setEnabled(configured); onboardingConnect.icon.invalidate();
         refreshProfiles(s, p);
-        refreshPermissions(s);
+        refreshPermissions(s.ble.permissions());
         ScooterCommands.PinState pin = s.ble.pinState(); boolean owner = ownerReady(), busy = s.ble.pending() != null;
         String pending = s.ble.pending();
         pinRow.sub(pinStatus(pin));
@@ -3326,6 +3362,31 @@ public final class MoreScreen implements AppScreen {
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
         refreshLab(s);
+    }
+
+    /**
+     * refresh() while the service is not bound (Nearby devices permission not granted, or granted and the service still
+     * binding): the app's own rows from Volt's settings, About & permissions' states, Developer options' simulator rows
+     * waiting, and the rows that need the service dimmed, still tappable to ask for the permission (serviceReady). Scooter
+     * sections (Security, Experimental controls, Charging) are never on screen without the service (HubPages.withoutService).
+     */
+    private void refreshWithoutService() {
+        refreshSimulation();
+        for (Runnable refresh : valueRefreshers) refresh.run();
+        boolean nearby = host.nearbyAllowed();
+        // The setup checklist only until a scooter is set up, read from the stored list (the service owns the store).
+        boolean configured = OnboardingScreen.hasConfiguredProfile(host.activity(), null);
+        onboardingCard.setVisibility(configured ? View.GONE : View.VISIBLE);
+        checklistStep(onboardingImport, 1, configured);
+        checklistStep(onboardingNearby, 2, nearby);
+        checklistStep(onboardingConnect, 3, false);
+        onboardingConnect.title.setTextColor(configured ? ui.text : ui.muted);
+        onboardingConnect.icon.setEnabled(configured); onboardingConnect.icon.invalidate();
+        for (Row row : serviceRows) { row.enabled(false); row.view.setEnabled(true); }
+        // My scooters' line says what it waits for: the setup checklist's step, Allow Nearby devices (as the Lock bar's
+        // Connect says it without the permission).
+        scootersIndexRow.sub(nearby ? null : onboardingNearby.title.getText());
+        refreshPermissions(nearby);
     }
 
     /**

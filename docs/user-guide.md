@@ -344,6 +344,13 @@ NAVEE so it releases Bluetooth before connecting in Volt. Automatic launch
 connection can reconnect to the last scooter; it never changes the electronic
 lock by itself.
 
+Without Nearby devices, **Settings** still opens: its **Allow Nearby devices** card
+comes first, and Volt's own choices (Language, Home style, Appearance, Units, Text
+size, Haptic feedback, Updates, Back up & restore, About & permissions, Developer
+options) work as usual. **My scooters** and the rows that connect stay dimmed and ask
+for the permission when tapped. Pages about the scooter, rides and Data show the
+**Allow Nearby devices** card until it's allowed.
+
 The lock switch needs a fresh authenticated connection and confirmed lock state. Once connected, it moves as soon as you tap or slide it; the scooter's readback then confirms it. A tap in the first moments after connecting waits up to five seconds for the scooter to accept it (its first motion report, or an automatic setting Volt is finishing) and is sent once. A refusal, a missing confirmation or a lost connection puts the switch back with a short message.
 Dragging sends the requested change without an extra confirmation dialog; the
 scooter's response confirms it or puts the switch back. A connection failure does not

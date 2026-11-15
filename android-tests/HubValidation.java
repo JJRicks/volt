@@ -104,8 +104,8 @@ import com.jjricks.volt.WideLayout;
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
  * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
  * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
- * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none
- * (withoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
+ * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none, and
+ * shows its rows under the Allow Nearby devices card, each app row working (withoutNearby, settingsWithoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -328,7 +328,9 @@ public final class HubValidation extends Instrumentation {
      * holds no rows; the full walk checks the rows). On Battery & charging and on its first sub-page the line's tap opens
      * the connection details, whose state reads "No permission" and whose button is "Allow Nearby devices" (pictured, not
      * tapped: it would ask for the permission). That sub-page rebuilt by an activity recreation (as a rotation makes) shows
-     * the line again at once, as no bind is coming. Nothing binds the service (noBind).
+     * the line again at once, as no bind is coming. Settings shows its rows under the permission card, and they work
+     * (settingsWithoutNearby); its pages opened by their route show their own rows, My scooters alone the card. Nothing
+     * binds the service (noBind).
      */
     private void withoutNearby() throws Exception {
         screenshot("no-nearby-home");
@@ -369,19 +371,232 @@ public final class HubValidation extends Instrumentation {
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         requireHeader(HubPages.SETTINGS, false);
+        screenshot("no-nearby-settings");
+        settingsWithoutNearby();
         for (String child : children(HubPages.SETTINGS)) {
             open(child);
             arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
             requireHeader(child, false);
+            // The app's own pages open without the permission; My scooters needs the service and shows the card that grants it.
+            boolean card = !HubPages.withoutService(child);
+            main(() -> require(shown(root().findViewWithTag(NEARBY_CARD)) == card, child + (card ? " does not show" : " shows") + " the Allow Nearby devices card"));
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
-        screenshot("no-nearby-settings");
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         checks.add("Without Nearby devices permission (none granted; the service never binds): every subject, Search and every sub-page shows the connection line"
                 + " between its back link and title; on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
-                + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none");
+                + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none; each Settings page opened by its route shows its own"
+                + " rows, My scooters alone the Allow Nearby devices card");
+    }
+
+    /** MainActivity's permission card (LoadingScreen) and its Allow Nearby devices button. */
+    private static final String NEARBY_CARD = "nearby-card", NEARBY_ALLOW = "nearby-allow";
+    /** Settings' rows by their tags (MoreScreen): the app's own; My scooters, which needs the service, is checked apart. */
+    private static final String[] SETTINGS_APP_ROWS = {"preference_language", "home-style-menu", "preference-appearance", "preference-units-menu",
+            "preference-text-size", "preference_haptics", "data-backup", "settings-updates", "about-menu", "developer-options-menu"};
+
+    /**
+     * Settings without Nearby devices permission (the contributor's decision, 15 Nov, #383). Before it, Settings showed only
+     * the Allow Nearby devices card and no rows. Now the card ("Allow Nearby devices", "Needed to connect"; not tapped: it would
+     * ask Android) leads the page and its rows follow, all of them, and each app row works: Home style, Units, About &
+     * permissions and Developer options open their pages from their rows; Appearance, Text size, Updates and Back up & restore
+     * open their sheets (closed again, nothing chosen); Haptic feedback switches off and back on; Language changes from its
+     * sheet, and the choice survives the recreation it makes, Settings showing again with the card and the new language on
+     * its row (then back to System default). About & permissions says Nearby devices is not allowed, its row still tappable
+     * to ask; Developer options' Simulate switch waits. The rows that need the scooter (My scooters, About's Connection
+     * activity and Connect) are dimmed, My scooters saying "Allow Nearby devices"; they are not tapped (they ask
+     * Android for the permission).
+     */
+    private void settingsWithoutNearby() throws Exception {
+        int muted = onMain(() -> ((com.jjricks.volt.Ui) field(activity, "design")).muted);
+        main(() -> {
+            View card = root().findViewWithTag(NEARBY_CARD), allow = root().findViewWithTag(NEARBY_ALLOW);
+            require(shown(card), "Settings without Nearby permission has no Allow Nearby devices card");
+            require(allow instanceof TextView && shown(allow) && "Allow Nearby devices".contentEquals(((TextView) allow).getText()) && allow.isClickable(),
+                    "Settings' card has no Allow Nearby devices button");
+            require(hasText(card, "Needed to connect"), "Settings' card does not say \"Needed to connect\"");
+            int[] cardAt = new int[2]; card.getLocationInWindow(cardAt);
+            List<String> rows = new ArrayList<>(Arrays.asList(SETTINGS_APP_ROWS)); rows.add("my-scooters-menu");
+            for (String tag : rows) {
+                View row = root().findViewWithTag(tag);
+                require(shown(row), "Settings without Nearby permission has no " + tag + " row (" + chain(row) + ")");
+                int[] at = new int[2]; row.getLocationInWindow(at);
+                require(at[1] >= cardAt[1] + card.getHeight(), tag + " is not below the Allow Nearby devices card");
+            }
+            require(hasText(root().findViewWithTag("preference-appearance"), "Dark"), "Appearance does not read Dark");
+            require(hasText(root().findViewWithTag("preference-text-size"), "100%"), "Text size does not read 100%");
+            View scooters = root().findViewWithTag("my-scooters-menu");
+            require(hasText(scooters, "Allow Nearby devices"), "My scooters does not say \"Allow Nearby devices\"");
+            requireDimmed(scooters, "My scooters", muted);
+            require(scooters.isEnabled() && scooters.isClickable(), "My scooters cannot be tapped to ask for the permission");
+        });
+        // Haptic feedback: off and back on, saved each time.
+        for (boolean on : new boolean[]{false, true}) {
+            tapTag("preference_haptics");
+            await(() -> settings().getBoolean("haptics_enabled", true) == on, "Haptic feedback did not switch " + (on ? "on" : "off") + " without Nearby permission");
+        }
+        // The pages behind Settings' rows.
+        tapTag("home-style-menu");
+        arrived(HubPages.SETTINGS_HOME, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_HOME);
+        main(() -> require(root().findViewWithTag(NEARBY_CARD) == null, "Home style shows the permission card"));
+        systemBack();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        tapTag("preference-units-menu");
+        arrived(HubPages.SETTINGS_UNITS, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_UNITS);
+        main(() -> {
+            for (String key : new String[]{"units", "temperature_unit", "time_format"})
+                require(shown(root().findViewWithTag("preference-selector-" + key)), "Units has no " + key + " choice without Nearby permission");
+        });
+        systemBack();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        tapTag("about-menu");
+        arrived(HubPages.SETTINGS_ABOUT, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT);
+        main(() -> {
+            View nearby = rowOf(textView(root(), "Nearby devices"));
+            require(nearby != null && hasText(nearby, "Not allowed"), "About & permissions does not say Nearby devices is not allowed");
+            require(nearby.isEnabled() && nearby.isClickable(), "About & permissions' Nearby devices row cannot be tapped to ask for it");
+            for (String name : new String[]{"Connection activity", "Connect selected scooter"}) {
+                View row = rowOf(textView(root(), name));
+                require(row != null, "About & permissions has no " + name + " row");
+                requireDimmed(row, name, muted);
+            }
+            require(shown(root().findViewWithTag("about-version")), "About & permissions has no version line");
+        });
+        screenshot("no-nearby-settings.about");
+        systemBack();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        tapTag("developer-options-menu");
+        arrived(HubPages.SETTINGS_DEVELOPER, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_DEVELOPER);
+        main(() -> {
+            View simulate = root().findViewWithTag("developer-simulation-toggle");
+            require(shown(simulate) && !simulate.isEnabled(), "Developer options' Simulate switch is not waiting for the service");
+            require(shown(root().findViewWithTag("developer-compatibility-check")), "Developer options has no Compatibility test row");
+        });
+        systemBack();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        // The sheets behind Settings' rows, closed again with nothing chosen.
+        settingsSheet("preference-appearance", "preference-selector-theme");
+        settingsSheet("preference-text-size", null);
+        settingsSheet("settings-updates", "check-updates");
+        tapTag("data-backup");
+        AlertDialog[] backup = new AlertDialog[1];
+        await(() -> onMain(() -> { backup[0] = controlDialog(); return backup[0] != null && backup[0].isShowing(); }), "Back up & restore did not open without Nearby permission");
+        settle();
+        main(() -> {
+            View content = backup[0].getWindow().getDecorView();
+            require(shown(content.findViewWithTag("data-backup-create")) && shown(content.findViewWithTag("data-backup-restore")), "Back up & restore offers no Back up or Restore");
+            backup[0].dismiss();
+        });
+        await(() -> onMain(() -> !backup[0].isShowing()), "Back up & restore did not close");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        language();
+        checks.add("Settings without Nearby devices permission (the contributor's decision, 15 Nov; before it only the permission card showed): the Allow Nearby devices card"
+                + " leads, every row follows; Haptic feedback switches; Home style, Units, About & permissions and Developer options open from their rows; Appearance, Text size,"
+                + " Updates and Back up & restore open their sheets; Language changes and survives the recreation; About says Nearby devices is not allowed;"
+                + " My scooters, Connection activity and Connect are dimmed, waiting for the permission");
+    }
+
+    /** A Settings row that opens a sheet over Settings (MoreScreen's dialogs): it shows, holding content (a tag, or anything), and Back closes it. */
+    @SuppressWarnings("unchecked")
+    private void settingsSheet(String row, String content) throws Exception {
+        tapTag(row);
+        AlertDialog[] sheet = new AlertDialog[1];
+        await(() -> onMain(() -> {
+            List<AlertDialog> open = (List<AlertDialog>) field(field(activity, "screen"), "dialogs");
+            sheet[0] = open.isEmpty() ? null : open.get(open.size() - 1);
+            return sheet[0] != null && sheet[0].isShowing();
+        }), row + " opened no sheet without Nearby permission");
+        settle();
+        if (content != null) main(() -> require(shown(sheet[0].getWindow().getDecorView().findViewWithTag(content)), row + "'s sheet has no " + content));
+        systemBack();
+        await(() -> onMain(() -> !sheet[0].isShowing()), row + "'s sheet did not close on Back");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+    }
+
+    /**
+     * Language from its sheet without Nearby permission: the first shipped language other than English (left to right),
+     * picked as an owner would; Volt recreates for it, Settings shows again in that language with its card and the language
+     * on its row, and the choice is kept. Then System default (the phone's English) the same way, for the rest of the walk.
+     */
+    private void language() throws Exception {
+        int pick = -1;
+        for (int i = 0; i < com.jjricks.volt.AppLanguages.size() && pick < 0; i++)
+            if (com.jjricks.volt.AppLanguages.shipped(i) && !com.jjricks.volt.AppLanguages.ENGLISH.equals(com.jjricks.volt.AppLanguages.tag(i))
+                    && !com.jjricks.volt.AppLanguages.rtl(i)) pick = i;
+        require(pick >= 0, "No shipped language to change to");
+        String tag = com.jjricks.volt.AppLanguages.tag(pick), endonym = com.jjricks.volt.AppLanguages.endonym(pick);
+        chooseLanguage(endonym);
+        require(tag.equals(com.jjricks.volt.AppLanguage.choice(getTargetContext())), "The language chosen without Nearby permission was not kept ("
+                + com.jjricks.volt.AppLanguage.choice(getTargetContext()) + ")");
+        main(() -> {
+            require(shown(root().findViewWithTag(NEARBY_CARD)), "Settings in " + endonym + " has no Allow Nearby devices card");
+            require(textHolding(root().findViewWithTag("preference_language"), endonym) != null, "The Language row does not show " + endonym);
+        });
+        screenshot("no-nearby-settings-language");
+        // System default's line names the phone's language in its own words: "(English)" on an en-US emulator.
+        chooseLanguage("(English)");
+        require(com.jjricks.volt.AppLanguage.choice(getTargetContext()).isEmpty(), "System default was not kept");
+        main(() -> require(shown(root().findViewWithTag(NEARBY_ALLOW)) && "Allow Nearby devices".contentEquals(((TextView) root().findViewWithTag(NEARBY_ALLOW)).getText()),
+                "Back on System default, Settings' card is not in English"));
+    }
+
+    /** Opens Language from Settings and taps the option whose name holds text; waits for the recreation the change makes. */
+    private void chooseLanguage(String text) throws Exception {
+        Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
+        MainActivity before = activity;
+        try {
+            tapTag("preference_language");
+            android.view.accessibility.AccessibilityNodeInfo option = null;
+            long end = SystemClock.uptimeMillis() + 10000;
+            while (option == null && SystemClock.uptimeMillis() < end) {
+                android.view.accessibility.AccessibilityNodeInfo window = getUiAutomation().getRootInActiveWindow();
+                if (window != null) for (android.view.accessibility.AccessibilityNodeInfo node : window.findAccessibilityNodeInfosByText(text)) {
+                    for (android.view.accessibility.AccessibilityNodeInfo at = node; at != null && option == null; at = at.getParent()) if (at.isClickable()) option = at;
+                    if (option != null) break;
+                }
+                if (option == null) SystemClock.sleep(100);
+            }
+            require(option != null, "The Language sheet has no option \"" + text + "\"");
+            require(option.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK), "The Language option \"" + text + "\" could not be tapped");
+            // One wait for the whole time (see recreateActivity).
+            Activity next = waitForMonitorWithTimeout(monitor, 10000);
+            require(next instanceof MainActivity && next != before, "Choosing \"" + text + "\" did not recreate Volt");
+            activity = (MainActivity) next;
+        } finally { removeMonitor(monitor); }
+        settle();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+    }
+
+    /** The row (MoreScreen's RowLine) that holds title, a row's title TextView: its words column's parent. */
+    private static View rowOf(TextView title) {
+        return title == null || !(title.getParent() instanceof View) || !(title.getParent().getParent() instanceof View) ? null : (View) title.getParent().getParent();
+    }
+    /** The first shown TextView in view whose text holds part (a Beta language reads "Deutsch · Beta"). */
+    private static TextView textHolding(View view, String part) {
+        if (view instanceof TextView && view.isShown() && ((TextView) view).getText().toString().contains(part)) return (TextView) view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = textHolding(((ViewGroup) view).getChildAt(i), part); if (found != null) return found; }
+        return null;
+    }
+    /** The first shown TextView in view that reads text. */
+    private static TextView textView(View view, String text) {
+        if (view instanceof TextView && view.isShown() && text.contentEquals(((TextView) view).getText())) return (TextView) view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { TextView found = textView(((ViewGroup) view).getChildAt(i), text); if (found != null) return found; }
+        return null;
+    }
+    /** A row waiting for the service: its title in the muted colour (MoreScreen's Row.enabled(false)). */
+    private void requireDimmed(View row, String name, int muted) {
+        TextView title = row instanceof ViewGroup ? firstText((ViewGroup) row) : null;
+        require(title != null && title.getCurrentTextColor() == muted, name + " is not dimmed without Nearby permission");
+    }
+    private static TextView firstText(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof TextView && child.isShown()) return (TextView) child;
+            if (child instanceof ViewGroup) { TextView found = firstText((ViewGroup) child); if (found != null) return found; }
+        }
+        return null;
     }
 
     /**
