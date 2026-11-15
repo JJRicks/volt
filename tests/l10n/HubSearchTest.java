@@ -513,6 +513,12 @@ public final class HubSearchTest {
         check(!HubSearch.headerHidden(false, false, "") && !HubSearch.headerHidden(false, false, "   "), "without Cancel, shown when the field is empty and left");
         // With Cancel beside the field (the search page), always hidden: one way out, the field at the very top.
         check(HubSearch.headerHidden(true, false, "") && HubSearch.headerHidden(true, false, "   ") && HubSearch.headerHidden(true, true, "batt"), "with Cancel, always hidden");
+        // Without Nearby devices permission (the service never binds) Search's header would carry the not-connected line
+        // (HubPages.pageConnectionLine, #410 review), but on the search page, with Cancel, the whole header is hidden, the
+        // line with it; part 13's pane (no Cancel) shows it whenever the field is empty and left.
+        check(HubPages.pageConnectionLine(HubPages.SEARCH, false, false, false, false) == HubPages.LINE_SHOWN, "Search's header would say not connected without Nearby permission");
+        check(HubSearch.headerHidden(true, false, ""), "the search page hides that header, line and all");
+        check(!HubSearch.headerHidden(false, false, "") && HubSearch.headerHidden(false, true, ""), "without Cancel the line shows when not searching, and steps aside while searching");
         // The placeholder: "Search settings, readings and rides" is about 232 dp at 14 sp and 1.0x; the field's room for
         // text is its width less 16 dp padding at each end and the 20 dp magnifier with its 10 dp gap.
         float hint = 232;

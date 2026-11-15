@@ -324,8 +324,10 @@ public final class HubValidation extends Instrumentation {
 
     /**
      * -e mode no-nearby (#410 review): without Nearby devices permission ScooterService never binds (MainActivity's
-     * ensureService), so the scooter is not connected: every subject page, Search and every sub-page shows the connection
-     * line between its back link and its title (HubPages.pageConnectionLine), and Settings and its pages show none. The
+     * ensureService), so the scooter is not connected: every subject page and every sub-page shows the connection line
+     * between its back link and its title (HubPages.pageConnectionLine), and Settings and its pages show none. Search
+     * shows neither: with Cancel beside its field its whole page header steps aside (HubSearch.headerHidden), the line
+     * with it, and Cancel returns Home. The
      * subjects open from Home's rows; their sub-pages open by the page stack's route (without the service a hosted page
      * holds no rows; the full walk checks the rows). On Battery & charging and on its first sub-page the line's tap opens
      * the connection details, whose state reads "No permission" and whose button is "Allow Nearby devices" (pictured, not
@@ -362,11 +364,18 @@ public final class HubValidation extends Instrumentation {
             systemBack();
             requireHome("CleanHomeScreen");
         }
+        // Search (part 12): its page header steps aside for the field and Cancel (HubSearch.headerHidden, always with
+        // Cancel), the connection line with it; Cancel is the one way out, and goes Home.
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         hideKeyboard();
-        requireHeader(HubPages.SEARCH, true);
-        HubTestPages.back(this, activity);
+        main(() -> {
+            require(!shown(root().findViewWithTag("hub-back")) && !shown(root().findViewWithTag("hub-page-connection")),
+                    "Search without Nearby permission shows its page header or the connection line with Cancel beside its field");
+            require(shown(root().findViewWithTag("hub-search-cancel")), "Search without Nearby permission has no Cancel beside its field");
+        });
+        screenshot("no-nearby-search");
+        tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
@@ -381,8 +390,8 @@ public final class HubValidation extends Instrumentation {
         screenshot("no-nearby-settings");
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
-        checks.add("Without Nearby devices permission (none granted; the service never binds): every subject, Search and every sub-page shows the connection line"
-                + " between its back link and title; on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
+        checks.add("Without Nearby devices permission (none granted; the service never binds): every subject and every sub-page shows the connection line"
+                + " between its back link and title (Search's header steps aside for its field and Cancel, the line with it); on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
                 + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none");
     }
 
