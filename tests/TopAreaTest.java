@@ -51,6 +51,12 @@ public final class TopAreaTest {
                 }
         require(TopArea.heightDp(412, 901, false, 1f, 116) == 364 && TopArea.heightDp(344, 882, false, 1f, 116) == 304, "tall phones: unchanged under the card");
         require(TopArea.heightDp(360, 640, false, 1f, 160) == 224, "never below the minimum");
+        // The council's review of #501, finding 3: tabletop posture puts the header and the area in the pane above the
+        // hinge. 412x901 with the hinge at 450 dp: the pane is 426 dp (less the 24 dp status bar), less its 16 dp padding
+        // and the header (about 100 dp), about 310 dp for the area, not the window's 364.
+        require(TopArea.tabletopDp(364, 310) == 310, "412x901, hinge at 450 dp: the area within the pane");
+        require(TopArea.tabletopDp(304, 400) == 304, "a pane with room to spare: the area as on a flat phone");
+        require(TopArea.tabletopDp(364, 150) == TopArea.FLOOR_DP && TopArea.tabletopDp(200, 150) == 200, "never under the floor, never taller than the area");
         require(TopArea.heightDp(344, 882, false, 1.4f) == 304, "344x882 at 1.4x: the same area (the grown minimum, 291, is less)");
         require(TopArea.heightDp(300, 915, false, 1.4f) == 291, "Large text keeps at least 224 dp grown 1.3 times on a narrow window");
         require(TopArea.heightDp(260, 1100, false, 1.15f) == 258 && TopArea.heightDp(250, 700, false, 1f) == 224, "Text growth below the cap scales the minimum");

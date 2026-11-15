@@ -212,4 +212,12 @@ final class TopArea {
         gaps[0] += over;
         return gaps;
     }
+
+    /**
+     * Tabletop posture (a horizontal hinge): the header and the area sit in the pane above the hinge, so the area is at
+     * most what that pane leaves under the header ({@code paneRoomDp}), never under {@link #FLOOR_DP}.
+     */
+    static int tabletopDp(int areaDp, int paneRoomDp) {
+        return Math.min(areaDp, Math.max(FLOOR_DP, paneRoomDp));
+    }
 }
