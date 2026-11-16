@@ -637,6 +637,9 @@ public final class HubValidation extends Instrumentation {
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         int muted = onMain(() -> ((com.jjricks.volt.Ui) field(activity, "design")).muted);
+        // Settings keeps the scroll of the walk's last visit: from its top, as a rider who just opened it.
+        main(() -> ((ScrollView) field(field(activity, "screen"), "scroll")).scrollTo(0, 0));
+        settle();
         Object before = onMain(() -> field(activity, "screen"));
         int[] start = onMain(() -> {
             View card = root().findViewWithTag(NEARBY_CARD), row = root().findViewWithTag("preference_language");
