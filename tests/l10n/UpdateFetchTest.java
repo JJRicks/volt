@@ -30,19 +30,26 @@ public final class UpdateFetchTest {
     private static void check(boolean value, String message) { checks++; if (!value) throw new AssertionError(message); }
     private static final long NOW = 1_780_000_000_000L;
 
-    /** Counts connections and HTTP requests; can hold its answer. */
+    /**
+     * Counts connections and HTTP requests; can hold its answer. The client's connect() returns once the kernel has
+     * finished the handshake, which can be before this thread's accept() returns and counts it (under load, often):
+     * accepted opens only after the count, and handler is that connection's thread, for a test to wait on.
+     */
     static final class Server implements Runnable {
         final ServerSocket socket;
         final AtomicInteger connections = new AtomicInteger(), requests = new AtomicInteger();
         volatile CountDownLatch answer = new CountDownLatch(0);
         volatile CountDownLatch received = new CountDownLatch(1);
+        volatile CountDownLatch accepted = new CountDownLatch(1);
+        volatile Thread handler;
         Server() throws IOException { socket = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.1")); }
         @Override public void run() {
             while (!socket.isClosed()) {
                 try {
                     Socket client = socket.accept();
-                    connections.incrementAndGet();
-                    Thread one = new Thread(() -> serve(client)); one.setDaemon(true); one.start();
+                    Thread one = new Thread(() -> serve(client)); one.setDaemon(true);
+                    handler = one; connections.incrementAndGet(); accepted.countDown();
+                    one.start();
                 } catch (IOException closed) { return; }
             }
         }
@@ -137,6 +144,7 @@ public final class UpdateFetchTest {
 
     private static void reset(Server server) {
         server.connections.set(0); server.requests.set(0); server.answer = new CountDownLatch(0); server.received = new CountDownLatch(1);
+        server.accepted = new CountDownLatch(1); server.handler = null;
         atConnect = leaveConnect = afterConnect = leaveAfterConnect = null;
     }
 
@@ -188,10 +196,16 @@ public final class UpdateFetchTest {
         UpdateRuns.Run run = runs.start();
         Thread worker = new Thread(() -> runs.run(run, NOW)); worker.start();
         check(afterConnect.await(10, TimeUnit.SECONDS), "connected, before the send decision");
-        check(server.connections.get() == 1, "the socket is open");
+        // connect() returning means the handshake is done, not that the server's accept() has returned: wait for it.
+        check(server.accepted.await(10, TimeUnit.SECONDS) && server.connections.get() == 1, "the socket is open");
+        Thread handler = server.handler;
         phone.on = false; runs.revoke();
         leaveAfterConnect.countDown(); worker.join(10_000);
-        check(!worker.isAlive() && server.settledRequests() == 0, "revoked during connect: no HTTP request written");
+        check(!worker.isAlive(), "the worker ends");
+        // The server's thread for that connection ends only when the client closes it: then nothing more can arrive.
+        handler.join(10_000);
+        check(!handler.isAlive(), "the bare connection was closed");
+        check(server.requests.get() == 0, "revoked during connect: no HTTP request written");
         check(phone.saves == 0 && phone.posts == 0, "nothing saved or posted");
     }
     /** After the send decision the request is on the wire: revoke returns at once and closes it; nothing is kept. */
