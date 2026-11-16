@@ -169,7 +169,7 @@ public final class ControlsPagesTest {
         require(source.contains("bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);"),
                 "The last-seen banner leaves out its Connect under a lock bar");
         String more = new String(Files.readAllBytes(Paths.get(mainActivity).resolveSibling("MoreScreen.java")), StandardCharsets.UTF_8).replaceAll("\\s+", "");
-        require(more.contains("securityConnect.setVisibility(!embedded&&link==BleController.State.DISCONNECTED?View.VISIBLE:View.GONE);"),
+        require(more.contains("reveal(securityConnect,!embedded&&link==BleController.State.DISCONNECTED);"),
                 "More's Security section on the Security page leaves out its Connect");
         // The Charger row on Charge history & recordings names the charger under its title, full width, never in the
         // 140 dp value beside it (German at large text broke inside words there; #387 review).
