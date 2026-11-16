@@ -287,6 +287,7 @@ final class HubDock {
 
     void close() {
         closed = true;
+        clearBar(false);
         view.getViewTreeObserver().removeOnPreDrawListener(follow);
         if (sheetSubjects != null) sheetSubjects.close();
         if (drag != null) drag.leave();
@@ -302,6 +303,31 @@ final class HubDock {
         // Handed to the sheet: invisible, not gone, so its place (and the sheet's reading of it) stays.
         int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : handed ? View.INVISIBLE : View.VISIBLE;
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
+        // Handed, the sheet draws the dock (and then itself) under the bar: still clear.
+        clearBar(!closed && visibility != View.GONE);
+    }
+
+    /** Whether this dock has the navigation bar clear (navigationBar) now. */
+    private boolean barClear;
+
+    private void clearBar(boolean clear) {
+        if (clear == barClear) return;
+        barClear = clear;
+        navigationBar(host.activity().getWindow(), ui.bg, clear);
+    }
+
+    /**
+     * The one rule for the navigation bar's own background in Volt's main window (MainActivity sets it for every page as it
+     * builds it, the dock while it shows): clear, with Android's contrast scrim behind three-button navigation off, while
+     * the dock's sheet shows under it (the sheet is then the bar's background, as the plan's dock sheet draws it); else the
+     * page colour with the scrim as Android has it by default. Since Android 15 an app's bar colour is always clear and
+     * only the scrim applies. The bar's icons keep the theme's appearance throughout (MainActivity.styleSystemBars: dark
+     * on the light theme, light on the dark), which suits the dock's surface as it suits the page.
+     */
+    static void navigationBar(android.view.Window window, int pageColour, boolean clear) {
+        if (window == null) return;
+        window.setNavigationBarColor(clear ? Color.TRANSPARENT : pageColour);
+        if (Build.VERSION.SDK_INT >= 29) window.setNavigationBarContrastEnforced(!clear);
     }
 
     /**

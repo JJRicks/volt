@@ -21,6 +21,7 @@ public final class HubPagesTest {
         hub();
         dock();
         dockMorph();
+        dockKeyboard();
         riding();
         connectionLine();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
@@ -255,6 +256,35 @@ public final class HubPagesTest {
             SheetMorph.Box end = SheetMorph.at(dock, open, travel - .25, travel);
             require(Math.abs(end.left - dock.left) < 1 && Math.abs(end.right - dock.right) < 1 && Math.abs(end.top - dock.top) < 1
                     && Math.abs(end.bottom - dock.bottom) < 1 && Math.abs(end.radii[0] - dock.radii[0]) < 1, "The close's last step lands on the dock: " + name);
+        }
+    }
+
+    /**
+     * The keyboard (HubPages.dockInset): the dock runs on under the navigation bar only. With the keyboard up, MainActivity's
+     * root ends at the keyboard's top (its padding the larger inset) and the dock sits there with its items lift and
+     * padding above it, exactly where main's dock (in the page frame) leaves its items.
+     */
+    private static void dockKeyboard() {
+        int px = 3;
+        require(HubPages.dockInset(24 * px, 0) == 24 * px, "No keyboard: the gesture handle's inset");
+        require(HubPages.dockInset(48 * px, 0) == 48 * px, "No keyboard: three buttons' inset");
+        require(HubPages.dockInset(24 * px, 300 * px) == 0, "Keyboard up: none (the keyboard covers the bar)");
+        require(HubPages.dockInset(48 * px, 280 * px) == 0, "Keyboard up over three buttons: none");
+        require(HubPages.dockInset(0, 0) == 0 && HubPages.dockInset(-5, 0) == 0 && HubPages.dockInset(24, -3) == 24, "Missing or negative insets");
+        require(HubPages.dockInset(24 * px, 10 * px) == 14 * px, "A keyboard shorter than the bar: the part it leaves");
+        int padding = HubPages.DOCK_PADDING_DP * px, lift = HubPages.DOCK_LIFT_DP * px, body = 88 * px;
+        int[][] insets = {{24, 0}, {48, 0}, {24, 300}, {48, 280}, {24, 10}, {0, 0}, {0, 250}};
+        for (int h : new int[] {882 * px, 604 * px}) for (int[] i : insets) {
+            int nav = i[0] * px, ime = i[1] * px, rootBottom = h - Math.max(nav, ime);
+            int inset = HubPages.dockInset(nav, ime);
+            int height = body + lift + inset, top = HubPages.dockTop(rootBottom + inset, height);
+            int dockBottom = top + height, items = dockBottom - HubPages.dockBottomPadding(padding, lift, inset);
+            // main: the dock floated in the page frame (ending at rootBottom), lift above its bottom, its items padding inside.
+            int mainItems = rootBottom - lift - padding;
+            String name = "nav " + i[0] + " dp, keyboard " + i[1] + " dp, window " + h / px + " dp";
+            require(items == mainItems, "The items sit where main's do: " + name);
+            require(dockBottom == (ime > 0 ? h - ime : h), "The sheet reaches the keyboard's top, or the screen's bottom without one: " + name);
+            require(dockBottom <= h - Math.max(0, ime), "Never under the keyboard: " + name);
         }
     }
 

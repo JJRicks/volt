@@ -136,6 +136,15 @@ public final class HubPages {
     public static int dockClearance(int dockHeight, int inset, int gap) { return Math.max(0, dockHeight - Math.max(0, inset)) + gap; }
 
     /**
+     * The inset the dock's sheet runs on under (window pixels): the navigation bar's (or gesture handle's) height, never
+     * the keyboard's. A raised keyboard covers the navigation bar, and MainActivity's root then ends at the keyboard's top
+     * (its bottom padding is the larger of the two), so the dock sits on the keyboard as it does on main, its items lift
+     * above it: only the part of the navigation bar the keyboard leaves uncovered is still the dock's to cover. navigation
+     * and ime are the bottom insets of the system bars (and cutout) and of the keyboard; either may be 0 or negative.
+     */
+    public static int dockInset(int navigation, int ime) { return Math.max(0, Math.max(0, navigation) - Math.max(0, ime)); }
+
+    /**
      * The dock sheet's surface around its view (its background's GradientDrawable bounds, relative to the view's own
      * box): {left, top, right, bottom} insets, each px outward-negative as InsetDrawable takes them. Its 1 dp outline
      * (line px) lies just outside the view along the bottom (past the screen's edge), and on a phone along both sides
