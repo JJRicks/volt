@@ -55,8 +55,8 @@ import com.jjricks.volt.ScooterProfiles;
  * does). Nothing is sent and Bluetooth stays off. The connection parts run the simulator (memory only, never a
  * command): its dropout script leaves the link Connecting, as a scooter that stops answering does, and the default
  * script brings it back. {@code controls}: Controls › Limits' connection banner. {@code rides}: Ride › Rides'
- * Connect to record. {@code night}: Ride › Riding mode's Night vision rows, revealed by choosing Scheduled (sunset to
- * sunrise, the time zone's city) and hidden by choosing Off. -e mode demo toggles the site every -e hold_ms (1500) for -e
+ * Connect to record. {@code night}: Ride › Riding mode's Night vision rows, revealed by tapping Scheduled (sunset to
+ * sunrise, the time zone's city) and hidden by tapping Off. -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
 public final class RevealMotionValidation extends Instrumentation {
@@ -165,17 +165,24 @@ public final class RevealMotionValidation extends Instrumentation {
                 () -> main(() -> { activity.service().ble.setSimulationScript(""); activity.redraw(); }));
     }
 
-    /** Ride › Riding mode's "Sunset from" row: Scheduled (sunset to sunrise) shows it, Off hides it. */
+    /** Ride › Riding mode's "Sunset from" row: tapping Scheduled (sunset to sunrise) shows it, tapping Off hides it. */
     private Site night() {
         Supplier<View> subject = () -> root().findViewWithTag("preference_riding_night_from");
         return new Site("Ride › Riding mode's Night vision schedule rows", subject, () -> siblingsAfter(subject.get()),
-                () -> main(() -> nightMode("scheduled")), () -> main(() -> nightMode("off")));
+                () -> main(() -> nightChoice(2)), () -> main(() -> nightChoice(0)));
     }
 
-    /** As the Night vision selector saves a choice: the stored mode, then the menu's refresh (nightChanged). */
-    private void nightMode(String mode) {
-        settings().edit().putString("riding_night_vision", mode).commit();
-        ((Runnable) field(field(part("HubRidingSettings"), "menu"), "refreshNight")).run();
+    /** Taps a Night vision choice (Off, On, Scheduled): the page's third selector, after brightness and rotation. */
+    private void nightChoice(int choice) {
+        List<View> selectors = new ArrayList<>();
+        collect((View) field(part("HubRidingSettings"), "view"), "SegmentedSelector", selectors);
+        require(selectors.size() >= 3, "Ride › Riding mode has " + selectors.size() + " selectors");
+        ((View) ((List<?>) field(field(selectors.get(2), "track"), "choices")).get(choice)).performClick();
+    }
+
+    private static void collect(View view, String simpleName, List<View> out) {
+        if (view.getClass().getSimpleName().equals(simpleName)) { out.add(view); return; }
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collect(((ViewGroup) view).getChildAt(i), simpleName, out);
     }
 
     /** The open page's screen of this class: the page itself, or one of a stacked page's parts. */
