@@ -34,6 +34,18 @@
         <item name="android:datePickerDialogTheme">@style/VoltDialogLight</item>
     </style>
 
+    <!-- Volt's main window: stronger shadows (Android's usual are 0.039 and 0.19), so the Widgets Home dock's shows on
+         the dark theme too; the dock sets its own colours per theme, and every other elevated view keeps the usual
+         strength (Ui.usualShadow, Ui.WINDOW_AMBIENT and WINDOW_SPOT). -->
+    <style name="VoltDark.Main">
+        <item name="android:ambientShadowAlpha">0.12</item>
+        <item name="android:spotShadowAlpha">0.36</item>
+    </style>
+    <style name="VoltLight.Main">
+        <item name="android:ambientShadowAlpha">0.12</item>
+        <item name="android:spotShadowAlpha">0.36</item>
+    </style>
+
     <!-- Dialogs: dark card surface with red buttons, matching the Volt cards. -->
     <style name="VoltDialog" parent="android:style/Theme.Material.Dialog.Alert">
         <item name="android:colorAccent">#E32B2F</item>

@@ -730,6 +730,17 @@ public final class Ui {
         GradientDrawable drawable = new GradientDrawable(); drawable.setColor(fill); drawable.setCornerRadius(dp(radius));
         if (border != 0) drawable.setStroke(dp(1), border); return drawable;
     }
+    /**
+     * The strength of shadows in Volt's main window (styles.xml, VoltDark.Main and VoltLight.Main), raised from Android's
+     * usual 0.039 and 0.19 so the Widgets Home dock can cast a shadow that shows on the dark theme too (HubDock).
+     */
+    public static final float WINDOW_AMBIENT = .12f, WINDOW_SPOT = .36f, USUAL_AMBIENT = .039f, USUAL_SPOT = .19f;
+    /** Keeps an elevated view's shadow at Android's usual strength under WINDOW_AMBIENT and WINDOW_SPOT (Android 9 on). */
+    public static void usualShadow(View view) {
+        if (view == null || android.os.Build.VERSION.SDK_INT < 28) return;
+        view.setOutlineAmbientShadowColor(withAlpha(android.graphics.Color.BLACK, Math.round(255 * USUAL_AMBIENT / WINDOW_AMBIENT)));
+        view.setOutlineSpotShadowColor(withAlpha(android.graphics.Color.BLACK, Math.round(255 * USUAL_SPOT / WINDOW_SPOT)));
+    }
     public static int withAlpha(int color, int alpha) { return (color & 0x00ffffff) | (Math.max(0, Math.min(255, alpha)) << 24); }
 
     /**
