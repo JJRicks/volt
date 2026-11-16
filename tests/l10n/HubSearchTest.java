@@ -462,8 +462,7 @@ public final class HubSearchTest {
             check(recording, "\"" + word + "\" lists Recording settings' auto-save row");
         }
         // Ride backups has one home, the Ride page (#393 council review, second round, finding 2): its result opens that page
-        // with the row on screen, and All rides & compare's words no longer name it.
-        String rides = read("src/com/jjricks/volt/RidesScreen.java");
+        // with the row on screen, and All rides & compare's words no longer name it. (rides: RidesScreen, read above.)
         check(HubSearchTables.settingPage(HubSearchTables.SETTING_RIDE_BACKUPS).equals(HubPages.RIDE)
                 && HubSearchTables.SETTING_RIDE_BACKUPS.equals(HubSearchTables.settingAnchor(HubSearchTables.SETTING_RIDE_BACKUPS)), "Ride backups opens the Ride page at its row");
         check(rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(null, M.ridesBackups(), \"\", \"\", this::rideBackups);\n            backups.view.setTag(\"ride-backups-menu\");"),
@@ -718,11 +717,11 @@ public final class HubSearchTest {
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
-        // Opening Search focuses its field wherever it is: in tabletop posture takeTop moved it out of the page's view, so
-        // the page's own view has none (#393 council review, third round, finding 1).
         // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
         check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
                 && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");
+        // Opening Search focuses its field wherever it is: in tabletop posture takeTop moved it out of the page's view, so
+        // the page's own view has none (#393 council review, third round, finding 1).
         String searchScreen = read("src/com/jjricks/volt/HubSearchScreen.java");
         check(main.contains("EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);")
                 && searchScreen.contains("EditText field() { return search; }") && searchScreen.contains("top.addView(search, "),
