@@ -51,8 +51,8 @@ import com.jjricks.volt.ScooterProfiles;
  *   into its departure, it stays shown after the departure would have ended. On Widgets Home also the real way, edit
  *   mode entered and left while the card goes.</li>
  *   <li><b>Turning back</b> (scale 10): hidden mid-arrival and shown mid-departure, no frame changes its opacity by more
- *   than 0.15 or moves a neighbour more than 8 dp from the frame before (no jump to where the first motion was
- *   going).</li>
+ *   than 0.15 or moves a neighbour more than 8 dp from the frame before, per 60 Hz frame of time between them (no jump
+ *   to where the first motion was going).</li>
  *   <li><b>Leaving at the end of a scrolled page</b> that still scrolls without it (the text made larger until it
  *   does): the scroll clamps, and no frame draws the views below off their way from start to rest.</li>
  * </ul>
@@ -413,7 +413,7 @@ public final class RevealMotionValidation extends Instrumentation {
             float low = 1; for (float[] f : out.samples) low = Math.min(low, f[1] == 1 ? f[2] : 0);
             require(low > .1f && low < .9f, site.name + ": the reversal mid-departure was not mid-way (opacity fell to " + low + ")");
             checks.add(site.name + ": at scale 10, hidden mid-arrival (opacity " + String.format(Locale.ROOT, "%.2f", peak) + ") and shown mid-departure (" + String.format(Locale.ROOT, "%.2f", low)
-                    + "), it turns back from where it is: " + in.samples.size() + " and " + out.samples.size() + " frames, none changing opacity by more than 0.15 or moving a neighbour more than 8 dp from the frame before");
+                    + "), it turns back from where it is: " + in.samples.size() + " and " + out.samples.size() + " frames, none changing opacity by more than 0.15 or moving a neighbour more than 8 dp per 60 Hz frame from the frame before");
             site.hide.run(); settleFor(4000);
         } finally {
             scale(1);
@@ -642,13 +642,14 @@ public final class RevealMotionValidation extends Instrumentation {
 
     /**
      * Between any two frames drawn one after another, the subject's opacity changes by at most 0.15 and each neighbour
-     * moves at most 8 dp (allowing more only for a frame that came more than 100 ms late): nothing snaps.
+     * moves at most 8 dp per 60 Hz frame of time between them (a busy emulator that draws every 40 ms gets 2.4 frames'
+     * worth): nothing snaps. At scale 10 the fastest part of the curve moves about 20 px a frame, a snap hundreds.
      */
     private void continuous(Frames frames, String what) {
         float step = 8 * density();
         for (int i = 1; i < frames.samples.size(); i++) {
             float[] a = frames.samples.get(i - 1), b = frames.samples.get(i);
-            float late = Math.max(1, (b[0] - a[0]) / 100f);
+            float late = Math.max(1, (b[0] - a[0]) / 16.7f);
             float alphaA = a[1] == 1 ? a[2] : 0, alphaB = b[1] == 1 ? b[2] : 0;
             require(Math.abs(alphaB - alphaA) <= .15f * late, what + ": its opacity snapped from " + alphaA + " to " + alphaB + " at " + (long) b[0]
                     + " ms (alpha track " + alphaTrack(frames) + ")");
