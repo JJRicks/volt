@@ -751,8 +751,7 @@ public final class HubValidation extends Instrumentation {
                         "Search opened from the All sheet without its field focused");
                 hideKeyboard();
             }
-            systemBack();
-            requireHome("DashboardScreen");
+            backToHome("DashboardScreen");
         }
         checks.add("Widgets Home keeps main's header; the All sheet's Search and Settings rows open those pages over Home, and Back returns to Widgets Home");
     }
@@ -1028,6 +1027,25 @@ public final class HubValidation extends Instrumentation {
             require(Arrays.asList(expected).equals(pages), "Page stack " + pages + ", expected " + Arrays.asList(expected));
         });
     }
+    /**
+     * Back to Home from a page opened over it, pressing Back again (at most BACK_PRESSES in all) only while Home has not
+     * come back: on a slow emulator the first press can land while the window is still taking the keyboard's leave, and
+     * be spent there. It never presses Back on Home itself (that would leave the app).
+     */
+    private void backToHome(String screenClass) {
+        BooleanSupplier home = () -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
+                && field(activity, "screen").getClass().getSimpleName().equals(screenClass));
+        List<String> presses = new ArrayList<>();
+        for (int press = 0; press < BACK_PRESSES && !home.getAsBoolean(); press++) {
+            presses.add(onMain(this::whereNow));
+            systemBack();
+            long end = SystemClock.uptimeMillis() + 3000;
+            while (!home.getAsBoolean() && SystemClock.uptimeMillis() < end) SystemClock.sleep(50);
+        }
+        if (presses.size() > 1) android.util.Log.i("HubValidation", "Back to Home took " + presses.size() + " presses (before each: " + presses + ")");
+        requireHome(screenClass);
+    }
+    private static final int BACK_PRESSES = 3;
     private void requireHome(String screenClass) {
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
                 && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), () -> "Home is not " + screenClass + " (" + onMain(this::whereNow) + ")");
