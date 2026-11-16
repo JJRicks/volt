@@ -202,7 +202,7 @@ STEPS += [
     inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
     inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),
     inst('reveal-motion-controls', T + 'RevealMotionValidation', '-e', 'part', 'controls', size='412x915'),
-    inst('reveal-motion-rides', T + 'RevealMotionValidation', '-e', 'part', 'rides', size='412x915'),
+    inst('reveal-motion-rides', T + 'RevealMotionValidation', '-e', 'part', 'rides', size='412x915', hidden_api=True),
     inst('reveal-motion-night', T + 'RevealMotionValidation', '-e', 'part', 'night', size='412x915'),
     inst('reveal-motion-scooters', T + 'RevealMotionValidation', '-e', 'part', 'scooters', size='412x915'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),

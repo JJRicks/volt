@@ -4,6 +4,11 @@ import android.Manifest;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Instrumentation;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
@@ -11,18 +16,27 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Choreographer;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import com.jjricks.volt.BleController;
 import com.jjricks.volt.HubPages;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
@@ -55,10 +69,19 @@ import com.jjricks.volt.ScooterProfiles;
  *   to where the first motion was going).</li>
  *   <li><b>Leaving at the end of a scrolled page</b> that still scrolls without it (the text made larger until it
  *   does): the scroll clamps, and no frame draws the views below off their way from start to rest.</li>
+ *   <li><b>Taps mid-fade</b> (scale 10, real touches through the window): a view that is leaving takes no tap and
+ *   what is under it does. Rides ({@code rides}): Start recording tapped, then tapped again where it was while it fades
+ *   out: the ride is still recording and automatic recording is not held (a second tap that reached Start would stop
+ *   the ride as the rider's own stop). My scooters ({@code scooters}): another scooter's Use tapped, then its arriving
+ *   Connect where Use was, while Use fades out: Connect gets the tap (it is consumed there, so nothing connects) and
+ *   Use none. The other parts have no tap check.</li>
  * </ul>
  *
  * In every motion, every frame draws each neighbour within 2 dp of the span from where it started to where it rests.
- * -e only arrives|pulse|reversals|recreated|off|instant|turns|scrolled runs one check.
+ * A view that is leaving is GONE from the start and drawn fading by Motion (Motion.leaving says at what opacity); the
+ * frames count that as drawn. At rest nothing is still drawn leaving.
+ * -e only arrives|pulse|reversals|recreated|off|instant|turns|scrolled|taps runs one check. {@code rides} needs the
+ * hidden API policy relaxed (a synthetic link, as AutoStartValidation's).
  *
  * Parts (-e part): {@code find} (Home's Find it nearby card, FindNearby entry A; -e home widgets|clean). The card is
  * offered the app's own way: BleController's timeout tally for the saved address reaches two (FindNearby.Timeouts, as
@@ -81,6 +104,7 @@ public final class RevealMotionValidation extends Instrumentation {
     private final ArrayList<String> checks = new ArrayList<>(), notes = new ArrayList<>();
     private String scaleBefore, part, home;
     private String profileId;
+    private ScooterProfiles.Profile fixture;
     private Site site;
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
@@ -95,7 +119,7 @@ public final class RevealMotionValidation extends Instrumentation {
             require(home.equals("widgets") || home.equals("clean"), "Unknown -e home " + home + " (widgets or clean)");
             admit();
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                    .putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
+                    .putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false).putBoolean("phone_gps", false)
                     .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
                     .putFloat("text_scale", Float.parseFloat(arguments.getString("text_scale", "1")))
                     .putString("home_style", home).putBoolean("home_style_chosen", true).putString("home_style_origin", "install")
@@ -113,7 +137,7 @@ public final class RevealMotionValidation extends Instrumentation {
                 else {
                     // -e only <check> runs one check (to show which one a build fails).
                     String only = arguments.getString("only", "");
-                    String[] names = {"arrives", "pulse", "reversals", "recreated", "off", "instant", "turns", "scrolled"};
+                    String[] names = {"arrives", "pulse", "reversals", "recreated", "off", "instant", "turns", "scrolled", "taps"};
                     require(only.isEmpty() || java.util.Arrays.asList(names).contains(only), "Unknown -e only " + only);
                     if (only.isEmpty() || only.equals("arrives")) arrivesAndGoes(site);
                     if (only.isEmpty() || only.equals("pulse")) pulse(site);
@@ -123,6 +147,8 @@ public final class RevealMotionValidation extends Instrumentation {
                     if (only.isEmpty() || only.equals("instant")) instantWins(site);
                     if (only.isEmpty() || only.equals("turns")) turnsBack(site);
                     if (only.isEmpty() || only.equals("scrolled")) scrolledEnd(site);
+                    // Last: it ends the simulator (and, for Rides, records a ride on a synthetic link).
+                    if (only.isEmpty() || only.equals("taps")) taps();
                 }
             } finally {
                 shell(scaleBefore.isEmpty() || scaleBefore.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + scaleBefore);
@@ -512,6 +538,181 @@ public final class RevealMotionValidation extends Instrumentation {
         checks.add(site.name + " shown and hidden " + cycles + " times for a recording");
     }
 
+    // ===== Taps mid-fade =====
+
+    private void taps() {
+        if (part.equals("rides")) startTwice();
+        else if (part.equals("scooters")) useThenConnect();
+        else notes.add(site.name + ": no tap check for this part");
+    }
+
+    /**
+     * Ride › Rides: Start recording tapped twice, the second tap mid-fade where Start was. A second tap that reaches
+     * Start stops the ride it just started (toggleRecording), and as the rider's own stop it holds automatic recording
+     * until the next connection.
+     */
+    private void startTwice() {
+        Object ble = onMain(() -> activity.service().ble);
+        if (onMain(() -> activity.service().simulating())) main(() -> activity.service().setSimulation(false));
+        await(() -> onMain(() -> activity.service().ble.state() == BleController.State.DISCONNECTED), "The simulator's link did not end");
+        FakeLink link = new FakeLink((BleController) ble);
+        main(link::attach);
+        await(() -> onMain(() -> activity.service().ble.ready()), "The synthetic link is not ready");
+        main(() -> activity.redraw());
+        settle();
+        Object rides = part("RidesScreen");
+        View start = onMain(() -> (View) field(rides, "recordButton")), card = onMain(() -> (View) field(rides, "recordCard"));
+        main(() -> { link.status(); require(start.isShown() && start.isEnabled(), "Start recording is not offered on the synthetic link"); });
+        require(!onMain(() -> activity.service().isRecording()), "A ride is already recording");
+        float[] at = centre(start);
+        scale(10);
+        try {
+            main(link::status);
+            tap(at);
+            await(() -> onMain(() -> activity.service().isRecording()), "The first tap on Start recording did not start a ride");
+            SystemClock.sleep(250);
+            float fading = onMain(() -> drawn(card));
+            require(fading > .05f && fading < .95f, "Rides: the record card is not mid-fade at the second tap (opacity " + fading + ")");
+            tap(at);
+            SystemClock.sleep(1500);
+            waitForIdleSync();
+            boolean recording = onMain(() -> activity.service().isRecording());
+            boolean held = onMain(() -> (Boolean) field(field(activity.service(), "autoStart"), "recordHeld"));
+            require(recording, "Rides: a second tap where Start recording was, mid-fade (opacity " + fading + "), stopped the ride it had just started");
+            require(!held, "Rides: a second tap mid-fade held automatic recording (the rider's own stop)");
+            checks.add("Rides: Start recording tapped, then tapped again where it was while its card faded out (opacity " + String.format(Locale.ROOT, "%.2f", fading)
+                    + ", scale 10): still recording, automatic recording not held");
+        } finally {
+            scale(1);
+            main(() -> { if (activity.service().isRecording()) activity.service().stopRide(); });
+            await(() -> onMain(() -> !activity.service().isRecording() && !activity.service().phoneSaving()), "The ride did not stop");
+            main(() -> ((BleController) ble).disconnect());
+            settle();
+        }
+    }
+
+    /**
+     * Settings › My scooters: another scooter's Use tapped, then its Connect, arriving where Use was, while Use fades out.
+     * Connect must get the tap. A listener on Connect consumes it (nothing connects; Bluetooth stays off) and records it;
+     * one on Use records anything that reaches Use and lets it through.
+     */
+    private void useThenConnect() {
+        if (onMain(() -> activity.service().simulating())) main(() -> activity.service().setSimulation(false));
+        String[] second = new String[1];
+        main(() -> {
+            ScooterProfiles profiles = activity.service().profiles;
+            ScooterProfiles.Profile other = profiles.create(FIXTURE_NAME + " two", "C1D2E3F4A5B7", 0);
+            other.serial = "X2538-SYNTHETIC-2"; other.mac = "C0:FF:EE:12:34:59"; profiles.update(other);
+            // Creating a scooter makes it current: the fixture scooter stays current, the new one offers Use.
+            profiles.select(profileId);
+            second[0] = other.id;
+            activity.redraw();
+        });
+        settle();
+        Object screen = part("MoreScreen");
+        Object card = onMain(() -> ((java.util.Map<?, ?>) field(screen, "scooterCards")).get(second[0]));
+        require(card != null, "My scooters has no card for the second scooter");
+        View use = onMain(() -> (View) field(card, "use")), connect = onMain(() -> (View) field(card, "connect"));
+        main(() -> require(use.isShown() && !connect.isShown(), "The second scooter's card does not offer Use (Use visibility " + use.getVisibility() + ", shown "
+                + use.isShown() + "; Connect visibility " + connect.getVisibility() + "; current " + activity.service().profiles.active().id.equals(second[0]) + ", simulating " + activity.service().simulating() + ")"));
+        List<String> reachedUse = new CopyOnWriteArrayList<>(), reachedConnect = new CopyOnWriteArrayList<>();
+        float[] onUse = centre(use);
+        scale(10);
+        try {
+            main(() -> use.setOnTouchListener((v, event) -> { reachedUse.add(MotionEvent.actionToString(event.getActionMasked())); return false; }));
+            tap(onUse);
+            await(() -> onMain(() -> second[0].equals(activity.service().profiles.active().id)), "Use did not make the second scooter current");
+            reachedUse.clear();
+            main(() -> connect.setOnTouchListener((v, event) -> { reachedConnect.add(MotionEvent.actionToString(event.getActionMasked())); return true; }));
+            SystemClock.sleep(250);
+            float fading = onMain(() -> drawn(use));
+            require(fading > .05f && fading < .95f, "My scooters: Use is not mid-fade at the tap on Connect (opacity " + fading + ")");
+            float[] onConnect = centre(connect);
+            require(onMain(() -> { int[] w = new int[2]; use.getLocationOnScreen(w); return onConnect[0] >= w[0] && onConnect[0] <= w[0] + use.getWidth()
+                    && onConnect[1] >= w[1] && onConnect[1] <= w[1] + use.getHeight(); }), "My scooters: Connect's centre is not where Use is drawn fading");
+            tap(onConnect);
+            SystemClock.sleep(300);
+            waitForIdleSync();
+            require(reachedUse.isEmpty(), "My scooters: the fading Use (opacity " + fading + ") took the tap on Connect (" + reachedUse + ")");
+            require(reachedConnect.contains("ACTION_DOWN") && reachedConnect.contains("ACTION_UP"), "My scooters: Connect did not get the tap (" + reachedConnect + ")");
+            checks.add("My scooters: Use tapped, then the arriving Connect where Use was while Use faded out (opacity " + String.format(Locale.ROOT, "%.2f", fading)
+                    + ", scale 10): Connect got the tap, Use none");
+        } finally {
+            main(() -> { use.setOnTouchListener(null); connect.setOnTouchListener(null); });
+            scale(1);
+        }
+    }
+
+    private static Method leavingMethod;
+    private static boolean leavingLooked;
+    /** Motion.leaving: the opacity a leaving view is drawn at, or -1 (also on a build without it). */
+    private static float leaving(View view) {
+        if (view == null) return -1;
+        if (!leavingLooked) {
+            leavingLooked = true;
+            try { leavingMethod = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("leaving", View.class); leavingMethod.setAccessible(true); }
+            catch (ReflectiveOperationException absent) { leavingMethod = null; }
+        }
+        if (leavingMethod == null) return -1;
+        try { return (Float) leavingMethod.invoke(null, view); } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    /** The opacity a view is drawn at: leaving, or shown (alpha x transition alpha), or 0. */
+    private static float drawn(View view) {
+        float leaving = leaving(view);
+        if (leaving >= 0) return leaving;
+        return view.isShown() && view.getHeight() > 0 ? view.getAlpha() * (Build.VERSION.SDK_INT >= 29 ? view.getTransitionAlpha() : 1) : 0;
+    }
+    private float[] centre(View view) {
+        return onMain(() -> { int[] at = new int[2]; view.getLocationOnScreen(at); return new float[]{at[0] + view.getWidth() / 2f, at[1] + view.getHeight() / 2f}; });
+    }
+    /** A real tap through the window (its hit test decides who gets it). */
+    private void tap(float[] at) {
+        long down = SystemClock.uptimeMillis();
+        MotionEvent press = MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, at[0], at[1], 0);
+        press.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        sendPointerSync(press); press.recycle();
+        SystemClock.sleep(40);
+        MotionEvent lift = MotionEvent.obtain(down, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, at[0], at[1], 0);
+        lift.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        sendPointerSync(lift); lift.recycle();
+    }
+
+    /** A synthetic authenticated link (AutoStartValidation's): status and motion pushes, writes acknowledged. */
+    private final class FakeLink {
+        final BleController ble;
+        final byte[] state = new byte[44];
+        final Handler handler = new Handler(Looper.getMainLooper());
+        BluetoothGatt gatt; BluetoothGattCharacteristic writer, notifier; BluetoothGattCallback callbacks;
+        FakeLink(BleController ble) { this.ble = ble; state[1] = 3; state[2] = 0; state[3] = 1; state[6] = 2; state[7] = 1; state[19] = 3; state[25] = 50; state[31] = 100; state[33] = 0; state[34] = 3; }
+        void attach() { try {
+            BluetoothDevice device = getTargetContext().getSystemService(BluetoothManager.class).getAdapter().getRemoteDevice(fixture.mac);
+            Class<?> unsafeType = Class.forName("sun.misc.Unsafe"); Field unsafe = unsafeType.getDeclaredField("theUnsafe"); unsafe.setAccessible(true);
+            gatt = (BluetoothGatt) unsafeType.getMethod("allocateInstance", Class.class).invoke(unsafe.get(null), BluetoothGatt.class);
+            Class<?> iface = Class.forName("android.bluetooth.IBluetoothGatt");
+            InvocationHandler transport = (proxy, method, args) -> {
+                if (method.getDeclaringClass() == Object.class) { if (method.getName().equals("equals")) return proxy == args[0]; if (method.getName().equals("hashCode")) return System.identityHashCode(proxy); return "RevealFixtureGatt"; }
+                if (method.getName().equals("writeCharacteristic")) { set(gatt, "mDeviceBusy", false); handler.postDelayed(() -> callbacks.onCharacteristicWrite(gatt, writer, 0), 10); return 0; }
+                Class<?> type = method.getReturnType(); return type == int.class ? 0 : type == boolean.class ? false : type == long.class ? 0L : null;
+            };
+            set(gatt, "mService", Proxy.newProxyInstance(iface.getClassLoader(), new Class<?>[]{iface}, transport));
+            set(gatt, "mClientRegistered", true); set(gatt, "mDeviceBusy", false); set(gatt, "mDeviceBusyLock", new Object()); set(gatt, "mStateLock", new Object()); set(gatt, "mDevice", device); set(gatt, "mServices", new CopyOnWriteArrayList<BluetoothGattService>());
+            BluetoothGattService gattService = new BluetoothGattService(BleController.SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY); set(gattService, "mDevice", device);
+            writer = new BluetoothGattCharacteristic(BleController.WRITE, BluetoothGattCharacteristic.PROPERTY_WRITE, BluetoothGattCharacteristic.PERMISSION_WRITE);
+            notifier = new BluetoothGattCharacteristic(BleController.NOTIFY, BluetoothGattCharacteristic.PROPERTY_NOTIFY, 0); gattService.addCharacteristic(writer); gattService.addCharacteristic(notifier);
+            callbacks = (BluetoothGattCallback) field(ble, "callbacks"); set(ble, "profile", fixture); set(ble, "gatt", gatt); set(ble, "writer", writer); set(ble, "serial", fixture.serial);
+            set(ble, "authenticated", true); set(ble, "discovered", true); set(ble, "subscribed", true); set(ble, "wanted", false); set(ble, "state", BleController.State.READY);
+            status(); motion(0, 0);
+        } catch (Exception error) { throw new IllegalStateException("Synthetic GATT unavailable; relax hidden_api_policy on the disposable emulator", error); } }
+        void status() { notifyPacket(0x70, 0, state); }
+        void motion(int driving, int kmh) { notifyPacket(0x91, 0, new byte[]{0, (byte) driving, (byte) kmh}); }
+        void notifyPacket(int cmd, int status, byte[] payload) {
+            byte[] packet = new byte[payload.length + 9]; packet[0] = 0x55; packet[1] = (byte) 0xaa; packet[3] = (byte) cmd; packet[4] = (byte) (payload.length + 1); packet[5] = (byte) status;
+            System.arraycopy(payload, 0, packet, 6, payload.length); int sum = 0; for (int i = 0; i < packet.length - 3; i++) sum += packet[i] & 255;
+            packet[packet.length - 3] = (byte) sum; packet[packet.length - 2] = (byte) 0xfe; packet[packet.length - 1] = (byte) 0xfd;
+            handler.postDelayed(() -> callbacks.onCharacteristicChanged(gatt, notifier, packet), 10);
+        }
+    }
+
     // ===== Frames =====
 
     /** Every drawn frame: [ms since start, shown 0/1, opacity (alpha x transition alpha), each neighbour's top in the window px]. */
@@ -542,9 +743,10 @@ public final class RevealMotionValidation extends Instrumentation {
             View subject = site.subject.get();
             float[] frame = new float[3 + count];
             frame[0] = SystemClock.uptimeMillis() - started;
-            boolean shown = subject != null && subject.isShown() && subject.getHeight() > 0;
+            float leaving = leaving(subject);
+            boolean shown = subject != null && (leaving >= 0 || subject.isShown() && subject.getHeight() > 0);
             frame[1] = shown ? 1 : 0;
-            frame[2] = subject == null ? 0 : subject.getAlpha() * (Build.VERSION.SDK_INT >= 29 ? subject.getTransitionAlpha() : 1);
+            frame[2] = subject == null ? 0 : leaving >= 0 ? leaving : subject.getAlpha() * (Build.VERSION.SDK_INT >= 29 ? subject.getTransitionAlpha() : 1);
             // The window position includes every translation, the view's own and the scroll content's.
             for (int n = 0; n < count; n++) { int[] at = new int[2]; watched.get(n).getLocationInWindow(at); frame[3 + n] = at[1]; }
             samples.add(frame);
@@ -682,6 +884,7 @@ public final class RevealMotionValidation extends Instrumentation {
                 require(subject.getImportantForAccessibility() != View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, site.name + " is hidden from accessibility " + when);
             } else {
                 require(subject.getVisibility() == View.GONE, site.name + " is still there " + when + " (visibility " + subject.getVisibility() + ")");
+                require(leaving(subject) < 0, site.name + " is still drawn leaving " + when);
                 if (Build.VERSION.SDK_INT >= 29) require(subject.getTransitionAlpha() == 1, site.name + " keeps a transition alpha " + when);
             }
             ViewGroup parent = (ViewGroup) subject.getParent();
@@ -738,6 +941,7 @@ public final class RevealMotionValidation extends Instrumentation {
             profile.serial = FIXTURE_SERIAL; profile.mac = FIXTURE_MAC; profile.lastConnected = System.currentTimeMillis() - 60000; profiles.update(profile);
             profiles.select(profile.id);
             profileId = profile.id;
+            fixture = profile;
         });
         prefs("onboarding").edit().putBoolean("onboarding_done", true).commit();
     }
