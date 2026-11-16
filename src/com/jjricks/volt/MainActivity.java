@@ -1406,8 +1406,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Unbound with Nearby devices granted, a bind is coming (ensureService); without it none ever does.
         int state=HubPages.pageConnectionLine(selectedPage,scooterService!=null,hasBluetoothPermission(),ready,connectionLineShown);
         boolean shown=state==HubPages.LINE_SHOWN;
-        // Only an update of the page in view moves it: the build's own call (announce false) is at rest.
-        boolean glides=announce&&resumed&&!rebuilding&&riding==null&&pageContent!=null&&connectionTitle.isAttachedToWindow()&&!sheetShowing();
+        // Only an update of the page in view moves it: the build's own call (announce false) is at rest. A header Search keeps
+        // hidden (HubSearch.headerHidden) moves nothing: the line changes there unseen, with no fade behind it and no glide.
+        boolean glides=announce&&resumed&&!rebuilding&&riding==null&&pageContent!=null&&connectionTitle.isAttachedToWindow()&&!sheetShowing()&&headerRowsShown();
         Motion.revealAbove(glides?pageContent:null,connectionTitle,shown,pageFrame,scroll);
         if(shown)connectionLineShown=true;
         if(announce&&state==HubPages.LINE_SHOWN&&Boolean.TRUE.equals(connectionLineReady)&&!ready){
@@ -1416,6 +1417,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         connectionLineReady=ready;
     }
+    /** Whether the page header's own rows are on screen: not while Search keeps them hidden (HubSearch.headerHidden). */
+    private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
         CharSequence name=HubText.title(to);

@@ -681,6 +681,10 @@ public final class HubSearchTest {
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
+        // The page header's connection line glides only while the header's rows show (#519's motion): behind the header Search
+        // keeps hidden it changes unseen, with no fade or glide of the results under it.
+        check(main.contains("&&!sheetShowing()&&headerRowsShown();") && main.contains("private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}"),
+                "the connection line does not glide behind Search's hidden header");
 
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
