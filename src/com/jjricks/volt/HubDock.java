@@ -36,7 +36,7 @@ import java.util.function.BooleanSupplier;
  * (handed) and the sheet draws it.
  *
  * <p>Against the page behind it (asked with that change): a soft shadow (ELEVATION_DP, its colours per theme over the
- * window's raised shadow strength, styles.xml's Volt*.Main) and a 1 dp hairline of the text colour at low alpha on the
+ * window's raised shadow strength, styles.xml's Volt*.Main) and a 1 dp hairline of the text colour at low strength on the
  * dock's own corners, so it reads as its own surface over busy widgets and over the page's plain top alike, in both
  * themes. The sheet starts from these and eases to its own look (no shadow, its usual outline).
  */
@@ -61,13 +61,14 @@ final class HubDock {
     private static final int HANDLE_W_DP = 51, HANDLE_H_DP = 6, HANDLE_TOP_DP = 4, HANDLE_BOTTOM_DP = 2, TILE_DP = 39, TILE_ICON_DP = 20;
     /** The room left between the page's last widget, scrolled to the end, and the dock's top. */
     private static final int CLEAR_GAP_DP = 16;
-    /** The dock's shadow: its elevation, and its colours' strength (of the window's, Ui.WINDOW_AMBIENT and WINDOW_SPOT) per theme. */
+    /**
+     * The dock's shadow: its elevation, and its colours' strength (of the window's, Ui.WINDOW_AMBIENT and WINDOW_SPOT) per
+     * theme; the light theme's softer, as its hairline already draws the edge (tuned on renders over Home's widgets).
+     */
     private static final int ELEVATION_DP = 8;
-    static float ambientLight = .5f, spotLight = .6f, ambientDark = 1f, spotDark = 1f;
-    /** The hairline: the text colour at this alpha (0..1), light and dark. */
-    static float hairLight = .10f, hairDark = .12f;
-    /** The comparison renders' variants: A shadow only (the old raised outline), B shadow and hairline (shipped), C a tonal lift and hairline with no shadow. */
-    static char contrast = 'B';
+    private static final float AMBIENT_LIGHT = .35f, SPOT_LIGHT = .4f, AMBIENT_DARK = 1f, SPOT_DARK = 1f;
+    /** The hairline: the text colour at this strength (0..1) over the dock's fill, light and dark. */
+    private static final float HAIR_LIGHT = .12f, HAIR_DARK = .14f;
 
     private final ScreenHost host;
     private final Ui ui;
@@ -118,13 +119,15 @@ final class HubDock {
         view.setOrientation(LinearLayout.VERTICAL);
         view.setGravity(Gravity.CENTER_HORIZONTAL);
         view.setTag(TAG);
-        stroke = contrast == 'A' ? ui.raised : Ui.withAlpha(ui.text, Math.round(255 * (ui.dark ? hairDark : hairLight)));
-        int fill = contrast == 'C' && ui.dark ? SheetMorph.mix(ui.surface, ui.raised, .5) : ui.surface;
+        int fill = ui.surface;
+        // Opaque (the text colour blended over the fill), not a translucent stroke: a GradientDrawable whose stroke and
+        // fill differ in opacity reports an outline of alpha 0, which casts no shadow.
+        stroke = SheetMorph.mix(fill, ui.text, ui.dark ? HAIR_DARK : HAIR_LIGHT);
         view.setBackground(ui.shape(fill, CORNER_DP, stroke));
-        view.setElevation(contrast == 'C' ? 0 : ui.dp(ELEVATION_DP));
+        view.setElevation(ui.dp(ELEVATION_DP));
         if (Build.VERSION.SDK_INT >= 28) {
-            view.setOutlineAmbientShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? ambientDark : ambientLight))));
-            view.setOutlineSpotShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? spotDark : spotLight))));
+            view.setOutlineAmbientShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? AMBIENT_DARK : AMBIENT_LIGHT))));
+            view.setOutlineSpotShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? SPOT_DARK : SPOT_LIGHT))));
         }
         view.setPadding(ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP));
         // The plan's grab handle (51 x 6 dp, the outline colour) centred at the top: the upward swipe opens the All sheet.

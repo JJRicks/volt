@@ -66,11 +66,10 @@ import com.jjricks.volt.ScooterProfiles;
  * The animator duration scale is put back as it was at the end. -e theme dark|light and -e text_scale (1 by default) as
  * the other fixture runners; -e list_scrolls true|false requires that the window's sheet is (or is not) taller than the
  * window, so its list scrolls. -e mode hold sets Widgets Home up and holds it for -e hold_seconds (600 by default), for
- * recordings driven from adb, after a status line where=... (where to touch; where()); it checks nothing. -e mode pose holds each of -e poses (a comma list: dock for the dock
- * alone, or a progress 0..1 for the sheet pulled that far and held) for -e pose_seconds (4), sending a status line
- * pose=NAME as each is in place, so pictures can be taken from adb; -e scroll top|busy puts Home at its top or halfway
- * down first (busy widgets behind the dock). For the contrast comparison, -e contrast A|B|C and -e hair_light,
- * hair_dark, ambient_light, spot_light, ambient_dark, spot_dark set HubDock's look before Home is built.
+ * recordings driven from adb, after a status line where=... (where to touch; where()); it checks nothing. -e mode pose
+ * holds each of -e poses in turn (a comma list: top or busy scrolls Home to its top or far enough down that widgets sit
+ * behind the dock, dock is the dock alone, a progress 0..1 the sheet pulled that far and held) for -e pose_seconds (4),
+ * sending a status line pose=NAME as each is in place, so pictures can be taken from adb.
  */
 public final class DockSheetValidation extends Instrumentation {
     private static final String FIXTURE_NAME = "Synthetic dock fixture", FIXTURE_IDENTITY = "B1C2D3E4F5A6",
@@ -93,7 +92,6 @@ public final class DockSheetValidation extends Instrumentation {
         try {
             String mode = arguments.getString("mode", "all");
             require(mode.equals("all") || mode.equals("hold") || mode.equals("pose"), "Unknown -e mode " + mode + " (all, hold or pose)");
-            look();
             admit();
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
@@ -849,20 +847,6 @@ public final class DockSheetValidation extends Instrumentation {
             if (view instanceof ViewGroup) for (int c = 0; c < ((ViewGroup) view).getChildCount(); c++) all.add(((ViewGroup) view).getChildAt(c));
         }
         return best;
-    }
-
-    /** -e contrast and the shadow and hairline alphas: HubDock's look for the contrast comparison, before Home is built. */
-    private void look() throws Exception {
-        String[][] names = {{"hair_light", "hairLight"}, {"hair_dark", "hairDark"}, {"ambient_light", "ambientLight"}, {"spot_light", "spotLight"},
-                {"ambient_dark", "ambientDark"}, {"spot_dark", "spotDark"}};
-        Class<?> dock = Class.forName("com.jjricks.volt.HubDock");
-        String contrast = arguments.getString("contrast");
-        if (contrast != null) { Field f = dock.getDeclaredField("contrast"); f.setAccessible(true); f.setChar(null, contrast.charAt(0)); }
-        for (String[] name : names) {
-            String value = arguments.getString(name[0]);
-            if (value == null) continue;
-            Field f = dock.getDeclaredField(name[1]); f.setAccessible(true); f.setFloat(null, Float.parseFloat(value));
-        }
     }
 
     // ===== Frames =====
