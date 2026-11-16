@@ -2501,6 +2501,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         @Override public View view(){return view;}
         @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
+        /** The page's sections other than its banners: they glide as a banner comes or goes, their insides unchanged. */
+        private View[] steady=new View[0];
+        private View[] steadyRows(){
+            if(steady.length+3==view.getChildCount())return steady;
+            java.util.List<View> rows=new java.util.ArrayList<>();
+            for(int i=0;i<view.getChildCount();i++){View child=view.getChildAt(i);if(child!=banner&&child!=readOnlyBanner&&child!=testBanner)rows.add(child);}
+            return steady=rows.toArray(new View[0]);
+        }
         @Override public void refresh(){
             refreshMaintenance();
             for(ControlRow row:rows)row.refresh();emphasizeLimit();
@@ -2509,17 +2517,27 @@ public final class MainActivity extends Activity implements ScreenHost {
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
                     ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING);
-            banner.setVisibility(ready?View.GONE:View.VISIBLE);
+            // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
+            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
+            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
+            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
+            boolean refilter=!offered.toString().equals(offeredKeys);
+            // The banners fade in and out while the page below glides (Motion.reveal), only when one comes or goes. A
+            // re-filter in the same refresh moves rows by itself, so then they change instantly, as before.
+            // On a stacked page (Battery, Security) the parts below glide with it: the root is the whole page.
+            ViewGroup glide=refilter?null:Motion.pageOf(banner);View[] still=steadyRows();
+            Motion.reveal(glide,banner,!ready,still);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
             bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
-            readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
+            Motion.reveal(glide,readOnlyBanner,ble!=null&&ble.limitedModel(),still);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();
             int elsewhere=ble==null?0:ble.unresolvedTestsElsewhere(),orphaned=ble==null?0:ble.orphanedTests().size();
             boolean testing=ble!=null&&ble.testing();
             boolean reviewNeeded=recordsLost||!unfinished.isEmpty()||elsewhere>0||orphaned>0||testing;
-            testBanner.setVisibility(reviewNeeded?View.VISIBLE:View.GONE);
+            Motion.reveal(glide,testBanner,reviewNeeded,still);
             if(reviewNeeded){
                 String text=recordsLost?T.mainTestRecordsUnavailable()
                         :!unfinished.isEmpty()?(unfinished.get(0).isTry()
@@ -2531,13 +2549,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(!text.contentEquals(testBannerText.getText()))testBannerText.setText(text);
                 testReviewAction.setContentDescription(recordsLost?T.mainTestReviewRecords():testing?T.mainTestReviewSetting():!unfinished.isEmpty()&&unfinished.get(0).isTry()?T.mainTestReviewTry():T.mainControlsReviewUnfinished());
             }
-            identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
-            // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
-            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
-            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
-            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
-            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
-            if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
+            Motion.reveal(glide,identifyAction,ble!=null&&ble.modelUnidentified(),still);
+            if(refilter){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
