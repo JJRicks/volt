@@ -187,47 +187,41 @@ public final class HubPagesTest {
         String[] states = {"connected", "disconnected", "connecting", "searching", "Bluetooth off", "release held"};
         for (String state : states) {
             boolean connected = state.equals("connected");
-            for (boolean held : new boolean[] {false, true}) {
-                require(HubPages.headerConnectionLine(HubPages.HOME, connected, held) == HubPages.LINE_SHOWN, "Home keeps its own line: " + state);
-                for (String[] kind : new String[][] {subjects, subPages})
-                    for (String page : kind) {
-                        int want = !connected ? HubPages.LINE_SHOWN : held ? HubPages.LINE_ROOM : HubPages.LINE_GONE;
-                        require(HubPages.headerConnectionLine(page, connected, held) == want, page + " " + state + (held ? " (room held)" : "") + ": " + want);
-                    }
-                for (String page : appPages)
-                    require(HubPages.headerConnectionLine(page, connected, held) == HubPages.LINE_GONE, page + " never shows the line: " + state);
-            }
+            require(HubPages.headerConnectionLine(HubPages.HOME, connected) == HubPages.LINE_SHOWN, "Home keeps its own line: " + state);
+            for (String[] kind : new String[][] {subjects, subPages})
+                for (String page : kind) {
+                    int want = connected ? HubPages.LINE_GONE : HubPages.LINE_SHOWN;
+                    require(HubPages.headerConnectionLine(page, connected) == want, page + " " + state + ": " + want);
+                }
+            for (String page : appPages)
+                require(HubPages.headerConnectionLine(page, connected) == HubPages.LINE_GONE, page + " never shows the line: " + state);
         }
         for (String page : HubPages.ALL) {
             require(HubPages.appPage(page) == HubPages.path(page).contains(HubPages.SETTINGS), "App pages are Settings and under it: " + page);
             if (HubPages.HOME.equals(page)) continue;
             // A connected page opened fresh has no gap where the line was; one not connected shows it.
             if (!HubPages.appPage(page)) {
-                require(HubPages.headerConnectionLine(page, true, false) == HubPages.LINE_GONE, "Connected: no line and no gap: " + page);
-                require(HubPages.headerConnectionLine(page, false, false) == HubPages.LINE_SHOWN, "Not connected: the line: " + page);
+                require(HubPages.headerConnectionLine(page, true) == HubPages.LINE_GONE, "Connected: no line and no gap: " + page);
+                require(HubPages.headerConnectionLine(page, false) == HubPages.LINE_SHOWN, "Not connected: the line: " + page);
             }
         }
         // The old tab ids resolve as their pages do: More is Settings (never), Live Stats is Data (only when not connected).
-        require(HubPages.headerConnectionLine("more", false, false) == HubPages.LINE_GONE, "More (Settings): never");
-        require(HubPages.headerConnectionLine("stats", false, false) == HubPages.LINE_SHOWN, "Live Stats (Data): not connected");
-        // While a page is open: shown (not connected), then connected keeps the room blank, then dropped shows it again; the
-        // title's place never changes after the line first showed.
+        require(HubPages.headerConnectionLine("more", false) == HubPages.LINE_GONE, "More (Settings): never");
+        require(HubPages.headerConnectionLine("stats", false) == HubPages.LINE_SHOWN, "Live Stats (Data): not connected");
+        // While a page is open: shown (not connected), then connected takes the line and its room away (the page glides up
+        // to the title; the owner's motion sweep pick, 15 Nov, in place of the blank room #383 kept), dropped shows it again.
         String page = HubPages.BATTERY;
-        boolean held = false;
         int[] seen = new int[4];
         boolean[] walk = {false, true, false, true};
-        for (int i = 0; i < walk.length; i++) {
-            seen[i] = HubPages.headerConnectionLine(page, walk[i], held);
-            if (seen[i] == HubPages.LINE_SHOWN) held = true;
-        }
-        require(seen[0] == HubPages.LINE_SHOWN && seen[1] == HubPages.LINE_ROOM && seen[2] == HubPages.LINE_SHOWN && seen[3] == HubPages.LINE_ROOM,
+        for (int i = 0; i < walk.length; i++) seen[i] = HubPages.headerConnectionLine(page, walk[i]);
+        require(seen[0] == HubPages.LINE_SHOWN && seen[1] == HubPages.LINE_GONE && seen[2] == HubPages.LINE_SHOWN && seen[3] == HubPages.LINE_GONE,
                 "Drop, connect, drop, connect on an open page: " + java.util.Arrays.toString(seen));
         serviceStates(subjects, subPages, appPages);
     }
 
     /**
      * pageConnectionLine: the same rule with the service's state (#410 review). Every page kind by service bound or not,
-     * Nearby devices granted or not (a bind can come only with it), connected or not, and the room held or not.
+     * Nearby devices granted or not (a bind can come only with it), connected or not, and the line shown here already or not.
      */
     private static void serviceStates(String[] subjects, String[] subPages, String[] appPages) {
         for (boolean bound : new boolean[] {false, true})
@@ -235,7 +229,7 @@ public final class HubPagesTest {
                 for (boolean connected : new boolean[] {false, true})
                     for (boolean held : new boolean[] {false, true}) {
                         String state = (bound ? "bound" : "unbound") + (permission ? ", Nearby granted" : ", no Nearby permission")
-                                + (connected ? ", connected" : ", not connected") + (held ? ", room held" : "");
+                                + (connected ? ", connected" : ", not connected") + (held ? ", shown here" : "");
                         require(HubPages.pageConnectionLine(HubPages.HOME, bound, permission, connected, held) == HubPages.LINE_SHOWN, "Home keeps its own line: " + state);
                         for (String page : appPages)
                             require(HubPages.pageConnectionLine(page, bound, permission, connected, held) == HubPages.LINE_GONE, page + " never shows the line: " + state);
@@ -243,7 +237,7 @@ public final class HubPagesTest {
                             for (String page : kind) {
                                 int want;
                                 // Bound: the page rule as it is (connected only counts here).
-                                if (bound) want = !connected ? HubPages.LINE_SHOWN : held ? HubPages.LINE_ROOM : HubPages.LINE_GONE;
+                                if (bound) want = connected ? HubPages.LINE_GONE : HubPages.LINE_SHOWN;
                                 // Waiting for a bind that will come (a page rebuilt by a recreation): no line and no gap,
                                 // unless the line already showed on this page, which stays shown (still not connected).
                                 else if (permission) want = held ? HubPages.LINE_SHOWN : HubPages.LINE_GONE;

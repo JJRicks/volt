@@ -24,6 +24,10 @@ import java.util.Map;
  * spoken in that card's "…, last seen" forms (DashboardScreen.overviewSpoken); numbers and units from Fmt, and a
  * refresh sets them again, so nothing rendered is kept. Health and temperature show only from live readings the model
  * reports (HubSummaries.health, packTemperature), and charging only beside a live level (HubSummaries.card).
+ *
+ * Rows come and go with a fade while the rest glides (Motion.reveal). As a connection starts the readings land one by
+ * one, so the rows that arrive within GATHER_MS of the first live reading wait and come in together, in one glide; a
+ * row already shown is never held, nor is any value change or departure. Later arrivals each come in at once.
  */
 final class HubBatterySummary implements AppScreen {
     private static final double KM_PER_MILE = 1.609344;
@@ -31,12 +35,19 @@ final class HubBatterySummary implements AppScreen {
     private static final float SIGN = .44f;
     /** The space between a reading's name and its value in the right column, dp. */
     private static final int FACT_GAP_DP = 5;
+    /** How long after the first live reading arriving rows wait, so they come in together rather than one by one. */
+    static final long GATHER_MS = 700;
 
     private final ScreenHost host;
     private final Ui ui;
     private final LinearLayout view, card, side, healthRow, packRow;
     private final TextView level, rangeLine, state, healthName, healthValue, packName, packValue;
     private final ChargeTrack track;
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+    /** While arriving rows wait (uptime ms), else 0; whether the last refresh had a live reading. */
+    private long gatherUntil;
+    private boolean sawLive, closed;
+    private final Runnable gathered = () -> { gatherUntil = 0; if (!closed) refresh(); };
 
     HubBatterySummary(ScreenHost host) {
         this.host = host; ui = host.ui();
@@ -84,13 +95,45 @@ final class HubBatterySummary implements AppScreen {
     }
 
     @Override public View view() { return view; }
+    @Override public void close() { closed = true; handler.removeCallbacks(gathered); }
+
+    /**
+     * Shows or hides one of the card's rows: an arrival waits while rows are being gathered (it comes in when the
+     * gathering ends); a departure, and anything already shown, never waits.
+     */
+    private void show(View row, boolean shown) {
+        if (shown && row.getVisibility() != View.VISIBLE && gatherUntil > android.os.SystemClock.uptimeMillis()) return;
+        Motion.reveal(Motion.pageOf(card), row, shown);
+    }
+
+    /**
+     * The first live reading on a page in view starts the gathering; the link going ends it. A live reading the page
+     * was built with (before it is attached and laid out) counts once the page is laid out: its first refresh there
+     * starts the gathering, so a page opened after the first reading gathers the rows that come next as one opened
+     * before it does.
+     */
+    private void gather(boolean live) {
+        if (!live) { gatherUntil = 0; handler.removeCallbacks(gathered); sawLive = false; return; }
+        if (sawLive || !card.isAttachedToWindow() || !view.isLaidOut()) return;
+        sawLive = true;
+        if (!Motion.enabled()) return;
+        gatherUntil = android.os.SystemClock.uptimeMillis() + GATHER_MS;
+        handler.removeCallbacks(gathered);
+        handler.postDelayed(gathered, GATHER_MS);
+    }
 
     @Override public void refresh() {
         ScooterService service = host.service();
         Map<String, TelemetryHistory.Reading> readings = service == null ? null : service.dashboardReadings();
         TelemetryHistory.Reading soc = readings == null ? null : readings.get("battery_percent");
-        if (soc == null || soc.number == null || !Double.isFinite(soc.number)) { card.setVisibility(View.GONE); return; }
-        card.setVisibility(View.VISIBLE);
+        boolean live = false;
+        if (readings != null) for (String key : new String[]{"battery_percent", "battery_health_percent", "temperature_c", "charging_state"}) {
+            TelemetryHistory.Reading reading = readings.get(key);
+            live |= reading != null && reading.live && reading.number != null;
+        }
+        gather(live);
+        if (soc == null || soc.number == null || !Double.isFinite(soc.number)) { show(card, false); return; }
+        show(card, true);
         double clamped = Math.max(0, Math.min(100, soc.number));
         CharSequence big = large(Fmt.percent(Fmt.integerNumber(Math.round(soc.number))));
         if (!big.toString().contentEquals(level.getText())) level.setText(big);
@@ -98,7 +141,7 @@ final class HubBatterySummary implements AppScreen {
         CharSequence range = range(readings.get("remaining_range_km"), service.settings.getString("units", "mi"));
         // "about 40 mi left", the range line Home's battery card draws.
         rangeLine.setText(range == null ? "" : DashboardScreen.rangeLeft(DashboardScreen.aboutRange(range)));
-        rangeLine.setVisibility(range == null ? View.GONE : View.VISIBLE);
+        show(rangeLine, range != null);
         // A last-seen level is drawn muted; while connected nothing else on the page says it is old, so it is spoken in
         // Home's battery card's words: "Battery 62 percent, about 40 mi of range left, last seen 14:05". The range goes in
         // as Home's card passes it, an estimate wrapped in "about" (DashboardScreen.aboutRange), as the drawn line says it.
@@ -112,7 +155,7 @@ final class HubBatterySummary implements AppScreen {
         // The right column: health and pack temperature where the model reports them live.
         TelemetryHistory.Reading healthReading = readings.get("battery_health_percent");
         Integer health = healthReading == null ? null : HubSummaries.health(healthReading.number, healthReading.live);
-        healthRow.setVisibility(health == null ? View.GONE : View.VISIBLE);
+        show(healthRow, health != null);
         if (health != null) {
             healthName.setText(ScooterReadingLabels.compact(healthReading.key, ""));
             healthValue.setText(Fmt.percent(Fmt.integerNumber(health)));
@@ -122,7 +165,7 @@ final class HubBatterySummary implements AppScreen {
         TelemetryHistory.Reading packReading = readings.get("temperature_c");
         Double pack = packReading == null ? null : HubSummaries.packTemperature(packReading.number, packReading.live);
         Formatted packShown = pack == null ? null : DisplayTemperature.quantity(pack, service.settings.getString("temperature_unit", "c"), 0);
-        packRow.setVisibility(packShown == null ? View.GONE : View.VISIBLE);
+        show(packRow, packShown != null);
         if (packShown != null) {
             packName.setText(ScooterReadingLabels.compact(packReading.key, ""));
             packValue.setText(packShown);
@@ -134,12 +177,13 @@ final class HubBatterySummary implements AppScreen {
         Boolean charging = charge == null || !charge.live || charge.number == null ? null : charge.number == 1;
         Integer limit = HubSubjects.chargeLimit(service);
         HubSummaries.CardState shown = HubSummaries.card(charging, HubSummaries.live(soc.number, soc.live) != null, limit);
-        state.setVisibility(shown == null ? View.GONE : View.VISIBLE);
+        show(state, shown != null);
         // Charging without a known limit: a plain "Charging", the word Home's battery card uses (the level is beside it).
         if (shown != null) state.setText(shown == HubSummaries.CardState.NOT_CHARGING ? HubText.batteryNotCharging()
                 : shown == HubSummaries.CardState.CHARGING_TO_LIMIT ? HubText.batteryChargingTo(Fmt.percent(Fmt.integerNumber(limit)))
                 : BatteryOverviewSpeech.line(true, ""));
-        side.setVisibility(health == null && packShown == null && shown == null ? View.GONE : View.VISIBLE);
+        // The column shows while any of its rows does (one still waiting to come in does not count yet).
+        show(side, healthRow.getVisibility() == View.VISIBLE || packRow.getVisibility() == View.VISIBLE || state.getVisibility() == View.VISIBLE);
         // The track: filled to the level (grey when last seen, as the number is), with the tick at a known charge limit.
         track.set(clamped, limit == null ? Double.NaN : limit, soc.live ? ui.accent : ui.dim, ui.text);
     }
