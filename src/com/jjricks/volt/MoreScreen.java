@@ -578,6 +578,14 @@ public final class MoreScreen implements AppScreen {
         cardDestination.addView(view); return view;
     }
     private LinearLayout group() { LinearLayout g = ui.groupCard(); cardDestination.addView(g); return g; }
+    /**
+     * A notice or button that comes and goes with the connection or a switch: it fades while the rest of its section
+     * glides (Motion.reveal); a refresh that leaves it as it is moves nothing. Show and hide such views only here.
+     */
+    private static void reveal(View view, boolean shown) {
+        Motion.reveal(view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null, view, shown);
+    }
+
     private TextView footnote(String value) {
         TextView text = ui.caption(value); text.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(12));
         cardDestination.addView(text); return text;
@@ -2062,14 +2070,15 @@ public final class MoreScreen implements AppScreen {
         labFoot.setText((r.layer == ModelRegistry.Layer.OEM_GROUP
                 ? T.moreLabFootOem()
                 : offeredElsewhere ? T.moreLabFootElsewhere() : T.moreLabFoot()) + kept);
-        labConnect.setVisibility(ble.state() == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        boolean offline = ble.state() == BleController.State.DISCONNECTED;
+        reveal(labConnect, offline);
         CapabilityResolver.Reason held = null;
         List<String> live = new ArrayList<>(tryable); live.addAll(verify);
         for (String key : live) { CapabilityResolver.Reason reason = ble.tryDecision(key).reason; if (held == null && LAB_HELD.contains(reason)) held = reason; }
         // Disconnected, the Connect button says it; while connecting, the notice does.
-        String notice = held == null || held == CapabilityResolver.Reason.NOT_CONNECTED && labConnect.getVisibility() == View.VISIBLE ? ""
+        String notice = held == null || held == CapabilityResolver.Reason.NOT_CONNECTED && offline ? ""
                 : held == CapabilityResolver.Reason.NOT_CONNECTED ? T.moreConnecting() : labHeld(held);
-        labNotice.setText(notice); labNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
+        labNotice.setText(notice); reveal(labNotice, !notice.isEmpty());
         for (LabRow row : labRows) refreshLabRow(ble, row);
         if (labSheet != null) labSheet.refresh();
     }
@@ -3022,7 +3031,7 @@ public final class MoreScreen implements AppScreen {
         }
         if (simulationRow != null) {
             refreshSwitch(simulationRow, simulating, s != null);
-            simulationStatus.setVisibility(simulating ? View.VISIBLE : View.GONE);
+            reveal(simulationStatus, simulating);
             simulationModelRow.value(SimulatorModels.shortLabel(s == null ? SimulatorModels.entries().get(0)
                     : SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
             simulationModelRow.enabled(s != null);
@@ -3321,10 +3330,10 @@ public final class MoreScreen implements AppScreen {
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
         // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
-        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        reveal(securityConnect, !embedded && link == BleController.State.DISCONNECTED);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
-        securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
+        reveal(securityNotice, !notice.isEmpty());
         refreshLab(s);
     }
 
@@ -3407,7 +3416,8 @@ public final class MoreScreen implements AppScreen {
                 showReset[0].run();
             });
             reset.view.setTag("preference_riding_brightness_reset");
-            showReset[0] = () -> reset.view.setVisibility(RidingBrightness.learned(store) ? View.VISIBLE : View.GONE);
+            // Forgetting takes the row away: it fades while the note below glides up (Motion.reveal).
+            showReset[0] = () -> Motion.reveal(content, reset.view, RidingBrightness.learned(store));
             showReset[0].run();
             note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
             content.addView(box);
@@ -3495,12 +3505,14 @@ public final class MoreScreen implements AppScreen {
             refreshNight = () -> {
                 boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(preferences.getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
                 boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(preferences.getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
-                schedule[0].setVisibility(scheduled ? View.VISIBLE : View.GONE);
-                schedule[1].setVisibility(scheduled ? View.VISIBLE : View.GONE);
+                // Rows a choice reveals fade in and out while the rest glides (Motion.reveal); a refresh that keeps
+                // them as they are moves nothing.
+                Motion.reveal(content, schedule[0], scheduled);
+                Motion.reveal(content, schedule[1], scheduled);
                 long now = System.currentTimeMillis();
                 NightSchedule.State state = RidingNight.state(context, preferences, now);
                 boolean custom = scheduled && (!sun || state.source == NightSchedule.Source.NONE);
-                shownRows(box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
+                shownRows(content, box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
                 boolean ride = RidingNight.usesRideArea(preferences);
                 from.value(ride ? T.ridingNightFromRide() : T.ridingNightFromZone());
                 from.sub(state.source == NightSchedule.Source.RIDE ? T.ridingNightSourceRide()
@@ -3514,7 +3526,7 @@ public final class MoreScreen implements AppScreen {
                         : state.today == SunTimes.Day.Kind.ALWAYS_DAY ? T.ridingNightNoSunset()
                         : state.today == SunTimes.Day.Kind.ALWAYS_NIGHT ? T.ridingNightNoSunrise() : "";
                 next.setText(text);
-                next.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+                Motion.reveal(content, next, !text.isEmpty());
             };
             refreshNight.run();
             // The ride's area is read in the background (it's never stored); the caption follows once it's known.
@@ -3589,13 +3601,16 @@ public final class MoreScreen implements AppScreen {
             return DisplayTime.clock(context, preferences, wall);
         }
 
-        /** Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. */
-        private static void shownRows(LinearLayout box, View[] rows, boolean[] shown) {
+        /**
+         * Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. Rows that
+         * come or go fade while the rest of root glides (Motion.reveal).
+         */
+        private static void shownRows(ViewGroup root, LinearLayout box, View[] rows, boolean[] shown) {
             boolean above = false;
             for (int i = 0; i < rows.length; i++) {
-                rows[i].setVisibility(shown[i] ? View.VISIBLE : View.GONE);
+                Motion.reveal(root, rows[i], shown[i]);
                 int at = box.indexOfChild(rows[i]);
-                if (at > 0 && i > 0) box.getChildAt(at - 1).setVisibility(shown[i] && above ? View.VISIBLE : View.GONE);
+                if (at > 0 && i > 0) Motion.reveal(root, box.getChildAt(at - 1), shown[i] && above);
                 above |= shown[i];
             }
         }
