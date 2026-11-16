@@ -55,7 +55,7 @@ import com.jjricks.volt.ScooterProfiles;
  * does). Nothing is sent and Bluetooth stays off. The connection parts run the simulator (memory only, never a
  * command): its dropout script leaves the link Connecting, as a scooter that stops answering does, and the default
  * script brings it back. {@code controls}: Controls › Limits' connection banner. {@code rides}: Ride › Rides'
- * Connect to record. {@code night}: Ride › Riding mode's Night vision rows, revealed by tapping Scheduled (sunset to
+ * Connect to record. {@code scooters}: Settings › My scooters, the card's "Last connected" line. {@code night}: Ride › Riding mode's Night vision rows, revealed by tapping Scheduled (sunset to
  * sunrise, the time zone's city) and hidden by tapping Off. -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
@@ -80,7 +80,7 @@ public final class RevealMotionValidation extends Instrumentation {
             part = arguments.getString("part", "find");
             home = arguments.getString("home", "widgets");
             require(mode.equals("all") || mode.equals("demo"), "Unknown -e mode " + mode + " (all or demo)");
-            require(java.util.Arrays.asList("find", "controls", "rides", "night").contains(part), "Unknown -e part " + part + " (find, controls, rides or night)");
+            require(java.util.Arrays.asList("find", "controls", "rides", "night", "scooters").contains(part), "Unknown -e part " + part + " (find, controls, rides, night or scooters)");
             require(home.equals("widgets") || home.equals("clean"), "Unknown -e home " + home + " (widgets or clean)");
             admit();
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
@@ -138,6 +138,7 @@ public final class RevealMotionValidation extends Instrumentation {
             case "controls": return connection("Controls › Limits' connection banner", HubPages.CONTROLS_LIMITS, "ControlsScreen", "banner");
             case "rides": return connection("Ride › Rides' Connect to record", HubPages.RIDE_RIDES, "RidesScreen", "connectButton");
             case "night": return night();
+            case "scooters": return connection("Settings › My scooters' last connected line", HubPages.SETTINGS_SCOOTERS, "MoreScreen", null);
             default: return findCard();
         }
     }
@@ -148,6 +149,7 @@ public final class RevealMotionValidation extends Instrumentation {
             case "controls": return HubPages.CONTROLS_LIMITS;
             case "rides": return HubPages.RIDE_RIDES;
             case "night": return HubPages.RIDE_RIDING;
+            case "scooters": return HubPages.SETTINGS_SCOOTERS;
             default: return HubPages.HOME;
         }
     }
@@ -159,7 +161,9 @@ public final class RevealMotionValidation extends Instrumentation {
     private Site connection(String name, String page, String screen, String field) {
         if (onMain(() -> !activity.service().simulating())) main(() -> require(activity.service().setSimulation(true), "The simulator did not start"));
         await(() -> onMain(() -> activity.service().ble.ready()), "The simulator is not ready");
-        Supplier<View> subject = () -> (View) field(part(screen), field);
+        // My scooters: the fixture scooter's card, its "Last connected" line (null field).
+        Supplier<View> subject = field != null ? () -> (View) field(part(screen), field)
+                : () -> (View) field(((java.util.Map<?, ?>) field(part(screen), "scooterCards")).get(profileId), "lastSeen");
         return new Site(name, subject, () -> siblingsAfter(subject.get()),
                 () -> main(() -> { activity.service().ble.setSimulationScript("dropout"); activity.redraw(); }),
                 () -> main(() -> { activity.service().ble.setSimulationScript(""); activity.redraw(); }));

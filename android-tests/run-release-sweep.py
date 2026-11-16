@@ -200,6 +200,7 @@ STEPS += [
     inst('reveal-motion-controls', T + 'RevealMotionValidation', '-e', 'part', 'controls', size='412x915'),
     inst('reveal-motion-rides', T + 'RevealMotionValidation', '-e', 'part', 'rides', size='412x915'),
     inst('reveal-motion-night', T + 'RevealMotionValidation', '-e', 'part', 'night', size='412x915'),
+    inst('reveal-motion-scooters', T + 'RevealMotionValidation', '-e', 'part', 'scooters', size='412x915'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
