@@ -94,6 +94,10 @@ public final class DashboardScreen implements AppScreen {
     /** Home's Find it nearby card (FindNearby, entry A), under the header; hidden unless offered. */
     private LinearLayout findCard;
     private TextView findText;
+    /** Edit mode as the card last followed it; a change of edit mode shows or hides the card at once (refreshHeader). */
+    private boolean findEditing;
+    /** Views whose own content stays put while the card comes or goes (they still glide as a whole). */
+    private View[] findSteady = new View[0];
     private final Context dialogContext;
     private final Grid grid;
     private final ArrayList<Tile> tiles = new ArrayList<>();
@@ -241,6 +245,7 @@ public final class DashboardScreen implements AppScreen {
         view.addView(findCard, findSize);
         grid = new Grid();
         view.addView(grid, new LinearLayout.LayoutParams(-1, -2));
+        findSteady = new View[] {grid, chargingHero};
         render();
         resumeRestoreUndo();
     }
@@ -408,6 +413,7 @@ public final class DashboardScreen implements AppScreen {
             overview.clean = true;
             if (overview.overview != null) overview.overview.fill = true;
             chargingHero.setTag("clean-home-charging");
+            findSteady = new View[] {overview, chargingHero};
         }
 
         TextView status() { return status; }
@@ -1069,7 +1075,14 @@ public final class DashboardScreen implements AppScreen {
         headerSeenMs = !ready && !connecting ? lastConnected : 0;
         boolean find = !editing && profile != null && actions.findNearbyOffered();
         if (find) findText.setText(T.dashboardFindNearbyText(profile.shownName()));
-        findCard.setVisibility(find ? View.VISIBLE : View.GONE);
+        // It fades in and out while what sits below glides (Motion.reveal), only when it comes or goes. Switching edit
+        // mode moves the whole page itself (EditTransition), so the card's part of that switch is instant.
+        if (editing != findEditing) {
+            findEditing = editing;
+            Motion.reveal(null, findCard, find);
+        } else if (findCard.getParent() instanceof ViewGroup) {
+            Motion.reveal((ViewGroup) findCard.getParent(), findCard, find, findSteady);
+        }
         // Done, undo/redo, the jiggle and the edit tools already show edit mode.
         status.setVisibility(editing ? View.GONE : View.VISIBLE);
         if (editing) {

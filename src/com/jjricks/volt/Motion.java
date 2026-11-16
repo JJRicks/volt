@@ -377,6 +377,37 @@ final class Motion {
         TransitionManager.beginDelayedTransition(root, set);
     }
 
+    /** What reveal() last asked of each view: a departure keeps its view drawn (and VISIBLE) until it ends. */
+    private static final WeakHashMap<View, Boolean> revealed = new WeakHashMap<>();
+    /** Roots whose reveal has not reached its first frame yet: a second change joins that one. */
+    private static final WeakHashMap<View, Boolean> revealing = new WeakHashMap<>();
+
+    /**
+     * Shows or hides {@code view} (VISIBLE or GONE) inside {@code root}: when that changes on a laid-out page, it fades
+     * in or out while what sits around it glides to its new place ({@link #animateChanges}, with {@code instant} as
+     * there). A call that leaves it as it is does nothing, so a live refresh that keeps it shown or hidden never moves
+     * anything. A quick reversal first settles the change still running, then animates from there; a null root is an
+     * instant change. Once a view goes through here, show and hide it only here. Focus and accessibility are untouched.
+     * Returns whether it changed.
+     */
+    static boolean reveal(ViewGroup root, View view, boolean shown, View... instant) {
+        if (view == null) return false;
+        Boolean asked = revealed.get(view);
+        if ((asked != null ? asked : view.getVisibility() == View.VISIBLE) == shown) return false;
+        revealed.put(view, shown);
+        if (root != null && !revealing.containsKey(root)) {
+            TransitionManager.endTransitions(root);
+            if (enabled() && root.isLaidOut()) {
+                revealing.put(root, Boolean.TRUE);
+                Runnable started = () -> revealing.remove(root);
+                beforeNextDraw(root, started, started);
+                animateChanges(root, instant);
+            }
+        }
+        view.setVisibility(shown ? View.VISIBLE : View.GONE);
+        return true;
+    }
+
     /** Content that finished loading fades up in place rather than snapping in. */
     static void fadeIn(View view) {
         if (!enabled() || view == null) return;

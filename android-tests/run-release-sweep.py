@@ -199,6 +199,8 @@ STEPS += [
     inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),
     inst('charge-time-sizes-344', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
+    inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
