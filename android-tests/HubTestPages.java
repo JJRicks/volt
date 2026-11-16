@@ -326,11 +326,15 @@ public final class HubTestPages {
         // The sheet: shown, with its window focused, and exactly one shown row to target in it.
         String rowTag = HubPages.SETTINGS.equals(target) ? "home-settings" : HubPages.SEARCH.equals(target) ? "home-search" : "home-subject-" + target;
         View[] root = {null}, row = {null};
+        android.app.Dialog[] open = {null};
         long until = SystemClock.uptimeMillis() + WAIT_MS;
         while (SystemClock.uptimeMillis() < until && row[0] == null) {
             onMain(instrumentation, () -> {
                 Object sheet = field(dock[0], "sheet");
                 if (!(sheet instanceof android.app.Dialog) || !((android.app.Dialog) sheet).isShowing()) { problem[0] = "The dock's All item did not open its sheet"; return; }
+                // Springing open (DragSheet): its rows are still moving, so a tap waits for it to settle (state OPEN).
+                Object drag = field(dock[0], "drag");
+                if (drag == null || !Integer.valueOf(4).equals(field(drag, "state"))) { problem[0] = "The dock's All sheet did not settle open"; return; }
                 View decor = ((android.app.Dialog) sheet).getWindow().getDecorView();
                 List<View> shown = new ArrayList<>();
                 for (View view : descendants(decor)) if (rowTag.equals(view.getTag()) && view.isShown()) shown.add(view);
@@ -338,7 +342,7 @@ public final class HubTestPages {
                 else if (shown.size() > 1) problem[0] = "The dock's All sheet shows " + shown.size() + " rows to " + target;
                 else if (!shown.get(0).isEnabled()) problem[0] = "The All sheet's row to " + target + " is disabled";
                 else if (!shown.get(0).isClickable() || !shown.get(0).hasOnClickListeners()) problem[0] = "The All sheet's row to " + target + " is not tappable";
-                else { root[0] = decor; row[0] = shown.get(0); problem[0] = null; }
+                else { root[0] = decor; row[0] = shown.get(0); open[0] = (android.app.Dialog) sheet; problem[0] = null; }
             });
             if (row[0] == null) SystemClock.sleep(40);
         }
@@ -346,6 +350,15 @@ public final class HubTestPages {
         String name = "the All sheet's row " + rowTag + " on page " + HubPages.HOME;
         tapIn(instrumentation, activity, root[0], row[0], name);
         awaitPage(instrumentation, activity, target, name);
+        // The sheet settles closed over the page it opened, taking every touch until it is gone: the next tap waits for that.
+        boolean[] showing = {true};
+        until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            onMain(instrumentation, () -> showing[0] = open[0].isShowing());
+            if (!showing[0]) break;
+            SystemClock.sleep(20);
+        }
+        if (showing[0]) throw new IllegalStateException("The dock's All sheet stayed open after " + name);
         return true;
     }
 

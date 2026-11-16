@@ -41,6 +41,12 @@ public interface ScreenHost {
         return sheetContent(title.render(), explanation == null ? null : explanation.render(), close);
     }
     android.app.AlertDialog showSheet(android.view.View content);
+    /**
+     * The same sheet as one that follows a finger and springs (DragSheet), not shown yet: call its open() or pull().
+     * header: the views of content that move it whenever they are dragged (DragSheet.header). A host that keeps its
+     * dialogs (for dialogShowing) overrides this to keep this one too.
+     */
+    default DragSheet dragSheet(android.view.View content, android.view.View... header) { return new DragSheet(activity(), ui(), content, header, null); }
     /** One of the host's own sheets or dialogs is showing over the screen right now (riding mode's alert banner waits). */
     default boolean dialogShowing() { return false; }
     default void exportDashboardLayouts() { }
