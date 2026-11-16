@@ -397,7 +397,9 @@ public final class ChargePictureValidation extends Instrumentation {
     private String foundScale;
     private void restoreFound() {
         if (foundScale != null) try {
-            shell(foundScale.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + foundScale);
+            // An unset setting comes back as an explicit 1, Android's default, never a delete: Android keeps its
+            // in-memory scale when the setting is deleted, so animations would stay off (the release sweep's rule, #507).
+            shell("settings put global animator_duration_scale " + (foundScale.equals("null") || foundScale.isEmpty() ? "1" : foundScale));
         } catch (Throwable ignored) {}
     }
     private void scale(String value) throws Exception {
