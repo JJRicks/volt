@@ -274,9 +274,10 @@ public final class HubValidation extends Instrumentation {
      * The page header's connection line follows the connection (the contributor's decision, 14 Nov, #383): the walk ends
      * the simulated connection on Battery & charging (BleController.disconnect, which in simulation only sets the state:
      * no radio, no command) and the line shows there, tappable, between the back link and the title; Settings still shows
-     * none. Reconnected on that page (BleController.connectLast, the simulator's own connect), the line blanks and keeps
-     * its room, so the title keeps its place; opened again, connected, the page has no line. The simulator's settings stay
-     * as they were (noCommands checks them at the end).
+     * none. Reconnected on that page (BleController.connectLast, the simulator's own connect), the line goes with its
+     * room and, once the motion settles, the title is where a connected page opened fresh has it (the owner's motion
+     * sweep pick, 15 Nov, in place of the blank room #383 kept); opened again, connected, the page has no line. The
+     * simulator's settings stay as they were (noCommands checks them at the end).
      */
     private void connectionLine() throws Exception {
         requireHome("CleanHomeScreen");
@@ -301,24 +302,21 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
         require(requireHeader(HubPages.BATTERY, true) == titleTop, "Battery's title moved between two disconnected visits");
         main(ble::connectLast);
-        await(() -> onMain(() -> ble.ready() && root().findViewWithTag("hub-page-connection").getVisibility() == View.INVISIBLE),
-                () -> "Reconnected on Battery, its connection line is " + onMain(() -> root().findViewWithTag("hub-page-connection").getVisibility()) + ", not blank keeping its room");
+        await(() -> onMain(() -> ble.ready() && root().findViewWithTag("hub-page-connection").getVisibility() == View.GONE),
+                () -> "Reconnected on Battery, its connection line is " + onMain(() -> root().findViewWithTag("hub-page-connection").getVisibility()) + ", not gone");
         settle();
-        int reconnectedTop = onMain(() -> {
-            View line = root().findViewWithTag("hub-page-connection");
-            ViewGroup header = (ViewGroup) line.getParent();
-            return windowRect(header.getChildAt(header.indexOfChild(line) + 1)).top;
-        });
-        require(reconnectedTop == titleTop, "Battery's title moved from " + titleTop + " to " + reconnectedTop + " px as the scooter reconnected");
+        int reconnectedTop = requireHeader(HubPages.BATTERY, false);
+        require(reconnectedTop < titleTop, "Battery's title stayed at " + reconnectedTop + " px (" + titleTop + " with the line) as the scooter reconnected");
         systemBack();
         requireHome("CleanHomeScreen");
         tapTag("home-subject-" + HubPages.BATTERY);
         arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
-        requireHeader(HubPages.BATTERY, false);
+        int freshTop = requireHeader(HubPages.BATTERY, false);
+        require(reconnectedTop == freshTop, "Reconnected on Battery its title settled at " + reconnectedTop + " px, opened connected at " + freshTop + " px");
         systemBack();
         requireHome("CleanHomeScreen");
         checks.add("Page header: connected, every page shows its back link and title and no connection line, Settings never; disconnected (the simulator's state only), Battery shows"
-                + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line blanks with the title in place, and the page opened again has none");
+                + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line goes and the title settles where a connected page has it, and the page opened again has none");
     }
 
     /**

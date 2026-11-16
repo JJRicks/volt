@@ -106,15 +106,20 @@ final class HubBatterySummary implements AppScreen {
         Motion.reveal(Motion.pageOf(card), row, shown);
     }
 
-    /** The first live reading on a page in view starts the gathering; the link going ends it. */
+    /**
+     * The first live reading on a page in view starts the gathering; the link going ends it. A live reading the page
+     * was built with (before it is attached and laid out) counts once the page is laid out: its first refresh there
+     * starts the gathering, so a page opened after the first reading gathers the rows that come next as one opened
+     * before it does.
+     */
     private void gather(boolean live) {
-        if (!live) { gatherUntil = 0; handler.removeCallbacks(gathered); }
-        else if (!sawLive && Motion.enabled() && card.isAttachedToWindow() && view.isLaidOut()) {
-            gatherUntil = android.os.SystemClock.uptimeMillis() + GATHER_MS;
-            handler.removeCallbacks(gathered);
-            handler.postDelayed(gathered, GATHER_MS);
-        }
-        sawLive = live;
+        if (!live) { gatherUntil = 0; handler.removeCallbacks(gathered); sawLive = false; return; }
+        if (sawLive || !card.isAttachedToWindow() || !view.isLaidOut()) return;
+        sawLive = true;
+        if (!Motion.enabled()) return;
+        gatherUntil = android.os.SystemClock.uptimeMillis() + GATHER_MS;
+        handler.removeCallbacks(gathered);
+        handler.postDelayed(gathered, GATHER_MS);
     }
 
     @Override public void refresh() {

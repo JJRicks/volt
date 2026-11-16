@@ -211,6 +211,19 @@ STEPS += [
     inst('reveal-motion-battery', T + 'RevealMotionValidation', '-e', 'part', 'battery', size='412x915'),
     inst('reveal-motion-riding-alert', T + 'RevealMotionValidation', '-e', 'part', 'riding-alert', size='412x915'),
     inst('reveal-motion-onboarding', T + 'RevealMotionValidation', '-e', 'part', 'onboarding', size='412x915'),
+    # Home's lock card on connect (C2): the Lock bar on Widgets and Clean, narrow and wide, the Fold's Widgets, and the full lock card.
+    inst('reveal-motion-lock-widgets-344', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='344x882'),
+    inst('reveal-motion-lock-widgets-725', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='725x604'),
+    inst('reveal-motion-lock-widgets-fold', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='790x820'),
+    inst('reveal-motion-lock-card-412', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', '-e', 'card', 'lock', size='412x915'),
+    inst('reveal-motion-lock-clean-344', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'clean', size='344x882'),
+    inst('reveal-motion-lock-clean-725', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'clean', size='725x604'),
+    # The page header's connection line (C2), with each page's own banner on the same connection.
+    inst('reveal-motion-page-line-controls', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'controls', size='412x915'),
+    inst('reveal-motion-page-line-battery', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'battery', size='412x915'),
+    inst('reveal-motion-page-line-lights', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'lights', size='412x915'),
+    inst('reveal-motion-page-line-security', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'security', size='412x915'),
+    inst('reveal-motion-page-line-rides', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'rides', size='412x915'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),

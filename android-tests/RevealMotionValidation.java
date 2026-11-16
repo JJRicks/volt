@@ -77,17 +77,30 @@ import com.jjricks.volt.ScooterProfiles;
  *   Connect where Use was, while Use fades out: Connect gets the tap (it is consumed there, so nothing connects) and
  *   Use none. Riding mode's alert banner ({@code riding-alert}): its close button tapped mid-fade closes it at once.
  *   The other parts have no tap check.</li>
+ *   <li><b>Home's lock card</b> ({@code lock}): connected and resting, a lock and unlock (the simulator's memory), a
+ *   battery level change and redraws never fade the slider or draw the offline line ({@code toggles}); arriving on Home
+ *   connected (back from Controls, the activity recreated, the dock's All sheet closed, and a change under that sheet)
+ *   draws it at rest from the first frame ({@code at-rest}); at scale 10 a tap where the offline line was while the
+ *   slider arrives locks nothing and opens nothing, and at rest the slider locks and unlocks as before ({@code taps}).</li>
+ *   <li><b>The page header's connection line</b> ({@code page-line}): the page's own banner (Controls' "Connecting…", or
+ *   on Rides Connect to record) is first and last drawn within a frame of the line (one motion); the line on a page
+ *   opened while disconnected, or in the recreated activity, is drawn at rest from the first frame, and its words
+ *   changing move nothing ({@code at-rest}); scrolled part-way the page glides with it and keeps its scroll
+ *   ({@code mid}); scrolled to the end, the page keeps its content in place as the line goes ({@code scrolled}).</li>
+ *   <li><b>The hitch rule</b> ({@code hitch}, every part): an on-time pop after a late but passing arrival fails at once,
+ *   judged by its own measurement (each record replaces the hitch of the one before), not as STARVED.</li>
  *   <li><b>Per part</b>: {@code night}, a leaving view that scrolls its own content (the Schedule selector, wider than
  *   the screen at large text, scrolled to its end) is drawn fading exactly as on screen ({@code ghost}). {@code battery},
  *   the summary's lines landing one by one as a connection starts come in together once, never holding a line already
- *   shown or a value's change ({@code gather}). {@code onboarding}, the problem line arriving below the fold (a window
+ *   shown or a value's change ({@code gather}), also on a page opened after the first live reading ({@code opened-live}). {@code onboarding}, the problem line arriving below the fold (a window
  *   half as tall) is scrolled into view gliding from its arrival, to where it ends ({@code into-view}).</li>
  * </ul>
  *
  * In every motion, every frame draws each neighbour within 2 dp of the span from where it started to where it rests.
  * A view that is leaving is GONE from the start and drawn fading by Motion (Motion.leaving says at what opacity); the
  * frames count that as drawn. At rest nothing is still drawn leaving.
- * -e only arrives|pulse|reversals|recreated|off|instant|turns|scrolled|ghost|gather|into-view|taps runs one check.
+ * -e only hitch|arrives|pulse|toggles|reversals|recreated|at-rest|off|instant|turns|scrolled|mid|ghost|gather|opened-live|into-view|taps
+ * runs one check.
  * {@code rides} needs the hidden API policy relaxed (a synthetic link, as AutoStartValidation's).
  *
  * A host too slow to draw a motion's frames cannot tell a motion from a pop: a failed measurement in which a frame came
@@ -109,7 +122,12 @@ import com.jjricks.volt.ScooterProfiles;
  * {@code battery}: Battery &amp; charging's pack temperature line on the simulator, the reading withheld and released.
  * {@code riding-alert}: Riding mode's battery alert banner (a synthetic silent charge alert; it fades in over
  * Motion.ALERT_MS, drawn from its first frame, and goes at once). {@code onboarding}: Setup's connect step, the problem
- * line and Try again against Cancel as the link's state changes (Bluetooth stays off; nothing connects). -e mode demo toggles the site every -e hold_ms (1500) for -e
+ * line and Try again against Cancel as the link's state changes (Bluetooth stays off; nothing connects). {@code lock}: Home's
+ * lock card (-e home widgets|clean; -e card lockbar, the default Lock bar, or lock, the full card with its heading and
+ * Disconnect, on Widgets), shown as the simulator's link becomes ready and hidden by its dropout script, the app's own
+ * way (the service tells the activity; no redraw is asked). {@code page-line}: the page header's connection line on
+ * -e page controls|battery|lights|security|rides, shown by the dropout script and hidden as the link comes back.
+ * -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
 public final class RevealMotionValidation extends Instrumentation {
@@ -121,7 +139,7 @@ public final class RevealMotionValidation extends Instrumentation {
     private MainActivity activity;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), notes = new ArrayList<>();
-    private String scaleBefore, part, home;
+    private String scaleBefore, part, home, card, linePage;
     private String profileId;
     private ScooterProfiles.Profile fixture;
     private Site site;
@@ -133,6 +151,11 @@ public final class RevealMotionValidation extends Instrumentation {
             String mode = arguments.getString("mode", "all");
             part = arguments.getString("part", "find");
             home = arguments.getString("home", "widgets");
+            card = arguments.getString("card", "lockbar");
+            linePage = arguments.getString("page", "controls");
+            require(card.equals("lockbar") || card.equals("lock"), "Unknown -e card " + card + " (lockbar or lock)");
+            require(LINE_PAGES.contains(linePage), "Unknown -e page " + linePage + " (" + String.join(", ", LINE_PAGES) + ")");
+            require(!card.equals("lock") || home.equals("widgets"), "-e card lock is a Widgets Home card");
             require(mode.equals("all") || mode.equals("demo"), "Unknown -e mode " + mode + " (all or demo)");
             require(PARTS.contains(part), "Unknown -e part " + part + " (" + String.join(", ", PARTS) + ")");
             require(home.equals("widgets") || home.equals("clean"), "Unknown -e home " + home + " (widgets or clean)");
@@ -157,17 +180,21 @@ public final class RevealMotionValidation extends Instrumentation {
                 else {
                     // -e only <check> runs one check (to show which one a build fails).
                     String only = arguments.getString("only", "");
-                    String[] names = {"arrives", "pulse", "reversals", "recreated", "off", "instant", "turns", "scrolled", "ghost", "gather", "into-view", "taps"};
+                    String[] names = {"hitch", "arrives", "pulse", "toggles", "reversals", "recreated", "at-rest", "off", "instant", "turns", "scrolled", "mid", "ghost", "gather", "opened-live", "into-view", "taps"};
                     require(only.isEmpty() || java.util.Arrays.asList(names).contains(only), "Unknown -e only " + only);
                     boolean alert = part.equals("riding-alert");
+                    if (only.isEmpty() || only.equals("hitch")) hitchPerMeasurement();
                     if (only.isEmpty() || only.equals("arrives")) arrivesAndGoes(site);
                     if (only.isEmpty() || only.equals("pulse")) pulse(site);
+                    if (part.equals("lock") && (only.isEmpty() || only.equals("toggles"))) lockToggles(site);
                     if (only.isEmpty() || only.equals("reversals")) reversals(site);
                     if (only.isEmpty() || only.equals("recreated")) {
                         if (site.keepsAcrossRecreate && !alert) recreated(site);
                         else notes.add(site.name + ": no rebuilt-activity check (" + (alert ? "riding mode closes with the activity"
                                 : part.equals("onboarding") ? "a rebuilt Setup starts its connect step afresh" : "an editor that was not saved opens afresh") + ")");
                     }
+                    if (part.equals("lock") && (only.isEmpty() || only.equals("at-rest"))) lockAtRest(site);
+                    if (part.equals("page-line") && (only.isEmpty() || only.equals("at-rest"))) lineAtRest(site);
                     if (only.isEmpty() || only.equals("off")) animationsOff(site);
                     if (only.isEmpty() || only.equals("instant")) {
                         if (!alert) instantWins(site); else notes.add(site.name + ": no instant-change check (the banner is shown and hidden only one way)");
@@ -179,10 +206,13 @@ public final class RevealMotionValidation extends Instrumentation {
                     if (only.isEmpty() || only.equals("scrolled")) {
                         if (alert) notes.add(site.name + ": no scrolled-end check (riding mode does not scroll)");
                         else if (part.equals("battery")) notes.add(site.name + ": no scrolled-end check (the line sits beside the level, so the card keeps its height)");
+                        else if (part.equals("lock")) notes.add(site.name + ": no scrolled-end check (the card keeps its height: " + (home.equals("clean") ? "Clean's fixed lock slot" : "a Widgets tile is a grid cell the rider sized") + ")");
                         else scrolledEnd(site);
                     }
+                    if (part.equals("page-line") && (only.isEmpty() || only.equals("mid"))) scrolledMid(site);
                     if (part.equals("night") && (only.isEmpty() || only.equals("ghost"))) ghostScroll(site);
                     if (part.equals("battery") && (only.isEmpty() || only.equals("gather"))) gather(site);
+                    if (part.equals("battery") && (only.isEmpty() || only.equals("opened-live"))) gatherOpened(site);
                     if (part.equals("onboarding") && (only.isEmpty() || only.equals("into-view"))) intoView(site);
                     // Last: it ends the simulator (and, for Rides, records a ride on a synthetic link).
                     if (only.isEmpty() || only.equals("taps")) taps();
@@ -224,6 +254,8 @@ public final class RevealMotionValidation extends Instrumentation {
         Runnable reopen;
         /** It keeps its state across a rebuilt activity (an editor that is not saved opens afresh). */
         boolean keepsAcrossRecreate = true;
+        /** The scroll whose page it changes: the one it is in, or (a header above the page) the page's own. */
+        Supplier<android.widget.ScrollView> scroll;
         Site(String name, Supplier<View> subject, Supplier<List<View>> neighbours, Runnable show, Runnable hide) {
             this.name = name; this.subject = subject; this.neighbours = neighbours; this.show = show; this.hide = hide;
         }
@@ -237,7 +269,9 @@ public final class RevealMotionValidation extends Instrumentation {
     private static final int STARVED_RETRIES = 3;
 
     private static final List<String> PARTS = java.util.Arrays.asList("find", "controls", "rides", "night", "scooters",
-            "charge-alerts", "maintenance-mode", "maintenance-earlier", "battery", "riding-alert", "onboarding");
+            "charge-alerts", "maintenance-mode", "maintenance-earlier", "battery", "riding-alert", "onboarding", "lock", "page-line");
+    /** The pages -e part page-line runs on (-e page). */
+    private static final List<String> LINE_PAGES = java.util.Arrays.asList("controls", "battery", "lights", "security", "rides");
 
     private Site site() {
         switch (part) {
@@ -251,6 +285,8 @@ public final class RevealMotionValidation extends Instrumentation {
             case "rides": return connection("Ride › Rides' Connect to record", HubPages.RIDE_RIDES, "RidesScreen", "connectButton");
             case "night": return night();
             case "scooters": return connection("Settings › My scooters' last connected line", HubPages.SETTINGS_SCOOTERS, "MoreScreen", null);
+            case "lock": return lockCard();
+            case "page-line": return pageLine();
             default: return findCard();
         }
     }
@@ -264,6 +300,7 @@ public final class RevealMotionValidation extends Instrumentation {
             case "scooters": return HubPages.SETTINGS_SCOOTERS;
             case "maintenance-mode": case "maintenance-earlier": return HubPages.SERVICE_MAINTENANCE;
             case "battery": return HubPages.BATTERY;
+            case "page-line": return linePageId();
             default: return HubPages.HOME;
         }
     }
@@ -577,8 +614,41 @@ public final class RevealMotionValidation extends Instrumentation {
         }
     }
 
-    /** The latest frame of the measurements since it was reset (ms): see measured. */
+    /** How late the latest measurement's latest frame came (ms): see measured. */
     private long hitchMs;
+    /**
+     * A measurement just taken (a record of one change) came this late at worst: it replaces the one before, so a check
+     * that fails is judged by its own measurement, never by an earlier one in the same try (an arrival's late frame must
+     * not make an on-time departure pop read as starved).
+     */
+    private void noteHitch(long ms) { hitchMs = ms; }
+
+    /**
+     * measured's own rule (#518 review): an arrival measured late but passing, then a departure measured on time that
+     * pops, is a FAIL (the pop), not an inconclusive retry ending STARVED. Runs on the measurement bookkeeping alone.
+     */
+    private void hitchPerMeasurement() {
+        int[] tries = {0};
+        String outcome;
+        try {
+            measured("The hitch rule's self-check", () -> {
+                tries[0]++;
+                noteHitch(STARVED_MS + 40); // the arrival: a frame came late, and it passed
+                noteHitch(0);               // the departure: every frame on time
+                throw new IllegalStateException("the departure popped on time");
+            }, () -> { });
+            outcome = "no failure";
+        } catch (Starved starved) {
+            outcome = "STARVED after " + tries[0] + " tries";
+        } catch (IllegalStateException fail) {
+            outcome = fail.getMessage();
+        }
+        // A retry leaves its inconclusive note; this self-check's own notes are not the part's.
+        notes.removeIf(note -> note.startsWith("The hitch rule's self-check"));
+        require(tries[0] == 1 && "the departure popped on time".equals(outcome), "An on-time pop after a late but passing arrival was not judged by its own measurement ("
+                + outcome + "; " + tries[0] + " tries): it would read as STARVED, not FAIL");
+        checks.add("Hitch rule: an on-time pop after a late but passing arrival fails at once (1 try), judged by its own measurement, not as STARVED");
+    }
 
     private void arrivesAndGoesOnce(Site site) {
         requireRest(site, false, "before it was offered");
@@ -588,6 +658,7 @@ public final class RevealMotionValidation extends Instrumentation {
         Frames out = record(site, site.hide);
         requireRest(site, false, "after it went");
         smooth(out, false, site.name + " departure");
+        if (part.equals("page-line")) { together(in, true, site.name + " arrival"); together(out, false, site.name + " departure"); }
         checks.add(site.name + ": arrives over " + in.alphaFrames() + " part-faded frames while " + in.movers() + " glides " + in.travel()
                 + " px over " + in.betweenFrames() + " frames, at rest in " + in.settledMs() + " ms; goes over " + out.alphaFrames()
                 + " part-faded frames while it glides back over " + out.betweenFrames() + " frames, at rest in " + out.settledMs() + " ms");
@@ -714,7 +785,7 @@ public final class RevealMotionValidation extends Instrumentation {
             site.show.run(); SystemClock.sleep(500); site.hide.run();
             SystemClock.sleep(4000);
             in.stop();
-            hitchMs = Math.max(hitchMs, in.starvedMs());
+            noteHitch(in.starvedMs());
             requireRest(site, false, "hidden mid-arrival at scale 10");
             continuous(in, site.name + " hidden mid-arrival (scale 10)");
             float peak = 0; for (float[] f : in.samples) if (f[1] == 1) peak = Math.max(peak, f[2]);
@@ -725,7 +796,7 @@ public final class RevealMotionValidation extends Instrumentation {
             site.hide.run(); SystemClock.sleep(300); site.show.run();
             SystemClock.sleep(4000);
             out.stop();
-            hitchMs = Math.max(hitchMs, out.starvedMs());
+            noteHitch(out.starvedMs());
             requireRest(site, true, "shown mid-departure at scale 10");
             continuous(out, site.name + " shown mid-departure (scale 10)");
             float low = 1; for (float[] f : out.samples) low = Math.min(low, f[1] == 1 ? f[2] : 0);
@@ -756,7 +827,7 @@ public final class RevealMotionValidation extends Instrumentation {
             requireRest(site, true, "shown on the long page");
             int spare = onMain(() -> {
                 View subject = site.subject.get();
-                android.widget.ScrollView scroll = scrollOf(subject);
+                android.widget.ScrollView scroll = scrollOf(site);
                 if (scroll == null) return -1;
                 return scroll.getChildAt(0).getHeight() - (scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom()) - subject.getHeight();
             });
@@ -767,20 +838,20 @@ public final class RevealMotionValidation extends Instrumentation {
             require(!part.equals("find"), site.name + ": Home never scrolled past the card, even at the largest text");
             notes.add(site.name + ": the page never scrolled past it, even at the largest text; the scrolled-end check had nothing to clamp");
         } else {
-            main(() -> { android.widget.ScrollView scroll = scrollOf(site.subject.get()); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); });
+            main(() -> { android.widget.ScrollView scroll = scrollOf(site); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); });
             settle();
             int[] scrolled = new int[1];
-            Frames out = new Frames(new Site(site.name, site.subject, () -> lowest(site.subject.get()), site.show, site.hide));
+            Frames out = new Frames(new Site(site.name, site.subject, () -> lowest(site.subject.get(), scrollOf(site)), site.show, site.hide));
             out.start(); frames(2);
-            main(() -> scrolled[0] = scrollOf(site.subject.get()).getScrollY());
+            main(() -> scrolled[0] = scrollOf(site).getScrollY());
             site.hide.run();
             SystemClock.sleep(SETTLE_MS + 300);
             out.stop();
-            int clamped = scrolled[0] - onMain(() -> scrollOf(site.subject.get()).getScrollY());
+            int clamped = scrolled[0] - onMain(() -> scrollOf(site).getScrollY());
             requireRest(site, false, "after it went from the end of the long page");
             require(clamped > 0, site.name + ": its departure at the end of the page did not clamp the scroll");
             onPath(out, site.name + " departure at the end of a scrolled page (text " + used + ")");
-            require(onMain(() -> scrollOf(site.subject.get()).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
+            require(onMain(() -> scrollOf(site).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
             checks.add(site.name + ": leaving at the end of a page that still scrolls without it (text " + used + "), the scroll clamps by " + clamped
                     + " px and " + out.samples.size() + " frames draw the views below only on their way (track " + track(out, 0) + ")");
         }
@@ -793,10 +864,13 @@ public final class RevealMotionValidation extends Instrumentation {
         return null;
     }
 
+    /** The scroll the site changes (on the main thread). */
+    private static android.widget.ScrollView scrollOf(Site site) { return site.scroll != null ? site.scroll.get() : scrollOf(site.subject.get()); }
+
     /** The views after it on the page, and the lowest one the page shows (what a clamped scroll moves). */
-    private static List<View> lowest(View subject) {
+    private static List<View> lowest(View subject) { return lowest(subject, scrollOf(subject)); }
+    private static List<View> lowest(View subject, android.widget.ScrollView scroll) {
         List<View> out = siblingsAfter(subject);
-        android.widget.ScrollView scroll = scrollOf(subject);
         if (scroll != null && scroll.getChildAt(0) instanceof ViewGroup) {
             ViewGroup content = (ViewGroup) scroll.getChildAt(0);
             for (int i = content.getChildCount() - 1; i >= 0; i--)
@@ -1056,7 +1130,7 @@ public final class RevealMotionValidation extends Instrumentation {
             frames.stop();
             // The readings land on the test's own schedule, so a page idle between them owes no frame: only a wait while
             // a line was on its way in (drawn, not yet opaque) says the host was starved.
-            hitchMs = Math.max(hitchMs, frames.fadingGapMs());
+            noteHitch(frames.fadingGapMs());
             require(seen[0] != null && seen[0].contains("57"), "Battery & charging held the level's new value while lines were gathering (it read " + seen[0] + ")");
             int[] firstShown = {-1, -1, -1};
             for (int i = 0; i < frames.samples.size(); i++) {
@@ -1147,12 +1221,410 @@ public final class RevealMotionValidation extends Instrumentation {
         require(settings().edit().putFloat("text_scale", 1).commit(), "Text size failed"); activity = recreate(); requirePage();
     }
 
+    // ===== C2 sites: Home's lock card and the page header's connection line =====
+
+    /** Starts the simulator (memory only: never a command) and waits for its link. */
+    private void simulator() {
+        if (onMain(() -> !activity.service().simulating())) main(() -> require(activity.service().setSimulation(true), "The simulator did not start"));
+        await(() -> onMain(() -> activity.service().ble.ready()), "The simulator is not ready");
+    }
+    /** The simulator's link the app's own way: its state changes and the service tells the activity (no redraw asked). */
+    private void link(boolean ready) { main(() -> activity.service().ble.setSimulationScript(ready ? "" : "dropout")); }
+
+    /**
+     * Home's lock card (the Lock bar of the default Widgets Home or Clean's lock slot; -e card lock, the full lock card
+     * with its heading and Disconnect, on Widgets): connected, the slider (and on the full card its heading) takes the
+     * offline line's place. Shown: the simulator's link ready; hidden: its dropout script (Connecting).
+     */
+    private Site lockCard() {
+        simulator();
+        link(false);
+        await(() -> onMain(() -> !activity.service().ble.ready()), "The simulator's dropout did not leave the link connecting");
+        Supplier<View> subject = () -> (View) field(activity, "lockReady");
+        Site site = new Site("Home's " + (card.equals("lock") ? "full lock card" : "Lock bar") + " (" + home + " Home)", subject,
+                this::lockNeighbours, () -> link(true), () -> link(false));
+        site.against = this::lockAgainst;
+        // The Lock bar's row keeps its place and height; on the full card Disconnect glides down below the slider.
+        site.fadeOnly = card.equals("lockbar");
+        return site;
+    }
+    /** What goes as the slider comes: the offline line, and Connect when the card shows no Disconnect (main thread). */
+    private List<View> lockAgainst() {
+        List<View> out = new ArrayList<>();
+        View offline = (View) field(activity, "lockOffline"), action = (View) field(activity, "connectionAction");
+        if (offline == null) return out; // not on Home
+        out.add(offline);
+        if (!(Boolean) field(activity, "showDashboardDisconnect") && action != null) out.add(action);
+        return out;
+    }
+    /** Disconnect (shown either way on the full card) and what follows the card on Home: other tiles, Clean's rows. */
+    private List<View> lockNeighbours() {
+        List<View> out = new ArrayList<>(), against = lockAgainst();
+        View action = (View) field(activity, "connectionAction"), ready = (View) field(activity, "lockReady");
+        if (ready == null || action == null) return out; // not on Home
+        if (!against.contains(action) && action.isShown()) out.add(action);
+        View cardView = (View) ready.getParent();
+        for (View after : siblingsAfter(cardView)) if (!against.contains(after) && !out.contains(after)) out.add(after);
+        return out;
+    }
+
+    private String linePageId() {
+        switch (linePage) {
+            case "battery": return HubPages.BATTERY;
+            case "lights": return HubPages.LIGHTS;
+            case "security": return HubPages.SECURITY;
+            case "rides": return HubPages.RIDE_RIDES;
+            default: return HubPages.CONTROLS;
+        }
+    }
+    /**
+     * The page header's connection line ("Disconnected · last seen") on -e page's page: shown as the simulator's link
+     * drops (its dropout script), hidden as it comes back. The page's own banner (Controls' "Connecting…" banner, or on
+     * Rides Connect to record) changes on the same connection and fades with it.
+     */
+    private Site pageLine() {
+        simulator();
+        Supplier<View> subject = () -> root().findViewWithTag("hub-page-connection");
+        Site site = new Site(linePage + " page's header connection line", subject, () -> lineNeighbours(subject.get()), () -> link(false), () -> link(true));
+        site.with = this::lineWith;
+        site.scroll = () -> (android.widget.ScrollView) field(activity, "scroll");
+        return site;
+    }
+    /** The page's own view that comes with the line on the same connection change (main thread). */
+    private List<View> lineWith() {
+        List<View> out = new ArrayList<>();
+        View with = null;
+        try { with = linePage.equals("rides") ? (View) field(part("RidesScreen"), "connectButton") : (View) field(part("ControlsScreen"), "banner"); }
+        catch (IllegalStateException none) { /* this page has none */ }
+        if (with != null && with.isAttachedToWindow()) out.add(with);
+        return out;
+    }
+    /** The title below the line, the page under the header, and the page's first view below its banner (main thread). */
+    private List<View> lineNeighbours(View line) {
+        List<View> out = siblingsAfter(line);
+        List<View> with = lineWith();
+        android.widget.ScrollView scroll = (android.widget.ScrollView) field(activity, "scroll");
+        View below = null;
+        if (!with.isEmpty()) { List<View> after = siblingsAfter(with.get(0)); if (!after.isEmpty()) below = after.get(0); }
+        if (below == null && scroll != null && scroll.getChildAt(0) instanceof ViewGroup) {
+            ViewGroup content = (ViewGroup) scroll.getChildAt(0);
+            for (int i = 0; i < content.getChildCount() && below == null; i++)
+                if (content.getChildAt(i).getVisibility() == View.VISIBLE && content.getChildAt(i).getHeight() > 0) below = content.getChildAt(i);
+        }
+        if (below != null && !out.contains(below)) out.add(below);
+        return out;
+    }
+
+    // ===== C2 checks =====
+
+    /**
+     * The line and the page's own banner change on the same connection: they come in (and go) in the same frame or the
+     * next, never one after the other (a refresh a pulse later, or a second glide).
+     */
+    private void together(Frames frames, boolean arriving, String what) {
+        if (frames.fading.isEmpty()) return;
+        int line = -1, with = -1;
+        for (int i = 0; i < frames.samples.size(); i++) {
+            boolean lineDrawn = frames.samples.get(i)[1] == 1 && frames.samples.get(i)[2] > 0, withDrawn = frames.partners.get(i)[0] > 0;
+            if (arriving) { if (line < 0 && lineDrawn) line = i; if (with < 0 && withDrawn) with = i; }
+            else { if (lineDrawn) line = i; if (withDrawn) with = i; }
+        }
+        require(line >= 0 && with >= 0, what + ": the line or " + frames.fading.get(0).getClass().getSimpleName() + " was never drawn");
+        require(Math.abs(line - with) <= 1, what + ": the line and " + frames.fading.get(0).getClass().getSimpleName() + " were " + (arriving ? "first" : "last")
+                + " drawn " + Math.abs(line - with) + " frames apart (" + (long) (frames.samples.get(Math.max(line, with))[0] - frames.samples.get(Math.min(line, with))[0]) + " ms): not one motion");
+    }
+
+    /**
+     * Connected and resting, the card's other changes keep their own motion and never start the crossfade: the lock
+     * locked and unlocked (the simulator's memory, LockControl's own slide), a battery level change, the 1 s pulse and
+     * repeated redraws. No frame draws the slider part-faded or the offline line at all, and nothing around it moves.
+     */
+    private void lockToggles(Site site) {
+        site.show.run(); settleFor(SETTLE_MS);
+        requireRest(site, true, "before the lock changes");
+        BleController ble = onMain(() -> activity.service().ble);
+        Boolean before = onMain(ble::locked);
+        require(before != null, "The simulator reports no lock state");
+        Frames frames = new Frames(site);
+        frames.start(); frames(2); frames.mark();
+        boolean[] set = new boolean[2];
+        main(() -> { set[0] = ble.set("lock", before ? 0 : 1); activity.redraw(); });
+        SystemClock.sleep(500);
+        main(() -> { set[1] = ble.set("lock", before ? 1 : 0); activity.redraw(); });
+        SystemClock.sleep(500);
+        main(() -> {
+            try {
+                Method put = Class.forName("com.jjricks.volt.Telemetry").getDeclaredMethod("putSimulationSample", String.class, String.class, Double.class, long.class);
+                put.setAccessible(true);
+                put.invoke(field(ble, "telemetry"), "battery_percent", "57 %", 57d, SystemClock.elapsedRealtime());
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+            activity.redraw();
+        });
+        for (int i = 0; i < 3; i++) { SystemClock.sleep(400); main(() -> activity.redraw()); }
+        frames.stop();
+        require(set[0] && set[1], "The simulator refused a lock change (" + Arrays.toString(set) + ")");
+        require(Boolean.valueOf(before).equals(onMain(ble::locked)), "The lock is not back where it was");
+        for (int i = 0; i < frames.samples.size(); i++) {
+            float[] f = frames.samples.get(i);
+            require(f[1] == 1 && Math.abs(f[2] - 1) < .001f, site.name + " faded as the lock changed (alpha " + f[2] + " at " + (long) f[0] + " ms)");
+            for (float drawn : frames.partners.get(i)) require(drawn == 0, site.name + ": the offline line was drawn (" + drawn + ") as the lock changed");
+            for (int n = 0; n < frames.count; n++)
+                require(Math.abs(f[3 + n] - frames.samples.get(0)[3 + n]) <= .5f, site.name + ": " + frames.name(n) + " moved as the lock changed (track " + track(frames, n) + ")");
+        }
+        checks.add(site.name + ": locked and unlocked (the simulator's memory), a battery level change and three redraws while connected: " + frames.samples.size()
+                + " frames, the slider never faded, the offline line never drawn, nothing moved");
+        site.hide.run(); settleFor(SETTLE_MS);
+    }
+
+    /** Frames until ms have passed in which the given views are drawn only at rest: never part-faded, never leaving. */
+    private void restingFrames(Site site, long ms, String what, Runnable during) {
+        Frames frames = new Frames(site);
+        List<String> seen = new ArrayList<>();
+        frames.start();
+        long end = SystemClock.uptimeMillis() + ms;
+        if (during != null) during.run();
+        while (SystemClock.uptimeMillis() < end) {
+            main(() -> {
+                View subject = site.subject.get();
+                if (subject == null) return;
+                if (subject.getTransitionAlpha() != 1 || leaving(subject) >= 0) seen.add("subject " + subject.getTransitionAlpha() + "/" + leaving(subject));
+                for (View other : site.against.get()) if (other != null && (leaving(other) >= 0 || other.getTransitionAlpha() != 1)) seen.add(other.getClass().getSimpleName() + " " + leaving(other));
+                for (View other : site.with.get()) if (other != null && (leaving(other) >= 0 || other.getTransitionAlpha() != 1)) seen.add(other.getClass().getSimpleName() + " " + leaving(other));
+            });
+            SystemClock.sleep(8);
+        }
+        frames.stop();
+        require(seen.isEmpty(), what + ": drawn mid-motion (" + seen.subList(0, Math.min(4, seen.size())) + ")");
+    }
+
+    /**
+     * Arriving on Home with the scooter already connected shows the card at rest from its first frame: back from
+     * another page, the activity recreated (a rotation), and the dock's All sheet closed (Widgets Home). A change while
+     * the All sheet covers Home is instant under it. Only a change while Home is in front animates.
+     */
+    private void lockAtRest(Site site) {
+        site.show.run(); settleFor(SETTLE_MS);
+        requireRest(site, true, "before leaving Home");
+        main(() -> activity.open(HubPages.CONTROLS));
+        await(() -> onMain(() -> HubPages.CONTROLS.equals(field(activity, "selectedPage"))), "Controls did not open");
+        settle();
+        restingFrames(site, 900, site.name + " back from Controls", () -> main(() -> activity.open(HubPages.HOME)));
+        requireHome();
+        requireRest(site, true, "back from Controls");
+        activity = recreate();
+        restingFrames(site, 900, site.name + " in the recreated activity", null);
+        requireHome();
+        requireRest(site, true, "in the recreated activity");
+        String sheet = "";
+        if (home.equals("widgets")) {
+            main(() -> require(root().findViewWithTag("hub-dock-handle").performClick(), "All did not take its click"));
+            await(() -> onMain(() -> { Object dock = field(activity, "dock"); Object drag = dock == null ? null : field(dock, "drag");
+                return drag != null && (Boolean) invokeValue(drag, "showing"); }), "The dock's All sheet did not open");
+            settleFor(SETTLE_MS);
+            restingFrames(site, 900, site.name + " losing the link under the All sheet", () -> link(false));
+            requireRest(site, false, "the link lost under the All sheet");
+            restingFrames(site, 900, site.name + " connected under the All sheet", () -> link(true));
+            requireRest(site, true, "connected under the All sheet");
+            restingFrames(site, 1200, site.name + " as the All sheet closed", () -> main(() -> invoke(field(field(activity, "dock"), "drag"), "close")));
+            requireRest(site, true, "after the All sheet closed");
+            sheet = "; under the dock's All sheet the link lost and back changed it at once, and the sheet closing showed it at rest";
+        }
+        checks.add(site.name + ": connected, back from Controls and in the recreated activity it is drawn at rest from its first frame" + sheet);
+        site.hide.run(); settleFor(SETTLE_MS);
+    }
+
+    /**
+     * The line on a page opened while disconnected, and in the recreated activity, is drawn at rest from the first frame;
+     * the "last seen" words changing (an older last connection) move nothing.
+     */
+    private void lineAtRest(Site site) {
+        site.show.run(); settleFor(SETTLE_MS);
+        requireRest(site, true, "before leaving the page");
+        String page = linePageId();
+        main(() -> activity.open(HubPages.HOME));
+        await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage"))), "Home did not open");
+        settle();
+        restingFrames(site, 900, site.name + " opened while disconnected", () -> main(() -> activity.open(page)));
+        requirePage();
+        requireRest(site, true, "on the page opened while disconnected");
+        activity = recreate();
+        restingFrames(site, 900, site.name + " in the recreated activity", null);
+        requirePage();
+        requireRest(site, true, "in the recreated activity");
+        // "Disconnected · last seen …" (the simulator's link ended, as HubValidation ends it: its state only, no radio).
+        BleController ble = onMain(() -> activity.service().ble);
+        main(ble::disconnect);
+        await(() -> onMain(() -> ble.state() == BleController.State.DISCONNECTED), "The simulator's link did not end");
+        settleFor(SETTLE_MS);
+        requireRest(site, true, "disconnected");
+        String before = onMain(() -> ((android.widget.TextView) site.subject.get()).getText().toString());
+        Frames frames = new Frames(site);
+        frames.start(); frames(2); frames.mark();
+        main(() -> { activity.service().profiles.active().lastConnected = System.currentTimeMillis() - 3 * 3600_000L; activity.redraw(); });
+        SystemClock.sleep(SETTLE_MS);
+        frames.stop();
+        String after = onMain(() -> ((android.widget.TextView) site.subject.get()).getText().toString());
+        for (float[] f : frames.samples) {
+            require(f[1] == 1 && Math.abs(f[2] - 1) < .001f, site.name + " faded as its words changed (alpha " + f[2] + ")");
+            for (int n = 0; n < frames.count; n++) require(Math.abs(f[3 + n] - frames.samples.get(0)[3 + n]) <= .5f, site.name + ": " + frames.name(n) + " moved as the line's words changed");
+        }
+        require(!before.equals(after), site.name + ": its words did not change with the last connection (\"" + before + "\")");
+        checks.add(site.name + ": opened while disconnected and in the recreated activity it is drawn at rest from its first frame; its words changing (\""
+                + before + "\" to \"" + after + "\") faded and moved nothing");
+        main(() -> { activity.service().profiles.active().lastConnected = System.currentTimeMillis() - 60000; activity.redraw(); });
+        // The simulator's own connect brings the link back; the part goes on from its starting point.
+        main(ble::connectLast);
+        await(() -> onMain(ble::ready), "The simulator's link did not come back");
+        settleFor(SETTLE_MS);
+        requireRest(site, false, "reconnected");
+    }
+
+    /**
+     * The page scrolled part-way (neither end): the line comes and goes as everywhere, the page under the header gliding
+     * down and back up, nothing jumping. The text is made larger (and the activity rebuilt) until the page scrolls.
+     */
+    private void scrolledMid(Site site) {
+        float[] scales = {1, 1.4f, 1.8f, 2.4f, 3};
+        float used = -1;
+        for (float textScale : scales) {
+            if (textScale != 1) { require(settings().edit().putFloat("text_scale", textScale).commit(), "Text size failed"); activity = recreate(); requirePage(); }
+            int room = onMain(() -> { android.widget.ScrollView scroll = scrollOf(site); return scroll == null ? -1 : scroll.getChildAt(0).getHeight() - scroll.getHeight(); });
+            if (room > 240 * density()) { used = textScale; break; }
+        }
+        if (used < 0) notes.add(site.name + ": the page never scrolled far enough for a mid-way check, even at the largest text");
+        else {
+            float textUsed = used;
+            measured(site.name + " mid-way down the page", () -> {
+                main(() -> { android.widget.ScrollView scroll = scrollOf(site); scroll.scrollTo(0, (scroll.getChildAt(0).getHeight() - scroll.getHeight()) / 2); });
+                settle();
+                int at = onMain(() -> scrollOf(site).getScrollY());
+                Frames in = record(site, site.show);
+                requireRest(site, true, "after it arrived mid-way down the page");
+                smooth(in, true, site.name + " arrival mid-way down the page (text " + textUsed + ")");
+                Frames out = record(site, site.hide);
+                requireRest(site, false, "after it went mid-way down the page");
+                smooth(out, false, site.name + " departure mid-way down the page (text " + textUsed + ")");
+                require(onMain(() -> scrollOf(site).getScrollY()) == at, site.name + ": the page mid-way scrolled from " + at + " to " + onMain(() -> scrollOf(site).getScrollY()) + " px");
+                require(onMain(() -> scrollOf(site).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
+                checks.add(site.name + ": scrolled mid-way (" + at + " px, text " + textUsed + "), it arrives and goes as the page under the header glides " + in.travel()
+                        + " px over " + in.betweenFrames() + " frames and back over " + out.betweenFrames() + ", the scroll staying at " + at + " px");
+            }, () -> { site.hide.run(); awaitRest(site, false); });
+        }
+        main(() -> scrollOf(site).scrollTo(0, 0));
+        if (used > 1) { require(settings().edit().putFloat("text_scale", 1).commit(), "Text size failed"); activity = recreate(); requirePage(); }
+        settle();
+    }
+
+    /**
+     * Battery & charging opened after the first live reading (#518 review): the page is built with the link already
+     * live, before it is attached and laid out; the three lines that land after it opens still come in together.
+     */
+    private void gatherOpened(Site site) {
+        String[] keys = {"battery_health_percent", "temperature_c", "charging_state"};
+        Site[] rows = new Site[1];
+        measured("Battery & charging opened after the first live reading", () -> {
+            main(() -> { withheld.clear(); for (String key : keys) withheld.add(key); activity.service().ble.setSimulationScript(""); activity.open(HubPages.HOME); });
+            await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && activity.service().ble.ready()), "Home did not open");
+            settleFor(SETTLE_MS);
+            main(() -> activity.open(HubPages.BATTERY));
+            await(() -> onMain(() -> {
+                if (!HubPages.BATTERY.equals(field(activity, "selectedPage"))) return false;
+                try { Object summary = part("HubBatterySummary"); return ((View) field(summary, "view")).isLaidOut(); } catch (IllegalStateException notYet) { return false; }
+            }), "Battery & charging did not open");
+            Object summary = part("HubBatterySummary");
+            View health = onMain(() -> (View) field(summary, "healthRow")), pack = onMain(() -> (View) field(summary, "packRow")), state = onMain(() -> (View) field(summary, "state"));
+            rows[0] = new Site("Battery & charging's health, pack temperature and charging lines (opened live)", () -> health, () -> lowest(health), site.show, site.hide);
+            rows[0].with = () -> { List<View> out = new ArrayList<>(); out.add(pack); out.add(state); return out; };
+            main(() -> require(!health.isShown() && !pack.isShown() && !state.isShown(), "Battery & charging opened with the withheld lines shown"));
+            Frames frames = new Frames(rows[0]);
+            frames.start(); frames.mark();
+            long t0 = SystemClock.uptimeMillis();
+            for (int i = 0; i < keys.length; i++) {
+                SystemClock.sleep(Math.max(0, t0 + 130 * i - SystemClock.uptimeMillis()));
+                String key = keys[i];
+                main(() -> { withheld.remove(key); activity.redraw(); });
+            }
+            SystemClock.sleep(SETTLE_MS + 900);
+            frames.stop();
+            noteHitch(frames.fadingGapMs());
+            int[] firstShown = {-1, -1, -1};
+            for (int i = 0; i < frames.samples.size(); i++) {
+                if (firstShown[0] < 0 && frames.samples.get(i)[1] == 1 && frames.samples.get(i)[2] > 0) firstShown[0] = i;
+                for (int n = 0; n < 2; n++) if (firstShown[n + 1] < 0 && frames.partners.get(i)[n] > 0) firstShown[n + 1] = i;
+            }
+            for (int n = 0; n < 3; n++) require(firstShown[n] >= 0, "Battery & charging opened live: line " + n + " never came in");
+            long at = (long) (frames.samples.get(firstShown[0])[0] - frames.changedAt);
+            require(firstShown[0] == firstShown[1] && firstShown[1] == firstShown[2], "Battery & charging opened after the first live reading: the lines came in one by one (first drawn at frames "
+                    + Arrays.toString(firstShown) + ", " + at + " ms after the first landed): no gathering");
+            require(frames.alphaFrames() >= 2, "Battery & charging opened live: the gathered lines popped in (alpha track " + alphaTrack(frames) + ")");
+            checks.add(rows[0].name + ": the page opened with the link live, then the lines landing over 0.26 s come in together " + at + " ms after the first, over "
+                    + frames.alphaFrames() + " part-faded frames");
+        }, () -> { main(() -> { withheld.clear(); activity.redraw(); }); settleFor(SETTLE_MS); });
+        // Back to the part's starting point: the pack temperature withheld.
+        main(() -> { withheld.clear(); withheld.add("temperature_c"); activity.redraw(); });
+        settleFor(SETTLE_MS);
+    }
+
+    /**
+     * Home's lock card at scale 10. The link comes back and the card is tapped where the offline line was while the
+     * slider is still arriving there: a tap meant for what went must not lock or unlock (and opens nothing). Once at rest,
+     * a tap on the slider locks or unlocks as before, through the same tap queue, and a second puts it back.
+     */
+    private void lockTaps() {
+        Site site = this.site;
+        BleController ble = onMain(() -> activity.service().ble);
+        site.hide.run(); settleFor(SETTLE_MS);
+        requireRest(site, false, "before the taps");
+        View offline = onMain(() -> (View) field(activity, "lockOffline"));
+        float[] at = centre(offline);
+        scale(10);
+        try {
+            Boolean before;
+            site.show.run();
+            await(() -> onMain(ble::ready), "The simulator's link did not come back");
+            before = onMain(ble::locked);
+            require(before != null, "The simulator reports no lock state");
+            SystemClock.sleep(300);
+            float arriving = onMain(() -> opacity(site.subject.get()));
+            Object dialog = onMain(() -> field(activity, "controlDialog"));
+            tap(at);
+            SystemClock.sleep(1200); waitForIdleSync();
+            require(Boolean.valueOf(before).equals(onMain(ble::locked)) && !onMain(() -> (Boolean) invokeValue(field(activity, "lockQueue"), "waiting")),
+                    site.name + ": a tap where the offline line was, as the slider arrived (opacity " + arriving + ", scale 10), " + (before ? "unlocked" : "locked") + " the scooter");
+            require(onMain(() -> field(activity, "controlDialog")) == dialog, site.name + ": a tap where the offline line was, as the slider arrived, opened the connection details");
+            settleFor(3000);
+            requireRest(site, true, "after the slider arrived at scale 10");
+            require(onMain(() -> (Boolean) field(field(activity, "lockControl"), "available")), site.name + ": the slider is not offered on the simulator");
+            View slider = onMain(() -> (View) field(activity, "lockControl"));
+            tap(centre(slider));
+            await(() -> onMain(() -> !Boolean.valueOf(before).equals(ble.locked())), site.name + ": a tap on the slider at rest did not " + (before ? "unlock" : "lock"));
+            settleFor(3000);
+            tap(centre(slider));
+            await(() -> onMain(() -> Boolean.valueOf(before).equals(ble.locked())), site.name + ": a second tap on the slider at rest did not put the lock back");
+            settleFor(3000);
+            checks.add(site.name + ": at scale 10 a tap where the offline line was while the slider arrived (opacity " + String.format(Locale.ROOT, "%.2f", arriving)
+                    + ") locked nothing and opened nothing; at rest a tap " + (before ? "unlocks" : "locks") + " through the tap queue and another puts it back (the simulator's memory)");
+        } finally {
+            scale(1);
+        }
+    }
+
+    private static Object invokeValue(Object target, String name) {
+        try {
+            for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass())
+                for (java.lang.reflect.Method method : type.getDeclaredMethods())
+                    if (method.getName().equals(name) && method.getParameterCount() == 0) { method.setAccessible(true); return method.invoke(target); }
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        throw new IllegalStateException("No " + name + "()");
+    }
+
     // ===== Taps mid-fade =====
 
     private void taps() {
         if (part.equals("rides")) startTwice();
         else if (part.equals("scooters")) useThenConnect();
         else if (part.equals("riding-alert")) closeMidFade();
+        else if (part.equals("lock")) lockTaps();
         else notes.add(site.name + ": no tap check for this part");
     }
 
@@ -1450,7 +1922,7 @@ public final class RevealMotionValidation extends Instrumentation {
         change.run();
         SystemClock.sleep(SETTLE_MS + 300);
         frames.stop();
-        hitchMs = Math.max(hitchMs, frames.starvedMs());
+        noteHitch(frames.starvedMs());
         return frames;
     }
 
@@ -1621,6 +2093,15 @@ public final class RevealMotionValidation extends Instrumentation {
             profiles.select(profile.id);
             profileId = profile.id;
             fixture = profile;
+            if (part.equals("lock") && card.equals("lock")) {
+                // The default Widgets Home with its Lock bar made the full lock card (heading, slider and Disconnect).
+                com.jjricks.volt.DashboardConfig config = new com.jjricks.volt.DashboardConfig(settings(), profileId);
+                boolean made = false;
+                for (com.jjricks.volt.DashboardConfig.Widget widget : config.widgets)
+                    if (widget.type.equals("lockbar")) { widget.type = "lock"; widget.showDisconnect = true; widget.layouts(false).clear(); widget.layouts(true).clear(); made = true; }
+                require(made, "The default Widgets Home has no Lock bar to make the full lock card");
+                config.save();
+            }
         });
         if (part.equals("onboarding"))
             // Setup's connect step for the fixture scooter, after one try (Bluetooth stays off: nothing connects).
@@ -1653,7 +2134,7 @@ public final class RevealMotionValidation extends Instrumentation {
 
     /** The part's page is open and laid out: Home for find, otherwise its page, opened as a Hub link opens it. */
     private void requirePage() {
-        if (part.equals("find")) { requireHome(); return; }
+        if (part.equals("find") || part.equals("lock")) { requireHome(); return; }
         if (part.equals("onboarding")) {
             await(() -> onMain(() -> field(activity, "onboarding") != null && root().isLaidOut()), "Setup is not shown");
             settle();

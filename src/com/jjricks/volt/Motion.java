@@ -649,6 +649,8 @@ final class Motion {
         final WeakReference<ViewGroup> root;
         /** It reached its first frame and played; swallowed, when that frame came and it had not. */
         boolean played, swallowed, ended;
+        /** What runs once it ends (or is turned back or swallowed): a hold it put on a page is let go. */
+        final ArrayList<Runnable> after = new ArrayList<>();
         Glide(ViewGroup root) { this.root = new WeakReference<>(root); }
     }
 
@@ -702,6 +704,78 @@ final class Motion {
         return true;
     }
 
+    /**
+     * Whether {@code view}, or a view it is in, is arriving through a {@link #reveal}'s motion: asked to show, its motion
+     * not yet ended. A control that comes in where something else was (Home's lock slider where Connect was) can refuse
+     * a touch that starts meanwhile, which was aimed at what it replaces. Main thread.
+     */
+    static boolean arriving(View view) {
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+            Glide glide = moving.get(at);
+            if (glide != null && !glide.ended && !glide.swallowed && Boolean.TRUE.equals(revealed.get(at))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * {@link #reveal} for a view in a fixed header above a page's scroll ({@code scroll}, in {@code frame}, the rest of
+     * {@code root} under the header): a page's connection line. What sits around it in the header glides, and the page
+     * under the header glides down or up with it as one piece; the page's own content is left to the page's own reveals
+     * (frame's insides are instant here), so a banner shown on the page in the same refresh moves in its own motion, with
+     * the same timing and curve, and nothing is moved twice. As it arrives the page keeps the height it had until the
+     * motion ends, so the page's lowest rows slide down off the screen instead of vanishing first; as it goes, a page
+     * scrolled to its end (its scroll clamped as the page grows) keeps its content where it was while the top glides
+     * up. A null root, animations off or a page not laid out is an instant change. Returns whether it changed.
+     */
+    static boolean revealAbove(ViewGroup root, View view, boolean shown, ViewGroup frame, ScrollView scroll) {
+        if (view == null) return false;
+        Boolean asked = revealed.get(view);
+        if ((asked != null ? asked : view.getVisibility() == View.VISIBLE) == shown) return false;
+        boolean glides = root != null && enabled() && root.isLaidOut() && frame != null && scroll != null && scroll.getParent() == frame;
+        if (!glides) {
+            if (scroll != null) letGo(scroll, null);
+            return reveal(null, view, shown);
+        }
+        // Before the reveal's own: the page's reveals in this refresh then share this clamp (one hold per page).
+        holdScrollOf(root, scroll);
+        Object token = shown ? keepHeight(scroll) : null;
+        if (!shown) letGo(scroll, null);
+        boolean changed = reveal(root, view, shown, frame);
+        Glide glide = moving.get(view);
+        if (token != null) {
+            if (glide != null) glide.after.add(() -> letGo(scroll, token));
+            else letGo(scroll, token);
+        }
+        return changed;
+    }
+
+    /** Scrolls whose height is held (their own height until a motion ends), each with the token of the hold. */
+    private static final WeakHashMap<ScrollView, Object> heights = new WeakHashMap<>();
+
+    /** Holds the scroll at the height it has (its parent may get shorter meanwhile): a token for letGo. */
+    private static Object keepHeight(ScrollView scroll) {
+        Object token = new Object();
+        if (!heights.containsKey(scroll)) {
+            ViewGroup.LayoutParams params = scroll.getLayoutParams();
+            if (params == null || params.height != ViewGroup.LayoutParams.MATCH_PARENT || scroll.getHeight() <= 0) return null;
+            params.height = scroll.getHeight();
+            scroll.setLayoutParams(params);
+        }
+        heights.put(scroll, token);
+        return token;
+    }
+
+    /** Lets the held height go (any hold when token is null): the scroll fills its parent again. */
+    private static void letGo(ScrollView scroll, Object token) {
+        Object held = heights.get(scroll);
+        if (held == null || token != null && token != held) return;
+        heights.remove(scroll);
+        ViewGroup.LayoutParams params = scroll.getLayoutParams();
+        if (params == null) return;
+        params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        scroll.setLayoutParams(params);
+    }
+
     private static Glide glide(ViewGroup root, View view, View... instant) {
         Glide glide = new Glide(root);
         revealing.put(root, glide);
@@ -735,6 +809,8 @@ final class Motion {
     private static void settle(Glide glide) {
         if (glide.ended) return;
         glide.ended = true;
+        for (Runnable action : glide.after) action.run();
+        glide.after.clear();
         ArrayList<View> settled = new ArrayList<>();
         for (Map.Entry<View, Glide> entry : moving.entrySet())
             if (entry.getValue() == glide || entry.getValue().swallowed) settled.add(entry.getKey());
@@ -760,7 +836,14 @@ final class Motion {
      */
     private static void holdScroll(ViewGroup root, View view) {
         // The scroll the view is in: around the root, or inside it (a page whose scrolling part is one of its children).
-        ScrollView scroll = scrollOf(view);
+        holdScrollOf(root, scrollOf(view));
+    }
+
+    /**
+     * holdScroll for {@code scroll} itself, drawn under {@code root}. The clamp is what the content got shorter by plus
+     * what the scroll itself got taller by (a header line going above it): either way the end of the page stays put.
+     */
+    private static void holdScrollOf(View root, ScrollView scroll) {
         if (scroll == null || scroll.getChildCount() == 0) return;
         ScrollView page = scroll;
         View content = scroll.getChildAt(0);
@@ -770,10 +853,10 @@ final class Motion {
         if (hold.pending) return;
         hold.pending = true;
         Hold held = hold;
-        int scrolled = scroll.getScrollY(), tall = content.getHeight();
+        int scrolled = scroll.getScrollY(), tall = content.getHeight(), seen = scroll.getHeight();
         beforeNextDraw(root, () -> {
             held.pending = false;
-            int clamped = Math.min(scrolled - page.getScrollY(), tall - content.getHeight());
+            int clamped = Math.min(scrolled - page.getScrollY(), tall - content.getHeight() + page.getHeight() - seen);
             if (clamped <= 0 || content.getParent() != page || !enabled()) return;
             if (held.animator != null) held.animator.cancel();
             ValueAnimator animator = ValueAnimator.ofFloat(held.offset - clamped, 0);
