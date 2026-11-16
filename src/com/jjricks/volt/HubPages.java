@@ -206,41 +206,40 @@ public final class HubPages {
     /** Settings and its sub-pages: the app's own pages, which are not about the scooter. */
     public static boolean appPage(String id) { return SETTINGS.equals(subjectOf(canonical(id))); }
 
-    /** headerConnectionLine's answers: no line and no room for it; its room kept, blank; the line shown. */
-    public static final int LINE_GONE = 0, LINE_ROOM = 1, LINE_SHOWN = 2;
+    /** headerConnectionLine's answers: no line (and no room for it); the line shown. */
+    public static final int LINE_GONE = 0, LINE_SHOWN = 2;
 
     /**
      * The connection line in a page's header ("Disconnected · last seen 5 min ago" between the back link and the title;
      * the contributor's decision, 14 Nov, #383): on a page it shows only while the scooter is not connected (disconnected,
      * connecting, searching, Bluetooth off, a held release: every state but the plain connected one), so a connected
      * page's header is the back link and the title, as in the Layout Plan's page mock-ups. Settings and its sub-pages
-     * never show it. Home keeps its own line above the scooter's name (LINE_SHOWN, not built from this).
-     * connected: the scooter is connected and ready. roomHeld: the line has shown on this page since it opened; then a
-     * connection made while the page is open blanks the line but keeps its room (LINE_ROOM), so the title keeps its place
-     * until the next page opens. A connection lost on an open page shows the line at once.
+     * never show it. Home keeps its own line above the scooter's name (LINE_SHOWN, not built from this). A connection
+     * made or lost with the page open changes it there: the line fades out and the page under the header glides up to
+     * the title (or fades in as the page glides down; the owner's pick for the motion sweep, 15 Nov), so a connected
+     * page never keeps a blank room for it.
      */
-    public static int headerConnectionLine(String page, boolean connected, boolean roomHeld) {
+    public static int headerConnectionLine(String page, boolean connected) {
         String id = canonical(page);
         if (HOME.equals(id)) return LINE_SHOWN;
         if (appPage(id)) return LINE_GONE;
-        if (!connected) return LINE_SHOWN;
-        return roomHeld ? LINE_ROOM : LINE_GONE;
+        return connected ? LINE_GONE : LINE_SHOWN;
     }
 
     /**
      * headerConnectionLine with the service's state: what a page's header shows while ScooterService is bound or not.
      * serviceBound: the activity holds the service. bindCanCome: unbound, a bind will follow (Nearby devices permission is
      * granted, so ensureService binds), as after an activity recreation, where the page is built before the service binds:
-     * then the connection is not known yet, and the line waits, gone and holding no room, for the rebuild the binding
-     * makes, so a connected page never keeps a blank line from that first build; a line that has already shown on the
-     * page (roomHeld) stays shown meanwhile, as the scooter is still not connected. With no bind to come (Nearby devices
-     * not granted: the service never binds) the scooter is not connected and the line shows, with its tap into the
-     * connection details and their button that grants the permission. connected counts only while the service is bound.
+     * then the connection is not known yet, and the line waits, gone, for the rebuild the binding makes, so a connected
+     * page never shows the line from that first build; a line that has already shown on the page (shownHere) stays
+     * shown meanwhile, as the scooter is still not connected. With no bind to come (Nearby devices not granted: the
+     * service never binds) the scooter is not connected and the line shows, with its tap into the connection details and
+     * their button that grants the permission. connected counts only while the service is bound.
      */
-    public static int pageConnectionLine(String page, boolean serviceBound, boolean bindCanCome, boolean connected, boolean roomHeld) {
+    public static int pageConnectionLine(String page, boolean serviceBound, boolean bindCanCome, boolean connected, boolean shownHere) {
         String id = canonical(page);
-        if (!serviceBound && bindCanCome && !HOME.equals(id) && !appPage(id)) return roomHeld ? LINE_SHOWN : LINE_GONE;
-        return headerConnectionLine(page, serviceBound && connected, roomHeld);
+        if (!serviceBound && bindCanCome && !HOME.equals(id) && !appPage(id)) return shownHere ? LINE_SHOWN : LINE_GONE;
+        return headerConnectionLine(page, serviceBound && connected);
     }
 
     /** Ui icon key for a page's subject: the Layout Plan's glyphs (Battery & charging a bolt, Controls bars, Lights & sound a bulb, Service a wrench). */

@@ -119,6 +119,12 @@
     <string name="dashboard_at_target" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">At target</string>
     <!-- The estimated charging time: %1$s is whole hours, %2$s whole minutes (0 to 59), "≈ 1h 20m". -->
     <string name="dashboard_duration_hours" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">≈ %1$sh %2$sm</string>
+    <!-- The estimated charging time in its narrow form, shown instead of dashboard_duration_hours only where that is
+         too wide to draw at the size of Charging power beside it (large text, long units): %1$s is whole hours, %2$s
+         whole minutes (0 to 59), "≈1h 20m". Keep the ≈ (it is an estimate); shorten the units or the spaces. Not a
+         volt:ladder rung, so the languages that already translate dashboard_duration_hours keep it until this one is
+         translated. -->
+    <string name="dashboard_duration_hours_narrow" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">≈%1$sh %2$sm</string>
     <!-- The estimated charging time under an hour: %1$s is whole minutes, "≈ 20m". -->
     <string name="dashboard_duration_minutes" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">≈ %1$sm</string>
     <!-- Name of the charging time on the charging widget when a charge limit is set: %1$s is the

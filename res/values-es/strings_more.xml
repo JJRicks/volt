@@ -376,10 +376,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Los resultados de los intentos permanecen en este teléfono hasta que un informe de compatibilidad que envíes los incluya o hasta que los borres."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Los controles que la app oficial ofrece para tu modelo siguen en «Ajustes del patinete». Los límites de velocidad, la carga, el bloqueo, el PIN, el desbloqueo por proximidad y el reloj nunca se agregan aquí. Volt nunca cambia el firmware.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Los controles que la app oficial ofrece para tu modelo siguen en «Ajustes del patinete». Volt nunca cambia el firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt nunca cambia el firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -400,8 +396,6 @@
     <string name="more_lab_intro_untested">La app oficial no ofrece estos controles para %1$s. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">La app oficial ofrece estos controles para %1$s, pero Volt no los probó en ese modelo. Puedes probar uno con el patinete detenido; Volt vuelve a leer el ajuste.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Nada que probar en %1$s: la app oficial ya ofrece los controles que Volt podría probar. Están en «Ajustes del patinete».</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt no envía comandos de patinete a este producto.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -410,8 +404,6 @@
     <string name="more_lab_empty_conflict">El Model ID de este patinete no coincide con su número de serie, por lo que Volt no ofrece nada que probar.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">La app oficial no incluye este modelo, así que Volt no puede saber qué controles le faltan. Por ahora no hay nada que probar.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Identifica primero tu modelo en la página «Patinete». Luego Volt mostrará lo que puedes probar.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Conecta tu patinete para ver qué puedes probar.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
