@@ -976,7 +976,7 @@ public final class MoreScreen implements AppScreen {
     private void recording() {
         LinearLayout connection = group();
         connection.setTag("preference-recording-options");
-        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
+        preferenceToggle(connection, "screen", awakeTitle(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         Row autoStop = preferenceToggle(connection, "walk", autoStopTitle(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Search's End rides automatically result opens this page at this switch (HubSearchTables.SETTING_RIDE_AUTO_STOP).
@@ -1000,7 +1000,7 @@ public final class MoreScreen implements AppScreen {
         });
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
-        Row background = row(connection, "battery", T.morePrefsBattery(), null,
+        Row background = row(connection, "battery", batteryTitle(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
@@ -1009,7 +1009,7 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
-        Row map = row(connection, "map", T.morePrefsMap(), null, this::mapSettings);
+        Row map = row(connection, "map", mapTitle(), null, this::mapSettings);
         valueRefreshers.add(() -> map.value(basemapSummary()));
         autoSaveGroup();
     }
@@ -1663,6 +1663,20 @@ public final class MoreScreen implements AppScreen {
         if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
         if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
         return null;
+    }
+    /** Keep screen awake's title, shown on its switch and named by search (searchRowTitles). */
+    private static String awakeTitle() { return T.morePrefsAwake(); }
+    /** Background recording's title (the battery use row), shown on it and named by search (searchRowTitles). */
+    private static String batteryTitle() { return T.morePrefsBattery(); }
+    /** Map settings' title, shown on its row and named by search (searchRowTitles). */
+    private static String mapTitle() { return T.morePrefsMap(); }
+    /**
+     * The names Recording settings shows, in the current language, on its rows search has no entry for
+     * (HubSearchTables.pageRows: Keep screen awake, Background recording, Map settings), for the page's own result
+     * (HubSearch.Gates.pageRowTitles); empty for any other page. The phone sensors' are RidesScreen's.
+     */
+    static String[] searchRowTitles(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {awakeTitle(), batteryTitle(), mapTitle()} : new String[0];
     }
     /** The folder row's state: the switch, the stored folder, its grant and the failure id. */
     private RideAutoExport.RowState autoSaveFolderState() {

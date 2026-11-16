@@ -101,6 +101,13 @@ final class HubSearch {
          * for none (the row is then not listed).
          */
         default CharSequence settingTitle(String tag) { return null; }
+        /**
+         * The names, in the current language, of the rows a page always shows that have no search entry of their own
+         * (HubSearchTables.pageRows), for a page whose rows only its own screens' files name (Recording settings: Keep
+         * screen awake, Background recording, Map settings and the phone sensors; #393 council review, third round,
+         * finding 2); null for none. The page's result then matches them as it matches their English titles.
+         */
+        default CharSequence[] pageRowTitles(String page) { return null; }
     }
 
     /** The Scooter tab's search normalization (MainActivity.normalize): lower case, no spaces, underscores or hyphens. */
@@ -215,6 +222,9 @@ final class HubSearch {
             boolean shared = more != null && sharedPageWords(page);
             String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null || shared ? "" : " " + more.english());
             CharSequence[] words = more == null || (shared && more.toString().equals(more.english())) ? null : new CharSequence[] {more};
+            // The names its rows show in the current language, as their English titles are in its English words.
+            CharSequence[] rows = gates.pageRowTitles(page);
+            if (rows != null && rows.length > 0) words = words == null ? rows : join(words, rows);
             entries.add(new Entry(Kind.PAGE, page, english, title, words, null, Target.PAGE, null, null));
         }
         return entries;
@@ -313,6 +323,13 @@ final class HubSearch {
                     HubSearchTables.rowAnchor(row), Target.PAGE, null, null));
         }
         return entries;
+    }
+
+    /** first's words, then rest's (neither null). */
+    private static CharSequence[] join(CharSequence[] first, CharSequence[] rest) {
+        CharSequence[] all = java.util.Arrays.copyOf(first, first.length + rest.length);
+        System.arraycopy(rest, 0, all, first.length, rest.length);
+        return all;
     }
 
     /** first, then rest (either may be null). */

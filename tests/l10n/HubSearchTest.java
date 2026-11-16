@@ -77,7 +77,17 @@ public final class HubSearchTest {
         @Override public boolean lab(String key) { return false; }
         @Override public boolean page(String page) { return true; }
         @Override public CharSequence settingTitle(String tag) { return recordingTitle(tag); }
+        @Override public CharSequence[] pageRowTitles(String page) { return recordingRows(page); }
     };
+
+    /**
+     * As MoreScreen.searchRowTitles and RidesScreen.searchRowTitles (MainActivity's gates join them; rowsOnTheirPages
+     * checks they read the same strings): the names Recording settings shows on its rows with no entry of their own.
+     */
+    private static String[] recordingRows(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {T.morePrefsAwake(), T.morePrefsBattery(), T.morePrefsMap(),
+                T.ridesGpsRoute(), T.ridesBarometer(), T.ridesMotionSensors()} : null;
+    }
 
     /**
      * As MoreScreen.searchTitle (MainActivity's gates name these rows through it; rowsOnTheirPages checks it reads the
@@ -301,6 +311,21 @@ public final class HubSearchTest {
             for (HubSearch.Entry e : HubSearch.search(index, c[0])) found |= c[1].equals(e.anchor) && c[2].equals(e.page) && e.kind == HubSearch.Kind.SETTING;
             check(found, "\"" + c[0] + "\" finds " + c[1] + " on " + c[2] + " in Portuguese (Portugal)");
         }
+        // Recording settings' other rows (HubSearchTables.pageRows) by the names they show in Portuguese (Portugal): the
+        // page's own result lists them as it lists their English titles (#393 council review, third round, finding 2).
+        check("Manter o ecrã ligado".equals(T.morePrefsAwake()) && "Sensores de movimento".equals(T.ridesMotionSensors()), "the rows' Portuguese names: "
+                + T.morePrefsAwake() + ", " + T.ridesMotionSensors());
+        for (String name : new String[] {"Manter o ecrã ligado", "Sensores de movimento", "manter o ecra ligado", "Gravação em segundo plano",
+                "Definições do mapa", "Rota GPS", "Altitude barométrica"}) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, name)) found |= e.kind == HubSearch.Kind.PAGE && HubPages.RIDE_RECORDING.equals(e.page);
+            check(found, "\"" + name + "\" lists Recording settings in Portuguese (Portugal)");
+        }
+        check(HubSearchTables.pageRows(HubPages.RIDE_RECORDING).length == recordingRows(HubPages.RIDE_RECORDING).length,
+                "every row title Recording settings lists in English has its shown name for search");
+        boolean none = true;
+        for (HubSearch.Entry e : HubSearch.search(HubSearch.pages(LAB), "Manter o ecrã ligado")) none &= !HubPages.RIDE_RECORDING.equals(e.page);
+        check(none, "without the gates' names, the Portuguese row name finds nothing (the case the review found)");
     }
 
     private static String firstPage(List<HubSearch.Entry> index, String query) {
@@ -414,6 +439,18 @@ public final class HubSearchTest {
                 "the auto-save switch and folder row show those names and carry those tags");
         check(read("src/com/jjricks/volt/MainActivity.java").contains("@Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}"),
                 "MainActivity's search gates name them through MoreScreen.searchTitle");
+        // Recording settings' other rows: the names they show, read by the files that show them (third round, finding 2).
+        String rides = read("src/com/jjricks/volt/RidesScreen.java");
+        check(more.contains("private static String awakeTitle() { return T.morePrefsAwake(); }") && more.contains("preferenceToggle(connection, \"screen\", awakeTitle(),")
+                && more.contains("private static String batteryTitle() { return T.morePrefsBattery(); }") && more.contains("row(connection, \"battery\", batteryTitle(),")
+                && more.contains("private static String mapTitle() { return T.morePrefsMap(); }") && more.contains("row(connection, \"map\", mapTitle(),")
+                && more.contains("new String[] {awakeTitle(), batteryTitle(), mapTitle()}"), "MoreScreen names Recording settings' rows for search as it shows them");
+        check(rides.contains("private static String gpsRouteTitle() { return T.ridesGpsRoute(); }") && rides.contains("switchRow(sensors, \"pin\", gpsRouteTitle(),")
+                && rides.contains("private static String barometerTitle() { return T.ridesBarometer(); }") && rides.contains("infoRow(sensors, \"wave\", barometerTitle(),")
+                && rides.contains("private static String motionTitle() { return T.ridesMotionSensors(); }") && rides.contains("switchRow(sensors, \"motion\", motionTitle(),")
+                && rides.contains("new String[] {gpsRouteTitle(), barometerTitle(), motionTitle()}"), "RidesScreen names the phone sensors' rows for search as it shows them");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("String[] more=MoreScreen.searchRowTitles(page),rides=RidesScreen.searchRowTitles(page);"),
+                "MainActivity's search gates join both files' row names");
         for (String word : new String[] {"auto-save", "autosave", "Auto-save rides", "folder"}) {
             List<HubSearch.Entry> found = HubSearch.search(everything(), word);
             check(!found.isEmpty(), "\"" + word + "\" finds something");

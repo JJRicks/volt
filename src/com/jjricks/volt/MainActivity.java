@@ -770,6 +770,15 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             // Recording settings' rows whose names only MoreScreen reads (#393 council review, second round).
             @Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}
+            // Recording settings' other rows by the names they show: MoreScreen's and the phone sensors' (RidesScreen), the
+            // files that read them (#393 council review, third round, finding 2).
+            @Override public CharSequence[] pageRowTitles(String page){
+                String[] more=MoreScreen.searchRowTitles(page),rides=RidesScreen.searchRowTitles(page);
+                if(more.length+rides.length==0)return null;
+                CharSequence[] all=new CharSequence[more.length+rides.length];
+                System.arraycopy(more,0,all,0,more.length);System.arraycopy(rides,0,all,more.length,rides.length);
+                return all;
+            }
         };
     }
     /** A feature row or a hand-built row (HubSearchTables.ROWS) shows on its page now (ControlsScreen.applyFilter's rules). */
