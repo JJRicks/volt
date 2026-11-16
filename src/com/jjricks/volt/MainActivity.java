@@ -887,10 +887,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
             public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
     }
-    /** Puts the cursor in the page's first search field and shows the keyboard (Home's search button). */
+    /**
+     * Puts the cursor in the page's search field and shows the keyboard (Home's search button). Search's own field may sit
+     * outside its page's view: in tabletop posture it is in the pane above the hinge (HubSearchScreen.takeTop), so it is
+     * asked for by name, not looked for in the page (#393 council review, third round, finding 1).
+     */
     private void focusPageSearch(){
         View page=screen==null?null:screen.view();
-        EditText field=page==null?null:firstEditText(page);
+        EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
         // Volt's window may not have its focus yet (a dialog going away over it); the keyboard waits for it. The dock's All

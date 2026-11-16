@@ -186,6 +186,9 @@ final class HubSearchScreen implements AppScreen {
 
     @Override public View view() { return view; }
 
+    /** The search field, wherever it is: in the page's top, or in the tabletop pane above the hinge (takeTop). */
+    EditText field() { return search; }
+
     /**
      * Tabletop posture: takes the field and Cancel out of the page for MainActivity to put in the pane above the hinge
      * (HubSearch.hidesWholeHeader), keeping their layout; the results stay in the page, below the hinge.

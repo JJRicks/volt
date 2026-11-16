@@ -681,6 +681,12 @@ public final class HubSearchTest {
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
+        // Opening Search focuses its field wherever it is: in tabletop posture takeTop moved it out of the page's view, so
+        // the page's own view has none (#393 council review, third round, finding 1).
+        String searchScreen = read("src/com/jjricks/volt/HubSearchScreen.java");
+        check(main.contains("EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);")
+                && searchScreen.contains("EditText field() { return search; }") && searchScreen.contains("top.addView(search, "),
+                "focusPageSearch asks Search for its own field, which takeTop carries into the tabletop pane");
         // The page header's connection line glides only while the header's rows show (#519's motion): behind the header Search
         // keeps hidden it changes unseen, with no fade or glide of the results under it.
         check(main.contains("&&!sheetShowing()&&headerRowsShown();") && main.contains("private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}"),
