@@ -488,6 +488,7 @@ public final class DockSheetValidation extends Instrumentation {
             // The travel before the new height and with it (read as it is laid out: a let-go sheet's slide has its own).
             int[] travelBefore = {0, 0};
             String[] layouts = {""};
+            States[] watched = {null};
             boolean[] ran = new boolean[2];
             for (int attempt = 0; attempt < 4 && caught[0] == null; attempt++) {
                 if (attempt > 0) { back(); awaitGone("Back after a missed opening"); }
@@ -503,6 +504,8 @@ public final class DockSheetValidation extends Instrumentation {
                                 && (Integer) field(sheet, "travel") > 0 && (Float) field(sheet, "offset") < .6f * (Integer) field(sheet, "travel")) {
                             watching[0] = false;
                             caught[0] = sheet;
+                            // Watched from this frame on: a slow machine may run the whole close before this thread looks.
+                            watched[0] = new States(sheet, true);
                             travelBefore[0] = (Integer) field(sheet, "travel");
                             newHeight(sheet, which, travelBefore, ran, layouts);
                             return;
@@ -518,7 +521,7 @@ public final class DockSheetValidation extends Instrumentation {
             require(caught[0] != null, ways[which] + ": no frame of All's opening came between two fifths and open in four tries (" + describe() + ")");
             Object sheet = caught[0];
             View window = onMain(() -> (View) field(sheet, "frame"));
-            States states = new States(sheet);
+            States states = watched[0];
             await(() -> onMain(() -> ran[0] && (which == 0 || ran[1])), () -> ways[which] + ": the new height was never laid out (" + describe() + "; " + layouts[0] + ")");
             int before = travelBefore[0];
             int after = travelBefore[1];
@@ -536,7 +539,8 @@ public final class DockSheetValidation extends Instrumentation {
                 List<Integer> seen = states.stop();
                 require(!onMain(window::isAttachedToWindow), ways[which] + ": the sheet never finished closing (states " + seen + ", " + onMain(() -> "state " + field(sheet, "state") + ", offset " + field(sheet, "offset")) + ")");
                 List<Integer> sinceClose = seen.contains(CLOSING) ? seen.subList(seen.indexOf(CLOSING), seen.size()) : seen;
-                require(seen.contains(CLOSING) && !sinceClose.contains(OPENING) && !sinceClose.contains(OPEN), ways[which] + ": the stale restart reopened it (states " + seen + ")");
+                require(seen.contains(CLOSING), ways[which] + ": its close was never seen settling (states " + seen + ")");
+                require(!sinceClose.contains(OPENING) && !sinceClose.contains(OPEN), ways[which] + ": the stale restart reopened it (states " + seen + ")");
                 awaitGone(ways[which]);
                 requireHome();
             }
@@ -1093,9 +1097,11 @@ public final class DockSheetValidation extends Instrumentation {
         private boolean run, gone;
         private Choreographer.FrameCallback tick;
         /** Watches whichever sheet the dock has, or only sheet when it is not null (one that outlives the dock). */
-        States(Object sheet) {
+        States(Object sheet) { this(sheet, false); }
+        /** here: called on the main thread, it starts watching now (else it asks the main thread to). */
+        States(Object sheet, boolean here) {
             only = sheet;
-            main(() -> {
+            Runnable begin = () -> {
                 run = true;
                 tick = t -> {
                     if (!run) return;
@@ -1104,7 +1110,8 @@ public final class DockSheetValidation extends Instrumentation {
                 };
                 record();
                 Choreographer.getInstance().postFrameCallback(tick);
-            });
+            };
+            if (here) begin.run(); else main(begin);
         }
         /** On the main thread: notes the sheet's state now. */
         private void record() {
