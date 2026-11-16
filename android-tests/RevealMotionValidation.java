@@ -31,7 +31,7 @@ import com.jjricks.volt.ScooterProfiles;
  * Fresh disposable emulator only (refuses a physical phone, existing app data and Bluetooth turned on). Things that come
  * and go on a live page must not pop (the owner's request of 15 Nov: "the 'on but not answering' bluetooth popup just
  * POPs into screen, can it animate nicely"). Each site is shown and hidden the app's own way while every drawn frame
- * (a Choreographer callback) records the site's opacity and where the views around it sit in the window:
+ * (a draw listener) records the site's opacity and where the views around it sit in the window:
  *
  * <ul>
  *   <li><b>Arrival and departure</b> (animator duration scale 1): at least two frames show the site part-way faded,
@@ -47,7 +47,18 @@ import com.jjricks.volt.ScooterProfiles;
  *   <li><b>Focus</b>: an arrival takes no focus; the view with focus before has it after.</li>
  *   <li><b>Animations off</b> (scale 0): every frame shows the site and its neighbours either before or after, never
  *   between.</li>
+ *   <li><b>An instant change mid-departure</b> (a null root, as Home's edit-mode switch is): shown at once two frames
+ *   into its departure, it stays shown after the departure would have ended. On Widgets Home also the real way, edit
+ *   mode entered and left while the card goes.</li>
+ *   <li><b>Turning back</b> (scale 10): hidden mid-arrival and shown mid-departure, no frame changes its opacity by more
+ *   than 0.15 or moves a neighbour more than 8 dp from the frame before (no jump to where the first motion was
+ *   going).</li>
+ *   <li><b>Leaving at the end of a scrolled page</b> that still scrolls without it (the text made larger until it
+ *   does): the scroll clamps, and no frame draws the views below off their way from start to rest.</li>
  * </ul>
+ *
+ * In every motion, every frame draws each neighbour within 2 dp of the span from where it started to where it rests.
+ * -e only arrives|pulse|reversals|recreated|off|instant|turns|scrolled runs one check.
  *
  * Parts (-e part): {@code find} (Home's Find it nearby card, FindNearby entry A; -e home widgets|clean). The card is
  * offered the app's own way: BleController's timeout tally for the saved address reaches two (FindNearby.Timeouts, as
@@ -100,11 +111,18 @@ public final class RevealMotionValidation extends Instrumentation {
                 scale(1);
                 if (mode.equals("demo")) demo(site);
                 else {
-                    arrivesAndGoes(site);
-                    pulse(site);
-                    reversals(site);
-                    recreated(site);
-                    animationsOff(site);
+                    // -e only <check> runs one check (to show which one a build fails).
+                    String only = arguments.getString("only", "");
+                    String[] names = {"arrives", "pulse", "reversals", "recreated", "off", "instant", "turns", "scrolled"};
+                    require(only.isEmpty() || java.util.Arrays.asList(names).contains(only), "Unknown -e only " + only);
+                    if (only.isEmpty() || only.equals("arrives")) arrivesAndGoes(site);
+                    if (only.isEmpty() || only.equals("pulse")) pulse(site);
+                    if (only.isEmpty() || only.equals("reversals")) reversals(site);
+                    if (only.isEmpty() || only.equals("recreated")) recreated(site);
+                    if (only.isEmpty() || only.equals("off")) animationsOff(site);
+                    if (only.isEmpty() || only.equals("instant")) instantWins(site);
+                    if (only.isEmpty() || only.equals("turns")) turnsBack(site);
+                    if (only.isEmpty() || only.equals("scrolled")) scrolledEnd(site);
                 }
             } finally {
                 shell(scaleBefore.isEmpty() || scaleBefore.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + scaleBefore);
@@ -314,6 +332,158 @@ public final class RevealMotionValidation extends Instrumentation {
         checks.add(site.name + ": with animations off (scale 0), " + in.samples.size() + " and " + out.samples.size() + " frames show it and its neighbours only before or after");
     }
 
+    /**
+     * A change without a motion of its own (a null root: Home's edit-mode switch, a re-filter, rebuilt cards) asked
+     * while a departure is still fading wins over it. The departure must not hide the view when it ends, after it was
+     * asked to show. For Widgets Home also the real way: the card goes, and edit mode is entered and left mid-way.
+     */
+    private void instantWins(Site site) {
+        site.show.run(); settleFor(SETTLE_MS);
+        site.hide.run(); frames(2);
+        main(() -> {
+            try {
+                java.lang.reflect.Method reveal = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("reveal", ViewGroup.class, View.class, boolean.class, View[].class);
+                reveal.setAccessible(true);
+                reveal.invoke(null, null, site.subject.get(), true, new View[0]);
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        });
+        site.show.run();
+        settleFor(SETTLE_MS);
+        requireRest(site, true, "shown at once (no motion of its own) while its departure was still fading");
+        settleFor(SETTLE_MS);
+        requireRest(site, true, "a while after it was shown at once mid-departure");
+        String also = "";
+        if (part.equals("find") && home.equals("widgets")) {
+            site.hide.run(); frames(2);
+            main(() -> { tally(2); invoke(field(activity, "screen"), "toggleEditing"); });
+            frames(2);
+            main(() -> invoke(field(activity, "screen"), "toggleEditing"));
+            settleFor(SETTLE_MS);
+            requireRest(site, true, "after edit mode was entered and left while it was going (and it was offered again)");
+            settleFor(SETTLE_MS);
+            requireRest(site, true, "a while after edit mode was entered and left mid-departure");
+            also = "; so does entering and leaving edit mode while it goes";
+        }
+        site.hide.run(); settleFor(SETTLE_MS);
+        requireRest(site, false, "after the instant show");
+        checks.add(site.name + ": shown at once (no motion of its own) two frames into its departure, it stays shown after the departure would have ended" + also);
+    }
+
+    /**
+     * Reversals at a slow animator scale (10), from what is on screen: shown and hidden mid-arrival, hidden and shown
+     * mid-departure. No frame jumps to where the first motion was going before turning back.
+     */
+    private void turnsBack(Site site) {
+        scale(10);
+        try {
+            Frames in = new Frames(site);
+            in.start(); frames(2);
+            site.show.run(); SystemClock.sleep(500); site.hide.run();
+            SystemClock.sleep(4000);
+            in.stop();
+            requireRest(site, false, "hidden mid-arrival at scale 10");
+            continuous(in, site.name + " hidden mid-arrival (scale 10)");
+            float peak = 0; for (float[] f : in.samples) if (f[1] == 1) peak = Math.max(peak, f[2]);
+            require(peak > .1f && peak < .9f, site.name + ": the reversal mid-arrival was not mid-way (opacity peaked at " + peak + ")");
+            site.show.run(); settleFor(4000);
+            Frames out = new Frames(site);
+            out.start(); frames(2);
+            site.hide.run(); SystemClock.sleep(300); site.show.run();
+            SystemClock.sleep(4000);
+            out.stop();
+            requireRest(site, true, "shown mid-departure at scale 10");
+            continuous(out, site.name + " shown mid-departure (scale 10)");
+            float low = 1; for (float[] f : out.samples) low = Math.min(low, f[1] == 1 ? f[2] : 0);
+            require(low > .1f && low < .9f, site.name + ": the reversal mid-departure was not mid-way (opacity fell to " + low + ")");
+            checks.add(site.name + ": at scale 10, hidden mid-arrival (opacity " + String.format(Locale.ROOT, "%.2f", peak) + ") and shown mid-departure (" + String.format(Locale.ROOT, "%.2f", low)
+                    + "), it turns back from where it is: " + in.samples.size() + " and " + out.samples.size() + " frames, none changing opacity by more than 0.15 or moving a neighbour more than 8 dp from the frame before");
+            site.hide.run(); settleFor(4000);
+        } finally {
+            scale(1);
+        }
+    }
+
+    /**
+     * Leaving at the end of a scrolled page that still scrolls without it: the page gets shorter and the scroll is
+     * clamped. No frame may draw the views below it off their way from where they were to where they rest (a jump by
+     * the clamp, then a glide back). The text is made larger (and the activity rebuilt) until the page is long enough.
+     */
+    private void scrolledEnd(Site site) {
+        float[] scales = {1, 1.4f, 1.8f, 2.4f, 3};
+        float used = -1;
+        for (float textScale : scales) {
+            if (textScale != 1) {
+                require(settings().edit().putFloat("text_scale", textScale).commit(), "Text size failed");
+                activity = recreate();
+                requirePage();
+            }
+            site.show.run(); settleFor(SETTLE_MS);
+            requireRest(site, true, "shown on the long page");
+            int spare = onMain(() -> {
+                View subject = site.subject.get();
+                android.widget.ScrollView scroll = scrollOf(subject);
+                if (scroll == null) return -1;
+                return scroll.getChildAt(0).getHeight() - (scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom()) - subject.getHeight();
+            });
+            if (spare > 4 * density()) { used = textScale; break; }
+            site.hide.run(); settleFor(SETTLE_MS);
+        }
+        if (used < 0) {
+            require(!part.equals("find"), site.name + ": Home never scrolled past the card, even at the largest text");
+            notes.add(site.name + ": the page never scrolled past it, even at the largest text; the scrolled-end check had nothing to clamp");
+        } else {
+            main(() -> { android.widget.ScrollView scroll = scrollOf(site.subject.get()); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); });
+            settle();
+            int[] scrolled = new int[1];
+            Frames out = new Frames(new Site(site.name, site.subject, () -> lowest(site.subject.get()), site.show, site.hide));
+            out.start(); frames(2);
+            main(() -> scrolled[0] = scrollOf(site.subject.get()).getScrollY());
+            site.hide.run();
+            SystemClock.sleep(SETTLE_MS + 300);
+            out.stop();
+            int clamped = scrolled[0] - onMain(() -> scrollOf(site.subject.get()).getScrollY());
+            requireRest(site, false, "after it went from the end of the long page");
+            require(clamped > 0, site.name + ": its departure at the end of the page did not clamp the scroll");
+            onPath(out, site.name + " departure at the end of a scrolled page (text " + used + ")");
+            require(onMain(() -> scrollOf(site.subject.get()).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
+            checks.add(site.name + ": leaving at the end of a page that still scrolls without it (text " + used + "), the scroll clamps by " + clamped
+                    + " px and " + out.samples.size() + " frames draw the views below only on their way (track " + track(out, 0) + ")");
+        }
+        if (used != 1) { require(settings().edit().putFloat("text_scale", 1).commit(), "Text size failed"); activity = recreate(); requirePage(); }
+    }
+
+    private static android.widget.ScrollView scrollOf(View view) {
+        for (android.view.ViewParent at = view == null ? null : view.getParent(); at != null; at = at.getParent())
+            if (at instanceof android.widget.ScrollView) return (android.widget.ScrollView) at;
+        return null;
+    }
+
+    /** The views after it on the page, and the lowest one the page shows (what a clamped scroll moves). */
+    private static List<View> lowest(View subject) {
+        List<View> out = siblingsAfter(subject);
+        android.widget.ScrollView scroll = scrollOf(subject);
+        if (scroll != null && scroll.getChildAt(0) instanceof ViewGroup) {
+            ViewGroup content = (ViewGroup) scroll.getChildAt(0);
+            for (int i = content.getChildCount() - 1; i >= 0; i--)
+                if (content.getChildAt(i).getVisibility() == View.VISIBLE && content.getChildAt(i).getHeight() > 0) {
+                    if (!out.contains(content.getChildAt(i))) out.add(content.getChildAt(i));
+                    break;
+                }
+        }
+        return out;
+    }
+
+    private float density() { return getTargetContext().getResources().getDisplayMetrics().density; }
+
+    private static void invoke(Object target, String name) {
+        try {
+            for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass())
+                for (java.lang.reflect.Method method : type.getDeclaredMethods())
+                    if (method.getName().equals(name) && method.getParameterCount() == 0) { method.setAccessible(true); method.invoke(target); return; }
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        throw new IllegalStateException("No " + name + "()");
+    }
+
     private void demo(Site site) {
         long hold = Long.parseLong(arguments.getString("hold_ms", "1500"));
         int cycles = Integer.parseInt(arguments.getString("cycles", "4"));
@@ -335,22 +505,20 @@ public final class RevealMotionValidation extends Instrumentation {
         int count;
         private boolean run;
         private long started;
-        private Choreographer.FrameCallback tick;
+        private android.view.ViewTreeObserver.OnDrawListener tick;
+        private android.view.ViewTreeObserver observer;
         Frames(Site site) { this.site = site; }
+        /** Samples each frame as it draws (what reaches the screen, after layout, pre-draw and animation). */
         void start() {
             main(() -> {
-                View subject = site.subject.get();
                 watched = site.neighbours.get();
                 count = watched.size();
                 started = SystemClock.uptimeMillis();
                 run = true;
-                tick = t -> {
-                    if (!run) return;
-                    sample();
-                    Choreographer.getInstance().postFrameCallback(tick);
-                };
+                tick = () -> { if (run) sample(); };
+                observer = root().getViewTreeObserver();
+                observer.addOnDrawListener(tick);
                 sample();
-                Choreographer.getInstance().postFrameCallback(tick);
             });
         }
         private void sample() {
@@ -360,10 +528,11 @@ public final class RevealMotionValidation extends Instrumentation {
             boolean shown = subject != null && subject.isShown() && subject.getHeight() > 0;
             frame[1] = shown ? 1 : 0;
             frame[2] = subject == null ? 0 : subject.getAlpha() * (Build.VERSION.SDK_INT >= 29 ? subject.getTransitionAlpha() : 1);
-            for (int n = 0; n < count; n++) { int[] at = new int[2]; watched.get(n).getLocationInWindow(at); frame[3 + n] = at[1] + watched.get(n).getTranslationY(); }
+            // The window position includes every translation, the view's own and the scroll content's.
+            for (int n = 0; n < count; n++) { int[] at = new int[2]; watched.get(n).getLocationInWindow(at); frame[3 + n] = at[1]; }
             samples.add(frame);
         }
-        void stop() { main(() -> { run = false; sample(); }); }
+        void stop() { main(() -> { run = false; if (observer.isAlive()) observer.removeOnDrawListener(tick); sample(); }); }
         /** Frames that drew the subject part-way faded. */
         int alphaFrames() { int n = 0; for (float[] f : samples) if (f[1] == 1 && f[2] > .04f && f[2] < .96f) n++; return n; }
         /** The neighbour that moved furthest, and how far (px). */
@@ -372,6 +541,7 @@ public final class RevealMotionValidation extends Instrumentation {
             for (int n = 0; n < count; n++) { float d = Math.abs(last()[3 + n] - samples.get(0)[3 + n]); if (d > most) { most = d; best = n; } }
             return best;
         }
+        String name(int n) { return watched.get(n).getClass().getSimpleName() + (watched.get(n).getTag() == null ? "" : " " + watched.get(n).getTag()); }
         String movers() { int n = mover(); return n < 0 ? "nothing" : watched.get(n).getClass().getSimpleName() + (watched.get(n).getTag() == null ? "" : " " + watched.get(n).getTag()); }
         int travel() { int n = mover(); return n < 0 ? 0 : Math.round(Math.abs(last()[3 + n] - samples.get(0)[3 + n])); }
         /** Frames that drew the furthest-moving neighbour strictly between where it started and where it ended. */
@@ -413,6 +583,7 @@ public final class RevealMotionValidation extends Instrumentation {
     private void smooth(Frames frames, boolean arriving, String what) {
         require(frames.samples.size() >= 8, what + ": only " + frames.samples.size() + " frames were drawn");
         require(frames.alphaFrames() >= 2, what + " popped: " + frames.alphaFrames() + " frames drew it part-way faded (alpha track " + alphaTrack(frames) + ")");
+        onPath(frames, what);
         int moved = 0;
         for (int n = 0; n < frames.count; n++) {
             float from = frames.samples.get(0)[3 + n], to = frames.last()[3 + n], d = to - from;
@@ -432,6 +603,38 @@ public final class RevealMotionValidation extends Instrumentation {
         require(moved > 0, what + ": nothing below it moved (it should make or give back room)");
         require(frames.settledMs() <= SETTLE_MS, what + " took " + frames.settledMs() + " ms to rest");
         notes.add(what + ": alpha " + alphaTrack(frames) + "; below " + track(frames, frames.mover()));
+    }
+
+    /**
+     * Every frame shows every neighbour on its way from where it started to where it rests, within 2 dp: none jumps
+     * out of that span for a frame (as a scroll clamped before the motion's first frame would make it) and glides back.
+     */
+    private void onPath(Frames frames, String what) {
+        float slack = 2 * density();
+        for (int n = 0; n < frames.count; n++) {
+            float from = frames.samples.get(0)[3 + n], to = frames.last()[3 + n];
+            for (float[] f : frames.samples)
+                require(f[3 + n] >= Math.min(from, to) - slack && f[3 + n] <= Math.max(from, to) + slack, what + ": a frame drew "
+                        + frames.name(n) + " off its way from " + from + " to " + to + " px (" + f[3 + n] + " at " + (long) f[0] + " ms; track " + track(frames, n) + ")");
+        }
+    }
+
+    /**
+     * Between any two frames drawn one after another, the subject's opacity changes by at most 0.15 and each neighbour
+     * moves at most 8 dp (allowing more only for a frame that came more than 100 ms late): nothing snaps.
+     */
+    private void continuous(Frames frames, String what) {
+        float step = 8 * density();
+        for (int i = 1; i < frames.samples.size(); i++) {
+            float[] a = frames.samples.get(i - 1), b = frames.samples.get(i);
+            float late = Math.max(1, (b[0] - a[0]) / 100f);
+            float alphaA = a[1] == 1 ? a[2] : 0, alphaB = b[1] == 1 ? b[2] : 0;
+            require(Math.abs(alphaB - alphaA) <= .15f * late, what + ": its opacity snapped from " + alphaA + " to " + alphaB + " at " + (long) b[0]
+                    + " ms (alpha track " + alphaTrack(frames) + ")");
+            for (int n = 3; n < a.length; n++)
+                require(Math.abs(b[n] - a[n]) <= step * late, what + ": " + frames.name(n - 3) + " snapped from " + a[n] + " to " + b[n] + " px at "
+                        + (long) b[0] + " ms (track " + track(frames, n - 3) + ")");
+        }
     }
 
     /** No motion: every frame shows the subject and each neighbour either as before or as after. */
