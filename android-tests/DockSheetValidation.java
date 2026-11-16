@@ -58,7 +58,8 @@ import com.jjricks.volt.ScooterProfiles;
  *   (never both, never neither); the first frame of an opening (All, a pull) and the last of a close or snap-back are
  *   the dock's own bounds within 2 px, the frame after the last is the dock itself; the surface's top follows the
  *   sheet's offset 1:1 and its sides and bottom move with its progress with no jump; the dock's buttons are gone by a
- *   quarter of the way and the sheet's content shows only past 35%, never both at once.</li>
+ *   quarter of the way and the sheet's content shows only past 35% (drawn over the surface, never under it), never both
+ *   at once.</li>
  *   <li><b>Animations off</b> (animator duration scale 0): a pull still follows the finger, and every release, tap and
  *   close jumps to its end with no settle.</li>
  * </ul>
@@ -854,7 +855,7 @@ public final class DockSheetValidation extends Instrumentation {
     /** A sampled frame's fields (Sampler): the sheet's offset, its surface's bottom less the screen's, its state, ... */
     private static final int F_OFFSET = 0, F_GAP = 1, F_STATE = 2, F_LEFT = 3, F_TOP = 4, F_RIGHT = 5, F_BOTTOM = 6, F_DOCK = 7,
             F_OVERLAY = 8, F_BUTTONS = 9, F_CONTENT = 10, F_P = 11, F_TRAVEL = 12, F_DOCK_LEFT = 13, F_DOCK_TOP = 14, F_DOCK_RIGHT = 15,
-            F_DOCK_BOTTOM = 16, F_MORPH = 17, F_FROZEN = 18, F_OPEN_LEFT = 19, F_OPEN_RIGHT = 20, F_OPEN_BOTTOM = 21, F_SIZE = 22;
+            F_DOCK_BOTTOM = 16, F_MORPH = 17, F_FROZEN = 18, F_OPEN_LEFT = 19, F_OPEN_RIGHT = 20, F_OPEN_BOTTOM = 21, F_CONTENT_Z = 22, F_SURFACE_Z = 23, F_SIZE = 24;
     /** The shape's easing (SheetMorph.ease, Motion.STANDARD) is never steeper than this (its steepest is 4.05). */
     private static final float EASE_SLOPE = 4.2f;
 
@@ -913,6 +914,7 @@ public final class DockSheetValidation extends Instrumentation {
             s[F_P] = travel > 0 ? 1 - s[F_OFFSET] / travel : 0;
             s[F_BUTTONS] = (float) (double) (Double) field(surface, "buttons");
             s[F_CONTENT] = panel.getAlpha();
+            s[F_CONTENT_Z] = panel.getZ(); s[F_SURFACE_Z] = surface.getZ();
             s[F_MORPH] = Boolean.TRUE.equals(field(sheet, "morph")) ? 1 : 0;
             s[F_FROZEN] = field(sheet, "frozen") != null ? 1 : 0;
             s[F_OPEN_LEFT] = f[0] + panel.getLeft(); s[F_OPEN_RIGHT] = f[0] + panel.getRight(); s[F_OPEN_BOTTOM] = f[1] + panel.getBottom();
@@ -1007,6 +1009,8 @@ public final class DockSheetValidation extends Instrumentation {
                 require(f[F_P] < SHEET_BUTTONS_GONE || f[F_BUTTONS] == 0, what + ": frame " + i + " still shows the dock's buttons (" + f[F_BUTTONS] + ") at " + pct(f[F_P]));
                 require(f[F_P] > SHEET_CONTENT_FROM || f[F_CONTENT] == 0, what + ": frame " + i + " shows the sheet's content (" + f[F_CONTENT] + ") at " + pct(f[F_P]));
                 require(!(f[F_BUTTONS] > 0 && f[F_CONTENT] > 0), what + ": frame " + i + " shows the dock's buttons and the sheet's content at once at " + pct(f[F_P]));
+                // Drawn over the surface, not under it (a view of lower Z draws under one of higher Z whatever their order).
+                require(f[F_CONTENT] == 0 || f[F_CONTENT_Z] >= f[F_SURFACE_Z], what + ": frame " + i + "'s content (Z " + f[F_CONTENT_Z] + ") is under the surface (Z " + f[F_SURFACE_Z] + ") at " + pct(f[F_P]));
             }
             if (i == 0) continue;
             float[] g = frames.get(i - 1);

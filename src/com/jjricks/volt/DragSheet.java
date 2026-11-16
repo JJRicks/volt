@@ -261,6 +261,8 @@ final class DragSheet {
         panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setTag(TAG_PANEL);
+        // No shadow of its own: it is raised only to stay level with the surface (place()).
+        panel.setOutlineProvider(null);
         // Its background is the surface's (open: Volt's background, 24 dp top corners, the 1 dp raised outline), which
         // reaches on below the screen's edge by more than the bounce can lift it (the negative margin below).
         panel.setPadding(0, 0, 0, extension);
@@ -605,6 +607,9 @@ final class DragSheet {
             showing = Math.max(0, Math.min(1, 1 - offset / (double) travel));
         }
         surface.show(box, buttons);
+        // Level with the surface: a view of lower Z draws under one of higher Z whatever their order, so while the
+        // surface keeps any of the dock's elevation it would hide the content. Level, the content (added after it) draws on top.
+        panel.setTranslationZ((float) box.elevation);
         panel.setTranslationY(panelY);
         panel.setAlpha((float) content);
         // The content never shows outside the surface (its sides are still coming in while it fades in).
