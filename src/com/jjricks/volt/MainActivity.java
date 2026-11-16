@@ -1622,7 +1622,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info){super.onInitializeAccessibilityNodeInfo(info);info.setCheckable(value!=null);info.setChecked(Boolean.TRUE.equals(value));info.setEnabled(available);}
         @Override public boolean onTouchEvent(MotionEvent event){
             if(!available)return false;
-            if(event.getAction()==MotionEvent.ACTION_DOWN)ignoring=Motion.arriving(this);
+            // Arriving, or moved by a motion it sits in (Security's page gliding as its line goes): a touch that starts then does nothing until it lifts.
+            if(event.getAction()==MotionEvent.ACTION_DOWN)ignoring=Motion.changing(this);
             if(ignoring){if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)ignoring=false;return true;}
             if(event.getAction()==MotionEvent.ACTION_DOWN){cancelMotion();downX=event.getX();downY=event.getY();previewX=downX;dragging=false;dragSide=downX>getWidth()/2f;setPressed(true);return true;}
             if(event.getAction()==MotionEvent.ACTION_MOVE){float delta=event.getX()-downX;if(Math.abs(delta)>ViewConfiguration.get(MainActivity.this).getScaledTouchSlop()&&Math.abs(delta)>Math.abs(event.getY()-downY)){dragging=true;if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(true);}if(dragging){boolean side=event.getX()>getWidth()/2f;if(side!=dragSide)Haptics.tick(this);dragSide=side;previewX=event.getX();move(sliderGeometry().positionFor(previewX));}return true;}

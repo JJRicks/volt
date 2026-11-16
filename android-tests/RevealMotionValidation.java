@@ -1063,9 +1063,35 @@ public final class RevealMotionValidation extends Instrumentation {
             requireRest(site, false, "after its close was tapped mid-fade");
             require(onMain(() -> field(activity.service(), "ridingAlert")) == null, "Riding alert: the tap mid-fade did not close the alert");
             checks.add("Riding alert: its close button tapped mid-fade (opacity " + String.format(Locale.ROOT, "%.2f", fading) + ", scale 10) closes it at once");
+            ridingLockNotChanging();
         } finally {
             scale(1);
         }
+    }
+
+    /**
+     * Riding mode's lock never ignores a touch for a motion: riding mode fills the window with no reveal of its own, and
+     * the alert banner's fade (Motion.alertIn) is a plain opacity animation, not a reveal, so neither counts as the lock
+     * changing (Motion.changing), before, during or after the banner's fade. Run at scale 10, mid-fade.
+     */
+    private void ridingLockNotChanging() {
+        View lock = onMain(() -> (View) field(activity, "lockControl"));
+        require(lock != null, "Riding mode registered no lock");
+        require(!changing(lock), "Riding mode's lock counts as changing with no banner");
+        site.show.run(); SystemClock.sleep(300);
+        float fading = onMain(() -> opacity(site.subject.get()));
+        require(fading > .05f && fading < .95f, "Riding alert: not mid-fade for the lock check (opacity " + fading + ")");
+        require(!changing(lock), "Riding mode's lock counts as changing while the alert banner fades in (opacity " + fading + "): it would ignore a tap");
+        site.hide.run(); settleFor(1500);
+        require(!changing(lock), "Riding mode's lock counts as changing after the banner closed");
+        checks.add("Riding mode's lock: not counted as changing before, during (banner at opacity " + String.format(Locale.ROOT, "%.2f", fading)
+                + ", scale 10) or after the alert banner's fade, so its taps are never ignored for a motion (shown on screen: " + onMain(lock::isShown) + ")");
+    }
+    private boolean changing(View view) {
+        return onMain(() -> {
+            try { Method m = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("changing", View.class); m.setAccessible(true); return (Boolean) m.invoke(null, view); }
+            catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        });
     }
 
     /**
@@ -1732,6 +1758,7 @@ public final class RevealMotionValidation extends Instrumentation {
         settleFor(SETTLE_MS);
         requireRest(site, false, "before the taps");
         Object dialog = onMain(() -> field(activity, "controlDialog"));
+        Boolean locked = onMain(ble::locked);
         scale(10);
         try {
             site.show.run();
@@ -1750,11 +1777,46 @@ public final class RevealMotionValidation extends Instrumentation {
             settleFor(1000);
             checks.add(site.name + ": at scale 10 a tap on the line as it arrived where the title was (opacity " + String.format(Locale.ROOT, "%.2f", arriving)
                     + ") opened nothing; at rest the same tap opens the connection details");
+            if (linePage.equals("security")) securitySliderTaps(site, ble, locked);
         } finally {
             scale(1);
         }
         site.hide.run();
         await(() -> onMain(ble::ready), "The simulator's link did not come back");
+    }
+
+    /**
+     * Security's own lock (the Lock bar under the header) is shown at once as the link comes back, while the page under
+     * the header glides up as the line goes: at scale 10, a touch that starts on the slider mid-glide does nothing (no
+     * lock command, nothing queued); at rest a tap locks or unlocks through the tap queue and a second puts it back.
+     */
+    private void securitySliderTaps(Site site, BleController ble, Boolean locked) {
+        require(locked != null, site.name + ": the simulator reports no lock state");
+        requireRest(site, true, "before the link came back");
+        site.hide.run();
+        await(() -> onMain(ble::ready), "The simulator's link did not come back");
+        SystemClock.sleep(300);
+        View slider = onMain(() -> (View) field(activity, "lockControl"));
+        require(onMain(() -> slider != null && slider.isShown() && (Boolean) field(slider, "available")), site.name + ": Security's slider is not offered as the link comes back");
+        float lineLeft = onMain(() -> opacity(site.subject.get()));
+        float[] at = centre(slider);
+        float startY = at[1];
+        tap(at);
+        SystemClock.sleep(1200); waitForIdleSync();
+        float restY = centre(slider)[1];
+        require(Math.abs(restY - startY) > 2 * density(), site.name + ": the slider was not mid-glide at the touch (" + startY + " to " + restY + " px)");
+        require(locked.equals(onMain(ble::locked)) && !onMain(() -> (Boolean) invokeValue(field(activity, "lockQueue"), "waiting")),
+                site.name + ": a touch mid-glide toggled the lock (Security's slider at " + startY + " px on its way to " + restY + ", the line at opacity " + lineLeft + ", scale 10)");
+        settleFor(3000);
+        requireRest(site, false, "after the page glided up at scale 10");
+        tap(centre(slider));
+        await(() -> onMain(() -> !locked.equals(ble.locked())), site.name + ": a tap on Security's slider at rest did not " + (locked ? "unlock" : "lock"));
+        settleFor(3000);
+        tap(centre(slider));
+        await(() -> onMain(() -> locked.equals(ble.locked())), site.name + ": a second tap on Security's slider at rest did not put the lock back");
+        settleFor(3000);
+        checks.add(site.name + ": at scale 10 a touch on Security's slider while the page glided up (from " + Math.round(startY) + " to " + Math.round(restY)
+                + " px) sent no lock command; at rest a tap " + (locked ? "unlocks" : "locks") + " through the tap queue and another puts it back");
     }
 
     /** What the app draws for one of T's words. */
