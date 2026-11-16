@@ -56,10 +56,10 @@ import com.jjricks.volt.ScooterProfiles;
  *   and a close move only toward closed; from open on (the bounce) the sheet's background never ends above the screen's
  *   bottom. The dock and the sheet are one surface: every frame shows exactly one of the dock and the sheet's surface
  *   (never both, never neither); the first frame of an opening (All, a pull) and the last of a close or snap-back are
- *   the dock's own bounds within 2 px, the frame after the last is the dock itself; the surface's top follows the
- *   sheet's offset 1:1 and its sides and bottom move with its progress with no jump; the dock's buttons are gone by a
- *   quarter of the way and the sheet's content shows only past 35% (drawn over the surface, never under it), never both
- *   at once.</li>
+ *   the dock's own bounds within 2 px (a pull's first frame as far up as its finger had gone by then), the frame
+ *   after the last is the dock itself; the surface's top follows the sheet's offset 1:1 and its sides and bottom move
+ *   with its progress with no jump; the dock's buttons are gone by a quarter of the way and the sheet's content shows
+ *   only past 35% (drawn over the surface, never under it), never both at once.</li>
  *   <li><b>Animations off</b> (animator duration scale 0): a pull still follows the finger, and every release, tap and
  *   close jumps to its end with no settle.</li>
  * </ul>
@@ -684,7 +684,7 @@ public final class DockSheetValidation extends Instrumentation {
                 + round(pulled / dp) + " dp, cap " + spring("CAP_DP") + " dp) and back with no second ripple of 1 dp; Back's close, a drag down's close and a held pull's snap-back move only toward closed (let go still moving up, it carries on " + round(carried / dp) + " dp, then closes with no bounce); "
                 + "from open on the sheet's surface never ends above the screen's bottom");
         checks.add("At animator scale 5, the dock and the sheet are one surface in all " + framesChecked + " frames of the sheet drawn (All, Back, a pull, a drag back and a drag down, two snap-backs): never both or neither; "
-                + "every opening's first frame and every close's and snap-back's last are the dock's bounds within " + round(worstDockMatch) + " px, then the dock alone; the top follows the offset within " + round(worstSlip)
+                + "every opening's first frame and every close's and snap-back's last are the dock's bounds (as far as their progress moved them) within " + round(worstDockMatch) + " px, then the dock alone; the top follows the offset within " + round(worstSlip)
                 + " px a frame and the sides and bottom never step more than " + round(Math.max(0, worstStep)) + " px beyond what the progress moved them; the dock's buttons are gone by 25% and the sheet's content hidden up to 35%, never both");
     }
 
@@ -987,7 +987,8 @@ public final class DockSheetValidation extends Instrumentation {
     /**
      * The dock and the sheet as one surface, frame by frame: every frame shows exactly one of the dock and the sheet's
      * surface (never both, never neither; a let-go slide over a new page's dock aside); opens: its first frame showing
-     * the sheet is the dock's own bounds (2 px), after a frame of the dock alone when one was drawn; closes: its last
+     * the sheet is the dock's own bounds (2 px, beyond what its progress moved them: dockMatch), after a frame of the
+     * dock alone when one was drawn; closes: its last
      * frame showing the sheet is the dock's bounds and the frame after it shows the dock alone. Between frames the
      * surface's top moves with the sheet's offset (2 px) and its sides and bottom by no more than the progress moved
      * them; the dock's buttons are gone from a quarter of the way and the sheet's content shows only past 35%, never
@@ -1048,9 +1049,20 @@ public final class DockSheetValidation extends Instrumentation {
     private static final float SHEET_BUTTONS_GONE = .25f, SHEET_CONTENT_FROM = .35f;
     private static float clamp(float p) { return Math.max(0, Math.min(1, p)); }
     private static String pct(float p) { return Math.round(p * 100) + "%"; }
+    /**
+     * How far a frame's surface is off the dock's bounds beyond what its progress allows: its top by the offset it has
+     * moved from closed (1:1), its sides and bottom as far as an edge step from closed may take them (EASE_SLOPE). At
+     * closed this is the dock's bounds exactly; a pull whose first drawn frame comes a few px after the finger moved (a
+     * slow machine draws later) is that far up, no further.
+     */
     private static float dockMatch(float[] f) {
-        return Math.max(Math.max(Math.abs(f[F_LEFT] - f[F_DOCK_LEFT]), Math.abs(f[F_TOP] - f[F_DOCK_TOP])),
-                Math.max(Math.abs(f[F_RIGHT] - f[F_DOCK_RIGHT]), Math.abs(f[F_BOTTOM] - f[F_DOCK_BOTTOM])));
+        boolean along = f[F_MORPH] == 1 && f[F_TRAVEL] > 0 && !Float.isNaN(f[F_P]);
+        float up = along ? f[F_TRAVEL] - Math.min(f[F_OFFSET], f[F_TRAVEL]) : 0, p = along ? clamp(f[F_P]) : 0;
+        float top = Math.abs(f[F_TOP] - (f[F_DOCK_TOP] - up));
+        float left = Math.abs(f[F_LEFT] - f[F_DOCK_LEFT]) - EASE_SLOPE * Math.abs(f[F_DOCK_LEFT] - f[F_OPEN_LEFT]) * p;
+        float right = Math.abs(f[F_RIGHT] - f[F_DOCK_RIGHT]) - EASE_SLOPE * Math.abs(f[F_DOCK_RIGHT] - f[F_OPEN_RIGHT]) * p;
+        float bottom = Math.abs(f[F_BOTTOM] - f[F_DOCK_BOTTOM]) - EASE_SLOPE * Math.abs(f[F_DOCK_BOTTOM] - f[F_OPEN_BOTTOM]) * p;
+        return Math.max(Math.max(top, Math.max(0, left)), Math.max(Math.max(0, right), Math.max(0, bottom)));
     }
     private static String frameText(float[] f) {
         return String.format(Locale.ROOT, " (state %.0f, offset %.1f of %.0f, %s; surface %.0f,%.0f,%.0f,%.0f; dock %.0f,%.0f,%.0f,%.0f%s)",

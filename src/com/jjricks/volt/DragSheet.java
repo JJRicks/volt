@@ -77,8 +77,8 @@ import java.util.function.Consumer;
  * it settles closed it still takes every touch (as Material's BottomSheetDialog does while it hides), so nothing under it
  * is touched by accident, not even a lock control on the page: a finger down on the sheet catches it and drags it from
  * where it is (it then carries on closing unless dragged back up a quarter of its travel, SheetSpring.caughtOpens, so a
- * plain tap lets it go), and a touch on the dim is swallowed. It gives up Back meanwhile (focusable), so a Back pressed
- * then goes to the page. On the light theme the status bar's icons turn white once the dim behind them passes the
+ * plain tap lets it go), and a touch on the dim is swallowed. It gives up Back and focus meanwhile (focusable), so a
+ * Back pressed then goes to the page, and a page opened from one of its rows can focus its search field. On the light theme the status bar's icons turn white once the dim behind them passes the
  * contrast crossover (SheetSpring.whiteIcons), and dark again below it; the window's own setting comes back when it goes.
  *
  * <p><b>Deferred work and its token.</b> Nothing done later acts on a sheet that has moved on since. {@code epoch} goes up
@@ -104,8 +104,8 @@ import java.util.function.Consumer;
  *   <li>OPEN: open is ignored; close settles closed; leave goes at once; measured only places it.</li>
  *   <li>CLOSING: close is ignored; open springs back open; a finger on the sheet catches it (DRAGGED, Back reaches it
  *   again), on the dim is swallowed; a touch that began on its views while it was open does nothing more; Back goes to
- *   the page (not focusable); measured restarts the close for the new travel; leave lets it go (below), or goes at once
- *   if nothing settles it or its activity is ending.</li>
+ *   the page and the page may take focus (not focusable); measured restarts the close for the new travel; leave lets it
+ *   go (below), or goes at once if nothing settles it or its activity is ending.</li>
  *   <li>CLOSING, let go: open, close, pull, back and leave are ignored (leave goes at once if the activity is ending),
  *   every touch is swallowed, settle(true) refuses; it only finishes its settle and goes, or goes at once with its
  *   activity. If it grew out of a source, that source is going (Home rebuilt): the surface keeps the shape it had when
@@ -183,7 +183,7 @@ final class DragSheet {
     /** The running settle and its plan; null at rest. */
     private ValueAnimator settling;
     private SheetSpring.Plan plan;
-    /** Back reaches it (back()): false while it settles closed. */
+    /** Back reaches it (back()), and the window's other views take no focus: false while it settles closed. */
     private boolean focusable = true;
     /**
      * A finger caught the sheet while it settled (SheetSpring.caughtOpens decides its release): where it was then (px),
@@ -783,10 +783,19 @@ final class DragSheet {
     }
 
     /**
-     * While it settles closed Back goes to the page (not to a sheet already on its way out). It keeps taking touches
-     * (Frame): the overlay fills the window, so none reach the page.
+     * While it settles closed Back goes to the page (not to a sheet already on its way out), and so does focus: a page
+     * opened from one of its rows (Search) puts its cursor in its field while the sheet is still on its way down. It
+     * keeps taking touches (Frame): the overlay fills the window, so none reach the page. Caught again, it takes Back
+     * and focus back.
      */
-    private void focusable(boolean on) { focusable = on; }
+    private void focusable(boolean on) {
+        focusable = on;
+        for (int i = 0; i < covered.size(); i++) {
+            View other = covered.get(i);
+            int was = coveredWas.get(i)[1];
+            if (was >= 0 && other instanceof ViewGroup) ((ViewGroup) other).setDescendantFocusability(on ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : was);
+        }
+    }
 
     /** The title of a sheetContent header (its first TextView), for TalkBack's pane title. */
     private static String title(View[] header) {
