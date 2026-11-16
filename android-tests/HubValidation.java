@@ -1402,6 +1402,14 @@ public final class HubValidation extends Instrumentation {
     private void arrived(String page, String... stack) {
         await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), () -> "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
         settle();
+        // A page arrives sliding in from the side as it fades in (Motion.crossfade): what follows measures it once it has
+        // come to rest (HubTestPages.awaitAtRest), as UiOrganizationValidation's navigation check does (#393, third round).
+        if (!HubPages.HOME.equals(page)) {
+            List<View> moving = new ArrayList<>();
+            main(() -> { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel"));
+                moving.add(firstEditText(activity.findViewById(android.R.id.content))); });
+            HubTestPages.awaitAtRest(this, moving);
+        }
         requireStack(stack);
         if (!HubPages.HOME.equals(page)) main(() -> {
             View back = root().findViewWithTag("hub-back");

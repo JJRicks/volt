@@ -2204,6 +2204,14 @@ public final class DashboardValidation extends Instrumentation {
         boolean[] home = {false};
         main(() -> home[0] = HubPages.HOME.equals(HubTestPages.current(activity)));
         if (home[0]) { HubTestPages.requireEndClearOfDock(this, activity); scrollHomeTop(); HubTestPages.showDock(this, activity); }
+        // Measured once the page has come to rest: a page arrives sliding in from the side (Motion.crossfade), and mid-slide
+        // Search's Cancel, at the right edge, still runs past it (#393 council review, third round). One that never comes
+        // to rest is measured anyway and fails below as before.
+        else {
+            List<View> moving = new ArrayList<>();
+            main(() -> { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel")); });
+            HubTestPages.awaitAtRest(this, moving);
+        }
         main(() -> {
             List<View> targets = new ArrayList<>();
             if (home[0]) {

@@ -396,6 +396,54 @@ public final class HubTestPages {
         throw new IllegalStateException("Widgets Home's dock did not settle (" + state[0] + ")");
     }
 
+    /**
+     * Waits, up to {@link #WAIT_MS}, until each view is at rest as a rider sees it once the page has arrived: it and every
+     * view it sits in fully opaque with no offset (a page change slides the new page in from the side while it fades in,
+     * Motion.crossfade and Motion.page, for Motion.PAGE_MS; a reveal glides what is around it, Motion.changing), and its
+     * place on screen the same on three reads in a row, as {@link #tapView} waits for a row before tapping it. A view
+     * that is not shown counts as at rest (the caller's own check reports it). Returns whether all came to rest; it never
+     * throws for a view that keeps moving, so the caller's own check then measures it and fails with its own message.
+     * Instrumentation thread.
+     */
+    public static boolean awaitAtRest(Instrumentation instrumentation, List<View> views) {
+        String[] last = {null};
+        int still = 0;
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            instrumentation.waitForIdleSync();
+            String[] state = {""};
+            boolean[] resting = {true};
+            onMain(instrumentation, () -> {
+                StringBuilder places = new StringBuilder();
+                for (View view : views) {
+                    if (view == null || !view.isShown()) continue;
+                    if (changing(view)) resting[0] = false;
+                    for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
+                        View each = (View) at;
+                        if (each.getAlpha() < 1f || each.getTranslationX() != 0f || each.getTranslationY() != 0f) resting[0] = false;
+                    }
+                    int[] place = new int[2]; view.getLocationOnScreen(place);
+                    places.append(place[0]).append(',').append(place[1]).append(' ').append(view.getWidth()).append('x').append(view.getHeight()).append(';');
+                }
+                state[0] = places.toString();
+            });
+            if (resting[0] && state[0].equals(last[0])) { if (++still >= 2) return true; }
+            else still = 0;
+            last[0] = resting[0] ? state[0] : null;
+            SystemClock.sleep(50);
+        }
+        return false;
+    }
+
+    /** Motion.changing (package-private in the app): view is arriving through a reveal, or sits in one still moving. Main thread. */
+    private static boolean changing(View view) {
+        try {
+            Method method = Class.forName("com.jjricks.volt.Motion", true, view.getContext().getClassLoader()).getDeclaredMethod("changing", View.class);
+            method.setAccessible(true);
+            return (Boolean) method.invoke(null, view);
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion.changing", error); }
+    }
+
     /** Null when the dock sits at HubPages.dockTop in its frame (its bottom margin above the frame's bottom), else why not. Main thread. */
     private static String pinnedProblem(View dock) {
         if (!(dock.getParent() instanceof View) || !(dock.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return "Widgets Home's dock has no frame";
