@@ -580,7 +580,11 @@ public final class DockSheetValidation extends Instrumentation {
         float progress = 1 - offset() / travel;
         int[] box = new int[2];
         surface.getLocationOnScreen(box);
-        int bottom = Math.min(box[1] + surface.getHeight(), activity.getResources().getDisplayMetrics().heightPixels);
+        // A finger reaches the surface only above the navigation bar: the dock's sheet (and so the morph's surface early in
+        // the opening) runs on under it, and a touch there goes to the system's bar (three-button navigation's own window).
+        android.view.WindowInsets insets = surface.getRootWindowInsets();
+        int bar = insets != null && Build.VERSION.SDK_INT >= 30 ? insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout()).bottom : 0;
+        int bottom = Math.min(box[1] + surface.getHeight(), activity.getResources().getDisplayMetrics().heightPixels - bar);
         List<String> tags = new ArrayList<>();
         tags.add("home-search"); tags.add("home-settings");
         for (String each : HubPages.SUBJECTS) tags.add("home-subject-" + each);
