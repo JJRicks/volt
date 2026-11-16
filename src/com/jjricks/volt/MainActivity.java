@@ -227,7 +227,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             return;
         }
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
-        setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
+        setTheme(darkTheme()?R.style.VoltDark_Main:R.style.VoltLight_Main);
         super.onCreate(saved);
         if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
@@ -395,6 +395,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void navigateBack(){navigateBack(false);}
     /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
     private void navigateBack(boolean link){
+        // A sheet drawn in this window (the dock's All sheet) takes Back first, as a dialog's window would.
+        for(DragSheet sheet:new java.util.ArrayList<>(dragSheets))if(sheet.back())return;
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
@@ -516,7 +518,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
-        setTheme(design.dark?R.style.VoltDark:R.style.VoltLight);
+        setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);
         expanded=design.wideLayout();
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
@@ -753,7 +755,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        // Volt's window may not have its focus yet (a dialog going away over it); the keyboard waits for it. The dock's All
+        // sheet is drawn in this window, so from it the keyboard comes at once.
         if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
     }
     /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
@@ -809,7 +812,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Auto ride mode: opens at most once per connection, only on what's safe to cover. */
     private void maybeAutoOpenRiding(){
         if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
-        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
+        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus()&&!sheetShowing(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
         else if(!autoRecordLocationCancelled&&scooterService.offersAutoRecordLocation(clear))requestAutoRecordLocation(null);
     }
@@ -4152,7 +4155,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public boolean dialogShowing(){
         for(Dialog d:new Dialog[]{scanDialog,controlDialog,missedStartDialog,scheduleTestDialog,chargeAlertDialog,quickMenuDialog,reportDialog,tallSheet})if(d!=null&&d.isShowing())return true;
         for(Dialog d:shownDialogs)if(d.isShowing())return true;
-        return false;
+        return sheetShowing();
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
         OwnDialogs.track(dialog);
@@ -4206,8 +4209,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
-    /** A sheet that follows a finger (the dock's All sheet), kept with the others for dialogShowing. */
-    @Override public DragSheet dragSheet(View content,View... header){return new DragSheet(this,design,content,header,shownDialogs::add);}
+    /**
+     * A sheet that follows a finger (the dock's All sheet), kept for dialogShowing and for Back: it is drawn in this
+     * window, so Back asks it first (navigateBack).
+     */
+    @Override public DragSheet dragSheet(DragSheet.Source source,View content,View... header){return new DragSheet(this,design,source,content,header,dragSheets::add);}
+    private final java.util.Set<DragSheet> dragSheets=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /** One of this window's own sheets (DragSheet) is over the page. */
+    private boolean sheetShowing(){for(DragSheet s:dragSheets)if(s.showing())return true;return false;}
     /** The open tall sheet, kept nine-tenths of Volt's window tall through rotation, folding and window resizing. */
     private Dialog tallSheet;private boolean tallSheetFollows;
     private int tallSheetHeight(){int h=getWindow().getDecorView().getHeight();return Math.round((h>0?h:getResources().getDisplayMetrics().heightPixels)*.9f);}

@@ -6545,6 +6545,7 @@ public final class DashboardScreen implements AppScreen {
             tile.setScaleX(1);
             tile.setScaleY(1);
             tile.setElevation(ui.dp(12));
+            Ui.usualShadow(tile);
             tile.setAlpha(.94f);
             tile.dragging = true;
             tile.setBackground(tile.chrome());
@@ -8920,6 +8921,7 @@ public final class DashboardScreen implements AppScreen {
         pill.setPadding(ui.dp(16), 0, ui.dp(action == null ? 16 : 4), 0);
         pill.setBackground(ui.shape(ui.dark ? ui.raised : ui.text, 14, 0));
         pill.setElevation(ui.dp(6));
+        Ui.usualShadow(pill);
         TextView text = ui.text(message, 14, false);
         text.setTextColor(ui.dark ? ui.text : ui.bg);
         pill.addView(text, new LinearLayout.LayoutParams(-2, -2));

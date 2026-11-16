@@ -1,6 +1,8 @@
 package com.jjricks.volt;
 
-import android.app.Dialog;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.os.Build;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,7 +31,14 @@ import java.util.function.BooleanSupplier;
  * Home's header keeps its place and height (the owner's answer on #392's early review), so this is where a Widgets owner
  * finds them. Hidden while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog
  * references. The sheet follows the finger that swipes it up and springs open or back (DragSheet, the owner's request of
- * Nov 15), and an open one can be swiped away.
+ * Nov 15), and an open one can be swiped away. The dock itself is what moves: it grows into the sheet and the sheet
+ * shrinks back into it (DragSheet's Source, his follow-up the same day), so while the sheet shows the dock is hidden
+ * (handed) and the sheet draws it.
+ *
+ * <p>Against the page behind it (asked with that change): a soft shadow (ELEVATION_DP, its colours per theme over the
+ * window's raised shadow strength, styles.xml's Volt*.Main) and a 1 dp hairline of the text colour at low strength on the
+ * dock's own corners, so it reads as its own surface over busy widgets and over the page's plain top alike, in both
+ * themes. The sheet starts from these and eases to its own look (no shadow, its usual outline).
  */
 final class HubDock {
     /**
@@ -52,6 +61,14 @@ final class HubDock {
     private static final int HANDLE_W_DP = 51, HANDLE_H_DP = 6, HANDLE_TOP_DP = 4, HANDLE_BOTTOM_DP = 2, TILE_DP = 39, TILE_ICON_DP = 20;
     /** The room left between the page's last widget, scrolled to the end, and the dock's top. */
     private static final int CLEAR_GAP_DP = 16;
+    /**
+     * The dock's shadow: its elevation, and its colours' strength (of the window's, Ui.WINDOW_AMBIENT and WINDOW_SPOT) per
+     * theme; the light theme's softer, as its hairline already draws the edge (tuned on renders over Home's widgets).
+     */
+    private static final int ELEVATION_DP = 8;
+    private static final float AMBIENT_LIGHT = .35f, SPOT_LIGHT = .4f, AMBIENT_DARK = 1f, SPOT_DARK = 1f;
+    /** The hairline: the text colour at this strength (0..1) over the dock's fill, light and dark. */
+    private static final float HAIR_LIGHT = .12f, HAIR_DARK = .14f;
 
     private final ScreenHost host;
     private final Ui ui;
@@ -66,11 +83,23 @@ final class HubDock {
     private final List<View> items = new ArrayList<>();
     /** The item that carries Service's due dot: Service's own, or "All" while Service isn't shown. */
     private View service;
-    /** The All sheet while it shows (its dialog, and what moves it). */
-    private Dialog sheet;
+    /** The All sheet while it shows (its overlay in Volt's window, and what moves it). */
+    private View sheet;
     private DragSheet drag;
     private CleanSubjects sheetSubjects;
     private boolean closed;
+    /** The sheet has the dock now (it draws it, growing it into itself): the dock itself is hidden, keeping its place. */
+    private boolean handed;
+    /** The dock's outline colour (its background's 1 dp stroke). */
+    private final int stroke;
+    /** What the sheet grows out of: this dock. */
+    private final DragSheet.Source source = new DragSheet.Source() {
+        @Override public View view() { return view; }
+        @Override public void handed(boolean on) { handed = on; applyHidden(); }
+        @Override public void drawContent(Canvas canvas) { view.drawContent(canvas); }
+        @Override public int stroke() { return stroke; }
+        @Override public float strokeWidth() { return stroke == 0 ? 0 : ui.dp(1); }
+    };
     private final ViewTreeObserver.OnPreDrawListener follow;
 
     /**
@@ -90,8 +119,16 @@ final class HubDock {
         view.setOrientation(LinearLayout.VERTICAL);
         view.setGravity(Gravity.CENTER_HORIZONTAL);
         view.setTag(TAG);
-        view.setBackground(ui.shape(ui.surface, CORNER_DP, ui.raised));
-        view.setElevation(ui.dp(6));
+        int fill = ui.surface;
+        // Opaque (the text colour blended over the fill), not a translucent stroke: a GradientDrawable whose stroke and
+        // fill differ in opacity reports an outline of alpha 0, which casts no shadow.
+        stroke = SheetMorph.mix(fill, ui.text, ui.dark ? HAIR_DARK : HAIR_LIGHT);
+        view.setBackground(ui.shape(fill, CORNER_DP, stroke));
+        view.setElevation(ui.dp(ELEVATION_DP));
+        if (Build.VERSION.SDK_INT >= 28) {
+            view.setOutlineAmbientShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? AMBIENT_DARK : AMBIENT_LIGHT))));
+            view.setOutlineSpotShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? SPOT_DARK : SPOT_LIGHT))));
+        }
         view.setPadding(ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP), ui.dp(PADDING_DP));
         // The plan's grab handle (51 x 6 dp, the outline colour) centred at the top: the upward swipe opens the All sheet.
         View handle = new View(host.activity());
@@ -206,7 +243,8 @@ final class HubDock {
      * the scroller's padding (padScroller) lets every widget scroll clear of it. It is gone only while Home is edited.
      */
     private void applyHidden() {
-        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : View.VISIBLE;
+        // Handed to the sheet: invisible, not gone, so its place (and the sheet's reading of it) stays.
+        int visibility = hidden != null && hidden.getAsBoolean() ? View.GONE : handed ? View.INVISIBLE : View.VISIBLE;
         if (view.getVisibility() != visibility) view.setVisibility(visibility);
     }
 
@@ -266,7 +304,7 @@ final class HubDock {
 
     /**
      * The sheet with every subject's name and live summary, built when none shows; a row opens its subject and closes the
-     * sheet. One still settling closed is the same sheet (its window covers the dock until it is gone), never a second.
+     * sheet. One still settling closed is the same sheet (it holds the dock until it is gone), never a second.
      */
     private DragSheet allSheet() {
         if (closed) return null;
@@ -288,13 +326,13 @@ final class HubDock {
         content.addView(subjects.view(), new LinearLayout.LayoutParams(-1, -2));
         subjects.refresh();
         sheetSubjects = subjects;
-        DragSheet made = shown[0] = host.dragSheet(content, DragSheet.header(content));
+        DragSheet made = shown[0] = host.dragSheet(source, content, DragSheet.header(content));
         made.onDismiss(() -> {
             subjects.close();
             if (drag == made) { sheetSubjects = null; sheet = null; drag = null; }
         });
         drag = made;
-        sheet = made.dialog();
+        sheet = made.view();
         return made;
     }
 
@@ -351,6 +389,9 @@ final class HubDock {
         private boolean swiped;
 
         Dock() { super(host.activity()); }
+
+        /** Its content without its background (DragSheet draws that as its surface), for the sheet that holds it. */
+        void drawContent(Canvas canvas) { dispatchDraw(canvas); }
 
         /** Wide: at most 96 dp an item plus padding, and never wider than the room the page frame gives. */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {

@@ -445,15 +445,14 @@ public final class HubValidation extends Instrumentation {
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
         screenshot("search-typed");
-        systemBack();
-        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         // Back reaches the page through the system's dispatch, which can land after settle() on a loaded emulator (hub-725
         // failed here once on the council's pool): wait for the cleared query, then for the subjects, each with its message.
-        await(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
+        backPastKeyboard(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
                 "Back did not clear the search's query first");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         await(() -> onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))), "Back cleared the query but the subjects did not come back");
         requireStack(HubPages.HOME, HubPages.SEARCH);
-        systemBack();
+        backPastKeyboard(this::onHome, "Back from the empty search did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         // The page's link ("Back to Home") goes there at once, query or not (HubNav.linkSkipsPageBack).
@@ -491,7 +490,7 @@ public final class HubValidation extends Instrumentation {
         }), () -> "Back from the Star lights result shows Search with the query \"" + kept[0] + "\" and the subjects " + (onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))) ? "listed" : "not listed")
                 + "; the app builds Search afresh (empty, subjects listed)");
         hideKeyboard();
-        systemBack();
+        backPastKeyboard(this::onHome, "Back from Search did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once;"
@@ -708,15 +707,15 @@ public final class HubValidation extends Instrumentation {
                 + "the Lock bar " + lockBar + " the dock as Home opens, and Home scrolls it fully clear of the dock");
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
-            Dialog[] sheet = {openAllSheet()};
+            View[] sheet = {openAllSheet()};
             main(() -> {
-                View content = sheet[0].getWindow().getDecorView();
+                View content = sheet[0];
                 require(content.findViewWithTag("hub-dock-sheet") != null, "The All sheet has no content tag");
                 for (String each : HubPages.SUBJECTS) require(shown(content.findViewWithTag("home-subject-" + each)), "The All sheet does not list " + each);
             });
-            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet", onMain(() -> sheet[0].getWindow().getDecorView()));
-            tapIn(() -> sheet[0].getWindow().getDecorView(), "home-subject-" + subject, "home-subject-" + subject + " in the All sheet");
-            await(() -> onMain(() -> !sheet[0].isShowing()), "The All sheet stayed open after opening " + subject);
+            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet", sheet[0]);
+            tapIn(() -> sheet[0], "home-subject-" + subject, "home-subject-" + subject + " in the All sheet");
+            await(() -> onMain(() -> !sheet[0].isAttachedToWindow()), "The All sheet stayed open after opening " + subject);
             arrived(subject, HubPages.HOME, subject);
             systemBack();
             requireHome("DashboardScreen");
@@ -740,18 +739,20 @@ public final class HubValidation extends Instrumentation {
         main(() -> require(root().findViewWithTag("home-search") == null && root().findViewWithTag("home-settings") == null,
                 "Widgets Home's header has a search or gear of its own; part 11 keeps main's header"));
         for (String[] each : new String[][]{{"home-search", HubPages.SEARCH}, {"home-settings", HubPages.SETTINGS}}) {
-            Dialog sheet = openAllSheet();
-            main(() -> require(shown(sheet.getWindow().getDecorView().findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
-            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages", onMain(() -> sheet.getWindow().getDecorView()));
-            tapIn(() -> sheet.getWindow().getDecorView(), each[0], each[0] + " in the All sheet");
-            await(() -> onMain(() -> !sheet.isShowing()), "The All sheet stayed open after " + each[0]);
+            View sheet = openAllSheet();
+            main(() -> require(shown(sheet.findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
+            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages", sheet);
+            tapIn(() -> sheet, each[0], each[0] + " in the All sheet");
+            await(() -> onMain(() -> !sheet.isAttachedToWindow()), "The All sheet stayed open after " + each[0]);
             arrived(each[1], HubPages.HOME, each[1]);
             if (each[1].equals(HubPages.SEARCH)) {
                 await(() -> onMain(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); return field != null && field.hasFocus(); }),
                         "Search opened from the All sheet without its field focused");
                 hideKeyboard();
+                backPastKeyboard(this::onHome, "Back from Search did not return to Widgets Home");
+            } else {
+                systemBack();
             }
-            systemBack();
             requireHome("DashboardScreen");
         }
         checks.add("Widgets Home keeps main's header; the All sheet's Search and Settings rows open those pages over Home, and Back returns to Widgets Home");
@@ -838,12 +839,12 @@ public final class HubValidation extends Instrumentation {
         page.scrollBy(0, by);
     }
 
-    /** Taps the dock's All item and returns its sheet, open and settled. */
-    private Dialog openAllSheet() {
+    /** Taps the dock's All item and returns its sheet (DragSheet's overlay in Volt's window), open and settled. */
+    private View openAllSheet() {
         dockStays("Widgets Home before All");
         tapTag("hub-dock-handle");
-        Dialog[] sheet = new Dialog[1];
-        await(() -> onMain(() -> { sheet[0] = (Dialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
+        View[] sheet = new View[1];
+        await(() -> onMain(() -> { sheet[0] = (View) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isAttachedToWindow(); }), "All did not open the subjects sheet");
         // Until its spring has settled open (DragSheet's state OPEN), so a picture or a tap finds it in place.
         await(() -> onMain(() -> { Object drag = field(dock(), "drag"); return drag != null && Integer.valueOf(4).equals(field(drag, "state")); }), "The All sheet did not settle open");
         settle();
@@ -963,6 +964,43 @@ public final class HubValidation extends Instrumentation {
         return null;
     }
     private void systemBack() { sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); settle(); }
+    /**
+     * Back meant for the page, past a keyboard that came up late. hideKeyboard waits out a keyboard already shown, but on
+     * a loaded emulator the one Search asks for (MainActivity.focusPageSearch) can show after that, and Android gives Back
+     * to a shown keyboard first. So a frame callback watches the keyboard: when Back closed one instead of reaching the
+     * page (done still false), Back again, up to three times. Waits on what is seen, not on time.
+     */
+    private void backPastKeyboard(BooleanSupplier done, String message) {
+        if (Build.VERSION.SDK_INT < 30) { systemBack(); await(done, message); return; }
+        int[] closed = {0};
+        boolean[] watching = {true}, was = {false};
+        android.view.Choreographer.FrameCallback[] watch = new android.view.Choreographer.FrameCallback[1];
+        main(() -> {
+            was[0] = keyboardShown();
+            watch[0] = time -> {
+                if (!watching[0]) return;
+                boolean now = keyboardShown();
+                if (was[0] && !now) closed[0]++;
+                was[0] = now;
+                android.view.Choreographer.getInstance().postFrameCallback(watch[0]);
+            };
+            android.view.Choreographer.getInstance().postFrameCallback(watch[0]);
+        });
+        try {
+            for (int tries = 0; tries < 3; tries++) {
+                int before = onMain(() -> closed[0]);
+                systemBack();
+                await(() -> done.getAsBoolean() || onMain(() -> closed[0] > before), message);
+                if (done.getAsBoolean()) return;
+            }
+            require(false, message + " (each of three Backs closed a keyboard)");
+        } finally {
+            main(() -> watching[0] = false);
+        }
+    }
+    private boolean keyboardShown() { WindowInsets insets = root().getRootWindowInsets(); return insets != null && insets.isVisible(WindowInsets.Type.ime()); }
+    private boolean onHome() { return onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage"))); }
+
     private void hideKeyboard() {
         main(() -> {
             View focus = activity.getCurrentFocus();
