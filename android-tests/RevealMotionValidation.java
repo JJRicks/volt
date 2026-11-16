@@ -52,7 +52,11 @@ import com.jjricks.volt.ScooterProfiles;
  * Parts (-e part): {@code find} (Home's Find it nearby card, FindNearby entry A; -e home widgets|clean). The card is
  * offered the app's own way: BleController's timeout tally for the saved address reaches two (FindNearby.Timeouts, as
  * two connect timeouts leave it) while a connection is wanted; it goes when the tally starts again (as a connection
- * does). Nothing is sent and Bluetooth stays off. -e mode demo toggles the site every -e hold_ms (1500) for -e
+ * does). Nothing is sent and Bluetooth stays off. The connection parts run the simulator (memory only, never a
+ * command): its dropout script leaves the link Connecting, as a scooter that stops answering does, and the default
+ * script brings it back. {@code controls}: Controls › Limits' connection banner. {@code rides}: Ride › Rides'
+ * Connect to record. {@code night}: Ride › Riding mode's Night vision rows, revealed by choosing Scheduled (sunset to
+ * sunrise, the time zone's city) and hidden by choosing Off. -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
 public final class RevealMotionValidation extends Instrumentation {
@@ -66,6 +70,7 @@ public final class RevealMotionValidation extends Instrumentation {
     private final ArrayList<String> checks = new ArrayList<>(), notes = new ArrayList<>();
     private String scaleBefore, part, home;
     private String profileId;
+    private Site site;
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
@@ -75,7 +80,7 @@ public final class RevealMotionValidation extends Instrumentation {
             part = arguments.getString("part", "find");
             home = arguments.getString("home", "widgets");
             require(mode.equals("all") || mode.equals("demo"), "Unknown -e mode " + mode + " (all or demo)");
-            require(part.equals("find"), "Unknown -e part " + part + " (find)");
+            require(java.util.Arrays.asList("find", "controls", "rides", "night").contains(part), "Unknown -e part " + part + " (find, controls, rides or night)");
             require(home.equals("widgets") || home.equals("clean"), "Unknown -e home " + home + " (widgets or clean)");
             admit();
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
@@ -84,10 +89,12 @@ public final class RevealMotionValidation extends Instrumentation {
                     .putFloat("text_scale", Float.parseFloat(arguments.getString("text_scale", "1")))
                     .putString("home_style", home).putBoolean("home_style_chosen", true).putString("home_style_origin", "install")
                     .commit(), "Fixture settings failed");
+            if (part.equals("night")) require(settings().edit().putString("riding_night_vision", "off").putString("riding_night_schedule", "sun")
+                    .putString("riding_night_ride_area", "decline").commit(), "Night vision fixture failed");
             seed();
             launch();
-            requireHome();
-            Site site = findCard();
+            site = site();
+            requirePage();
             scaleBefore = shell("settings get global animator_duration_scale").trim();
             try {
                 scale(1);
@@ -124,6 +131,61 @@ public final class RevealMotionValidation extends Instrumentation {
         Site(String name, Supplier<View> subject, Supplier<List<View>> neighbours, Runnable show, Runnable hide) {
             this.name = name; this.subject = subject; this.neighbours = neighbours; this.show = show; this.hide = hide;
         }
+    }
+
+    private Site site() {
+        switch (part) {
+            case "controls": return connection("Controls › Limits' connection banner", HubPages.CONTROLS_LIMITS, "ControlsScreen", "banner");
+            case "rides": return connection("Ride › Rides' Connect to record", HubPages.RIDE_RIDES, "RidesScreen", "connectButton");
+            case "night": return night();
+            default: return findCard();
+        }
+    }
+
+    /** The page the part shows, opened the app's own way (Home is already open for find). */
+    private String page() {
+        switch (part) {
+            case "controls": return HubPages.CONTROLS_LIMITS;
+            case "rides": return HubPages.RIDE_RIDES;
+            case "night": return HubPages.RIDE_RIDING;
+            default: return HubPages.HOME;
+        }
+    }
+
+    /**
+     * A view on a page that shows while the simulator's link is Connecting (its dropout script) and goes once it is
+     * ready again (the default script).
+     */
+    private Site connection(String name, String page, String screen, String field) {
+        if (onMain(() -> !activity.service().simulating())) main(() -> require(activity.service().setSimulation(true), "The simulator did not start"));
+        await(() -> onMain(() -> activity.service().ble.ready()), "The simulator is not ready");
+        Supplier<View> subject = () -> (View) field(part(screen), field);
+        return new Site(name, subject, () -> siblingsAfter(subject.get()),
+                () -> main(() -> { activity.service().ble.setSimulationScript("dropout"); activity.redraw(); }),
+                () -> main(() -> { activity.service().ble.setSimulationScript(""); activity.redraw(); }));
+    }
+
+    /** Ride › Riding mode's "Sunset from" row: Scheduled (sunset to sunrise) shows it, Off hides it. */
+    private Site night() {
+        Supplier<View> subject = () -> root().findViewWithTag("preference_riding_night_from");
+        return new Site("Ride › Riding mode's Night vision schedule rows", subject, () -> siblingsAfter(subject.get()),
+                () -> main(() -> nightMode("scheduled")), () -> main(() -> nightMode("off")));
+    }
+
+    /** As the Night vision selector saves a choice: the stored mode, then the menu's refresh (nightChanged). */
+    private void nightMode(String mode) {
+        settings().edit().putString("riding_night_vision", mode).commit();
+        ((Runnable) field(field(part("HubRidingSettings"), "menu"), "refreshNight")).run();
+    }
+
+    /** The open page's screen of this class: the page itself, or one of a stacked page's parts. */
+    private Object part(String simpleName) {
+        Object screen = field(activity, "screen");
+        require(screen != null, "No page is open");
+        if (screen.getClass().getSimpleName().equals(simpleName)) return screen;
+        if (screen.getClass().getSimpleName().equals("HubPageScreen"))
+            for (Object item : (List<?>) field(screen, "parts")) if (item.getClass().getSimpleName().equals(simpleName)) return item;
+        throw new IllegalStateException("The open page has no " + simpleName + " (" + screen.getClass().getSimpleName() + ")");
     }
 
     /** Home's Find it nearby card: offered by two timeouts at the saved address while a connection is wanted. */
@@ -218,12 +280,12 @@ public final class RevealMotionValidation extends Instrumentation {
     private void recreated(Site site) {
         site.show.run(); frames(3);
         activity = recreate();
-        requireHome();
+        requirePage();
         settleFor(SETTLE_MS);
         requireRest(site, true, "in the Home rebuilt mid-arrival");
         site.hide.run(); frames(3);
         activity = recreate();
-        requireHome();
+        requirePage();
         settleFor(SETTLE_MS);
         requireRest(site, false, "in the Home rebuilt mid-departure");
         checks.add(site.name + ": the activity recreated mid-arrival or mid-departure (a rotation, fold or text-size change) shows it at rest, as asked");
@@ -464,6 +526,20 @@ public final class RevealMotionValidation extends Instrumentation {
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
                 && field(activity, "screen").getClass().getSimpleName().equals(wanted)), "The " + home + " Home is not shown");
         settle();
+    }
+
+    /** The part's page is open and laid out: Home for find, otherwise its page, opened as a Hub link opens it. */
+    private void requirePage() {
+        if (part.equals("find")) { requireHome(); return; }
+        String page = page();
+        if (!onMain(() -> page.equals(field(activity, "selectedPage")))) main(() -> activity.open(page));
+        await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
+                && !field(activity, "screen").getClass().getSimpleName().equals("LoadingScreen")), "The page " + page + " is not shown");
+        settle();
+        main(() -> {
+            View subject = site.subject.get();
+            require(subject != null && subject.getParent() instanceof View && ((View) subject.getParent()).isLaidOut(), "The page " + page + " is not laid out around its subject");
+        });
     }
 
     // ===== Plumbing =====
