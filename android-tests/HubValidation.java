@@ -507,8 +507,9 @@ public final class HubValidation extends Instrumentation {
 
     /**
      * A reading opened from Search keeps Readings filtered to it through a rebuild (as a rotation or an unfold makes,
-     * MainActivity.onConfigurationChanged) and an activity recreation while Data stays open, and the next ordinary visit
-     * to Data shows every reading (#393 council review, second round, finding 6; the first review's finding 4).
+     * MainActivity.onConfigurationChanged) and an activity recreation while Data stays open; once the owner types their
+     * own search on Readings, a recreation restores that search, not the reading (third round, finding 3); and the next
+     * ordinary visit to Data shows every reading (#393 council review, second round, finding 6; the first review's finding 4).
      */
     private void readingKept() throws Exception {
         String[] key = new String[1];
@@ -528,6 +529,21 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
         requirePinned(key[0], "after an activity recreation");
         screenshot("search-reading-recreated");
+        // The owner types their own search on Readings: the reading is let go, and a recreation now restores their search,
+        // not the reading (#393 council review, third round, finding 3: the reading saved at the last rebuild came back).
+        main(() -> ((EditText) field(field(activity, "screen"), "search")).setText("volt"));
+        settle();
+        requirePinned(null, "once the owner typed their own search");
+        recreateActivity();
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(null, "after the owner typed their own search and a recreation");
+        String[] typed = {null};
+        await(() -> onMain(() -> "volt".contentEquals(typed[0] = String.valueOf(((EditText) field(field(activity, "screen"), "search")).getText()))),
+                () -> "After the owner typed \"volt\" on Readings and a recreation, its field reads \"" + typed[0] + "\"");
+        screenshot("search-reading-typed-recreated");
+        // The owner's own search is kept in stats_query: clear it so later steps see Readings unfiltered.
+        main(() -> ((EditText) field(field(activity, "screen"), "search")).setText(""));
+        settle();
         backToSearch();
         tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
@@ -536,7 +552,7 @@ public final class HubValidation extends Instrumentation {
         requirePinned(null, "on the next ordinary visit");
         systemBack();
         requireHome("CleanHomeScreen");
-        checks.add("A reading opened from Search (" + key[0] + ") keeps Readings filtered to it through a rebuild and a recreation; the next ordinary visit shows every reading");
+        checks.add("A reading opened from Search (" + key[0] + ") keeps Readings filtered to it through a rebuild and a recreation; once the owner types \"volt\" there a recreation restores their search, not the reading; the next ordinary visit shows every reading");
     }
 
     /** Data's Readings shows reading by itself (StatsScreen's pinned reading), or none for null. */

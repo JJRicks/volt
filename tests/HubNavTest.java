@@ -136,6 +136,10 @@ public final class HubNavTest {
         require(HubNav.keptReading(null, "speed_kmh", java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH), false) == null, "Data left the stack: it is dropped");
         require(HubNav.keptReading(null, null, java.util.Arrays.asList(HubPages.HOME, HubPages.DATA), false) == null, "The next ordinary visit shows every reading");
         require(HubNav.keptReading(null, "speed_kmh", onData, true) == null, "The owner typed their own search: a rebuild doesn't bring the reading back");
+        // MainActivity.onSaveInstanceState saves this, not the reading as of the last rebuild (#393 council review, third
+        // round, finding 3): typed on Readings since, a recreation restores the owner's search; not typed, the reading.
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null && "speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)),
+                "What a recreation restores follows whether the owner typed since the last rebuild");
         require(HubNav.keptReading(HubNav.Args.anchor("row"), null, onData, false) == null, "Other arguments carry no reading");
         require(HubNav.keptReading(null, "speed_kmh", null, false) == null, "No stack, no reading");
     }

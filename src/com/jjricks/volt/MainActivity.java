@@ -392,7 +392,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
-        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);saved.putString("search_query",searchQuery);saved.putString("search_reading",searchReading);
+        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);saved.putString("search_query",searchQuery);
+        // The reading Readings shows by itself now, not as of the last rebuild: once the owner typed their own search there, a
+        // recreation (text size, dark mode on Follow system, process death) restores their search (#393 council review, third
+        // round, finding 3).
+        saved.putString("search_reading",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));
         saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
@@ -528,6 +532,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         rebuild();
         if(previous!=null){if(root!=before)Motion.crossfade(root,previous,direction,pageHeader,scroll);else previous.recycle();}
     }
+    /** Readings is shown and has let a search result's reading go: the owner typed their own search there (StatsScreen.pinnedReading). */
+    private boolean readingLetGo(){return screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;}
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
@@ -535,7 +541,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         // Readings let a search result's reading go (the owner typed their own search): a rebuild doesn't bring it back.
-        boolean readingDropped=screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;
+        boolean readingDropped=readingLetGo();
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);

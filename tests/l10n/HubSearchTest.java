@@ -720,6 +720,9 @@ public final class HubSearchTest {
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
         // Opening Search focuses its field wherever it is: in tabletop posture takeTop moved it out of the page's view, so
         // the page's own view has none (#393 council review, third round, finding 1).
+        // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
+        check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
+                && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");
         String searchScreen = read("src/com/jjricks/volt/HubSearchScreen.java");
         check(main.contains("EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);")
                 && searchScreen.contains("EditText field() { return search; }") && searchScreen.contains("top.addView(search, "),
