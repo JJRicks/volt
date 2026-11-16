@@ -117,11 +117,26 @@ public final class DockSheetValidation extends Instrumentation {
                 scaleBefore = shell("settings get global animator_duration_scale").trim();
                 try {
                     scale(1);
+                    // -e only window (or early, nested, keys): the own-window checks alone, or one of them.
+                    String only = arguments.getString("only", "");
+                    if (!only.isEmpty()) {
+                        switch (only) {
+                            case "window": ownWindow(); break;
+                            case "early": earlyTap(); break;
+                            case "nested": nested(); break;
+                            case "keys": keys(); break;
+                            case "keys-back": keysBack(); break;
+                            default: require(false, "Unknown -e only " + only + " (window, early, nested or keys)");
+                        }
+                        result.putString("result", "PASS");
+                        return;
+                    }
                     taps();
                     pulls();
                     drags();
                     scrolledList();
                     interruptions();
+                    ownWindow();
                     relayout();
                     frames();
                     animationsOff();
@@ -479,6 +494,290 @@ public final class DockSheetValidation extends Instrumentation {
                 + "was caught it reopens (the same sheet), taken back to that point it carries on closing; held, it takes Back again; Back while held closes it and the rest "
                 + "of that touch does nothing; a row's close, let go by Home as the subject opens, cannot be caught (a 30% pull does not reopen it) and reaches nothing under it; "
                 + "a tap on the dim meanwhile is swallowed");
+    }
+
+    /**
+     * In Volt's own window (no dialog window doing it for free): a row reaches no touch before it can be read, nested
+     * sheets give the page back exactly as it was, and key focus moves into the sheet and back out as a dialog's would.
+     */
+    private void ownWindow() {
+        earlyTap();
+        nested();
+        keys();
+    }
+
+    /**
+     * A tap early in the opening (slowed; the first third of the travel, content still transparent) at a row's place under
+     * the surface: nothing opens, and the sheet finishes opening. The tap is tried slower until it lands in that window.
+     */
+    private void earlyTap() {
+        requireHome();
+        for (int slower = 10; ; slower *= 2) {
+            scale(slower);
+            HubTestPages.showDock(this, activity);
+            States states = new States(null);
+            tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
+            float[] at = null;
+            long end = SystemClock.uptimeMillis() + 15000;
+            while (SystemClock.uptimeMillis() < end && (at = onMain(this::earlyRow)) == null) SystemClock.sleep(5);
+            require(at != null, "The slowed opening never showed a row under its surface (" + describe() + ")");
+            Finger finger = at[2] <= 1 / 3f ? new Finger(at) : null;
+            float[] landed = onMain(() -> drag() == null ? null : new float[]{1 - offset() / (Integer) field(drag(), "travel"), panel().getAlpha(), (Integer) field(drag(), "state")});
+            boolean early = finger != null && landed != null && landed[2] == OPENING && landed[0] <= 1 / 3f && landed[1] < .5f;
+            if (early) finger.up(); else if (finger != null) finger.cancel();
+            long until = SystemClock.uptimeMillis() + 30000;
+            while (SystemClock.uptimeMillis() < until) { Integer state = states.last(); if (state != null && state == OPEN || !onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity)))) break; SystemClock.sleep(10); }
+            List<Integer> seen = states.stop();
+            settle();
+            String page = onMain(() -> HubTestPages.current(activity));
+            require(HubPages.HOME.equals(page), "A tap on a row early in the opening (" + pct(at[2]) + " of the way) opened " + page);
+            require(!seen.isEmpty() && seen.get(seen.size() - 1) == OPEN && !seen.contains(CLOSING), "After a tap early in the opening the sheet did not finish opening (states " + seen + ")");
+            back(); awaitGone("Back");
+            requireHome();
+            if (early) {
+                checks.add("A tap at a row's place under the surface early in the opening (" + pct(landed[0]) + " of the way, content alpha " + round(landed[1]) + ", scale " + slower + "): nothing opens and the sheet finishes opening");
+                earlyDrag();
+                break;
+            }
+            require(slower < 80, "The slowed opening passed its first third before a row showed under its surface");
+        }
+        scale(1);
+    }
+
+    /** At the same slowed scale: a touch that starts there and moves down takes the sheet (its rows never get it), and nothing opens. */
+    private void earlyDrag() {
+        HubTestPages.showDock(this, activity);
+        tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
+        float[] at = null;
+        long end = SystemClock.uptimeMillis() + 15000;
+        while (SystemClock.uptimeMillis() < end && (at = onMain(this::earlyRow)) == null) SystemClock.sleep(5);
+        require(at != null && at[0] > 0, "The slowed opening never showed a row under its surface again (" + describe() + ")");
+        Object sheet = onMain(this::drag);
+        int sheetTravel = onMain(() -> (Integer) field(sheet, "travel"));
+        Finger finger = new Finger(at);
+        boolean unreadable = onMain(() -> ((View) field(sheet, "panel")).getAlpha() < .5f);
+        finger.moveBy(.15f * sheetTravel, 300, 15);
+        Object held = onMain(() -> field(sheet, "state"));
+        finger.up();
+        require(!unreadable || Integer.valueOf(DRAGGED).equals(held), "A touch that began on a row early in the opening and moved down did not take the sheet (state " + held + ")");
+        end = SystemClock.uptimeMillis() + 30000;
+        while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
+        settle();
+        require(onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity))), "A drag that began on a row early in the opening opened " + onMain(() -> HubTestPages.current(activity)));
+        if (onMain(() -> drag() != null)) { back(); }
+        awaitGone("a drag early in the opening");
+        requireHome();
+        if (unreadable) checks.add("A touch that began on a row early in the opening and moved down takes the sheet (DRAGGED) and opens nothing");
+    }
+
+    /** On the main thread, while the sheet opens: {x, y, progress} of a point on a row inside the surface and the screen, or null. */
+    private float[] earlyRow() {
+        Object sheet = drag();
+        if (sheet == null || !Integer.valueOf(OPENING).equals(field(sheet, "state"))) return null;
+        View surface = (View) field(sheet, "surface");
+        int travel = (Integer) field(sheet, "travel");
+        if (travel <= 0 || surface.getHeight() <= 0) return null;
+        float progress = 1 - offset() / travel;
+        int[] box = new int[2];
+        surface.getLocationOnScreen(box);
+        int bottom = Math.min(box[1] + surface.getHeight(), activity.getResources().getDisplayMetrics().heightPixels);
+        List<String> tags = new ArrayList<>();
+        tags.add("home-search"); tags.add("home-settings");
+        for (String each : HubPages.SUBJECTS) tags.add("home-subject-" + each);
+        for (String tag : tags) {
+            View row = sheetView().findViewWithTag(tag);
+            if (row == null || row.getHeight() <= 0 || !row.isClickable()) continue;
+            int[] at = new int[2];
+            row.getLocationOnScreen(at);
+            int top = Math.max(at[1], box[1]) + 2, end = Math.min(at[1] + row.getHeight(), bottom) - 2;
+            if (end - top < 4 * dp) continue;
+            float x = Math.max(box[0] + 4 * dp, Math.min(box[0] + surface.getWidth() - 4 * dp, at[0] + row.getWidth() / 2f));
+            return new float[]{x, (top + end) / 2f, progress};
+        }
+        return progress > 1 / 3f ? new float[]{0, 0, progress} : null;
+    }
+
+    /**
+     * Two sheets at once: a row's close let go (paused on its way out), Home back under it and All opened again over it.
+     * The page stays hidden and blocked while either shows, the let-go overlay is never taken for the page, and once both
+     * have gone every window view is exactly as it was before the first.
+     */
+    private void nested() {
+        requireHome();
+        java.util.Map<View, int[]> before = onMain(this::windowLook);
+        scale(10);
+        tapAll();
+        String subject = onMain(() -> {
+            for (String each : HubPages.SUBJECTS) { View view = sheetView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
+            return null;
+        });
+        require(subject != null, "The All sheet shows no subject row");
+        Object old = onMain(this::drag);
+        View oldWindow = onMain(this::sheetView);
+        View row = onMain(() -> oldWindow.findViewWithTag("home-subject-" + subject));
+        main(() -> {
+            require(row.performClick(), "The All sheet's " + subject + " row did not take its click");
+            ValueAnimator closing = (ValueAnimator) field(old, "settling");
+            require(closing != null, "The " + subject + " row did not start the sheet's close");
+            closing.pause();
+        });
+        require(onMain(() -> Boolean.TRUE.equals(field(old, "letGo"))), "Opening " + subject + " did not let its closing sheet go");
+        await(() -> onMain(() -> subject.equals(HubTestPages.current(activity))), "The row did not open " + subject);
+        settle();
+        back();
+        requireHome();
+        require(onMain(oldWindow::isAttachedToWindow), "The paused let-go sheet went before Home came back");
+        // Settling closed, it hides the page but leaves it focus (a page a row opened may focus its field meanwhile).
+        List<String> problems = new ArrayList<>();
+        covered(before, false, "with a let-go sheet still showing", problems);
+        // Its overlay takes every touch (as it should): All by its click.
+        main(() -> require(root().findViewWithTag("hub-dock-handle").performClick(), "All did not take its click"));
+        awaitOpen("All over a let-go sheet");
+        Object now = onMain(this::drag);
+        require(now != old, "All over a let-go sheet is the same sheet");
+        covered(before, true, "with a new sheet over a let-go one", problems);
+        if (onMain(() -> oldWindow.getImportantForAccessibility() == View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS))
+            problems.add("The new sheet covered the let-go sheet's overlay as if it were the page");
+        main(() -> ((ValueAnimator) field(old, "settling")).resume());
+        await(() -> !onMain(oldWindow::isAttachedToWindow), "The let-go sheet did not finish going");
+        settle();
+        covered(before, true, "after the let-go sheet went under the open one", problems);
+        back(); awaitGone("Back");
+        settle();
+        java.util.Map<View, int[]> after = onMain(this::windowLook);
+        // The end state first (the finding itself), then what was seen on the way.
+        for (java.util.Map.Entry<View, int[]> each : before.entrySet()) {
+            int[] was = each.getValue(), is = after.get(each.getKey());
+            require(is != null, "A window view went missing (" + each.getKey() + ")");
+            require(java.util.Arrays.equals(was, is), "After two sheets " + each.getKey().getClass().getSimpleName() + " is " + java.util.Arrays.toString(is) + ", was " + java.util.Arrays.toString(was) + " (importance, focusability)"
+                    + (problems.isEmpty() ? "" : "; also " + problems));
+        }
+        require(problems.isEmpty(), "Two sheets at once: " + problems);
+        scale(1);
+        checks.add("Two sheets at once (a let-go sheet still going when All opens again): the page stays hidden from TalkBack and blocked from focus while either shows, the let-go overlay is not taken for the page, "
+                + "and once both have gone every window view's accessibility importance and focusability are as they were");
+    }
+
+    /** On the main thread: the window's views other than sheets' overlays, each {importance, descendant focusability or -1}. */
+    private java.util.Map<View, int[]> windowLook() {
+        java.util.Map<View, int[]> look = new java.util.IdentityHashMap<>();
+        ViewGroup window = (ViewGroup) root();
+        for (int i = 0; i < window.getChildCount(); i++) {
+            View child = window.getChildAt(i);
+            if (child.getClass().getName().startsWith("com.jjricks.volt.DragSheet")) continue;
+            look.put(child, new int[]{child.getImportantForAccessibility(), child instanceof ViewGroup ? ((ViewGroup) child).getDescendantFocusability() : -1});
+        }
+        return look;
+    }
+
+    /** The page's views (those of before) are hidden from TalkBack and, if blocked, from focus; else notes it in problems. */
+    private void covered(java.util.Map<View, int[]> before, boolean blocked, String what, List<String> problems) {
+        main(() -> {
+            assertions++;
+            for (View view : before.keySet()) {
+                if (view.getImportantForAccessibility() != View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS) { problems.add("the page shows to TalkBack " + what); return; }
+                if (blocked && view instanceof ViewGroup && ((ViewGroup) view).getDescendantFocusability() != ViewGroup.FOCUS_BLOCK_DESCENDANTS) { problems.add("the page takes key focus " + what); return; }
+            }
+        });
+    }
+
+    /**
+     * Keys, out of touch mode (a keyboard or D-pad): with Home's lock focused, All opened by TalkBack's click takes key
+     * focus off the lock, so ENTER never reaches it. Opened from All by ENTER, with Settings focused in the sheet, Back
+     * then ENTER at once: the closing sheet's rows lose focus (All is hidden under the morph, so the overlay holds it in
+     * All's place), Settings never opens and the sheet carries on closing. Gone, focus is back on All.
+     */
+    private void keys() {
+        requireHome();
+        HubTestPages.showDock(this, activity);
+        sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_DOWN);
+        settle();
+        View lock = onMain(() -> {
+            View found = (View) field(activity, "lockControl");
+            if (shown(found)) return found;
+            @SuppressWarnings("unchecked") List<Object> locks = (List<Object>) field(activity, "dashboardLocks");
+            for (Object each : locks) { View view = (View) field(each, "lockControl"); if (shown(view)) return view; }
+            return null;
+        });
+        require(lock != null, "Widgets Home shows no lock control");
+        main(() -> require(!lock.isInTouchMode() && lock.requestFocus() && lock.isFocused(), "Home's lock did not take key focus (touch mode " + lock.isInTouchMode() + ")"));
+        Object lockBefore = onMain(() -> invoke(lock, "shown"));
+        View all = onMain(() -> root().findViewWithTag("hub-dock-handle"));
+        main(() -> require(all.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, null), "All did not take TalkBack's click"));
+        awaitOpen("All by TalkBack's click");
+        String focusedOpen = onMain(() -> focusName(root().findFocus()));
+        boolean lockHeld = onMain(lock::isFocused);
+        sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER);
+        settle();
+        Object lockAfter = onMain(() -> invoke(lock, "shown"));
+        require(java.util.Objects.equals(lockBefore, lockAfter), "ENTER under the sheet All opened reached Home's lock (" + lockBefore + " -> " + lockAfter + ", focus on " + focusedOpen + ")");
+        require(!lockHeld, "Home's lock kept key focus under the open sheet");
+        require(focusedOpen.startsWith("sheet"), "The open sheet did not take key focus (focus on " + focusedOpen + ")");
+        // Back to Home with the sheet gone, whatever the ENTER pressed in it.
+        for (int tries = 0; tries < 4 && !onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity)) && drag() == null); tries++) back();
+        awaitGone("ENTER in the sheet");
+        requireHome();
+        checks.add("Keys out of touch mode: All opened by TalkBack's click takes key focus off Home's lock (focus on " + focusedOpen + "; ENTER changes nothing on the lock)");
+        keysBack();
+    }
+
+    /** Back then ENTER at once with Settings focused in the sheet (keys' second half; -e only keys-back runs it alone). */
+    private void keysBack() {
+        requireHome();
+        HubTestPages.showDock(this, activity);
+        sendKeyDownUpSync(KeyEvent.KEYCODE_DPAD_DOWN);
+        settle();
+        String backTo = "";
+        for (int slower = 5; ; slower *= 2) {
+            scale(slower);
+            View allNow = onMain(() -> root().findViewWithTag("hub-dock-handle"));
+            main(() -> require(!allNow.isInTouchMode() && allNow.requestFocus(), "All did not take key focus"));
+            sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER);
+            awaitOpen("ENTER on All");
+            Object sheet = onMain(this::drag);
+            View settings = onMain(() -> sheetView().findViewWithTag("home-settings"));
+            require(settings != null, "The All sheet has no Settings row");
+            main(() -> require(settings.requestFocus() && settings.isFocused(), "The sheet's Settings row did not take key focus"));
+            States closes = new States(sheet);
+            sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+            Object state = onMain(() -> field(sheet, "state"));
+            String focused = onMain(() -> focusName(root().findFocus()));
+            boolean closing = Integer.valueOf(CLOSING).equals(state) && onMain(() -> ((View) field(sheet, "frame")).isAttachedToWindow());
+            sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER);
+            long end = SystemClock.uptimeMillis() + 30000;
+            while (SystemClock.uptimeMillis() < end && !closes.gone() && onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity)))) SystemClock.sleep(10);
+            List<Integer> seen = closes.stop();
+            settle();
+            String page = onMain(() -> HubTestPages.current(activity));
+            require(!HubPages.SETTINGS.equals(page), "ENTER straight after Back opened Settings from the closing sheet (" + (closing ? "closing" : "state " + state) + ", focus on " + focused + ")");
+            require(HubPages.HOME.equals(page), "ENTER straight after Back opened " + page + " (focus on " + focused + ")");
+            List<Integer> sinceBack = seen.contains(CLOSING) ? seen.subList(seen.indexOf(CLOSING), seen.size()) : seen;
+            require(!sinceBack.contains(OPENING) && !sinceBack.contains(OPEN), "ENTER straight after Back reopened the sheet (states " + seen + ", focus on " + focused + ")");
+            awaitGone("Back then ENTER");
+            if (closing) {
+                // While it closed, its rows held no focus (the overlay held it for the hidden All); gone, focus is back on All.
+                require(!focused.contains("home-settings"), "The closing sheet's Settings row kept key focus (" + focused + ")");
+                String home = onMain(() -> focusName(root().findFocus()));
+                require(onMain(allNow::isFocused), "Key focus did not go back to All after the sheet closed (focus on " + home + "; while closing on " + focused + ")");
+                backTo = focused;
+                break;
+            }
+            require(slower < 40, "The slowed close ended before an ENTER straight after Back (state " + state + ")");
+            requireHome();
+        }
+        scale(1);
+        checks.add("Keys out of touch mode: with Settings focused in the sheet All opened by ENTER, Back then ENTER at once "
+                + "never opens Settings or anything else: the closing sheet's rows lose focus (focus on " + backTo + " while it closes) and the sheet carries on closing; gone, focus is back on All");
+    }
+
+    /** On the main thread: where key focus is ("sheet: …" inside a sheet's overlay, "page: …" otherwise, "none"). */
+    private String focusName(View focused) {
+        if (focused == null) return "none";
+        boolean inSheet = false;
+        for (Object at = focused; at instanceof View; at = ((View) at).getParent()) if (at.getClass().getName().startsWith("com.jjricks.volt.DragSheet")) inSheet = true;
+        Object tag = focused.getTag();
+        CharSequence said = focused.getContentDescription();
+        return (inSheet ? "sheet: " : "page: ") + focused.getClass().getSimpleName() + (tag != null ? " " + tag : "") + (said != null ? " \"" + said + "\"" : "");
     }
 
     /**

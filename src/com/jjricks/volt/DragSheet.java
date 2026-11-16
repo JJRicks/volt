@@ -73,13 +73,22 @@ import java.util.function.Consumer;
  * <p>The overlay fills the window, edge to edge: its own scrim, the surface, and the sheet's content at its bottom. The
  * background reaches CAP_DP below the screen's edge, so the bounce and the rubber band never show a gap under it. While
  * the sheet shows, the rest of the window is hidden from accessibility services and takes no focus, so TalkBack and a
- * keyboard stay on the sheet as they would in a dialog; Back reaches the sheet first through its activity (back()). While
+ * keyboard stay on the sheet as they would in a dialog; Back reaches the sheet first through its activity (back()).
+ * Sheets nest (a let-go sheet still sliding away under a new one): one SheetCover per window keeps the page's own
+ * settings, saved by the first sheet and written back when the last goes; the page is hidden while any sheet is attached
+ * and blocked from focus while any wants it. Key focus moves in as a dialog's window would take it (takeFocus): a page
+ * view that had it (Home's lock, say) is remembered and loses it, and without touch the overlay takes it, then the first
+ * row once readable; it goes back to that view when the sheet gives up focus (or once it has gone, for a morph's hidden
+ * source), if the view can still take it and nothing else has (a page a row opened keeps its field's focus). Rows are readable from READABLE content alpha (or OPEN): before
+ * that, early in a morph's opening, they are transparent and sit low under a surface that still looks like the dock, so
+ * they take no touch (a touch there only drags the sheet; a tap does nothing), no key focus and no TalkBack. No confirm
+ * key ever reaches a row unless the sheet is readable and focusable (Frame.dispatchKeyEvent). While
  * it settles closed it still takes every touch (as Material's BottomSheetDialog does while it hides), so nothing under it
  * is touched by accident, not even a lock control on the page: a finger down on the sheet catches it and drags it from
  * where it is (it then carries on closing unless dragged back up a quarter of its travel, SheetSpring.caughtOpens, so a
  * plain tap lets it go), and a touch on the dim is swallowed. It gives up Back and focus meanwhile (focusable), so a
  * Back pressed then goes to the page, and a page opened from one of its rows can focus its search field. On the light theme the status bar's icons turn white once the dim behind them passes the
- * contrast crossover (SheetSpring.whiteIcons), and dark again below it; the window's own setting comes back when it goes.
+ * contrast crossover (SheetSpring.whiteIcons), and dark again below it; with sheets nested they are white while any asks.
  *
  * <p><b>Deferred work and its token.</b> Nothing done later acts on a sheet that has moved on since. {@code epoch} goes up
  * with every change of what the sheet is doing: stop() (so every settle, catch, pull, take, finish and dismiss), the end
@@ -92,20 +101,24 @@ import java.util.function.Consumer;
  *
  * <p><b>States and what each ignores</b> (anything not listed acts as its method says):
  * <ul>
- *   <li>NEW (not shown): open and pull show it (the source hands over in the same frame); close and leave make it GONE
- *   with nothing shown; follow, release and measured cannot reach it (not attached yet).</li>
+ *   <li>NEW (not shown): open and pull show it (the source hands over in the same frame, the page is covered and key
+ *   focus moves in); close and leave make it GONE with nothing shown; follow, release and measured cannot reach it (not
+ *   attached yet).</li>
  *   <li>PULLED (a dock finger pulls it, or a tap waits for its first layout): follow and release from that pull only
  *   (its epoch); a finger down on the sheet's overlay settles the pull where it is and the rest of that touch does
  *   nothing; open, close (Back) settle it, and the pull's later moves are ignored; leave goes at once.</li>
  *   <li>DRAGGED (its own finger holds it): open and pull are ignored; close (Back, the close button) settles it closed
  *   and the rest of that touch does nothing; leave goes at once; measured only places it.</li>
- *   <li>OPENING: open is ignored; close settles closed from where it is; a finger may take it (DRAGGED); measured
- *   restarts the opening for the new travel (posted, its token); leave goes at once.</li>
+ *   <li>OPENING: open is ignored; close settles closed from where it is; a finger may take it (DRAGGED); until the
+ *   content is readable a touch on the sheet reaches no row (a vertical move takes it, a tap does nothing) and rows take no
+ *   key focus or confirm key; measured restarts the opening for the new travel (posted, its token); leave goes at once.</li>
  *   <li>OPEN: open is ignored; close settles closed; leave goes at once; measured only places it.</li>
  *   <li>CLOSING: close is ignored; open springs back open; a finger on the sheet catches it (DRAGGED, Back reaches it
- *   again), on the dim is swallowed; a touch that began on its views while it was open does nothing more; Back goes to
- *   the page and the page may take focus (not focusable); measured restarts the close for the new travel; leave lets it
- *   go (below), or goes at once if nothing settles it or its activity is ending.</li>
+ *   again, focus moves back in as at show), on the dim is swallowed; a touch that began on its views while it was open
+ *   does nothing more; Back goes to the page and so does key focus (not focusable: its rows lose focus, to the
+ *   remembered page view if it can take it, else the overlay holds it in that view's place until gone: a morph's hidden
+ *   source), no confirm key reaches a row, and the page's focus is unblocked unless another sheet wants it; measured restarts the close for the new travel; leave lets it go (below), or goes at once if
+ *   nothing settles it or its activity is ending.</li>
  *   <li>CLOSING, let go: open, close, pull, back and leave are ignored (leave goes at once if the activity is ending),
  *   every touch is swallowed, settle(true) refuses; it only finishes its settle and goes, or goes at once with its
  *   activity. If it grew out of a source, that source is going (Home rebuilt): the surface keeps the shape it had when
@@ -114,7 +127,8 @@ import java.util.function.Consumer;
  *   dim). Its travel no longer follows layouts.</li>
  *   <li>GONE: everything is ignored. A sheet that grew out of a source and closed draws the source exactly for this
  *   one frame, swallowing touches, and is removed with the source shown again on the next frame (removal); any other is
- *   removed at once. A GONE sheet is never shown again.</li>
+ *   removed at once. Removed, its share of the cover goes (the page's own settings come back if it was the last) and
+ *   focus inside it goes back as at CLOSING. A GONE sheet is never shown again.</li>
  * </ul>
  * <b>The source changing under it.</b> A dock that moves or changes size (Home laid out again, an inset, larger text)
  * is read again on its next layout (measured): the surface follows it and the travel becomes the new distance, a running
@@ -198,8 +212,6 @@ final class DragSheet {
     private boolean letGo;
     /** The token of every deferred action (the class comment): up by one with each change of what the sheet is doing. */
     private int epoch;
-    /** Light theme: the status bar's icons are white now (the dim behind them passed the crossover). */
-    private boolean whiteIcons;
     private Runnable onDismiss;
 
     /** What it grows out of, null when none (or once it has gone); morph: it is growing out of it now (the travel is its). */
@@ -217,9 +229,20 @@ final class DragSheet {
     /** Closed out of a source: the removal waiting for the next frame (the last frame drew the source). */
     private Runnable removal;
     private boolean removed;
-    /** The window's other views hidden from accessibility and focus while it shows, and how they were. */
-    private final List<View> covered = new ArrayList<>();
-    private final List<int[]> coveredWas = new ArrayList<>();
+    /**
+     * Each window's record of what its sheets cover (SheetCover: nested, so a sheet opening over a let-go one never
+     * saves the older one's hiding as the page's own), and this sheet's window's, while it shows.
+     */
+    private static final java.util.WeakHashMap<View, SheetCover<View>> COVERS = new java.util.WeakHashMap<>();
+    private SheetCover<View> cover;
+    /** The page's view that had key focus when the sheet took it (show, or a catch while closing); given back as it goes. */
+    private java.lang.ref.WeakReference<View> pageFocus;
+    /**
+     * Its content is readable (OPEN, or faded in to READABLE): only then do its rows take touches and key focus and show
+     * to TalkBack. Below it they are hidden only by transparency, under a surface that still looks like the dock.
+     */
+    private boolean readable = true;
+    static final float READABLE = .5f;
     private final Rect clip = new Rect();
 
     /**
@@ -450,15 +473,18 @@ final class DragSheet {
         }
         WindowInsets insets = window.getRootWindowInsets();
         if (insets != null) inset(insets);
-        // The rest of the window: out of TalkBack's reach and of focus while the sheet is over it, as under a dialog.
+        // The rest of the window: out of TalkBack's reach and of focus while the sheet is over it, as under a dialog. Other
+        // sheets' overlays are not the page: each covers the page itself (SheetCover nests them).
+        List<View> covered = new ArrayList<>();
         for (int i = 0; i < window.getChildCount(); i++) {
             View other = window.getChildAt(i);
-            if (other == frame) continue;
-            covered.add(other);
-            coveredWas.add(new int[]{other.getImportantForAccessibility(), other instanceof ViewGroup ? ((ViewGroup) other).getDescendantFocusability() : -1});
-            other.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-            if (other instanceof ViewGroup) ((ViewGroup) other).setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+            if (!(other instanceof Frame)) covered.add(other);
         }
+        // The page's key focus before anything moves it (hiding the source clears focus inside it).
+        View had = window.findFocus();
+        cover = COVERS.get(window);
+        if (cover == null) { cover = new SheetCover<>(WINDOW_VIEWS, View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS, ViewGroup.FOCUS_BLOCK_DESCENDANTS); COVERS.put(window, cover); }
+        cover.cover(this, covered);
         SheetMorph.Box from = source == null ? null : readDock();
         if (from != null) {
             dockBox = from;
@@ -472,6 +498,9 @@ final class DragSheet {
         } else {
             source = null;
         }
+        // A morph starts as the dock, its content transparent: not readable until place fades it in.
+        if (morph) readable(false);
+        takeFocus(had);
         if (shown != null) shown.accept(this);
         OwnDialogs.track(this);
         return true;
@@ -612,6 +641,7 @@ final class DragSheet {
         panel.setTranslationZ((float) box.elevation);
         panel.setTranslationY(panelY);
         panel.setAlpha((float) content);
+        readable(state == OPEN || content >= READABLE);
         // The content never shows outside the surface (its sides are still coming in while it fades in).
         int top = panel.getTop() + Math.round(panelY);
         clip.set(surface.getLeft() - panel.getLeft(), surface.getTop() - top, surface.getRight() - panel.getLeft(), surface.getBottom() - top);
@@ -659,14 +689,26 @@ final class DragSheet {
      * passes the contrast crossover, and dark again below it, so whichever shows has at least 4.5:1. Only on a crossing.
      */
     private void statusIcons(float alpha) {
-        if (ui.dark || Build.VERSION.SDK_INT < 30) return;
-        boolean white = SheetSpring.whiteIcons(ui.bg, alpha);
-        if (white == whiteIcons) return;
-        whiteIcons = white;
+        if (ui.dark || Build.VERSION.SDK_INT < 30 || cover == null) return;
+        // The window's icons are white while any of its sheets asks (their dims stack): SheetCover.icons.
+        icons(cover.icons(this, SheetSpring.whiteIcons(ui.bg, alpha)));
+    }
+
+    /** Sets the window's status bar icons white (true) or back to the light theme's dark (false); null: no change. */
+    private void icons(Boolean white) {
+        if (white == null || ui.dark || Build.VERSION.SDK_INT < 30) return;
         android.view.WindowInsetsController bars = activity.getWindow() == null ? null : activity.getWindow().getInsetsController();
         if (bars != null) bars.setSystemBarsAppearance(white ? 0 : android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
                 android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
     }
+
+    /** How SheetCover reads and writes the window's views. */
+    private static final SheetCover.Views<View> WINDOW_VIEWS = new SheetCover.Views<View>() {
+        @Override public int importance(View view) { return view.getImportantForAccessibility(); }
+        @Override public void importance(View view, int value) { view.setImportantForAccessibility(value); }
+        @Override public int focus(View view) { return view instanceof ViewGroup ? ((ViewGroup) view).getDescendantFocusability() : -1; }
+        @Override public void focus(View view, int value) { if (view instanceof ViewGroup) ((ViewGroup) view).setDescendantFocusability(value); }
+    };
 
     /**
      * Starts the settle to open or closed from where the sheet is, at velocity (px/s downward); instant without animations.
@@ -765,36 +807,115 @@ final class DragSheet {
         if (dismissed != null) dismissed.run();
     }
 
-    /** The window as it was before the sheet: its views' accessibility and focus, the status bar's icons. */
+    /**
+     * The window as it was before the sheet, as far as this sheet goes: key focus back to the page, and its share of
+     * the cover let go (the page shows to TalkBack and takes focus again, and the icons turn back, once no other sheet
+     * holds them: SheetCover).
+     */
     private void restoreWindow() {
-        for (int i = 0; i < covered.size(); i++) {
-            View other = covered.get(i);
-            int[] was = coveredWas.get(i);
-            other.setImportantForAccessibility(was[0]);
-            if (was[1] >= 0 && other instanceof ViewGroup) ((ViewGroup) other).setDescendantFocusability(was[1]);
-        }
-        covered.clear(); coveredWas.clear();
-        if (whiteIcons) {
-            whiteIcons = false;
-            android.view.WindowInsetsController bars = Build.VERSION.SDK_INT < 30 || activity.getWindow() == null ? null : activity.getWindow().getInsetsController();
-            if (bars != null) bars.setSystemBarsAppearance(android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                    android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);
-        }
+        if (cover == null) return;
+        SheetCover<View> was = cover;
+        cover = null;
+        icons(was.uncover(this));
+        // The last sheet gone: the window's record goes too (it held the page's views only while covering them).
+        if (!was.covering()) COVERS.values().remove(was);
+        giveFocus(was, false);
     }
 
     /**
      * While it settles closed Back goes to the page (not to a sheet already on its way out), and so does focus: a page
-     * opened from one of its rows (Search) puts its cursor in its field while the sheet is still on its way down. It
-     * keeps taking touches (Frame): the overlay fills the window, so none reach the page. Caught again, it takes Back
-     * and focus back.
+     * opened from one of its rows (Search) puts its cursor in its field while the sheet is still on its way down, and a
+     * key pressed meanwhile never reaches a row of the sheet. It keeps taking touches (Frame): the overlay fills the
+     * window, so none reach the page. Caught again, it takes Back and focus back.
      */
     private void focusable(boolean on) {
         focusable = on;
-        for (int i = 0; i < covered.size(); i++) {
-            View other = covered.get(i);
-            int was = coveredWas.get(i)[1];
-            if (was >= 0 && other instanceof ViewGroup) ((ViewGroup) other).setDescendantFocusability(on ? ViewGroup.FOCUS_BLOCK_DESCENDANTS : was);
+        if (cover == null) return;
+        cover.wantsFocus(this, on);
+        if (on) takeFocus(null);
+        else giveFocus(cover, true);
+    }
+
+    /**
+     * Key focus into the sheet, as a dialog's window took it: a page view that has it (Home's lock, say), or had it as
+     * the sheet showed (had: the source, which hiding cleared), is remembered and loses it, so no key reaches it under the sheet; without touch, the sheet's first row takes it once readable,
+     * the overlay itself until then.
+     */
+    private void takeFocus(View had) {
+        // The overlay first (it holds nothing to press), its rows by focusSheet or the keys.
+        frame.setDescendantFocusability(ViewGroup.FOCUS_BEFORE_DESCENDANTS);
+        frame.setFocusable(true);
+        View focused = frame.getRootView().findFocus();
+        View page = had != null && !inSheet(had) ? had : focused != null && !inSheet(focused) ? focused : null;
+        if (page != null) pageFocus = new java.lang.ref.WeakReference<>(page);
+        if (focused != null && !inSheet(focused)) focused.clearFocus();
+        if (!frame.isInTouchMode() && !frame.hasFocus()) focusSheet();
+    }
+
+    /** Key focus to the sheet's first row when it is readable, else to the overlay. */
+    private void focusSheet() {
+        if (readable) {
+            ArrayList<View> rows = new ArrayList<>();
+            panel.addFocusables(rows, View.FOCUS_DOWN);
+            for (View row : rows) if (row != panel && row.requestFocus()) return;
         }
+        frame.requestFocus();
+    }
+
+    /**
+     * The sheet's rows take no key focus (settling closed, or gone), and key focus inside it goes back to the page: to
+     * the page view remembered at takeFocus if it can still take it (attached, shown, focusable, no other sheet blocking
+     * the page) and nothing else has taken focus meanwhile (a page a row opened keeps its field's focus; the remembered
+     * view is forgotten then). A morph's source is hidden until the sheet has gone, so while it settles closed (closing)
+     * the overlay itself stands in for a remembered view that cannot take focus yet: it holds nothing to press (its rows
+     * are blocked, and Frame swallows confirm keys while it is not focusable), and the page takes focus from it as from
+     * nothing. Gone, the overlay takes no focus at all; with no view to go back to, focus leaves it as Android places it.
+     */
+    private void giveFocus(SheetCover<View> windowCover, boolean closing) {
+        View now = frame.getRootView().findFocus();
+        boolean inMe = now != null && isInside(now, frame);
+        frame.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        if (now != null && !inMe) {
+            pageFocus = null;
+        } else {
+            View back = pageFocus == null ? null : pageFocus.get();
+            if (back != null && back.isAttachedToWindow() && back.isShown() && back.isFocusable() && !windowCover.blocking()
+                    && back.getRootView() == frame.getRootView() && back.requestFocus()) {
+                pageFocus = null;
+            } else if (inMe && closing) {
+                if (now != frame && !frame.requestFocus()) now.clearFocus();
+            }
+        }
+        if (closing) return;
+        // Not focusable clears the overlay's own focus (Android then places it); a row left focused (gone straight from open) lets it go.
+        frame.setFocusable(false);
+        View left = frame.findFocus();
+        if (left != null) left.clearFocus();
+    }
+
+    /** In some sheet's overlay (this one's, or another's still in the window). */
+    private static boolean inSheet(View view) {
+        for (Object at = view; at instanceof View; at = ((View) at).getParent()) if (at instanceof Frame) return true;
+        return false;
+    }
+
+    private static boolean isInside(View view, View group) {
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) if (at == group) return true;
+        return false;
+    }
+
+    /**
+     * Its content's readability changed (place): rows take touches, key focus and TalkBack only while readable. Key focus
+     * on a row going unreadable moves to the overlay; on the overlay as it turns readable, to the first row.
+     */
+    private void readable(boolean now) {
+        if (now == readable) return;
+        readable = now;
+        panel.setDescendantFocusability(now ? ViewGroup.FOCUS_AFTER_DESCENDANTS : ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        panel.setImportantForAccessibility(now ? View.IMPORTANT_FOR_ACCESSIBILITY_AUTO : View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        if (!focusable) return;
+        if (!now && panel.hasFocus()) frame.requestFocus();
+        else if (now && frame.isFocused() && !frame.isInTouchMode()) focusSheet();
     }
 
     /** The title of a sheetContent header (its first TextView), for TalkBack's pane title. */
@@ -887,7 +1008,12 @@ final class DragSheet {
      * rest of that touch.
      */
     private final class Frame extends FrameLayout {
-        private static final int NONE = 0, VIEWS = 1, DRAG = 2, IGNORE = 3;
+        /**
+         * What the current touch does: not decided yet (its views have it), its views' (a list scrolling), the sheet's
+         * own drag, nothing, or on the surface only (SURFACE: it began while the content was not readable, so the rows
+         * never get it; a vertical move still drags the sheet, a tap does nothing).
+         */
+        private static final int NONE = 0, VIEWS = 1, DRAG = 2, IGNORE = 3, SURFACE = 4;
         private static final int OUTSIDE = 0, HEAD = 1, LIST = 2;
         private VelocityTracker tracker;
         private int mode, region;
@@ -896,7 +1022,26 @@ final class DragSheet {
         private float downX, downY, lastY, dragY, dragRaw;
         private boolean moved;
 
-        Frame(Context context) { super(context); }
+        Frame(Context context) {
+            super(context);
+            // Takes key focus while it shows (takeFocus), never by touch; no highlight over the whole window.
+            if (Build.VERSION.SDK_INT >= 26) setDefaultFocusHighlightEnabled(false);
+        }
+
+        /**
+         * A confirm key never reaches a row of a sheet settling closed, let go, gone or not yet readable (its rows hold
+         * no focus then either: giveFocus, readable). Other keys (Back, the arrows) go on as usual.
+         */
+        @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+            if ((!focusable || letGo || !readable || !showing()) && confirm(event.getKeyCode())) return true;
+            return super.dispatchKeyEvent(event);
+        }
+
+        private boolean confirm(int key) {
+            return key == android.view.KeyEvent.KEYCODE_ENTER || key == android.view.KeyEvent.KEYCODE_DPAD_CENTER
+                    || key == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER || key == android.view.KeyEvent.KEYCODE_SPACE
+                    || key == android.view.KeyEvent.KEYCODE_BUTTON_A;
+        }
 
         @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
             super.onLayout(changed, left, top, right, bottom);
@@ -922,13 +1067,14 @@ final class DragSheet {
                 if (state == PULLED) { letPull(0, -1); mode = IGNORE; return true; }
                 // Settling closed: a finger on the sheet catches it (its rows never get the touch); the dim swallows it.
                 if (state == CLOSING && region != OUTSIDE) { catchAt(y); track(event); return true; }
-                mode = state == OPEN || state == OPENING ? NONE : IGNORE;
+                // Rows are touched only when readable: early in the opening they are invisible, low under the dock's look.
+                mode = state == OPEN || state == OPENING ? (readable || region == OUTSIDE ? NONE : SURFACE) : IGNORE;
             }
             track(event);
             // The sheet moved on without this touch (Back, the close button, a dismiss): the rest of its drag does nothing.
             if (mode == DRAG && (gesture != epoch || state != DRAGGED)) mode = IGNORE;
             // A touch on its views while it was open, and it is no longer (it settles closed or is gone): they lose it.
-            if ((mode == NONE || mode == VIEWS) && state != OPEN && state != OPENING) {
+            if ((mode == NONE || mode == VIEWS || mode == SURFACE) && state != OPEN && state != OPENING) {
                 if (action != MotionEvent.ACTION_DOWN) cancelViews(event);
                 mode = IGNORE;
             }
@@ -941,6 +1087,7 @@ final class DragSheet {
                 case MotionEvent.ACTION_MOVE:
                     if (Math.abs(x - downX) > slop || Math.abs(y - downY) > slop) moved = true;
                     if (mode == DRAG) { drag(y); lastY = y; return true; }
+                    if (mode == SURFACE && Math.abs(y - downY) > slop && Math.abs(y - downY) > Math.abs(x - downX)) { take(event, y); return true; }
                     if (mode == NONE && (state == OPEN || state == OPENING) && Math.abs(y - downY) > slop && Math.abs(y - downY) > Math.abs(x - downX)) {
                         boolean down = y > downY;
                         boolean takes = region == HEAD || region == LIST && (down ? !list.canScrollVertically(-1) : !list.canScrollVertically(-1) && !list.canScrollVertically(1));
@@ -969,8 +1116,8 @@ final class DragSheet {
                 default:
                     break;
             }
-            // The dim holds nothing to touch.
-            if (region == OUTSIDE) return true;
+            // The dim holds nothing to touch, nor do rows not readable yet.
+            if (region == OUTSIDE || mode == SURFACE) return true;
             super.dispatchTouchEvent(event);
             // Kept even where no view of the sheet wants it: in the same window, a touch it let go would reach the page.
             return true;

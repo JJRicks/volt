@@ -75,7 +75,7 @@ sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/Quic
 sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
 # The dock's All sheet that follows a finger: its springs, release decision and rubber band (DragSheet, owner Nov 15).
-sources+=("$APP_DIR/src/com/jjricks/volt/SheetSpring.java" "$TEST_DIR/SheetSpringTest.java" "$APP_DIR/src/com/jjricks/volt/SheetMorph.java" "$TEST_DIR/SheetMorphTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/SheetSpring.java" "$TEST_DIR/SheetSpringTest.java" "$APP_DIR/src/com/jjricks/volt/SheetMorph.java" "$TEST_DIR/SheetMorphTest.java" "$APP_DIR/src/com/jjricks/volt/SheetCover.java" "$TEST_DIR/SheetCoverTest.java")
 # Just back's tiles: names and values take the first rung that fits whole (part 9, council early review).
 sources+=("$APP_DIR/src/com/jjricks/volt/TileFit.java" "$TEST_DIR/TileFitTest.java")
 # A subject page's banner: its pill's label whole, the pill under the words when their longest word no longer fits beside it.
@@ -214,6 +214,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SheetSpringTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SheetMorphTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SheetCoverTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"
