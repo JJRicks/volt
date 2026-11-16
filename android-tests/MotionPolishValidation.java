@@ -418,22 +418,38 @@ public final class MotionPolishValidation extends Instrumentation {
             saveCrop(raw.get(i), regions[0], regions[1], regions[2], regions[3], 1, "glow-hero-" + i);
         }
         notes.add("glow frames " + timeline);
-        double low = Double.MAX_VALUE, high = -1; int worstGlow = 0, worstStatic = 0; int[] regionWorst = new int[6];
+        // A charging picture whose cable animates (ChargeWireView: the UT5 MAX, the UT5 Ultra X; the contributor's
+        // charging animation): the pixels its live layer can draw in (the cable as wide as a pulse's glow, the lit cells
+        // and their bloom, from the picture's own geometry) are its animation, not a moved photo. Every other pixel of
+        // the static regions must hold still as before, and so must the whole stage above the floor glow outside them.
+        boolean[] live = liveMask(frames.isEmpty() ? null : raw.get(0));
+        double low = Double.MAX_VALUE, high = -1; int worstGlow = 0, worstStatic = 0, worstLive = 0, liveChanged = 0; int[] regionWorst = new int[7];
+        int width = raw.get(0).getWidth();
         for (int[][] frame : frames) {
             double mean = 0; for (int p : frame[1]) mean += luminance(p); mean /= frame[1].length;
             low = Math.min(low, mean); high = Math.max(high, mean);
             for (int k = 0; k < frame[1].length; k++) worstGlow = Math.max(worstGlow, delta(frame[1][k], frames.get(0)[1][k]));
             for (int r = 2; r < frame.length; r++) for (int k = 0; k < frame[r].length; k++) {
                 int d = delta(frame[r][k], frames.get(0)[r][k]);
+                if (live != null) {
+                    int w = regions[r * 4 + 2], x = regions[r * 4] + k % w, y = regions[r * 4 + 1] + k / w;
+                    if (live[y * width + x]) { if (d > 12) liveChanged++; worstLive = Math.max(worstLive, d); continue; }
+                }
                 worstStatic = Math.max(worstStatic, d); regionWorst[r] = Math.max(regionWorst[r], d);
             }
         }
         notes.add(String.format(Locale.US, "glow band mean luminance %.2f..%.2f, worst glow pixel change %d, worst static pixel change %d", low, high, worstGlow, worstStatic));
         notes.add("static region worst (percent, chip, upper photo, floor line) " + regionWorst[2] + "," + regionWorst[3] + "," + regionWorst[4] + "," + regionWorst[5]);
-        // HWUI/SwiftShader re-rasterises text and photo edges by a few levels between frames while
-        // anything on screen animates (seen: ±4 at 344 dp, ±9 at 725 dp, edges only); a moved
-        // glyph or photo edge changes by ~100+ levels.
-        require(worstStatic <= 12, "Percent, chip, upper photo or floor line moved during the pulse (" + worstStatic + ")");
+        if (live != null) {
+            int area = 0; for (boolean b : live) if (b) area++;
+            notes.add("wire picture: its live area " + area + " px (" + Math.round(100.0 * area / Math.max(1, regions[26] * regions[27])) + "% of the stage above the floor glow), "
+                    + liveChanged + " pixel changes over 12 levels inside it (worst " + worstLive + "); the stage outside it worst " + regionWorst[6]);
+            // Converse: nothing outside the live area changed anywhere on the stage above the floor glow (checked with
+            // the other regions below), and the animation is what moved inside it.
+            if (Ui.motionEnabled()) require(worstLive > 12, "The wire picture's cable did not animate during the pulse (" + worstLive + ")");
+            else require(worstLive <= 12, "Reduced motion: the wire picture's cable moved (" + worstLive + ")");
+        }
+        require(worstStatic <= 12, "Percent, chip, upper photo, floor line or the stage outside the cable's live area moved during the pulse (" + worstStatic + ")");
         if (motion) {
             require(high - low >= 1.0, String.format(Locale.US, "Glow motion is not visible in screencap frames (%.2f)", high - low));
             require(worstGlow <= 80, "Glow pulse is not subtle (" + worstGlow + ")");
@@ -555,7 +571,7 @@ public final class MotionPolishValidation extends Instrumentation {
 
     /** Screen rectangles: [hero x, y, w, h], glow band, then static regions (percent, chip, upper photo, the charged part of the floor line; its uncharged grey is translucent over the glow). */
     private int[] glowRegions() {
-        int[] out = new int[24];
+        int[] out = new int[28];
         main(() -> {
             View hero = hero(), stage = (View)field(hero, "stage"), photo = (View)field(hero, "photo");
             View percent = (View)field(hero, "percent"), chip = (View)field(hero, "chip");
@@ -570,9 +586,56 @@ public final class MotionPolishValidation extends Instrumentation {
                 f[0], f[1], photo.getWidth(), Math.max(1, floor - ui().dp(44) - f[1]),
                 s[0] + Math.round(sw * .06f) + ui().dp(3), floor - 1, Math.max(1, Math.round(sw * .88f * (float)((Double)field(hero, "level") / 100)) - ui().dp(6)), 3};
             System.arraycopy(values, 0, out, 0, values.length);
+            // With a wire picture: the whole stage above the floor glow (as the upper photo's foot), its full width on
+            // screen, so nothing outside the cable's live area moves anywhere there (the converse of the live mask).
+            if (wirePicture() != null) {
+                int left = Math.max(0, s[0]), right = Math.min(stage.getRootView().getWidth(), s[0] + sw);
+                int[] stageRegion = {left, Math.max(s[1], viewport().top), right - left, Math.max(1, floor - ui().dp(44) - Math.max(s[1], viewport().top))};
+                System.arraycopy(stageRegion, 0, out, 24, 4);
+            }
         });
+        if (out[26] == 0) return java.util.Arrays.copyOf(out, 24);
         return out;
     }
+
+    /** The charging picture when it is the animated wire picture (ChargeWireView), else null. */
+    private Object wirePicture() {
+        Object picture = field(hero(), "picture");
+        return picture != null && picture.getClass().getSimpleName().equals("ChargeWireView") ? picture : null;
+    }
+
+    /**
+     * The wire picture's live area (ChargeWireView.liveArea: the cable as wide as a pulse's glow, the lit cells and
+     * their bloom) on screen, widened by 3 px for anti-aliasing; null without a wire picture. Saved for review.
+     */
+    private boolean[] liveMask(Bitmap like) throws Exception {
+        if (like == null) return null;
+        AtomicReference<boolean[]> mask = new AtomicReference<>();
+        main(() -> {
+            Object picture = wirePicture();
+            if (picture == null) return;
+            android.graphics.Path area = (android.graphics.Path) invoke(picture, "liveArea");
+            View layer = ((View[]) invoke(picture, "layers"))[1];
+            int[] at = new int[2];
+            layer.getLocationOnScreen(at);
+            Bitmap drawn = Bitmap.createBitmap(like.getWidth(), like.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(drawn);
+            canvas.translate(at[0], at[1]);
+            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(0xFFFFFFFF);
+            paint.setStyle(android.graphics.Paint.Style.FILL_AND_STROKE);
+            paint.setStrokeWidth(6);
+            canvas.drawPath(area, paint);
+            int[] pixels = new int[drawn.getWidth() * drawn.getHeight()];
+            drawn.getPixels(pixels, 0, drawn.getWidth(), 0, 0, drawn.getWidth(), drawn.getHeight());
+            boolean[] out = new boolean[pixels.length];
+            for (int i = 0; i < pixels.length; i++) out[i] = (pixels[i] >>> 24) != 0;
+            mask.set(out);
+            try { save(drawn, "glow-live-area"); } catch (Exception ignored) { }
+        });
+        return mask.get();
+    }
+
     private int[][] cropRegions(Bitmap frame, int[] r) {
         int[][] out = new int[r.length / 4][];
         out[0] = new int[0]; // the whole hero: saved for review only, may extend past a short window
