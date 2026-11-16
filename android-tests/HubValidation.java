@@ -646,8 +646,10 @@ public final class HubValidation extends Instrumentation {
             require(shown(card) && shown(row), "Settings has no Allow Nearby devices card and Language row before the grant");
             ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
             require(page.getScrollY() == 0, "Settings is not at its top before the grant");
-            int[] cardAt = new int[2], rowAt = new int[2]; card.getLocationInWindow(cardAt); row.getLocationInWindow(rowAt);
-            return new int[]{cardAt[1], rowAt[1], card.getHeight()};
+            // What leads Settings' rows is the card's whole view (LoadingScreen's, the card and its margin): its room is what goes.
+            View lead = (View) card.getParent();
+            int[] cardAt = new int[2], rowAt = new int[2]; lead.getLocationInWindow(cardAt); row.getLocationInWindow(rowAt);
+            return new int[]{cardAt[1], rowAt[1], lead.getHeight()};
         });
         // Every frame from here: the Language row's top in the window (Integer.MIN_VALUE while none shows).
         List<Integer> frames = Collections.synchronizedList(new ArrayList<>());
@@ -656,8 +658,10 @@ public final class HubValidation extends Instrumentation {
             @Override public void doFrame(long time) {
                 if (!sampling[0]) return;
                 View row = activity.getWindow().getDecorView().findViewWithTag("preference_language");
-                int[] at = new int[2]; if (row != null && row.isShown()) row.getLocationInWindow(at);
-                frames.add(row != null && row.isShown() ? at[1] : Integer.MIN_VALUE);
+                // A row not laid out yet (the rebuilt page's first pass) has no place to read.
+                boolean placed = row != null && row.isShown() && row.isLaidOut() && row.getHeight() > 0;
+                int[] at = new int[2]; if (placed) row.getLocationInWindow(at);
+                frames.add(placed ? at[1] : Integer.MIN_VALUE);
                 android.view.Choreographer.getInstance().postFrameCallback(this);
             }
         }));
