@@ -968,7 +968,8 @@ public final class HubValidation extends Instrumentation {
      * Back meant for the page, past a keyboard that came up late. hideKeyboard waits out a keyboard already shown, but on
      * a loaded emulator the one Search asks for (MainActivity.focusPageSearch) can show after that, and Android gives Back
      * to a shown keyboard first. So a frame callback watches the keyboard: when Back closed one instead of reaching the
-     * page (done still false), Back again, up to three times. Waits on what is seen, not on time.
+     * page (done still false), Back again, up to three times. Waits on what is seen, not on time; a Back that shows no
+     * effect within 3 s (lost while a slow emulator's window was still settling) is pressed again too, within the three.
      */
     private void backPastKeyboard(BooleanSupplier done, String message) {
         if (Build.VERSION.SDK_INT < 30) { systemBack(); await(done, message); return; }
@@ -987,13 +988,16 @@ public final class HubValidation extends Instrumentation {
             android.view.Choreographer.getInstance().postFrameCallback(watch[0]);
         });
         try {
+            List<String> missed = new ArrayList<>();
             for (int tries = 0; tries < 3; tries++) {
                 int before = onMain(() -> closed[0]);
                 systemBack();
-                await(() -> done.getAsBoolean() || onMain(() -> closed[0] > before), message);
+                long end = SystemClock.uptimeMillis() + 3000;
+                while (!done.getAsBoolean() && onMain(() -> closed[0] <= before) && SystemClock.uptimeMillis() < end) SystemClock.sleep(50);
                 if (done.getAsBoolean()) return;
+                missed.add(onMain(() -> closed[0] > before) ? "closed a keyboard" : "no effect in 3 s (" + onMain(this::whereNow) + ")");
             }
-            require(false, message + " (each of three Backs closed a keyboard)");
+            require(false, message + " (three Backs: " + missed + ")");
         } finally {
             main(() -> watching[0] = false);
         }

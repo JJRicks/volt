@@ -895,8 +895,13 @@ public final class RevealMotionValidation extends Instrumentation {
             site.show.run(); SystemClock.sleep(500);
             float mid = onMain(() -> opacity(site.subject.get()));
             require(mid > .05f && mid < .95f, site.name + ": not mid-fade half a second in at scale 10 (opacity " + mid + ")");
-            frames.mark();
-            site.hide.run();
+            // Marked on the main thread as it closes, so no frame drawn before the close counts as after it.
+            main(() -> {
+                frames.mark();
+                View close = root().findViewWithTag("riding_alert_close");
+                require(close != null && close.isShown(), site.name + " has no close button mid-fade");
+                close.performClick();
+            });
             frames(2);
             requireRest(site, false, "closed mid-fade at scale 10");
             site.show.run(); SystemClock.sleep(2500);
