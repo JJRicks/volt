@@ -1481,6 +1481,7 @@ public final class OnboardingScreen implements AppScreen {
 
     private void connectScooter() {
         scaffold(true);
+        LinearLayout page = this.page;
         heading(T.onboardingConnectTitle(), false, false);
         LinearLayout list = column();
         list.setBackground(ui.shape(ui.surface, 20, 0));
@@ -1567,23 +1568,22 @@ public final class OnboardingScreen implements AppScreen {
                         : nothingFound ? T.onboardingConnectIsItOn() : problem == null ? null : String.valueOf(service.ble.displayMessage());
                 if (message != null && !message.isEmpty() && !message.equals(problemShown[0])) {
                     problemShown[0] = message;
-                    statusRow.post(() -> {
-                        android.graphics.Rect whole = new android.graphics.Rect();
-                        statusRow.getDrawingRect(whole);
-                        statusRow.requestRectangleOnScreen(whole, !motionEnabled());
-                    });
+                    // To where the line will be once it is in (read from the coming layout), gliding with its arrival.
+                    Motion.bringIntoView(statusRow);
                 }
             } else message = "";
             if (message == null || message.isEmpty()) problemShown[0] = null;
             status.setText(message == null ? "" : message);
             starting.setVisibility(startingService ? View.VISIBLE : View.GONE);
-            statusRow.setVisibility(status.getText().length() == 0 ? View.GONE : View.VISIBLE);
+            // The problem line, Connect and Cancel fade in and out while the rest of the page glides (Motion.reveal);
+            // a refresh that keeps them as they are moves nothing.
+            Motion.reveal(page, statusRow, status.getText().length() != 0);
             connect.setText(needsNearby ? T.onboardingConnectAllowNearby() : prefs.getBoolean(KEY_TRIED, false) ? T.commonTryAgain() : T.onboardingConnectButton());
             connect.setContentDescription(connect.getText());
             connect.setEnabled(needsNearby || (service != null && configured && !pendingOwnerFile().isFile()));
-            connect.setVisibility(busy || waitingToStart ? View.GONE : View.VISIBLE);
-            cancel.setVisibility(busy || waitingToStart ? View.VISIBLE : View.GONE);
-            if (otherWay != null) otherWay.setVisibility(!busy && !waitingToStart && refusedNewKey(service) ? View.VISIBLE : View.GONE);
+            Motion.reveal(page, connect, !(busy || waitingToStart));
+            Motion.reveal(page, cancel, busy || waitingToStart);
+            if (otherWay != null) Motion.reveal(page, otherWay, !busy && !waitingToStart && refusedNewKey(service));
         });
     }
 

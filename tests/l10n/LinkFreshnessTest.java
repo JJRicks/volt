@@ -1434,6 +1434,6 @@ public final class LinkFreshnessTest {
                 "Cancel stops a connection that is not ready(), as the step shows it");
         check(setup.contains("boolean ready = service != null && service.ble.ready(), linked = service != null && service.ble.connected();")
                 && setup.contains("boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);")
-                && setup.contains("cancel.setVisibility(busy || waitingToStart ? View.VISIBLE : View.GONE);"), "the step shows Cancel while not ready()");
+                && setup.contains("Motion.reveal(page, cancel, busy || waitingToStart);"), "the step shows Cancel while not ready()");
     }
 }

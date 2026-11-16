@@ -18,6 +18,12 @@ left that way: on a read-only emulator it updates preinstalled apps, the keyboar
 minutes after every boot, replacing their processes mid-step, and re-enabling it between --only steps
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
+Every step starts with Android's animator duration scale explicitly at 1, and at the end a value the
+sweep found is put back; a setting it found unset stays at an explicit 1, Android's default. Several
+validations turn animations down and restore them only in their own finally block, which a killed
+process skips. Deleting the setting is no restore either: Android keeps its in-memory scale when the
+setting is deleted, so a validation that found it unset, set 0 and then deleted it left animations off;
+with an explicit 1 in place, such a validation puts back 1 instead.
 
 Localization (l10n/README.md). Every step but the locale-* ones runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
@@ -145,6 +151,10 @@ STEPS = [
     # The default matrix leaves out the modes whose checks run nowhere else.
     runner('responsive-modes', 'run-responsive.py', [], *[arg for mode in ('chart', 'followup', 'gauge', 'quick', 'motion')
                                                           for size in ('344x882', '725x604') for arg in ('--case', f'{size}:1.0:{mode}')]),
+    # Reading tiles' spanning last tile and the 2 + 1 wrap of three readings (owner, Nov 15 2026): the unfolded Fold
+    # (normal and large text) and phones at 344, 360 and 412 dp.
+    runner('responsive-tiles', 'run-responsive.py', [], *[arg for case in ('790x820:1.0', '790x820:1.3', '344x882:1.0', '360x800:1.0', '412x915:1.0')
+                                                          for arg in ('--case', f'{case}:tiles')]),
     runner('motion-polish', 'run-motion-polish.py', ['MotionPolishValidation']),
     runner('haptics', 'run-haptics.py', ['QuickHapticsValidation', 'ConnectionHapticsValidation']),
 ]
@@ -184,12 +194,47 @@ STEPS += [
     inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The time's value at Charging power's size (owner, Nov 15 2026): phones at 412, 360 and 344 dp and the Fold unfolded.
+    inst('charge-time-sizes-412', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),
+    inst('charge-time-sizes-344', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
+    inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),
+    inst('reveal-motion-controls', T + 'RevealMotionValidation', '-e', 'part', 'controls', size='412x915'),
+    inst('reveal-motion-rides', T + 'RevealMotionValidation', '-e', 'part', 'rides', size='412x915', hidden_api=True),
+    inst('reveal-motion-night', T + 'RevealMotionValidation', '-e', 'part', 'night', size='412x915'),
+    inst('reveal-motion-scooters', T + 'RevealMotionValidation', '-e', 'part', 'scooters', size='412x915'),
+    inst('reveal-motion-charge-alerts', T + 'RevealMotionValidation', '-e', 'part', 'charge-alerts', size='412x915'),
+    inst('reveal-motion-maintenance-mode', T + 'RevealMotionValidation', '-e', 'part', 'maintenance-mode', size='412x915'),
+    inst('reveal-motion-maintenance-earlier', T + 'RevealMotionValidation', '-e', 'part', 'maintenance-earlier', size='412x915'),
+    inst('reveal-motion-battery', T + 'RevealMotionValidation', '-e', 'part', 'battery', size='412x915'),
+    inst('reveal-motion-riding-alert', T + 'RevealMotionValidation', '-e', 'part', 'riding-alert', size='412x915'),
+    inst('reveal-motion-onboarding', T + 'RevealMotionValidation', '-e', 'part', 'onboarding', size='412x915'),
+    # Home's lock card on connect (C2): the Lock bar on Widgets and Clean, narrow and wide, the Fold's Widgets, and the full lock card.
+    inst('reveal-motion-lock-widgets-344', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='344x882'),
+    inst('reveal-motion-lock-widgets-725', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='725x604'),
+    inst('reveal-motion-lock-widgets-fold', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', size='790x820'),
+    inst('reveal-motion-lock-card-412', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'widgets', '-e', 'card', 'lock', size='412x915'),
+    inst('reveal-motion-lock-clean-344', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'clean', size='344x882'),
+    inst('reveal-motion-lock-clean-725', T + 'RevealMotionValidation', '-e', 'part', 'lock', '-e', 'home', 'clean', size='725x604'),
+    # The page header's connection line (C2), with each page's own banner on the same connection.
+    inst('reveal-motion-page-line-controls', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'controls', size='412x915'),
+    inst('reveal-motion-page-line-battery', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'battery', size='412x915'),
+    inst('reveal-motion-page-line-lights', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'lights', size='412x915'),
+    inst('reveal-motion-page-line-security', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'security', size='412x915'),
+    inst('reveal-motion-page-line-rides', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'rides', size='412x915'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
     inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
     inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The charging pictures (the UT5 MAX and Ultra X wire, five folded stills) on Widgets and Clean Home: the percentage on
+    # each picture as the prototype draws it, the takeover's height while it opens, and the cable's clipping (simulator).
+    inst('charge-pictures-344', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-344-14', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-725', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
@@ -256,6 +301,15 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
           inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'lock_bar_arrival', 'under', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-no-nearby-344', T + 'HubValidation', '-e', 'mode', 'no-nearby', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])]
+# Widgets Home's dock and its All sheet under a finger (DragSheet, the owner's request of 15 Nov): pulls from the dock follow
+# the finger and spring open or back, the open sheet drags and swipes away (its list scrolls first), taps, ACTION_CANCEL,
+# a second finger, a catch while it closes, the activity recreated mid-pull, every frame at animator scale 5 (one bounded
+# overshoot, no gap under the sheet; the dock itself growing into the sheet and back, SheetMorph, frame by frame) and
+# animations off. A phone in dark, the wide window in light, where the sheet is taller than the window and its list
+# scrolls (-e list_scrolls true), and an unfolded Fold's inner screen in dark, where the centred dock widens to the sheet.
+STEPS += [inst('dock-sheet-344', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='344x882'),
+          inst('dock-sheet-725', T + 'DockSheetValidation', '-e', 'theme', 'light', '-e', 'list_scrolls', 'true', size='725x604'),
+          inst('dock-sheet-fold', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='790x820')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (
@@ -479,6 +533,15 @@ hide_dialogs = adb('shell', 'settings', 'get', 'global', 'hide_error_dialogs').s
 STORE = 'com.android.vending'
 store_enabled = f'package:{STORE}' in adb('shell', 'pm', 'list', 'packages', '-e', STORE).split()
 heads_up = adb('shell', 'settings', 'get', 'global', 'heads_up_notifications_enabled').strip()
+animator = adb('shell', 'settings', 'get', 'global', 'animator_duration_scale').strip()
+if animator not in ('', 'null', '1', '1.0'):
+    print(f'animator_duration_scale was {animator} on {args.serial}: every step runs at 1, and {animator} is put back at the end', flush=True)
+
+
+def animations_on():
+    adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', '1', check=False)
+
+
 results = []
 try:
     # Android then kills an app that stops responding instead of showing a focus-taking dialog.
@@ -491,7 +554,7 @@ try:
         if args.only and step['name'] not in args.only: continue
         started = time.monotonic()
         mark = adb('shell', "date '+%m-%d %H:%M:%S.000'").strip()
-        try: await_settled(); clear_error_dialogs(); passed, output = run_step(step)
+        try: await_settled(); clear_error_dialogs(); animations_on(); passed, output = run_step(step)
         except Exception as error: passed, output = False, f'{type(error).__name__}: {error}'
         if not passed:
             try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
@@ -519,6 +582,10 @@ finally:
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('shell', 'wm', 'size', 'reset', check=False); adb('shell', 'wm', 'density', 'reset', check=False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0', check=False)
+    # A setting found unset stays at an explicit 1: deleting it keeps Android's in-memory scale, and
+    # Android applies a put asynchronously, so a delete straight after putting 1 could still keep a 0.
+    if animator in ('', 'null', '1', '1.0'): animations_on()
+    else: adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', animator, check=False)
     if heads_up in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'heads_up_notifications_enabled', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'heads_up_notifications_enabled', heads_up, check=False)
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)

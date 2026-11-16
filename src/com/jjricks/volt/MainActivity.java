@@ -88,6 +88,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private Ui design;
     private FoldMonitor fold;
     private FrameLayout root,pageFrame;
+    /** The column under the window's top: the page header, then pageFrame (the page's scroll and the dock). */
+    private LinearLayout pageContent;
     private ScrollView scroll;
     private AppScreen screen;
     /** Returns to the app (onResume): Battery & charging's HISTORY card loads again after each (ControlsScreen.refreshHistory). */
@@ -118,6 +120,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final java.util.ArrayList<DashboardLockViews> dashboardLocks=new java.util.ArrayList<>();
     private static final class DashboardLockViews{
         TextView connectionAction,lockTitle,offlineTitle,offlineDetail;View lockReady,lockOffline;LockControl lockControl;boolean showDisconnect,compact;
+        /** The card has shown the connection as the service reports it: only a change after that animates (a card built connected, or rebuilt as the service binds, is at rest). */
+        boolean known;
     }
     private DashboardLockViews currentLockViews(){
         DashboardLockViews v=new DashboardLockViews();
@@ -148,6 +152,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private boolean pendingFind;
     private long lastBodyRefreshMs;
+    /** Whether the link was ready at the last body refresh (null before the first). */
+    private Boolean bodyReady;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
@@ -227,7 +233,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             return;
         }
         preferences=getSharedPreferences("app_settings",MODE_PRIVATE);
-        setTheme(darkTheme()?R.style.VoltDark:R.style.VoltLight);
+        setTheme(darkTheme()?R.style.VoltDark_Main:R.style.VoltLight_Main);
         super.onCreate(saved);
         if(Build.VERSION.SDK_INT>=33){systemBack=()->navigateBack(false);getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,systemBack);}
         documents=getSharedPreferences("pending_documents",MODE_PRIVATE);
@@ -395,6 +401,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void navigateBack(){navigateBack(false);}
     /** link: the page header's link, which goes to the page it names (HubNav.linkSkipsPageBack); else the system Back. */
     private void navigateBack(boolean link){
+        // A sheet drawn in this window (the dock's All sheet) takes Back first, as a dialog's window would.
+        for(DragSheet sheet:new java.util.ArrayList<>(dragSheets))if(sheet.back())return;
         if(startupRedirect || enteringMaintenance)return;
         if(screen instanceof OnboardingScreen){if(!((OnboardingScreen)screen).back())finish();return;}
         if(riding!=null){riderClosedRiding();return;}
@@ -481,12 +489,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         updateHeader();if(!resumed)return;
         long delay=Math.max(0,BODY_REFRESH_MS-(SystemClock.elapsedRealtime()-lastBodyRefreshMs));
+        // The link becoming ready (or not) refreshes the page at once: its banner changes in the same frame as the header,
+        // as one motion, instead of up to a pulse later.
+        if(bodyReady!=null&&bodyReady!=(scooterService!=null&&scooterService.ble.ready()))delay=0;
         if(delay==0){cancelDeferredBodyRefresh();refreshBodyNow();}
         else if(!bodyRefreshScheduled){bodyRefreshScheduled=true;handler.postDelayed(deferredBodyRefresh,delay);}
     }
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
-        lastBodyRefreshMs=SystemClock.elapsedRealtime();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
+        lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
         for (ChargeDoneRow row : doneSheetRows) row.refresh();
@@ -516,7 +527,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
-        setTheme(design.dark?R.style.VoltDark:R.style.VoltLight);
+        setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);
         expanded=design.wideLayout();
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
@@ -530,7 +541,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
         if(OnboardingScreen.needed(this,scooterService)){
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;
             onboarding=new OnboardingScreen(this,new OnboardingScreen.Listener(){public void onFinished(){onboarding=null;showPage(HubPages.HOME);rebuild();}});
             screen=onboarding;root.addView(onboarding.view(),new FrameLayout.LayoutParams(-1,-1));
             Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();styleSystemBars();
@@ -541,7 +552,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;
             screen=new RidingScreen(this,riding,this::riderClosedRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
@@ -564,7 +575,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         simulationNotice.setVisibility(displayedSimulation ? View.VISIBLE : View.GONE);
         shell.addView(simulationNotice, new LinearLayout.LayoutParams(-1, -2));
         // The Hub has no tab bar or side rail (PR 11): the page has the window's full width; Home is the root of every stack.
-        LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));pageContent=content;
         LinearLayout header=makeHeader();
         if(horizontalHinge()){
             ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
@@ -774,7 +785,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         EditText field=page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
-        // From the dock's All sheet Volt's window gets its focus back only after the sheet has gone; the keyboard waits for it.
+        // Volt's window may not have its focus yet (a dialog going away over it); the keyboard waits for it. The dock's All
+        // sheet is drawn in this window, so from it the keyboard comes at once.
         if(hasWindowFocus())showSearchKeyboard(field);else searchKeyboard=field;
     }
     /** A search field waiting for Volt's window to regain focus before its keyboard shows (focusPageSearch). */
@@ -830,7 +842,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Auto ride mode: opens at most once per connection, only on what's safe to cover. */
     private void maybeAutoOpenRiding(){
         if(scooterService==null||startupRedirect||enteringMaintenance||rebuilding)return;
-        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
+        boolean clear=AutoStartPolicy.screenClear(resumed,hasWindowFocus()&&!sheetShowing(),riding!=null||ridingRestore,onboarding!=null,inSetupOrEditor(),getCurrentFocus() instanceof EditText);
         if(scooterService.takeAutoRideMode(clear))openRiding();
         else if(!autoRecordLocationCancelled&&scooterService.offersAutoRecordLocation(clear))requestAutoRecordLocation(null);
     }
@@ -885,7 +897,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         offlineDetail=design.caption("");offlineDetail.setPadding(0,design.dp(2),0,0);offlineDetail.setVisibility(View.GONE);words.addView(offlineDetail);
         LinearLayout line=new LockOfflineStatus(square,words,offlineTitle,design.icon("chevron",15,design.muted));
         line.setMinimumHeight(design.dp(48));
-        line.setOnClickListener(v->showConnectionDetails());
+        line.setOnClickListener(v->showConnectionDetails());Motion.ignoreTouchesWhileChanging(line);
         offline.addView(line);
         content.addView(offline,new LinearLayout.LayoutParams(-1,-2));
         // Connect/Cancel are always available; Disconnect is a per-widget choice.
@@ -893,6 +905,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionAction.setMaxLines(1);connectionAction.setEllipsize(android.text.TextUtils.TruncateAt.END);
         connectionAction.setPadding(design.dp(6),connectionAction.getPaddingTop(),design.dp(6),connectionAction.getPaddingBottom());
         connectionAction.setAutoSizeTextTypeUniformWithConfiguration(Math.round(design.sp(12)),Math.round(design.sp(14)),1,android.util.TypedValue.COMPLEX_UNIT_PX);
+        // As the slider goes, a touch meant for it never lands on Connect or Cancel, arriving or gliding up into its place.
+        Motion.ignoreTouchesWhileChanging(connectionAction);
         content.addView(connectionAction);
         return registerDashboardLock(content);
     }
@@ -919,8 +933,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         offlineTitle.setMaxLines(2);offlineTitle.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
         offlineTitle.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         LinearLayout offline=new CompactLockStatus(square,words,offlineTitle);lockOffline=offline;
-        offline.setOnClickListener(v->showConnectionDetails());
+        offline.setOnClickListener(v->showConnectionDetails());Motion.ignoreTouchesWhileChanging(offline);
         connectionAction=design.button(T.mainActionConnect(),this::connect);
+        // The row's Connect or Cancel arrives where the slider was: a touch meant for the slider never lands on it.
+        Motion.ignoreTouchesWhileChanging(connectionAction);
         connectionAction.setMaxLines(1);
         connectionAction.setPadding(design.dp(16),0,design.dp(16),0);
         connectionAction.setMinWidth(design.dp(48));
@@ -964,10 +980,31 @@ public final class MainActivity extends Activity implements ScreenHost {
             };
             glyph.setBounds(0,0,design.dp(20),design.dp(20));
         }
+        /** How much of the row's own surface card is drawn (1 offline, 0 connected), and its fade while the status crossfades. */
+        private float surface=-1;private android.animation.ValueAnimator surfaceFade;
+        /**
+         * The row's surface follows its status: with glide (the status crossfading on Home, updateHeader) it fades with it,
+         * out at the status's exit and in at its arrival; otherwise, or with animations off, it is there or not at once.
+         */
+        void surface(boolean glide){
+            float target=status.getVisibility()!=GONE?1:0;
+            // A reversal mid-fade turns back from the surface drawn.
+            if(surfaceFade!=null){android.animation.ValueAnimator running=surfaceFade;surfaceFade=null;running.cancel();}
+            if(!glide||!Motion.enabled()||surface<0||surface==target){surface=target;invalidate();return;}
+            android.animation.ValueAnimator fade=android.animation.ValueAnimator.ofFloat(surface,target);surfaceFade=fade;
+            fade.setDuration(target>0?Motion.CHANGE_MS:Motion.EXIT_MS);fade.setInterpolator(Motion.STANDARD);
+            fade.addUpdateListener(a->{surface=(Float)a.getAnimatedValue();invalidate();});
+            fade.addListener(new android.animation.AnimatorListenerAdapter(){@Override public void onAnimationEnd(android.animation.Animator a){if(surfaceFade==fade)surfaceFade=null;}});
+            fade.start();
+        }
+        @Override protected void onDetachedFromWindow(){if(surfaceFade!=null){surfaceFade.cancel();surfaceFade=null;}super.onDetachedFromWindow();}
         /** Offline or connecting, the row is its own surface card; connected, the slider is. */
         @Override protected void dispatchDraw(Canvas canvas){
-            if(status.getVisibility()!=GONE){
-                card.setColor(design.surface);bounds.set(0,0,getWidth(),getHeight());
+            // A change that came without surface() (a rebuild, an instant path) is drawn as it is.
+            float target=status.getVisibility()!=GONE?1:0;
+            if(surfaceFade==null&&surface!=target)surface=target;
+            if(surface>0){
+                card.setColor(design.surface);card.setAlpha(Math.round(255*surface*android.graphics.Color.alpha(design.surface)/255f));bounds.set(0,0,getWidth(),getHeight());
                 float r=Math.min(design.dp(20),getHeight()/2f);canvas.drawRoundRect(bounds,r,r,card);
             }
             super.dispatchDraw(canvas);
@@ -1098,6 +1135,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         TextView label=design.text(T.bleStatusDisconnected(),13,true);
         design.fitStatusLine(label);
         label.setOnClickListener(v->showConnectionDetails());
+        // A page's line arrives where its title was (Motion.revealAbove): a touch that starts as it arrives does nothing.
+        Motion.ignoreTouchesWhileChanging(label);
         label.setTooltipText(T.mainConnectionDetails());
         return label;
     }
@@ -1225,8 +1264,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
         connectionTitle.setTypeface(design.regular());connectionTitle.setTag(TAG_PAGE_CONNECTION);
         // Shown only while the scooter is not connected, never on Settings (HubPages.headerConnectionLine). A rebuild of the
-        // same page keeps what the line had (its room, and the state it last showed); another page starts afresh.
-        if(!selectedPage.equals(connectionLinePage)){connectionLinePage=selectedPage;connectionRoomHeld=false;connectionLineReady=null;}
+        // same page keeps what the line had (whether it showed, and the state it last showed); another page starts afresh.
+        if(!selectedPage.equals(connectionLinePage)){connectionLinePage=selectedPage;connectionLineShown=false;connectionLineReady=null;}
         BleController headerBle=scooterService==null?null:scooterService.ble;
         // Until the service binds (a page rebuilt by an activity recreation, as a rotation makes) the line waits for the
         // rebuild the binding makes; without Nearby devices permission no bind comes and the line shows (pageConnectionLine).
@@ -1246,20 +1285,23 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** The page header's connection line (validations find it by this tag). */
     static final String TAG_PAGE_CONNECTION="hub-page-connection";
     /** The page whose header the connection line belongs to; whether it has shown there; the connection it last showed. */
-    private String connectionLinePage;private boolean connectionRoomHeld;private Boolean connectionLineReady;
+    private String connectionLinePage;private boolean connectionLineShown;private Boolean connectionLineReady;
     /**
-     * The page header's connection line by HubPages.headerConnectionLine: shown while not connected, its room kept blank
-     * once the scooter connects with the page open (the title keeps its place; the room goes when the next page opens),
-     * and gone on a connected page and on Settings. A connection lost while the page is open shows the line at once,
-     * without an animation (the page under the header moves with it, in one step), and TalkBack announces it.
+     * The page header's connection line by HubPages.headerConnectionLine: shown while not connected, gone on a connected
+     * page and on Settings. A connection made or lost while the page is in view fades the line out or in as the page under
+     * the header glides up or down with it (Motion.revealAbove; the page's own banner, changed in the same refresh, moves
+     * in step); a page built (opened, or rebuilt by a recreation) shows its line at once, and the "last seen" words
+     * updating never move anything. A connection lost is announced by TalkBack.
      */
     private void applyPageConnectionLine(boolean ready,boolean announce){
         if(connectionTitle==null)return;
         // Unbound with Nearby devices granted, a bind is coming (ensureService); without it none ever does.
-        int state=HubPages.pageConnectionLine(selectedPage,scooterService!=null,hasBluetoothPermission(),ready,connectionRoomHeld);
-        int visibility=state==HubPages.LINE_SHOWN?View.VISIBLE:state==HubPages.LINE_ROOM?View.INVISIBLE:View.GONE;
-        if(connectionTitle.getVisibility()!=visibility)connectionTitle.setVisibility(visibility);
-        if(state==HubPages.LINE_SHOWN)connectionRoomHeld=true;
+        int state=HubPages.pageConnectionLine(selectedPage,scooterService!=null,hasBluetoothPermission(),ready,connectionLineShown);
+        boolean shown=state==HubPages.LINE_SHOWN;
+        // Only an update of the page in view moves it: the build's own call (announce false) is at rest.
+        boolean glides=announce&&resumed&&!rebuilding&&riding==null&&pageContent!=null&&connectionTitle.isAttachedToWindow()&&!sheetShowing();
+        Motion.revealAbove(glides?pageContent:null,connectionTitle,shown,pageFrame,scroll);
+        if(shown)connectionLineShown=true;
         if(announce&&state==HubPages.LINE_SHOWN&&Boolean.TRUE.equals(connectionLineReady)&&!ready){
             CharSequence spoken=connectionTitle.getContentDescription();
             connectionTitle.announceForAccessibility(spoken!=null?spoken:connectionTitle.getText());
@@ -1399,11 +1441,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         String simulatedName=ble==null?null:ble.simulationName();if(simulatedName!=null)scooterName=simulatedName;
         for(int lockIndex=dashboardLocks.isEmpty()?-1:0;lockIndex<dashboardLocks.size();lockIndex++){
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
+        DashboardLockViews card=lockIndex>=0?dashboardLocks.get(lockIndex):null;
+        // Connected, the lock heading and slider take the offline line's place: a change while Home is in front crossfades
+        // them as the card's other parts glide (lockMotionRoot); a card built or rebuilt shows its state at rest.
+        ViewGroup lockRoot=card!=null&&card.known?lockMotionRoot():null;
+        if(card!=null&&scooterService!=null)card.known=true;
         if(lockTitle!=null){
             boolean editing=screen instanceof DashboardScreen&&((DashboardScreen)screen).isEditing();
             boolean showBar=ready;
-            if(lockReady!=null)lockReady.setVisibility(showBar?View.VISIBLE:View.GONE);
-            if(lockOffline!=null)lockOffline.setVisibility(showBar?View.GONE:View.VISIBLE);
+            if(lockReady!=null)Motion.reveal(lockRoot,lockReady,showBar);
+            if(lockOffline!=null&&Motion.reveal(lockRoot,lockOffline,!showBar)&&lockOffline.getParent() instanceof CompactLockRow)((CompactLockRow)lockOffline.getParent()).surface(lockRoot!=null);
             lockTitle.setText("lock".equals(pending)||lockQueue.waiting()?T.mainLockUpdating():shownLock==null?T.mainLockTitle():shownLock?T.mainLockLocked():T.mainLockUnlocked());
             lockTitle.setTextColor(Boolean.FALSE.equals(shownLock)&&ready?design.danger:design.text);
             design.decorate(lockTitle,Boolean.FALSE.equals(shownLock)?"unlock":"lock");
@@ -1446,6 +1493,22 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         updateConnectionAction(ready,connecting);
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(simulatedName!=null?simulatedName:p==null?T.mainYourScooter():p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
+    }
+    /**
+     * The lock card (the one loaded in the lock fields) whose connection change may animate: Home's Widgets or Clean card,
+     * laid out, with Volt in front and Home the page in view, not being edited, rebuilt or covered by one of the window's
+     * own sheets (the dock's All sheet: the change under it is instant, as before). The card itself is the root: on
+     * Widgets its tile is a grid cell the rider sized, and on Clean a fixed slot, so neither moves anything around it.
+     * Null otherwise: the change is instant.
+     */
+    private ViewGroup lockMotionRoot(){
+        if(!resumed||rebuilding||destroyed||riding!=null||!HubPages.HOME.equals(selectedPage)||lockReady==null||lockOffline==null||sheetShowing())return null;
+        if(!(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen))return null;
+        if(screen instanceof DashboardScreen&&((DashboardScreen)screen).isEditing())return null;
+        android.view.ViewParent parent=lockReady.getParent();
+        if(!(parent instanceof ViewGroup)||lockOffline.getParent()!=parent)return null;
+        ViewGroup card=(ViewGroup)parent;
+        return card.isAttachedToWindow()&&card.isLaidOut()&&card.isShown()?card:null;
     }
     /**
      * Sends a waiting lock tap once the scooter takes writes, or puts the switch back with the reason. The gate is the
@@ -1497,7 +1560,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
         if(connectionAction!=null){
             boolean busy=ble!=null&&(ble.connected()||connecting||ready);
-            connectionAction.setVisibility(!ready||showDashboardDisconnect?View.VISIBLE:View.GONE);
+            // In the same motion as the card's own change (updateHeader, just before): Connect goes with the offline line.
+            DashboardLockViews card=lockIndex>=0?dashboardLocks.get(lockIndex):null;
+            Motion.reveal(card!=null&&card.known?lockMotionRoot():null,connectionAction,!ready||showDashboardDisconnect);
             boolean allow=!ready&&!busy&&!hasBluetoothPermission();
             String action=ready?T.mainActionDisconnect():busy?T.commonCancel():allow?T.mainActionAllowNearby():T.mainActionConnect();
             connectionAction.setContentDescription(ready?T.mainActionDisconnectDescription():busy?T.mainActionCancelDescription():allow?T.mainActionAllowNearby():T.mainActionConnectDescription());
@@ -1525,6 +1590,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final RectF track=new RectF();
         private Boolean value;
         private boolean available,dragging,dragSide;
+        /** A touch that began while the switch was still arriving on Home's card (Motion.arriving): aimed at what it replaced, it does nothing. */
+        private boolean ignoring;
         /** Lock bar: draw only the state word, vertically centred inside the switch. */
         boolean compact;
         /** Riding mode's stopped gate; null on Home, where unlock stays available as recovery. */
@@ -1580,6 +1647,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info){super.onInitializeAccessibilityNodeInfo(info);info.setCheckable(value!=null);info.setChecked(Boolean.TRUE.equals(value));info.setEnabled(available);}
         @Override public boolean onTouchEvent(MotionEvent event){
             if(!available)return false;
+            // Arriving, or moved by a motion it sits in (Security's page gliding as its line goes): a touch that starts then does nothing until it lifts.
+            if(event.getAction()==MotionEvent.ACTION_DOWN)ignoring=Motion.changing(this);
+            if(ignoring){if(event.getAction()==MotionEvent.ACTION_UP||event.getAction()==MotionEvent.ACTION_CANCEL)ignoring=false;return true;}
             if(event.getAction()==MotionEvent.ACTION_DOWN){cancelMotion();downX=event.getX();downY=event.getY();previewX=downX;dragging=false;dragSide=downX>getWidth()/2f;setPressed(true);return true;}
             if(event.getAction()==MotionEvent.ACTION_MOVE){float delta=event.getX()-downX;if(Math.abs(delta)>ViewConfiguration.get(MainActivity.this).getScaledTouchSlop()&&Math.abs(delta)>Math.abs(event.getY()-downY)){dragging=true;if(getParent()!=null)getParent().requestDisallowInterceptTouchEvent(true);}if(dragging){boolean side=event.getX()>getWidth()/2f;if(side!=dragSide)Haptics.tick(this);dragSide=side;previewX=event.getX();move(sliderGeometry().positionFor(previewX));}return true;}
             if(event.getAction()==MotionEvent.ACTION_UP){boolean dragged=dragging;boolean target=previewX>getWidth()/2f;dragging=false;setPressed(false);releaseParent();if(dragged)apply(target);else performClick();settle(true);return true;}
@@ -2525,6 +2595,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         @Override public View view(){return view;}
         @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
+        /** The page's sections other than its banners: they glide as a banner comes or goes, their insides unchanged. */
+        private View[] steady=new View[0];
+        private View[] steadyRows(){
+            if(steady.length+3==view.getChildCount())return steady;
+            java.util.List<View> rows=new java.util.ArrayList<>();
+            for(int i=0;i<view.getChildCount();i++){View child=view.getChildAt(i);if(child!=banner&&child!=readOnlyBanner&&child!=testBanner)rows.add(child);}
+            return steady=rows.toArray(new View[0]);
+        }
         @Override public void refresh(){
             refreshMaintenance();
             for(ControlRow row:rows)row.refresh();emphasizeLimit();
@@ -2533,17 +2611,27 @@ public final class MainActivity extends Activity implements ScreenHost {
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
                     ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING);
-            banner.setVisibility(ready?View.GONE:View.VISIBLE);
+            // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
+            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
+            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
+            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
+            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
+            boolean refilter=!offered.toString().equals(offeredKeys);
+            // The banners fade in and out while the page below glides (Motion.reveal), only when one comes or goes. A
+            // re-filter in the same refresh moves rows by itself, so then they change instantly, as before.
+            // On a stacked page (Battery, Security) the parts below glide with it: the root is the whole page.
+            ViewGroup glide=refilter?null:Motion.pageOf(banner);View[] still=steadyRows();
+            Motion.reveal(glide,banner,!ready,still);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());
             bannerAction.setVisibility(connecting||ControlsPages.CONNECT_ABOVE.contains(spec.page)?View.GONE:View.VISIBLE);
-            readOnlyBanner.setVisibility(ble!=null&&ble.limitedModel()?View.VISIBLE:View.GONE);
+            Motion.reveal(glide,readOnlyBanner,ble!=null&&ble.limitedModel(),still);
             java.util.List<TestJournal.Entry> unfinished=ble==null?java.util.Collections.<TestJournal.Entry>emptyList():ble.unresolvedTests();
             boolean recordsLost=ble!=null&&!ble.testRecordsHealthy();
             int elsewhere=ble==null?0:ble.unresolvedTestsElsewhere(),orphaned=ble==null?0:ble.orphanedTests().size();
             boolean testing=ble!=null&&ble.testing();
             boolean reviewNeeded=recordsLost||!unfinished.isEmpty()||elsewhere>0||orphaned>0||testing;
-            testBanner.setVisibility(reviewNeeded?View.VISIBLE:View.GONE);
+            Motion.reveal(glide,testBanner,reviewNeeded,still);
             if(reviewNeeded){
                 String text=recordsLost?T.mainTestRecordsUnavailable()
                         :!unfinished.isEmpty()?(unfinished.get(0).isTry()
@@ -2555,13 +2643,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(!text.contentEquals(testBannerText.getText()))testBannerText.setText(text);
                 testReviewAction.setContentDescription(recordsLost?T.mainTestReviewRecords():testing?T.mainTestReviewSetting():!unfinished.isEmpty()&&unfinished.get(0).isTry()?T.mainTestReviewTry():T.mainControlsReviewUnfinished());
             }
-            identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
-            // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
-            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
-            java.util.List<String> lab=modelLab();for(String key:labEntries.keySet())offered.append(labOffered(key,lab)?'1':'0');
-            for(String target:searchLinks.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
-            for(String target:links.values())offered.append(ControlsPages.linkShown(target,id->rowShown(id,lab))?'1':'0');
-            if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
+            Motion.reveal(glide,identifyAction,ble!=null&&ble.modelUnidentified(),still);
+            if(refilter){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
@@ -3080,11 +3163,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         final SeekBar chargeLevel,lowLevel;
         final View chargeLevels,lowLevels;
         final TextView deliveryNote,permissionText,permissionAction;
-        final LinearLayout permission;
+        final LinearLayout permission,body;
         boolean dragging;
         ChargeAlertSheet(){
             final AlertDialog[] self=new AlertDialog[1];
-            LinearLayout body=sheetContent(T.mainAlertTitle(),T.mainAlertIntro(),
+            body=sheetContent(T.mainAlertTitle(),T.mainAlertIntro(),
                     ()->{if(self[0]!=null)self[0].dismiss();});
             body.setTag("charge-alert-sheet");
             LinearLayout levels=design.groupCard();body.addView(levels,new LinearLayout.LayoutParams(-1,-2));
@@ -3164,14 +3247,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             ChargeAlertPolicy.Settings a=scooterService.chargeAlerts();
             charge.setChecked(a.charge);low.setChecked(a.low);notify.setChecked(a.notify);alarm.setChecked(a.alarm);
             if(!dragging){chargeLevel.setProgress((a.chargeAt-ChargeAlertPolicy.CHARGE_MIN)/ChargeAlertPolicy.STEP);lowLevel.setProgress((a.lowBelow-ChargeAlertPolicy.LOW_MIN)/ChargeAlertPolicy.STEP);labels(a);}
-            chargeLevels.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLevels.setVisibility(a.low?View.VISIBLE:View.GONE);
-            chargeLine.value.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLine.value.setVisibility(a.low?View.VISIBLE:View.GONE);
-            deliveryNote.setVisibility((a.charge||a.low)&&!a.notify&&!a.alarm?View.VISIBLE:View.GONE);
+            // Rows a switch reveals fade in and out while the rest of the sheet, and its height, glide (Motion.reveal);
+            // a refresh that keeps them as they are moves nothing.
+            Motion.reveal(body,chargeLevels,a.charge);Motion.reveal(body,lowLevels,a.low);
+            Motion.reveal(body,chargeLine.value,a.charge);Motion.reveal(body,lowLine.value,a.low);
+            Motion.reveal(body,deliveryNote,(a.charge||a.low)&&!a.notify&&!a.alarm);
             boolean app=notificationsOn(),alerts=scooterService.alertNotificationsAllowed(),watch=scooterService.alertWatchAllowed();
             String text=!app?T.mainAlertPermApp()
                     :!watch?T.mainAlertPermWatch()
                     :a.notify&&!alerts?T.mainAlertPermAlerts():null;
-            permission.setVisibility(text==null?View.GONE:View.VISIBLE);if(text!=null&&!text.contentEquals(permissionText.getText()))permissionText.setText(text);
+            Motion.reveal(body,permission,text!=null);if(text!=null&&!text.contentEquals(permissionText.getText()))permissionText.setText(text);
             permissionAction.setContentDescription(T.mainAlertAllowDescription());
         }
     }
@@ -4166,7 +4251,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public boolean dialogShowing(){
         for(Dialog d:new Dialog[]{scanDialog,controlDialog,missedStartDialog,scheduleTestDialog,chargeAlertDialog,quickMenuDialog,reportDialog,tallSheet})if(d!=null&&d.isShowing())return true;
         for(Dialog d:shownDialogs)if(d.isShowing())return true;
-        return false;
+        return sheetShowing();
     }
     private void styleDialog(AlertDialog dialog,int primaryButton){
         OwnDialogs.track(dialog);
@@ -4212,7 +4297,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);
-            window.setBackgroundDrawable(sheet);window.setGravity(Gravity.BOTTOM);
+            // Its height glides with the rows a switch or chip reveals inside it (Motion.reveal) instead of jumping.
+            Motion.sheet(dialog,holder,sheet);window.setGravity(Gravity.BOTTOM);
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
             window.getDecorView().setPadding(0,0,0,0);
         }
@@ -4220,6 +4306,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
+    /**
+     * A sheet that follows a finger (the dock's All sheet), kept for dialogShowing and for Back: it is drawn in this
+     * window, so Back asks it first (navigateBack).
+     */
+    @Override public DragSheet dragSheet(DragSheet.Source source,View content,View... header){return new DragSheet(this,design,source,content,header,dragSheets::add);}
+    private final java.util.Set<DragSheet> dragSheets=java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+    /** One of this window's own sheets (DragSheet) is over the page. */
+    private boolean sheetShowing(){for(DragSheet s:dragSheets)if(s.showing())return true;return false;}
     /** The open tall sheet, kept nine-tenths of Volt's window tall through rotation, folding and window resizing. */
     private Dialog tallSheet;private boolean tallSheetFollows;
     private int tallSheetHeight(){int h=getWindow().getDecorView().getHeight();return Math.round((h>0?h:getResources().getDisplayMetrics().heightPixels)*.9f);}
