@@ -248,7 +248,24 @@ public final class RevealMotionValidation extends Instrumentation {
 
     // ===== The checks =====
 
+    /**
+     * A busy machine can drop a whole motion's frames (a pool emulator drew one part-faded frame between 0.07 and 1).
+     * When a frame of the failed measurement came more than 100 ms late, it is measured once more.
+     */
     private void arrivesAndGoes(Site site) {
+        hitchMs = 0;
+        try { arrivesAndGoesOnce(site); }
+        catch (IllegalStateException error) {
+            if (hitchMs <= 100) throw error;
+            notes.add(site.name + ": measured again after a frame came " + hitchMs + " ms late: " + error.getMessage());
+            site.hide.run(); settleFor(SETTLE_MS);
+            arrivesAndGoesOnce(site);
+        }
+    }
+
+    private long hitchMs;
+
+    private void arrivesAndGoesOnce(Site site) {
         requireRest(site, false, "before it was offered");
         Frames in = record(site, site.show);
         requireRest(site, true, "after it arrived");
@@ -581,6 +598,10 @@ public final class RevealMotionValidation extends Instrumentation {
 
     /** A real motion: part-faded frames, every moving neighbour gliding one way to its place, at rest in time. */
     private void smooth(Frames frames, boolean arriving, String what) {
+        // Frames are drawn only when something changes: count only the gaps while it was still moving.
+        for (int i = 1; i < frames.samples.size(); i++)
+            if (!frames.same(frames.samples.get(i - 1), frames.last()) && !frames.same(frames.samples.get(i - 1), frames.samples.get(0)))
+                hitchMs = Math.max(hitchMs, (long) (frames.samples.get(i)[0] - frames.samples.get(i - 1)[0]));
         require(frames.samples.size() >= 8, what + ": only " + frames.samples.size() + " frames were drawn");
         require(frames.alphaFrames() >= 2, what + " popped: " + frames.alphaFrames() + " frames drew it part-way faded (alpha track " + alphaTrack(frames) + ")");
         onPath(frames, what);
