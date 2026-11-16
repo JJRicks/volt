@@ -2295,13 +2295,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
             // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
+            // It also goes under when beside it the name would need more than two lines; under it the name has every line it needs.
             // The spinner's room is kept out of the decision and out of the name's width whether it shows or not
             // (INVISIBLE when idle, never GONE): a sync starting or ending never moves the pill or re-wraps the name.
             // Beside, it sits after the name, next to Sync; under the name, after Sync on Sync's line where both fit.
             LinearLayout clockWords=new Slot();clockWords.setGravity(Gravity.CENTER_VERTICAL);clockWords.setBaselineAligned(false);
-            clockLine.line.removeView(clockLine.words);
+            clockLine.line.removeView(clockLine.words);clockLine.name.setMaxLines(Integer.MAX_VALUE);
             clockWords.addView(clockLine.words,new LinearLayout.LayoutParams(0,-2,1));clockWords.addView(clockSpinner,rowSpinnerSize());
-            clockLine.line.addView(new BannerBody(clockWords,clockLine.name,clockButton,10,true,CLOCK_SPINNER_ROOM_DP,clockSpinner),0,new LinearLayout.LayoutParams(0,-2,1));
+            clockLine.line.addView(new BannerBody(clockWords,clockLine.name,clockButton,10,true,CLOCK_SPINNER_ROOM_DP,clockSpinner,2),0,new LinearLayout.LayoutParams(0,-2,1));
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
             shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
@@ -2861,12 +2862,12 @@ public final class MainActivity extends Activity implements ScreenHost {
      * TalkBack too.
      */
     private final class BannerBody extends LinearLayout {
-        private final View content,aside;private final TextView words,action;private final int gap,reserve,pad;private final boolean indent;
+        private final View content,aside;private final TextView words,action;private final int gap,reserve,pad,besideLines;private final boolean indent;
         /** The pill's line when something comes and goes beside the words (the clock row's spinner), else null. */
         private final Slot actionLine;
         private int indentPx=-1;
         /** A banner: its words and pill, 8 dp apart. */
-        BannerBody(TextView words,TextView action){this(words,words,action,ActionBannerFit.GAP_DP,false,0,null);}
+        BannerBody(TextView words,TextView action){this(words,words,action,ActionBannerFit.GAP_DP,false,0,null,0);}
         /**
          * @param content what stays first (a row's words column), measured by {@code words} (its name, with its icon tile)
          * @param indent under the words, the pill starts where the name's text does (after its icon tile) where it fits
@@ -2875,10 +2876,12 @@ public final class MainActivity extends Activity implements ScreenHost {
          *              end of the words' line, next to the pill; under the words it goes after the pill on the pill's line
          *              where both fit (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
          *              so nothing in the row moves or re-wraps when it comes and goes.
+         * @param besideLines the most lines the words may take beside the pill (0: any); with more, the pill goes under
+         *                    them, where they take what they need (the clock row's name: two beside Sync, never cut)
          */
-        BannerBody(View content,TextView words,TextView action,int gapDp,boolean indent,int reserveDp,View aside){
+        BannerBody(View content,TextView words,TextView action,int gapDp,boolean indent,int reserveDp,View aside,int besideLines){
             super(MainActivity.this);this.content=content;this.words=words;this.action=action;this.gap=design.dp(gapDp);this.indent=indent;this.reserve=design.dp(reserveDp);
-            this.pad=design.dp(ActionBannerFit.PILL_PAD_DP);this.aside=aside;
+            this.pad=design.dp(ActionBannerFit.PILL_PAD_DP);this.aside=aside;this.besideLines=besideLines;
             setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setBaselineAligned(false);
             addView(content,new LinearLayout.LayoutParams(0,-2,1));
             if(aside==null){actionLine=null;addView(action,new LinearLayout.LayoutParams(-2,-2));}
@@ -2920,7 +2923,18 @@ public final class MainActivity extends Activity implements ScreenHost {
                 float pill=ActionBannerFit.pill(label,pad,action.getMinWidth());
                 float word=ActionBannerFit.longestWord(words.getText().toString(),text->words.getPaint().measureText(text))
                         +words.getCompoundPaddingLeft()+words.getCompoundPaddingRight();
-                below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve);
+                // Words limited to a number of lines beside the pill (the clock row's name, two), or by their own line
+                // limit, count their lines there too, so a word is never cut off at the end of their last line.
+                int own=words.getMaxLines(),max=besideLines>0?besideLines:own>0&&own<Integer.MAX_VALUE?own:0,lines=0;
+                if(max>0&&words.length()>0){
+                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
+                    CharSequence t=words.getText();
+                    lines=beside<=0?Integer.MAX_VALUE:android.text.StaticLayout.Builder.obtain(t,0,t.length(),words.getPaint(),beside)
+                            .setBreakStrategy(words.getBreakStrategy()).setHyphenationFrequency(words.getHyphenationFrequency())
+                            .setIncludePad(words.getIncludeFontPadding()).setLineSpacing(words.getLineSpacingExtra(),words.getLineSpacingMultiplier())
+                            .build().getLineCount();
+                }
+                below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve,lines,max);
                 byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve);
                 int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,byPill?pill+reserve:pill,words.getCompoundPaddingLeft())):0;
                 if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true,byPill);}

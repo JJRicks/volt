@@ -51,6 +51,15 @@ final class ActionBannerFit {
     }
 
     /**
+     * As {@link #actionBelow(float, float, float, float, float)} for words limited to {@code maxLines} lines (the clock
+     * row's name, two): the pill also goes under them when beside it they would need {@code linesBeside} lines, more than
+     * they may have, so a word is never cut off at the end of their last line.
+     */
+    static boolean actionBelow(float room, float pill, float gap, float longestWord, float reserve, int linesBeside, int maxLines) {
+        return actionBelow(room, pill, gap, longestWord, reserve) || maxLines > 0 && linesBeside > maxLines;
+    }
+
+    /**
      * Under the words, whether what comes and goes beside them ({@code reserve}: the clock row's spinner) sits after the
      * pill on the pill's line: wherever the pill and its room fit the row. Only in a window so narrow that they do not
      * (below about 255 dp at 1.4x in German) does it stay at the end of the words' line.
