@@ -256,6 +256,12 @@ public final class RevealMotionValidation extends Instrumentation {
         boolean keepsAcrossRecreate = true;
         /** The scroll whose page it changes: the one it is in, or (a header above the page) the page's own. */
         Supplier<android.widget.ScrollView> scroll;
+        /**
+         * Frames more than this long (ms) after the change are another motion's, not judged with it (0: none). On the
+         * Battery page, the summary's health and temperature rows wait out their gathering after a reconnection
+         * (HubBatterySummary.GATHER_MS) and then come in with a glide of their own, which the battery part checks.
+         */
+        long cutMs;
         Site(String name, Supplier<View> subject, Supplier<List<View>> neighbours, Runnable show, Runnable hide) {
             this.name = name; this.subject = subject; this.neighbours = neighbours; this.show = show; this.hide = hide;
         }
@@ -529,6 +535,12 @@ public final class RevealMotionValidation extends Instrumentation {
     }
 
     /** The open page's screen of this class: the page itself, or one of a stacked page's parts. */
+    /** A static long constant of one of the app's classes. */
+    private static long staticLong(String simpleName, String name) {
+        try { java.lang.reflect.Field f = Class.forName("com.jjricks.volt." + simpleName).getDeclaredField(name); f.setAccessible(true); return f.getLong(null); }
+        catch (ReflectiveOperationException e) { throw new IllegalStateException(simpleName + "." + name + " is missing", e); }
+    }
+
     private Object part(String simpleName) {
         Object screen = field(activity, "screen");
         require(screen != null, "No page is open");
@@ -841,21 +853,35 @@ public final class RevealMotionValidation extends Instrumentation {
             main(() -> { android.widget.ScrollView scroll = scrollOf(site); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); });
             settle();
             int[] scrolled = new int[1];
-            Frames out = new Frames(new Site(site.name, site.subject, () -> lowest(site.subject.get(), scrollOf(site)), site.show, site.hide));
+            String[] before = new String[1];
+            Site end = new Site(site.name, site.subject, () -> lowest(site.subject.get(), scrollOf(site)), site.show, site.hide);
+            end.cutMs = site.cutMs;
+            Frames out = new Frames(end);
             out.start(); frames(2);
-            main(() -> scrolled[0] = scrollOf(site).getScrollY());
+            main(() -> { scrolled[0] = scrollOf(site).getScrollY(); before[0] = scrollShape(scrollOf(site)); });
             site.hide.run();
             SystemClock.sleep(SETTLE_MS + 300);
             out.stop();
             int clamped = scrolled[0] - onMain(() -> scrollOf(site).getScrollY());
             requireRest(site, false, "after it went from the end of the long page");
-            require(clamped > 0, site.name + ": its departure at the end of the page did not clamp the scroll");
+            // A header line's departure can come with rows the page shows only when connected (Security's lock): a page
+            // that ends up longer has nothing to clamp, and its views still must not jump.
+            int room = onMain(() -> { android.widget.ScrollView scroll = scrollOf(site); return scroll.getChildAt(0).getHeight() - (scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom()); });
+            boolean longer = room >= scrolled[0];
+            require(clamped > 0 || longer, site.name + ": its departure at the end of the page did not clamp the scroll (before " + before[0] + "; after " + onMain(() -> scrollShape(scrollOf(site))) + ")");
             onPath(out, site.name + " departure at the end of a scrolled page (text " + used + ")");
             require(onMain(() -> scrollOf(site).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
-            checks.add(site.name + ": leaving at the end of a page that still scrolls without it (text " + used + "), the scroll clamps by " + clamped
-                    + " px and " + out.samples.size() + " frames draw the views below only on their way (track " + track(out, 0) + ")");
+            checks.add(site.name + ": leaving at the end of a page that still scrolls without it (text " + used + "), "
+                    + (longer && clamped <= 0 ? "the page ends up longer (" + before[0] + " before; " + onMain(() -> scrollShape(scrollOf(site))) + " after), so nothing clamps, and "
+                    : "the scroll clamps by " + clamped + " px and ")
+                    + out.samples.size() + " frames draw the views below only on their way (track " + track(out, 0) + ")");
         }
         if (used != 1) { require(settings().edit().putFloat("text_scale", 1).commit(), "Text size failed"); activity = recreate(); requirePage(); }
+    }
+
+    /** A scroll's offset, viewport and content heights (px), for a failure's message. */
+    private static String scrollShape(android.widget.ScrollView scroll) {
+        return scroll == null ? "no scroll" : "scrolled " + scroll.getScrollY() + " of content " + scroll.getChildAt(0).getHeight() + " in " + scroll.getHeight();
     }
 
     private static android.widget.ScrollView scrollOf(View view) {
@@ -1288,6 +1314,10 @@ public final class RevealMotionValidation extends Instrumentation {
         Site site = new Site(linePage + " page's header connection line", subject, () -> lineNeighbours(subject.get()), () -> link(false), () -> link(true));
         site.with = this::lineWith;
         site.scroll = () -> (android.widget.ScrollView) field(activity, "scroll");
+        if (linePage.equals("battery")) {
+            site.cutMs = staticLong("HubBatterySummary", "GATHER_MS") - 100;
+            notes.add(site.name + ": frames are judged up to " + site.cutMs + " ms after each change; after a reconnection the summary's health and temperature rows come in after their gathering, with a glide of their own (the battery part checks it)");
+        }
         return site;
     }
     /** The page's own view that comes with the line on the same connection change (main thread). */
@@ -1848,7 +1878,18 @@ public final class RevealMotionValidation extends Instrumentation {
             for (int n = 0; n < faded.length; n++) faded[n] = drawnAtAll(fading.get(n)) ? opacity(fading.get(n)) : 0;
             partners.add(faded);
         }
-        void stop() { main(() -> { run = false; if (observer.isAlive()) observer.removeOnDrawListener(tick); stopIndex = samples.size(); sample(); }); }
+        void stop() {
+            main(() -> {
+                run = false; if (observer.isAlive()) observer.removeOnDrawListener(tick); stopIndex = samples.size(); sample();
+                if (site.cutMs > 0) {
+                    // Keep the frames up to the cut (from the change, or from the start without one); the last kept is the rest.
+                    long until = Math.max(changedAt, 0) + site.cutMs; int keep = 1;
+                    while (keep < samples.size() && samples.get(keep)[0] <= until) keep++;
+                    while (samples.size() > keep) { samples.remove(samples.size() - 1); partners.remove(partners.size() - 1); }
+                    stopIndex = Math.min(stopIndex, samples.size());
+                }
+            });
+        }
         /**
          * The longest wait for a drawn frame after the change was asked: for its first frame, and between frames while
          * anything was still on its way (a view at rest owes no frame). 0 without a change.
