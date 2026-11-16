@@ -403,9 +403,10 @@ public final class HubTestPages {
      * place on screen the same on three reads in a row, as {@link #tapView} waits for a row before tapping it. A view
      * that is not shown counts as at rest (the caller's own check reports it). Returns whether all came to rest; it never
      * throws for a view that keeps moving, so the caller's own check then measures it and fails with its own message.
-     * Instrumentation thread.
+     * {@code views} is asked again on every read (main thread), so a rebuild that replaces the page while this waits is
+     * followed to the new views, not taken as rest by the old ones leaving the window. Instrumentation thread.
      */
-    public static boolean awaitAtRest(Instrumentation instrumentation, List<View> views) {
+    public static boolean awaitAtRest(Instrumentation instrumentation, java.util.function.Supplier<List<View>> views) {
         String[] last = {null};
         int still = 0;
         long until = SystemClock.uptimeMillis() + WAIT_MS;
@@ -415,8 +416,9 @@ public final class HubTestPages {
             boolean[] resting = {true};
             onMain(instrumentation, () -> {
                 StringBuilder places = new StringBuilder();
-                for (View view : views) {
+                for (View view : views.get()) {
                     if (view == null || !view.isShown()) continue;
+                    places.append(System.identityHashCode(view)).append('@');
                     if (changing(view)) resting[0] = false;
                     for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
                         View each = (View) at;

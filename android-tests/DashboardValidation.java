@@ -2208,9 +2208,11 @@ public final class DashboardValidation extends Instrumentation {
         // Search's Cancel, at the right edge, still runs past it (#393 council review, third round). One that never comes
         // to rest is measured anyway and fails below as before.
         else {
-            List<View> moving = new ArrayList<>();
-            main(() -> { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel")); });
-            HubTestPages.awaitAtRest(this, moving);
+            HubTestPages.awaitAtRest(this, () -> {
+                List<View> moving = new ArrayList<>();
+                moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel"));
+                return moving;
+            });
         }
         main(() -> {
             List<View> targets = new ArrayList<>();

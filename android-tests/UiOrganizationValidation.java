@@ -598,15 +598,15 @@ public final class UiOrganizationValidation extends Instrumentation {
      * third round). A target that never comes to rest is measured anyway and fails here as before.
      */
     private void assertNavigationFits() {
-        List<View> moving = new ArrayList<>();
-        main(() -> {
+        HubTestPages.awaitAtRest(this, () -> {
+            List<View> moving = new ArrayList<>();
             if (HubPages.HOME.equals(HubTestPages.current(activity))) {
                 Object dock = field(activity, "dock");
                 moving.add(dock != null ? (View) invoke(dock, "view") : root().findViewWithTag("home-search"));
                 if (dock == null) moving.add(root().findViewWithTag("home-settings"));
             } else { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel")); }
+            return moving;
         });
-        HubTestPages.awaitAtRest(this, moving);
         main(() -> {
             List<View> targets = new ArrayList<>();
             if (HubPages.HOME.equals(HubTestPages.current(activity))) {
