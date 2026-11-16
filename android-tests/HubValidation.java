@@ -187,6 +187,7 @@ public final class HubValidation extends Instrumentation {
             if (noNearby) {
                 withoutNearby();
                 noBind();
+                targetWaitsForService();
             } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
@@ -435,6 +436,51 @@ public final class HubValidation extends Instrumentation {
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
             require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "The walk granted " + permission);
         checks.add("No scooter work: the service never bound, Nearby permission is still not granted, no riding mode");
+    }
+
+    /**
+     * Without Nearby permission Settings is the loading page until the scooter service binds, and a search result's
+     * target waits for the real page (#393 council review, third round, finding 4: the loading page used it up, so the
+     * Updates sheet never opened). Check for updates' result opens Settings as the loading page with its target still
+     * owed (MainActivity.pageArgs), through a rebuild too; then, Nearby devices granted and the loading page's Allow
+     * pressed (requestBluetooth binds once granted), Settings is built and its Updates sheet opens holding Check for
+     * updates. Runs after noBind, which this ends: the service binds here.
+     */
+    private void targetWaitsForService() throws Exception {
+        String anchor = "check-updates", tag = "hub-search-setting-" + anchor;
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        require(typeAndFind("Check for updates", tag), "Search without Nearby permission lists no Check for updates result ("
+                + onMain(() -> resultRows(root().findViewWithTag("hub-search-results"))) + " result rows)");
+        tapTag(tag);
+        await(() -> onMain(() -> HubPages.SETTINGS.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))),
+                () -> "Check for updates' result opened " + onMain(() -> field(activity, "selectedPage")) + ", not Settings");
+        settle();
+        for (String when : new String[] {"as Settings opened", "after a rebuild"}) {
+            if (when.startsWith("after")) { main(() -> activity.rebuild()); settle(); }
+            main(() -> {
+                String built = field(activity, "screen").getClass().getSimpleName();
+                require(built.equals("LoadingScreen"), "Without Nearby permission Settings was built as " + built + ", not the loading page (" + when + ")");
+                Object owed = field(activity, "pageArgs");
+                require(owed != null && anchor.equals(field(owed, "anchor")), "The loading page used up Check for updates' target " + when
+                        + " (owed: " + (owed == null ? "nothing" : field(owed, "anchor")) + ")");
+            });
+        }
+        screenshot("no-nearby-settings-loading");
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            getUiAutomation().grantRuntimePermission(getTargetContext().getPackageName(), permission);
+        main(() -> activity.requestBluetooth());
+        await(() -> onMain(() -> activity.service() != null && field(activity, "screen").getClass().getSimpleName().equals("MoreScreen")),
+                () -> "With Nearby granted, Settings was not built (" + onMain(() -> field(activity, "screen").getClass().getSimpleName()) + ", service "
+                        + onMain(() -> activity.service() != null) + ")");
+        String[] place = {"not checked", null};
+        await(() -> { settle(); String[] now = onMain(() -> placeOf(anchor)); place[0] = now[0]; place[1] = now[1]; return now[0] == null && "sheet".equals(now[1]); },
+                () -> "With Nearby granted, Settings did not open its Updates sheet with Check for updates in it (" + place[0] + ", " + place[1] + ")");
+        main(() -> require(field(activity, "pageArgs") == null, "Settings, built, left Check for updates' target owed"));
+        screenshot("no-nearby-settings-updates");
+        checks.add("Without Nearby permission, Check for updates' result opens Settings as the loading page with its target kept through a rebuild;"
+                + " once Nearby is granted and the service binds, Settings opens its Updates sheet holding Check for updates");
     }
 
     /**

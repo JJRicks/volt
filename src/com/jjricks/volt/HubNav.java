@@ -49,6 +49,14 @@ final class HubNav {
      * the stack (Back to the search, Home), the next ordinary visit shows every reading; and once the owner typed a
      * search of their own on Readings (dropped: Readings let the reading go), a rebuild doesn't bring it back.
      */
+    /**
+     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built the loading page,
+     * which can't use them (no scooter service yet: opening, or no Nearby devices permission), so the rebuild that builds
+     * the real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
+     * none (the page consumed them). Opening, leaving or resetting a page drops them as before.
+     */
+    static Args owed(Args args, boolean loading) { return loading ? args : null; }
+
     static String keptReading(Args args, String kept, List<String> stack, boolean dropped) {
         if (args != null && args.reading != null) return args.reading;
         return kept != null && !dropped && stack != null && stack.contains(HubPages.DATA) ? kept : null;

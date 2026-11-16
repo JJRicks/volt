@@ -609,6 +609,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         // A search result's reading stays Readings' filter through rebuilds (rotation, unfolding) while Data is in the stack.
         searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
         screen=createScreen(selectedPage,args);
+        // The loading page (no scooter service yet: opening, or no Nearby devices permission) can't use a result's target; the
+        // rebuild that builds the real page does (#393 council review, third round, finding 4).
+        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
             // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
@@ -638,7 +641,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         styleSystemBars();
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
         // A search result names the row its page brings on screen (after the restored scroll) and flashes once.
-        if(args!=null&&args.anchor!=null)revealAnchor(screen,scroll,args.anchor);
+        if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);
         rebuilding=false;redraw();
         showUpdateCheck();
         // The one-time What's new sheet about Home styles: checked once per rebuild, never on a telemetry refresh.

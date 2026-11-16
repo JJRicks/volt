@@ -16,6 +16,7 @@ public final class HubNavTest {
         arguments();
         retention();
         keptReading();
+        owed();
         System.out.println("HubNav: " + checks + " checks passed");
     }
 
@@ -142,6 +143,20 @@ public final class HubNavTest {
                 "What a recreation restores follows whether the owner typed since the last rebuild");
         require(HubNav.keptReading(HubNav.Args.anchor("row"), null, onData, false) == null, "Other arguments carry no reading");
         require(HubNav.keptReading(null, "speed_kmh", null, false) == null, "No stack, no reading");
+    }
+
+    /**
+     * A result's target waits out the loading page (#393 council review, third round, finding 4): without Nearby devices
+     * permission Settings is the loading page until the service binds, and the rebuild after that must still have the
+     * Updates sheet's anchor to reveal it.
+     */
+    private static void owed() {
+        HubNav.Args updates = HubNav.Args.anchor("preference-update-check");
+        require(HubNav.owed(updates, true) == updates, "The loading page keeps the result's target for the real page");
+        require(HubNav.owed(updates, false) == null, "The real page consumes it: a later rebuild doesn't reveal it again");
+        require(HubNav.owed(null, true) == null, "Nothing owed without arguments");
+        HubNav.Args ride = HubNav.Args.rideAndBack("r1");
+        require(HubNav.owed(ride, true) == ride && HubNav.owed(HubNav.Args.reading("speed_kmh"), true).reading.equals("speed_kmh"), "Every kind of target waits");
     }
 
     private static void retention() {
