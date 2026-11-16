@@ -1030,9 +1030,19 @@ public final class HubValidation extends Instrumentation {
     }
     private void requireHome(String screenClass) {
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
-                && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), "Home is not " + screenClass);
+                && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), () -> "Home is not " + screenClass + " (" + onMain(this::whereNow) + ")");
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
+    }
+    /** Where the app is, for a failure: the page, its screen, a rebuild in progress, the page stack and the focused window. */
+    @SuppressWarnings("unchecked")
+    private String whereNow() {
+        Object screen = field(activity, "screen");
+        String stack;
+        try { stack = String.valueOf(invoke(field(activity, "nav"), "pages", new Class<?>[0])); } catch (RuntimeException error) { stack = "?"; }
+        return "page " + field(activity, "selectedPage") + ", screen " + (screen == null ? "none" : screen.getClass().getSimpleName())
+                + ", rebuilding " + field(activity, "rebuilding") + ", stack " + stack + ", activity focused " + activity.hasWindowFocus()
+                + ", resumed " + !activity.isFinishing();
     }
     private Object dock() {
         Object dock = field(activity, "dock");
