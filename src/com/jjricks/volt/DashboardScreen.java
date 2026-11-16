@@ -4692,6 +4692,8 @@ public final class DashboardScreen implements AppScreen {
         /** Readings as separate small cards that wrap, then drop icons and labels to fit short rows. */
         private final class ReadingTiles extends ViewGroup {
             static final int FULL = 0, INLINE = 1, PLAIN = 2, VALUE = 3;
+            /** A full tile's height at 1x text: padding, icon, name and value (ReadingSpan.splitThree). */
+            static final float FULL_TILE_DP = 96;
             final ArrayList<LinearLayout> cells = new ArrayList<>();
             final ArrayList<GlyphView> icons = new ArrayList<>();
             final ArrayList<LinearLayout> heads = new ArrayList<>();
@@ -4775,6 +4777,9 @@ public final class DashboardScreen implements AppScreen {
                     if ((count + next - 1) / next > maxRows) break;
                     columns = next;
                 }
+                // Three thin pillars in a tall card (the unfolded Widgets Home) wrap 2 + 1, when full tiles fit.
+                if (ReadingSpan.splitThree(count, columns, width, budget, gap, ui.dp(FULL_TILE_DP * textFactor())))
+                    columns = 2;
                 // Height may force values-only cells, but must never force a numeric token
                 // into fewer pixels than it needs at the readable floor. Allow another row
                 // (and normal card scrolling) rather than clipping digits or hiding readings.
