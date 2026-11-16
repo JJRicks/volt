@@ -58,4 +58,13 @@ final class ActionBannerFit {
         float wanted = Math.max(0f, indent);
         return Math.max(0f, pill) <= room - wanted ? wanted : 0f;
     }
+
+    /**
+     * The pill's padding a side under the words: its own {@code pad} while the pill fits the row's {@code room} with it;
+     * in a window so narrow that the pill alone is wider than its row (Sync in German at 1.4x in Android's narrowest
+     * 220 dp split-screen window), only what the row leaves around the label, so the label stays whole on one line.
+     */
+    static float stackedPad(float room, float label, float pad) {
+        return Math.min(Math.max(0f, pad), Math.max(0f, (room - Math.max(0f, label)) / 2));
+    }
 }
