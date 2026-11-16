@@ -7,11 +7,15 @@ import android.animation.ValueAnimator;
 import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.transition.ChangeBounds;
 import android.transition.Fade;
+import android.transition.Transition;
+import android.transition.TransitionListenerAdapter;
 import android.transition.TransitionManager;
 import android.transition.TransitionSet;
 import android.transition.TransitionValues;
@@ -27,7 +31,9 @@ import android.view.animation.PathInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ScrollView;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
@@ -369,45 +375,306 @@ final class Motion {
      */
     static void animateChanges(ViewGroup root, View... instant) {
         if (!enabled() || root == null || !root.isLaidOut()) return;
+        TransitionManager.beginDelayedTransition(root, changes(false, instant));
+    }
+
+    /**
+     * {@link #animateChanges}' motion: what goes fades out, what moves glides, what comes fades in. Veiled (reveal's),
+     * what goes is GONE from the start and only drawn fading ({@link Veil}).
+     */
+    private static TransitionSet changes(boolean veiled, View... instant) {
         TransitionSet set = new TransitionSet();
         for (View view : instant) if (view != null) set.excludeChildren(view, true);
         set.setOrdering(TransitionSet.ORDERING_TOGETHER);
-        set.addTransition(new Fade(Fade.OUT).setDuration(EXIT_MS));
+        set.addTransition((veiled ? new Veil(Visibility.MODE_OUT) : new Fade(Fade.OUT)).setDuration(EXIT_MS));
         set.addTransition(new ChangeBounds().setDuration(CHANGE_MS));
-        set.addTransition(new Fade(Fade.IN).setDuration(CHANGE_MS));
+        set.addTransition((veiled ? new Veil(Visibility.MODE_IN) : new Fade(Fade.IN)).setDuration(CHANGE_MS));
         set.setInterpolator(STANDARD);
-        TransitionManager.beginDelayedTransition(root, set);
+        return set;
     }
 
-    /** What reveal() last asked of each view: a departure keeps its view drawn (and VISIBLE) until it ends. */
+    /**
+     * {@link #reveal}'s fade. Android's Fade keeps a departing view VISIBLE for the transition, so for its whole fade it
+     * still takes taps, clicks, long presses, focus, keys and accessibility actions, and reads as shown. Here it stays
+     * GONE from the moment it is asked to go, as it was before any motion: it takes none of those, focus leaves it as
+     * Android moves focus from a GONE view, and what is under it gets the tap. Only its picture fades where it was, a
+     * {@link Ghost} over the page. Shown again mid-fade, it is VISIBLE (and takes input) at once and fades in from the
+     * ghost's opacity: a reversal turns back from what is on screen.
+     */
+    private static final class Veil extends Visibility {
+        /** The opacity a view is drawn at: its ghost's while it goes, else its transition alpha. */
+        private static final String ALPHA = "volt:veil:alpha";
+        Veil(int mode) { setMode(mode); }
+        @Override public void captureStartValues(TransitionValues values) {
+            super.captureStartValues(values);
+            Ghost ghost = ghosts.get(values.view);
+            values.values.put(ALPHA, ghost != null ? ghost.alpha : values.view.getTransitionAlpha());
+        }
+        private static float from(TransitionValues values, float otherwise) {
+            Object alpha = values == null ? null : values.values.get(ALPHA);
+            return alpha instanceof Float ? (Float) alpha : otherwise;
+        }
+        @Override public Animator onAppear(ViewGroup root, View view, TransitionValues start, TransitionValues end) {
+            // A gone view that was not fading was captured at 1: it fades in from nothing.
+            float from = from(start, 0);
+            return fade(view, from >= 1 ? 0 : from, 1);
+        }
+        @Override public Animator onDisappear(ViewGroup root, TransitionValues start, int startVisibility, TransitionValues end, int endVisibility) {
+            // Visibility's own check, which this replaces: only the departing half of the set fades views out.
+            if ((getMode() & MODE_OUT) != MODE_OUT) return null;
+            View view = start == null ? null : start.view;
+            // Removed (Android draws it in the root's overlay, where it takes no input) or INVISIBLE: Android's way.
+            if (view == null || end == null || end.view != view || endVisibility != View.GONE || !(view.getParent() instanceof ViewGroup) || !view.isAttachedToWindow())
+                return super.onDisappear(root, start, startVisibility, end, endVisibility);
+            float from = from(start, 1);
+            // The view itself stays GONE at full transition alpha; the ghost carries the fade.
+            view.setTransitionAlpha(1);
+            Ghost ghost = new Ghost(view, root, from);
+            ValueAnimator animator = ValueAnimator.ofFloat(from, 0);
+            animator.addUpdateListener(a -> { ghost.alpha = (float) a.getAnimatedValue(); ghost.invalidateSelf(); });
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(Animator a) { ghost.drop(); }
+            });
+            ghost.animator = animator;
+            ghost.show();
+            return animator;
+        }
+        @Override public Animator onDisappear(ViewGroup root, View view, TransitionValues start, TransitionValues end) {
+            return fade(view, from(start, 1), 0);
+        }
+        private static Animator fade(View view, float from, float to) {
+            view.setTransitionAlpha(from);
+            ValueAnimator animator = ValueAnimator.ofFloat(from, to);
+            animator.addUpdateListener(a -> view.setTransitionAlpha((float) a.getAnimatedValue()));
+            animator.addListener(new AnimatorListenerAdapter() {
+                boolean canceled;
+                // Turned back: the next motion starts from where this one is (its own start was captured from it).
+                @Override public void onAnimationCancel(Animator a) { canceled = true; }
+                @Override public void onAnimationEnd(Animator a) { if (!canceled) view.setTransitionAlpha(1); }
+            });
+            return animator;
+        }
+    }
+
+    /** Views going through {@link #reveal}'s fade, each drawn by its ghost. */
+    private static final WeakHashMap<View, Ghost> ghosts = new WeakHashMap<>();
+
+    /**
+     * The picture of a GONE view fading where it was: a drawable in its reveal root's overlay that draws the view each
+     * frame at its last place, under its parent's current position (a gliding card carries it), at the fade's opacity.
+     * An overlay takes no input.
+     */
+    private static final class Ghost extends Drawable {
+        final View view;
+        final ViewGroup root;
+        float alpha;
+        Animator animator;
+        private final int[] at = new int[2], base = new int[2];
+        Ghost(View view, ViewGroup root, float alpha) { this.view = view; this.root = root; this.alpha = alpha; }
+        void show() {
+            Ghost was = ghosts.put(view, this);
+            if (was != null) was.end();
+            setBounds(0, 0, Math.max(1, root.getWidth()), Math.max(1, root.getHeight()));
+            root.getOverlay().add(this);
+        }
+        /** Stops the fade (its end drops the ghost). */
+        void end() { if (animator != null) animator.cancel(); drop(); }
+        void drop() {
+            if (ghosts.get(view) == this) ghosts.remove(view);
+            root.getOverlay().remove(this);
+        }
+        @Override public void draw(Canvas canvas) {
+            float drawn = alpha * view.getAlpha();
+            if (drawn <= 0 || !(view.getParent() instanceof View) || view.getWidth() <= 0 || view.getHeight() <= 0) return;
+            View parent = (View) view.getParent();
+            parent.getLocationInWindow(at);
+            root.getLocationInWindow(base);
+            int save = canvas.save();
+            // The overlay draws in the root's content coordinates.
+            canvas.translate(at[0] - base[0] + root.getScrollX() - parent.getScrollX() + view.getLeft(),
+                    at[1] - base[1] + root.getScrollY() - parent.getScrollY() + view.getTop());
+            if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
+            canvas.saveLayerAlpha(0, 0, view.getWidth(), view.getHeight(), Math.round(255 * Math.min(1, drawn)));
+            view.draw(canvas);
+            canvas.restoreToCount(save);
+        }
+        @Override public void setAlpha(int alpha) {}
+        @Override public void setColorFilter(ColorFilter filter) {}
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
+    /** The opacity a leaving view is drawn at while it fades out ({@link #reveal}), or -1 when it is not leaving. */
+    static float leaving(View view) {
+        Ghost ghost = view == null ? null : ghosts.get(view);
+        return ghost == null ? -1 : ghost.alpha * view.getAlpha();
+    }
+
+    /** A press or long press under way in a view that goes ends there: it never lands as a click or long click. */
+    private static void release(View view) {
+        if (view.isPressed()) view.setPressed(false);
+        view.cancelLongPress();
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) release(((ViewGroup) view).getChildAt(i));
+    }
+
+    /** One {@link #reveal} motion on a root: every reveal on that root before its first frame joins it. */
+    private static final class Glide {
+        final WeakReference<ViewGroup> root;
+        /** It reached its first frame and played; swallowed, when that frame came and it had not. */
+        boolean played, swallowed, ended;
+        Glide(ViewGroup root) { this.root = new WeakReference<>(root); }
+    }
+
+    /** What reveal() last asked of each view. */
     private static final WeakHashMap<View, Boolean> revealed = new WeakHashMap<>();
     /** Roots whose reveal has not reached its first frame yet: a second change joins that one. */
-    private static final WeakHashMap<View, Boolean> revealing = new WeakHashMap<>();
+    private static final WeakHashMap<View, Glide> revealing = new WeakHashMap<>();
+    /** The motion each view last went through, until it ends. */
+    private static final WeakHashMap<View, Glide> moving = new WeakHashMap<>();
 
     /**
      * Shows or hides {@code view} (VISIBLE or GONE) inside {@code root}: when that changes on a laid-out page, it fades
      * in or out while what sits around it glides to its new place ({@link #animateChanges}, with {@code instant} as
      * there). A call that leaves it as it is does nothing, so a live refresh that keeps it shown or hidden never moves
-     * anything. A quick reversal first settles the change still running, then animates from there; a null root is an
-     * instant change. Once a view goes through here, show and hide it only here. Focus and accessibility are untouched.
-     * Returns whether it changed.
+     * anything. A reversal mid-motion turns back from what is on screen. A null root is an instant change, and it, or a
+     * change on another root, first ends the motion the view is still in (a departure would otherwise hide it when it
+     * ends, over the change). When the page gets shorter at the bottom of its scroll, the scroll's content glides to
+     * where the scroll is clamped rather than jumping there. Once a view goes through here, show and hide it only here.
+     * A view that goes is GONE at once, as without motion, and only its picture fades ({@link Veil}): from the moment
+     * it starts leaving it takes no touch, click, long press, key, focus or accessibility action (a press under way in
+     * it ends), what is under it gets the tap, and it reads as gone. Shown again, even mid-fade, it takes them at once.
+     * Focus moves as Android moves it from any GONE view; accessibility flags are untouched. Returns whether it changed.
      */
     static boolean reveal(ViewGroup root, View view, boolean shown, View... instant) {
         if (view == null) return false;
         Boolean asked = revealed.get(view);
         if ((asked != null ? asked : view.getVisibility() == View.VISIBLE) == shown) return false;
         revealed.put(view, shown);
-        if (root != null && !revealing.containsKey(root)) {
-            TransitionManager.endTransitions(root);
-            if (enabled() && root.isLaidOut()) {
-                revealing.put(root, Boolean.TRUE);
-                Runnable started = () -> revealing.remove(root);
-                beforeNextDraw(root, started, started);
-                animateChanges(root, instant);
-            }
+        boolean glides = root != null && enabled() && root.isLaidOut();
+        Glide running = moving.remove(view);
+        ViewGroup was = running == null || running.ended ? null : running.root.get();
+        // Ending it jumps what it moves to where it was going; only a change without a motion of its own does that.
+        if (was != null && (!glides || was != root)) TransitionManager.endTransitions(was);
+        if (glides) {
+            // A reversal mid-motion starts here too: Android captures the running motion where it is on screen and
+            // turns its views back from there.
+            Glide glide = revealing.get(root);
+            if (glide == null) glide = glide(root, instant);
+            moving.put(view, glide);
         }
+        // Shown mid-fade: the motion just begun captured the ghost's opacity to turn back from; the view draws itself.
+        Ghost ghost = ghosts.get(view);
+        if (ghost != null) ghost.end();
+        if (!shown) release(view);
         view.setVisibility(shown ? View.VISIBLE : View.GONE);
         return true;
+    }
+
+    private static Glide glide(ViewGroup root, View... instant) {
+        Glide glide = new Glide(root);
+        revealing.put(root, glide);
+        Runnable abandoned = () -> { revealing.remove(root); glide.swallowed = true; };
+        holdScroll(root);
+        TransitionSet set = changes(true, instant);
+        set.addListener(new TransitionListenerAdapter() {
+            @Override public void onTransitionStart(Transition transition) { glide.played = true; }
+            @Override public void onTransitionEnd(Transition transition) { settle(glide); }
+            @Override public void onTransitionCancel(Transition transition) { settle(glide); }
+        });
+        TransitionManager.beginDelayedTransition(root, set);
+        // After Android's own first-frame listener: later reveals on the root start a new motion, and one that did not
+        // play (the root had another motion pending this frame) leaves its views to the next motion that ends.
+        beforeNextDraw(root, () -> {
+            revealing.remove(root);
+            if (!glide.played) glide.swallowed = true;
+        }, abandoned);
+        return glide;
+    }
+
+    /**
+     * Once a reveal's motion ends (or never played), each view it last moved is left as last asked. A departure it
+     * ended early, or one that outlived a change it never saw, would otherwise leave the view hidden while it is
+     * asked to show, until the next change.
+     */
+    private static void settle(Glide glide) {
+        if (glide.ended) return;
+        glide.ended = true;
+        ArrayList<View> settled = new ArrayList<>();
+        for (Map.Entry<View, Glide> entry : moving.entrySet())
+            if (entry.getValue() == glide || entry.getValue().swallowed) settled.add(entry.getKey());
+        for (View view : settled) {
+            if (view == null) continue;
+            moving.remove(view);
+            Ghost ghost = ghosts.get(view);
+            if (ghost != null) ghost.end();
+            if (view.getTransitionAlpha() != 1) view.setTransitionAlpha(1);
+            Boolean asked = revealed.get(view);
+            if (asked != null && (view.getVisibility() == View.VISIBLE) != asked) view.setVisibility(asked ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /** The offset a scroll's content carries while it glides to where its scroll was clamped. */
+    private static final class Hold { ValueAnimator animator; float offset; boolean pending; }
+    private static final WeakHashMap<View, Hold> holds = new WeakHashMap<>();
+
+    /**
+     * A page that gets shorter while scrolled to its end has its scroll clamped in the same layout, before the first
+     * frame of the motion: everything on screen would jump down by the clamp and then glide. Instead the scroll's
+     * content starts that frame offset by the clamp and glides to it with the rest of the motion.
+     */
+    private static void holdScroll(ViewGroup root) {
+        ScrollView scroll = null;
+        for (ViewParent at = root; at instanceof View; at = at.getParent()) if (at instanceof ScrollView) { scroll = (ScrollView) at; break; }
+        if (scroll == null || scroll.getChildCount() == 0) return;
+        ScrollView page = scroll;
+        View content = scroll.getChildAt(0);
+        Hold hold = holds.get(content);
+        if (hold == null) holds.put(content, hold = new Hold());
+        // Reveals on two roots of one page in the same frame share one clamp.
+        if (hold.pending) return;
+        hold.pending = true;
+        Hold held = hold;
+        int scrolled = scroll.getScrollY(), tall = content.getHeight();
+        beforeNextDraw(root, () -> {
+            held.pending = false;
+            int clamped = Math.min(scrolled - page.getScrollY(), tall - content.getHeight());
+            if (clamped <= 0 || content.getParent() != page || !enabled()) return;
+            if (held.animator != null) held.animator.cancel();
+            ValueAnimator animator = ValueAnimator.ofFloat(held.offset - clamped, 0);
+            animator.setDuration(CHANGE_MS);
+            animator.setInterpolator(STANDARD);
+            animator.addUpdateListener(a -> {
+                float offset = (float) a.getAnimatedValue();
+                content.setTranslationY(content.getTranslationY() - held.offset + offset);
+                held.offset = offset;
+            });
+            animator.addListener(new AnimatorListenerAdapter() {
+                boolean canceled;
+                @Override public void onAnimationCancel(Animator a) { canceled = true; }
+                @Override public void onAnimationEnd(Animator a) {
+                    if (canceled) return;
+                    content.setTranslationY(content.getTranslationY() - held.offset);
+                    held.offset = 0;
+                    held.animator = null;
+                }
+            });
+            held.animator = animator;
+            // Starting applies the first offset before this frame draws.
+            animator.start();
+        }, () -> held.pending = false);
+    }
+
+    /**
+     * The scrolling page that holds {@code view}: its nearest ScrollView's child, or its parent outside one. As a
+     * {@link #reveal} root, every part of a stacked page (a Hub page built from several screens) glides together, and
+     * reveals in one refresh anywhere on it join one motion.
+     */
+    static ViewGroup pageOf(View view) {
+        ViewGroup page = null;
+        for (ViewParent at = view == null ? null : view.getParent(); at instanceof ViewGroup; at = at.getParent()) {
+            if (at instanceof ScrollView) return page;
+            page = (ViewGroup) at;
+        }
+        return view != null && view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null;
     }
 
     /** Content that finished loading fades up in place rather than snapping in. */
