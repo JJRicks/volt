@@ -66,7 +66,7 @@ import com.jjricks.volt.ScooterProfiles;
  * The animator duration scale is put back as it was at the end. -e theme dark|light and -e text_scale (1 by default) as
  * the other fixture runners; -e list_scrolls true|false requires that the window's sheet is (or is not) taller than the
  * window, so its list scrolls. -e mode hold sets Widgets Home up and holds it for -e hold_seconds (600 by default), for
- * recordings driven from adb; it checks nothing. -e mode pose holds each of -e poses (a comma list: dock for the dock
+ * recordings driven from adb, after a status line where=... (where to touch; where()); it checks nothing. -e mode pose holds each of -e poses (a comma list: dock for the dock
  * alone, or a progress 0..1 for the sheet pulled that far and held) for -e pose_seconds (4), sending a status line
  * pose=NAME as each is in place, so pictures can be taken from adb; -e scroll top|busy puts Home at its top or halfway
  * down first (busy widgets behind the dock). For the contrast comparison, -e contrast A|B|C and -e hair_light,
@@ -107,6 +107,7 @@ public final class DockSheetValidation extends Instrumentation {
             requireHome();
             OPENING = state("OPENING"); OPEN = state("OPEN"); CLOSING = state("CLOSING"); PULLED = state("PULLED"); DRAGGED = state("DRAGGED");
             if (mode.equals("hold")) {
+                where();
                 checks.add("Widgets Home held for recordings");
                 SystemClock.sleep(Long.parseLong(arguments.getString("hold_seconds", "600")) * 1000);
             } else if (mode.equals("pose")) {
@@ -799,6 +800,25 @@ public final class DockSheetValidation extends Instrumentation {
         main(() -> invoke(sheet, "dismissNow"));
         settle();
     }
+    /**
+     * For recordings driven from adb (-e mode hold): a status line with where to touch, in screen px: the dock's centre
+     * (dock_x, dock_y), its All item (all_x, all_y), the open sheet's grab handle (handle_x, handle_y) and the sheet's
+     * travel (opened with All once, then closed with Back, at the animator scale as it is).
+     */
+    private void where() {
+        HubTestPages.showDock(this, activity);
+        float[] dock = dockCentre(), all = onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle")));
+        tapAll();
+        float[] grab = centre(handle());
+        int travel = onMain(() -> (Integer) field(drag(), "travel"));
+        back(); awaitGone("Back");
+        HubTestPages.showDock(this, activity);
+        Bundle status = new Bundle();
+        status.putString("where", String.format(Locale.ROOT, "dock_x=%.0f dock_y=%.0f all_x=%.0f all_y=%.0f handle_x=%.0f handle_y=%.0f travel=%d",
+                dock[0], dock[1], all[0], all[1], grab[0], grab[1], travel));
+        sendStatus(1, status);
+    }
+
     /** Widgets Home's own scrolling page: the tallest shown ScrollView in the window. */
     private ScrollView homeScroll() {
         List<View> all = new ArrayList<>(); all.add(root());
