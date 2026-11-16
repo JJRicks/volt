@@ -387,8 +387,8 @@ public final class DockSheetValidation extends Instrumentation {
         // A row's close, let go by Widgets Home as the subject opens: no finger catches it (a pull of 30% does not reopen
         // it), it finishes closing, the subject stays, and nothing under the finger is clicked. Slowed further (scale 20,
         // Android's most, a close of about 6 s): building the subject's page stalls a slow machine's main thread while the
-        // close runs on, so it needs only 80 dp of the sheet still showing to touch, and is set up again (up to three
-        // times) if a stall swallowed even that.
+        // close runs on, so it needs only 160 dp of the sheet still showing (touched in the middle of that), and is set up
+        // again (up to three times) if a stall swallowed even that.
         Object[] got = null;
         for (int attempt = 1; got == null; attempt++) {
             scale(10);
@@ -407,10 +407,10 @@ public final class DockSheetValidation extends Instrumentation {
             tapCentre(rowView, "the All sheet's " + subjectNow + " row");
             await(() -> onMain(() -> Boolean.TRUE.equals(field(sheetNow, "letGo"))), () -> "Opening " + subjectNow + " did not let its closing sheet go (state " + onMain(() -> field(sheetNow, "state")) + ")");
             float[] at = onMain(() -> {
-                View panel = (View) field(sheetNow, "panel"); int[] p = new int[2]; panel.getLocationOnScreen(p);
-                return new float[]{p[0] + panel.getWidth() / 2f, p[1] + 30 * dp, (Float) field(sheetNow, "offset")};
+                float[] middle = middleOf(sheetNow);
+                return new float[]{middle[0], middle[1], (Float) field(sheetNow, "offset")};
             });
-            if (at[2] < travel - 80 * dp && onMain(dialogNow::isShowing)) { got = new Object[]{subjectNow, sheetNow, dialogNow, at}; break; }
+            if (at[2] < travel - 160 * dp && onMain(dialogNow::isShowing)) { got = new Object[]{subjectNow, sheetNow, dialogNow, at}; break; }
             require(attempt < 3, "The row's close was too far along to touch, three times (" + at[2] + " of " + travel + " px)");
             await(() -> onMain(() -> !dialogNow.isShowing()), "The let-go sheet never went (" + subjectNow + ")");
             await(() -> onMain(() -> subjectNow.equals(HubTestPages.current(activity))), "The row did not open " + subjectNow);
@@ -544,11 +544,20 @@ public final class DockSheetValidation extends Instrumentation {
     private Finger catchLow() {
         closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
         await(() -> onMain(() -> drag() != null && offset() >= .40f * travel), () -> "The slowed close never reached two fifths (" + describe() + ")");
-        float[] at = onMain(() -> { int[] p = new int[2]; panel().getLocationOnScreen(p); return new float[]{p[0] + panel().getWidth() / 2f, p[1] + 30 * dp}; });
+        // The middle of what shows of it: a slow machine may move the closing sheet on a long way before the touch lands.
+        float[] at = onMain(this::middleOfSheet);
         Finger finger = new Finger(at);
         Object state = onMain(() -> drag() == null ? null : field(drag(), "state"));
         require(Integer.valueOf(DRAGGED).equals(state), "A finger down on the closing sheet did not catch it (" + describe() + ")");
         return finger;
+    }
+
+    /** On the main thread: the middle of what shows of the dock's sheet (between its top and the window's bottom). */
+    private float[] middleOfSheet() { return middleOf(drag()); }
+    private float[] middleOf(Object sheet) {
+        View panel = (View) field(sheet, "panel"), frame = (View) field(sheet, "frame");
+        int[] p = new int[2], f = new int[2]; panel.getLocationOnScreen(p); frame.getLocationOnScreen(f);
+        return new float[]{p[0] + panel.getWidth() / 2f, (p[1] + f[1] + frame.getHeight()) / 2f};
     }
 
     /** Every frame at animator scale 5: the opening, the snap-back and the close, and no gap under the sheet at any frame. */
