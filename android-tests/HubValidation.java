@@ -106,7 +106,8 @@ import com.jjricks.volt.WideLayout;
  * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
  * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
  * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none, and
- * shows its rows under the Allow Nearby devices card, each app row working (withoutNearby, settingsWithoutNearby). -e theme dark|light and -e text_scale (1 by default) as the other
+ * shows its rows under the Allow Nearby devices card, each app row working (withoutNearby, settingsWithoutNearby); last,
+ * the permission is granted from that card, and Settings changes in place (grantFromSettings). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -179,6 +180,7 @@ public final class HubValidation extends Instrumentation {
             if (noNearby) {
                 withoutNearby();
                 noBind();
+                grantFromSettings();
             } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
@@ -622,6 +624,95 @@ public final class HubValidation extends Instrumentation {
 
     /** MainActivity's connection details dialog (its controlDialog), or null. Main thread. */
     private AlertDialog controlDialog() { return activity == null ? null : (AlertDialog) field(activity, "controlDialog"); }
+
+    /**
+     * Last, Nearby devices granted from Settings' own card, as an owner would: Allow Nearby devices, then Android's Allow.
+     * The page changes in place (the contributor's decision, 15 Nov, #383): the card fades while the rows glide up into
+     * its room, every frame from the tap until the service has bound and Settings is rebuilt for it (no frame moves the
+     * Language row by more than half the card at once, and it never moves down); the page stack stays Home, Settings;
+     * the rows end where the card's top was, at the same scroll, with no card; My scooters is no longer dimmed and no
+     * connection line shows.
+     */
+    private void grantFromSettings() throws Exception {
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        int muted = onMain(() -> ((com.jjricks.volt.Ui) field(activity, "design")).muted);
+        Object before = onMain(() -> field(activity, "screen"));
+        int[] start = onMain(() -> {
+            View card = root().findViewWithTag(NEARBY_CARD), row = root().findViewWithTag("preference_language");
+            require(shown(card) && shown(row), "Settings has no Allow Nearby devices card and Language row before the grant");
+            ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
+            require(page.getScrollY() == 0, "Settings is not at its top before the grant");
+            int[] cardAt = new int[2], rowAt = new int[2]; card.getLocationInWindow(cardAt); row.getLocationInWindow(rowAt);
+            return new int[]{cardAt[1], rowAt[1], card.getHeight()};
+        });
+        // Every frame from here: the Language row's top in the window (Integer.MIN_VALUE while none shows).
+        List<Integer> frames = Collections.synchronizedList(new ArrayList<>());
+        boolean[] sampling = {true};
+        main(() -> android.view.Choreographer.getInstance().postFrameCallback(new android.view.Choreographer.FrameCallback() {
+            @Override public void doFrame(long time) {
+                if (!sampling[0]) return;
+                View row = activity.getWindow().getDecorView().findViewWithTag("preference_language");
+                int[] at = new int[2]; if (row != null && row.isShown()) row.getLocationInWindow(at);
+                frames.add(row != null && row.isShown() ? at[1] : Integer.MIN_VALUE);
+                android.view.Choreographer.getInstance().postFrameCallback(this);
+            }
+        }));
+        tapTag(NEARBY_ALLOW);
+        android.view.accessibility.AccessibilityNodeInfo allow = null;
+        long end = SystemClock.uptimeMillis() + 10000;
+        while (allow == null && SystemClock.uptimeMillis() < end) {
+            // Android's permission dialog is the active window while it asks.
+            List<android.view.accessibility.AccessibilityNodeInfo> roots = new ArrayList<>();
+            roots.add(getUiAutomation().getRootInActiveWindow());
+            try { for (android.view.accessibility.AccessibilityWindowInfo window : getUiAutomation().getWindows()) roots.add(window.getRoot()); }
+            catch (RuntimeException windowsUnavailable) { /* the active window is enough */ }
+            for (android.view.accessibility.AccessibilityNodeInfo node : roots) {
+                if (node == null) continue;
+                List<android.view.accessibility.AccessibilityNodeInfo> found = node.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/permission_allow_button");
+                if (found.isEmpty()) found = node.findAccessibilityNodeInfosByViewId("com.android.packageinstaller:id/permission_allow_button");
+                if (!found.isEmpty()) { allow = found.get(0); break; }
+            }
+            if (allow == null) SystemClock.sleep(100);
+        }
+        require(allow != null, "Allow Nearby devices on Settings' card did not ask Android for the permission");
+        require(allow.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK), "Android's Allow could not be tapped");
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}) {
+            String wanted = permission;
+            await(() -> getTargetContext().checkSelfPermission(wanted) == PackageManager.PERMISSION_GRANTED, "Android's Allow did not grant " + wanted);
+        }
+        await(() -> onMain(() -> activity.service() != null), "The service did not bind once Nearby devices was granted");
+        await(() -> onMain(() -> field(activity, "screen") != before && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Settings was not rebuilt for the service");
+        settle(); SystemClock.sleep(400); settle();
+        sampling[0] = false;
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireHeader(HubPages.SETTINGS, false);
+        List<Integer> seen = new ArrayList<>();
+        synchronized (frames) { for (Integer y : frames) if (y != Integer.MIN_VALUE) seen.add(y); }
+        require(seen.size() > 5, "Too few frames of Settings were seen through the grant (" + seen.size() + ")");
+        int expected = start[1] - (start[1] >= start[0] + start[2] ? start[2] : 0);
+        for (int i = 1; i < seen.size(); i++) {
+            int step = seen.get(i) - seen.get(i - 1);
+            require(step <= 0, "Settings' Language row moved down " + step + " px in one frame through the grant (frames " + seen + ")");
+            require(-step <= start[2] / 2, "Settings' Language row jumped " + (-step) + " px in one frame through the grant (the card is " + start[2] + " px; frames " + seen + ")");
+        }
+        main(() -> {
+            require(root().findViewWithTag(NEARBY_CARD) == null || !shown(root().findViewWithTag(NEARBY_CARD)), "Settings still shows the Allow Nearby devices card once granted");
+            View row = root().findViewWithTag("preference_language");
+            int[] at = new int[2]; row.getLocationInWindow(at);
+            require(Math.abs(at[1] - expected) <= 2, "Settings' Language row ended at " + at[1] + " px, not where the card's top was (" + expected + ")");
+            ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
+            require(page.getScrollY() == 0, "Settings' scroll moved with the grant (" + page.getScrollY() + ")");
+            View scooters = root().findViewWithTag("my-scooters-menu");
+            TextView title = scooters instanceof ViewGroup ? firstText((ViewGroup) scooters) : null;
+            require(title != null && title.getCurrentTextColor() != muted, "My scooters is still dimmed once the service bound");
+            require(!hasText(scooters, "Allow Nearby devices"), "My scooters still asks for Nearby devices once granted");
+        });
+        screenshot("no-nearby-settings-granted");
+        checks.add("Nearby devices granted from Settings' card (Allow Nearby devices, then Android's Allow): the card fades in place while the rows glide up, no frame"
+                + " moving the Language row down or by more than half the card (" + seen.size() + " frames, through the service binding and Settings' rebuild); the stack"
+                + " stays Home, Settings, the scroll at its top, no card, My scooters no longer dimmed, no connection line");
+    }
 
     /** Without Nearby permission nothing bound the service, so nothing could reach a scooter or start a recording. */
     private void noBind() {

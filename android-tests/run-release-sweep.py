@@ -293,7 +293,8 @@ STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden
 # where Volt takes the phone layout (725 / 1.4 < 650 dp), its dock holds all seven, and Widgets' Lock bar opens under the
 # pinned dock (-e lock_bar_arrival under). hub-no-nearby grants every permission but Nearby devices (the service never binds): every scooter
 # page and sub-page shows the not-connected line, which opens the connection details with Allow Nearby devices, and Settings shows the
-# Allow Nearby devices card above its rows, its app rows working (Language changed and back). In every step the dock stays pinned to the bottom (it never lifts or steps
+# Allow Nearby devices card above its rows, its app rows working (Language changed and back); last, the permission is granted from
+# that card and Settings changes in place (the card fades, the rows glide up, nothing jumps as the service binds). In every step the dock stays pinned to the bottom (it never lifts or steps
 # aside for the Lock bar; the contributor's decision of 14 Nov), and Home scrolls the Lock bar and its last card clear of it.
 STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-344-large', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', size='344x882'),

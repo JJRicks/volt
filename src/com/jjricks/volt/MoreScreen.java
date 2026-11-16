@@ -192,6 +192,7 @@ public final class MoreScreen implements AppScreen {
     /** embedded: the section is a Hub page's body (see {@link #embedded}); it needs an initialSection. */
     MoreScreen(ScreenHost host, String initialSection, boolean embedded) {
         this.host = host; ui = host.ui();
+        builtWithoutService = host.service() == null;
         standalone = initialSection != null;
         this.embedded = embedded && standalone;
         wide = false;
@@ -478,7 +479,59 @@ public final class MoreScreen implements AppScreen {
     void lead(View card) {
         card.setPadding(card.getPaddingLeft(), card.getPaddingTop(), card.getPaddingRight(), card.getPaddingBottom() + ui.dp(12));
         indexView.addView(card, 0, new LinearLayout.LayoutParams(-1, -2));
+        nearbyCard = card;
     }
+    /** Settings' Nearby devices card (lead), or null; it leaves through nearbyCard(false) once the permission is granted. */
+    private View nearbyCard;
+    /**
+     * Built while the service was not bound: until MainActivity rebuilds the page for the service (it waits for the card's
+     * motion to end, nearbyCardLeaving), refresh keeps to the rows built for that (refreshWithoutService).
+     */
+    private final boolean builtWithoutService;
+    /**
+     * Shows or hides Settings' Nearby devices card in place. Granted (from the card, or from About & permissions' row
+     * further down the stack) the card fades while the rows below glide up into its room (Motion.reveal, as the
+     * connection banners do), the page staying where it is: a card scrolled wholly out of view goes at once with the
+     * scroll moved by its height, so nothing on screen moves; one partly scrolled out glides up with the scroll taken
+     * back by the part that was out of view, so the rows land where the card's visible part began.
+     */
+    private void nearbyCard(boolean shown) {
+        View card = nearbyCard;
+        if (card == null || (card.getVisibility() == View.VISIBLE) == shown) return;
+        ScrollView page = shown || !card.isLaidOut() ? null : scroll;
+        // The card's top in the scroll's content.
+        int top = 0; View in = card;
+        for (; in != null && in.getParent() != page; in = in.getParent() instanceof View ? (View) in.getParent() : null) top += in.getTop();
+        if (page != null && in != null) {
+            top += in.getTop();
+            int height = card.getHeight(), at = page.getScrollY();
+            if (at >= top + height) {
+                Motion.reveal(null, card, false);
+                page.scrollBy(0, -height);
+                return;
+            }
+            if (at > top && Motion.enabled()) {
+                ValueAnimator back = ValueAnimator.ofInt(at, top);
+                back.setDuration(Motion.CHANGE_MS); back.setInterpolator(Motion.STANDARD);
+                int[] last = {at};
+                back.addUpdateListener(a -> {
+                    // The rider took the page: it stays where they took it.
+                    if (page.getScrollY() != last[0] || !page.isAttachedToWindow()) { a.cancel(); return; }
+                    page.scrollTo(page.getScrollX(), (Integer) a.getAnimatedValue()); last[0] = page.getScrollY();
+                });
+                Motion.reveal(Motion.pageOf(card), card, false);
+                back.start();
+                return;
+            }
+        }
+        Motion.reveal(Motion.pageOf(card), card, shown);
+    }
+    /** My scooters' line on Settings: how to begin with no scooter (none), else the scooter's name and its connection. */
+    private CharSequence scootersLine(boolean none, String name, String link) {
+        return none ? T.moreIndexAdd() : T.moreIndexStatus(name, link);
+    }
+    /** Settings' Nearby devices card is still leaving (its motion not ended): MainActivity waits before rebuilding the page. */
+    boolean nearbyCardLeaving() { return nearbyCard != null && nearbyCard.getVisibility() != View.VISIBLE && Motion.changing(nearbyCard); }
     private LinearLayout column() {
         LinearLayout view = new LinearLayout(host.activity()); view.setOrientation(LinearLayout.VERTICAL); return view;
     }
@@ -3239,7 +3292,7 @@ public final class MoreScreen implements AppScreen {
         if (simulated != null) name = simulated;
         // My scooters' line, as the plan's Settings shows it: the scooter's name and its connection ("Midnight Runner ·
         // connected"), or how to begin with none.
-        scootersIndexRow.sub(p == null ? T.moreIndexAdd() : T.moreIndexStatus(name, link));
+        scootersIndexRow.sub(scootersLine(p == null, name, link));
         List<ScooterProfiles.Profile> all = s.profiles.all();
         String unavailable = s.scooterChangeUnavailable();
         scooterListNotice.setText(unavailable != null ? unavailable : all.isEmpty() ? T.moreScootersEmpty() : "");
@@ -3308,7 +3361,7 @@ public final class MoreScreen implements AppScreen {
 
     @Override public void refresh() {
         if(chargeHistoryDialog!=null)chargeHistoryDialog.refresh();
-        ScooterService s = service(); if (s == null) { refreshWithoutService(); return; }
+        ScooterService s = service(); if (s == null || builtWithoutService) { refreshWithoutService(); return; }
         for (Row row : serviceRows) row.enabled(true);
         refreshSimulation(); refreshCharging();
         if (shownSection().equals("Data")) refreshHistoryStorage();
@@ -3399,8 +3452,12 @@ public final class MoreScreen implements AppScreen {
         for (Row row : serviceRows) { row.enabled(false); row.view.setEnabled(true); }
         // My scooters' line says what it waits for: the setup checklist's step, Allow Nearby devices (as the Lock bar's
         // Connect says it without the permission).
-        scootersIndexRow.sub(nearby ? null : onboardingNearby.title.getText());
+        // Granted, the service binds within moments and the page is rebuilt with the scooter's line: until then the line
+        // keeps its room (no jump), saying what the bound page will say when no scooter is set up.
+        if (!nearby) scootersIndexRow.sub(onboardingNearby.title.getText());
+        else if (!configured) scootersIndexRow.sub(scootersLine(true, null, null));
         refreshPermissions(nearby);
+        nearbyCard(!nearby);
     }
 
     /**

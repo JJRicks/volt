@@ -179,6 +179,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(resumed&&!destroyed&&design!=null)refreshBodyNow();
     };
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
+    /** The rebuild for the service once Settings' Nearby devices card has left (onServiceConnected). */
+    private final Runnable serviceRebuild = () -> { if(!destroyed&&scooterService!=null)rebuild(); };
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
     private View pageHeader;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
@@ -198,6 +200,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
             ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}
+            // Settings' Nearby devices card still leaving (granted from it a moment ago): the rebuild waits for its motion to
+            // end, so the rows finish gliding into its room instead of jumping there.
+            if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){handler.postDelayed(serviceRebuild,Motion.CHANGE_MS+40);return;}
             rebuild();
         }
         @Override public void onServiceDisconnected(ComponentName name){
@@ -521,7 +526,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
-        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
+        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);handler.removeCallbacks(serviceRebuild);rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
@@ -725,8 +730,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * Settings. Without Nearby devices permission (the contributor's decision, 15 Nov, #383) its rows show and the app's
      * own choices work; the card that grants the permission (LoadingScreen's) leads them, and the rows that need the
-     * scooter wait for it (MoreScreen). Granted, the service binds and its rebuild drops the card: Settings' kept scroll
-     * then loses the card's height, so the rows stay where they were.
+     * scooter wait for it (MoreScreen). Granted with Settings open, the card leaves in place (MoreScreen.nearbyCard: it
+     * fades while the rows glide up) and the service's rebuild, which waits for that motion, builds the same page without
+     * it at the same scroll. Granted from a page above Settings (About & permissions), Settings' kept scroll loses the
+     * card's height when it is built again, so the rows stay where they were.
      */
     private AppScreen settingsPage(){
         MoreScreen settings=new MoreScreen(this);
@@ -1418,7 +1425,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void captureScroll(){
         if(scroll==null)return;scrollPositions.put(scrollPage,scroll.getScrollY());
         // Settings' scroll kept with its Nearby devices card on screen counts the card (settingsPage).
-        if(HubPages.SETTINGS.equals(scrollPage))settingsNearbyHeight=settingsNearbyCard!=null&&settingsNearbyCard.isAttachedToWindow()?settingsNearbyCard.getHeight():0;
+        // A card that already left in place (MoreScreen.nearbyCard) took its room with it: nothing to take off.
+        if(HubPages.SETTINGS.equals(scrollPage))settingsNearbyHeight=settingsNearbyCard!=null&&settingsNearbyCard.isAttachedToWindow()&&settingsNearbyCard.getVisibility()==View.VISIBLE?settingsNearbyCard.getHeight():0;
     }
     private boolean horizontalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.width()>fold.hinge.height()&&fold.hinge.top>0&&fold.hinge.width()>0;}
     private boolean verticalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.height()>fold.hinge.width()&&fold.hinge.left>0&&fold.hinge.height()>0;}
