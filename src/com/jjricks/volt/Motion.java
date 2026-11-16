@@ -408,6 +408,20 @@ final class Motion {
         return true;
     }
 
+    /**
+     * The scrolling page that holds {@code view}: its nearest ScrollView's child, or its parent outside one. As a
+     * {@link #reveal} root, every part of a stacked page (a Hub page built from several screens) glides together, and
+     * reveals in one refresh anywhere on it join one motion.
+     */
+    static ViewGroup pageOf(View view) {
+        ViewGroup page = null;
+        for (ViewParent at = view == null ? null : view.getParent(); at instanceof ViewGroup; at = at.getParent()) {
+            if (at instanceof ScrollView) return page;
+            page = (ViewGroup) at;
+        }
+        return view != null && view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null;
+    }
+
     /** Content that finished loading fades up in place rather than snapping in. */
     static void fadeIn(View view) {
         if (!enabled() || view == null) return;

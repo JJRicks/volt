@@ -2522,7 +2522,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean refilter=!offered.toString().equals(offeredKeys);
             // The banners fade in and out while the page below glides (Motion.reveal), only when one comes or goes. A
             // re-filter in the same refresh moves rows by itself, so then they change instantly, as before.
-            ViewGroup glide=refilter?null:view;View[] still=steadyRows();
+            // On a stacked page (Battery, Security) the parts below glide with it: the root is the whole page.
+            ViewGroup glide=refilter?null:Motion.pageOf(banner);View[] still=steadyRows();
             Motion.reveal(glide,banner,!ready,still);
             // Two words keep it clear the grey values are not live; the Connect pill says the rest.
             bannerText.setText(connecting?T.bleStatusConnecting():T.mainControlsLastSeen());

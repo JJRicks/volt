@@ -579,11 +579,11 @@ public final class MoreScreen implements AppScreen {
     }
     private LinearLayout group() { LinearLayout g = ui.groupCard(); cardDestination.addView(g); return g; }
     /**
-     * A notice or button that comes and goes with the connection or a switch: it fades while the rest of its section
+     * A notice or button that comes and goes with the connection or a switch: it fades while the rest of its page
      * glides (Motion.reveal); a refresh that leaves it as it is moves nothing. Show and hide such views only here.
      */
     private static void reveal(View view, boolean shown) {
-        Motion.reveal(view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null, view, shown);
+        Motion.reveal(Motion.pageOf(view), view, shown);
     }
 
     private TextView footnote(String value) {
