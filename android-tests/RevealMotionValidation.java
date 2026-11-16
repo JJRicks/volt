@@ -804,6 +804,17 @@ public final class RevealMotionValidation extends Instrumentation {
     private void demo(Site site) {
         long hold = Long.parseLong(arguments.getString("hold_ms", "1500"));
         int cycles = Integer.parseInt(arguments.getString("cycles", "4"));
+        // battery -e demo gather: the link comes back and health, temperature and charging land 130 ms apart (as gather).
+        if (part.equals("battery") && arguments.getString("demo", "").equals("gather")) {
+            String[] keys = {"battery_health_percent", "temperature_c", "charging_state"};
+            Runnable linkBack = () -> {
+                main(() -> { activity.service().ble.setSimulationScript(""); activity.redraw(); });
+                for (String key : keys) { SystemClock.sleep(130); main(() -> { withheld.remove(key); activity.redraw(); }); }
+            };
+            Runnable linkGoes = () -> main(() -> { activity.service().ble.setSimulationScript("dropout"); activity.redraw(); for (String key : keys) withheld.add(key); });
+            site = new Site(site.name, site.subject, site.neighbours, linkBack, linkGoes);
+            site.hide.run();
+        }
         SystemClock.sleep(hold);
         for (int i = 0; i < cycles; i++) {
             site.show.run(); SystemClock.sleep(hold);
