@@ -133,14 +133,9 @@ final class HubDock {
         // Opaque (the text colour blended over the fill), not a translucent stroke: a GradientDrawable whose stroke and
         // fill differ in opacity reports an outline of alpha 0, which casts no shadow.
         stroke = SheetMorph.mix(fill, ui.text, ui.dark ? HAIR_DARK : HAIR_LIGHT);
-        view.setBackground(sheet());
-        // The shadow follows the sheet: its top corners rounded, its bottom square past the screen's edge.
-        view.setOutlineProvider(new android.view.ViewOutlineProvider() {
-            @Override public void getOutline(View v, android.graphics.Outline outline) {
-                int radius = ui.dp(CORNER_DP);
-                outline.setRoundRect(0, 0, v.getWidth(), v.getHeight() + radius, radius);
-            }
-        });
+        // The sheet's shape (top corners only, reaching past the screen's edge) is also its outline, so its shadow, and
+        // what DragSheet reads as the morph's start: the surface it draws at rest is this exactly.
+        view.setBackground(sheet(fill));
         view.setElevation(ui.dp(ELEVATION_DP));
         if (Build.VERSION.SDK_INT >= 28) {
             view.setOutlineAmbientShadowColor(Ui.withAlpha(Color.BLACK, Math.round(255 * (ui.dark ? AMBIENT_DARK : AMBIENT_LIGHT))));
@@ -181,15 +176,16 @@ final class HubDock {
     View view() { return view; }
 
     /**
-     * The sheet's look: the bar's surface and 1 dp outline with only its top corners rounded. The outline's bottom edge,
-     * and on a phone (edge to edge) its sides, lie just outside the view, so only the top edge and corners draw it.
+     * The sheet's look: the dock's surface and 1 dp hairline (stroke) with only its top corners rounded. The outline's
+     * bottom edge, and on a phone (edge to edge) its sides, lie just outside the view (HubPages.dockSheetInsets), so only
+     * the top edge and corners draw it. The same shape is the view's outline (its shadow), and what DragSheet reads as
+     * the morph's closed state.
      */
-    private android.graphics.drawable.Drawable sheet() {
-        android.graphics.drawable.GradientDrawable shape = ui.shape(ui.surface, CORNER_DP, ui.raised);
-        float r = ui.dp(CORNER_DP);
-        shape.setCornerRadii(new float[] {r, r, r, r, 0, 0, 0, 0});
-        int line = ui.dp(1), side = wide ? 0 : -line;
-        return new android.graphics.drawable.InsetDrawable(shape, side, 0, side, -line);
+    private android.graphics.drawable.Drawable sheet(int fill) {
+        android.graphics.drawable.GradientDrawable shape = ui.shape(fill, CORNER_DP, stroke);
+        shape.setCornerRadii(HubPages.dockSheetRadii(ui.dp(CORNER_DP)));
+        int[] at = HubPages.dockSheetInsets(wide, ui.dp(1));
+        return new android.graphics.drawable.InsetDrawable(shape, at[0], at[1], at[2], at[3]);
     }
 
     /**

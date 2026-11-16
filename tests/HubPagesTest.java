@@ -20,6 +20,7 @@ public final class HubPagesTest {
         subjects();
         hub();
         dock();
+        dockMorph();
         riding();
         connectionLine();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
@@ -195,6 +196,73 @@ public final class HubPagesTest {
         // A taller dock (larger text, or captions on two lines) needs more room, never less.
         require(HubPages.dockClearance(98 * px + 72, 72, gap) > HubPages.dockClearance(70 * px + 72, 72, gap), "A taller dock: more room");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
+    }
+
+    /**
+     * The dock as the closed state of main's morph into its All sheet (SheetMorph, DragSheet reading the live dock): the
+     * surface DragSheet reads from this dock's background (its GradientDrawable's bounds inside HubPages.dockSheetInsets,
+     * HubPages.dockSheetRadii) at 344, 412 and 725 dp, with the gesture handle (24 dp) and three-button navigation (48 dp).
+     * At rest that box is the dock exactly on screen (its bottom past the screen's edge, its bottom corners square, its
+     * outline along the top only on a phone, along the top and sides when wide); the morph starts on it and a close ends
+     * on it with no jump; on the way the surface never leaves a gap under it and its bottom corners stay square.
+     * In px at 3 px per dp; each case: window width and height, wide or not, the dock's body above its lift (dp, measured
+     * at 1x and 1.4x on the emulator), the navigation inset.
+     */
+    private static void dockMorph() {
+        int px = 3, line = px, radius = 26 * px, sheetRadius = 24 * px, cap = 18 * px, extension = cap + 6 * px;
+        int[][] cases = {{344, 882, 0, 88, 24}, {344, 882, 0, 94, 24}, {344, 882, 0, 88, 48}, {412, 915, 0, 88, 24}, {412, 915, 0, 88, 48},
+                {725, 604, 1, 88, 24}, {725, 604, 1, 88, 48}, {725, 604, 0, 94, 24}};
+        for (int[] c : cases) {
+            boolean wide = c[2] == 1;
+            String name = c[0] + "x" + c[1] + (wide ? " wide" : " phone") + ", body " + c[3] + " dp, inset " + c[4] + " dp";
+            int w = c[0] * px, h = c[1] * px, inset = c[4] * px;
+            int height = c[3] * px + HubPages.DOCK_LIFT_DP * px + inset;
+            // The dock's view: edge to edge on a phone, centred with 24 dp sides when wide (677 dp at 725), reaching the bottom.
+            int left = wide ? 24 * px : 0, right = w - left, top = HubPages.dockTop(h, height), bottom = top + height;
+            require(bottom == h, "The dock reaches the screen's bottom edge: " + name);
+            int[] in = HubPages.dockSheetInsets(wide, line);
+            float[] eight = HubPages.dockSheetRadii(radius);
+            double[] radii = {eight[0], eight[2], eight[4], eight[6]};
+            require(eight[0] == eight[1] && eight[2] == eight[3] && eight[4] == 0 && eight[5] == 0 && eight[6] == 0 && eight[7] == 0,
+                    "Round top corners, square bottom ones: " + name);
+            // InsetDrawable gives its drawable the view's box less the insets (negative: outward). DragSheet reads these bounds.
+            SheetMorph.Box dock = new SheetMorph.Box(left + in[0], top + in[1], right - in[2], bottom - in[3], radii, 0xff1f201e, 0xff35362f, line, 8 * px);
+            // On screen it is the dock exactly: clipped to the screen, the view's own box.
+            require(Math.max(0, dock.left) == left && Math.min(w, dock.right) == right && dock.top == top && Math.min(h, dock.bottom) == bottom,
+                    "The morph's closed box, on screen, is the dock's view: " + name);
+            require(dock.bottom - line >= h, "Its outline's bottom edge lies past the screen's edge: " + name);
+            if (wide) require(dock.left == left && dock.right == right, "Wide: its sides keep their outline, inside the window: " + name);
+            else require(dock.left + line <= 0 && dock.right - line >= w, "Phone: its side outlines lie past the screen's sides: " + name);
+            require(dock.radii[0] == radius && dock.radii[1] == radius && dock.radii[2] == 0 && dock.radii[3] == 0, "Top corners 26 dp, bottom square: " + name);
+            // The open sheet as DragSheet builds it: full width, 24 dp top corners, reaching extension below the screen.
+            SheetMorph.Box open = new SheetMorph.Box(0, Math.max(c[1] * px / 3, h - 600 * px), w, h + extension, new double[] {sheetRadius, sheetRadius, 0, 0}, 0xff111211, 0xff2a2b28, line, 0);
+            double travel = dock.top - open.top;
+            require(travel > 0, "The sheet opens above the dock: " + name);
+            same(SheetMorph.at(dock, open, travel, travel), dock, "The morph starts on the dock exactly: " + name);
+            same(SheetMorph.at(dock, open, 0, travel), open, "and ends on the open sheet as main draws it: " + name);
+            SheetMorph.Box last = SheetMorph.at(dock, open, travel, travel);
+            for (double offset = travel - .25; offset >= -cap; offset -= .25) {
+                SheetMorph.Box now = SheetMorph.at(dock, open, offset, travel);
+                require(now.bottom >= h, "No gap under the surface at offset " + offset + ": " + name);
+                require(now.radii[2] == 0 && now.radii[3] == 0, "Its bottom corners stay square at offset " + offset + ": " + name);
+                require(now.left <= Math.max(0, dock.left) + 1e-9 && now.right >= Math.min(w, dock.right) - 1e-9 && now.top <= dock.top,
+                        "The surface covers the dock's place at offset " + offset + ": " + name);
+                if (offset >= 0) require(Math.abs(now.left - last.left) < 3 && Math.abs(now.right - last.right) < 3 && Math.abs(now.bottom - last.bottom) < 3
+                        && Math.abs(now.radii[0] - last.radii[0]) < 3, "No jump at offset " + offset + ": " + name);
+                last = now;
+            }
+            // A close or snap-back ends on the dock with no jump: the last quarter pixel before rest is within a pixel of it.
+            SheetMorph.Box end = SheetMorph.at(dock, open, travel - .25, travel);
+            require(Math.abs(end.left - dock.left) < 1 && Math.abs(end.right - dock.right) < 1 && Math.abs(end.top - dock.top) < 1
+                    && Math.abs(end.bottom - dock.bottom) < 1 && Math.abs(end.radii[0] - dock.radii[0]) < 1, "The close's last step lands on the dock: " + name);
+        }
+    }
+
+    private static void same(SheetMorph.Box a, SheetMorph.Box b, String message) {
+        boolean ok = a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom && a.fill == b.fill && a.stroke == b.stroke
+                && a.strokeWidth == b.strokeWidth && a.elevation == b.elevation;
+        for (int i = 0; i < 4; i++) ok &= a.radii[i] == b.radii[i];
+        require(ok, message + " (" + a + " vs " + b + ")");
     }
 
     /**

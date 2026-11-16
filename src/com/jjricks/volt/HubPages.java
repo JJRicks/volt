@@ -136,6 +136,21 @@ public final class HubPages {
     public static int dockClearance(int dockHeight, int inset, int gap) { return Math.max(0, dockHeight - Math.max(0, inset)) + gap; }
 
     /**
+     * The dock sheet's surface around its view (its background's GradientDrawable bounds, relative to the view's own
+     * box): {left, top, right, bottom} insets, each px outward-negative as InsetDrawable takes them. Its 1 dp outline
+     * (line px) lies just outside the view along the bottom (past the screen's edge), and on a phone along both sides
+     * (past the screen's sides), so only the top edge and corners draw it; a wide dock keeps its side outline. This is
+     * the surface DragSheet reads as its morph's closed state (SheetMorph), so closed is this dock exactly.
+     */
+    public static int[] dockSheetInsets(boolean wide, int line) {
+        int side = wide ? 0 : -line;
+        return new int[] {side, 0, side, -line};
+    }
+
+    /** The dock sheet's corner radii, GradientDrawable's eight (x, y per corner from top left, clockwise): only its top two rounded. */
+    public static float[] dockSheetRadii(float radius) { return new float[] {radius, radius, radius, radius, 0, 0, 0, 0}; }
+
+    /**
      * Where the bottom of the scroller's content sits once it is scrolled to its end, in the frame's pixels: a scroller
      * frameBottom tall with paddingBottom under its content. Content shorter than the scroller ends higher still.
      */
