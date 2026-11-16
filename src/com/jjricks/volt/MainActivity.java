@@ -876,7 +876,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         offlineDetail=design.caption("");offlineDetail.setPadding(0,design.dp(2),0,0);offlineDetail.setVisibility(View.GONE);words.addView(offlineDetail);
         LinearLayout line=new LockOfflineStatus(square,words,offlineTitle,design.icon("chevron",15,design.muted));
         line.setMinimumHeight(design.dp(48));
-        line.setOnClickListener(v->showConnectionDetails());
+        line.setOnClickListener(v->showConnectionDetails());Motion.ignoreTouchesWhileChanging(line);
         offline.addView(line);
         content.addView(offline,new LinearLayout.LayoutParams(-1,-2));
         // Connect/Cancel are always available; Disconnect is a per-widget choice.
@@ -884,6 +884,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionAction.setMaxLines(1);connectionAction.setEllipsize(android.text.TextUtils.TruncateAt.END);
         connectionAction.setPadding(design.dp(6),connectionAction.getPaddingTop(),design.dp(6),connectionAction.getPaddingBottom());
         connectionAction.setAutoSizeTextTypeUniformWithConfiguration(Math.round(design.sp(12)),Math.round(design.sp(14)),1,android.util.TypedValue.COMPLEX_UNIT_PX);
+        // As the slider goes, a touch meant for it never lands on Connect or Cancel, arriving or gliding up into its place.
+        Motion.ignoreTouchesWhileChanging(connectionAction);
         content.addView(connectionAction);
         return registerDashboardLock(content);
     }
@@ -910,8 +912,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         offlineTitle.setMaxLines(2);offlineTitle.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
         offlineTitle.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         LinearLayout offline=new CompactLockStatus(square,words,offlineTitle);lockOffline=offline;
-        offline.setOnClickListener(v->showConnectionDetails());
+        offline.setOnClickListener(v->showConnectionDetails());Motion.ignoreTouchesWhileChanging(offline);
         connectionAction=design.button(T.mainActionConnect(),this::connect);
+        // The row's Connect or Cancel arrives where the slider was: a touch meant for the slider never lands on it.
+        Motion.ignoreTouchesWhileChanging(connectionAction);
         connectionAction.setMaxLines(1);
         connectionAction.setPadding(design.dp(16),0,design.dp(16),0);
         connectionAction.setMinWidth(design.dp(48));
@@ -1110,6 +1114,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         TextView label=design.text(T.bleStatusDisconnected(),13,true);
         design.fitStatusLine(label);
         label.setOnClickListener(v->showConnectionDetails());
+        // A page's line arrives where its title was (Motion.revealAbove): a touch that starts as it arrives does nothing.
+        Motion.ignoreTouchesWhileChanging(label);
         label.setTooltipText(T.mainConnectionDetails());
         return label;
     }

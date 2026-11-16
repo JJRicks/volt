@@ -184,6 +184,7 @@ public final class RevealMotionValidation extends Instrumentation {
                     require(only.isEmpty() || java.util.Arrays.asList(names).contains(only), "Unknown -e only " + only);
                     boolean alert = part.equals("riding-alert");
                     if (only.isEmpty() || only.equals("hitch")) hitchPerMeasurement();
+                    if (only.isEmpty() || only.equals("hitch") || only.equals("scrolled")) clampRule();
                     if (only.isEmpty() || only.equals("arrives")) arrivesAndGoes(site);
                     if (only.isEmpty() || only.equals("pulse")) pulse(site);
                     if (part.equals("lock") && (only.isEmpty() || only.equals("toggles"))) lockToggles(site);
@@ -852,22 +853,20 @@ public final class RevealMotionValidation extends Instrumentation {
         } else {
             main(() -> { android.widget.ScrollView scroll = scrollOf(site); scroll.scrollTo(0, scroll.getChildAt(0).getHeight()); });
             settle();
-            int[] scrolled = new int[1];
+            int[] scrolled = new int[1], tallBefore = new int[1];
             String[] before = new String[1];
             Site end = new Site(site.name, site.subject, () -> lowest(site.subject.get(), scrollOf(site)), site.show, site.hide);
             end.cutMs = site.cutMs;
             Frames out = new Frames(end);
             out.start(); frames(2);
-            main(() -> { scrolled[0] = scrollOf(site).getScrollY(); before[0] = scrollShape(scrollOf(site)); });
+            main(() -> { scrolled[0] = scrollOf(site).getScrollY(); before[0] = scrollShape(scrollOf(site)); tallBefore[0] = scrollOf(site).getChildAt(0).getHeight(); });
             site.hide.run();
             SystemClock.sleep(SETTLE_MS + 300);
             out.stop();
             int clamped = scrolled[0] - onMain(() -> scrollOf(site).getScrollY());
             requireRest(site, false, "after it went from the end of the long page");
-            // A header line's departure can come with rows the page shows only when connected (Security's lock): a page
-            // that ends up longer has nothing to clamp, and its views still must not jump.
-            int room = onMain(() -> { android.widget.ScrollView scroll = scrollOf(site); return scroll.getChildAt(0).getHeight() - (scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom()); });
-            boolean longer = room >= scrolled[0];
+            int tallAfter = onMain(() -> scrollOf(site).getChildAt(0).getHeight());
+            boolean longer = grewInstead(part, clamped, tallBefore[0], tallAfter);
             require(clamped > 0 || longer, site.name + ": its departure at the end of the page did not clamp the scroll (before " + before[0] + "; after " + onMain(() -> scrollShape(scrollOf(site))) + ")");
             onPath(out, site.name + " departure at the end of a scrolled page (text " + used + ")");
             require(onMain(() -> scrollOf(site).getChildAt(0).getTranslationY()) == 0, site.name + ": the page's content is left offset");
@@ -877,6 +876,30 @@ public final class RevealMotionValidation extends Instrumentation {
                     + out.samples.size() + " frames draw the views below only on their way (track " + track(out, 0) + ")");
         }
         if (used != 1) { require(settings().edit().putFloat("text_scale", 1).commit(), "Text size failed"); activity = recreate(); requirePage(); }
+    }
+
+    /**
+     * The one exception to a departure at the end of a page clamping its scroll: a header line's departure (page-line
+     * only) that comes with rows the page shows only when connected (Security's lock), so the page's content really grew
+     * (taller after than before) and there is nothing to clamp. Any other part, or a page whose content kept its height
+     * (as a departure that kept its room reserved would), must clamp.
+     */
+    private static boolean grewInstead(String part, int clamped, int tallBefore, int tallAfter) {
+        return clamped <= 0 && part.equals("page-line") && tallAfter > tallBefore;
+    }
+
+    /**
+     * The clamp rule's self-check: a departure that keeps its room reserved (the page's content as tall as before, the
+     * scroll left where it was) fails on every part, page-line included; only page-line's grown page is let through.
+     */
+    private void clampRule() {
+        for (String any : new String[]{"find", "controls", "battery", "lock", "page-line"}) {
+            require(!grewInstead(any, 0, 2091, 2091), "Clamp rule: a departure that kept its room reserved on " + any + " was let through");
+            require(!grewInstead(any, 0, 2091, 2000), "Clamp rule: a departure that left the page shorter but unclamped on " + any + " was let through");
+        }
+        require(!grewInstead("find", 0, 2091, 2260) && !grewInstead("controls", 0, 2091, 2260), "Clamp rule: a grown page let through outside page-line");
+        require(grewInstead("page-line", 0, 2091, 2260), "Clamp rule: page-line's grown page (Security's lock rows) was not let through");
+        checks.add("Clamp rule: a departure at the end of a page that does not clamp fails on every part, unless (page-line only) the page's content grew");
     }
 
     /** A scroll's offset, viewport and content heights (px), for a failure's message. */
@@ -1634,9 +1657,110 @@ public final class RevealMotionValidation extends Instrumentation {
             settleFor(3000);
             checks.add(site.name + ": at scale 10 a tap where the offline line was while the slider arrived (opacity " + String.format(Locale.ROOT, "%.2f", arriving)
                     + ") locked nothing and opened nothing; at rest a tap " + (before ? "unlocks" : "locks") + " through the tap queue and another puts it back (the simulator's memory)");
+            lockTapsLeaving(site, ble, slider, before);
         } finally {
             scale(1);
         }
+    }
+
+    /**
+     * The other way, at scale 10 (lockTaps' caller): the link drops while Bluetooth stays connected (Connecting), so the
+     * slider goes and Cancel arrives where it was (on the Lock bar and Clean, or glides up into its place on the full
+     * card), with the offline line. Taps where the slider was and where Cancel lands, as it arrives, must not cancel the
+     * connection, open the connection details or touch the lock; at rest a tap on Cancel stops the connection, as on
+     * main. Then the link is lost outright (Disconnected) from a ready card: Connect arrives, a tap on it as it arrives
+     * connects nothing, and at rest a tap on it connects.
+     */
+    private void lockTapsLeaving(Site site, BleController ble, View slider, Boolean locked) {
+        BleController.State off = BleController.State.DISCONNECTED;
+        requireRest(site, true, "before the slider went");
+        Object dialog = onMain(() -> field(activity, "controlDialog"));
+        float[] sliderAt = centre(slider);
+        site.hide.run();
+        SystemClock.sleep(300);
+        View action = onMain(() -> (View) field(activity, "connectionAction"));
+        require(onMain(() -> action.getVisibility() == View.VISIBLE && String.valueOf(((android.widget.TextView) action).getText()).equals(text("commonCancel"))),
+                site.name + ": Cancel is not offered while the link reconnects (" + onMain(() -> ((android.widget.TextView) action).getText()) + ")");
+        float[] actionAt = centre(action); // where it is drawn: arriving in place, or on its way up
+        float leaving = onMain(() -> opacity(action));
+        tap(actionAt); SystemClock.sleep(100); tap(sliderAt);
+        SystemClock.sleep(1200); waitForIdleSync();
+        require(onMain(ble::state) != off, site.name + ": a tap where the slider was, as Cancel arrived, disconnected (Cancel at opacity " + leaving + ", scale 10)");
+        // Not ready, the link reports no lock state; the lock is compared again once it is back.
+        Boolean reported = onMain(ble::locked);
+        require((reported == null || reported.equals(locked)) && !onMain(() -> (Boolean) invokeValue(field(activity, "lockQueue"), "waiting")),
+                site.name + ": a tap where the slider was, as Cancel arrived, changed the lock (or queued a lock command)");
+        require(onMain(() -> field(activity, "controlDialog")) == dialog, site.name + ": a tap where the slider was, as Cancel arrived, opened the connection details");
+        settleFor(3000);
+        requireRest(site, false, "after Cancel arrived at scale 10");
+        tap(centre(action));
+        await(() -> onMain(ble::state) == off, site.name + ": a tap on Cancel at rest did not stop the connection");
+        settleFor(1500);
+        // From a ready card, the link lost outright: Connect arrives where the slider was.
+        link(true); main(ble::connectLast);
+        await(() -> onMain(ble::ready), "The simulator's link did not come back");
+        settleFor(3000);
+        requireRest(site, true, "reconnected before Connect's turn");
+        require(Boolean.valueOf(locked).equals(onMain(ble::locked)), site.name + ": the lock changed while Cancel arrived and went (" + locked + " to " + onMain(ble::locked) + ")");
+        main(() -> { ble.disconnect(); activity.redraw(); });
+        SystemClock.sleep(300);
+        require(onMain(() -> action.getVisibility() == View.VISIBLE && String.valueOf(((android.widget.TextView) action).getText()).equals(text("mainActionConnect"))),
+                site.name + ": Connect is not offered once the link is lost (" + onMain(() -> ((android.widget.TextView) action).getText()) + ")");
+        float[] connectAt = centre(action);
+        float arriving = onMain(() -> opacity(action));
+        tap(connectAt);
+        SystemClock.sleep(1200); waitForIdleSync();
+        require(onMain(ble::state) == off, site.name + ": a tap where the slider was, as Connect arrived, connected (Connect at opacity " + arriving + ", scale 10)");
+        require(onMain(() -> field(activity, "controlDialog")) == dialog, site.name + ": a tap where the slider was, as Connect arrived, opened the connection details");
+        settleFor(3000);
+        tap(centre(action));
+        await(() -> onMain(ble::ready), site.name + ": a tap on Connect at rest did not connect");
+        settleFor(3000);
+        requireRest(site, true, "connected again");
+        checks.add(site.name + ": at scale 10, taps where the slider was and where Cancel lands as it arrived with the link reconnecting (Cancel at opacity "
+                + String.format(Locale.ROOT, "%.2f", leaving) + ") cancelled nothing, opened nothing and left the lock; a tap where Connect lands as it arrived with the link lost (opacity "
+                + String.format(Locale.ROOT, "%.2f", arriving) + ") connected nothing; at rest Cancel stops the connection and Connect connects");
+    }
+
+    /**
+     * The page's connection line arrives where its title was (the title glides down): at scale 10, a tap on the line as
+     * it arrives opens nothing; at rest the same tap opens the connection details, as on main.
+     */
+    private void lineTaps() {
+        Site site = this.site;
+        BleController ble = onMain(() -> activity.service().ble);
+        settleFor(SETTLE_MS);
+        requireRest(site, false, "before the taps");
+        Object dialog = onMain(() -> field(activity, "controlDialog"));
+        scale(10);
+        try {
+            site.show.run();
+            SystemClock.sleep(300);
+            View line = onMain(site.subject::get);
+            float arriving = onMain(() -> opacity(line));
+            tap(centre(line));
+            SystemClock.sleep(1200); waitForIdleSync();
+            require(onMain(() -> field(activity, "controlDialog")) == dialog, site.name + ": a tap where the title was, as the line arrived (opacity " + arriving + ", scale 10), opened the connection details");
+            settleFor(3000);
+            requireRest(site, true, "after it arrived at scale 10");
+            tap(centre(line));
+            await(() -> onMain(() -> { Object open = field(activity, "controlDialog"); return open != dialog && open != null && ((android.app.Dialog) open).isShowing(); }),
+                    site.name + ": a tap on the line at rest did not open the connection details");
+            main(() -> ((android.app.Dialog) field(activity, "controlDialog")).dismiss());
+            settleFor(1000);
+            checks.add(site.name + ": at scale 10 a tap on the line as it arrived where the title was (opacity " + String.format(Locale.ROOT, "%.2f", arriving)
+                    + ") opened nothing; at rest the same tap opens the connection details");
+        } finally {
+            scale(1);
+        }
+        site.hide.run();
+        await(() -> onMain(ble::ready), "The simulator's link did not come back");
+    }
+
+    /** What the app draws for one of T's words. */
+    private static String text(String words) {
+        try { Method t = Class.forName("com.jjricks.volt.T").getDeclaredMethod(words); t.setAccessible(true); return String.valueOf(t.invoke(null)); }
+        catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
     }
 
     private static Object invokeValue(Object target, String name) {
@@ -1655,6 +1779,7 @@ public final class RevealMotionValidation extends Instrumentation {
         else if (part.equals("scooters")) useThenConnect();
         else if (part.equals("riding-alert")) closeMidFade();
         else if (part.equals("lock")) lockTaps();
+        else if (part.equals("page-line")) lineTaps();
         else notes.add(site.name + ": no tap check for this part");
     }
 

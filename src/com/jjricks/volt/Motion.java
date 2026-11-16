@@ -718,6 +718,37 @@ final class Motion {
     }
 
     /**
+     * A control that can arrive where another one was, or glide into its place (Home's lock card: Connect or Cancel and
+     * the offline line where the slider was; a page's connection line where its title was): a touch that starts while it
+     * is arriving, or while the motion it sits in is still moving it ({@link #changing}), does nothing and is used up
+     * until it lifts, as the rider aimed at what was there. Once the motion ends, is turned back to rest, swallowed or
+     * cut short by an instant change, and always with animations off, touches reach it as before, with nothing added.
+     * Keyboard and accessibility actions are not touched. It replaces any touch listener the view had.
+     */
+    static void ignoreTouchesWhileChanging(View view) {
+        boolean[] ignoring = {false};
+        view.setOnTouchListener((touched, event) -> {
+            int action = event.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_DOWN) ignoring[0] = changing(touched);
+            if (!ignoring[0]) return false;
+            if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) ignoring[0] = false;
+            return true;
+        });
+    }
+
+    /** It is arriving, or it sits in (or is) the root of a reveal's motion that has not ended or been swallowed. */
+    static boolean changing(View view) {
+        if (arriving(view)) return true;
+        for (Glide glide : moving.values()) {
+            if (glide == null || glide.ended || glide.swallowed) continue;
+            ViewGroup root = glide.root.get();
+            for (View at = view; root != null && at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null)
+                if (at == root) return true;
+        }
+        return false;
+    }
+
+    /**
      * {@link #reveal} for a view in a fixed header above a page's scroll ({@code scroll}, in {@code frame}, the rest of
      * {@code root} under the header): a page's connection line. What sits around it in the header glides, and the page
      * under the header glides down or up with it as one piece; the page's own content is left to the page's own reveals
