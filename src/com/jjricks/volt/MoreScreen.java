@@ -3208,12 +3208,15 @@ public final class MoreScreen implements AppScreen {
         List<ScooterProfiles.Profile> all = s.profiles.all();
         String unavailable = s.scooterChangeUnavailable();
         scooterListNotice.setText(unavailable != null ? unavailable : all.isEmpty() ? T.moreScootersEmpty() : "");
-        scooterListNotice.setVisibility(scooterListNotice.getText().length() == 0 ? View.GONE : View.VISIBLE);
+        reveal(scooterListNotice, scooterListNotice.getText().length() > 0);
         // Keep blocked actions tappable so their reason is available, including to screen readers.
         addScooterButton.setAlpha(unavailable == null ? 1f : .5f);
         List<String> ids = new ArrayList<>(); for (ScooterProfiles.Profile item : all) ids.add(item.id);
+        // New cards are built in place, without motion; otherwise a card's changes glide (Motion.reveal).
+        ViewGroup glide = Motion.pageOf(scooterList);
         if (!ids.equals(new ArrayList<>(scooterCards.keySet()))) {
             scooterList.removeAllViews(); scooterCards.clear();
+            glide = null;
             for (String id : ids) { ScooterCard card = new ScooterCard(id); scooterCards.put(id, card); scooterList.addView(card.card); }
         }
         for (ScooterProfiles.Profile item : all) {
@@ -3224,7 +3227,9 @@ public final class MoreScreen implements AppScreen {
             card.name.setText(item.displayName());
             // A held release (BleController.releaseHeld) says why Volt won't connect by itself; the line wraps at whole words.
             String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : s.ble.releaseHeld(item.id) ? T.bleReleaseHeld() : T.moreScootersOffline();
-            card.stateLine.setVisibility(selected ? View.VISIBLE : View.GONE);
+            // Connecting, connected or choosing another scooter changes a card's lines and its button: they fade while
+            // the cards glide.
+            Motion.reveal(glide, card.stateLine, selected);
             card.status.setText(detail); card.status.setTextColor(ui.muted);
             DeviceDescriptor descriptor = item.savedDescriptor();
             boolean hasPhoto = ScooterPhotos.show(card.photo, descriptor, 4);
@@ -3234,15 +3239,15 @@ public final class MoreScreen implements AppScreen {
             if (model.isEmpty()) model = T.moreScootersModelUnknown();
             if (item.role == 1) model += T.moreScootersSharedSuffix();
             card.model.setText(model);
-            card.lastSeen.setVisibility(item.lastConnected > 0 && !connected ? View.VISIBLE : View.GONE);
+            Motion.reveal(glide, card.lastSeen, item.lastConnected > 0 && !connected);
             if (item.lastConnected > 0) card.lastSeen.setText(T.moreScootersLastConnected(DateUtils.getRelativeTimeSpanString(
                     item.lastConnected, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)));
             card.card.setBackground(ui.shape(ui.surface, 22, ui.outline));
             card.edit.setContentDescription(T.moreScootersEditNamed(item.displayName())); card.edit.setTooltipText(T.moreScootersEdit());
             String action = connected ? T.moreScootersDisconnect() : connecting ? T.commonCancel() : T.moreConnect();
             card.connect.setText(action); card.connect.setContentDescription(T.moreScootersActionNamed(action, item.displayName()));
-            card.connect.setVisibility(selected ? View.VISIBLE : View.GONE);
-            card.use.setVisibility(selected ? View.GONE : View.VISIBLE);
+            Motion.reveal(glide, card.connect, selected);
+            Motion.reveal(glide, card.use, !selected);
             card.use.setContentDescription(T.moreScootersUseNamed(item.displayName()));
             card.connect.setAlpha(unavailable == null ? 1f : .5f); card.use.setAlpha(unavailable == null ? 1f : .5f);
         }
