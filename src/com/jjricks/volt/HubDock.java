@@ -1,6 +1,6 @@
 package com.jjricks.volt;
 
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -28,7 +28,8 @@ import java.util.function.BooleanSupplier;
  * so the row stays even and no taller than it must be. The sheet also holds Search and Settings at its top: Widgets
  * Home's header keeps its place and height (the owner's answer on #392's early review), so this is where a Widgets owner
  * finds them. Hidden while the dashboard is being edited. Every word comes from HubText, so this file holds no catalog
- * references.
+ * references. The sheet follows the finger that swipes it up and springs open or back (DragSheet, the owner's request of
+ * Nov 15), and an open one can be swiped away.
  */
 final class HubDock {
     /**
@@ -65,7 +66,9 @@ final class HubDock {
     private final List<View> items = new ArrayList<>();
     /** The item that carries Service's due dot: Service's own, or "All" while Service isn't shown. */
     private View service;
-    private AlertDialog sheet;
+    /** The All sheet while it shows (its dialog, and what moves it). */
+    private Dialog sheet;
+    private DragSheet drag;
     private CleanSubjects sheetSubjects;
     private boolean closed;
     private final ViewTreeObserver.OnPreDrawListener follow;
@@ -193,8 +196,8 @@ final class HubDock {
         closed = true;
         view.getViewTreeObserver().removeOnPreDrawListener(follow);
         if (sheetSubjects != null) sheetSubjects.close();
-        if (sheet != null && sheet.isShowing()) sheet.dismiss();
-        sheet = null; sheetSubjects = null;
+        if (drag != null) drag.leave();
+        sheet = null; drag = null; sheetSubjects = null;
     }
 
     /**
@@ -255,11 +258,22 @@ final class HubDock {
         host.open(subject);
     }
 
-    /** The sheet with every subject's name and live summary; a row opens its subject and closes the sheet. */
+    /** All's tap: the sheet springs open. */
     private void showAll() {
-        if (closed || sheet != null && sheet.isShowing()) return;
-        AlertDialog[] shown = new AlertDialog[1];
-        Runnable dismiss = () -> { if (shown[0] != null && shown[0].isShowing()) shown[0].dismiss(); };
+        DragSheet all = allSheet();
+        if (all != null) all.open();
+    }
+
+    /**
+     * The sheet with every subject's name and live summary, built when none shows; a row opens its subject and closes the
+     * sheet. One still settling closed is the same sheet (its window covers the dock until it is gone), never a second.
+     */
+    private DragSheet allSheet() {
+        if (closed) return null;
+        if (drag != null && drag.showing()) return drag;
+        if (drag != null) drag.dismissNow();
+        DragSheet[] shown = new DragSheet[1];
+        Runnable dismiss = () -> { if (shown[0] != null) shown[0].close(); };
         LinearLayout content = host.sheetContent(HubText.dockAll(), null, dismiss);
         content.setTag(TAG_SHEET);
         // Search and Settings first, with Clean's header tags (the same jobs), then every subject.
@@ -274,11 +288,14 @@ final class HubDock {
         content.addView(subjects.view(), new LinearLayout.LayoutParams(-1, -2));
         subjects.refresh();
         sheetSubjects = subjects;
-        sheet = shown[0] = host.showSheet(content);
-        sheet.setOnDismissListener(d -> {
+        DragSheet made = shown[0] = host.dragSheet(content, DragSheet.header(content));
+        made.onDismiss(() -> {
             subjects.close();
-            if (sheetSubjects == subjects) { sheetSubjects = null; sheet = null; }
+            if (drag == made) { sheetSubjects = null; sheet = null; drag = null; }
         });
+        drag = made;
+        sheet = made.dialog();
+        return made;
     }
 
     /**
@@ -322,12 +339,14 @@ final class HubDock {
     }
 
     /**
-     * The dock's own touch handling: an upward swipe that starts anywhere on it opens the list of every subject, at the
-     * moment the swipe is recognised (HubPages.dockSwipe), so a quick flick that lifts right after still opens it. Taps
+     * The dock's own touch handling: an upward swipe that starts anywhere on it shows the list of every subject at the
+     * moment the swipe is recognised (HubPages.dockSwipe), and from then on the sheet's top follows the finger, which
+     * springs it open or back as it lets go (DragSheet.Pull); a quick flick that lifts right after still opens it. Taps
      * and sideways movement go to the icons as usual.
      */
     private final class Dock extends LinearLayout {
         private final int slop = ViewConfiguration.get(host.activity()).getScaledTouchSlop();
+        private final DragSheet.Pull pull = new DragSheet.Pull();
         private float downX, downY;
         private boolean swiped;
 
@@ -344,14 +363,15 @@ final class HubDock {
         }
 
         @Override public boolean onInterceptTouchEvent(MotionEvent event) {
+            pull.track(event);
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     downX = event.getX(); downY = event.getY(); swiped = false;
                     return false;
                 case MotionEvent.ACTION_MOVE:
-                    // Taken from the item (its tap is cancelled) and the sheet opens now, not on a later move.
+                    // Taken from the item (its tap is cancelled) and the sheet shows now, not on a later move.
                     if (!swiped && HubPages.dockSwipe(downY - event.getY(), Math.abs(event.getX() - downX), slop)) {
-                        swiped = true; showAll(); return true;
+                        swiped = true; pull.start(allSheet(), event); return true;
                     }
                     return false;
                 default:
@@ -360,12 +380,14 @@ final class HubDock {
         }
 
         @Override public boolean onTouchEvent(MotionEvent event) {
-            // The rest of a swipe already taken: the sheet is open.
-            if (swiped) return true;
-            // A touch on the dock's own padding: the same upward swipe opens the list.
+            // Every touch's ACTION_DOWN went through onInterceptTouchEvent, which tracked it; the later events come here alone.
+            if (event.getActionMasked() != MotionEvent.ACTION_DOWN) pull.track(event);
+            // The rest of a swipe already taken: the sheet follows it.
+            if (swiped) { pull.handle(event); return true; }
+            // A touch on the dock's own padding: the same upward swipe pulls the list.
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) { downX = event.getX(); downY = event.getY(); return true; }
             if (event.getActionMasked() == MotionEvent.ACTION_MOVE
-                    && HubPages.dockSwipe(downY - event.getY(), Math.abs(event.getX() - downX), slop)) { swiped = true; showAll(); }
+                    && HubPages.dockSwipe(downY - event.getY(), Math.abs(event.getX() - downX), slop)) { swiped = true; pull.start(allSheet(), event); }
             return true;
         }
     }

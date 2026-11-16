@@ -33,7 +33,9 @@ import java.util.WeakHashMap;
 /**
  * Volt's one motion vocabulary. Arrivals ease out; departures are shorter and accelerate away.
  * Nothing bounces, overshoots or lingers past ~280 ms, and everything collapses to an instant
- * change when Android animations are off (Remove animations / zero scale).
+ * change when Android animations are off (Remove animations / zero scale). The one exception is
+ * a sheet a finger drags (DragSheet, the owner's request for the dock's All sheet): it springs
+ * open with a small bounce, as a thing let go of would (SheetSpring).
  *
  * Pages are rebuilt or swapped in place, so page changes work from a snapshot of the outgoing
  * frame rather than keeping two live screens. Moving between pages is a fade-through: the old

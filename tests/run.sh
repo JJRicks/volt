@@ -74,6 +74,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/QuickActionLayout.java" "$TEST_DIR/Quic
 # Clean Home's header: 48 dp targets at about the mock-up's height, the name smaller before it wraps (part 8b).
 sources+=("$APP_DIR/src/com/jjricks/volt/CleanHeaderFit.java" "$TEST_DIR/CleanHeaderFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeBarDrag.java" "$TEST_DIR/ChargeBarDragTest.java")
+# The dock's All sheet that follows a finger: its springs, release decision and rubber band (DragSheet, owner Nov 15).
+sources+=("$APP_DIR/src/com/jjricks/volt/SheetSpring.java" "$TEST_DIR/SheetSpringTest.java")
 # Just back's tiles: names and values take the first rung that fits whole (part 9, council early review).
 sources+=("$APP_DIR/src/com/jjricks/volt/TileFit.java" "$TEST_DIR/TileFitTest.java")
 # A subject page's banner: its pill's label whole, the pill under the words when their longest word no longer fits beside it.
@@ -210,6 +212,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAveragesTest
 java -Djava.awt.headless=true -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.QuickActionLayoutTest "$APP_DIR/res/font/saira_regular.ttf"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CleanHeaderFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeBarDragTest "$APP_DIR/src/com/jjricks/volt/ChargeBar.java"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SheetSpringTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReadingSpanTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ScooterMenuLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ControlsPagesTest "$APP_DIR/src/com/jjricks/volt/MainActivity.java"

@@ -4193,6 +4193,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(window!=null)window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         return dialog;
     }
+    /** A sheet that follows a finger (the dock's All sheet), kept with the others for dialogShowing. */
+    @Override public DragSheet dragSheet(View content,View... header){return new DragSheet(this,design,content,header,shownDialogs::add);}
     /** The open tall sheet, kept nine-tenths of Volt's window tall through rotation, folding and window resizing. */
     private Dialog tallSheet;private boolean tallSheetFollows;
     private int tallSheetHeight(){int h=getWindow().getDecorView().getHeight();return Math.round((h>0?h:getResources().getDisplayMetrics().heightPixels)*.9f);}
