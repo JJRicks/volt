@@ -2886,6 +2886,14 @@ public final class MainActivity extends Activity implements ScreenHost {
                 actionLine=new Slot();actionLine.setGravity(Gravity.CENTER_VERTICAL);actionLine.setBaselineAligned(false);
                 actionLine.addView(action,new LinearLayout.LayoutParams(-2,-2));addView(actionLine,new LinearLayout.LayoutParams(-2,-2));
             }
+            // TextView.setText only asks for a new layout when the text's height changes, so a new text with as many lines
+            // would keep the old beside-or-under decision (a long word broken beside the pill): decide again on every change.
+            android.text.TextWatcher refit=new android.text.TextWatcher(){
+                @Override public void beforeTextChanged(CharSequence s,int start,int count,int after){}
+                @Override public void onTextChanged(CharSequence s,int start,int before,int count){}
+                @Override public void afterTextChanged(android.text.Editable s){requestLayout();}
+            };
+            words.addTextChangedListener(refit);action.addTextChangedListener(refit);
             arrange(false,false);
         }
         private View actionView(){return actionLine!=null?actionLine:action;}
