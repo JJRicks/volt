@@ -2291,16 +2291,17 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(lightsBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(lightsBody.getChildAt(0));lightsBody.addView(line,0,new LinearLayout.LayoutParams(-1,design.dp(1)));}
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             clockLine=new SettingLine("history",M.mainRowClock(),null);
-            clockSpinner=new Spinner();clockSpinner.setVisibility(View.GONE);
+            clockSpinner=new Spinner();clockSpinner.setVisibility(View.INVISIBLE);
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
-            // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word). The spinner goes with the
-            // name, after it, and its room is kept out of the decision whether it shows or not: a sync starting or ending
-            // never moves the pill, and the pill alone has its row's width when under the name.
-            LinearLayout clockWords=row();clockWords.setGravity(Gravity.CENTER_VERTICAL);clockWords.setBaselineAligned(false);
+            // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
+            // The spinner's room is kept out of the decision and out of the name's width whether it shows or not
+            // (INVISIBLE when idle, never GONE): a sync starting or ending never moves the pill or re-wraps the name.
+            // Beside, it sits after the name, next to Sync; under the name, after Sync on Sync's line where both fit.
+            LinearLayout clockWords=new Slot();clockWords.setGravity(Gravity.CENTER_VERTICAL);clockWords.setBaselineAligned(false);
             clockLine.line.removeView(clockLine.words);
             clockWords.addView(clockLine.words,new LinearLayout.LayoutParams(0,-2,1));clockWords.addView(clockSpinner,rowSpinnerSize());
-            clockLine.line.addView(new BannerBody(clockWords,clockLine.name,clockButton,10,true,CLOCK_SPINNER_ROOM_DP),0,new LinearLayout.LayoutParams(0,-2,1));
+            clockLine.line.addView(new BannerBody(clockWords,clockLine.name,clockButton,10,true,CLOCK_SPINNER_ROOM_DP,clockSpinner),0,new LinearLayout.LayoutParams(0,-2,1));
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
             shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
@@ -2626,7 +2627,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
             clockLine.name.setTextColor(clockReady?design.text:design.muted);
             // Results are row state: a spinner while sending, then "Sent 14:02" (no clock readback exists) or a short failure.
-            clockSpinner.setVisibility(clockPending?View.VISIBLE:View.GONE);
+            clockSpinner.setVisibility(clockPending?View.VISIBLE:View.INVISIBLE);
             String clock=ble==null?null:ble.commandResults().get("clock_sync");String chip=clockPending?null:resultChip(ble,"clock_sync");
             long sent=ble==null?0:ble.commandResultTime("clock_sync");
             boolean accepted=!clockPending&&clock!=null&&clock.startsWith("Accepted")&&sent>0;
@@ -2860,31 +2861,48 @@ public final class MainActivity extends Activity implements ScreenHost {
      * TalkBack too.
      */
     private final class BannerBody extends LinearLayout {
-        private final View content;private final TextView words,action;private final int gap,reserve,pad;private final boolean indent;
+        private final View content,aside;private final TextView words,action;private final int gap,reserve,pad;private final boolean indent;
+        /** The pill's line when something comes and goes beside the words (the clock row's spinner), else null. */
+        private final Slot actionLine;
         private int indentPx=-1;
         /** A banner: its words and pill, 8 dp apart. */
-        BannerBody(TextView words,TextView action){this(words,words,action,ActionBannerFit.GAP_DP,false,0);}
+        BannerBody(TextView words,TextView action){this(words,words,action,ActionBannerFit.GAP_DP,false,0,null);}
         /**
          * @param content what stays first (a row's words column), measured by {@code words} (its name, with its icon tile)
          * @param indent under the words, the pill starts where the name's text does (after its icon tile) where it fits
          * @param reserveDp room the content always keeps beside the words (the clock row's spinner), shown or not
+         * @param aside what that room is for, the last child of {@code content} (a Slot): beside the pill, it stays at the
+         *              end of the words' line, next to the pill; under the words it goes after the pill on the pill's line
+         *              where both fit (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
+         *              so nothing in the row moves or re-wraps when it comes and goes.
          */
-        BannerBody(View content,TextView words,TextView action,int gapDp,boolean indent,int reserveDp){
+        BannerBody(View content,TextView words,TextView action,int gapDp,boolean indent,int reserveDp,View aside){
             super(MainActivity.this);this.content=content;this.words=words;this.action=action;this.gap=design.dp(gapDp);this.indent=indent;this.reserve=design.dp(reserveDp);
-            this.pad=design.dp(ActionBannerFit.PILL_PAD_DP);
+            this.pad=design.dp(ActionBannerFit.PILL_PAD_DP);this.aside=aside;
             setOrientation(HORIZONTAL);setGravity(Gravity.CENTER_VERTICAL);setBaselineAligned(false);
-            addView(content,new LinearLayout.LayoutParams(0,-2,1));addView(action,new LinearLayout.LayoutParams(-2,-2));
-            arrange(false);
+            addView(content,new LinearLayout.LayoutParams(0,-2,1));
+            if(aside==null){actionLine=null;addView(action,new LinearLayout.LayoutParams(-2,-2));}
+            else{
+                actionLine=new Slot();actionLine.setGravity(Gravity.CENTER_VERTICAL);actionLine.setBaselineAligned(false);
+                actionLine.addView(action,new LinearLayout.LayoutParams(-2,-2));addView(actionLine,new LinearLayout.LayoutParams(-2,-2));
+            }
+            arrange(false,false);
         }
-        private void arrange(boolean below){
+        private View actionView(){return actionLine!=null?actionLine:action;}
+        private void arrange(boolean below,boolean byPill){
             setOrientation(below?VERTICAL:HORIZONTAL);setGravity(below?Gravity.START|Gravity.CENTER_VERTICAL:Gravity.CENTER_VERTICAL);
             LinearLayout.LayoutParams w=(LinearLayout.LayoutParams)content.getLayoutParams();
             w.width=below?-1:0;w.weight=below?0:1;w.rightMargin=below?0:gap;
-            LinearLayout.LayoutParams a=(LinearLayout.LayoutParams)action.getLayoutParams();
+            LinearLayout.LayoutParams a=(LinearLayout.LayoutParams)actionView().getLayoutParams();
             a.leftMargin=below?Math.max(0,indentPx):0;
+            if(aside!=null){
+                // Moved during this measure, before the rows are measured: no second layout pass.
+                Slot target=byPill?actionLine:(Slot)content;
+                if(aside.getParent()!=target){ViewGroup.LayoutParams p=aside.getLayoutParams();((Slot)aside.getParent()).take(aside);target.put(aside,p);}
+            }
         }
         @Override protected void onMeasure(int widthSpec,int heightSpec){
-            boolean below=false;int side=pad;
+            boolean below=false,byPill=false;int side=pad;
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
                 // The pill's own width: its label with its own padding (ActionBannerFit.pill), whatever padding a narrow
@@ -2895,15 +2913,22 @@ public final class MainActivity extends Activity implements ScreenHost {
                 float word=ActionBannerFit.longestWord(words.getText().toString(),text->words.getPaint().measureText(text))
                         +words.getCompoundPaddingLeft()+words.getCompoundPaddingRight();
                 below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve);
-                int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,pill,words.getCompoundPaddingLeft())):0;
-                if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true);}
+                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve);
+                int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,byPill?pill+reserve:pill,words.getCompoundPaddingLeft())):0;
+                if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true,byPill);}
                 // Under the words in a window narrower than the pill itself: only the room around the label, kept whole.
                 if(below&&pill>room-wanted)side=(int)Math.floor(ActionBannerFit.stackedPad(room-wanted,label,pad));
             }
             if(action.getPaddingLeft()!=side||action.getPaddingRight()!=side)action.setPadding(side,action.getPaddingTop(),side,action.getPaddingBottom());
-            if(below!=(getOrientation()==VERTICAL))arrange(below);
+            if(below!=(getOrientation()==VERTICAL)||aside!=null&&(aside.getParent()==actionLine)!=byPill)arrange(below,byPill);
             super.onMeasure(widthSpec,heightSpec);
         }
+    }
+    /** A horizontal row whose children BannerBody can move during its own measure (no new layout pass). */
+    private final class Slot extends LinearLayout {
+        Slot(){super(MainActivity.this);setOrientation(HORIZONTAL);}
+        void take(View child){removeViewInLayout(child);}
+        void put(View child,ViewGroup.LayoutParams params){addViewInLayout(child,-1,params,true);}
     }
     /** "Label, value" as a row is spoken. */
     private String labelValue(String label,String value){return T.mainLabelValue(label,value);}

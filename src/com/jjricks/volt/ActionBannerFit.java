@@ -51,6 +51,26 @@ final class ActionBannerFit {
     }
 
     /**
+     * Under the words, whether what comes and goes beside them ({@code reserve}: the clock row's spinner) sits after the
+     * pill on the pill's line: wherever the pill and its room fit the row. Only in a window so narrow that they do not
+     * (below about 255 dp at 1.4x in German) does it stay at the end of the words' line.
+     */
+    static boolean asideByPill(float room, float pill, float reserve) {
+        return Math.max(0f, pill) + Math.max(0f, reserve) <= room;
+    }
+
+    /**
+     * The words' room on their line: beside the pill, the room less the pill, the gap and {@code reserve}; under it, the
+     * row's whole room when the reserve sits by the pill, else the room less the reserve. The reserve is kept whether
+     * what it is for shows or not, so the words wrap the same way when it comes and goes (a sync starting or ending).
+     */
+    static float wordsRoom(float room, float pill, float gap, float reserve, boolean below) {
+        float kept = Math.max(0f, reserve);
+        if (!below) return room - Math.max(0f, pill) - Math.max(0f, gap) - kept;
+        return asideByPill(room, pill, kept) ? room : room - kept;
+    }
+
+    /**
      * The pill's indent under the words: lined up with the words' text ({@code indent}, after a row's icon tile) where
      * the pill still fits beside that indent, else at the row's start, so its label stays whole on a narrow window.
      */
