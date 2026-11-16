@@ -385,50 +385,39 @@ public final class DockSheetValidation extends Instrumentation {
         awaitGone("Back on a held sheet");
         requireHome();
         // A row's close, let go by Widgets Home as the subject opens: no finger catches it (a pull of 30% does not reopen
-        // it), it finishes closing, the subject stays, and nothing under the finger is clicked. Slowed further (scale 20,
-        // Android's most, a close of about 6 s): building the subject's page stalls a slow machine's main thread while the
-        // close runs on, so it needs only 160 dp of the sheet still showing (touched in the middle of that), and is set up
-        // again (up to three times) if a stall swallowed even that.
-        Object[] got = null;
-        for (int attempt = 1; got == null; attempt++) {
-            scale(10);
-            tapAll();
-            scale(20);
-            String subjectNow = onMain(() -> {
-                for (String each : HubPages.SUBJECTS) { View view = dialog().getWindow().getDecorView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
-                return null;
-            });
-            require(subjectNow != null, "The All sheet shows no subject row");
-            Object sheetNow = onMain(this::drag);
-            Dialog dialogNow = onMain(this::dialog);
-            View rowView = onMain(() -> dialogNow.getWindow().getDecorView().findViewWithTag("home-subject-" + subjectNow));
-            main(() -> rowView.requestRectangleOnScreen(new Rect(0, 0, rowView.getWidth(), rowView.getHeight()), true));
-            settle();
-            tapCentre(rowView, "the All sheet's " + subjectNow + " row");
-            await(() -> onMain(() -> Boolean.TRUE.equals(field(sheetNow, "letGo"))), () -> "Opening " + subjectNow + " did not let its closing sheet go (state " + onMain(() -> field(sheetNow, "state")) + ")");
-            float[] at = onMain(() -> {
-                float[] middle = middleOf(sheetNow);
-                return new float[]{middle[0], middle[1], (Float) field(sheetNow, "offset")};
-            });
-            if (at[2] < travel - 160 * dp && onMain(dialogNow::isShowing)) { got = new Object[]{subjectNow, sheetNow, dialogNow, at}; break; }
-            require(attempt < 3, "The row's close was too far along to touch, three times (" + at[2] + " of " + travel + " px)");
-            await(() -> onMain(() -> !dialogNow.isShowing()), "The let-go sheet never went (" + subjectNow + ")");
-            await(() -> onMain(() -> subjectNow.equals(HubTestPages.current(activity))), "The row did not open " + subjectNow);
-            back();
-            requireHome();
-        }
-        String rowSubject = (String) got[0];
-        Object rowSheet = got[1];
-        Dialog rowDialog = (Dialog) got[2];
-        float[] onPanel = (float[]) got[3];
+        // it), it finishes closing, the subject stays, and nothing under the finger is clicked. The row is clicked and the
+        // close it starts paused in one main-thread task, before any frame moves it: building the subject's page can
+        // stall a slow machine's main thread for seconds, and the close would catch up on its next frame. The finger goes
+        // down on the paused sheet, then the close resumes under it.
+        tapAll();
+        String rowSubject = onMain(() -> {
+            for (String each : HubPages.SUBJECTS) { View view = dialog().getWindow().getDecorView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
+            return null;
+        });
+        require(rowSubject != null, "The All sheet shows no subject row");
+        Object rowSheet = onMain(this::drag);
+        Dialog rowDialog = onMain(this::dialog);
+        View rowView = onMain(() -> rowDialog.getWindow().getDecorView().findViewWithTag("home-subject-" + rowSubject));
+        main(() -> rowView.requestRectangleOnScreen(new Rect(0, 0, rowView.getWidth(), rowView.getHeight()), true));
+        settle();
+        main(() -> {
+            require(rowView.performClick(), "The All sheet's " + rowSubject + " row did not take its click");
+            ValueAnimator closing = (ValueAnimator) field(rowSheet, "settling");
+            require(closing != null && Integer.valueOf(CLOSING).equals(field(rowSheet, "state")), "The " + rowSubject + " row did not start the sheet's close (state " + field(rowSheet, "state") + ")");
+            closing.pause();
+        });
+        require(onMain(() -> Boolean.TRUE.equals(field(rowSheet, "letGo"))), "Opening " + rowSubject + " did not let its closing sheet go (state " + onMain(() -> field(rowSheet, "state")) + ")");
+        float[] onPanel = onMain(() -> middleOf(rowSheet));
         States letGo = new States(rowSheet);
         Finger finger5 = new Finger(onPanel);
         Object stateDown = onMain(() -> field(rowSheet, "state"));
-        require(Integer.valueOf(CLOSING).equals(stateDown) || !onMain(rowDialog::isShowing), "A finger down on a let-go sheet caught it (state " + stateDown + ")");
+        require(Integer.valueOf(CLOSING).equals(stateDown) && onMain(rowDialog::isShowing), "A finger down on a let-go sheet caught it (state " + stateDown + ")");
+        require(!Integer.valueOf(0).equals(onMain(() -> field(field(rowSheet, "frame"), "region"))), "The finger meant for the let-go sheet landed on the dim");
+        main(() -> ((ValueAnimator) field(rowSheet, "settling")).resume());
         finger5.moveBy(-.30f * travel, 500, 25);
         finger5.hold(150);
         finger5.up();
-        end = SystemClock.uptimeMillis() + 40000;
+        end = SystemClock.uptimeMillis() + 15000;
         while (SystemClock.uptimeMillis() < end && !letGo.gone()) SystemClock.sleep(10);
         seen = letGo.stop();
         require(!onMain(rowDialog::isShowing), "The let-go sheet stayed after its settle");
@@ -438,7 +427,6 @@ public final class DockSheetValidation extends Instrumentation {
         require(onMain(() -> rowSubject.equals(HubTestPages.current(activity))), "A touch on the let-go sheet reached the page under it (now on " + onMain(() -> HubTestPages.current(activity)) + ")");
         back();
         requireHome();
-        scale(10);
         // A tap on the dim while the sheet settles closed is swallowed: the close carries on, and the page under it is not touched.
         tapAll();
         float[] dim = onMain(() -> {
