@@ -330,14 +330,27 @@ public final class DockSheetValidation extends Instrumentation {
         });
         require(item != null, "The dock shows no subject item");
         float[] under = onMain(() -> centreOf(root().findViewWithTag(item)));
-        tapAll();
-        Object before = onMain(this::drag);
-        closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
-        main(() -> { int[] at = new int[2]; panel().getLocationOnScreen(at); require(at[1] < under[1] - 8 * dp, "The closing sheet no longer covers the dock item to tap"); });
-        // Down: caught (DRAGGED) at once. Up straight after, as a tap: carries on closing.
-        Finger tapping = new Finger(under);
-        Object caughtState = onMain(() -> drag() == null ? null : field(drag(), "state"));
-        require(Integer.valueOf(DRAGGED).equals(caughtState), "A finger down on the closing sheet did not stop it under the finger (" + describe() + ")");
+        Finger tapping;
+        Object before;
+        // A slow machine can take longer than the slowed close between Back and the finger landing: then the close has
+        // ended (observed: the sheet has gone, or no longer covers the item), the finger is cancelled (no tap reaches the
+        // dock) and the same is tried slower. A sheet still showing that did not stop under the finger fails at once.
+        for (int slower = 10; ; slower *= 2) {
+            scale(slower);
+            tapAll();
+            before = onMain(this::drag);
+            closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
+            boolean covers = onMain(() -> { if (drag() == null || !shown(panel())) return false; int[] at = new int[2]; panel().getLocationOnScreen(at); return at[1] < under[1] - 8 * dp; });
+            // Down: caught (DRAGGED) at once. Up straight after, as a tap: carries on closing.
+            tapping = covers ? new Finger(under) : null;
+            Object caughtState = onMain(() -> drag() == null ? null : field(drag(), "state"));
+            if (tapping != null && Integer.valueOf(DRAGGED).equals(caughtState)) break;
+            boolean ended = onMain(() -> { View overlay = sheetView(); return overlay == null || !overlay.isAttachedToWindow(); }) || !covers;
+            if (tapping != null) tapping.cancel();
+            require(ended && slower < 80, "A finger down on the closing sheet did not stop it under the finger (" + describe() + ")");
+            awaitGone("a close that ended before the finger landed");
+            requireHome();
+        }
         States states = new States(before);
         tapping.up();
         long end = SystemClock.uptimeMillis() + 15000;
