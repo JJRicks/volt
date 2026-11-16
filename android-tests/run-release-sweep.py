@@ -280,10 +280,12 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
 # Widgets Home's dock and its All sheet under a finger (DragSheet, the owner's request of 15 Nov): pulls from the dock follow
 # the finger and spring open or back, the open sheet drags and swipes away (its list scrolls first), taps, ACTION_CANCEL,
 # a second finger, a catch while it closes, the activity recreated mid-pull, every frame at animator scale 5 (one bounded
-# overshoot, no gap under the sheet) and animations off. A phone in dark and the wide window in light, where the sheet is
-# taller than the window and its list scrolls (-e list_scrolls true).
+# overshoot, no gap under the sheet; the dock itself growing into the sheet and back, SheetMorph, frame by frame) and
+# animations off. A phone in dark, the wide window in light, where the sheet is taller than the window and its list
+# scrolls (-e list_scrolls true), and an unfolded Fold's inner screen in dark, where the centred dock widens to the sheet.
 STEPS += [inst('dock-sheet-344', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='344x882'),
-          inst('dock-sheet-725', T + 'DockSheetValidation', '-e', 'theme', 'light', '-e', 'list_scrolls', 'true', size='725x604')]
+          inst('dock-sheet-725', T + 'DockSheetValidation', '-e', 'theme', 'light', '-e', 'list_scrolls', 'true', size='725x604'),
+          inst('dock-sheet-fold', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='790x820')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (

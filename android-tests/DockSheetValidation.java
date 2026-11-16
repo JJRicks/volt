@@ -3,7 +3,6 @@ package com.jjricks.volt.tests;
 import android.Manifest;
 import android.animation.ValueAnimator;
 import android.app.Activity;
-import android.app.Dialog;
 import android.app.Instrumentation;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -35,14 +34,15 @@ import com.jjricks.volt.ScooterProfiles;
 
 /**
  * Fresh disposable emulator only (refuses a physical phone, existing app data and Bluetooth turned on). Widgets Home's
- * dock and its All sheet as a finger moves them (DragSheet and SheetSpring, the owner's request of 15 Nov), on the
- * developer simulator, with real touches injected into the windows (Instrumentation.sendPointerSync, explicit event
- * times):
+ * dock and its All sheet as a finger moves them (DragSheet and SheetSpring, the owner's request of 15 Nov), and the dock
+ * itself growing into the sheet and back (SheetMorph, his follow-up the same day), on the developer simulator, with real
+ * touches injected into the window (Instrumentation.sendPointerSync, explicit event times):
  *
  * <ul>
  *   <li><b>Pulls from the dock</b>: a slow pull to about a tenth of the sheet's travel, held and let go, springs back
  *   closed and dismisses it; a slow pull to about two fifths opens it; a short fast flick opens it (lifted before the
- *   sheet's first layout). The sheet's dialog shows mid-gesture and never takes the touch from the dock.</li>
+ *   sheet's first layout). The sheet shows mid-gesture (drawn in Volt's own window) and never takes the touch from the
+ *   dock; it follows the finger 1:1 from where the swipe was recognised.</li>
  *   <li><b>The open sheet</b>: dragged by its grab handle a tenth of the way down it springs back open, two fifths down
  *   it closes, and a fast downward flick closes it. With its list scrolled down, a downward drag on the list scrolls the
  *   list and leaves the sheet open; dragged on past the list's top, the sheet takes over and closes.</li>
@@ -51,9 +51,14 @@ import com.jjricks.volt.ScooterProfiles;
  *   <li><b>Interruptions</b>: ACTION_CANCEL and a second finger settle a pull where it is; a pull taken back to its start
  *   ends closed; a new pull and a tap on All catch a sheet that is settling closed and bring it back; the activity
  *   recreated mid-pull (as a rotation, fold, resize or text-size change rebuilds Home) leaves no sheet and no crash.</li>
- *   <li><b>Every frame</b>, at animator duration scale 5: the opening moves only toward open until one overshoot no
- *   larger than SheetSpring.CAP_DP, then back (any second ripple under 1 dp); a snap-back and a close move only toward
- *   closed; and at no frame of any pull, drag or settle does the sheet's background end above the screen's bottom.</li>
+ *   <li><b>Every frame</b>, at animator duration scale 5 (read as each frame is drawn): the opening moves only toward
+ *   open until one overshoot no larger than SheetSpring.CAP_DP, then back (any second ripple under 1 dp); a snap-back
+ *   and a close move only toward closed; from open on (the bounce) the sheet's background never ends above the screen's
+ *   bottom. The dock and the sheet are one surface: every frame shows exactly one of the dock and the sheet's surface
+ *   (never both, never neither); the first frame of an opening (All, a pull) and the last of a close or snap-back are
+ *   the dock's own bounds within 2 px, the frame after the last is the dock itself; the surface's top follows the
+ *   sheet's offset 1:1 and its sides and bottom move with its progress with no jump; the dock's buttons are gone by a
+ *   quarter of the way and the sheet's content shows only past 35%, never both at once.</li>
  *   <li><b>Animations off</b> (animator duration scale 0): a pull still follows the finger, and every release, tap and
  *   close jumps to its end with no settle.</li>
  * </ul>
@@ -61,7 +66,11 @@ import com.jjricks.volt.ScooterProfiles;
  * The animator duration scale is put back as it was at the end. -e theme dark|light and -e text_scale (1 by default) as
  * the other fixture runners; -e list_scrolls true|false requires that the window's sheet is (or is not) taller than the
  * window, so its list scrolls. -e mode hold sets Widgets Home up and holds it for -e hold_seconds (600 by default), for
- * recordings driven from adb; it checks nothing.
+ * recordings driven from adb; it checks nothing. -e mode pose holds each of -e poses (a comma list: dock for the dock
+ * alone, or a progress 0..1 for the sheet pulled that far and held) for -e pose_seconds (4), sending a status line
+ * pose=NAME as each is in place, so pictures can be taken from adb; -e scroll top|busy puts Home at its top or halfway
+ * down first (busy widgets behind the dock). For the contrast comparison, -e contrast A|B|C and -e hair_light,
+ * hair_dark, ambient_light, spot_light, ambient_dark, spot_dark set HubDock's look before Home is built.
  */
 public final class DockSheetValidation extends Instrumentation {
     private static final String FIXTURE_NAME = "Synthetic dock fixture", FIXTURE_IDENTITY = "B1C2D3E4F5A6",
@@ -83,7 +92,8 @@ public final class DockSheetValidation extends Instrumentation {
         Bundle result = new Bundle();
         try {
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("hold"), "Unknown -e mode " + mode + " (all or hold)");
+            require(mode.equals("all") || mode.equals("hold") || mode.equals("pose"), "Unknown -e mode " + mode + " (all, hold or pose)");
+            look();
             admit();
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
@@ -95,11 +105,13 @@ public final class DockSheetValidation extends Instrumentation {
             launch();
             simulate();
             requireHome();
+            OPENING = state("OPENING"); OPEN = state("OPEN"); CLOSING = state("CLOSING"); PULLED = state("PULLED"); DRAGGED = state("DRAGGED");
             if (mode.equals("hold")) {
                 checks.add("Widgets Home held for recordings");
                 SystemClock.sleep(Long.parseLong(arguments.getString("hold_seconds", "600")) * 1000);
+            } else if (mode.equals("pose")) {
+                poses();
             } else {
-                OPENING = state("OPENING"); OPEN = state("OPEN"); CLOSING = state("CLOSING"); PULLED = state("PULLED"); DRAGGED = state("DRAGGED");
                 cap = (float) (spring("CAP_DP") * dp());
                 dp = dp();
                 scaleBefore = shell("settings get global animator_duration_scale").trim();
@@ -179,19 +191,19 @@ public final class DockSheetValidation extends Instrumentation {
         }
         // A row: its subject opens and the sheet closes.
         tapAll();
-        View row = onMain(() -> dialog().getWindow().getDecorView().findViewWithTag("home-subject-" + subject));
+        View row = onMain(() -> sheetView().findViewWithTag("home-subject-" + subject));
         require(row != null, "The All sheet has no row for " + subject);
         main(() -> row.requestRectangleOnScreen(new Rect(0, 0, row.getWidth(), row.getHeight()), true));
         settle();
         // The dock goes with Home as the subject opens; the sheet it opened settles closed over the subject all the same.
         Object sheet = onMain(this::drag);
-        Dialog window = onMain(this::dialog);
+        View window = onMain(this::sheetView);
         States states = new States(sheet);
         tapCentre(row, "the All sheet's " + subject + " row");
         long end = SystemClock.uptimeMillis() + 5000;
         while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
         seen = states.stop();
-        require(!onMain(window::isShowing), "The All sheet stayed open after its " + subject + " row");
+        require(!onMain(window::isAttachedToWindow), "The All sheet stayed open after its " + subject + " row");
         require(seen.contains(CLOSING), "The " + subject + " row closed the sheet without its settle (states " + seen + ")");
         await(() -> onMain(() -> subject.equals(HubTestPages.current(activity))), "The All sheet's " + subject + " row did not open it");
         awaitGone("the " + subject + " row");
@@ -309,15 +321,16 @@ public final class DockSheetValidation extends Instrumentation {
         // A sheet settling closed (slowed to scale 10, a close of about 3 s, so it is caught on its way) keeps every touch:
         // nothing reaches the page under it (Widgets Home's dock and cards, its lock control among them).
         scale(10);
-        tapAll();
         // A plain tap on the closing sheet, right over a dock item (which would open its subject): the sheet stops under
-        // the finger and carries on closing; neither the item nor the sheet's row under the finger opens anything.
+        // the finger and carries on closing; neither the item nor the sheet's row under the finger opens anything. The
+        // item is found while the dock shows (the sheet hides it, keeping its place).
         String item = onMain(() -> {
             for (String each : HubPages.SUBJECTS) { View view = root().findViewWithTag("hub-dock-" + each); if (shown(view)) return "hub-dock-" + each; }
             return null;
         });
         require(item != null, "The dock shows no subject item");
         float[] under = onMain(() -> centreOf(root().findViewWithTag(item)));
+        tapAll();
         Object before = onMain(this::drag);
         closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
         main(() -> { int[] at = new int[2]; panel().getLocationOnScreen(at); require(at[1] < under[1] - 8 * dp, "The closing sheet no longer covers the dock item to tap"); });
@@ -346,11 +359,9 @@ public final class DockSheetValidation extends Instrumentation {
         // Caught low, taken up 30% and back to where it was caught: it carries on closing (a quarter from the catch decides).
         Object again = onMain(this::drag);
         Finger finger3 = catchLow();
-        // Held, the caught sheet has the focus again (Back goes to it, and the page knows a sheet is over it).
-        Dialog held = onMain(this::dialog);
-        await(() -> onMain(() -> (held.getWindow().getAttributes().flags & android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) == 0
-                && held.getWindow().getDecorView().hasWindowFocus() && !activity.hasWindowFocus()),
-                () -> "The caught sheet did not take the focus back (" + describe() + ")");
+        // Held, the caught sheet takes Back again, and the page knows a sheet is over it.
+        await(() -> onMain(() -> Boolean.TRUE.equals(field(again, "focusable")) && activity.dialogShowing()),
+                () -> "The caught sheet did not take Back again (" + describe() + ")");
         finger3.moveBy(-.30f * travel, 500, 25);
         finger3.moveBy(.30f * travel, 500, 25);
         States back = new States(again);
@@ -365,16 +376,16 @@ public final class DockSheetValidation extends Instrumentation {
         // Caught and held, then Back: the sheet settles closed, and the rest of that touch (moves up, the lift) does nothing.
         tapAll();
         Object backed = onMain(this::drag);
-        Dialog backedDialog = onMain(this::dialog);
+        View backedView = onMain(this::sheetView);
         Finger finger4 = catchLow();
-        await(() -> onMain(() -> backedDialog.getWindow().getDecorView().hasWindowFocus()), () -> "The caught sheet did not take the focus back (" + describe() + ")");
+        await(() -> onMain(() -> Boolean.TRUE.equals(field(backed, "focusable"))), () -> "The caught sheet did not take Back again (" + describe() + ")");
         States afterBack = new States(backed);
         sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
-        await(() -> onMain(() -> Integer.valueOf(CLOSING).equals(field(backed, "state")) || !backedDialog.isShowing()), () -> "Back on a held sheet did not close it (" + describe() + ")");
+        await(() -> onMain(() -> Integer.valueOf(CLOSING).equals(field(backed, "state")) || !backedView.isAttachedToWindow()), () -> "Back on a held sheet did not close it (" + describe() + ")");
         float fromBack = onMain(() -> (Float) field(backed, "offset"));
         finger4.moveBy(-.30f * travel, 400, 20);
         float afterMoves = onMain(() -> (Float) field(backed, "offset"));
-        require(!onMain(backedDialog::isShowing) || afterMoves >= fromBack - 1, "After Back, the held sheet still followed the finger up (" + fromBack + " -> " + afterMoves + " px)");
+        require(!onMain(backedView::isAttachedToWindow) || afterMoves >= fromBack - 1, "After Back, the held sheet still followed the finger up (" + fromBack + " -> " + afterMoves + " px)");
         finger4.up();
         end = SystemClock.uptimeMillis() + 15000;
         while (SystemClock.uptimeMillis() < end && !afterBack.gone()) SystemClock.sleep(10);
@@ -391,13 +402,13 @@ public final class DockSheetValidation extends Instrumentation {
         // down on the paused sheet, then the close resumes under it.
         tapAll();
         String rowSubject = onMain(() -> {
-            for (String each : HubPages.SUBJECTS) { View view = dialog().getWindow().getDecorView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
+            for (String each : HubPages.SUBJECTS) { View view = sheetView().findViewWithTag("home-subject-" + each); if (shown(view)) return each; }
             return null;
         });
         require(rowSubject != null, "The All sheet shows no subject row");
         Object rowSheet = onMain(this::drag);
-        Dialog rowDialog = onMain(this::dialog);
-        View rowView = onMain(() -> rowDialog.getWindow().getDecorView().findViewWithTag("home-subject-" + rowSubject));
+        View rowWindow = onMain(this::sheetView);
+        View rowView = onMain(() -> rowWindow.findViewWithTag("home-subject-" + rowSubject));
         main(() -> rowView.requestRectangleOnScreen(new Rect(0, 0, rowView.getWidth(), rowView.getHeight()), true));
         settle();
         main(() -> {
@@ -411,7 +422,7 @@ public final class DockSheetValidation extends Instrumentation {
         States letGo = new States(rowSheet);
         Finger finger5 = new Finger(onPanel);
         Object stateDown = onMain(() -> field(rowSheet, "state"));
-        require(Integer.valueOf(CLOSING).equals(stateDown) && onMain(rowDialog::isShowing), "A finger down on a let-go sheet caught it (state " + stateDown + ")");
+        require(Integer.valueOf(CLOSING).equals(stateDown) && onMain(rowWindow::isAttachedToWindow), "A finger down on a let-go sheet caught it (state " + stateDown + ")");
         require(!Integer.valueOf(0).equals(onMain(() -> field(field(rowSheet, "frame"), "region"))), "The finger meant for the let-go sheet landed on the dim");
         main(() -> ((ValueAnimator) field(rowSheet, "settling")).resume());
         finger5.moveBy(-.30f * travel, 500, 25);
@@ -420,7 +431,7 @@ public final class DockSheetValidation extends Instrumentation {
         end = SystemClock.uptimeMillis() + 15000;
         while (SystemClock.uptimeMillis() < end && !letGo.gone()) SystemClock.sleep(10);
         seen = letGo.stop();
-        require(!onMain(rowDialog::isShowing), "The let-go sheet stayed after its settle");
+        require(!onMain(rowWindow::isAttachedToWindow), "The let-go sheet stayed after its settle");
         require(!seen.contains(DRAGGED) && !seen.contains(OPENING) && !seen.contains(OPEN), "A pull on the let-go sheet caught or reopened it (states " + seen + ")");
         await(() -> onMain(() -> rowSubject.equals(HubTestPages.current(activity))), "The subject the row opened did not stay (" + HubTestPages.current(activity) + ")");
         settle();
@@ -451,8 +462,8 @@ public final class DockSheetValidation extends Instrumentation {
         }
         scale(1);
         checks.add("ACTION_CANCEL settles a pull where it is (a tenth closes, two fifths opens); a second finger settles it at once and the rest of the touch moves nothing; "
-                + "a pull taken back to its start closes; the page has focus while the sheet settles closed; a finger on the closing sheet catches it: taken up 30% from where it "
-                + "was caught it reopens (the same sheet), taken back to that point it carries on closing; held, it has the focus (the page has none); Back while held closes it and the rest "
+                + "a pull taken back to its start closes; Back goes to the page while the sheet settles closed; a finger on the closing sheet catches it: taken up 30% from where it "
+                + "was caught it reopens (the same sheet), taken back to that point it carries on closing; held, it takes Back again; Back while held closes it and the rest "
                 + "of that touch does nothing; a row's close, let go by Home as the subject opens, cannot be caught (a 30% pull does not reopen it) and reaches nothing under it; "
                 + "a tap on the dim meanwhile is swallowed");
     }
@@ -468,37 +479,44 @@ public final class DockSheetValidation extends Instrumentation {
         String[] ways = {"a new height mid-open", "a new height mid-open, then close() before its restart runs", "a new height mid-open, then close() and leave() before its restart runs"};
         for (int way = 0; way < ways.length; way++) {
             int which = way;
-            HubTestPages.showDock(this, activity);
-            tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
             // Well into the opening (under three fifths of the way still to go), so the close that follows is a real settle
-            // (from near closed, a shorter sheet is already past its new closed end and goes at once).
-            await(() -> onMain(() -> drag() != null && Integer.valueOf(OPENING).equals(field(drag(), "state")) && field(drag(), "settling") != null
-                    && (Integer) field(drag(), "travel") > 0 && offset() < .6f * (Integer) field(drag(), "travel")), () -> "All did not settle open past two fifths (" + describe() + ")");
-            Object sheet = onMain(this::drag);
-            Dialog window = onMain(this::dialog);
-            int before = onMain(() -> (Integer) field(sheet, "travel"));
-            States states = new States(sheet);
+            // (from near closed, a shorter sheet is already past its new closed end and goes at once). Caught on the main
+            // thread at the first frame it holds, not by polling: a slow machine's stall can carry a whole stretch of the
+            // opening past in one frame. Should the opening reach open without a frame in that stretch, it tries again.
+            Object[] caught = {null};
+            int[] travelBefore = {0};
             boolean[] ran = new boolean[2];
-            main(() -> {
-                View panel = (View) field(sheet, "panel");
-                ScrollView list = (ScrollView) field(sheet, "list");
-                panel.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
-                    @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
-                        if ((Integer) field(sheet, "travel") == before) return;
-                        v.removeOnLayoutChangeListener(this);
-                        // The sheet's own listener ran first (it was added first) and posted its restart; this goes ahead of it.
-                        ran[0] = true;
-                        if (which > 0) new android.os.Handler(android.os.Looper.getMainLooper()).postAtFrontOfQueue(() -> {
-                            invoke(sheet, "close");
-                            if (which == 2) invoke(sheet, "leave");
-                            ran[1] = true;
-                        });
-                    }
+            for (int attempt = 0; attempt < 4 && caught[0] == null; attempt++) {
+                if (attempt > 0) { back(); awaitGone("Back after a missed opening"); }
+                HubTestPages.showDock(this, activity);
+                boolean[] watching = {true}, missed = {false};
+                main(() -> {
+                    Choreographer.FrameCallback[] tick = {null};
+                    tick[0] = t -> {
+                        if (!watching[0]) return;
+                        Object sheet = drag();
+                        if (sheet != null && Integer.valueOf(OPEN).equals(field(sheet, "state"))) { watching[0] = false; missed[0] = true; return; }
+                        if (sheet != null && Integer.valueOf(OPENING).equals(field(sheet, "state")) && field(sheet, "settling") != null
+                                && (Integer) field(sheet, "travel") > 0 && (Float) field(sheet, "offset") < .6f * (Integer) field(sheet, "travel")) {
+                            watching[0] = false;
+                            caught[0] = sheet;
+                            travelBefore[0] = (Integer) field(sheet, "travel");
+                            newHeight(sheet, which, travelBefore[0], ran);
+                            return;
+                        }
+                        Choreographer.getInstance().postFrameCallback(tick[0]);
+                    };
+                    Choreographer.getInstance().postFrameCallback(tick[0]);
                 });
-                ViewGroup.LayoutParams size = list.getLayoutParams();
-                size.height = Math.max(Math.round(48 * dp), list.getHeight() - Math.round(48 * dp));
-                list.setLayoutParams(size);
-            });
+                tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
+                await(() -> onMain(() -> caught[0] != null || missed[0]), () -> ways[which] + ": All did not open the sheet (" + describe() + ")");
+                main(() -> watching[0] = false);
+            }
+            require(caught[0] != null, ways[which] + ": no frame of All's opening came between two fifths and open in four tries (" + describe() + ")");
+            Object sheet = caught[0];
+            View window = onMain(() -> (View) field(sheet, "frame"));
+            int before = travelBefore[0];
+            States states = new States(sheet);
             await(() -> onMain(() -> ran[0] && (which == 0 || ran[1])), () -> ways[which] + ": the new height was never laid out (" + describe() + ")");
             int after = onMain(() -> (Integer) field(sheet, "travel"));
             require(after < before, ways[which] + ": the travel did not change (" + before + " -> " + after + " px)");
@@ -513,7 +531,7 @@ public final class DockSheetValidation extends Instrumentation {
                 long end = SystemClock.uptimeMillis() + 20000;
                 while (SystemClock.uptimeMillis() < end && !states.gone()) SystemClock.sleep(10);
                 List<Integer> seen = states.stop();
-                require(!onMain(window::isShowing), ways[which] + ": the sheet never finished closing (states " + seen + ", " + onMain(() -> "state " + field(sheet, "state") + ", offset " + field(sheet, "offset")) + ")");
+                require(!onMain(window::isAttachedToWindow), ways[which] + ": the sheet never finished closing (states " + seen + ", " + onMain(() -> "state " + field(sheet, "state") + ", offset " + field(sheet, "offset")) + ")");
                 List<Integer> sinceClose = seen.contains(CLOSING) ? seen.subList(seen.indexOf(CLOSING), seen.size()) : seen;
                 require(seen.contains(CLOSING) && !sinceClose.contains(OPENING) && !sinceClose.contains(OPEN), ways[which] + ": the stale restart reopened it (states " + seen + ")");
                 awaitGone(ways[which]);
@@ -523,6 +541,31 @@ public final class DockSheetValidation extends Instrumentation {
         scale(1);
         checks.add("A new height while the sheet settles open: the opening carries on to open at the new height; with close() handled before its posted restart runs, "
                 + "the stale restart does not reopen it and it finishes closing; the same with close() and leave() (let go): no reopening, it finishes closing and goes");
+    }
+
+    /**
+     * On the main thread, mid-opening: makes the sheet's list 48 dp shorter, and once that new height is laid out (the
+     * sheet's own listener ran first and posted its restart) runs close() (way 1) or close() and leave() (way 2) at the
+     * front of the main queue, ahead of that restart.
+     */
+    private void newHeight(Object sheet, int which, int before, boolean[] ran) {
+        View panel = (View) field(sheet, "panel");
+        ScrollView list = (ScrollView) field(sheet, "list");
+        panel.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                if ((Integer) field(sheet, "travel") == before) return;
+                v.removeOnLayoutChangeListener(this);
+                ran[0] = true;
+                if (which > 0) new android.os.Handler(android.os.Looper.getMainLooper()).postAtFrontOfQueue(() -> {
+                    invoke(sheet, "close");
+                    if (which == 2) invoke(sheet, "leave");
+                    ran[1] = true;
+                });
+            }
+        });
+        ViewGroup.LayoutParams size = list.getLayoutParams();
+        size.height = Math.max(Math.round(48 * dp), list.getHeight() - Math.round(48 * dp));
+        list.setLayoutParams(size);
     }
 
     /**
@@ -540,33 +583,45 @@ public final class DockSheetValidation extends Instrumentation {
         return finger;
     }
 
-    /** On the main thread: the middle of what shows of the dock's sheet (between its top and the window's bottom). */
+    /** On the main thread: the middle of what shows of the dock's sheet (its surface, between its top and the window's bottom). */
     private float[] middleOfSheet() { return middleOf(drag()); }
     private float[] middleOf(Object sheet) {
-        View panel = (View) field(sheet, "panel"), frame = (View) field(sheet, "frame");
-        int[] p = new int[2], f = new int[2]; panel.getLocationOnScreen(p); frame.getLocationOnScreen(f);
-        return new float[]{p[0] + panel.getWidth() / 2f, (p[1] + f[1] + frame.getHeight()) / 2f};
+        View surface = (View) field(sheet, "surface"), frame = (View) field(sheet, "frame");
+        int[] p = new int[2], f = new int[2]; surface.getLocationOnScreen(p); frame.getLocationOnScreen(f);
+        float bottom = Math.min(p[1] + surface.getHeight(), f[1] + frame.getHeight());
+        return new float[]{p[0] + surface.getWidth() / 2f, (p[1] + bottom) / 2f};
     }
 
-    /** Every frame at animator scale 5: the opening, the snap-back and the close, and no gap under the sheet at any frame. */
+    /**
+     * Every frame at animator scale 5: the opening, the snap-back and the close, no gap under the sheet from open on, and
+     * the dock and the sheet as one surface (oneSurface) through each.
+     */
     private void frames() {
         scale(5);
+        worstStep = worstSlip = worstDockMatch = 0; framesChecked = 0;
         Sampler sampler = new Sampler();
         // The opening from closed (All).
+        HubTestPages.showDock(this, activity);
         sampler.start();
         tapAll();
         List<float[]> open = sampler.stop();
+        oneSurface(open, "All's opening", true, false);
         float overshoot = opening(open, "All's opening");
         require(overshoot >= 2 * dp, "All's opening shows no bounce (" + overshoot / dp + " dp past open)");
         // The close (Back): toward closed only.
         sampler.start();
         back(); awaitGone("Back");
-        closing(sampler.stop(), "Back's close");
+        List<float[]> shut = sampler.stop();
+        oneSurface(shut, "Back's close", false, true);
+        closing(shut, "Back's close");
         // A pull to two fifths: the finger's frames and the opening.
+        HubTestPages.showDock(this, activity);
         sampler.start();
         pullTo(.40, 900, true);
         awaitOpen("a slowed pull to two fifths");
-        float pulled = opening(sampler.stop(), "a pull's opening");
+        List<float[]> pull = sampler.stop();
+        oneSurface(pull, "a pull's opening", true, false);
+        float pulled = opening(pull, "a pull's opening");
         // A drag of the open sheet a tenth down, let go: back to open.
         sampler.start();
         Finger finger = new Finger(centre(handle()));
@@ -574,23 +629,43 @@ public final class DockSheetValidation extends Instrumentation {
         finger.hold(150);
         finger.up();
         awaitOpen("a slowed drag a tenth down");
-        noGap(sampler.stop(), "a drag a tenth down and its return");
-        back(); awaitGone("Back");
+        List<float[]> back = sampler.stop();
+        oneSurface(back, "a drag a tenth down and its return", false, false);
+        noGap(back, "a drag a tenth down and its return");
+        // Dragged two fifths down and let go: it closes into the dock.
+        sampler.start();
+        finger = new Finger(centre(handle()));
+        finger.moveBy(.40f * travel, 700, 40);
+        finger.hold(120);
+        finger.up();
+        awaitGone("a slowed drag two fifths down");
+        List<float[]> down = sampler.stop();
+        oneSurface(down, "a drag two fifths down and its close", false, true);
+        closing(down, "a drag two fifths down and its close");
         // A pull to a tenth, held and let go: the snap-back, toward closed only.
+        HubTestPages.showDock(this, activity);
         sampler.start();
         pullTo(.10, 700, true);
         awaitGone("a slowed pull to a tenth");
-        float still = closing(sampler.stop(), "a held pull's snap-back");
+        List<float[]> snap = sampler.stop();
+        oneSurface(snap, "a held pull's snap-back", true, true);
+        float still = closing(snap, "a held pull's snap-back");
         require(still <= .5f, "a held pull's snap-back moved toward open first (" + still + " px)");
         // The same let go while the finger still moves up: it carries on a little, then goes, with no bounce.
+        HubTestPages.showDock(this, activity);
         sampler.start();
         pullTo(.10, 700, false);
         awaitGone("a slowed pull to a tenth let go moving");
-        float carried = closing(sampler.stop(), "a moving pull's snap-back");
+        List<float[]> moving = sampler.stop();
+        oneSurface(moving, "a moving pull's snap-back", true, true);
+        float carried = closing(moving, "a moving pull's snap-back");
         scale(1);
         checks.add("At animator scale 5, every frame: All's opening and a pull's opening move only toward open until one overshoot (" + round(overshoot / dp) + " dp and "
-                + round(pulled / dp) + " dp, cap " + spring("CAP_DP") + " dp) and back with no second ripple of 1 dp; Back's close and a held pull's snap-back move only toward closed (let go still moving up, it carries on " + round(carried / dp) + " dp, then closes with no bounce); "
-                + "the sheet's background never ends above the screen's bottom at any frame of a pull, a drag or a settle");
+                + round(pulled / dp) + " dp, cap " + spring("CAP_DP") + " dp) and back with no second ripple of 1 dp; Back's close, a drag down's close and a held pull's snap-back move only toward closed (let go still moving up, it carries on " + round(carried / dp) + " dp, then closes with no bounce); "
+                + "from open on the sheet's surface never ends above the screen's bottom");
+        checks.add("At animator scale 5, the dock and the sheet are one surface in all " + framesChecked + " frames of the sheet drawn (All, Back, a pull, a drag back and a drag down, two snap-backs): never both or neither; "
+                + "every opening's first frame and every close's and snap-back's last are the dock's bounds within " + round(worstDockMatch) + " px, then the dock alone; the top follows the offset within " + round(worstSlip)
+                + " px a frame and the sides and bottom never step more than " + round(Math.max(0, worstStep)) + " px beyond what the progress moved them; the dock's buttons are gone by 25% and the sheet's content hidden up to 35%, never both");
     }
 
     /** Animations off: the finger is still followed, and every release, tap and close jumps. */
@@ -604,8 +679,7 @@ public final class DockSheetValidation extends Instrumentation {
         // A pull follows the finger, and its release jumps open.
         Finger finger = new Finger(dockCentre());
         finger.moveBy(-.40f * travel, 800, 40);
-        float shown = onMain(() -> travel - offset());
-        require(Math.abs(shown - .40f * travel) < 6 * dp, "With animations off, the pulled sheet shows " + shown + " px for a finger " + .40f * travel + " px up");
+        followsFinger(finger, "With animations off");
         finger.hold(120);
         finger.up();
         waitForIdleSync();
@@ -626,8 +700,8 @@ public final class DockSheetValidation extends Instrumentation {
     private void activityGoes() {
         Finger finger = new Finger(dockCentre());
         finger.moveBy(-.40f * travel, 800, 40);
-        Dialog stray = onMain(this::dialog);
-        require(stray != null && stray.isShowing(), "The pull showed no sheet");
+        View stray = onMain(this::sheetView);
+        require(stray != null && stray.isAttachedToWindow(), "The pull showed no sheet");
         Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
         MainActivity was = activity;
         main(was::recreate);
@@ -640,14 +714,14 @@ public final class DockSheetValidation extends Instrumentation {
         await(() -> activity.service() != null, "The recreated activity has no service");
         settle();
         requireHome();
-        await(() -> onMain(() -> !stray.isShowing()), "The sheet outlived the activity that pulled it");
+        await(() -> onMain(() -> !stray.isAttachedToWindow()), "The sheet outlived the activity that pulled it");
         main(() -> require(field(dock(), "sheet") == null, "The new dock has a sheet"));
         tapAll();
         // Recreated while the sheet settles closed (slowed): it goes at once with the old activity, and the new Home takes touches.
         scale(10);
         closeStarts(() -> sendKeyDownUpSync(KeyEvent.KEYCODE_BACK));
-        Dialog closing = onMain(this::dialog);
-        require(closing != null && closing.isShowing(), "The closing sheet is not showing");
+        View closing = onMain(this::sheetView);
+        require(closing != null && closing.isAttachedToWindow(), "The closing sheet is not showing");
         monitor = addMonitor(MainActivity.class.getName(), null, false);
         MainActivity before = activity;
         main(before::recreate);
@@ -658,50 +732,183 @@ public final class DockSheetValidation extends Instrumentation {
         await(() -> activity.service() != null, "The recreated activity has no service");
         settle();
         requireHome();
-        await(() -> onMain(() -> !closing.isShowing()), "The closing sheet outlived the activity that showed it");
+        await(() -> onMain(() -> !closing.isAttachedToWindow()), "The closing sheet outlived the activity that showed it");
         scale(1);
         tapAll();
         back(); awaitGone("Back");
         checks.add("The activity recreated mid-pull or while the sheet settles closed: the sheet goes with it, the new Widgets Home's dock has none, and All opens a new one");
     }
 
-    // ===== Frames =====
+    // ===== Pictures =====
 
-    /** Every drawn frame's sheet: [offset px, the background's bottom less the screen's px, state]. */
-    private final class Sampler {
-        private final List<float[]> samples = new ArrayList<>();
-        private boolean run;
-        private Choreographer.FrameCallback tick;
-        void start() {
-            samples.clear();
-            main(() -> {
-                run = true;
-                tick = t -> {
-                    if (!run) return;
-                    Object sheet = activity == null ? null : field(activity, "dock") == null ? null : field(field(activity, "dock"), "drag");
-                    if (sheet != null && ((Dialog) field(sheet, "dialog")).isShowing() && (Integer) field(sheet, "travel") > 0) {
-                        View panel = (View) field(sheet, "panel"), frame = (View) field(sheet, "frame");
-                        int[] p = new int[2], f = new int[2];
-                        panel.getLocationOnScreen(p); frame.getLocationOnScreen(f);
-                        float bottom = p[1] + panel.getHeight(), screen = f[1] + frame.getHeight();
-                        samples.add(new float[]{panel.getTranslationY(), bottom - screen, (Integer) field(sheet, "state")});
-                    }
-                    Choreographer.getInstance().postFrameCallback(tick);
-                };
-                Choreographer.getInstance().postFrameCallback(tick);
-            });
+    /**
+     * -e mode pose: each of -e poses in turn, held for -e pose_seconds, with a status line pose=NAME (and its index) once
+     * it is in place. top and busy scroll Home (its top, or far enough down that widgets sit behind the dock); dock is the
+     * dock alone (no sheet); a number 0..1 is the sheet pulled to that progress from the dock and held (one pull for all
+     * of them, never let go). Checks nothing but that each pose is reached.
+     */
+    private void poses() {
+        long hold = Math.round(Double.parseDouble(arguments.getString("pose_seconds", "4")) * 1000);
+        String[] list = arguments.getString("poses", "dock,0,0.15,0.4,0.7,1").split(",");
+        int[] token = {-1};
+        Object[] held = {null};
+        for (int index = 0; index < list.length; index++) {
+            String pose = list[index].trim();
+            if (pose.equals("top") || pose.equals("busy")) {
+                endPose(held);
+                main(() -> {
+                    ScrollView page = homeScroll();
+                    if (page == null) return;
+                    int range = Math.max(0, page.getChildAt(0).getHeight() - page.getHeight());
+                    page.scrollTo(0, pose.equals("top") ? 0 : Math.min(range, Math.round(page.getHeight() * .45f)));
+                });
+                settle();
+                SystemClock.sleep(600);
+            } else if (pose.equals("dock")) {
+                endPose(held);
+                HubTestPages.showDock(this, activity);
+            } else {
+                double progress = Double.parseDouble(pose);
+                if (held[0] == null) {
+                    HubTestPages.showDock(this, activity);
+                    main(() -> {
+                        held[0] = invoke(dock(), "allSheet");
+                        token[0] = (Integer) invoke(held[0], "pull");
+                    });
+                    require(token[0] >= 0, "The sheet could not be pulled for a pose");
+                    await(() -> onMain(() -> (Integer) field(held[0], "travel") > 0), "The pulled sheet was never laid out");
+                }
+                main(() -> invoke(held[0], "follow", new Class<?>[]{int.class, float.class}, token[0], (float) (progress * (Integer) field(held[0], "travel"))));
+                settle();
+                main(() -> require(Integer.valueOf(PULLED).equals(field(held[0], "state")), "The posed sheet is not held"));
+            }
+            SystemClock.sleep(500);
+            Bundle status = new Bundle();
+            status.putString("pose", pose);
+            status.putInt("index", index);
+            sendStatus(1, status);
+            SystemClock.sleep(hold);
         }
-        List<float[]> stop() {
-            main(() -> run = false);
-            return new ArrayList<>(samples);
+        endPose(held);
+        checks.add("Posed " + String.join(", ", list));
+    }
+    private void endPose(Object[] held) {
+        if (held[0] == null) return;
+        Object sheet = held[0];
+        held[0] = null;
+        main(() -> invoke(sheet, "dismissNow"));
+        settle();
+    }
+    /** Widgets Home's own scrolling page: the tallest shown ScrollView in the window. */
+    private ScrollView homeScroll() {
+        List<View> all = new ArrayList<>(); all.add(root());
+        ScrollView best = null;
+        for (int i = 0; i < all.size(); i++) {
+            View view = all.get(i);
+            if (view instanceof ScrollView && shown(view) && ((ScrollView) view).getChildCount() > 0 && (best == null || view.getHeight() > best.getHeight())) best = (ScrollView) view;
+            if (view instanceof ViewGroup) for (int c = 0; c < ((ViewGroup) view).getChildCount(); c++) all.add(((ViewGroup) view).getChildAt(c));
+        }
+        return best;
+    }
+
+    /** -e contrast and the shadow and hairline alphas: HubDock's look for the contrast comparison, before Home is built. */
+    private void look() throws Exception {
+        String[][] names = {{"hair_light", "hairLight"}, {"hair_dark", "hairDark"}, {"ambient_light", "ambientLight"}, {"spot_light", "spotLight"},
+                {"ambient_dark", "ambientDark"}, {"spot_dark", "spotDark"}};
+        Class<?> dock = Class.forName("com.jjricks.volt.HubDock");
+        String contrast = arguments.getString("contrast");
+        if (contrast != null) { Field f = dock.getDeclaredField("contrast"); f.setAccessible(true); f.setChar(null, contrast.charAt(0)); }
+        for (String[] name : names) {
+            String value = arguments.getString(name[0]);
+            if (value == null) continue;
+            Field f = dock.getDeclaredField(name[1]); f.setAccessible(true); f.setFloat(null, Float.parseFloat(value));
         }
     }
 
+    // ===== Frames =====
+
+    /** A sampled frame's fields (Sampler): the sheet's offset, its surface's bottom less the screen's, its state, ... */
+    private static final int F_OFFSET = 0, F_GAP = 1, F_STATE = 2, F_LEFT = 3, F_TOP = 4, F_RIGHT = 5, F_BOTTOM = 6, F_DOCK = 7,
+            F_OVERLAY = 8, F_BUTTONS = 9, F_CONTENT = 10, F_P = 11, F_TRAVEL = 12, F_DOCK_LEFT = 13, F_DOCK_TOP = 14, F_DOCK_RIGHT = 15,
+            F_DOCK_BOTTOM = 16, F_MORPH = 17, F_FROZEN = 18, F_OPEN_LEFT = 19, F_OPEN_RIGHT = 20, F_OPEN_BOTTOM = 21, F_SIZE = 22;
+    /** The shape's easing (SheetMorph.ease, Motion.STANDARD) is never steeper than this (its steepest is 4.05). */
+    private static final float EASE_SLOPE = 4.2f;
+
+    /**
+     * Every frame as it is drawn (an OnDrawListener on Volt's window, which the sheet's overlay is part of): what shows
+     * of the dock and of the sheet, in screen px. Frames with no sheet are recorded too (the dock alone).
+     */
+    private final class Sampler {
+        private final List<float[]> samples = new ArrayList<>();
+        private android.view.ViewTreeObserver.OnDrawListener listener;
+        private android.view.ViewTreeObserver observer;
+        private Object last;
+        void start() {
+            samples.clear();
+            main(() -> {
+                last = drag();
+                listener = () -> samples.add(sample());
+                observer = root().getViewTreeObserver();
+                observer.addOnDrawListener(listener);
+            });
+        }
+        List<float[]> stop() {
+            main(() -> { if (observer.isAlive()) observer.removeOnDrawListener(listener); listener = null; });
+            return new ArrayList<>(samples);
+        }
+        /** On the main thread, as a frame is drawn. */
+        private float[] sample() {
+            float[] s = new float[F_SIZE];
+            java.util.Arrays.fill(s, Float.NaN);
+            Object dock = activity == null ? null : field(activity, "dock");
+            Object sheet = dock == null ? null : field(dock, "drag");
+            if (sheet != null) last = sheet; else sheet = last;
+            View view = dock == null ? null : (View) field(dock, "view");
+            s[F_DOCK] = view != null && view.isShown() && view.getAlpha() > 0 ? 1 : 0;
+            if (view != null) {
+                int[] at = new int[2]; view.getLocationOnScreen(at);
+                android.graphics.drawable.Drawable shape = view.getBackground();
+                while (shape instanceof android.graphics.drawable.DrawableWrapper && ((android.graphics.drawable.DrawableWrapper) shape).getDrawable() != null)
+                    shape = ((android.graphics.drawable.DrawableWrapper) shape).getDrawable();
+                Rect bounds = shape == null ? new Rect() : new Rect(shape.getBounds());
+                if (bounds.isEmpty()) bounds.set(0, 0, view.getWidth(), view.getHeight());
+                s[F_DOCK_LEFT] = at[0] + bounds.left; s[F_DOCK_TOP] = at[1] + bounds.top; s[F_DOCK_RIGHT] = at[0] + bounds.right; s[F_DOCK_BOTTOM] = at[1] + bounds.bottom;
+            }
+            View frame = sheet == null ? null : (View) field(sheet, "frame");
+            if (frame == null || !frame.isAttachedToWindow()) { s[F_OVERLAY] = 0; return s; }
+            View surface = (View) field(sheet, "surface"), panel = (View) field(sheet, "panel");
+            s[F_OVERLAY] = surface.getWidth() > 0 && surface.getHeight() > 0 ? 1 : 0;
+            int[] at = new int[2], f = new int[2];
+            surface.getLocationOnScreen(at); frame.getLocationOnScreen(f);
+            s[F_LEFT] = at[0]; s[F_TOP] = at[1]; s[F_RIGHT] = at[0] + surface.getWidth(); s[F_BOTTOM] = at[1] + surface.getHeight();
+            s[F_GAP] = s[F_BOTTOM] - (f[1] + frame.getHeight());
+            s[F_OFFSET] = (Float) field(sheet, "offset");
+            s[F_STATE] = (Integer) field(sheet, "state");
+            int travel = (Integer) field(sheet, "travel");
+            s[F_TRAVEL] = travel;
+            s[F_P] = travel > 0 ? 1 - s[F_OFFSET] / travel : 0;
+            s[F_BUTTONS] = (float) (double) (Double) field(surface, "buttons");
+            s[F_CONTENT] = panel.getAlpha();
+            s[F_MORPH] = Boolean.TRUE.equals(field(sheet, "morph")) ? 1 : 0;
+            s[F_FROZEN] = field(sheet, "frozen") != null ? 1 : 0;
+            s[F_OPEN_LEFT] = f[0] + panel.getLeft(); s[F_OPEN_RIGHT] = f[0] + panel.getRight(); s[F_OPEN_BOTTOM] = f[1] + panel.getBottom();
+            return s;
+        }
+    }
+
+    /** The frames that show the sheet with its travel known (its settle and its drags). */
+    private static List<float[]> sheetFrames(List<float[]> frames) {
+        List<float[]> out = new ArrayList<>();
+        for (float[] frame : frames) if (frame[F_OVERLAY] == 1 && frame[F_TRAVEL] > 0) out.add(frame);
+        return out;
+    }
+
     /** An opening's frames: toward open until one overshoot within the cap, then back with no ripple of 1 dp. Returns the overshoot (px). */
-    private float opening(List<float[]> frames, String what) {
-        noGap(frames, what);
+    private float opening(List<float[]> all, String what) {
+        noGap(all, what);
+        List<float[]> frames = sheetFrames(all);
         List<Float> settle = new ArrayList<>();
-        for (float[] frame : frames) if (frame[2] == OPENING || frame[2] == OPEN && !settle.isEmpty()) settle.add(frame[0]);
+        for (float[] frame : frames) if (frame[F_STATE] == OPENING || frame[F_STATE] == OPEN && !settle.isEmpty()) settle.add(frame[F_OFFSET]);
         require(settle.size() >= 10, what + ": only " + settle.size() + " frames of its settle");
         int lowest = 0;
         for (int i = 1; i < settle.size(); i++) if (settle.get(i) < settle.get(lowest)) lowest = i;
@@ -720,10 +927,10 @@ public final class DockSheetValidation extends Instrumentation {
      * A close's frames: toward closed only, with no bounce. Let go while still moving up, it first carries that speed on
      * a little (the hand-off keeps it), and from its first frame toward closed it never turns back.
      */
-    private float closing(List<float[]> frames, String what) {
-        noGap(frames, what);
+    private float closing(List<float[]> all, String what) {
+        noGap(all, what);
         List<Float> settle = new ArrayList<>();
-        for (float[] frame : frames) if (frame[2] == CLOSING) settle.add(frame[0]);
+        for (float[] frame : sheetFrames(all)) if (frame[F_STATE] == CLOSING) settle.add(frame[F_OFFSET]);
         require(settle.size() >= 5, what + ": only " + settle.size() + " frames of its settle");
         int turned = 1;
         while (turned < settle.size() && settle.get(turned) <= settle.get(turned - 1) + .5f) turned++;
@@ -733,11 +940,105 @@ public final class DockSheetValidation extends Instrumentation {
         return carried;
     }
 
-    /** No frame shows a gap under the sheet: its background always ends at or below the screen's bottom. */
-    private void noGap(List<float[]> frames, String what) {
+    /**
+     * From open on (the bounce, the rubber band past open), no frame shows a gap under the sheet: its surface always ends
+     * at or below the screen's bottom. (On its way from the dock its bottom is still coming down from the dock's.)
+     */
+    private void noGap(List<float[]> all, String what) {
+        List<float[]> frames = sheetFrames(all);
         require(!frames.isEmpty(), what + ": no frames sampled");
-        for (int i = 0; i < frames.size(); i++)
-            require(frames.get(i)[1] >= 0, what + ": at frame " + i + " the sheet's background ends " + -frames.get(i)[1] + " px above the screen's bottom (offset " + frames.get(i)[0] + " px)");
+        for (int i = 0; i < frames.size(); i++) {
+            float[] frame = frames.get(i);
+            if (frame[F_MORPH] == 1 && frame[F_P] < 1) continue;
+            require(frame[F_GAP] >= 0, what + ": at frame " + i + " the sheet's surface ends " + -frame[F_GAP] + " px above the screen's bottom (offset " + frame[F_OFFSET] + " px)");
+        }
+    }
+
+    /** The largest step (px) seen between two frames beyond what the progress allows, and the top's largest slip from the offset, over a run of checks. */
+    private float worstStep, worstSlip, worstDockMatch;
+    private int framesChecked;
+
+    /**
+     * The dock and the sheet as one surface, frame by frame: every frame shows exactly one of the dock and the sheet's
+     * surface (never both, never neither; a let-go slide over a new page's dock aside); opens: its first frame showing
+     * the sheet is the dock's own bounds (2 px), after a frame of the dock alone when one was drawn; closes: its last
+     * frame showing the sheet is the dock's bounds and the frame after it shows the dock alone. Between frames the
+     * surface's top moves with the sheet's offset (2 px) and its sides and bottom by no more than the progress moved
+     * them; the dock's buttons are gone from a quarter of the way and the sheet's content shows only past 35%, never
+     * both at once.
+     */
+    private void oneSurface(List<float[]> frames, String what, boolean opens, boolean closes) {
+        require(!frames.isEmpty(), what + ": no frames drawn");
+        int first = -1, lastShown = -1;
+        for (int i = 0; i < frames.size(); i++) {
+            float[] f = frames.get(i);
+            if (f[F_FROZEN] == 1) continue;
+            boolean dock = f[F_DOCK] == 1, sheet = f[F_OVERLAY] == 1;
+            require(dock != sheet, what + ": frame " + i + " of " + frames.size() + " shows " + (dock ? "both the dock and the sheet" : "neither the dock nor the sheet") + frameText(f));
+            if (!sheet) continue;
+            framesChecked++;
+            if (first < 0) first = i;
+            lastShown = i;
+            if (f[F_MORPH] == 1) {
+                require(f[F_P] < SHEET_BUTTONS_GONE || f[F_BUTTONS] == 0, what + ": frame " + i + " still shows the dock's buttons (" + f[F_BUTTONS] + ") at " + pct(f[F_P]));
+                require(f[F_P] > SHEET_CONTENT_FROM || f[F_CONTENT] == 0, what + ": frame " + i + " shows the sheet's content (" + f[F_CONTENT] + ") at " + pct(f[F_P]));
+                require(!(f[F_BUTTONS] > 0 && f[F_CONTENT] > 0), what + ": frame " + i + " shows the dock's buttons and the sheet's content at once at " + pct(f[F_P]));
+            }
+            if (i == 0) continue;
+            float[] g = frames.get(i - 1);
+            if (g[F_OVERLAY] != 1 || g[F_FROZEN] == 1 || f[F_MORPH] != 1 || g[F_MORPH] != 1 || f[F_TRAVEL] <= 0 || g[F_TRAVEL] != f[F_TRAVEL]) continue;
+            float travel = f[F_TRAVEL];
+            float slip = Math.abs((f[F_TOP] - g[F_TOP]) - (Math.min(f[F_OFFSET], travel) - Math.min(g[F_OFFSET], travel)));
+            worstSlip = Math.max(worstSlip, slip);
+            require(slip <= 2, what + ": frame " + i + "'s top moved " + (f[F_TOP] - g[F_TOP]) + " px for an offset change of " + (f[F_OFFSET] - g[F_OFFSET]) + " px");
+            float moved = Math.abs(clamp(f[F_P]) - clamp(g[F_P]));
+            float[][] edges = {{F_LEFT, F_DOCK_LEFT, F_OPEN_LEFT}, {F_RIGHT, F_DOCK_RIGHT, F_OPEN_RIGHT}, {F_BOTTOM, F_DOCK_BOTTOM, F_OPEN_BOTTOM}};
+            String[] names = {"left", "right", "bottom"};
+            for (int e = 0; e < 3; e++) {
+                int at = (int) edges[e][0], dockAt = (int) edges[e][1], openAt = (int) edges[e][2];
+                float step = Math.abs(f[at] - g[at]);
+                float allowed = EASE_SLOPE * Math.abs(f[dockAt] - f[openAt]) * moved + (at == F_BOTTOM ? Math.abs(Math.min(0, f[F_OFFSET]) - Math.min(0, g[F_OFFSET])) : 0);
+                worstStep = Math.max(worstStep, step - allowed);
+                require(step <= allowed + 2, what + ": frame " + i + "'s " + names[e] + " edge jumped " + step + " px (the progress moved " + moved + ", allowing " + allowed + " px)" + frameText(f));
+            }
+        }
+        require(first >= 0, what + ": no frame showed the sheet");
+        if (opens) {
+            float match = dockMatch(frames.get(first));
+            worstDockMatch = Math.max(worstDockMatch, match);
+            require(match <= 2, what + ": its first frame of the sheet is " + match + " px off the dock's bounds" + frameText(frames.get(first)));
+            if (first > 0) require(frames.get(first - 1)[F_DOCK] == 1, what + ": the frame before the sheet's first does not show the dock");
+        }
+        if (closes) {
+            float match = dockMatch(frames.get(lastShown));
+            worstDockMatch = Math.max(worstDockMatch, match);
+            require(match <= 2, what + ": its last frame of the sheet is " + match + " px off the dock's bounds" + frameText(frames.get(lastShown)));
+            require(lastShown + 1 < frames.size() && frames.get(lastShown + 1)[F_DOCK] == 1 && frames.get(lastShown + 1)[F_OVERLAY] == 0,
+                    what + ": no frame of the dock alone after the sheet's last");
+        }
+    }
+    private static final float SHEET_BUTTONS_GONE = .25f, SHEET_CONTENT_FROM = .35f;
+    private static float clamp(float p) { return Math.max(0, Math.min(1, p)); }
+    private static String pct(float p) { return Math.round(p * 100) + "%"; }
+    private static float dockMatch(float[] f) {
+        return Math.max(Math.max(Math.abs(f[F_LEFT] - f[F_DOCK_LEFT]), Math.abs(f[F_TOP] - f[F_DOCK_TOP])),
+                Math.max(Math.abs(f[F_RIGHT] - f[F_DOCK_RIGHT]), Math.abs(f[F_BOTTOM] - f[F_DOCK_BOTTOM])));
+    }
+    private static String frameText(float[] f) {
+        return String.format(Locale.ROOT, " (state %.0f, offset %.1f of %.0f, %s; surface %.0f,%.0f,%.0f,%.0f; dock %.0f,%.0f,%.0f,%.0f%s)",
+                f[F_STATE], f[F_OFFSET], f[F_TRAVEL], Float.isNaN(f[F_P]) ? "-" : pct(f[F_P]), f[F_LEFT], f[F_TOP], f[F_RIGHT], f[F_BOTTOM],
+                f[F_DOCK_LEFT], f[F_DOCK_TOP], f[F_DOCK_RIGHT], f[F_DOCK_BOTTOM], f[F_DOCK] == 1 ? ", shown" : "");
+    }
+
+    /** The pulled sheet shows exactly as far as the finger has gone up since the dock recognised its swipe (1:1, 1.5 px). */
+    private void followsFinger(Finger finger, String what) {
+        waitForIdleSync();
+        main(() -> {
+            Object pull = field(field(dock(), "view"), "pull");
+            float from = (Float) field(pull, "fromY"), moved = from - finger.y;
+            float shown = (Integer) field(drag(), "travel") - offset();
+            require(Math.abs(shown - moved) <= 1.5f, what + " shows " + shown + " px for a finger " + moved + " px up since its swipe was recognised (it should follow 1:1)");
+        });
     }
 
     // ===== Steps =====
@@ -771,12 +1072,12 @@ public final class DockSheetValidation extends Instrumentation {
             Object sheet = only != null ? only : activity == null ? null : drag();
             if (sheet == null) { gone = true; return; }
             Integer state = (Integer) field(sheet, "state");
-            gone = only != null && !((Dialog) field(sheet, "dialog")).isShowing();
+            gone = only != null && !((View) field(sheet, "frame")).isAttachedToWindow();
             if (seen.isEmpty() || !seen.get(seen.size() - 1).equals(state)) seen.add(state);
         }
         /** The last state seen (null before any). */
         Integer last() { return onMain(() -> { record(); return seen.isEmpty() ? null : seen.get(seen.size() - 1); }); }
-        /** True once the sheet is gone (the dock has none, or the watched sheet's window is down). */
+        /** True once the sheet is gone (the dock has none, or the watched sheet's overlay is down). */
         boolean gone() { return onMain(() -> { record(); return gone; }); }
         List<Integer> stop() { return onMain(() -> { run = false; record(); return new ArrayList<>(seen); }); }
     }
@@ -813,8 +1114,8 @@ public final class DockSheetValidation extends Instrumentation {
     private void closeStarts(Runnable action) {
         action.run();
         await(() -> onMain(() -> drag() != null && field(drag(), "state").equals(CLOSING)), "The sheet did not start settling closed");
-        // On its way out it gives up focus: a Back pressed meanwhile goes to the page.
-        await(() -> onMain(() -> activity.hasWindowFocus()), "The page did not get focus back while the sheet settled closed");
+        // On its way out it gives up Back: a Back pressed meanwhile goes to the page.
+        await(() -> onMain(() -> drag() == null || !Boolean.TRUE.equals(field(drag(), "focusable"))), "The sheet kept Back while it settled closed");
         main(() -> require(drag() != null && field(drag(), "state").equals(CLOSING), "The slowed close ended too soon to catch"));
     }
 
@@ -824,12 +1125,11 @@ public final class DockSheetValidation extends Instrumentation {
         Finger finger = new Finger(dockCentre());
         finger.moveBy((float) (-fraction * travel), ms, (int) (ms / 16));
         main(() -> require(drag() != null && field(drag(), "state").equals(PULLED), "The pull did not take the sheet"));
-        float shown = onMain(() -> travel - offset());
-        require(Math.abs(shown - fraction * travel) < 6 * dp, "The pulled sheet shows " + shown + " px for a finger " + fraction * travel + " px up (it should follow 1:1)");
+        followsFinger(finger, "The pulled sheet");
         if (fraction <= .1 && Build.VERSION.SDK_INT >= 30) main(() -> {
             // A short pull's light dim: the light theme's status icons stay dark (light on the dark theme).
             int status = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS;
-            int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & status;
+            int look = activity.getWindow().getInsetsController().getSystemBarsAppearance() & status;
             require(look == (activity.ui().dark ? 0 : status), "At a short pull the sheet's status icons are " + (look == 0 ? "light" : "dark") + " on the " + (activity.ui().dark ? "dark" : "light") + " theme");
         });
         if (hold) finger.hold(150);
@@ -839,7 +1139,7 @@ public final class DockSheetValidation extends Instrumentation {
     private void awaitOpen(String after) {
         await(() -> onMain(() -> drag() != null && field(drag(), "state").equals(OPEN)), () -> "The sheet is not open after " + after + " (" + describe() + ")");
         settle();
-        main(() -> require(dialog().isShowing() && Math.abs(offset()) < .5f, "After " + after + " the open sheet is at " + offset() + " px"));
+        main(() -> require(sheetView().isAttachedToWindow() && Math.abs(offset()) < .5f, "After " + after + " the open sheet is at " + offset() + " px"));
     }
 
     private void awaitGone(String after) {
@@ -870,7 +1170,7 @@ public final class DockSheetValidation extends Instrumentation {
                 // The bars' icons at full open: light on the dark theme; on the light one, dark on the navigation bar (over
                 // the sheet's own background) and white on the status bar (the full dim over the page is past the crossover).
                 int status = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS, nav = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                int look = dialog().getWindow().getInsetsController().getSystemBarsAppearance() & (status | nav);
+                int look = activity.getWindow().getInsetsController().getSystemBarsAppearance() & (status | nav);
                 float dim = (Float) field(drag(), "dim");
                 boolean white = whiteIcons(activity.ui().bg, dim);
                 require(activity.ui().dark || white, "The light theme's full dim (" + dim + ") is not past the status icons' crossover");
@@ -980,7 +1280,8 @@ public final class DockSheetValidation extends Instrumentation {
     private Object dock() { Object dock = field(activity, "dock"); require(dock != null, "Widgets Home has no dock"); return dock; }
     /** The dock's sheet; null with none, or with no dock (a page a row opened). */
     private Object drag() { Object dock = field(activity, "dock"); return dock == null ? null : field(dock, "drag"); }
-    private Dialog dialog() { Object drag = drag(); return drag == null ? null : (Dialog) field(drag, "dialog"); }
+    /** The dock's sheet's overlay (in Volt's window while it shows); null with no sheet. */
+    private View sheetView() { Object drag = drag(); return drag == null ? null : (View) field(drag, "frame"); }
     private View panel() { return (View) field(drag(), "panel"); }
     private ScrollView list() { return (ScrollView) field(drag(), "list"); }
     private float offset() { return (Float) field(drag(), "offset"); }
