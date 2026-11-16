@@ -85,6 +85,130 @@ final class Motion {
         quietScrollbars(window.getDecorView());
     }
 
+    /**
+     * A sheet ({@code present}ed as SHEET, its content in {@code holder}) whose height glides with the rows a reveal
+     * inside it shows or hides, instead of the window resizing in one step. {@code background} is the sheet's own
+     * background; call before show(). At rest the window, its background and the keyboard's resizing are as without it.
+     */
+    static void sheet(Dialog dialog, ScrollView holder, Drawable background) {
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window == null) return;
+        window.setBackgroundDrawable(new Sheet(window, holder, background));
+    }
+
+    /** The sheet {@code view} is in, or null. */
+    private static Sheet sheetOf(View view) {
+        Drawable background = view == null ? null : view.getRootView().getBackground();
+        if (background instanceof android.graphics.drawable.InsetDrawable) background = ((android.graphics.drawable.InsetDrawable) background).getDrawable();
+        return background instanceof Sheet ? (Sheet) background : null;
+    }
+
+    /**
+     * The window's background, drawn only over the part of the window the sheet shows. Through a reveal's motion the
+     * holder keeps at least the height it had, so the window never shrinks in one step (and a row gliding up is never
+     * cut off); the window grows at once when the rows need more. The sheet shows {@code visible} pixels of it, gliding
+     * from the height it showed to the height its content needs, anchored where the window is (its bottom, or its
+     * centre on a wide screen): its content is moved down by what is not shown, and the rest of the window is left
+     * clear. When the motion ends the holder lets go and the window wraps its content again, showing all of it.
+     */
+    private static final class Sheet extends Drawable {
+        final Window window;
+        final ScrollView holder;
+        final Drawable inner;
+        /** The height shown while it glides, or -1 at rest. */
+        float visible = -1;
+        ValueAnimator animator;
+        ViewTreeObserver.OnPreDrawListener follow;
+        private int top, bottom;
+        Sheet(Window window, ScrollView holder, Drawable inner) {
+            this.window = window; this.holder = holder; this.inner = inner;
+            inner.setCallback(null);
+        }
+        /** The window's content: the part that moves. */
+        private View content() {
+            View decor = window.peekDecorView();
+            View at = holder;
+            while (at != null && at.getParent() != decor) at = at.getParent() instanceof View ? (View) at.getParent() : null;
+            return at;
+        }
+        /** Before a reveal inside it changes the rows: holds the height it shows and starts gliding from it once they are laid out. */
+        void begin() {
+            View decor = window.peekDecorView();
+            if (decor == null || !decor.isLaidOut() || holder.getHeight() <= 0) return;
+            float from = visible >= 0 ? visible : decor.getHeight();
+            if (animator != null) { ValueAnimator was = animator; animator = null; was.cancel(); }
+            // The rest of the window (title, padding) is the same before and after: only the holder changes.
+            int chrome = decor.getHeight() - holder.getHeight();
+            holder.setMinimumHeight(holder.getHeight());
+            visible = from;
+            apply();
+            beforeNextDraw(decor, () -> start(from, chrome), this::end);
+        }
+        private void start(float from, int chrome) {
+            View decor = window.peekDecorView();
+            if (decor == null || visible < 0) return;
+            View rows = holder.getChildCount() == 0 ? null : holder.getChildAt(0);
+            // What the content needs (its rows' new height, read before the motion puts them back where they start),
+            // and no more than the window it is in now (a long sheet stops at the screen and scrolls).
+            int need = chrome + holder.getPaddingTop() + holder.getPaddingBottom() + (rows == null ? 0 : rows.getHeight());
+            float to = Math.min(need, decor.getHeight());
+            if (Math.abs(to - from) < 1) { end(); return; }
+            ValueAnimator glide = ValueAnimator.ofFloat(from, to);
+            glide.setDuration(CHANGE_MS);
+            glide.setInterpolator(STANDARD);
+            glide.addUpdateListener(a -> { if (animator == a) { visible = (float) a.getAnimatedValue(); apply(); } });
+            glide.addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(Animator a) { if (animator == a) end(); }
+            });
+            animator = glide;
+            if (follow == null) {
+                // The window can change size a frame after the content asks: every frame places the content for the window it has.
+                follow = () -> { apply(); return true; };
+                decor.getViewTreeObserver().addOnPreDrawListener(follow);
+            }
+            glide.start();
+        }
+        /** At rest at once: the window wraps its content again and shows all of it. */
+        void end() {
+            ValueAnimator was = animator;
+            animator = null;
+            if (was != null) was.cancel();
+            View decor = window.peekDecorView();
+            if (follow != null && decor != null) decor.getViewTreeObserver().removeOnPreDrawListener(follow);
+            follow = null;
+            boolean held = holder.getMinimumHeight() != 0;
+            if (held) holder.setMinimumHeight(0);
+            visible = -1;
+            apply();
+        }
+        /** Places the content and the background for the window's height now. */
+        private void apply() {
+            View decor = window.peekDecorView();
+            if (decor == null) return;
+            int height = decor.getHeight();
+            int hidden = visible < 0 ? 0 : Math.max(0, Math.round(height - Math.min(visible, height)));
+            boolean centred = (window.getAttributes().gravity & Gravity.VERTICAL_GRAVITY_MASK) == Gravity.CENTER_VERTICAL;
+            int top = centred ? hidden / 2 : hidden, bottom = centred ? hidden - hidden / 2 : 0;
+            View content = content();
+            if (content != null && content.getTranslationY() != top) content.setTranslationY(top);
+            if (top != this.top || bottom != this.bottom) {
+                this.top = top; this.bottom = bottom;
+                onBoundsChange(getBounds());
+                invalidateSelf();
+                decor.invalidateOutline();
+            }
+        }
+        @Override protected void onBoundsChange(android.graphics.Rect bounds) {
+            inner.setBounds(bounds.left, bounds.top + top, bounds.right, Math.max(bounds.top + top, bounds.bottom - bottom));
+        }
+        @Override public void draw(Canvas canvas) { inner.draw(canvas); }
+        @Override public void getOutline(android.graphics.Outline outline) { inner.getOutline(outline); }
+        @Override public boolean getPadding(android.graphics.Rect padding) { return inner.getPadding(padding); }
+        @Override public void setAlpha(int alpha) { inner.setAlpha(alpha); }
+        @Override public void setColorFilter(ColorFilter filter) { inner.setColorFilter(filter); }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
     // ---- Snapshots ---------------------------------------------------------------------------
 
     /** The view's visible frame (a ScrollView at its current scroll), or null when it cannot be drawn. */
@@ -494,7 +618,11 @@ final class Motion {
             canvas.translate(at[0] - base[0] + root.getScrollX() - parent.getScrollX() + view.getLeft(),
                     at[1] - base[1] + root.getScrollY() - parent.getScrollY() + view.getTop());
             if (!view.getMatrix().isIdentity()) canvas.concat(view.getMatrix());
-            canvas.saveLayerAlpha(0, 0, view.getWidth(), view.getHeight(), Math.round(255 * Math.min(1, drawn)));
+            // A view that scrolls its own content (a selector wider than the screen) draws it at its scroll, as its
+            // parent draws it: View.draw leaves that to the parent, so the ghost applies it, and its layer follows.
+            int sx = view.getScrollX(), sy = view.getScrollY();
+            canvas.translate(-sx, -sy);
+            canvas.saveLayerAlpha(sx, sy, sx + view.getWidth(), sy + view.getHeight(), Math.round(255 * Math.min(1, drawn)));
             view.draw(canvas);
             canvas.restoreToCount(save);
         }
@@ -553,12 +681,17 @@ final class Motion {
         Glide running = moving.remove(view);
         ViewGroup was = running == null || running.ended ? null : running.root.get();
         // Ending it jumps what it moves to where it was going; only a change without a motion of its own does that.
-        if (was != null && (!glides || was != root)) TransitionManager.endTransitions(was);
+        if (was != null && (!glides || was != root)) {
+            TransitionManager.endTransitions(was);
+            Sheet sheet = sheetOf(was);
+            if (sheet != null) sheet.end();
+        }
         if (glides) {
             // A reversal mid-motion starts here too: Android captures the running motion where it is on screen and
             // turns its views back from there.
             Glide glide = revealing.get(root);
-            if (glide == null) glide = glide(root, instant);
+            if (glide == null) glide = glide(root, view, instant);
+            else holdScroll(root, view);
             moving.put(view, glide);
         }
         // Shown mid-fade: the motion just begun captured the ghost's opacity to turn back from; the view draws itself.
@@ -569,11 +702,15 @@ final class Motion {
         return true;
     }
 
-    private static Glide glide(ViewGroup root, View... instant) {
+    private static Glide glide(ViewGroup root, View view, View... instant) {
         Glide glide = new Glide(root);
         revealing.put(root, glide);
         Runnable abandoned = () -> { revealing.remove(root); glide.swallowed = true; };
-        holdScroll(root);
+        holdScroll(root, view);
+        // In a sheet, its height glides with the rows (before the motion's own first-frame listener, which puts the
+        // views it moves back where they start).
+        Sheet sheet = sheetOf(root);
+        if (sheet != null) sheet.begin();
         TransitionSet set = changes(true, instant);
         set.addListener(new TransitionListenerAdapter() {
             @Override public void onTransitionStart(Transition transition) { glide.played = true; }
@@ -621,9 +758,9 @@ final class Motion {
      * frame of the motion: everything on screen would jump down by the clamp and then glide. Instead the scroll's
      * content starts that frame offset by the clamp and glides to it with the rest of the motion.
      */
-    private static void holdScroll(ViewGroup root) {
-        ScrollView scroll = null;
-        for (ViewParent at = root; at instanceof View; at = at.getParent()) if (at instanceof ScrollView) { scroll = (ScrollView) at; break; }
+    private static void holdScroll(ViewGroup root, View view) {
+        // The scroll the view is in: around the root, or inside it (a page whose scrolling part is one of its children).
+        ScrollView scroll = scrollOf(view);
         if (scroll == null || scroll.getChildCount() == 0) return;
         ScrollView page = scroll;
         View content = scroll.getChildAt(0);
@@ -663,6 +800,67 @@ final class Motion {
         }, () -> held.pending = false);
     }
 
+    private static ScrollView scrollOf(View view) {
+        for (ViewParent at = view == null ? null : view.getParent(); at instanceof View; at = at.getParent())
+            if (at instanceof ScrollView) return (ScrollView) at;
+        return null;
+    }
+
+    /**
+     * Brings the whole of {@code view} into its scroll's view where the change being made puts it: the place is read
+     * from that change's layout, before a motion's first frame draws its views where they start, and the scroll glides
+     * there with the motion (at once with animations off). Touching or scrolling the page meanwhile stops it there.
+     * Call with the change, before or after it, in the same refresh.
+     */
+    static void bringIntoView(View view) {
+        ScrollView scroll = scrollOf(view);
+        if (scroll == null) return;
+        final class Once implements ViewTreeObserver.OnGlobalLayoutListener, ViewTreeObserver.OnPreDrawListener {
+            final ViewTreeObserver observer = scroll.getViewTreeObserver();
+            boolean done;
+            void remove() {
+                ViewTreeObserver now = observer.isAlive() ? observer : scroll.getViewTreeObserver();
+                now.removeOnGlobalLayoutListener(this);
+                now.removeOnPreDrawListener(this);
+            }
+            void run() {
+                if (done) return;
+                done = true;
+                remove();
+                if (view.getVisibility() != View.VISIBLE || !scroll.isAttachedToWindow() || scroll.getChildCount() == 0) return;
+                View content = scroll.getChildAt(0);
+                int top = 0;
+                View at = view;
+                for (; at != null && at != content; at = at.getParent() instanceof View ? (View) at.getParent() : null) top += at.getTop();
+                if (at != content) return; // not inside the scroll's content any more
+                int bottom = top + view.getHeight(), shown = scroll.getHeight() - scroll.getPaddingTop() - scroll.getPaddingBottom();
+                int from = scroll.getScrollY(), to = from;
+                if (bottom > to + shown) to = bottom - shown;
+                if (top < to) to = top;
+                to = Math.max(0, Math.min(to, content.getHeight() - shown));
+                if (to == from) return;
+                if (!enabled()) { scroll.scrollTo(scroll.getScrollX(), to); return; }
+                ValueAnimator animator = ValueAnimator.ofInt(from, to);
+                animator.setDuration(CHANGE_MS);
+                animator.setInterpolator(STANDARD);
+                int[] last = {from};
+                animator.addUpdateListener(a -> {
+                    // The rider scrolled or flung the page: it stays where they took it.
+                    if (scroll.getScrollY() != last[0] || !scroll.isAttachedToWindow()) { a.cancel(); return; }
+                    scroll.scrollTo(scroll.getScrollX(), (Integer) a.getAnimatedValue());
+                    last[0] = scroll.getScrollY();
+                });
+                animator.start();
+            }
+            @Override public void onGlobalLayout() { run(); }
+            @Override public boolean onPreDraw() { run(); return true; }
+        }
+        Once once = new Once();
+        // Layout comes before the first frame's pre-draw, where a motion starts its views from their old places.
+        once.observer.addOnGlobalLayoutListener(once);
+        once.observer.addOnPreDrawListener(once);
+    }
+
     /**
      * The scrolling page that holds {@code view}: its nearest ScrollView's child, or its parent outside one. As a
      * {@link #reveal} root, every part of a stacked page (a Hub page built from several screens) glides together, and
@@ -675,6 +873,28 @@ final class Motion {
             page = (ViewGroup) at;
         }
         return view != null && view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null;
+    }
+
+    /** How long an alert takes to fade up: it must never wait, so this is short. */
+    static final long ALERT_MS = 150;
+
+    /**
+     * An alert that appears: it is in its place, laid out and taking input from the first frame, and only its opacity
+     * rises over ALERT_MS (at once with animations off or before the view is attached). Call as it becomes VISIBLE.
+     */
+    static void alertIn(View view) {
+        if (view == null) return;
+        view.animate().cancel();
+        if (!enabled() || !view.isAttachedToWindow()) { view.setAlpha(1); return; }
+        view.setAlpha(0);
+        view.animate().alpha(1).setDuration(ALERT_MS).setInterpolator(STANDARD).setListener(null).start();
+    }
+
+    /** The alert goes (it leaves at once): a fade still rising ends, so it is opaque the next time it shows. */
+    static void alertOut(View view) {
+        if (view == null) return;
+        view.animate().cancel();
+        if (view.getAlpha() != 1) view.setAlpha(1);
     }
 
     /** Content that finished loading fades up in place rather than snapping in. */

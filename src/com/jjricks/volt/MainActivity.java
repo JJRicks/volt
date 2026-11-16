@@ -3069,11 +3069,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         final SeekBar chargeLevel,lowLevel;
         final View chargeLevels,lowLevels;
         final TextView deliveryNote,permissionText,permissionAction;
-        final LinearLayout permission;
+        final LinearLayout permission,body;
         boolean dragging;
         ChargeAlertSheet(){
             final AlertDialog[] self=new AlertDialog[1];
-            LinearLayout body=sheetContent(T.mainAlertTitle(),T.mainAlertIntro(),
+            body=sheetContent(T.mainAlertTitle(),T.mainAlertIntro(),
                     ()->{if(self[0]!=null)self[0].dismiss();});
             body.setTag("charge-alert-sheet");
             LinearLayout levels=design.groupCard();body.addView(levels,new LinearLayout.LayoutParams(-1,-2));
@@ -3153,14 +3153,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             ChargeAlertPolicy.Settings a=scooterService.chargeAlerts();
             charge.setChecked(a.charge);low.setChecked(a.low);notify.setChecked(a.notify);alarm.setChecked(a.alarm);
             if(!dragging){chargeLevel.setProgress((a.chargeAt-ChargeAlertPolicy.CHARGE_MIN)/ChargeAlertPolicy.STEP);lowLevel.setProgress((a.lowBelow-ChargeAlertPolicy.LOW_MIN)/ChargeAlertPolicy.STEP);labels(a);}
-            chargeLevels.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLevels.setVisibility(a.low?View.VISIBLE:View.GONE);
-            chargeLine.value.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLine.value.setVisibility(a.low?View.VISIBLE:View.GONE);
-            deliveryNote.setVisibility((a.charge||a.low)&&!a.notify&&!a.alarm?View.VISIBLE:View.GONE);
+            // Rows a switch reveals fade in and out while the rest of the sheet, and its height, glide (Motion.reveal);
+            // a refresh that keeps them as they are moves nothing.
+            Motion.reveal(body,chargeLevels,a.charge);Motion.reveal(body,lowLevels,a.low);
+            Motion.reveal(body,chargeLine.value,a.charge);Motion.reveal(body,lowLine.value,a.low);
+            Motion.reveal(body,deliveryNote,(a.charge||a.low)&&!a.notify&&!a.alarm);
             boolean app=notificationsOn(),alerts=scooterService.alertNotificationsAllowed(),watch=scooterService.alertWatchAllowed();
             String text=!app?T.mainAlertPermApp()
                     :!watch?T.mainAlertPermWatch()
                     :a.notify&&!alerts?T.mainAlertPermAlerts():null;
-            permission.setVisibility(text==null?View.GONE:View.VISIBLE);if(text!=null&&!text.contentEquals(permissionText.getText()))permissionText.setText(text);
+            Motion.reveal(body,permission,text!=null);if(text!=null&&!text.contentEquals(permissionText.getText()))permissionText.setText(text);
             permissionAction.setContentDescription(T.mainAlertAllowDescription());
         }
     }
@@ -4201,7 +4203,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);
-            window.setBackgroundDrawable(sheet);window.setGravity(Gravity.BOTTOM);
+            // Its height glides with the rows a switch or chip reveals inside it (Motion.reveal) instead of jumping.
+            Motion.sheet(dialog,holder,sheet);window.setGravity(Gravity.BOTTOM);
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
             window.getDecorView().setPadding(0,0,0,0);
         }

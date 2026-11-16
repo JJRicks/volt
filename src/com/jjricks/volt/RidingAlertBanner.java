@@ -167,7 +167,11 @@ final class RidingAlertBanner {
             if (title.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM) floor.setTextSize(title.getAutoSizeMinTextSize());
             String shortest = titles[titles.length - 1];
             shortTitleWidth = floor.measureText(shortest, 0, shortest.length());
+            boolean arriving = banner.getVisibility() != View.VISIBLE;
             banner.setVisibility(View.VISIBLE);
+            // In its place and taking taps from its first frame; only its opacity rises, briefly (a newer alert
+            // swapped in is simply there).
+            if (arriving) Motion.alertIn(banner);
             shown = alert.id;
             service.ridingAlertOnScreen(alert.id);
             // Set after it shows: the live region speaks the change.
@@ -187,6 +191,8 @@ final class RidingAlertBanner {
 
     private void hide() {
         shown = -1;
+        // It leaves at once, as before: a fade still rising ends with it.
+        Motion.alertOut(banner);
         if (banner.getVisibility() != View.GONE) banner.setVisibility(View.GONE);
         uncover();
     }
