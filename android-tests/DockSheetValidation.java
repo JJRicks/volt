@@ -485,7 +485,9 @@ public final class DockSheetValidation extends Instrumentation {
             // thread at the first frame it holds, not by polling: a slow machine's stall can carry a whole stretch of the
             // opening past in one frame. Should the opening reach open without a frame in that stretch, it tries again.
             Object[] caught = {null};
-            int[] travelBefore = {0};
+            // The travel before the new height and with it (read as it is laid out: a let-go sheet's slide has its own).
+            int[] travelBefore = {0, 0};
+            String[] layouts = {""};
             boolean[] ran = new boolean[2];
             for (int attempt = 0; attempt < 4 && caught[0] == null; attempt++) {
                 if (attempt > 0) { back(); awaitGone("Back after a missed opening"); }
@@ -502,7 +504,7 @@ public final class DockSheetValidation extends Instrumentation {
                             watching[0] = false;
                             caught[0] = sheet;
                             travelBefore[0] = (Integer) field(sheet, "travel");
-                            newHeight(sheet, which, travelBefore[0], ran);
+                            newHeight(sheet, which, travelBefore, ran, layouts);
                             return;
                         }
                         Choreographer.getInstance().postFrameCallback(tick[0]);
@@ -516,11 +518,11 @@ public final class DockSheetValidation extends Instrumentation {
             require(caught[0] != null, ways[which] + ": no frame of All's opening came between two fifths and open in four tries (" + describe() + ")");
             Object sheet = caught[0];
             View window = onMain(() -> (View) field(sheet, "frame"));
-            int before = travelBefore[0];
             States states = new States(sheet);
-            await(() -> onMain(() -> ran[0] && (which == 0 || ran[1])), () -> ways[which] + ": the new height was never laid out (" + describe() + ")");
-            int after = onMain(() -> (Integer) field(sheet, "travel"));
-            require(after < before, ways[which] + ": the travel did not change (" + before + " -> " + after + " px)");
+            await(() -> onMain(() -> ran[0] && (which == 0 || ran[1])), () -> ways[which] + ": the new height was never laid out (" + describe() + "; " + layouts[0] + ")");
+            int before = travelBefore[0];
+            int after = travelBefore[1];
+            require(after < before, ways[which] + ": the travel did not change (" + before + " -> " + after + " px; " + layouts[0] + ")");
             if (which == 0) {
                 awaitOpen(ways[which]);
                 List<Integer> seen = states.stop();
@@ -549,12 +551,19 @@ public final class DockSheetValidation extends Instrumentation {
      * sheet's own listener ran first and posted its restart) runs close() (way 1) or close() and leave() (way 2) at the
      * front of the main queue, ahead of that restart.
      */
-    private void newHeight(Object sheet, int which, int before, boolean[] ran) {
+    private void newHeight(Object sheet, int which, int[] before, boolean[] ran, String[] seen) {
         View panel = (View) field(sheet, "panel");
         ScrollView list = (ScrollView) field(sheet, "list");
+        int target = Math.max(Math.round(48 * dp), list.getHeight() - Math.round(48 * dp));
+        seen[0] = "list " + list.getHeight() + " -> " + target + " px, panel top " + panel.getTop() + ", dock " + dockTop();
         panel.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
             @Override public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
-                if ((Integer) field(sheet, "travel") == before) return;
+                int now = (Integer) field(sheet, "travel");
+                // Another change laid out first (its content still arriving): the travel to compare with is that one's.
+                if (list.getHeight() != target) { before[0] = now; return; }
+                if (now == before[0]) return;
+                before[1] = now;
+                seen[0] += "; then list " + list.getHeight() + " px, panel top " + panel.getTop() + ", dock " + dockTop();
                 v.removeOnLayoutChangeListener(this);
                 ran[0] = true;
                 if (which > 0) new android.os.Handler(android.os.Looper.getMainLooper()).postAtFrontOfQueue(() -> {
@@ -565,8 +574,15 @@ public final class DockSheetValidation extends Instrumentation {
             }
         });
         ViewGroup.LayoutParams size = list.getLayoutParams();
-        size.height = Math.max(Math.round(48 * dp), list.getHeight() - Math.round(48 * dp));
+        size.height = target;
         list.setLayoutParams(size);
+    }
+    /** On the main thread: the dock's top on screen (px), or -1. */
+    private int dockTop() {
+        Object dock = field(activity, "dock");
+        if (dock == null) return -1;
+        int[] at = new int[2]; ((View) field(dock, "view")).getLocationOnScreen(at);
+        return at[1];
     }
 
     /**
@@ -1050,14 +1066,17 @@ public final class DockSheetValidation extends Instrumentation {
                 f[F_DOCK_LEFT], f[F_DOCK_TOP], f[F_DOCK_RIGHT], f[F_DOCK_BOTTOM], f[F_DOCK] == 1 ? ", shown" : "");
     }
 
-    /** The pulled sheet shows exactly as far as the finger has gone up since the dock recognised its swipe (1:1, 1.5 px). */
+    /**
+     * The pulled sheet shows exactly as far as the finger has gone up since the dock recognised its swipe: 1:1, within
+     * 1.5 px and two of the finger's steps (Android resamples a moving touch to the frame's time, the one that was recognised too).
+     */
     private void followsFinger(Finger finger, String what) {
         waitForIdleSync();
         main(() -> {
             Object pull = field(field(dock(), "view"), "pull");
             float from = (Float) field(pull, "fromY"), moved = from - finger.y;
             float shown = (Integer) field(drag(), "travel") - offset();
-            require(Math.abs(shown - moved) <= 1.5f, what + " shows " + shown + " px for a finger " + moved + " px up since its swipe was recognised (it should follow 1:1)");
+            require(Math.abs(shown - moved) <= 1.5f + 2 * finger.step, what + " shows " + shown + " px for a finger " + moved + " px up since its swipe was recognised (it should follow 1:1)");
         });
     }
 
@@ -1220,6 +1239,8 @@ public final class DockSheetValidation extends Instrumentation {
         /** The last event's time: the lift follows it as a finger's would, however long the injection itself took. */
         private long last;
         private float x, y;
+        /** px: its last move's step (the app resamples touches to its frames, so it may see up to a step off the last one sent). */
+        private float step;
         private boolean two;
         Finger(float[] at) {
             x = at[0]; y = at[1];
@@ -1229,6 +1250,7 @@ public final class DockSheetValidation extends Instrumentation {
         /** Moves by dy (px, down positive) over ms in steps moves, one each ms / steps. */
         void moveBy(float dy, long ms, int steps) {
             float from = y;
+            step = Math.abs(dy / steps);
             long start = SystemClock.uptimeMillis();
             for (int i = 1; i <= steps; i++) {
                 long at = start + ms * i / steps;
