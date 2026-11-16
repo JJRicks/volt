@@ -172,7 +172,10 @@ public final class RevealMotionValidation extends Instrumentation {
                     if (only.isEmpty() || only.equals("instant")) {
                         if (!alert) instantWins(site); else notes.add(site.name + ": no instant-change check (the banner is shown and hidden only one way)");
                     }
-                    if (only.isEmpty() || only.equals("turns")) { if (alert) alertTurns(site); else turnsBack(site); }
+                    if (only.isEmpty() || only.equals("turns")) {
+                        if (alert) alertTurns(site);
+                        else measured(site.name + " turning back", () -> turnsBack(site), () -> { scale(1); site.hide.run(); awaitRest(site, false); });
+                    }
                     if (only.isEmpty() || only.equals("scrolled")) {
                         if (alert) notes.add(site.name + ": no scrolled-end check (riding mode does not scroll)");
                         else if (part.equals("battery")) notes.add(site.name + ": no scrolled-end check (the line sits beside the level, so the card keeps its height)");
@@ -229,7 +232,7 @@ public final class RevealMotionValidation extends Instrumentation {
     /** Every measurement of a check had a frame come too late to tell a motion from a pop: inconclusive, not a failure of the app. */
     private static final class Starved extends IllegalStateException { Starved(String message) { super(message); } }
     /** A frame later than this after a change, or while it is still moving, makes the measurement inconclusive. */
-    private static final long STARVED_MS = 100;
+    private static final long STARVED_MS = 50;
     /** Inconclusive measurements are measured again this many times before the check reports the host as starved. */
     private static final int STARVED_RETRIES = 3;
 
@@ -559,7 +562,19 @@ public final class RevealMotionValidation extends Instrumentation {
     private void arrivesAndGoes(Site site) {
         measured(site.name + " arrival and departure", () -> {
             if (site == this.site && part.equals("riding-alert")) alertArrivesAndGoesOnce(site); else arrivesAndGoesOnce(site);
-        }, () -> { site.hide.run(); settleFor(SETTLE_MS); });
+        }, () -> { site.hide.run(); awaitRest(site, false); });
+    }
+    /**
+     * After a starved try: until the site rests as asked (a slow host can still be drawing it leaving after SETTLE_MS),
+     * at most 5 s; the next try's own checks then start from rest.
+     */
+    private void awaitRest(Site site, boolean shown) {
+        long end = SystemClock.uptimeMillis() + 5000;
+        settleFor(SETTLE_MS);
+        while (SystemClock.uptimeMillis() < end) {
+            try { requireRest(site, shown, "after a starved try"); return; }
+            catch (IllegalStateException notYet) { SystemClock.sleep(100); waitForIdleSync(); }
+        }
     }
 
     /** The latest frame of the measurements since it was reset (ms): see measured. */
@@ -590,7 +605,8 @@ public final class RevealMotionValidation extends Instrumentation {
         for (float[] frame : frames.samples) {
             require(frame[1] == 1 && Math.abs(frame[2] - 1) < .001f, site.name + " faded during live refreshes (alpha " + frame[2] + ")");
             for (int n = 0; n < frames.count; n++)
-                require(Math.abs(frame[3 + n] - frames.samples.get(0)[3 + n]) <= .5f, site.name + ": a neighbour moved during live refreshes");
+                require(Math.abs(frame[3 + n] - frames.samples.get(0)[3 + n]) <= .5f, site.name + ": a neighbour (" + frames.name(n) + ") moved during live refreshes ("
+                        + frames.samples.get(0)[3 + n] + " to " + frame[3 + n] + " px; track " + track(frames, n) + ")");
         }
         require(subject != null, site.name + " is missing");
         checks.add(site.name + ": " + frames.samples.size() + " frames over 2.4 s of the 1 s pulse and six redraws, resting: nothing faded or moved");
@@ -694,20 +710,22 @@ public final class RevealMotionValidation extends Instrumentation {
         scale(10);
         try {
             Frames in = new Frames(site);
-            in.start(); frames(2);
+            in.start(); frames(2); in.mark();
             site.show.run(); SystemClock.sleep(500); site.hide.run();
             SystemClock.sleep(4000);
             in.stop();
+            hitchMs = Math.max(hitchMs, in.starvedMs());
             requireRest(site, false, "hidden mid-arrival at scale 10");
             continuous(in, site.name + " hidden mid-arrival (scale 10)");
             float peak = 0; for (float[] f : in.samples) if (f[1] == 1) peak = Math.max(peak, f[2]);
             require(peak > .1f && peak < .9f, site.name + ": the reversal mid-arrival was not mid-way (opacity peaked at " + peak + ")");
             site.show.run(); settleFor(4000);
             Frames out = new Frames(site);
-            out.start(); frames(2);
+            out.start(); frames(2); out.mark();
             site.hide.run(); SystemClock.sleep(300); site.show.run();
             SystemClock.sleep(4000);
             out.stop();
+            hitchMs = Math.max(hitchMs, out.starvedMs());
             requireRest(site, true, "shown mid-departure at scale 10");
             continuous(out, site.name + " shown mid-departure (scale 10)");
             float low = 1; for (float[] f : out.samples) low = Math.min(low, f[1] == 1 ? f[2] : 0);

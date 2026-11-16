@@ -445,15 +445,14 @@ public final class HubValidation extends Instrumentation {
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
         screenshot("search-typed");
-        systemBack();
-        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         // Back reaches the page through the system's dispatch, which can land after settle() on a loaded emulator (hub-725
         // failed here once on the council's pool): wait for the cleared query, then for the subjects, each with its message.
-        await(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
+        backPastKeyboard(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
                 "Back did not clear the search's query first");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         await(() -> onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))), "Back cleared the query but the subjects did not come back");
         requireStack(HubPages.HOME, HubPages.SEARCH);
-        systemBack();
+        backPastKeyboard(this::onHome, "Back from the empty search did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         // The page's link ("Back to Home") goes there at once, query or not (HubNav.linkSkipsPageBack).
@@ -491,7 +490,7 @@ public final class HubValidation extends Instrumentation {
         }), () -> "Back from the Star lights result shows Search with the query \"" + kept[0] + "\" and the subjects " + (onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))) ? "listed" : "not listed")
                 + "; the app builds Search afresh (empty, subjects listed)");
         hideKeyboard();
-        systemBack();
+        backPastKeyboard(this::onHome, "Back from Search did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Search: opens focused with the subjects listed; typing \"batt\" hides them and finds at least one row; Back clears the query, then returns to Home; the back link returns to Home at once;"
