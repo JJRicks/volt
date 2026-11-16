@@ -417,6 +417,15 @@ final class HubSearch {
     static boolean hidesWholeHeader(boolean tabletop) { return !tabletop; }
 
     /**
+     * The height of the pane above the hinge on Search in tabletop posture (MainActivity.fitTabletopSearch): to the hinge
+     * ({@code toHinge}), or, while the keyboard is up, just the field's (WRAP_CONTENT, -2). The keyboard takes its height
+     * from the half below the hinge, so keeping the whole upper pane left the results a row or two between the hinge and
+     * the keyboard; with the pane shrunk they rise under the field, across the hinge, until the keyboard goes (#393
+     * council review, third round, finding 5).
+     */
+    static int tabletopPaneHeight(int toHinge, boolean keyboard) { return keyboard ? -2 : Math.max(1, toHinge); }
+
+    /**
      * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
      * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
      * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)

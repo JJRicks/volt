@@ -713,10 +713,17 @@ public final class HubSearchTest {
         // Tabletop posture keeps the pane above the hinge: only the header's rows go, and Search's field sits in the pane
         // (#393 council review, second round, finding 7). Not reproducible on the emulator rig (no hinge to fake).
         check(HubSearch.hidesWholeHeader(false) && !HubSearch.hidesWholeHeader(true), "tabletop hides only the header's rows");
+        // While the keyboard is up the pane shrinks to the field, so the results aren't squeezed between the hinge and the
+        // keyboard; the keyboard gone, it reaches the hinge again (#393 council review, third round, finding 5).
+        check(HubSearch.tabletopPaneHeight(600, false) == 600 && HubSearch.tabletopPaneHeight(600, true) == -2 && HubSearch.tabletopPaneHeight(0, false) == 1,
+                "tabletop Search's upper pane: to the hinge, or the field's height while the keyboard is up");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
+        check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
+                && main.contains("tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);")
+                && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
         // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
         check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
                 && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");

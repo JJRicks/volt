@@ -190,6 +190,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them).
      */
     private View pageHeaderRows;
+    /** On Search in tabletop posture, the pane above the hinge and the spacer over the hinge (fitTabletopSearch); else null. */
+    private View tabletopUpper,tabletopSpacer;
+    /** Whether the keyboard is up, as the window's insets last said (Android 11 and later). */
+    private boolean keyboardShown;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
         if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
@@ -546,7 +550,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);
         expanded=design.wideLayout();
-        root=new FrameLayout(this);root.setBackgroundColor(design.bg);
+        root=new FrameLayout(this);root.setBackgroundColor(design.bg);tabletopUpper=null;tabletopSpacer=null;
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
         getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);
@@ -554,8 +558,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         root.setOnApplyWindowInsetsListener((v,insets)->{
             int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
-            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);
-            if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
+            boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
+            // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
+            // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
+            boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
+            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;
+            if(keyboardOnly)fitTabletopSearch();
+            else if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
         if(OnboardingScreen.needed(this,scooterService)){
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;pageHeaderRows=null;
@@ -603,6 +612,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             int upperHeight=Math.max(1,fold.hinge.top-topInset);
             content.addView(upper,new LinearLayout.LayoutParams(-1,upperHeight));
             View spacer=new View(this);spacer.setBackgroundColor(design.bg);content.addView(spacer,new LinearLayout.LayoutParams(-1,Math.max(design.dp(12),fold.hinge.height())));
+            if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         HubNav.Args args=pageArgs;pageArgs=null;
@@ -762,6 +772,17 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(aside!=null)aside.setVisibility(hidden?View.GONE:View.VISIBLE);
             }
         });
+    }
+    /**
+     * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
+     * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
+     * third round, finding 5).
+     */
+    private void fitTabletopSearch(){
+        if(tabletopUpper==null||tabletopSpacer==null||fold==null)return;
+        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);
+        tabletopSpacer.setVisibility(keyboardShown?View.GONE:View.VISIBLE);
+        tabletopUpper.requestLayout();
     }
     /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */
     private static String cancelLabel(){return T.commonCancel();}
