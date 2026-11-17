@@ -447,6 +447,10 @@ public final class ChargeAlertValidation extends Instrumentation {
      * refresh's own setText puts in a text as many lines tall beside Allow whose first word fits only under it; the row
      * must ask for a layout, and a layout pass like the window's (the same measure specs) must put Allow under the text
      * with the word whole. Then the sheet's own text back, Allow beside it again.
+     * <p>The probe texts are built from the row's actual room (council review of #524): a word wider than the room beside
+     * Allow takes at least two lines there, so where the sheet's own text fits on one line beside Allow (a natively
+     * 725 dp wide emulator) the check starts from a text of short words as many lines tall as that word, which keeps
+     * Allow beside it, and swaps in the long word from there. At any width the swap keeps the text's height.
      */
     private void refitsOnNewText() {
         View banner = sheet().findViewWithTag("charge-alert-permission");
@@ -457,14 +461,26 @@ public final class ChargeAlertValidation extends Instrumentation {
         String was = text.getText().toString();
         int beside = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
         int whole = body.getWidth() - body.getPaddingLeft() - body.getPaddingRight() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
-        int lines = text.getLayout().getLineCount();
         // A word a little wider than the text's room beside Allow (so it would break there), narrower than the row.
         StringBuilder word = new StringBuilder("Notifications");
         while (text.getPaint().measureText(word.toString()) <= beside + 4) word.append("off".charAt(word.length() % 3));
         require(text.getPaint().measureText(word.toString()) < whole, "The test word does not fit the row: " + word);
+        // As many lines as the sheet's own text beside Allow, or as the long word alone takes there if that is more.
+        int own = text.getLayout().getLineCount(), lines = Math.max(own, layoutLines(text, word, beside));
+        String start = was;
+        if (lines > own) {
+            // Short words that fill as many lines beside Allow as the long word does, so Allow stays beside them.
+            start = "off";
+            for (int i = 0; i < 400 && layoutLines(text, start, beside) < lines; i++) start += " off";
+            require(layoutLines(text, start, beside) == lines, "No text of short words " + lines + " lines tall beside Allow");
+            text.setText(start);
+            pass(banner);
+            require(allow.getTop() < text.getBottom() && allow.getLeft() >= text.getRight(), "Allow is not beside a text of short words: " + text.getText());
+            require(text.getLayout().getLineCount() == lines, "The short words took " + text.getLayout().getLineCount() + " lines beside Allow, not " + lines);
+        }
         String next = word.toString();
         for (int i = 0; i < 40 && layoutLines(text, next, beside) < lines; i++) next += " off";
-        require(layoutLines(text, next, beside) == lines, "No text as many lines tall as \"" + was + "\" (" + lines + ")");
+        require(layoutLines(text, next, beside) == lines, "No text as many lines tall as \"" + start + "\" (" + lines + ")");
         pass(banner);
         require(!body.isLayoutRequested(), "The row still had a layout pending");
         text.setText(next);
@@ -476,7 +492,8 @@ public final class ChargeAlertValidation extends Instrumentation {
         require(body.isLayoutRequested(), "The sheet's own text back did not ask the Allow row for a layout");
         pass(banner);
         require(allow.getTop() < text.getBottom() && allow.getLeft() >= text.getRight(), "Allow did not come back beside the sheet's own text");
-        checks.add("With the sheet open, a new text in the Allow row (the refresh's own setText) decides beside or under again, even with as many lines: a word that fits only under Allow stays whole");
+        checks.add("With the sheet open, a new text in the Allow row (the refresh's own setText) decides beside or under again, even with as many lines ("
+                + lines + (start == was ? ", the sheet's own text's" : ", from short words, as the sheet's own text takes " + own) + "): a word that fits only under Allow stays whole");
     }
     private static int layoutLines(TextView view, CharSequence text, int width) {
         return android.text.StaticLayout.Builder.obtain(text, 0, text.length(), view.getPaint(), width).setBreakStrategy(view.getBreakStrategy())
