@@ -636,6 +636,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The page's bar at the window's edge (left in RTL), in the side padding, never over the content (owner, 16 Nov).
+        scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
