@@ -9,7 +9,7 @@
     <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">E-Mail an Volt</string>
     <string name="compat_preview_report" volt:src="d10343655f76329222f53dfc96063dee8802e970">Berichtsvorschau anzeigen</string>
     <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Noch keine abgeschlossene Prüfung</string>
-    <string name="compat_footer" volt:src="86d3d6fcbcee53279410f8c97de4654f969c217a">Die Prüfung liest nur Werte ab. Unter „Mehr › Experimentelle Funktionen“ kannst du Funktionen ausprobieren. Der Bericht enthält die Ergebnisse. Die Firmware wird niemals geändert.</string>
+    <string name="compat_footer" volt:src="780bfedd7257990a493fc6f1164fcde3df631c08">Die Prüfung liest nur Daten. Versuche findest du unter „Service › Experimentelle Funktionen“, und der Bericht enthält ihre Ergebnisse. Die Firmware wird niemals geändert.</string>
     <string name="compat_connect_to_check" volt:src="465b99a776e3987ff95e10fad6eac713fc821b6e">Verbinde dich mit diesem Scooter, um ihn zu prüfen.</string>
     <string name="compat_model_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID nicht erfasst</string>
     <string name="compat_simulated" volt:src="78fcc0abfc67eab0d7214bfe073d6a24afb2bb84">Simulierter Scooter</string>

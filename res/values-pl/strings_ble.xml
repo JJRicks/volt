@@ -22,6 +22,12 @@
     <string name="ble_status_checking_compatibility">Sprawdzanie zgodności…</string>
     <!-- src:743208d1de13b4c7f17550fc7b2f34e5fdd54d60 -->
     <string name="ble_status_setting_clock">Ustawianie zegara hulajnogi według czasu tego telefonu…</string>
+    <!-- src:3278a55a28be6a38784b18011183e9cb68d06b18 -->
+    <string name="ble_status_releasing">Zrzekanie się hulajnogi…</string>
+    <!-- src:27fd91857fecb730a6a12e559973648f3484dc17 -->
+    <string name="ble_release_held">Nie potwierdzono zrzeczenia się · bez ponownego łączenia</string>
+    <!-- src:772be0b099f67e1368e9a128e8bbbc9ad5c4e85c -->
+    <string name="ble_release_held_short">Nie potwierdzono zrzeczenia się</string>
     <!-- src:728cf773a5c57a15f19c5c603f34929b6502bb7f -->
     <string name="ble_reading">%1$s: odczytywanie…</string>
     <!-- src:d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c -->
@@ -58,6 +64,16 @@
     <string name="ble_failed_not_saved">To nie jest zapisana hulajnoga</string>
     <!-- src:0b4b8c62d1732ffe5ff49209dd9489c809d02aab -->
     <string name="ble_failed_other_saved">To jest hulajnoga: %1$s. Należy wybrać ją w sekcji „Moje hulajnogi” lub wyszukać swoją nową hulajnogę.</string>
+    <!-- src:1c0b385e8b0ccb748d54eea3df06fca3c6441f4f -->
+    <string name="ble_failed_new_key_elsewhere">Ten nowy klucz trafił najpierw do innej hulajnogi. Należy włączyć tamtą hulajnogę w pobliżu i spróbować ponownie.</string>
+    <!-- src:1ebe16bb5235dd8b36f294f81200e98507ddb6d4 -->
+    <string name="ble_failed_new_key_unsaved">Nie udało się zapisać konfiguracji, więc aplikacja Volt nie wysłała nowego klucza. Należy zwolnić trochę miejsca i spróbować ponownie.</string>
+    <!-- src:4549812aa55aa5ffabb66aa863995505872f0cde -->
+    <string name="ble_failed_find_mismatch">To nie jest hulajnoga %1$s: jej numer seryjny jest inny. Niczego nie zapisano.</string>
+    <!-- src:8d513c8a2ff0e7c8de2a948f2764ee04e434df6f -->
+    <string name="ble_failed_find_unchecked">Nie udało się sprawdzić hulajnogi %1$s pod tym adresem. Niczego nie zapisano. Podejmij ponowną próbę, używając opcji „Znajdź w pobliżu”.</string>
+    <!-- src:10d9b7a526cd313ea7f57dc5f9bbbbc143018203 -->
+    <string name="ble_found_new_address">Znaleziono hulajnogę %1$s pod nowym adresem Bluetooth</string>
     <!-- src:1f23751172e9878adc6da281e6fe1b838304f246 -->
     <string name="ble_failed_signal_lost">Utracono sygnał</string>
     <!-- src:4c195e7bcd1298d452edb1bb8278469fa48ea9e3 -->

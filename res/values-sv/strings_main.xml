@@ -191,6 +191,21 @@
     </plurals>
     <!-- src:6801c41ddbd8a9ef7d66c7806562c01c3d210fe4 -->
     <string name="main_scan_option">%1$s, %2$s%3$s, adress som slutar på %4$s</string>
+    <!-- src:5622737b7ee69869fa25c076ea590c965f9bc3a1 -->
+    <string name="main_find_title">Hitta %1$s i närheten</string>
+    <!-- src:95393b3e1288d46b3bb45a65b82176c4c079e4d3 -->
+    <string name="main_find_saved_address">Sparad adress</string>
+    <!-- src:2f6ec6c6c339510ec4e80d653740a6eb5be60ed0 -->
+    <string name="main_find_state_saved_address">, sparad adress</string>
+    <!-- src:bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b -->
+    <plurals name="main_find_hidden">
+        <item quantity="one">%1$d annan elsparkcykel dold (annan modell)</item>
+        <item quantity="other">%1$d andra elsparkcyklar dolda (annan modell)</item>
+    </plurals>
+    <!-- src:5db8ba189368792f25c46b450dcc10cee9c58250 -->
+    <string name="main_find_confirm_title">Vill du ansluta till den här elsparkcykeln som %1$s?</string>
+    <!-- src:db97083ab6bb7adc78590c6c1a6128f7bca2a8bb -->
+    <string name="main_find_confirm_body">Volt skickar ägarnyckeln för %1$s till den här elsparkcykeln. En elsparkcykel som ännu inte har någon ägare (ny eller återställd) skulle behålla den ägarnyckeln, så välj bara din egen elsparkcykel och håll telefonen alldeles intill den.</string>
     <!-- src:6640722465af5d836e628164e3b8b0d667cf2537 -->
     <string name="main_group_ride">Körning</string>
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
@@ -614,6 +629,8 @@
     <string name="main_report_email_next">Din e-postapp öppnas härnäst, så att du kan läsa den först.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Välj din elsparkcykel eller ”Vet inte” och tryck sedan på ”Skicka”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">En diagnostikfil bifogas: uppgifter om appen, telefonen och elsparkcykeln, Volts inställningar och senaste krasch, antal inspelningar, de senaste anslutnings- och reglagehändelserna samt den valda elsparkcykelns laddnings- och schemahistorik med tidpunkter. Aldrig din ägarnyckel, PIN-kod, serienummer, plats eller namn.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Skicka e-post till Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->
