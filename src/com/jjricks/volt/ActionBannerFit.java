@@ -62,21 +62,45 @@ final class ActionBannerFit {
     /**
      * Under the words, whether what comes and goes beside them ({@code reserve}: the clock row's spinner) sits after the
      * pill on the pill's line: wherever the pill and its room fit the row. Only in a window so narrow that they do not
-     * (below about 255 dp at 1.4x in German) does it stay at the end of the words' line.
+     * (below about 255 dp at 1.4x in German) does it stay at the end of the words' line, unless keeping it there would
+     * break the words' longest word ({@link #asideByPill(float, float, float, float, float)}).
      */
     static boolean asideByPill(float room, float pill, float reserve) {
         return Math.max(0f, pill) + Math.max(0f, reserve) <= room;
     }
 
     /**
-     * The words' room on their line: beside the pill, the room less the pill, the gap and {@code reserve}; under it, the
-     * row's whole room when the reserve sits by the pill, else the room less the reserve. The reserve is kept whether
-     * what it is for shows or not, so the words wrap the same way when it comes and goes (a sync starting or ending).
+     * As {@link #asideByPill(float, float, float)} for words whose longest word is {@code longestWord} wide and a pill whose
+     * label is {@code label} wide: where the pill and the room do not fit at the pill's own padding, but keeping the room
+     * at the end of the words' line would break their longest word (French "trottinette" and Polish "hulajnogi" at
+     * 1.3-1.4x in a 220 dp window; council review of #524), it still sits after the pill wherever the bare label and the
+     * room fit the row, and the pill's padding narrows to what that line leaves ({@link #stackedLine}, {@link #stackedPad}).
+     * The words then have the row's whole width. It depends on neither a sync nor the spinner, so it is the same idle and
+     * syncing.
      */
-    static float wordsRoom(float room, float pill, float gap, float reserve, boolean below) {
+    static boolean asideByPill(float room, float pill, float reserve, float label, float longestWord) {
+        float kept = Math.max(0f, reserve);
+        return asideByPill(room, pill, kept) || longestWord > room - kept && Math.max(0f, label) + kept <= room;
+    }
+
+    /**
+     * The pill's room on its line under the words: the row's room less the pill's indent, and less {@code reserve} where
+     * that sits after the pill ({@code byPill}). The pill's padding a side is {@link #stackedPad} of this room.
+     */
+    static float stackedLine(float room, float indent, float reserve, boolean byPill) {
+        return room - Math.max(0f, indent) - (byPill ? Math.max(0f, reserve) : 0f);
+    }
+
+    /**
+     * The words' room on their line: beside the pill, the room less the pill, the gap and {@code reserve}; under it, the
+     * row's whole room when the reserve sits by the pill ({@code byPill}, from {@link #asideByPill}), else the room less
+     * the reserve. The reserve is kept whether what it is for shows or not, so the words wrap the same way when it comes
+     * and goes (a sync starting or ending).
+     */
+    static float wordsRoom(float room, float pill, float gap, float reserve, boolean below, boolean byPill) {
         float kept = Math.max(0f, reserve);
         if (!below) return room - Math.max(0f, pill) - Math.max(0f, gap) - kept;
-        return asideByPill(room, pill, kept) ? room : room - kept;
+        return byPill ? room : room - kept;
     }
 
     /**

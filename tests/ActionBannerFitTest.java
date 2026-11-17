@@ -71,7 +71,7 @@ public final class ActionBannerFitTest {
                 {"pt", "Relógio da trotinete", "Sincronizar"}, {"pt-BR", "Relógio do patinete", "Sincronizar"}, {"es", "Reloj del patinete", "Sincronizar"},
                 {"fr", "Horloge de la trottinette", "Synchroniser"}, {"it", "Orologio del monopattino", "Sincronizza"}, {"pl", "Zegar hulajnogi", "Synchronizuj"},
                 {"sv", "Elsparkcykelns klocka", "Synkronisera"}, {"tr", "Scooter saati", "Eşitle"}};
-        int moved = 0, rewrapped = 0, cut = 0;
+        int moved = 0, rewrapped = 0, cut = 0, broke524 = 0;
         for (int window : new int[]{220, 240, 260, 280, 300, 320, 344, 360, 412})
             for (float scale : new float[]{1f, 1.1f, 1.15f, 1.3f, 1.35f, 1.4f})
                 for (String[] language : languages) {
@@ -84,7 +84,7 @@ public final class ActionBannerFitTest {
                     String at = language[0] + " at " + window + " dp, " + scale + "x";
                     // As BannerBody decides: the pill is the action (the spinner is not in it), the spinner's room is kept
                     // out of the name's whether it shows or not, and the name's lines beside the pill count against its two.
-                    int linesBeside = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, false) - tile, nameWidth).size();
+                    int linesBeside = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, false, false) - tile, nameWidth).size();
                     boolean hidden = ActionBannerFit.actionBelow(room, pill, gap, word, spinner, linesBeside, 2);
                     boolean showing = ActionBannerFit.actionBelow(room, pill, gap, word, spinner, linesBeside, 2);
                     require(hidden == showing, at + ": the same with the spinner shown and hidden");
@@ -93,8 +93,11 @@ public final class ActionBannerFitTest {
                     // The name's lines: its room is the same idle and syncing (the spinner keeps its room, shown or not), in
                     // both layouts. #520 gave the spinner's room back to the name while it was hidden, so the name could
                     // re-wrap (and Sync, under it, move down) when a sync started or ended.
-                    java.util.List<String> idle = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, showing) - tile, nameWidth);
-                    java.util.List<String> syncing = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, hidden) - tile, nameWidth);
+                    // Under the name, the spinner after Sync where both fit, or where its room on the name's line would break
+                    // the name's longest word (council review of #524); decided from the texts and the room alone.
+                    boolean byPill = ActionBannerFit.asideByPill(room, pill, spinner, text, word);
+                    java.util.List<String> idle = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, showing, byPill) - tile, nameWidth);
+                    java.util.List<String> syncing = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, hidden, byPill) - tile, nameWidth);
                     require(idle.equals(syncing), at + ": the name wraps the same idle " + idle + " and syncing " + syncing);
                     boolean below520 = ActionBannerFit.actionBelow(room, pill, gap, word, spinner);
                     float room520 = (below520 ? room : room - pill - gap) - tile;
@@ -110,22 +113,29 @@ public final class ActionBannerFitTest {
                         // Under the name: the pill on its own line, after the name's indent where that still fits, at its own
                         // padding while it fits the row, else with what the row leaves around its label; the spinner after
                         // it where both fit, else at the end of the name's line.
-                        boolean byPill = ActionBannerFit.asideByPill(room, pill, spinner);
                         float indent = ActionBannerFit.stackedIndent(room, byPill ? pill + spinner : pill, tile);
-                        float side = pill <= room - indent ? ActionBannerFit.PILL_PAD_DP : ActionBannerFit.stackedPad(room - indent, text, ActionBannerFit.PILL_PAD_DP);
-                        require(Math.max(ActionBannerFit.PILL_MIN_DP, text + 2 * side) + (byPill ? spinner : 0) <= room - indent + 0.01f, at + ": \"" + language[2] + "\" whole under the name while it syncs");
+                        float line = ActionBannerFit.stackedLine(room, indent, spinner, byPill);
+                        float side = pill <= line ? ActionBannerFit.PILL_PAD_DP : ActionBannerFit.stackedPad(line, text, ActionBannerFit.PILL_PAD_DP);
+                        require(Math.max(ActionBannerFit.PILL_MIN_DP, text + 2 * side) <= line + 0.01f, at + ": \"" + language[2] + "\" whole under the name while it syncs");
                         if (window >= 344) require(side == ActionBannerFit.PILL_PAD_DP && byPill, at + ": the pill at its own padding with the spinner after it on a phone");
                         if (window >= 260) require(byPill, at + ": the spinner after Sync down to 260 dp");
                         // The name has the row's width (less the spinner's only in the narrowest windows): whole down to
                         // 300 dp in every language. Narrower, at the largest sizes, a long name's longest word can be wider
                         // than its room (Swedish "Elsparkcykelns", German "Scooter-Uhr" at 1.4x near 220 dp); the owner
                         // accepts isolated cut-offs at those sizes (council review of #506), and it is the same idle and syncing.
-                        if (window >= 300) require(ActionBannerFit.wordsRoom(room, pill, gap, spinner, true) >= word, at + ": the name whole");
+                        if (window >= 300) require(ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, byPill) >= word, at + ": the name whole");
+                        // The spinner's room never breaks the name's longest word: wherever that word fits the row and the
+                        // bare label and the spinner fit Sync's line, the name has its longest word's width, idle and
+                        // syncing. On #524 the spinner kept its room at the end of the name's line whenever Sync at its own
+                        // padding and the spinner did not fit, and broke a word that fitted the row.
+                        if (word <= room && text + spinner <= room) require(ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, byPill) >= word, at + ": the name's longest word whole beside the spinner's room");
+                        if (word <= room && ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, ActionBannerFit.asideByPill(room, pill, spinner)) < word) broke524++;
                     }
                 }
         require(moved > 0, "#506's rule moves the pill somewhere in this matrix (" + moved + " cases), so the check above has teeth");
         require(rewrapped > 0, "#520's name re-wraps somewhere in this matrix (" + rewrapped + " cases), so the check above has teeth");
         require(cut > 0, "#520's rule cuts the name somewhere in this matrix (" + cut + " cases), so the check above has teeth");
+        require(broke524 > 0, "#524's rule breaks the name's longest word somewhere in this matrix (" + broke524 + " cases), so the check above has teeth");
         // The council's cases. German at 1.4x on 412 dp: under the name, syncing or not (main put it beside, then under).
         java.awt.Font name14 = regular.deriveFont(15 * 1.4f), label14 = bold.deriveFont(12.5f * 1.4f);
         float deWord = width(name14, "Scooter-Uhr", context) + tile, dePill = width(label14, "Synchronisieren", context) + 32;
@@ -144,8 +154,9 @@ public final class ActionBannerFitTest {
         float deLabel = width(label14, "Synchronisieren", context), deSide = ActionBannerFit.stackedPad(160, deLabel, 16);
         require(dePill > 160 && ActionBannerFit.stackedIndent(160, dePill, tile) == 0 && deSide > 10 && deSide < 16 && deLabel + 2 * deSide <= 160,
                 "de 220 dp 1.4x: Synchronisieren whole, the pill's padding narrowed to what the row leaves");
-        require(!ActionBannerFit.asideByPill(160, dePill, spinner) && ActionBannerFit.wordsRoom(160, dePill, gap, spinner, true) == 160 - spinner,
-                "de 220 dp 1.4x: the spinner keeps its room at the end of the name's line");
+        require(!ActionBannerFit.asideByPill(160, dePill, spinner) && !ActionBannerFit.asideByPill(160, dePill, spinner, deLabel, deWord)
+                        && ActionBannerFit.wordsRoom(160, dePill, gap, spinner, true, false) == 160 - spinner,
+                "de 220 dp 1.4x: \"Synchronisieren\" and the spinner do not fit one line, so the spinner keeps its room at the end of the name's line");
         require(ActionBannerFit.stackedPad(300, 100, 16) == 16 && ActionBannerFit.stackedPad(120, 100, 16) == 10 && ActionBannerFit.stackedPad(90, 100, 16) == 0,
                 "the pill keeps its own padding while it fits, else what is left around the label");
         for (float room = 0; room <= 400; room += 5)
@@ -159,7 +170,7 @@ public final class ActionBannerFitTest {
             String at = c[0] + " at " + c[3] + " dp, 1.4x";
             require(ActionBannerFit.actionBelow(room, pill, gap, ActionBannerFit.longestWord(c[1], w) + tile, spinner) && ActionBannerFit.asideByPill(room, pill, spinner),
                     at + ": Sync under the name, the spinner after it");
-            require(ActionBannerFit.wordsRoom(room, pill, gap, spinner, true) == room, at + ": the name has the row's whole width, idle and syncing");
+            require(ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, true) == room, at + ": the name has the row's whole width, idle and syncing");
         }
         // Dutch on 344 dp at large text (the council's emulator note on #520, the same on main): the name's longest word
         // fits beside Sync, but there the name needs more than its two lines (on the emulator at 1.4x: "Klok / van de" idle
@@ -171,11 +182,36 @@ public final class ActionBannerFitTest {
             float nlPill = width(bold.deriveFont(12.5f * scale), "Synchroniseren", context) + 32;
             ActionBannerFit.Width nlWidth = text -> width(nlName, text, context);
             float nlWord = ActionBannerFit.longestWord("Klok van de step", nlWidth) + tile;
-            int nlBeside = lines("Klok van de step", ActionBannerFit.wordsRoom(284, nlPill, gap, spinner, false) - tile, nlWidth).size();
+            int nlBeside = lines("Klok van de step", ActionBannerFit.wordsRoom(284, nlPill, gap, spinner, false, false) - tile, nlWidth).size();
             String at = "nl 344 dp " + scale + "x";
             if (scale == 1.35f) require(!ActionBannerFit.actionBelow(284, nlPill, gap, nlWord, spinner) && nlBeside > 2, at + ": its longest word fits beside Sync, but the name needs " + nlBeside + " lines there");
             require(ActionBannerFit.actionBelow(284, nlPill, gap, nlWord, spinner, nlBeside, 2), at + ": Sync under the name, counting its two lines");
-            require(lines("Klok van de step", ActionBannerFit.wordsRoom(284, nlPill, gap, spinner, true) - tile, nlWidth).size() <= 2, at + ": the name whole under Sync, on at most two lines");
+            require(ActionBannerFit.asideByPill(284, nlPill, spinner), at + ": the spinner after Sync");
+            require(lines("Klok van de step", ActionBannerFit.wordsRoom(284, nlPill, gap, spinner, true, true) - tile, nlWidth).size() <= 2, at + ": the name whole under Sync, on at most two lines");
+        }
+        // The council's cases for #524 (review 5935685996): Android's narrowest split-screen window, 220 dp (160 dp of
+        // room), French and Polish at 1.3-1.4x. "Synchroniser" or "Synchronizuj" at its own padding and the spinner do not
+        // fit one line, so on #524 the spinner kept its 30 dp at the end of the name's line and the idle name broke
+        // mid-word ("Horloge de la trottinett / e", "Zegar hulajnog / i"). Its longest word fits the row, so the spinner
+        // goes after Sync, whose padding narrows to what that line leaves, and the name has the row's whole width and keeps
+        // every word whole, idle and syncing. With these desktop font metrics Polish breaks from 1.35x.
+        for (Object[] c : new Object[][]{{"fr", "Horloge de la trottinette", "Synchroniser", 1.3f}, {"fr", "Horloge de la trottinette", "Synchroniser", 1.35f},
+                {"fr", "Horloge de la trottinette", "Synchroniser", 1.4f}, {"pl", "Zegar hulajnogi", "Synchronizuj", 1.35f}, {"pl", "Zegar hulajnogi", "Synchronizuj", 1.4f}}) {
+            String name = (String) c[1]; float scale = (Float) c[3], room = 160;
+            java.awt.Font nameFont = regular.deriveFont(15 * scale);
+            ActionBannerFit.Width w = text -> width(nameFont, text, context);
+            float label = width(bold.deriveFont(12.5f * scale), (String) c[2], context);
+            float pill = ActionBannerFit.pill(label, ActionBannerFit.PILL_PAD_DP, ActionBannerFit.PILL_MIN_DP), word = ActionBannerFit.longestWord(name, w) + tile;
+            String at = c[0] + " at 220 dp, " + scale + "x";
+            require(ActionBannerFit.actionBelow(room, pill, gap, word, spinner) && !ActionBannerFit.asideByPill(room, pill, spinner), at + ": Sync under the name, and at its own padding no room for the spinner after it");
+            require(!String.join(" ", lines(name, ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, false) - tile, w)).equals(name),
+                    at + ": with the spinner's room kept on the name's line (#524) the name breaks mid-word " + lines(name, room - spinner - tile, w));
+            boolean byPill = ActionBannerFit.asideByPill(room, pill, spinner, label, word);
+            float line = ActionBannerFit.stackedLine(room, ActionBannerFit.stackedIndent(room, byPill ? pill + spinner : pill, tile), spinner, byPill);
+            float side = ActionBannerFit.stackedPad(line, label, ActionBannerFit.PILL_PAD_DP);
+            require(byPill && line == room - spinner && side > 0 && side < ActionBannerFit.PILL_PAD_DP && label + 2 * side <= line, at + ": the spinner after Sync, whose label is whole at " + side + " dp a side");
+            java.util.List<String> nameLines = lines(name, ActionBannerFit.wordsRoom(room, pill, gap, spinner, true, byPill) - tile, w);
+            require(String.join(" ", nameLines).equals(name), at + ": every word of the name whole " + nameLines);
         }
         require(!ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 2, 2) && ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 3, 2) && !ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 9, 0),
                 "lines count only against a limit");

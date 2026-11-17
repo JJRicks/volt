@@ -3312,7 +3312,8 @@ public final class MainActivity extends Activity implements ScreenHost {
          * @param reserveDp room the content always keeps beside the words (the clock row's spinner), shown or not
          * @param aside what that room is for, the last child of {@code content} (a Slot): beside the pill, it stays at the
          *              end of the words' line, next to the pill; under the words it goes after the pill on the pill's line
-         *              where both fit (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
+         *              where both fit, or where keeping its room on the words' line would break their longest word
+         *              (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
          *              so nothing in the row moves or re-wraps when it comes and goes.
          * @param besideLines the most lines the words may take beside the pill (0: any); with more, the pill goes under
          *                    them, where they take what they need (the clock row's name: two beside Sync, never cut)
@@ -3365,7 +3366,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // limit, count their lines there too, so a word is never cut off at the end of their last line.
                 int own=words.getMaxLines(),max=besideLines>0?besideLines:own>0&&own<Integer.MAX_VALUE?own:0,lines=0;
                 if(max>0&&words.length()>0){
-                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
+                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
                     CharSequence t=words.getText();
                     lines=beside<=0?Integer.MAX_VALUE:android.text.StaticLayout.Builder.obtain(t,0,t.length(),words.getPaint(),beside)
                             .setBreakStrategy(words.getBreakStrategy()).setHyphenationFrequency(words.getHyphenationFrequency())
@@ -3373,11 +3374,15 @@ public final class MainActivity extends Activity implements ScreenHost {
                             .build().getLineCount();
                 }
                 below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve,lines,max);
-                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve);
+                // Under the words, the spinner after the pill where both fit, or where keeping its room on the words' line
+                // would break their longest word (the pill's padding then narrows): the same idle and syncing.
+                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve,label,word);
                 int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,byPill?pill+reserve:pill,words.getCompoundPaddingLeft())):0;
                 if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true,byPill);}
-                // Under the words in a window narrower than the pill itself: only the room around the label, kept whole.
-                if(below&&pill>room-wanted)side=(int)Math.floor(ActionBannerFit.stackedPad(room-wanted,label,pad));
+                // Under the words in a window narrower than the pill (and the spinner after it) itself: only the room
+                // around the label, kept whole.
+                float line=ActionBannerFit.stackedLine(room,wanted,reserve,byPill);
+                if(below&&pill>line)side=(int)Math.floor(ActionBannerFit.stackedPad(line,label,pad));
             }
             if(action.getPaddingLeft()!=side||action.getPaddingRight()!=side)action.setPadding(side,action.getPaddingTop(),side,action.getPaddingBottom());
             if(below!=(getOrientation()==VERTICAL)||aside!=null&&(aside.getParent()==actionLine)!=byPill)arrange(below,byPill);
