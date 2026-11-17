@@ -932,7 +932,6 @@ public final class ModelRegistry {
      * layer, where the official app asks first; the UT5 MAX keeps today's direct controls.
      */
     private static final CharSequence ASKS=Msg.of(T.CONTROLS_CAUTION_ASKS);
-    private static final CharSequence UNTESTED=Msg.of(T.CONTROLS_CAUTION_UNTESTED);
     private static final String SPEED_PROMPT_NOTE="OEM 2.1.9 asks before speeds above 32 km/h";
     private static final CharSequence SHOWS=Msg.of(T.CONTROLS_CAUTION_SHOWS);
     public static String caution(CapabilityResolver.Decision d,int value){
@@ -943,8 +942,9 @@ public final class ModelRegistry {
             case "dual_drive": return value==0?T.controlsCautionDualDrive(ASKS):null;
             case "energy_recovery": return d.variant==OEM_ENERGY_BINARY&&value==0?T.controlsCautionEnergyRecovery(SHOWS):null;
             case "start_speed": return value<3?T.controlsCautionStartSpeed(SHOWS):null;
-            case "maximum_speed": return value>32&&d.variant==SPEED_25_70?T.controlsCautionMaximumSpeed(
-                    SPEED_PROMPT_NOTE.equals(d.oemNote)?ASKS:UNTESTED):null;
+            // Where the official app doesn't ask, the rules prompt stands alone: no "not tested" sentence (owner, Nov 17 2026).
+            case "maximum_speed": return value>32&&d.variant==SPEED_25_70?(SPEED_PROMPT_NOTE.equals(d.oemNote)
+                    ?T.controlsCautionMaximumSpeed(ASKS):T.controlsCautionMaximumSpeedPlain()):null;
             default: return null;
         }
     }

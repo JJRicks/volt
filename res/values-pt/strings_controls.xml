@@ -284,12 +284,8 @@
     <string name="controls_refusal_proximity_bond">Emparelha este telemóvel antes de ativares o desbloqueio por proximidade</string>
     <!-- src:98af0415be393c700e663c6ff4eaeb536b7d9b57 -->
     <string name="controls_refusal_proximity_pin">Define e ativa o PIN do guiador antes de ativar o desbloqueio por proximidade</string>
-    <!-- src:a302a37076cb98db4ccc65243fa92f597736d25f -->
-    <string name="controls_caution_asks">A app oficial pede confirmação antes desta alteração. A Volt não a testou neste modelo.</string>
     <!-- src:bc725850d341ca0a7beca147cf4cc154219e83be -->
     <string name="controls_caution_untested">A Volt não testou esta alteração neste modelo.</string>
-    <!-- src:a2bfe3bf6cf134d338cc088a8f76863d2ba8225f -->
-    <string name="controls_caution_shows">A app oficial mostra um aviso para esta alteração. A Volt não a testou neste modelo.</string>
     <!-- src:23b20de27ff343f6cf6f03506bf17dd3fe637e36 -->
     <string name="controls_caution_traction_control">Desativar o controlo de tração? %1$s</string>
     <!-- src:5fc0d9cd0dcae1e2195b91a04a4374dedff1834f -->

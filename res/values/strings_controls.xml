@@ -309,25 +309,27 @@
     <!-- Proximity unlock needs a handlebar PIN that is set and turned on. -->
     <string name="controls_refusal_proximity_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,pin" volt:dnt="PIN">Set up and turn on the handlebar PIN before turning on proximity unlock</string>
 
-    <!-- Cautions before a change on another NAVEE model (ModelRegistry.caution). Each %1$s is a following whole sentence (controls_caution_asks, _shows or _untested). -->
+    <!-- Cautions before a change on another NAVEE model (ModelRegistry.caution). Each %1$s is a following whole sentence (controls_caution_asks or _shows). -->
     <!-- Second part of a caution: the official NAVEE app asks before this change too. -->
-    <string name="controls_caution_asks" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app asks before this change. Volt has not tested it on this model.</string>
-    <!-- Second part of a caution. -->
+    <string name="controls_caution_asks" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">The official app asks before this change.</string>
+    <!-- Second part of a caution. Unused since Nov 17 2026 (the owner dropped "not tested" wording); kept for its ledger row. -->
     <string name="controls_caution_untested" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">Volt has not tested it on this model.</string>
     <!-- Second part of a caution: the official NAVEE app warns about this change too. -->
-    <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app shows a caution for this change. Volt has not tested it on this model.</string>
-    <!-- Asked before turning traction control off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">The official app shows a caution for this change.</string>
+    <!-- Asked before turning traction control off. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_traction_control" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off traction control? %1$s</string>
-    <!-- Asked before turning Low Battery Mode off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <!-- Asked before turning Low Battery Mode off. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_low_power" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">Turn off Low Battery Mode? %1$s</string>
-    <!-- Asked before switching from two motors to one. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <!-- Asked before switching from two motors to one. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_dual_drive" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Switch to single motor? %1$s</string>
-    <!-- Asked before turning regenerative braking off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <!-- Asked before turning regenerative braking off. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_energy_recovery" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off energy recovery? %1$s</string>
-    <!-- Shown before setting a kick-start speed under 3 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <!-- Shown before setting a kick-start speed under 3 km/h. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_start_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Kick-start speed below 3 km/h. %1$s</string>
-    <!-- Shown before setting a top speed over 32 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <!-- Shown before setting a top speed over 32 km/h. %1$s is the following one or two sentences (controls_caution_asks or controls_caution_shows). -->
     <string name="controls_caution_maximum_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Above 32 km/h: check the rules where you ride. %1$s</string>
+    <!-- Shown before setting a top speed over 32 km/h on a model whose official app doesn't ask first. Same first sentence as controls_caution_maximum_speed. -->
+    <string name="controls_caution_maximum_speed_plain" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Above 32 km/h: check the rules where you ride.</string>
 
     <!-- Experimental controls cautions (ModelRegistry.experimentalCaution): what the change does. -->
     <!-- Shown before trying traction control off. -->

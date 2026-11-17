@@ -284,12 +284,8 @@
     <string name="controls_refusal_proximity_bond">Empareja este teléfono antes de activar el desbloqueo por proximidad</string>
     <!-- src:98af0415be393c700e663c6ff4eaeb536b7d9b57 -->
     <string name="controls_refusal_proximity_pin">Configura y activa el PIN del patinete antes de activar el desbloqueo por proximidad</string>
-    <!-- src:a302a37076cb98db4ccc65243fa92f597736d25f -->
-    <string name="controls_caution_asks">La app oficial pide confirmación antes de este cambio. Volt no lo probó en este modelo.</string>
     <!-- src:bc725850d341ca0a7beca147cf4cc154219e83be -->
     <string name="controls_caution_untested">Volt no lo probó en este modelo.</string>
-    <!-- src:a2bfe3bf6cf134d338cc088a8f76863d2ba8225f -->
-    <string name="controls_caution_shows">La app oficial muestra una advertencia para este cambio. Volt no lo probó en este modelo.</string>
     <!-- src:23b20de27ff343f6cf6f03506bf17dd3fe637e36 -->
     <string name="controls_caution_traction_control">¿Desactivar el control de tracción? %1$s</string>
     <!-- src:5fc0d9cd0dcae1e2195b91a04a4374dedff1834f -->
