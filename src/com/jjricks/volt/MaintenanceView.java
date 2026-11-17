@@ -207,10 +207,7 @@ final class MaintenanceView {
     static String left(MaintenancePolicy.Reminder r, MaintenancePolicy.Status status, String units, long nowWall, LongFunction<String> date) {
         if (status.state == MaintenancePolicy.State.WAITING) return T.maintenanceWaiting();
         if (status.state == MaintenancePolicy.State.SNOOZED) return T.maintenanceSnoozedUntil(date.apply(r.snoozeUntil));
-        boolean distanceKnown = r.byDistance() && !Double.isNaN(status.kmLeft);
-        double distanceFraction = distanceKnown ? 1 - status.kmLeft / r.km : Double.NEGATIVE_INFINITY;
-        double timeFraction = r.byTime() ? timeFraction(r, status, nowWall) : Double.NEGATIVE_INFINITY;
-        if (distanceKnown && distanceFraction >= timeFraction) {
+        if (namesDistance(r, status, nowWall)) {
             return status.kmLeft > 0 ? T.maintenanceDistanceLeft(distance(status.kmLeft, units)) : T.maintenanceDistanceOver(distance(-status.kmLeft, units));
         }
         int days = status.daysLeft;
@@ -218,6 +215,14 @@ final class MaintenanceView {
         if (days == 0) return T.maintenanceDueToday();
         int over = -days;
         return T.maintenanceDaysOver(over, over);
+    }
+
+    /** Whether left() names the distance part (it is known and nearer, or further past, due than the time part). */
+    static boolean namesDistance(MaintenancePolicy.Reminder r, MaintenancePolicy.Status status, long nowWall) {
+        boolean distanceKnown = r.byDistance() && !Double.isNaN(status.kmLeft);
+        double distanceFraction = distanceKnown ? 1 - status.kmLeft / r.km : Double.NEGATIVE_INFINITY;
+        double timeFraction = r.byTime() ? timeFraction(r, status, nowWall) : Double.NEGATIVE_INFINITY;
+        return distanceKnown && distanceFraction >= timeFraction;
     }
 
     /** The time part's progress, past 1 once overdue (so the more overdue part is named). */

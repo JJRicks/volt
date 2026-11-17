@@ -54,9 +54,16 @@ final class CleanHeaderFit {
     static float minScale() { return MIN_NAME_SP / NAME_SP; }
 
     /** The room for the name (dp) in a header row {@code row} dp wide: the row less the two buttons. */
-    static float nameRoomDp(float row) {
-        return Math.max(0, row - BUTTONS * TARGET_DP - BUTTON_GAP_DP);
-    }
+    static float nameRoomDp(float row) { return nameRoomDp(row, BUTTONS); }
+
+    /**
+     * The room for the name (dp) beside {@code buttons} buttons: two on one pane (search and Settings), one in the wide
+     * Home's scooter pane, where the page pane beside it has the search field (hub layout plan 1.11, PR 13).
+     */
+    static float nameRoomDp(float row, int buttons) { return Math.max(0, row - buttonsDp(buttons)); }
+
+    /** What {@code buttons} buttons take from the name's row (dp): their targets and the space before the first. */
+    static int buttonsDp(int buttons) { return Math.max(0, buttons) * TARGET_DP + BUTTON_GAP_DP; }
 
     /** The name in {@code room}: smaller before it wraps, and wrapped before it is cut. */
     static Name name(String text, float room, Width width) {
