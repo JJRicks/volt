@@ -99,13 +99,14 @@ public final class CompatControlsValidation extends Instrumentation {
         expectChoices("start_speed", new int[]{3, 4, 5});
         main(() -> require(activity.service().ble.decision("maximum_speed").reason == CapabilityResolver.Reason.REGION_RULE, "No-region 2585 Top speed: " + activity.service().ble.decision("maximum_speed")));
         screenshotRow("q-noregion-rows", "traction_control");
-        // A long charge-start value moves under the label beside its caption instead of squeezing both. Checked on the
-        // displayed row: Battery & charging, its page (#414 review: this read the row the Controls page builds but never places).
+        // With no caption since the owner dropped Untested here (Nov 17 2026), a charge-start time stays in the value slot, as
+        // on the UT5 MAX (only a captioned time moves under the label). Checked on the displayed row: Battery & charging, its
+        // page (#414 review: this read the row the Controls page builds but never places).
         showPageOf("charge_start");
         main(() -> {
             Object row = shownRow("charge_start");
             String value = String.valueOf(((TextView)field(row, "value")).getText()), sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
-            require(value.isEmpty() && sub.startsWith("Not scheduled") && !sub.contains("Untested"), "Charge start row value \"" + value + "\" caption \"" + sub + "\"");
+            require(value.startsWith("Not scheduled") && !sub.contains("Not scheduled") && !sub.contains("Untested"), "Charge start row value \"" + value + "\" caption \"" + sub + "\"");
         });
         screenshotRow("q-noregion-charge-start", "charge_start");
         screenshotRow("q-noregion-start", "start_speed");
