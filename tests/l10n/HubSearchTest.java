@@ -724,6 +724,14 @@ public final class HubSearchTest {
         check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
                 && main.contains("tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);")
                 && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
+        // Before Android 11 the keyboard shows in the resize inset only: MainActivity reads it by SearchFocus's own rule, as the
+        // bound fields do, not by an Android 11 check alone (#393 council review, fourth round, finding 2).
+        String focus = read("src/com/jjricks/volt/SearchFocus.java");
+        check(main.contains("boolean keyboard=SearchFocus.keyboardShown(insets,getResources().getDisplayMetrics().density);")
+                && !main.contains("boolean keyboard=Build.VERSION.SDK_INT>=30&&")
+                && focus.contains("if (Build.VERSION.SDK_INT >= 30) return insets.isVisible(WindowInsets.Type.ime());\n        return insets.getSystemWindowInsetBottom() - insets.getStableInsetBottom() > Math.round(density * 100);")
+                && focus.contains("visible = keyboardShown(insets, density);"),
+                "tabletop Search notices the keyboard before Android 11 by SearchFocus's resize-inset rule");
         // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
         check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
                 && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");

@@ -591,7 +591,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         root.setOnApplyWindowInsetsListener((v,insets)->{
             int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
-            boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
+            // The keyboard by SearchFocus's rule, which reads the resize inset before Android 11 (#393 council review, fourth round, finding 2).
+            boolean keyboard=SearchFocus.keyboardShown(insets,getResources().getDisplayMetrics().density);
             // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
             // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
             boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
