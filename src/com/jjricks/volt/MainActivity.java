@@ -785,7 +785,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller, in a
      * frame of its own under the header, as on one pane (pageContent, pageHeaderRows, pageFrame), so Search steps the
-     * pane's header rows aside and a page's connection line glides with the page under it.
+     * pane's header rows aside and a page's connection line glides with the page under it. The loading page keeps a
+     * result's target for the rebuild that builds the real page (HubNav.owed), as on one pane.
      */
     private void fillPagePane(HubNav.Args args){
         rightPage.removeAllViews();
@@ -796,6 +797,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}
         paneHosted=true;
         try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}
+        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){
             scroll=(ScrollView)screenView;
@@ -818,15 +820,19 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     private void swapPagePane(int direction){
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
+        // As rebuild: Readings let a search result's reading go once the owner typed a search of their own there.
+        boolean readingDropped=readingLetGo();
         if(screen!=null)screen.close();
         while(dashboardLocks.size()>paneLocks){DashboardLockViews lock=dashboardLocks.remove(dashboardLocks.size()-1);if(lock.lockControl!=null)lock.lockControl.stopMotion();}
         if(dashboardLocks.isEmpty())clearDashboardLock();else loadLockViews(dashboardLocks.get(0));
         HubNav.Args args=pageArgs;pageArgs=null;
+        // Data in the page pane keeps a search result's reading by the same rule as a full page (HubNav.keptReading).
+        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
         LinearLayout pane=rightPage;
         Motion.page(pane,direction,()->fillPagePane(args));
         Motion.quietScrollbars(pane);
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
-        if(args!=null&&args.anchor!=null)revealAnchor(screen,scroll,args.anchor);
+        if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);
         redraw();
         showUpdateCheck();
         // Back on Home in the page pane: the one-time What's new sheet may show now, as after a rebuild onto Home.

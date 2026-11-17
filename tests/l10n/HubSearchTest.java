@@ -742,6 +742,12 @@ public final class HubSearchTest {
         check(main.contains("if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}")
                 && main.contains("pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));")
                 && main.contains("connectionTitle=null;pageContent=rightPage;"), "the page pane's header rows and page frame are a one-pane page's");
+        // A page changed in the pane (no rebuild) keeps Readings' reading by the same rule, and the loading page there keeps a
+        // result's target for the rebuild that builds the real page (#393's third and fourth rounds).
+        check(main.contains("searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);\n        LinearLayout pane=rightPage;")
+                && main.contains("try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}\n        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);")
+                && main.contains("if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);\n        redraw();\n        showUpdateCheck();\n        // Back on Home"),
+                "the page pane keeps a search's reading and a target the loading page can't use");
 
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
