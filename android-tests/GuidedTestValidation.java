@@ -79,6 +79,8 @@ public final class GuidedTestValidation extends Instrumentation {
     private static final String[] FEATURES = {"display_units", "headlight", "turn_sound", "auto_sensor", "range_algorithm"};
     /** Experimental mode only: a synthetic N65i (22131), whose official app hides turn sound, traction control, kick-start and more. */
     private static final String[] N65I = {"n65i", "Q2213ZZ9US7777773", "22131", "C0:FF:EE:00:22:13", "A1B2C3D4E5F9", "Synthetic guided N65i"};
+    /** release-dialog mode only: a synthetic GT3 Max (24182), an OEM-mapped model whose owner reported working controls. */
+    private static final String[] GT3 = {"gt3", "Q2418ZZ9US7777774", "24182", "C0:FF:EE:00:24:18", "A1B2C3D4E5FA", "Synthetic guided GT3 Max"};
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;
@@ -106,6 +108,7 @@ public final class GuidedTestValidation extends Instrumentation {
             else if (mode.equals("interrupt-resume")) interruptResume();
             else if (mode.equals("recovery-navigation")) recoveryNavigation();
             else if (mode.equals("experimental")) experimental();
+            else if (mode.equals("release-dialog")) releaseDialog();
             else throw new IllegalArgumentException("Unknown mode " + mode);
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -153,6 +156,7 @@ public final class GuidedTestValidation extends Instrumentation {
             ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
             List<String[]> models = new ArrayList<>(Arrays.asList(MODELS));
             if (arguments.getString("mode", "guided").equals("experimental")) models.add(N65I);
+            if (arguments.getString("mode", "guided").equals("release-dialog")) models.add(GT3);
             for (String[] m : models) {
                 ScooterProfiles.Profile p = profiles.create(m[5], m[4], 0);
                 p.serial = m[1]; p.mac = m[3]; p.lastConnected = System.currentTimeMillis() - 60000;
@@ -164,7 +168,8 @@ public final class GuidedTestValidation extends Instrumentation {
             profiles.select(profiles.all().get(0).id);
             OnboardingScreen.markDone(getTargetContext());
             // The offer to send a first report for an unreported model would cover the screens under test.
-            settings().edit().putString(ReportInvite.PREFIX + "24431", "never").putString(ReportInvite.PREFIX + "39991", "never").commit();
+            settings().edit().putString(ReportInvite.PREFIX + "24431", "never").putString(ReportInvite.PREFIX + "39991", "never")
+                    .putString(ReportInvite.PREFIX + "24182", "never").commit();
             if (arguments.getString("mode", "guided").equals("recovery-navigation")) seedVersionOneJournal(profiles);
         });
     }
@@ -188,7 +193,7 @@ public final class GuidedTestValidation extends Instrumentation {
         await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, "App did not launch"); settle();
     }
     private ScooterProfiles.Profile profileFor(String label) {
-        String serial = label.equals(N65I[0]) ? N65I[1] : null; for (String[] m : MODELS) if (m[0].equals(label)) serial = m[1];
+        String serial = label.equals(N65I[0]) ? N65I[1] : label.equals(GT3[0]) ? GT3[1] : null; for (String[] m : MODELS) if (m[0].equals(label)) serial = m[1];
         for (ScooterProfiles.Profile p : activity.service().profiles.all()) if (p.serial.equals(serial)) return p;
         throw new IllegalStateException("No profile " + label);
     }
@@ -258,6 +263,44 @@ public final class GuidedTestValidation extends Instrumentation {
         checks.add("Every try's write went through BleController's queue, the try gate and the journal to the in-process synthetic link; Bluetooth stayed off");
     }
 
+    /**
+     * release-dialog mode (run by hand, no sweep step): a connected, parked owner GT3 Max and UT5 MAX over the synthetic
+     * link. Controls on the GT3 Max says no Untested here, and Release this scooter's confirmation reads the same on both
+     * (owner, Nov 17 2026: no Untested here on any scooter). Cancel sends nothing. Screenshots: gt3-controls,
+     * gt3-release, ut5-release. With -e capture_only true it only takes them, for a before picture from an older build.
+     */
+    private void releaseDialog() throws Exception {
+        boolean check = !"true".equals(arguments.getString("capture_only"));
+        String first = null;
+        for (String label : new String[]{"gt3", "ut5"}) {
+            connect(label); parked(label);
+            ScooterProfiles.Profile p = profileFor(label);
+            if (label.equals("gt3")) {
+                main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
+                screenshot(label + "-controls");
+                if (check) main(() -> require(!texts(root()).contains("Untested"), label + ": Controls still says Untested: " + texts(root()).replace('\n', '|')));
+            }
+            main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "more")); settle();
+            main(() -> invoke(more(), "releaseScooter", new Class<?>[]{String.class}, p.id)); settle();
+            String[] shown = {""};
+            main(() -> {
+                List<?> dialogs = (List<?>)field(more(), "dialogs"); require(!dialogs.isEmpty(), label + ": Release asked nothing");
+                android.app.Dialog dialog = (android.app.Dialog)dialogs.get(dialogs.size() - 1);
+                shown[0] = texts(dialog.getWindow().getDecorView());
+                require(shown[0].contains(T.moreScootersReleaseTitle(p.displayName())) && shown[0].contains(T.moreScootersReleaseBody()), label + ": Release confirmation " + shown[0]);
+                if (check) require(!shown[0].contains("Untested"), label + ": Release confirmation still says Untested: " + shown[0]);
+            });
+            screenshot(label + "-release");
+            int writes = fake.writes.size();
+            main(() -> { List<?> dialogs = (List<?>)field(more(), "dialogs"); ((android.app.Dialog)dialogs.get(dialogs.size() - 1)).dismiss(); }); settle();
+            require(fake.writes.size() == writes, label + ": dismissing Release wrote " + fake.describeWrites());
+            String body = shown[0].replace(p.displayName(), "<name>");
+            if (first == null) first = body; else if (check) require(first.equals(body), "Release reads differently on the GT3 Max and the UT5 MAX: " + first + " | " + body);
+            main(() -> activity.service().ble.disconnect()); settle();
+        }
+        checks.add("GT3 Max (24182, OEM-mapped): Controls shows no Untested; Release this scooter's confirmation has no Untested here and reads as on the UT5 MAX; dismissing it sends nothing");
+    }
+
     /** Selects the model's profile and attaches the synthetic link as an authenticated, ready session. */
     private void connect(String label) throws Exception {
         ScooterProfiles.Profile p = profileFor(label);
@@ -272,6 +315,7 @@ public final class GuidedTestValidation extends Instrumentation {
             require(label.equals("ut5") ? layer == ModelRegistry.Layer.UT5_MAX && d.pidSource() == DeviceDescriptor.PidSource.SERIAL
                     : label.equals("mapped") ? layer == ModelRegistry.Layer.OEM_GROUP && d.advertisedPid.equals("24431")
                     : label.equals(N65I[0]) ? layer == ModelRegistry.Layer.OEM_GROUP && d.advertisedPid.equals("22131")
+                    : label.equals(GT3[0]) ? layer == ModelRegistry.Layer.OEM_GROUP && d.advertisedPid.equals("24182")
                     : layer == ModelRegistry.Layer.SHARED && d.advertisedPid.equals("39991"), label + ": descriptor " + d + " layer " + layer);
         });
     }
