@@ -1829,7 +1829,11 @@ public final class MoreScreen implements AppScreen {
     }
     private void pinGuide() {
         LinearLayout box = dialogBox(T.morePinGuideRow(), T.morePinGuideBody());
-        box.addView(new HandlebarDiagram(), new LinearLayout.LayoutParams(-1, ui.dp(116)));
+        // The UT5 MAX handlebar as the rider sees it (owner, Nov 17 2026); its numbers match the steps below.
+        HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui);
+        diagram.setContentDescription(T.morePinDiagramLayout(T.morePinDiagram()));
+        LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
+        box.addView(diagram, dp);
         String[] steps = {T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()};
         for (int i = 0; i < steps.length; i++) {
             LinearLayout line = row(); line.setPadding(0, ui.dp(5), 0, ui.dp(5));
@@ -1846,46 +1850,6 @@ public final class MoreScreen implements AppScreen {
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).setPositiveButton(T.moreGotIt(), null).create(); show(dialog);
     }
-    /** Schematic handlebar: 1 turn-signal button, 2 brake lever, 3 power button. */
-    private final class HandlebarDiagram extends View {
-        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        HandlebarDiagram() {
-            super(host.activity());
-            setContentDescription(T.morePinDiagram());
-        }
-        @Override protected void onDraw(Canvas canvas) {
-            float w = getWidth(), h = getHeight(), bar = h * .5f;
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(ui.dim); paint.setStrokeWidth(ui.dp(6));
-            canvas.drawLine(w * .1f, bar, w * .9f, bar, paint);
-            paint.setColor(ui.muted); paint.setStrokeWidth(ui.dp(13));
-            canvas.drawLine(w * .04f, bar, w * .17f, bar, paint); canvas.drawLine(w * .83f, bar, w * .96f, bar, paint);
-            // Brake lever under the left grip.
-            paint.setStrokeWidth(ui.dp(4)); canvas.drawLine(w * .22f, bar + ui.dp(6), w * .06f, bar + ui.dp(20), paint);
-            // Turn-signal switch pod beside the left grip.
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.raised);
-            RectF pod = new RectF(w * .21f, bar - ui.dp(15), w * .21f + ui.dp(22), bar + ui.dp(4));
-            canvas.drawRoundRect(pod, ui.dp(5), ui.dp(5), paint);
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(ui.dp(1.2f)); paint.setColor(ui.muted);
-            canvas.drawRoundRect(pod, ui.dp(5), ui.dp(5), paint);
-            // Centre display with its power button.
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.raised);
-            canvas.drawCircle(w / 2, bar, ui.dp(15), paint);
-            paint.setStyle(Paint.Style.STROKE); paint.setColor(ui.muted); canvas.drawCircle(w / 2, bar, ui.dp(15), paint);
-            ui.drawIcon(canvas, "power", ui.text, w / 2, bar, ui.dp(16));
-            marker(canvas, "1", pod.centerX(), pod.top - ui.dp(14));
-            marker(canvas, "2", w * .1f, bar + ui.dp(36));
-            marker(canvas, "3", w / 2, bar - ui.dp(32));
-        }
-        private void marker(Canvas canvas, String number, float x, float y) {
-            float r = ui.dp(10);
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.accent); canvas.drawCircle(x, y, r, paint);
-            paint.setColor(ui.onAccent); paint.setTypeface(ui.bold()); paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(r * 1.15f);
-            canvas.drawText(number, x, y - (paint.descent() + paint.ascent()) / 2, paint);
-        }
-    }
-
     // ---- Experimental controls ------------------------------------------------------------
 
     /**

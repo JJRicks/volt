@@ -98,9 +98,42 @@ public final class UnlockGuideValidation extends Instrumentation {
                 require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
             checks.add(label + ": the guide's drawing is " + Math.round(drawing.getWidth() / density()) + "x" + Math.round(drawing.getHeight() / density())
                     + " dp in a " + Math.round(panel.getWidth() / density()) + " dp dialog, whole across, beside the three steps; it says '" + drawing.getContentDescription() + "'");
+            verifyDrawing(drawing);
         });
         shot(label + "-guide");
         main(() -> dialog[0].dismiss()); settle();
+    }
+    /**
+     * The redrawn handlebar (owner, Nov 17 2026): in proportion at its width (never squashed or stretched), the switch big
+     * enough to read, the three parts the steps use drawn in the accent and the light button not, and screen-reader text that
+     * says where each pictured control sits. Main thread.
+     */
+    private void verifyDrawing(View drawing) {
+        require(drawing instanceof HandlebarDiagram, "The guide's drawing is a " + drawing.getClass().getSimpleName() + ", not the handlebar drawing");
+        HandlebarDiagram diagram = (HandlebarDiagram) drawing;
+        float drawn = Math.min(drawing.getWidth(), 420 * density()), expected = drawn * HandlebarDiagram.HEIGHT / HandlebarDiagram.WIDTH;
+        require(Math.abs(drawing.getHeight() - expected) <= 2, "The drawing is " + drawing.getHeight() + " px tall, not " + Math.round(expected) + " px for its width");
+        float rocker = 50 * diagram.scale() / density();
+        require(rocker >= 32, "The turn-signal rocker is only " + rocker + " dp wide");
+        Bitmap picture = Bitmap.createBitmap(drawing.getWidth(), drawing.getHeight(), Bitmap.Config.ARGB_8888);
+        try {
+            drawing.draw(new android.graphics.Canvas(picture));
+            int accent = activity.ui().accent;
+            for (float[] point : HandlebarDiagram.ACCENT_POINTS) {
+                float[] at = diagram.toView(point[0], point[1]); int pixel = picture.getPixel(Math.round(at[0]), Math.round(at[1]));
+                require(near(pixel, accent), "The part at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel) + ", not the accent");
+            }
+            for (float[] point : HandlebarDiagram.NEUTRAL_POINTS) {
+                float[] at = diagram.toView(point[0], point[1]); int pixel = picture.getPixel(Math.round(at[0]), Math.round(at[1]));
+                require(android.graphics.Color.alpha(pixel) == 255 && !near(pixel, accent), "The light button at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel));
+            }
+        } finally { picture.recycle(); }
+        require(String.valueOf(drawing.getContentDescription()).equals(T.morePinDiagramLayout(T.morePinDiagram())), "The drawing says '" + drawing.getContentDescription() + "'");
+        checks.add(label + ": the drawing keeps its proportions, its rocker is " + Math.round(rocker) + " dp wide, and the rocker, brake lever and M/power button are in the accent");
+    }
+    private static boolean near(int a, int b) {
+        return Math.abs(android.graphics.Color.red(a) - android.graphics.Color.red(b)) <= 6 && Math.abs(android.graphics.Color.green(a) - android.graphics.Color.green(b)) <= 6
+                && Math.abs(android.graphics.Color.blue(a) - android.graphics.Color.blue(b)) <= 6;
     }
     /** The guide's row on Security: the shown row whose title is the guide's name. Main thread. */
     private View guideRow() {
