@@ -42,11 +42,31 @@
     <string name="more_scooters_save_name" volt:src="44a2f79d166043c73ea7e045017866ef15cd4103">Guardar nombre</string>
     <string name="more_scooters_forget" volt:src="7fff3d4a9e3ea5f2863d17d00361b1a14ebb964d">Olvidar este patinete</string>
     <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Olvidar %1$s</string>
+    <string name="more_scooters_find_new_address" volt:src="36fa502b3d743203d54646bff813a3b8f4751d9d">Buscar en una nueva dirección</string>
+    <string name="more_scooters_find_new_address_named" volt:src="026ffc9c7547962d6e390c876e8c5077b52e5a4f">Buscar %1$s en una nueva dirección</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Escribe un nombre para el patinete</string>
     <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">¿Olvidar %1$s?</string>
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Se eliminará su configuración de conexión de este teléfono. Los viajes guardados y las grabaciones de carga se conservarán.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Guardar copia de seguridad primero</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Olvidar</string>
+    <string name="more_scooters_forget_owner_warning" volt:src="fa86328936297b67be02970febecd58e5128f833">El patinete conserva su clave de propietario hasta que se libera. Olvidarlo elimina la copia de Volt, por lo que sin una copia de seguridad es posible que no puedas volver a conectar como su propietario.</string>
+    <string name="more_scooters_forget_backed_up" volt:src="5f769678c1022437c26e0482b1292d8c2a120eeb">Copia de seguridad con esta clave guardada: %1$s.</string>
+    <string name="more_scooters_forget_backup_needed" volt:src="4483ec9e2f095b8e1084997f96f95049bb8eaf88">Guarda primero una copia de seguridad con esta clave. Si prefieres dejar el patinete como nuevo, usa «Liberar este patinete».</string>
+    <string name="more_scooters_release" volt:src="700ec9ec671bad88248d630e22ba58c07bef9d27">Liberar este patinete…</string>
+    <string name="more_scooters_release_named" volt:src="fb25cc3c4c3c8d6843ef30a74548b45ce18e813b">Liberar %1$s</string>
+    <string name="more_scooters_release_connect_first" volt:src="bc26e8a3afbba3603622b5ac75abedb115eb6396">Conecta primero este patinete para liberarlo.</string>
+    <string name="more_scooters_release_title" volt:src="e1e99c773016303e1307c2d1459633788ea3efb0">¿Liberar %1$s?</string>
+    <string name="more_scooters_release_body" volt:src="940f26ba52f268ab0167b232dd13c4a7cf2258c6">Tu patinete olvidará su clave de propietario y Volt lo eliminará de este teléfono. Cualquier persona que esté cerca podrá agregarlo con la app de NAVEE o con Volt. Si lo agregaste en la app de NAVEE, tu cuenta allí lo seguirá mostrando.</string>
+    <string name="more_scooters_release_action" volt:src="a966e89cfabc8d4d60492392e99c99feefbc8c51">Liberar</string>
+    <string name="more_scooters_released" volt:src="4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703">Patinete liberado</string>
+    <string name="more_scooters_release_refused" volt:src="53a5b4cbb5433229a2b95cf55b33c20319375ca2">El patinete rechazó la liberación. Sigue guardado en Volt.</string>
+    <string name="more_scooters_release_unconfirmed" volt:src="02df0809209475398031fe9a4333bda4e9f9a5fe">El patinete no confirmó la liberación. Sigue guardado en Volt.</string>
+    <string name="more_scooters_release_not_sent" volt:src="842e08407ba34879137b5f38a3f84cc8f57d579d">No se envió la liberación. El patinete sigue guardado en Volt.</string>
+    <string name="more_scooters_release_held_title" volt:src="1554f7352a60182cfc7408561ab3dcb4ad64ba8b">%1$s no confirmó la liberación</string>
+    <string name="more_scooters_release_held_body" volt:src="4ef32f776404358f5562056c22818041360d34a4">Es posible que se haya liberado. Si fue así, ya no reconoce esta clave y la app de NAVEE u otra clave de propietario de Volt podrán agregarlo. Volt no volverá a conectar el patinete por su cuenta hasta que elijas una opción.</string>
+    <string name="more_scooters_release_held_remove" volt:src="5f029298852d5600fb27464b025d03b02eea5aeb">Eliminar de Volt</string>
+    <string name="more_scooters_release_held_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Volver a conectar</string>
+    <string name="more_scooters_release_held_reconnect_note" volt:src="90bd11ba915515f4530fb3b74db021f0833eead9">Si se liberó, volver a conectar hace que Volt sea su propietario de nuevo.</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Apariencia</string>
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Oscuro</string>
     <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Seguir el sistema</string>
@@ -63,7 +83,7 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Conectar automáticamente</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Mantener la conexión en segundo plano</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Las grabaciones siempre mantienen la conexión</string>
+    <string name="more_prefs_background_sub" volt:src="72a034c2acd35f0fa065e73cba4010accf1ba188" volt:attempt="2">Las grabaciones mantienen la conexión, al igual que la carga en vivo y las alertas de carga durante una carga</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Mantener la pantalla encendida</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Durante la grabación</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Finalizar viajes automáticamente</string>
@@ -193,8 +213,8 @@
         <item quantity="other">Se borraron %1$d intentos</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Los resultados de los intentos permanecen en este teléfono hasta que un informe de compatibilidad que envíes los incluya o hasta que los borres."</string>
-    <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Los controles que ofrece la app oficial para tu modelo se quedan en «Ajustes del patinete». Los límites de velocidad, la carga, el bloqueo, el PIN, el desbloqueo por proximidad y el reloj nunca se agregan aquí. Volt nunca cambia el firmware.</string>
-    <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Los controles que ofrece la app oficial para tu modelo se quedan en «Ajustes del patinete». Volt nunca cambia el firmware.</string>
+    <string name="more_lab_foot_oem" volt:src="98f20fb6388aa8e2510cf516190649be9646459c">Los controles que ofrece la app oficial para tu modelo se mantienen en sus propias páginas. Los límites de velocidad, la carga, el bloqueo, el PIN, el desbloqueo por proximidad y el reloj nunca se agregan aquí. Volt nunca cambia el firmware.</string>
+    <string name="more_lab_foot_elsewhere" volt:src="d7eaa8c93aabd13af7c8d1c98feab66159f644a0">Los controles que ofrece la app oficial para tu modelo se mantienen en sus propias páginas. Volt nunca cambia el firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt nunca cambia el firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Conectando…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Probar en este patinete</string>
@@ -205,12 +225,12 @@
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">tu modelo</string>
     <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63" volt:attempt="2">La app oficial no ofrece estos controles para %1$s. Pruébalo con el patinete detenido; Volt hace la relectura.</string>
     <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8" volt:attempt="2">La app oficial ofrece estos controles para %1$s, pero Volt no los probó ahí. Pruébalo con el patinete detenido; Volt hace la relectura.</string>
-    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">No hay nada que probar en %1$s: la app oficial ya ofrece los controles que Volt podría probar. Están en «Ajustes del patinete».</string>
+    <string name="more_lab_empty_oem" volt:src="e3e64baef0955008d83ada821de7cc592e177373">Nada que probar en %1$s: la app oficial ya ofrece los controles que Volt podría probar. Están en sus propias páginas.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt no envía comandos de patinete a este producto.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Nada que probar en el UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">El Model ID de este patinete no coincide con su número de serie, por lo que Volt no ofrece nada que probar.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">La app oficial no incluye este modelo, por lo que Volt no puede saber qué controles le faltan. Nada que probar por ahora.</string>
-    <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Identifica primero tu modelo en la página «Patinete». Luego Volt mostrará lo que puedes probar.</string>
+    <string name="more_lab_empty_identify" volt:src="c7404734d6e98be34382660c8ad9b3505c31e670">Identifica primero tu modelo en «Servicio › Comprobación de compatibilidad». Luego Volt mostrará lo que puedes probar.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Conecta tu patinete para ver qué puedes probar.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Arranque desde parado</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, sin datos de este patinete</string>
@@ -313,7 +333,7 @@
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Notificaciones</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Notificación de grabación con «Detener»</string>
     <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Tus datos</string>
-    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Todos los datos permanecen en este teléfono. «Copia de seguridad y restauración» está en «Más».</string>
+    <string name="more_about_data_note" volt:src="c98d3e9202d1b276d52fccbfd99f0106616db70b">Todos los datos permanecen en este teléfono. «Copia de seguridad y restauración» está en «Ajustes».</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Mapa en línea</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Actividad de conexión</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licencias y atribución</string>
@@ -355,6 +375,12 @@
     <string name="more_dev_compat_sub" volt:src="054fa580d38ad30a2d90471fa68958c3be7e3945">Comprobación de modelo e informe</string>
     <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Simular patinete conectado</string>
     <string name="more_dev_simulated_model" volt:src="d1f71ab8da3622272a8550620b16eb90a8c0f5fd">Modelo simulado</string>
+    <string name="more_dev_simulation_scene" volt:src="06c23103136ed05e9b5571db1dc39cb0d6b294df">Escenario</string>
+    <string name="more_dev_simulation_scene_parked" volt:src="1cbc72e5488ab96cea6887e887dd9b1428ca0ee4">Detenido</string>
+    <string name="more_dev_simulation_scene_riding" volt:src="10021cd9dfd5543792f2617db36dfe71d358bb6e">Conduciendo</string>
+    <string name="more_dev_simulation_scene_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Cargando</string>
+    <string name="more_dev_simulation_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Modo de conducción</string>
+    <string name="more_dev_simulation_drive_mode_code" volt:src="ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b">%1$s (código %2$s)</string>
     <string name="more_dev_simulation_active" volt:src="ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650">Simulación activa · datos de muestra</string>
     <string name="more_dev_simulating" volt:src="7ba690e370878c8a9dd9152ce3649c1a56544346">Simulando</string>
     <string name="more_dev_charge_recording" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Grabación de carga</string>

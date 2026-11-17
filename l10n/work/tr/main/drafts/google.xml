@@ -97,6 +97,15 @@
         <item quantity="other">%1$d scooter bulundu</item>
     </plurals>
     <string name="main_scan_option" volt:src="6801c41ddbd8a9ef7d66c7806562c01c3d210fe4">%1$s, %2$s%3$s, %4$s ile biten adres</string>
+    <string name="main_find_title" volt:src="5622737b7ee69869fa25c076ea590c965f9bc3a1">Yakındaki %1$s adlı scooter’ı bul</string>
+    <string name="main_find_saved_address" volt:src="95393b3e1288d46b3bb45a65b82176c4c079e4d3">Kayıtlı adres</string>
+    <string name="main_find_state_saved_address" volt:src="2f6ec6c6c339510ec4e80d653740a6eb5be60ed0">, kayıtlı adres</string>
+    <plurals name="main_find_hidden" volt:src="bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b">
+        <item quantity="one">%1$d diğer scooter gizlendi (farklı model)</item>
+        <item quantity="other">%1$d diğer scooter gizlendi (farklı model)</item>
+    </plurals>
+    <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Bu scooter’a %1$s olarak bağlanılsın mı?</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Volt, %1$s adlı scooter’ın sahip anahtarını bu scooter’a gönderecek. Henüz sahibi olmayan bir scooter (yeni veya sıfırlanmış) bu anahtarı kabul eder; bu yüzden yalnızca telefonunuz hemen yanındayken kendi scooter’ınızı seçin.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Sürüş</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Pil</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Işıklar</string>
@@ -310,7 +319,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Gönder</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Önce okuyabilmeniz için bir sonraki adımda e-posta uygulamanız açılacak.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Scooter’ınızı veya “Emin değilim” seçeneğini seçin, ardından “Gönder” düğmesine dokunun.</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Bir tanılama dosyası ekler: uygulama ve scooter ayrıntıları ile son bağlantı ve denetim olayları. Sahip anahtarınız, PIN, seri numarası, konum veya adlar asla dahil edilmez.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff" volt:attempt="2">Bir tanılama dosyası ekler: uygulama, telefon ve scooter ayrıntıları, Volt’un ayarları ve son çökme, kayıt sayıları, son bağlantı ve kontrol olayları ile seçilen scooter’ın zaman bilgileriyle birlikte şarj ve zamanlama geçmişi. Sahip anahtarı, PIN, seri numarası, konum veya adlar asla eklenmez.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Volt’a e-posta gönder</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Önizle</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Tanılama dosyasını önizle</string>

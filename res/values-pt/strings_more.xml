@@ -84,6 +84,10 @@
     <string name="more_scooters_forget">Esquecer esta trotinete</string>
     <!-- src:214e6ed679b82875242979b8390e8d1dfe73ad56 -->
     <string name="more_scooters_forget_named">Esquecer %1$s</string>
+    <!-- src:36fa502b3d743203d54646bff813a3b8f4751d9d -->
+    <string name="more_scooters_find_new_address">Procurar num novo endereço</string>
+    <!-- src:026ffc9c7547962d6e390c876e8c5077b52e5a4f -->
+    <string name="more_scooters_find_new_address_named">Procurar %1$s num novo endereço</string>
     <!-- src:9db47f71b6bc98710f775f02e4c80221edbf86dc -->
     <string name="more_scooters_enter_name">Introduz um nome para a trotinete</string>
     <!-- src:7926521c882a2e7ca90abae823f2a69fa8e33152 -->
@@ -94,6 +98,42 @@
     <string name="more_scooters_save_backup">Guardar cópia de segurança primeiro</string>
     <!-- src:75872781b896acdf04cc53236237c84863dd2857 -->
     <string name="more_scooters_forget_action">Esquecer</string>
+    <!-- src:fa86328936297b67be02970febecd58e5128f833 -->
+    <string name="more_scooters_forget_owner_warning">A trotinete mantém a chave de proprietário até ser libertada. Esquecer elimina a cópia que a Volt tem, por isso, sem uma cópia de segurança, podes não conseguir voltar a conectar a trotinete como proprietário.</string>
+    <!-- src:5f769678c1022437c26e0482b1292d8c2a120eeb -->
+    <string name="more_scooters_forget_backed_up">Cópia de segurança com esta chave guardada: %1$s.</string>
+    <!-- src:4483ec9e2f095b8e1084997f96f95049bb8eaf88 -->
+    <string name="more_scooters_forget_backup_needed">Guarda primeiro uma cópia de segurança com esta chave. Em vez disso, para repor a trotinete como nova, usa «Libertar esta trotinete».</string>
+    <!-- src:700ec9ec671bad88248d630e22ba58c07bef9d27 -->
+    <string name="more_scooters_release">Libertar esta trotinete…</string>
+    <!-- src:fb25cc3c4c3c8d6843ef30a74548b45ce18e813b -->
+    <string name="more_scooters_release_named">Libertar %1$s</string>
+    <!-- src:bc26e8a3afbba3603622b5ac75abedb115eb6396 -->
+    <string name="more_scooters_release_connect_first">Conecta primeiro esta trotinete para a libertar.</string>
+    <!-- src:e1e99c773016303e1307c2d1459633788ea3efb0 -->
+    <string name="more_scooters_release_title">Libertar %1$s?</string>
+    <!-- src:940f26ba52f268ab0167b232dd13c4a7cf2258c6 -->
+    <string name="more_scooters_release_body">A tua trotinete esquece a chave de proprietário e a Volt remove a trotinete deste telemóvel. Depois, qualquer pessoa por perto pode adicioná-la com a app NAVEE ou com a Volt. Se a adicionaste na app NAVEE, a tua conta lá continua a mostrá-la.</string>
+    <!-- src:a966e89cfabc8d4d60492392e99c99feefbc8c51 -->
+    <string name="more_scooters_release_action">Libertar</string>
+    <!-- src:4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703 -->
+    <string name="more_scooters_released">Trotinete libertada</string>
+    <!-- src:53a5b4cbb5433229a2b95cf55b33c20319375ca2 -->
+    <string name="more_scooters_release_refused">A trotinete recusou a libertação. Continua guardada na Volt.</string>
+    <!-- src:02df0809209475398031fe9a4333bda4e9f9a5fe -->
+    <string name="more_scooters_release_unconfirmed">A trotinete não confirmou a libertação. Continua guardada na Volt.</string>
+    <!-- src:842e08407ba34879137b5f38a3f84cc8f57d579d -->
+    <string name="more_scooters_release_not_sent">A libertação não foi enviada. A trotinete continua guardada na Volt.</string>
+    <!-- src:1554f7352a60182cfc7408561ab3dcb4ad64ba8b -->
+    <string name="more_scooters_release_held_title">%1$s não confirmou a libertação</string>
+    <!-- src:4ef32f776404358f5562056c22818041360d34a4 -->
+    <string name="more_scooters_release_held_body">A trotinete pode ter sido libertada. Se foi, já não reconhece esta chave e pode ser adicionada pela app NAVEE ou com outra chave de proprietário da Volt. A Volt não voltará a conectar a trotinete automaticamente até fazeres uma escolha.</string>
+    <!-- src:5f029298852d5600fb27464b025d03b02eea5aeb -->
+    <string name="more_scooters_release_held_remove">Remover da Volt</string>
+    <!-- src:7405213e2d5feb7533a817dbf9530cea921c280d -->
+    <string name="more_scooters_release_held_reconnect">Voltar a conectar</string>
+    <!-- src:90bd11ba915515f4530fb3b74db021f0833eead9 -->
+    <string name="more_scooters_release_held_reconnect_note">Se tiver sido libertada, voltar a conectar torna a Volt novamente o seu proprietário.</string>
     <!-- src:40d57941835556fe6430b2e5a7840750d8408b3f -->
     <string name="more_prefs_appearance">Aspeto</string>
     <!-- src:13ef75b12132c118c49106ae3778ff9058ab58d4 -->
@@ -126,6 +166,8 @@
     <string name="more_prefs_auto_connect">Conectar automaticamente</string>
     <!-- src:25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a -->
     <string name="more_prefs_background">Manter a ligação em segundo plano</string>
+    <!-- src:72a034c2acd35f0fa065e73cba4010accf1ba188 -->
+    <string name="more_prefs_background_sub">As gravações mantêm a ligação, assim como o «Carregamento em direto» e os alertas de carga durante um carregamento</string>
     <!-- src:83881e36841edbacf388110c732b3b73770b8f36 -->
     <string name="more_prefs_awake">Manter o ecrã ligado</string>
     <!-- src:4b883a1e45fc80b5443cad2a0c4f2a8652ee1516 -->
@@ -376,6 +418,10 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Os resultados das tentativas mantêm-se neste telemóvel até serem incluídos num relatório de compatibilidade que envies ou até os limpares."</string>
+    <!-- src:98f20fb6388aa8e2510cf516190649be9646459c -->
+    <string name="more_lab_foot_oem">Os controlos que a app oficial oferece para o teu modelo ficam nas respetivas páginas. Os limites de velocidade, o carregamento, o bloqueio, o PIN, o desbloqueio por proximidade e o relógio nunca são adicionados aqui. A Volt nunca altera o firmware.</string>
+    <!-- src:d7eaa8c93aabd13af7c8d1c98feab66159f644a0 -->
+    <string name="more_lab_foot_elsewhere">Os controlos que a app oficial oferece para o teu modelo ficam nas respetivas páginas. A Volt nunca altera o firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">A Volt nunca altera o firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -396,6 +442,8 @@
     <string name="more_lab_intro_untested">A app oficial não oferece estes controlos para %1$s. Experimenta um com a trotinete parada; a Volt faz a releitura da definição.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">A app oficial oferece estes controlos para %1$s, mas a Volt não os testou nesse modelo. Experimenta um com a trotinete parada; a Volt faz a releitura da definição.</string>
+    <!-- src:e3e64baef0955008d83ada821de7cc592e177373 -->
+    <string name="more_lab_empty_oem">Nada a experimentar para %1$s: a app oficial já oferece os controlos que a Volt poderia experimentar. Estão nas respetivas páginas.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">A Volt não envia comandos de trotinete para este produto.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -404,6 +452,8 @@
     <string name="more_lab_empty_conflict">O ID do modelo desta trotinete não corresponde ao número de série, por isso a Volt não oferece nada a experimentar.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">A app oficial não lista este modelo, por isso a Volt não consegue saber que controlos lhe faltam. Ainda não há nada a experimentar.</string>
+    <!-- src:c7404734d6e98be34382660c8ad9b3505c31e670 -->
+    <string name="more_lab_empty_identify">Identifica primeiro o teu modelo em «Serviço › Teste de compatibilidade». Depois, a Volt mostra o que podes experimentar.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Conecta a trotinete para veres o que podes experimentar.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -604,6 +654,8 @@
     <string name="more_about_notifications_sub">Notificação de gravação com «Parar»</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Os teus dados</string>
+    <!-- src:c98d3e9202d1b276d52fccbfd99f0106616db70b -->
+    <string name="more_about_data_note">Todos os dados ficam neste telemóvel. «Cópia de segurança e restauro» está em «Definições».</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Mapa online</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->
@@ -682,6 +734,18 @@
     <string name="more_dev_simulate">Simular trotinete como conectada</string>
     <!-- src:d1f71ab8da3622272a8550620b16eb90a8c0f5fd -->
     <string name="more_dev_simulated_model">Modelo simulado</string>
+    <!-- src:06c23103136ed05e9b5571db1dc39cb0d6b294df -->
+    <string name="more_dev_simulation_scene">Cenário</string>
+    <!-- src:1cbc72e5488ab96cea6887e887dd9b1428ca0ee4 -->
+    <string name="more_dev_simulation_scene_parked">Parado</string>
+    <!-- src:10021cd9dfd5543792f2617db36dfe71d358bb6e -->
+    <string name="more_dev_simulation_scene_riding">Em andamento</string>
+    <!-- src:7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74 -->
+    <string name="more_dev_simulation_scene_charging">A carregar</string>
+    <!-- src:09197979bc4431ba371d1ccb80be6b4623f1d53d -->
+    <string name="more_dev_simulation_drive_mode">Modo de condução</string>
+    <!-- src:ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b -->
+    <string name="more_dev_simulation_drive_mode_code">%1$s (código %2$s)</string>
     <!-- src:ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650 -->
     <string name="more_dev_simulation_active">Simulação ativa · dados de exemplo</string>
     <!-- src:7ba690e370878c8a9dd9152ce3649c1a56544346 -->
@@ -704,6 +768,10 @@
     <string name="more_dev_record">Gravar este carregamento</string>
     <!-- src:31df228a56f613c6d800947252ccfbeb21adfe15 -->
     <string name="more_dev_stop_record">Parar gravação de carregamento</string>
+    <!-- src:af720dda0e5960fc4c7937dd842634095edc5998 -->
+    <string name="more_charge_auto_record">Gravar carregamentos automaticamente</string>
+    <!-- src:b5ae1ac382c33caeae1accd5788315882d14d6a3 -->
+    <string name="more_charge_auto_record_sub">A gravação começa quando a trotinete conectada começa a carregar. Um carregamento que comece enquanto a Volt não estiver conectada ou tiver as notificações desativadas não é gravado.</string>
     <!-- src:96960bb4f69e6584734e68c56d1c7c2a5af9f3e4 -->
     <string name="more_dev_recordings">Gravações de carregamento</string>
     <!-- src:74f12c275268df7067294652b52ba23190fcd1a8 -->
