@@ -2776,8 +2776,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
                     view.addView(design.sectionLabel(RidesScreen.historyLabel()));
                     historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
-                    // Tagged as the link it stands in for, so the walk that opens sub-pages by their link finds it.
-                    historyCard.card.setTag("hub-link-"+HubPages.BATTERY_HISTORY);
+                    // A tag of its own: the page's Charge history & recordings link row carries "hub-link-" (owner, Nov 17 2026),
+                    // and the walks that open a sub-page by its link want exactly one row to it.
+                    historyCard.card.setTag(ChargeHistoryCard.TAG);
                     view.addView(historyCard.card);continue;
                 }
                 LinearLayout body=design.groupCard();cardBodies.add(body);
@@ -4625,6 +4626,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         String body="Volt "+version+(export.model.isEmpty()?"":"\n"+export.model)+"\n";
         ChargeSend.Outcome outcome=ChargeSend.outcome(true,sendWithUri(subject,body,Uri.parse(export.attachment)));
         if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
+        // Recordings on their way to Volt: Battery & charging's invite to send them has done its job (ChargeInvite).
+        else if(outcome==ChargeSend.Outcome.SENT)preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();
     }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
