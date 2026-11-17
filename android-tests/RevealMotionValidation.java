@@ -2354,9 +2354,14 @@ public final class RevealMotionValidation extends Instrumentation {
         return now;
     }
     private void requireHome() {
-        String wanted = home.equals("clean") ? "CleanHomeScreen" : "DashboardScreen";
-        await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
-                && field(activity, "screen").getClass().getSimpleName().equals(wanted)), "The " + home + " Home is not shown");
+        // On two panes (the wide Clean Home, part 13) Home's page pane is HubHomePane, beside the scooter pane's Clean
+        // Home (MainActivity.homeScreen), which holds the Lock bar and Find it nearby.
+        await(() -> onMain(() -> {
+            Object screen = field(activity, "screen");
+            if (!HubPages.HOME.equals(field(activity, "selectedPage")) || screen == null) return false;
+            String wanted = !home.equals("clean") ? "DashboardScreen" : field(activity, "homeScreen") != null ? "HubHomePane" : "CleanHomeScreen";
+            return screen.getClass().getSimpleName().equals(wanted);
+        }), "The " + home + " Home is not shown");
         settle();
     }
 
