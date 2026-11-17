@@ -99,12 +99,17 @@ final class ChargeWireView extends ChargePicture {
     private final ChargeWirePulses.Schedule schedule = new ChargeWirePulses.Schedule();
 
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG), strip = new Paint();
-    // Dithered: the soft gradients (the comets' glow, the pack's bloom, the cells' shading) on the dark page would
-    // otherwise show 8-bit steps (the owner, 17 Nov 2026: banding on the balls of energy).
-    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    /** The comets' glow stamps: one radial gradient per comet layer (null for a layer that is not a glow), drawn dithered. */
-    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    private RadialGradient[] glowShader;
+    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /**
+     * The comets' glow stamps: one soft round bitmap per comet layer (null for a layer that is not a glow), baked once with
+     * its falloff dithered in, and drawn as a plain filtered bitmap at its layer's radius. Never a gradient shader: a
+     * shader on the comet once crashed the Android emulator's GPU translation (see ChargeWireComet).
+     */
+    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    private Bitmap[] glowStamp;
+    private final RectF glowRect = new RectF();
+    /** A glow stamp bitmap's side (px): finer than the stamp ever draws on a phone or an open Fold. */
+    private static final int STAMP_PX = 96;
     private final Path panel = new Path(), cable = new Path(), comet = new Path();
     private final RectF oval = new RectF();
     private final float[] point = new float[2], ends = new float[2];
@@ -227,22 +232,14 @@ final class ChargeWireView extends ChargePicture {
                 dark ? Color.parseColor("#9BE8B2") : ChargeWireComet.mix(green, Color.WHITE, .3f),
                 dark ? Color.parseColor("#F4FFF6") : ChargeWireComet.mix(green, Color.WHITE, .85f),
                 dark ? 1 : .7f);
-        glowShader = new RadialGradient[comets.layers.length];
+        glowStamp = new Bitmap[comets.layers.length];
         for (int j = 0; j < comets.layers.length; j++) {
             ChargeWireComet.Layer layer = comets.layers[j];
             if (!layer.glow) continue;
-            // The stamp's falloff in many stops (each a little Gaussian step, smoothed again by the gradient and dithered).
-            int n = 33;
-            int[] colors = new int[n];
-            float[] stops = new float[n];
-            int rgb = layer.colors[0] & 0xFFFFFF;
-            for (int i = 0; i < n; i++) {
-                stops[i] = i / (float) (n - 1);
-                colors[i] = ChargeWireComet.withAlpha(rgb, (int) Math.round(255 * layer.stamp(stops[i] * layer.radius)));
-            }
-            glowShader[j] = new RadialGradient(0, 0, (float) layer.radius, colors, stops, Shader.TileMode.CLAMP);
+            int[] pixels = ChargeWireComet.stampPixels(layer, layer.colors[0], STAMP_PX);
+            try { glowStamp[j] = Bitmap.createBitmap(pixels, STAMP_PX, STAMP_PX, Bitmap.Config.ARGB_8888); }
+            catch (RuntimeException | OutOfMemoryError unavailable) { glowStamp[j] = null; }
         }
-        glowPaint.setStyle(Paint.Style.FILL);
         stroke.setStyle(Paint.Style.STROKE);
         stroke.setStrokeJoin(Paint.Join.ROUND);
         stroke.setStrokeCap(Paint.Cap.BUTT);
@@ -679,15 +676,13 @@ final class ChargeWireView extends ChargePicture {
             drawing.drawArc(oval, angle - 90, 180, true, fill);
         }
         @Override public void glow(double s, int layer, float alpha) {
-            RadialGradient shader = glowShader[layer];
-            if (shader == null) return;
+            Bitmap stamp = glowStamp[layer];
+            if (stamp == null) return;
             wire.point(s, point);
-            glowPaint.setShader(shader);
+            float r = (float) comets.layers[layer].radius;
+            glowRect.set(point[0] - r, point[1] - r, point[0] + r, point[1] + r);
             glowPaint.setAlpha(Math.max(0, Math.min(255, Math.round(255 * alpha))));
-            drawing.save();
-            drawing.translate(point[0], point[1]);
-            drawing.drawCircle(0, 0, (float) comets.layers[layer].radius, glowPaint);
-            drawing.restore();
+            drawing.drawBitmap(stamp, null, glowRect, glowPaint);
         }
     };
 

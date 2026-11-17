@@ -476,6 +476,19 @@ public final class ChargeWireTest {
             }
         }
         require(glows == 2, "two glow layers");
+        // The baked stamp (ChargeWireView draws it as a plain bitmap): solid green at its centre, nothing at its corners, its
+        // opacity following the falloff within a dither step, and dithered (neighbours differ by at most one level).
+        for (ChargeWireComet.Layer layer : c.layers) {
+            if (!layer.glow) continue;
+            int side = 96;
+            int[] px = ChargeWireComet.stampPixels(layer, 0xFF5FCB7E, side);
+            require((px[0] >>> 24) == 0 && (px[side * side - 1] >>> 24) == 0, "the stamp's corners are clear");
+            require((px[(side / 2) * side + side / 2] & 0xFFFFFF) == 0x5FCB7E, "the stamp keeps the layer's colour");
+            for (int y = 0; y < side; y++) for (int x = 0; x < side; x++) {
+                double r = Math.hypot(x + .5 - side / 2.0, y + .5 - side / 2.0) / (side / 2.0) * layer.radius;
+                require(Math.abs((px[y * side + x] >>> 24) - layer.stamp(r) * 255) <= 1, "the stamp follows its falloff at " + x + "," + y);
+            }
+        }
     }
 
     /** The opacity of a straight band of stamps (every spacing along x, each at opacity a) at (x, d), composited over. */

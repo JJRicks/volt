@@ -11,8 +11,8 @@ package com.jjricks.volt;
  * its front end round. Each layer is a few solid strokes, one per stretch in that stretch's colour, never one stroke
  * with a gradient shader (a long thin stroke with a shader crashed the Android emulator's GPU translation); the
  * stretches meet end to end, and the front's round cap is a half disc ahead of the head. The glow layers are the
- * prototype's blurred strokes, drawn as soft round stamps along the cable (each a radial gradient that falls off as a
- * Gaussian, {@link Sink#glow}), close enough that they blend into one smooth band whose brightness follows the
+ * prototype's blurred strokes, drawn as soft round stamps along the cable (each a pre-baked, dithered soft disc whose
+ * opacity falls off as a Gaussian, {@link Sink#glow}, {@link #stampPixels}), close enough that they blend into one smooth band whose brightness follows the
  * layer's fade along its length. They were nested solid strokes stepping through the blur's profile
  * (ChargeWirePulses.glowRings), whose steps showed as bands round the comet's head and along its tail (the owner,
  * 17 Nov 2026: "there seems to be color banding on the balls of energy"). Where the cable fades out short of the
@@ -26,8 +26,8 @@ final class ChargeWireComet {
         /** The comet's round front at arc length s: a half disc of this radius, ahead of it. */
         void cap(double s, int argb, float radius);
         /**
-         * A glow layer's soft stamp centred on the cable at arc length s: the layer's radial gradient (its colour, opacity
-         * falling off as {@link Layer#stamp}, to nothing at {@link Layer#radius}) at this overall opacity (0..1).
+         * A glow layer's soft stamp centred on the cable at arc length s: the layer's soft disc (its colour, opacity falling
+         * off as {@link Layer#stamp}, to nothing at {@link Layer#radius}; {@link #stampPixels}) at this overall opacity (0..1).
          */
         void glow(double s, int layer, float alpha);
     }
@@ -46,6 +46,28 @@ final class ChargeWireComet {
      */
     static final double STAMP_SPACING = .7;
     static final int STAMP_TABLE = 64;
+
+    /** A 4x4 ordered-dither threshold (0..15), so the stamp's soft falloff has no 8-bit steps of its own. */
+    private static final int[] BAYER = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+
+    /**
+     * A glow layer's stamp as a side x side image (ARGB, unpremultiplied): the layer's colour (argb's), its opacity the
+     * stamp's falloff from the centre to nothing at the image's inscribed circle, dithered so it has no 8-bit steps.
+     */
+    static int[] stampPixels(Layer layer, int argb, int side) {
+        int[] out = new int[side * side];
+        int rgb = argb & 0xFFFFFF;
+        double c = side / 2.0;
+        for (int y = 0; y < side; y++) {
+            for (int x = 0; x < side; x++) {
+                double r = Math.hypot(x + .5 - c, y + .5 - c) / c * layer.radius;
+                double v = layer.stamp(r) * 255;
+                int a = (int) Math.floor(v + (BAYER[(y & 3) * 4 + (x & 3)] + .5) / 16.0);
+                out[y * side + x] = withAlpha(rgb, Math.max(0, Math.min(255, a)));
+            }
+        }
+        return out;
+    }
 
     /** The blurred stroke's half-maximum test, apart so the Layer's constructor reads plainly. */
     private static final class ChargePulsesHalf {
