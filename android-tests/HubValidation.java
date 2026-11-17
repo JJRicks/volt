@@ -199,6 +199,8 @@ public final class HubValidation extends Instrumentation {
                 noBind();
                 targetWaitsForService();
             } else {
+            // Clean Home's subject rows before the simulated scooter connects: Controls and Security have no summary yet.
+            if (!widgetsFirst && !mode.equals(SEARCH_TARGETS)) rowsUnknown = evenSubjectRows(null);
             simulate();
             if (widgetsFirst) widgetsPages(true);
             else if (mode.equals(SEARCH_TARGETS)) searchTargets();
@@ -239,6 +241,7 @@ public final class HubValidation extends Instrumentation {
             main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
                     "Clean Home on a wide window did not take two panes"));
         Object[] pane = scooterPane();
+        evenSubjectRows(rowsUnknown);
         screenshot("clean-home");
         for (String subject : HubPages.SUBJECTS) {
             tapTag("home-subject-" + subject);
@@ -1825,6 +1828,74 @@ public final class HubValidation extends Instrumentation {
                     wide ? "Clean Home on a wide window did not take two panes" : "Clean Home took two panes on a window whose layout is the phone's ("
                             + widthDp() + " dp, " + textScale() + "x text)"));
         }
+    }
+    /** Each subject row's height (px) on Clean Home before the scooter connected (evenSubjectRows), in SUBJECTS' order. */
+    private int[] rowsUnknown;
+    /**
+     * Clean Home's subject rows are all one height (the owner's request on #394, 17 Nov), on one pane and on two (the
+     * page pane's list): a row whose summary isn't known keeps the height of a row with one, its name centred, and its
+     * summary stays out (GONE, so TalkBack reads no empty line). before null: Controls and Security have no summary yet
+     * (not connected); it returns the rows' heights. Otherwise, connected: it waits for their summaries and requires each
+     * row at its height from before, and every row whose name is one line at one height. Returns the heights now.
+     */
+    private int[] evenSubjectRows(int[] before) throws Exception {
+        requireHome("CleanHomeScreen");
+        boolean connected = before != null;
+        List<String> pending = Arrays.asList(HubPages.CONTROLS, HubPages.SECURITY);
+        await(() -> onMain(() -> {
+            for (String subject : pending) if (summaryShown(subject) != connected) return false;
+            return true;
+        }), () -> onMain(() -> "Controls' and Security's summaries should " + (connected ? "show once connected" : "not show before the scooter connects")
+                + ": Controls " + chain(subjectPart(HubPages.CONTROLS, 1)) + ", Security " + chain(subjectPart(HubPages.SECURITY, 1))));
+        settle();
+        int[] heights = new int[HubPages.SUBJECTS.size()];
+        String[] described = new String[1];
+        main(() -> {
+            StringBuilder all = new StringBuilder();
+            int oneLine = -1;
+            for (int i = 0; i < heights.length; i++) {
+                String subject = HubPages.SUBJECTS.get(i);
+                View row = root().findViewWithTag("home-subject-" + subject);
+                require(row != null && row.getHeight() > 0, "Clean Home has no laid-out row for " + subject);
+                TextView name = (TextView) subjectPart(subject, 0);
+                View summary = subjectPart(subject, 1);
+                heights[i] = row.getHeight();
+                all.append(subject).append(' ').append(heights[i]).append("px").append(summaryShown(subject) ? "" : " (no summary)")
+                        .append(name.getLineCount() > 1 ? " (two-line name)" : "").append("; ");
+                // No summary: nothing under the name for TalkBack, the name centred in the row's words.
+                if (!summaryShown(subject)) {
+                    require(summary.getVisibility() == View.GONE, subject + "'s unknown summary is not GONE: " + chain(summary));
+                    View words = (View) name.getParent();
+                    int above = name.getTop(), below = words.getHeight() - name.getBottom();
+                    require(Math.abs(above - below) <= 2, subject + "'s name is not centred in its row without a summary: " + above + " px above, " + below + " px below");
+                }
+                if (name.getLineCount() == 1) {
+                    if (oneLine < 0) oneLine = heights[i];
+                    require(Math.abs(heights[i] - oneLine) <= 1, "Clean Home's subject rows differ in height (" + (connected ? "connected" : "not connected") + "): " + all);
+                }
+                if (connected) require(Math.abs(heights[i] - before[i]) <= 1, subject + "'s row changed height when its summary came: " + before[i] + " px before, " + heights[i] + " px now");
+            }
+            described[0] = all.toString();
+        });
+        screenshot(connected ? "subjects-summaries" : "subjects-no-summaries");
+        checks.add("Clean Home's subject rows " + (panesExpected() ? "(two panes, the page pane's list)" : "(one pane)") + (connected
+                ? ", connected: Controls and Security show summaries and every row keeps the height it had without one: "
+                : ", not connected: Controls and Security have no summary (GONE, name centred) and every one-line row is one height: ") + described[0]);
+        return heights;
+    }
+    /** A part of a subject's row on Clean Home: 0 its name, 1 its summary line (CleanSubjects.line). Main thread. */
+    private View subjectPart(String subject, int part) {
+        View row = root().findViewWithTag("home-subject-" + subject);
+        if (!(row instanceof ViewGroup)) return null;
+        View words = ((ViewGroup) row).getChildAt(1);
+        return words instanceof ViewGroup ? ((ViewGroup) words).getChildAt(part) : null;
+    }
+    /** Whether a subject's row shows a summary text. Main thread. */
+    private boolean summaryShown(String subject) {
+        View summary = subjectPart(subject, 1);
+        if (!(summary instanceof ViewGroup) || summary.getVisibility() != View.VISIBLE) return false;
+        View value = ((ViewGroup) summary).getChildAt(1);
+        return value instanceof TextView && value.getVisibility() == View.VISIBLE && ((TextView) value).length() > 0;
     }
     /**
      * Two panes are expected with -e wide true on a window that gets the wide layout at this text size (WideLayout.wide):
