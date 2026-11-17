@@ -196,6 +196,12 @@ public final class ModelRegistryTest {
             &&ModelRegistry.unlockHandlebar(DeviceDescriptor.of("","",0,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
             &&ModelRegistry.unlockHandlebar(null)==null,
             "Unlock without phone draws nothing for an uncertain model: a Model ID mismatch, no model ID, or none");
+        // A serial alone selects only the UT5 MAX (its own rule, as ut5Max): other families need the advertised Model ID.
+        check(ModelRegistry.unlockHandlebar(serial("Q2538ZZ9US7777777"))==ModelRegistry.Handlebar.UT5&&ModelRegistry.ut5Max(serial("Q2538ZZ9US7777777"))
+            &&ModelRegistry.unlockHandlebar(serial("Q2441ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2443ZZ9US7777777"))==null
+            &&ModelRegistry.unlockHandlebar(serial("Q2701ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2799ZZ9US7777777"))==null
+            &&ModelRegistry.unlockHandlebar(serial("Q2585ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2418ZZ9US7777777"))==null,
+            "A serial alone draws only the UT5 MAX's handlebar; every other family needs the advertised Model ID");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
         check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()
