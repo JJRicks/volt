@@ -133,6 +133,7 @@ public final class ModelPhotosValidation extends Instrumentation {
             for (String pid : CATALOG) require(listed.contains(pid), "The catalog's " + pid + " is not named");
         }
         AtomicReference<Bitmap> drawn = new AtomicReference<>();
+        AtomicReference<View> rendered = new AtomicReference<>();
         main(() -> {
             Ui ui = activity.ui();
             float dp = activity.getResources().getDisplayMetrics().density;
@@ -161,9 +162,9 @@ public final class ModelPhotosValidation extends Instrumentation {
                 frame.addView(photo, new FrameLayout.LayoutParams(cell, cell));
                 card.addView(frame, new LinearLayout.LayoutParams(cell, cell));
                 TextView name = new TextView(activity); name.setTextColor(ui.text); name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13); name.setText(m[1]);
-                name.setGravity(Gravity.CENTER_HORIZONTAL); name.setSingleLine(true);
+                name.setGravity(Gravity.CENTER_HORIZONTAL); name.setMaxLines(1);
                 TextView id = new TextView(activity); id.setTextColor(ui.muted); id.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-                id.setText(m[0] + " · " + photoKey(d)); id.setGravity(Gravity.CENTER_HORIZONTAL); id.setSingleLine(true);
+                id.setText(m[0] + " · " + photoKey(d)); id.setGravity(Gravity.CENTER_HORIZONTAL); id.setMaxLines(1);
                 card.addView(name, new LinearLayout.LayoutParams(cell, LinearLayout.LayoutParams.WRAP_CONTENT));
                 card.addView(id, new LinearLayout.LayoutParams(cell, LinearLayout.LayoutParams.WRAP_CONTENT));
                 LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(cell, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -173,12 +174,12 @@ public final class ModelPhotosValidation extends Instrumentation {
             page.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             page.layout(0, 0, page.getMeasuredWidth(), page.getMeasuredHeight());
             Bitmap bitmap = Bitmap.createBitmap(page.getMeasuredWidth(), page.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-            page.draw(new Canvas(bitmap)); drawn.set(bitmap);
+            page.draw(new Canvas(bitmap)); drawn.set(bitmap); rendered.set(page);
             checks.add(label + ": " + models.size() + " models, " + shown + " with a photo, cells " + Math.round(cell / dp) + " dp");
         });
         File file = new File(dir(), "sheet-" + label + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { drawn.get().compress(Bitmap.CompressFormat.PNG, 100, out); } finally { drawn.get().recycle(); }
-        screenshots.add(file.getAbsolutePath());
+        screenshots.add(file.getAbsolutePath()); TextCensus.writeView(this, file, rendered.get());
     }
 
     /** The folded charging pictures: each cut-out at 80% of its card's width, tyres on the card's floor (ChargeFolded.place). */
@@ -222,6 +223,7 @@ public final class ModelPhotosValidation extends Instrumentation {
         File file = new File(dir(), "folded-" + label + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { drawn.get().compress(Bitmap.CompressFormat.PNG, 100, out); } finally { drawn.get().recycle(); }
         screenshots.add(file.getAbsolutePath());
+        TextCensus.skip(file, "a review sheet drawn on a canvas: its only words are its title and the bundled files' names, not app text");
     }
 
     private String photoKey(DeviceDescriptor d) { return (String) callStatic("com.jjricks.volt.ModelRegistry", "photo", new Class<?>[]{DeviceDescriptor.class}, d); }
