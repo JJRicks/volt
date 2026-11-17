@@ -989,8 +989,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         // on lockMotionRoot since Motion C2, #519), and the slider ignores a touch that starts while that motion still moves
         // it (Motion.changing; Lock slider, 9b9d9a13). The drag below is the rider's at rest: it waits for the motion to end.
         try {
-            await(() -> { AtomicReference<Boolean> still = new AtomicReference<>(false); main(() -> still.set(!motionChanging(slider))); return still.get(); },
-                    "The lock card's motion after the Disconnect toggles did not end", 4000);
+            // await reads its condition on the main thread.
+            await(() -> !motionChanging(slider), "The lock card's motion after the Disconnect toggles did not end", 4000);
         } catch (RuntimeException | Error error) { main(restore); throw error; }
         main(() -> {
             try {
