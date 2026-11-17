@@ -676,7 +676,11 @@ final class Motion {
         final WeakReference<ViewGroup> root;
         /** It reached its first frame and played; swallowed, when that frame came and it had not. */
         boolean played, swallowed, ended;
-        /** What runs once it ends (or is turned back or swallowed): a hold it put on a page is let go. */
+        /**
+         * What runs once it ends (or is turned back or swallowed): a hold it put on a page is let go. A glide is a value
+         * in {@link #moving}, kept until it settles, and one that never plays never settles: an action here holds views
+         * only weakly, or it keeps that weak map's key, and the whole page around it, for the life of the process.
+         */
         final ArrayList<Runnable> after = new ArrayList<>();
         Glide(ViewGroup root) { this.root = new WeakReference<>(root); }
     }
@@ -817,8 +821,11 @@ final class Motion {
         boolean changed = reveal(root, view, shown, frame);
         Glide glide = moving.get(view);
         if (token != null) {
-            if (glide != null) glide.after.add(() -> letGo(scroll, token));
-            else letGo(scroll, token);
+            if (glide != null) {
+                // Weakly (Glide.after): a page rebuilt before its glide plays is let go with it.
+                WeakReference<ScrollView> held = new WeakReference<>(scroll);
+                glide.after.add(() -> { ScrollView page = held.get(); if (page != null) letGo(page, token); });
+            } else letGo(scroll, token);
         }
         return changed;
     }
