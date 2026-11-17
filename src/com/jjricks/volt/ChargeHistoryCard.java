@@ -18,6 +18,8 @@ import java.util.List;
  * from the caller, which owns the catalog calls.
  */
 final class ChargeHistoryCard {
+    /** The card's view tag: it opens Charge history & recordings, a second way in beside the page's link row to it. */
+    static final String TAG = "battery-history-card";
     final LinearLayout card;
     private final Ui ui;
     private final Bars bars;

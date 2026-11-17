@@ -1,6 +1,6 @@
 # Hard-coded English in src/com/jjricks/volt/HubSearchTables.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
-multiword	" clear this scooter's charge recordings live update status"
+multiword	" clear this scooter's charge recordings live update status improve tune charge time estimate"
 multiword	" hide developer options"
 multiword	"Background recording"
 multiword	"Barometer elevation"

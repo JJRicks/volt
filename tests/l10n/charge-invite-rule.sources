@@ -1,0 +1,3 @@
+# Battery & charging's charge recordings invite (ChargeInvite): its rule and its text-free wiring.
+src/com/jjricks/volt/ChargeInvite.java
+tests/l10n/ChargeInviteRuleTest.java
