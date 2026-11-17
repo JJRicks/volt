@@ -27,6 +27,8 @@ final class HubPanes extends LinearLayout {
     private final BooleanSupplier wordsBreak;
     private final Runnable onePane;
     private int split = -1, gapShown;
+    /** How far (px) the right pane reaches past the row's end padding; the split never counts it (endBleed). */
+    private int bleed;
     private boolean onePaneAsked;
 
     /**
@@ -67,6 +69,18 @@ final class HubPanes extends LinearLayout {
         addView(second, new LinearLayout.LayoutParams(0, -1));
     }
 
+    /**
+     * Lets the right pane reach px into the row's end padding (the wide Clean Home's page pane, to the window's edge, so its
+     * page's scroll bar draws at the screen edge: the owner, 16 Nov). The split is the one without it, so the left pane and
+     * the gutter never move; the right pane's own end padding keeps its content where it was. px is at most the end padding.
+     */
+    void endBleed(int px) {
+        bleed = Math.max(0, px);
+        // The right pane now draws over the padding it reaches into.
+        setClipToPadding(bleed == 0);
+        requestLayout();
+    }
+
     /** The left pane's view. */
     View left() { return first; }
 
@@ -89,7 +103,7 @@ final class HubPanes extends LinearLayout {
         gapShown = s.gap;
         ((LinearLayout.LayoutParams) first.getLayoutParams()).width = s.left;
         ((LinearLayout.LayoutParams) gutter.getLayoutParams()).width = s.gap;
-        ((LinearLayout.LayoutParams) second.getLayoutParams()).width = s.right(size);
+        ((LinearLayout.LayoutParams) second.getLayoutParams()).width = s.right(size) + bleed;
     }
 
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -107,7 +121,7 @@ final class HubPanes extends LinearLayout {
             apply(wanted, size);
             int height = MeasureSpec.makeMeasureSpec(Math.max(0, b - t - getPaddingTop() - getPaddingBottom()), MeasureSpec.EXACTLY);
             first.measure(MeasureSpec.makeMeasureSpec(wanted.left, MeasureSpec.EXACTLY), height);
-            second.measure(MeasureSpec.makeMeasureSpec(wanted.right(size), MeasureSpec.EXACTLY), height);
+            second.measure(MeasureSpec.makeMeasureSpec(wanted.right(size) + bleed, MeasureSpec.EXACTLY), height);
         }
         super.onLayout(changed, l, t, r, b);
         onePaneIfWordsBreak();
