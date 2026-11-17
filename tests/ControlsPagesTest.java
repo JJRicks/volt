@@ -184,9 +184,11 @@ public final class ControlsPagesTest {
                 "The Charger row's charger is its sub-line");
         // Charge history & recordings' link draws the chart its recordings row uses, never the default star.
         require(source.contains("caseHubPages.BATTERY_HISTORY:return\"chart\";"), "Charge history & recordings has the chart icon");
-        // Battery & charging's HISTORY card opens Charge history & recordings and carries that link's tag.
+        // Battery & charging's HISTORY card opens Charge history & recordings, a second way in beside the page's link row
+        // (owner, Nov 17 2026), under a tag of its own so one row carries "hub-link-" to the page.
         require(source.contains("historyCard=newChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));")
-                && source.contains("historyCard.card.setTag(\"hub-link-\"+HubPages.BATTERY_HISTORY);"), "The HISTORY card opens Charge history & recordings");
+                && source.contains("historyCard.card.setTag(ChargeHistoryCard.TAG);") && !source.contains("historyCard.card.setTag(\"hub-link-\""),
+                "The HISTORY card opens Charge history & recordings, tagged apart from its link row");
         require(source.contains("for(LinearLayoutbody:cardBodies)if(body!=pageBody&&body!=linksBody)body.setVisibility(hideDividers(body)?View.VISIBLE:View.GONE);"),
                 "Every card of rows shows only while one of its rows does");
     }
@@ -305,13 +307,15 @@ public final class ControlsPagesTest {
         require(batteryCards.get(0).get(0).equals("charge_limit") && batteryCards.get(0).get(batteryCards.get(0).size() - 1).equals(ControlsPages.CHARGE_LIVE),
                 "CHARGING runs from Charge limit to Live charging");
         require(batteryCards.get(2).equals(Arrays.asList("range_algorithm", ControlsPages.USABLE_ENERGY,
-                ControlsPages.link(HubPages.BATTERY_MODES), ControlsPages.link(HubPages.BATTERY_ESTIMATES))), "Range estimate, Usable ride energy, then the sub-pages");
+                ControlsPages.link(HubPages.BATTERY_MODES), ControlsPages.link(HubPages.BATTERY_ESTIMATES), ControlsPages.link(HubPages.BATTERY_HISTORY))),
+                "Range estimate, Usable ride energy, then the sub-pages, Charge history & recordings last");
         int total = 0; for (List<String> card : batteryCards) total += card.size();
         require(total == battery.rows.size(), "Every row in exactly one card");
         require(ControlsPages.cards(ControlsPages.spec(HubPages.SCOOTER)).isEmpty() && ControlsPages.cards(null).isEmpty(), "No cards on the index");
-        // Charge history & recordings stays reachable: the HISTORY card opens it, and More's Charging section still leads there.
-        require(!battery.rows.contains(ControlsPages.link(HubPages.BATTERY_HISTORY)) && battery.rows.contains(ControlsPages.CHARGE_HISTORY),
-                "The HISTORY card stands in for the Charge history link");
+        // Charge history & recordings has a visible link row of its own (owner, Nov 17 2026: behind the bar graph's tap
+        // alone it was hidden), and the HISTORY card still opens it as a second way in.
+        require(battery.rows.contains(ControlsPages.link(HubPages.BATTERY_HISTORY)) && battery.rows.contains(ControlsPages.CHARGE_HISTORY),
+                "Charge history & recordings: its own link row, and the HISTORY card too");
         ControlsPages.Spec lights = ControlsPages.spec(HubPages.LIGHTS);
         require(ControlsPages.linksCardFrom(lights) == lights.rows.size(), "Lights: links between rows keep one card");
         ControlsPages.Spec assists = ControlsPages.spec(HubPages.CONTROLS_ASSISTS);
