@@ -1,1 +1,0 @@
-{"key": "dashboard_duration_hours_narrow", "verdict": "confirm", "reason": "Keeps the ≈ estimate mark and both placeholders; narrower than the shipped ≈ %1$s h %2$s min.", "confirm": {"lock_states_distinct": true, "on_off_never_always_not_inverted": true, "unverified_never_confirmed": true, "numbers_units_action_unchanged": true, "disclaimer_not_softened": true}}

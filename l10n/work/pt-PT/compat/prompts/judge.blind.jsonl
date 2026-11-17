@@ -1,1 +1,0 @@
-{"key": "compat_footer", "verdict": "confirm", "reason": "Path uses the shipped Serviço and Controlos experimentais; read-only and never-changes-firmware stay complete.", "confirm": {"lock_states_distinct": true, "on_off_never_always_not_inverted": true, "unverified_never_confirmed": true, "numbers_units_action_unchanged": true, "disclaimer_not_softened": true}}
