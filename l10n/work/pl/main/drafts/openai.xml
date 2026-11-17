@@ -99,6 +99,17 @@
         <item quantity="other">Znaleziono %1$d hulajnogi</item>
     </plurals>
     <string name="main_scan_option" volt:src="6801c41ddbd8a9ef7d66c7806562c01c3d210fe4">%1$s, %2$s%3$s, końcówka adresu: %4$s</string>
+    <string name="main_find_title" volt:src="5622737b7ee69869fa25c076ea590c965f9bc3a1">Znajdź w pobliżu: %1$s</string>
+    <string name="main_find_saved_address" volt:src="95393b3e1288d46b3bb45a65b82176c4c079e4d3">Zapisany adres</string>
+    <string name="main_find_state_saved_address" volt:src="2f6ec6c6c339510ec4e80d653740a6eb5be60ed0">, zapisany adres</string>
+    <plurals name="main_find_hidden" volt:src="bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b">
+        <item quantity="one">Ukryto %1$d inną hulajnogę (inny model)</item>
+        <item quantity="few">Ukryto %1$d inne hulajnogi (inny model)</item>
+        <item quantity="many">Ukryto %1$d innych hulajnóg (inny model)</item>
+        <item quantity="other">Ukryto %1$d innej hulajnogi (inny model)</item>
+    </plurals>
+    <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Połączyć się z tą hulajnogą jako „%1$s”?</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Aplikacja Volt wyśle do tej hulajnogi klucz właściciela przypisany do zapisanej hulajnogi: %1$s. Hulajnoga, która nie ma jeszcze właściciela (nowa lub zresetowana), przyjmie ten klucz, dlatego należy wybrać wyłącznie własną hulajnogę, trzymając telefon tuż obok niej.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Jazda</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Bateria</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Światła</string>
