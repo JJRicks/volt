@@ -2219,6 +2219,8 @@ public final class MoreScreen implements AppScreen {
                 String pick = ladder[ladder.length - 1];
                 for (String word : ladder) if (getPaint().measureText(word) <= room) { pick = word; break; }
                 if (!pick.contentEquals(getText())) setText(pick);
+                // An empty last rung (an untried row's status) takes no room at all, not a blank line under the name.
+                if (pick.isEmpty()) { setMeasuredDimension(0, 0); return; }
             }
             super.onMeasure(widthSpec, heightSpec);
         }
