@@ -32,6 +32,18 @@ import java.util.WeakHashMap;
 public final class SearchFocus {
     private SearchFocus() {}
 
+    /**
+     * Whether {@code insets} show the keyboard. Android 11 and later say so; older Android has no explicit IME visibility
+     * API, so a resize inset more than 100 dp above the stable one counts (an adjustResize window, such as MainActivity's).
+     * A keyboard that pans the window instead shows in no inset: the bound fields also compare the visible frame. Also
+     * MainActivity's tabletop Search (#393 council review, fourth round, finding 2).
+     */
+    static boolean keyboardShown(WindowInsets insets, float density) {
+        if (insets == null) return false;
+        if (Build.VERSION.SDK_INT >= 30) return insets.isVisible(WindowInsets.Type.ime());
+        return insets.getSystemWindowInsetBottom() - insets.getStableInsetBottom() > Math.round(density * 100);
+    }
+
     /** Works for an Activity or Dialog window; binding does not request focus or show the IME. */
     public static void bind(EditText search, Window window) {
         if (search == null || window == null || window.getCallback() == null) return;
@@ -135,14 +147,11 @@ public final class SearchFocus {
             if (Build.VERSION.SDK_INT >= 30 && insets != null) {
                 visible = insets.isVisible(WindowInsets.Type.ime());
             } else {
-                // Older Android has no explicit IME visibility API. Prefer its resize inset;
-                // the visible-frame fallback also catches keyboards which pan the window.
-                int threshold = Math.round(search.getResources().getDisplayMetrics().density * 100);
-                visible =
-                        insets != null
-                                && insets.getSystemWindowInsetBottom()
-                                                - insets.getStableInsetBottom()
-                                        > threshold;
+                // Older Android has no explicit IME visibility API. Prefer its resize inset
+                // (keyboardShown); the visible-frame fallback also catches keyboards which pan the window.
+                float density = search.getResources().getDisplayMetrics().density;
+                int threshold = Math.round(density * 100);
+                visible = keyboardShown(insets, density);
                 if (lastWidth != root.getWidth()) {
                     lastWidth = root.getWidth();
                     largestHeight = root.getHeight();

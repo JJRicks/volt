@@ -717,13 +717,42 @@ public final class HubSearchTest {
         // keyboard; the keyboard gone, it reaches the hinge again (#393 council review, third round, finding 5).
         check(HubSearch.tabletopPaneHeight(600, false) == 600 && HubSearch.tabletopPaneHeight(600, true) == -2 && HubSearch.tabletopPaneHeight(0, false) == 1,
                 "tabletop Search's upper pane: to the hinge, or the field's height while the keyboard is up");
+        // It shrinks only over a hinge that hides nothing: over one that hides part of the window (a thickness), the pane keeps
+        // reaching the hinge and the spacer covers it while the keyboard is up, so no result row sits under it (fourth round,
+        // finding 4).
+        check(HubSearch.tabletopShrinks(true, 0, 900, 252) && !HubSearch.tabletopShrinks(true, 84, 900, 252) && !HubSearch.tabletopShrinks(true, 1, 900, 252)
+                && !HubSearch.tabletopShrinks(false, 0, 900, 252) && !HubSearch.tabletopShrinks(false, 84, 900, 252),
+                "tabletop Search's pane shrinks for the keyboard only where the hinge hides nothing");
+        // Unless the results would get less than one result's room below the hinge: then it shrinks after all, so at least one
+        // result shows above the keyboard (#540 council review). The council's geometry, in dp at density 1: a 600 dp window,
+        // the hinge at 300 dp, 8 dp thick (a 12 dp spacer), a 288 dp keyboard: the results would get 0 dp.
+        int room = HubSearch.tabletopResultsRoom(600, 288, 300, 12, 0), row = HubSearch.tabletopRowRoom(1f, 1f);
+        check(room == 0 && row == 96 && HubSearch.tabletopShrinks(true, 8, room, row) && !HubSearch.tabletopShrinks(false, 8, room, row),
+                "tabletop Search shrinks over a thick hinge when the keyboard leaves the results no room");
+        check(HubSearch.tabletopShrinks(true, 8, row - 1, row) && !HubSearch.tabletopShrinks(true, 8, row, row)
+                && !HubSearch.tabletopShrinks(true, 8, HubSearch.tabletopResultsRoom(914, 336, 457, 12, 0), row),
+                "tabletop Search keeps the pane to a thick hinge while one result fits below it (a phone's 109 dp, hinge in the middle)");
+        check(HubSearch.tabletopResultsRoom(600, 0, 300, 12, 0) == 288 && HubSearch.tabletopResultsRoom(600, 0, 300, 12, 48) == 240
+                && HubSearch.tabletopResultsRoom(600, 400, 300, 12, 0) == 0,
+                "the results' room: window less keyboard, hinge, spacer and banner, never below 0");
+        check(HubSearch.tabletopRowRoom(2.625f, 1f) == 252 && HubSearch.tabletopRowRoom(1f, 1.4f) == 122 && HubSearch.tabletopRowRoom(1f, 0.85f) == 96,
+                "one result's room: 32 dp and 64 sp, never under the default's");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
         check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
-                && main.contains("tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);")
-                && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
+                && main.contains("boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height(),tabletopResultsRoom(),HubSearch.tabletopRowRoom(getResources().getDisplayMetrics().density,design.textScale*getResources().getConfiguration().fontScale));\n        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);\n        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);")
+                && main.contains("if(keyboardOnly)fitTabletopSearch();")
+                && main.contains("return HubSearch.tabletopResultsRoom(window,bottomInset,fold.hinge.top,tabletopSpacer.getLayoutParams().height,banner);"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
+        // Before Android 11 the keyboard shows in the resize inset only: MainActivity reads it by SearchFocus's own rule, as the
+        // bound fields do, not by an Android 11 check alone (#393 council review, fourth round, finding 2).
+        String focus = read("src/com/jjricks/volt/SearchFocus.java");
+        check(main.contains("boolean keyboard=SearchFocus.keyboardShown(insets,getResources().getDisplayMetrics().density);")
+                && !main.contains("boolean keyboard=Build.VERSION.SDK_INT>=30&&")
+                && focus.contains("if (Build.VERSION.SDK_INT >= 30) return insets.isVisible(WindowInsets.Type.ime());\n        return insets.getSystemWindowInsetBottom() - insets.getStableInsetBottom() > Math.round(density * 100);")
+                && focus.contains("visible = keyboardShown(insets, density);"),
+                "tabletop Search notices the keyboard before Android 11 by SearchFocus's resize-inset rule");
         // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
         check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
                 && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");
@@ -748,6 +777,16 @@ public final class HubSearchTest {
                 && main.contains("try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}\n        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);")
                 && main.contains("if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);\n        redraw();\n        showUpdateCheck();\n        // Back on Home"),
                 "the page pane keeps a search's reading and a target the loading page can't use");
+        // The validations' rest wait also waits out a page change's snapshot fading over the window: between pages at the same
+        // depth the new page sits still under the old one's cover in the root's overlay (#393 council review, fourth round,
+        // finding 1).
+        String motion = read("src/com/jjricks/volt/Motion.java"), pages = read("android-tests/HubTestPages.java");
+        check(motion.contains("root.getOverlay().add(cover);\n        covers.put(cover, new WeakReference<>(root));")
+                && motion.contains("covers.remove(cover); root.getOverlay().remove(cover);")
+                && motion.contains("covers.put(cover, new WeakReference<>(sibling ? parent : decor));")
+                && motion.contains("running.remove(pageView); covers.remove(cover);")
+                && pages.contains("if (changing(view) || motion(\"covered\", view)) resting[0] = false;"),
+                "Motion reports a page change's cover until it ends, and HubTestPages.awaitAtRest waits for it");
 
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.

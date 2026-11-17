@@ -595,7 +595,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();bars=insets.getStableInsetBottom();}
             // The dock runs on under the navigation bar only, never the keyboard (HubPages.dockInset): with the keyboard up it sits on it, as the page frame does.
             dockInset=HubPages.dockInset(bars,b>bars?b:0);
-            boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
+            // The keyboard by SearchFocus's rule, which reads the resize inset before Android 11 (#393 council review, fourth round, finding 2).
+            boolean keyboard=SearchFocus.keyboardShown(insets,getResources().getDisplayMetrics().density);
             // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
             // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
             boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
@@ -964,13 +965,24 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
      * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
-     * third round, finding 5).
+     * third round, finding 5). Over a hinge that hides part of the window it keeps reaching the hinge, with the spacer over
+     * it, so no result sits under the hinge (HubSearch.tabletopShrinks; fourth round, finding 4), unless that leaves the
+     * results less than one result's room above the keyboard: then it shrinks after all (#540 council review).
      */
     private void fitTabletopSearch(){
         if(tabletopUpper==null||tabletopSpacer==null||fold==null)return;
-        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);
-        tabletopSpacer.setVisibility(keyboardShown?View.GONE:View.VISIBLE);
+        boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height(),tabletopResultsRoom(),HubSearch.tabletopRowRoom(getResources().getDisplayMetrics().density,design.textScale*getResources().getConfiguration().fontScale));
+        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);
+        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);
         tabletopUpper.requestLayout();
+    }
+    /** The results' height in tabletop Search with the pane kept to the hinge (HubSearch.tabletopResultsRoom), in pixels. */
+    private int tabletopResultsRoom(){
+        // The window's height as laid out; before the first layout (a recreation with the keyboard up), its bounds.
+        int window=getWindow().getDecorView().getHeight();
+        if(window<=0)window=Build.VERSION.SDK_INT>=30?getWindowManager().getCurrentWindowMetrics().getBounds().height():getResources().getDisplayMetrics().heightPixels;
+        int banner=simulationNotice!=null&&simulationNotice.getVisibility()==View.VISIBLE?Math.max(simulationNotice.getHeight(),simulationNotice.getMinHeight()):0;
+        return HubSearch.tabletopResultsRoom(window,bottomInset,fold.hinge.top,tabletopSpacer.getLayoutParams().height,banner);
     }
     /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */
     private static String cancelLabel(){return T.commonCancel();}
