@@ -717,12 +717,18 @@ public final class HubSearchTest {
         // keyboard; the keyboard gone, it reaches the hinge again (#393 council review, third round, finding 5).
         check(HubSearch.tabletopPaneHeight(600, false) == 600 && HubSearch.tabletopPaneHeight(600, true) == -2 && HubSearch.tabletopPaneHeight(0, false) == 1,
                 "tabletop Search's upper pane: to the hinge, or the field's height while the keyboard is up");
+        // It shrinks only over a hinge that hides nothing: over one that hides part of the window (a thickness), the pane keeps
+        // reaching the hinge and the spacer covers it while the keyboard is up, so no result row sits under it (fourth round,
+        // finding 4).
+        check(HubSearch.tabletopShrinks(true, 0) && !HubSearch.tabletopShrinks(true, 84) && !HubSearch.tabletopShrinks(true, 1)
+                && !HubSearch.tabletopShrinks(false, 0) && !HubSearch.tabletopShrinks(false, 84),
+                "tabletop Search's pane shrinks for the keyboard only where the hinge hides nothing");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
         check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
-                && main.contains("tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);")
+                && main.contains("boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height());\n        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);\n        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);")
                 && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
         // Before Android 11 the keyboard shows in the resize inset only: MainActivity reads it by SearchFocus's own rule, as the
         // bound fields do, not by an Android 11 check alone (#393 council review, fourth round, finding 2).

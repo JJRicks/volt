@@ -71,7 +71,7 @@ public final class SearchFocusValidation extends Instrumentation {
             for (String theme : new String[] {"dark", "light"}) {
                 main(() -> settings().edit().putString("theme", theme).apply());
                 await(() -> activity.ui().dark == theme.equals("dark"), 4000, "Theme did not apply");
-                controlsChecks(theme); statsChecks(theme); dialogChecks(theme); assertNoScooterWork();
+                controlsChecks(theme); tabletopChecks(theme); statsChecks(theme); dialogChecks(theme); assertNoScooterWork();
             }
             result.putString("result", "PASS"); result.putStringArrayList("checks", new ArrayList<>(checks));
             result.putStringArrayList("screenshots", new ArrayList<>(screenshots)); result.putInt("check_count", checks.size());
@@ -116,6 +116,76 @@ public final class SearchFocusValidation extends Instrumentation {
         await(() -> HubPages.HOME.equals(HubTestPages.current(activity)) && !imeVisible(activity.getWindow()), 4000,
                 "Outside navigation tap was swallowed or left the keyboard open");
         checks.add(theme + ": outside taps and system Back clear settings search focus, preserve the filter, and deliver navigation actions");
+    }
+    /**
+     * Search in tabletop posture with the keyboard up, on a horizontal hinge across the window's middle faked through
+     * FoldMonitor as ResponsiveDashboardValidation fakes one (#393 council review, third round finding 5 and fourth round
+     * finding 4). Over a hinge that hides nothing the pane above it shrinks to the field and the spacer goes, so the results
+     * rise under the field; over one 8 dp thick, which hides part of the window, the pane keeps reaching the hinge and the
+     * spacer covers it, and no result row shows under the hinge. The keyboard gone, the pane reaches the hinge in both.
+     */
+    private void tabletopChecks(String theme) throws Exception {
+        Window window = activity.getWindow();
+        for (int thickness : new int[] {0, activity.ui().dp(8)}) {
+            Rect hinge = new Rect();
+            main(() -> { View decor = window.getDecorView(); int middle = decor.getHeight() / 2; hinge.set(0, middle, decor.getWidth(), middle + thickness); });
+            fold(new ResponsiveDashboardValidation.FakeFeature(hinge, 2, 1));
+            await(() -> (Boolean)call(activity, "horizontalHinge"), 4000, "The faked hinge did not reach the layout");
+            HubTestPages.reach(this, activity, HubPages.SEARCH);
+            await(() -> HubPages.SEARCH.equals(HubTestPages.current(activity)) && field(activity, "tabletopUpper") != null, 6000,
+                    "Search did not open in tabletop posture");
+            Object hub = HubTestPages.part(activity, "HubSearchScreen");
+            EditText search = (EditText)field(hub, "search");
+            showKeyboard(search, window, "speed");
+            String kind = thickness == 0 ? "seamless" : "thick";
+            int[] rows = {0};
+            await(() -> {
+                View upper = (View)field(activity, "tabletopUpper"), spacer = (View)field(activity, "tabletopSpacer");
+                boolean shrunk = upper.getLayoutParams().height == -2 && spacer.getVisibility() == View.GONE;
+                if (thickness == 0) return shrunk && !upper.isLayoutRequested();
+                if (shrunk || spacer.getVisibility() != View.VISIBLE || upper.isLayoutRequested()) return false;
+                Rect cover = new Rect(); if (!spacer.getGlobalVisibleRect(cover)) return false;
+                return cover.top <= hinge.top && cover.bottom >= hinge.bottom;
+            }, 4000, theme + ", " + kind + " hinge, keyboard up: the pane above the hinge "
+                    + (thickness == 0 ? "did not shrink to the field" : "did not keep reaching the hinge with the spacer over it"));
+            if (thickness > 0) main(() -> {
+                ViewGroup results = (ViewGroup)field(hub, "results");
+                for (int i = 0; i < results.getChildCount(); i++) {
+                    View row = results.getChildAt(i); Rect shown = new Rect();
+                    if (!row.isShown() || !row.getGlobalVisibleRect(shown)) continue;
+                    rows[0]++;
+                    require(!Rect.intersects(shown, hinge), theme + ": a result row shows under the " + thickness + " px hinge " + hinge.toShortString() + " (" + shown.toShortString() + ")");
+                }
+            });
+            screenshot("tabletop-" + kind + "-" + theme);
+            main(() -> getTargetContext().getSystemService(InputMethodManager.class).hideSoftInputFromWindow(root().getWindowToken(), 0));
+            await(() -> !imeVisible(window), 4000, "Tabletop Search's keyboard did not close");
+            awaitKeyboardSettled(window, "tabletop " + kind);
+            await(() -> { View upper = (View)field(activity, "tabletopUpper"), spacer = (View)field(activity, "tabletopSpacer");
+                    return upper.getLayoutParams().height > 0 && spacer.getVisibility() == View.VISIBLE; }, 4000,
+                    theme + ", " + kind + " hinge: with the keyboard gone the pane did not reach the hinge again");
+            main(() -> HubTestPages.open(activity, HubPages.HOME));
+            fold();
+            await(() -> !(Boolean)call(activity, "horizontalHinge") && field(activity, "tabletopUpper") == null, 4000, "The faked hinge did not go");
+            checks.add(theme + ", " + kind + " hinge: tabletop Search " + (thickness == 0 ? "shrinks its pane to the field for the keyboard"
+                    : "keeps the spacer over the hinge for the keyboard, " + rows[0] + " result rows shown, none under the hinge"));
+        }
+        waitForIdleSync();
+    }
+    /** Hands FoldMonitor a window layout with these features (none: no hinge), as the OEM window extensions would. */
+    private void fold(ResponsiveDashboardValidation.FakeFeature... features) {
+        Object monitor = field(activity, "fold");
+        main(() -> {
+            try {
+                java.lang.reflect.Method layout = monitor.getClass().getDeclaredMethod("layout", Object.class); layout.setAccessible(true);
+                layout.invoke(monitor, new ResponsiveDashboardValidation.FakeLayout(features));
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot fake a hinge", error); }
+        });
+        waitForIdleSync();
+    }
+    private static Object call(Object object, String name) {
+        try { java.lang.reflect.Method method = object.getClass().getDeclaredMethod(name); method.setAccessible(true); return method.invoke(object); }
+        catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot call " + name, error); }
     }
     private void statsChecks(String theme) {
         // Live Stats is the Data page since part 11 (#392), reached from Home by the rider's taps.

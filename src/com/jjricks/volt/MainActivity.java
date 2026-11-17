@@ -957,12 +957,14 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
      * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
-     * third round, finding 5).
+     * third round, finding 5). Over a hinge that hides part of the window it keeps reaching the hinge, with the spacer over
+     * it, so no result sits under the hinge (HubSearch.tabletopShrinks; fourth round, finding 4).
      */
     private void fitTabletopSearch(){
         if(tabletopUpper==null||tabletopSpacer==null||fold==null)return;
-        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);
-        tabletopSpacer.setVisibility(keyboardShown?View.GONE:View.VISIBLE);
+        boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height());
+        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);
+        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);
         tabletopUpper.requestLayout();
     }
     /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */

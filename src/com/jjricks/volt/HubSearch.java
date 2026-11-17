@@ -426,6 +426,16 @@ final class HubSearch {
     static int tabletopPaneHeight(int toHinge, boolean keyboard) { return keyboard ? -2 : Math.max(1, toHinge); }
 
     /**
+     * Whether tabletop Search's upper pane shrinks to the field (and the spacer over the hinge goes) for the keyboard
+     * ({@link #tabletopPaneHeight}): only while the keyboard is up, and only where the hinge hides nothing
+     * ({@code hingeThickness}, its height in pixels, 0). Results that rise under the field cross the hinge, so over a hinge
+     * that hides part of the window (two displays with a gap) a row there would be partly hidden; there the pane keeps
+     * reaching the hinge and the spacer covers it, and the results stay below it, above the keyboard (#393 council review,
+     * fourth round, finding 4).
+     */
+    static boolean tabletopShrinks(boolean keyboard, int hingeThickness) { return keyboard && hingeThickness <= 0; }
+
+    /**
      * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
      * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
      * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)
