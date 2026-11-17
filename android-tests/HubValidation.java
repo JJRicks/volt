@@ -956,18 +956,22 @@ public final class HubValidation extends Instrumentation {
         synchronized (frames) { for (int i = 0; i < frames.size(); i++) if (frames.get(i) != Integer.MIN_VALUE) { seen.add(frames.get(i)); seenAt.add(times.get(i)); } }
         require(seen.size() > 5, "Too few frames of Settings were seen through the grant (" + seen.size() + ")");
         int expected = start[1] - (start[1] >= start[0] + start[2] ? start[2] : 0);
-        // While the row moves: its largest step and the longest time between two sampled frames (a frame held back).
+        // While the row moves: its largest step and the longest time between two sampled frames (a frame held back). The
+        // sampler's callback runs before the motion's own in each frame, so it reads the place the frame before set: a
+        // frame held back shows in the step after the gap. Each step is put with the longer of its own gap and the one
+        // before it.
         int largest = 0; long gapMs = 0;
         for (int i = 1; i < seen.size(); i++) if (!seen.get(i).equals(seen.get(i - 1))) {
             largest = Math.max(largest, seen.get(i - 1) - seen.get(i));
-            gapMs = Math.max(gapMs, (seenAt.get(i) - seenAt.get(i - 1)) / 1000000);
+            gapMs = Math.max(gapMs, gapBefore(seenAt, i));
         }
         for (int i = 1; i < seen.size(); i++) {
             int step = seen.get(i) - seen.get(i - 1);
-            long ms = (seenAt.get(i) - seenAt.get(i - 1)) / 1000000;
             require(step <= 0, "Settings' Language row moved down " + step + " px in one frame through the grant (frames " + seen + ")");
             require(-step <= start[2] / 2, "Settings' Language row jumped " + (-step) + " px in one frame through the grant (the card is " + start[2] + " px; "
-                    + ms + " ms after the frame before; frames " + seen + ")");
+                    + (seenAt.get(i) - seenAt.get(i - 1)) / 1000000 + " ms after the frame before, which came "
+                    + (i >= 2 ? (seenAt.get(i - 1) - seenAt.get(i - 2)) / 1000000 + " ms after its own" : "first")
+                    + "; frames " + seen + ")");
         }
         main(() -> {
             require(root().findViewWithTag(NEARBY_CARD) == null || !shown(root().findViewWithTag(NEARBY_CARD)), "Settings still shows the Allow Nearby devices card once granted");
@@ -986,6 +990,12 @@ public final class HubValidation extends Instrumentation {
                 + " moving the Language row down or by more than half the card (" + seen.size() + " frames, through the service binding and Settings' rebuild;"
                 + " largest step " + largest + " px of a " + start[2] + " px card, longest frame gap while moving " + gapMs + " ms); the stack"
                 + " stays Home, Settings, the scroll at its top, no card, My scooters no longer dimmed, no connection line");
+    }
+
+    /** The longer of the gap (ms) before sampled frame i and the one before that (grantFromSettings: the sampler reads a frame late). */
+    private static long gapBefore(List<Long> at, int i) {
+        long own = (at.get(i) - at.get(i - 1)) / 1000000;
+        return i >= 2 ? Math.max(own, (at.get(i - 1) - at.get(i - 2)) / 1000000) : own;
     }
 
     /**
