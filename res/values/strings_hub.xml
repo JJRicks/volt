@@ -133,6 +133,26 @@
     <!-- Toast when the owner taps "Email to Volt" while a charge is being recorded: the recordings can be sent only once the recording stops. -->
     <string name="hub_charge_send_busy" volt:screen="Charge history &amp; recordings" volt:purpose="toast" volt:safety="charge">Stop charge recording before sending the recordings</string>
 
+    <!-- ===== Battery & charging: the invite to record charges and send them to Volt ===== -->
+    <!-- A banner at the top of Battery & charging. Volt estimates how long a charge takes; recordings of real charges, sent to Volt, let it tune that estimate for the owner's scooter model. Tapping the banner opens a sheet that explains how. Shown beside a 16 dp icon and a close button, so it wraps to two lines on a narrow phone. -->
+    <string name="hub_charge_invite_title" volt:screen="Battery &amp; charging" volt:purpose="banner title" volt:max="220dp@14sp*2" volt:safety="charge">Help improve your charge time estimate</string>
+    <!-- The banner's second line, under its title. -->
+    <string name="hub_charge_invite_body" volt:screen="Battery &amp; charging" volt:purpose="banner caption" volt:max="220dp@12.5sp*2" volt:dnt="Volt">Record a few charges and send them to Volt.</string>
+    <!-- What TalkBack reads for the banner's close button. Closing it hides the banner for good. -->
+    <string name="hub_charge_invite_hide" volt:screen="Battery &amp; charging" volt:purpose="accessibility label">Hide this suggestion</string>
+    <!-- The sheet the banner opens: its title is the banner's title (hub_charge_invite_title); this sentence starts it. -->
+    <string name="hub_charge_invite_intro" volt:screen="Charge recordings invite sheet" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Volt learns how your scooter charges from real charges. Recordings make its charge time estimate more accurate.</string>
+    <!-- The sheet's first point. %1$s is the "Record this charge" button's name, %2$s the "Record charges automatically" switch's name; both are in the sheet right below these points. -->
+    <string name="hub_charge_invite_step_record" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Record your charges: tap %1$s while the scooter charges, or turn on %2$s.</string>
+    <!-- The sheet's second point: a recording doesn't need to be a full or tidy charge. -->
+    <string name="hub_charge_invite_step_any" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">It doesn\'t have to be perfect. Any charge helps, short ones too.</string>
+    <!-- The sheet's third point: a charge that goes all the way to a full battery is the most useful recording. -->
+    <string name="hub_charge_invite_step_full" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Charging all the way to 100%% helps the most.</string>
+    <!-- The sheet's fourth point: Volt records over Bluetooth, so the phone has to stay in range of the scooter. -->
+    <string name="hub_charge_invite_step_nearby" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge" volt:dnt="Volt">Keep your phone near the scooter while it charges, so Volt stays connected.</string>
+    <!-- The sheet's last point. %1$s is the "Charge history & recordings" page's name, %2$s the "Email to Volt" row's name on that page. -->
+    <string name="hub_charge_invite_step_send" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Then open %1$s and tap %2$s. We use your recordings to tune the estimate for your scooter\'s model.</string>
+
     <!-- ===== Ride › Recording settings ===== -->
     <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
     <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>

@@ -270,8 +270,9 @@ final class HubSearchTables {
             case HubPages.BATTERY_ESTIMATES: return "estimates range charger capacity";
             // Record this charge and Stop charge recording show only while charging or recording; Live Update status only
             // on Android 16; Clear this scooter's charge recordings only with recordings saved.
+            // Battery & charging's invite (ChargeInvite) asks to help improve the charge time estimate: its words find the page too.
             case HubPages.BATTERY_HISTORY: return "charge history charge recordings record this charge stop charge recording"
-                    + " clear this scooter's charge recordings live update status";
+                    + " clear this scooter's charge recordings live update status improve tune charge time estimate";
             case HubPages.CONTROLS: return "controls drive mode speed cruise";
             case HubPages.CONTROLS_ASSISTS: return "assists hill start parking walk";
             case HubPages.CONTROLS_LIMITS: return "speed limits overspeed";
