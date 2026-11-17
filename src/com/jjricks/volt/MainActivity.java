@@ -2495,17 +2495,16 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * A setting row's note (SettingRow.rowNote) and Home's charging bar's, from this one place so they cannot drift:
      * the resolver's reason when the control is unavailable for a reason the row doesn't already show, else "Unconfirmed
-     * here" where an owner saw this model keep its old value, else "Untested here" for an OEM-mapped control on another
-     * model. None on the UT5 MAX.
+     * here" where an owner saw this model keep its old value. An OEM-mapped control on another model shows like any
+     * supported control: no "Untested here" (owner, Nov 17 2026: owners' issue reports say what is missing).
      */
     static String controlNote(BleController ble,CapabilityResolver.Decision d,boolean parked,String key){
         if(ble==null||d==null||!ble.ready())return null;
         if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
                 &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
-        if(ModelRegistry.unconfirmed(ble.descriptor(),key))return rowUnconfirmed();
-        return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
+        return ModelRegistry.unconfirmed(ble.descriptor(),key)?rowUnconfirmed():null;
     }
-    /** A row's detail and note joined ("85% · Untested here"); either alone when the other is missing. */
+    /** A row's detail and note joined ("85% · Unconfirmed here"); either alone when the other is missing. */
     private static String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
     /** The charging bar's words: its controls' own (Quick access, the Charge limit row, its choice sheet, the alert row). */
     private final ChargeBar.Words chargeBarWords=new ChargeBar.Words(){
@@ -4171,8 +4170,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * Short caption for a connected row: why the control is refused (not the transient states the row
-         * already shows), else "Unconfirmed here" where an owner saw this model keep its old value, else
-         * "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
+         * already shows), else "Unconfirmed here" where an owner saw this model keep its old value (controlNote).
          */
         private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){return controlNote(ble,d,parked,feature.key);}
         /** UT5 MAX swatches never change; colours beyond them (another model's table) show only while that model offers them. */
