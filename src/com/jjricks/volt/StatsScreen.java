@@ -74,6 +74,8 @@ public final class StatsScreen implements AppScreen {
      */
     private String pinned;
     private String favouritesShown, devicesShown, eventsShown;
+    /** A change the rider is making to the favourites is running (movingFavourites). */
+    private boolean favouritesMove;
     private final EditText search;
     private static final String[] SECTIONS = {"Overview", "Readings", "Charts", "Diagnostics"};
     private static final String[] WIDE_SECTIONS = {"Overview", "Charts", "Diagnostics"};
@@ -295,7 +297,7 @@ public final class StatsScreen implements AppScreen {
                 HubText.title(HubPages.DATA_STORAGE), () -> storedSize, null, null, () -> host.open(HubPages.DATA_STORAGE))));
         LinearLayout.LayoutParams linkParams = new LinearLayout.LayoutParams(-1, -2); linkParams.topMargin = ui.dp(6);
         page.addView(storageLink.view(), linkParams);
-        applyFilter(); showSection(); refresh();
+        applyFilter(); showSection(null); refresh();
     }
     private LinearLayout vertical() { LinearLayout result = new LinearLayout(host.activity()); result.setOrientation(LinearLayout.VERTICAL); return result; }
     private ScrollView paneScroll(View content) {
@@ -342,18 +344,31 @@ public final class StatsScreen implements AppScreen {
         while (tabs != null && tabs != page) { top += tabs.getTop(); tabs = tabs.getParent() instanceof View ? (View) tabs.getParent() : null; }
         return tabs == page ? top + page.getTop() : 0;
     }
-    private void showSection() {
-        overviewSection.setVisibility(selectedSection.equals("Overview") ? View.VISIBLE : View.GONE);
-        readingsSection.setVisibility(readingsShown() ? View.VISIBLE : View.GONE);
-        chartsSection.setVisibility(selectedSection.equals("Charts") ? View.VISIBLE : View.GONE);
-        diagnosticsSection.setVisibility(selectedSection.equals("Diagnostics") ? View.VISIBLE : View.GONE);
+    /**
+     * Shows the selected section alone (Readings beside it when wide). On a tab change ({@code root}, the page) the
+     * sections crossfade in place, with no slide (Motion.takeTurns); a null root (the page being built) is instant.
+     */
+    private void showSection(ViewGroup root) {
+        View shown = selectedSection.equals("Readings") ? readingsSection : selectedSection.equals("Charts") ? chartsSection
+                : selectedSection.equals("Diagnostics") ? diagnosticsSection : overviewSection;
+        if (wide) {
+            // Readings has its own pane, always shown.
+            readingsSection.setVisibility(View.VISIBLE);
+            Motion.takeTurns(root, shown, overviewSection, chartsSection, diagnosticsSection);
+        } else Motion.takeTurns(root, shown, overviewSection, readingsSection, chartsSection, diagnosticsSection);
     }
     private void selectSection(String section) {
-        String next = validSection(section);
-        java.util.List<String> order = java.util.Arrays.asList(wide ? WIDE_SECTIONS : SECTIONS);
-        Motion.shared(page, Integer.signum(order.indexOf(next) - order.indexOf(selectedSection)),
-                overviewSection, readingsSection, chartsSection, diagnosticsSection);
-        selectedSection = next; showSection();
+        selectedSection = validSection(section);
+        // Keep the section tabs where the finger left them; never scroll past them into the new section. Applied before
+        // the sections change, so the crossfade starts from there (and again just before the frame, as layout may move it).
+        int top = Math.min(sectionScroll.getScrollY(), tabsTop());
+        if (top != sectionScroll.getScrollY()) {
+            boolean bars = sectionScroll.isVerticalScrollBarEnabled();
+            sectionScroll.setVerticalScrollBarEnabled(false);
+            sectionScroll.scrollTo(0, top);
+            sectionScroll.setVerticalScrollBarEnabled(bars);
+        }
+        showSection(page);
         sectionTabs.select(java.util.Arrays.asList(wide ? WIDE_SECTIONS : SECTIONS).indexOf(selectedSection), true);
         boolean hideChartSearch = !selectedSection.equals("Charts") && chartBrowser.search.hasFocus();
         if (!readingsShown() || hideChartSearch) {
@@ -363,8 +378,7 @@ public final class StatsScreen implements AppScreen {
             if (hideChartSearch) chartBrowser.search.clearFocus();
         }
         preferences.edit().putString("stats_section", selectedSection).apply();
-        // Keep the section tabs where the finger left them; never scroll past them into the new section.
-        refresh(); Motion.scrollBeforeDraw(sectionScroll, Math.min(sectionScroll.getScrollY(), tabsTop()));
+        refresh(); Motion.scrollBeforeDraw(sectionScroll, top);
     }
     /** Two equal buttons side by side, stacked full width when either label would have to break. */
     private final class StackingRow extends LinearLayout {
@@ -516,12 +530,22 @@ public final class StatsScreen implements AppScreen {
         row.star.setContentDescription(on ? T.statsFavouriteRemove(row.label) : T.statsFavouriteAdd(row.label));
         if (Build.VERSION.SDK_INT >= 30) row.star.setStateDescription(on ? T.statsFavouriteOn() : T.statsFavouriteOff());
     }
-    private void toggleFavourite(String key) {
+    private void toggleFavourite(String key) { movingFavourites(() -> {
         if (!favourites.remove(key)) favourites.add(key);
         preferences.edit().putStringSet("stats_favourites", new LinkedHashSet<String>(favourites)).apply();
         saveFavouriteOrder(favouriteOrder());
         Row row = rows.get(key); if (row != null) styleStar(row);
         applyFilter(); refresh();
+    }); }
+    /**
+     * Runs a change the rider made to the favourites (a star, the detail sheet's Add or Remove, Reorder): the
+     * favourites card, its empty hint and Reorder may fade and glide (refreshFavourites). Any other refresh (the live
+     * pulse, a connection, another scooter's readings, the page built again) changes them at once. The whole change runs
+     * inside: saving a preference redraws the page at once (MainActivity's settings listener), before the change's own refresh.
+     */
+    private void movingFavourites(Runnable change) {
+        favouritesMove = true;
+        try { change.run(); } finally { favouritesMove = false; }
     }
     private void applyFilter() {
         // A pinned reading filters like a search (groups open, the count line) but by its exact key.
@@ -642,11 +666,11 @@ public final class StatsScreen implements AppScreen {
     private void saveFavouriteOrder(List<String> order) {
         preferences.edit().putString("stats_favourite_order", StatsFavouriteOrder.encode(order)).apply();
     }
-    private void toggleChartFavourite(String key) {
+    private void toggleChartFavourite(String key) { movingFavourites(() -> {
         if (!chartFavourites.remove(key)) chartFavourites.add(key);
         preferences.edit().putStringSet("stats_chart_favourites", new LinkedHashSet<>(chartFavourites)).apply();
         saveFavouriteOrder(favouriteOrder()); chartBrowser.starsChanged(); refreshFavourites(service.displayReadings());
-    }
+    }); }
     private void chartBrowserRefresh() { chartBrowser.refreshVisible(); }
     private void refreshFavourites(Map<String, TelemetryHistory.Reading> readings) {
         List<String> order = favouriteOrder(); String signature = StatsFavouriteOrder.encode(order);
@@ -668,9 +692,12 @@ public final class StatsScreen implements AppScreen {
                     favouritesCard.addView(row.layout); favouriteRows.put(key, row);
                 }
             }
-            favouritesCard.setVisibility(order.isEmpty() ? View.GONE : View.VISIBLE);
-            favouritesHint.setVisibility(order.isEmpty() ? View.VISIBLE : View.GONE);
-            reorderFavourites.setVisibility(order.size() < 2 ? View.GONE : View.VISIBLE);
+            // The rider's own change on Overview as it shows: the hint and the card fade into each other's place and
+            // what is below glides (the card's rows are rebuilt in place). Otherwise, and in a section not shown, at once.
+            ViewGroup moves = favouritesMove && overviewSection.isShown() ? Motion.pageOf(favouritesCard) : null;
+            Motion.reveal(moves, favouritesCard, !order.isEmpty(), favouritesCard);
+            Motion.reveal(moves, favouritesHint, order.isEmpty(), favouritesCard);
+            Motion.reveal(moves, reorderFavourites, order.size() >= 2, favouritesCard);
             favouritesCard.post(() -> { if (chartBrowserReady) chartBrowser.refreshVisible(); });
         }
         for (Map.Entry<String, ValueRow> e : favouriteRows.entrySet()) updateValueRow(e.getValue(), e.getKey(), readings.get(e.getKey()));
@@ -691,7 +718,7 @@ public final class StatsScreen implements AppScreen {
         content.addView(head, headSpace);
         Map<String, TelemetryHistory.Reading> readings = service.displayReadings();
         ReorderList list = new ReorderList(ui, ids -> {
-            saveFavouriteOrder(new ArrayList<>(ids)); refreshFavourites(service.displayReadings());
+            movingFavourites(() -> { saveFavouriteOrder(new ArrayList<>(ids)); refreshFavourites(service.displayReadings()); });
         });
         for (String id : favouriteOrder()) {
             String key = id.substring(id.indexOf(':') + 1), name = readings.get(key) == null ? key : readingLabel(readings.get(key));

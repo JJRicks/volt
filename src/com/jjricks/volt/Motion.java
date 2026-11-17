@@ -389,53 +389,6 @@ final class Motion {
         animator.start();
     }
 
-    /**
-     * An in-place section change: only {@code sections} move (the outgoing one leaves toward
-     * {@code -direction}, the incoming one arrives from {@code direction}, fading through); headers,
-     * tabs and the scroll position stay still. Call immediately before changing the sections' visibility.
-     */
-    static void shared(ViewGroup sceneRoot, int direction, View... sections) {
-        if (!enabled() || sceneRoot == null || !sceneRoot.isLaidOut()) return;
-        SharedAxis axis = new SharedAxis(direction);
-        for (View section : sections) if (section != null) axis.addTarget(section);
-        TransitionManager.beginDelayedTransition(sceneRoot, axis);
-    }
-
-    private static final class SharedAxis extends Visibility {
-        private final int direction;
-        SharedAxis(int direction) { this.direction = Integer.signum(direction); setDuration(PAGE_MS); }
-        @Override public Animator onAppear(ViewGroup root, View view, TransitionValues start, TransitionValues end) {
-            return part(view, direction * travel(root, root.getWidth()), true);
-        }
-        @Override public Animator onDisappear(ViewGroup root, View view, TransitionValues start, TransitionValues end) {
-            return part(view, direction * travel(root, root.getWidth()), false);
-        }
-        /** One side of the same fade-through that {@link #drive} gives whole pages. */
-        private static Animator part(View view, float shift, boolean arriving) {
-            ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
-            animator.setDuration(PAGE_MS);
-            animator.setInterpolator(new LinearInterpolator());
-            ValueAnimator.AnimatorUpdateListener frame = animation -> {
-                float t = animation.getAnimatedFraction(), glide = TRAVEL.getInterpolation(t);
-                if (arriving) {
-                    view.setAlpha(FADE_IN.getInterpolation(Math.max(0f, (t - THROUGH) / (1 - THROUGH))));
-                    view.setTranslationX(shift * (1 - glide));
-                } else {
-                    view.setAlpha(1 - FADE_OUT.getInterpolation(Math.min(1f, t / THROUGH)));
-                    view.setTranslationX(-shift * glide);
-                }
-            };
-            animator.addUpdateListener(frame);
-            frame.onAnimationUpdate(animator);
-            animator.addListener(new AnimatorListenerAdapter() {
-                // Section views are reused: never leave one shifted or transparent.
-                @Override public void onAnimationEnd(Animator animation) { view.setTranslationX(0); view.setAlpha(1); }
-                @Override public void onAnimationCancel(Animator animation) { view.setTranslationX(0); view.setAlpha(1); }
-            });
-            return animator;
-        }
-    }
-
     // ---- Scrolling -----------------------------------------------------------------------------
 
     /**
@@ -506,15 +459,49 @@ final class Motion {
      * {@link #animateChanges}' motion: what goes fades out, what moves glides, what comes fades in. Veiled (reveal's),
      * what goes is GONE from the start and only drawn fading ({@link Veil}).
      */
-    private static TransitionSet changes(boolean veiled, View... instant) {
+    private static TransitionSet changes(boolean veiled, View... instant) { return changes(veiled, true, instant); }
+
+    /** changes(); without {@code glides}, what moves does not glide: it takes its place at once and fades in there ({@link Refade}). */
+    private static TransitionSet changes(boolean veiled, boolean glides, View... instant) {
         TransitionSet set = new TransitionSet();
         for (View view : instant) if (view != null) set.excludeChildren(view, true);
         set.setOrdering(TransitionSet.ORDERING_TOGETHER);
         set.addTransition((veiled ? new Veil(Visibility.MODE_OUT) : new Fade(Fade.OUT)).setDuration(EXIT_MS));
-        set.addTransition(new ChangeBounds().setDuration(CHANGE_MS));
+        set.addTransition(glides ? new ChangeBounds().setDuration(CHANGE_MS) : new Refade().setDuration(CHANGE_MS));
         set.addTransition((veiled ? new Veil(Visibility.MODE_IN) : new Fade(Fade.IN)).setDuration(CHANGE_MS));
         set.setInterpolator(STANDARD);
         return set;
+    }
+
+    /**
+     * {@link #takeTurns}' stand-in for ChangeBounds: a view that stays shown but sits somewhere else after the change (the
+     * page's foot below sections of different lengths) is in its new place from the first frame, as without motion, and
+     * fades in there rather than gliding across the page or popping. Turned back mid-fade, it fades on from the opacity
+     * it was drawn at. The root itself (the page, which only changes length) never fades.
+     */
+    private static final class Refade extends Transition {
+        private static final String TOP = "volt:refade:top", ALPHA = "volt:refade:alpha", SHOWN = "volt:refade:shown";
+        private void capture(TransitionValues values) {
+            values.values.put(TOP, values.view.getTop());
+            values.values.put(SHOWN, values.view.getVisibility() == View.VISIBLE);
+            values.values.put(ALPHA, values.view.getTransitionAlpha());
+        }
+        @Override public void captureStartValues(TransitionValues values) { capture(values); }
+        @Override public void captureEndValues(TransitionValues values) { capture(values); }
+        @Override public Animator createAnimator(ViewGroup root, TransitionValues start, TransitionValues end) {
+            // Views that come or go are Veil's.
+            if (start == null || end == null || end.view == root || !Boolean.TRUE.equals(start.values.get(SHOWN)) || !Boolean.TRUE.equals(end.values.get(SHOWN))) return null;
+            if (start.values.get(TOP).equals(end.values.get(TOP))) return null;
+            View view = end.view;
+            float from = (Float) start.values.get(ALPHA);
+            ValueAnimator animator = ValueAnimator.ofFloat(from < 1 ? from : 0, 1);
+            animator.addUpdateListener(a -> view.setTransitionAlpha((float) a.getAnimatedValue()));
+            animator.addListener(new AnimatorListenerAdapter() {
+                // Ended, or cut short (a later change starts its own fade from the opacity captured before this).
+                @Override public void onAnimationEnd(Animator a) { view.setTransitionAlpha(1); }
+            });
+            return animator;
+        }
     }
 
     /**
@@ -674,25 +661,41 @@ final class Motion {
      * it ends), what is under it gets the tap, and it reads as gone. Shown again, even mid-fade, it takes them at once.
      * Focus moves as Android moves it from any GONE view; accessibility flags are untouched. Returns whether it changed.
      */
-    static boolean reveal(ViewGroup root, View view, boolean shown, View... instant) {
+    static boolean reveal(ViewGroup root, View view, boolean shown, View... instant) { return reveal(root, view, shown, true, instant); }
+
+    /**
+     * Views that take turns in one place, one shown at a time (a page's sections behind its tabs): {@code shown} is shown
+     * and every other one of {@code views} hidden, in their order, each through {@link #reveal} on {@code root} with the
+     * views' own contents changing in place. They crossfade where they are, the one that goes fading out over EXIT_MS as
+     * the one that comes fades in over CHANGE_MS, and nothing slides: what sits around them takes its new place at once
+     * and fades in there ({@link Refade}), and the page takes its new length at once. Everything else is reveal's: a
+     * view that goes is GONE at once and takes no input, quick changes back and forth end as last asked and turn back
+     * from what is on screen, a null root or animations off is an instant change, and asking for the one already shown
+     * changes nothing. Call with the same {@code views} every time; a motion on the root not yet drawn is joined.
+     */
+    static void takeTurns(ViewGroup root, View shown, View... views) {
+        for (View view : views) if (view != null) reveal(root, view, view == shown, false, views);
+    }
+
+    private static boolean reveal(ViewGroup root, View view, boolean shown, boolean glides, View... instant) {
         if (view == null) return false;
         Boolean asked = revealed.get(view);
         if ((asked != null ? asked : view.getVisibility() == View.VISIBLE) == shown) return false;
         revealed.put(view, shown);
-        boolean glides = root != null && enabled() && root.isLaidOut();
+        boolean moves = root != null && enabled() && root.isLaidOut();
         Glide running = moving.remove(view);
         ViewGroup was = running == null || running.ended ? null : running.root.get();
         // Ending it jumps what it moves to where it was going; only a change without a motion of its own does that.
-        if (was != null && (!glides || was != root)) {
+        if (was != null && (!moves || was != root)) {
             TransitionManager.endTransitions(was);
             Sheet sheet = sheetOf(was);
             if (sheet != null) sheet.end();
         }
-        if (glides) {
+        if (moves) {
             // A reversal mid-motion starts here too: Android captures the running motion where it is on screen and
             // turns its views back from there.
             Glide glide = revealing.get(root);
-            if (glide == null) glide = glide(root, view, instant);
+            if (glide == null) glide = glide(root, view, glides, instant);
             else holdScroll(root, view);
             moving.put(view, glide);
         }
@@ -807,7 +810,7 @@ final class Motion {
         scroll.setLayoutParams(params);
     }
 
-    private static Glide glide(ViewGroup root, View view, View... instant) {
+    private static Glide glide(ViewGroup root, View view, boolean glides, View... instant) {
         Glide glide = new Glide(root);
         revealing.put(root, glide);
         Runnable abandoned = () -> { revealing.remove(root); glide.swallowed = true; };
@@ -816,7 +819,7 @@ final class Motion {
         // views it moves back where they start).
         Sheet sheet = sheetOf(root);
         if (sheet != null) sheet.begin();
-        TransitionSet set = changes(true, instant);
+        TransitionSet set = changes(true, glides, instant);
         set.addListener(new TransitionListenerAdapter() {
             @Override public void onTransitionStart(Transition transition) { glide.played = true; }
             @Override public void onTransitionEnd(Transition transition) { settle(glide); }
