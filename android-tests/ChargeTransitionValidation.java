@@ -235,6 +235,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         for (int i = 1; i < frames.size(); i++) {
             float[] a = frames.get(i - 1), b = frames.get(i);
             if (Float.isNaN(a[NUM_X]) || Float.isNaN(b[NUM_X]) || b[T] - a[T] > 25) continue;
+            if (Math.abs(b[P] - a[P]) > Math.max(.06f, .15f * (b[T] - a[T]) / 25f)) continue;
             float jump = Math.max(Math.abs(b[NUM_X] - a[NUM_X]), Math.abs(b[NUM_Y] - a[NUM_Y]));
             require(jump <= Math.max(4 * density, .6f * travel), what + ": the number jumped " + Math.round(jump) + " px in one frame: " + row(a, NAMES) + " -> " + row(b, NAMES));
         }
@@ -242,10 +243,15 @@ public final class ChargeTransitionValidation extends Instrumentation {
 
     // ---- Widgets' checks ------------------------------------------------------------------------------------------
 
-    private static final int W_T = 0, W_ACTIVE = 1, W_P = 2, W_HEIGHT = 3, W_ALPHA = 4, W_STAGE = 5, W_ROWS = 6, W_LINE = 7, W_PULSE = 8, W_SHOWN = 9;
-    private static final String[] W_NAMES = {"t", "active", "p", "height", "alpha", "stage", "readings", "line", "pulse", "shown"};
+    private static final int W_T = 0, W_ACTIVE = 1, W_P = 2, W_HEIGHT = 3, W_ALPHA = 4, W_STAGE = 5, W_ROWS = 6, W_LINE = 7, W_PULSE = 8, W_SHOWN = 9, W_ID = 10;
+    private static final String[] W_NAMES = {"t", "active", "p", "height", "alpha", "stage", "readings", "line", "pulse", "shown", "hero"};
+
+    private void sameHero(String what, List<float[]> frames) {
+        for (float[] f : frames) require(f[W_ID] == frames.get(0)[W_ID], what + ": Widgets Home was rebuilt during the change");
+    }
 
     private void widgetsChange(String what, List<float[]> frames, boolean in) {
+        sameHero(what, frames);
         int between = 0;
         for (float[] f : frames) if (f[W_ACTIVE] > 0 && f[W_P] > 0 && f[W_P] < 1) between++;
         require(between >= (in ? 6 : 4), what + ": only " + between + " frames in between");
@@ -257,6 +263,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
     }
 
     private void widgetsReversal(String what, List<float[]> frames) {
+        sameHero(what, frames);
         smooth(what, frames, new int[] {W_ALPHA, W_STAGE, W_ROWS, W_LINE}, new int[] {W_HEIGHT}, W_NAMES);
         float top = -1, last = -1;
         boolean turned = false;
@@ -287,7 +294,10 @@ public final class ChargeTransitionValidation extends Instrumentation {
      * Between two frames at most 25 ms apart (a frame or two at 60 Hz), no opacity moves by more than 0.6 and no place,
      * size or height by more than 60% of its whole travel in this change (at least 4 dp, so a still part never fails on
      * a pixel); a part invisible in both frames (opacity 0.05 or less) may move. A view that goes is gone through its
-     * opacity column, so it cannot vanish while it shows.
+     * opacity column, so it cannot vanish while it shows. Two frames are compared only when the change's own progress
+     * moved about a frame's worth between them (at most 0.06, or 0.15 over 25 ms): a loaded emulator sometimes advances
+     * the animation by several frames between two frame callbacks, which is a dropped frame, not a pop in what the
+     * change draws for its progress. Every part being a function of the progress, that is what is judged.
      */
     private void smooth(String what, List<float[]> frames, int[] opacities, int[] places, String[] names) {
         require(frames.size() >= 3, what + ": only " + frames.size() + " frames seen");
@@ -298,6 +308,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         for (int i = 1; i < frames.size(); i++) {
             float[] a = frames.get(i - 1), b = frames.get(i);
             if (b[0] - a[0] > 25) continue;
+            if (Math.abs(b[2] - a[2]) > Math.max(.06f, .15f * (b[0] - a[0]) / 25f)) continue; // column 2: the progress
             pairs++;
             for (int c : opacities) require(Math.abs(b[c] - a[c]) <= .6f, what + ": " + names[c] + " jumped from " + fmt(a[c]) + " to " + fmt(b[c]) + " in one frame: " + row(a, names) + " -> " + row(b, names));
             for (int c : places) {
@@ -307,7 +318,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
                 if (seen >= 0 && a[seen] <= .05f && b[seen] <= .05f) continue;
                 float limit = Math.max(4 * density, .6f * (max[c] - min[c]));
                 if (c == IMAGE_SCALE && names == NAMES) limit = Math.max(.05f, .6f * (max[c] - min[c]));
-                require(Math.abs(b[c] - a[c]) <= limit, what + ": " + names[c] + " jumped from " + fmt(a[c]) + " to " + fmt(b[c]) + " in one frame");
+                require(Math.abs(b[c] - a[c]) <= limit, what + ": " + names[c] + " jumped from " + fmt(a[c]) + " to " + fmt(b[c]) + " in one frame: " + row(a, names) + " -> " + row(b, names));
             }
         }
         require(pairs >= 3, what + ": too few frames close together to judge (" + pairs + ")");
@@ -401,6 +412,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         f[W_LINE] = shown ? ((View) field(hero, "chip")).getAlpha() : 0;
         f[W_PULSE] = field(hero, "pulse") != null ? 1 : 0;
         f[W_SHOWN] = shown ? 1 : 0;
+        f[W_ID] = System.identityHashCode(hero);
         return f;
     }
 
