@@ -105,7 +105,7 @@
         <item quantity="other">%1$d andra elsparkcyklar dolda (annan modell)</item>
     </plurals>
     <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Vill du ansluta till den här elsparkcykeln som %1$s?</string>
-    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Volt kommer att skicka ägarnyckeln för %1$s till den här elsparkcykeln. En elsparkcykel som ännu saknar ägare (ny eller återställd) skulle ta emot den nyckeln, så välj bara din egen elsparkcykel, med telefonen precis intill den.</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb" volt:attempt="2">Volt skickar ägarnyckeln för %1$s till den här elsparkcykeln. En elsparkcykel som ännu inte har någon ägare (ny eller återställd) skulle ta den nyckeln, så välj bara din egen elsparkcykel, med telefonen precis bredvid den.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Körning</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Ljus</string>
@@ -319,7 +319,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Skicka</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Din e-postapp öppnas härnäst, så att du kan läsa den först.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Välj din elsparkcykel eller Inte säker och sedan Skicka.</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">En diagnostikfil läggs till: information om app och elsparkcykel samt senaste anslutnings- och reglagehändelser. Aldrig din ägarnyckel, PIN, serienummer, plats eller namn.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff" volt:attempt="2">En diagnostikfil läggs till: uppgifter om app, telefon och elsparkcykel, inställningar och senaste krasch i Volt, antal inspelningar, senaste anslutnings- och reglagehändelser samt den valda elsparkcykelns laddnings- och schemahistorik med tider. Aldrig din ägarnyckel, PIN, serienummer, plats eller namn.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">Skicka e-post till Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Förhandsgranska</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Förhandsgranska diagnostikfilen</string>

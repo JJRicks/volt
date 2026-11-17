@@ -83,7 +83,7 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Conectar automaticamente</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Manter conectado em segundo plano</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Gravações sempre permanecem conectadas</string>
+    <string name="more_prefs_background_sub" volt:src="72a034c2acd35f0fa065e73cba4010accf1ba188" volt:attempt="2">As gravações continuam conectadas, assim como o carregamento ao vivo e os alertas de carga durante um carregamento</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Manter a tela ligada</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Durante a gravação</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Encerrar viagens automaticamente</string>

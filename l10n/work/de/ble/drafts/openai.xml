@@ -35,7 +35,7 @@
     <string name="ble_failed_new_key_elsewhere" volt:src="1c0b385e8b0ccb748d54eea3df06fca3c6441f4f">Dieser neue Besitzerschlüssel wurde zuerst an einen anderen Scooter gesendet. Schalte den anderen Scooter in der Nähe ein und versuche es erneut.</string>
     <string name="ble_failed_new_key_unsaved" volt:src="1ebe16bb5235dd8b36f294f81200e98507ddb6d4">Die Einrichtung konnte nicht gespeichert werden, daher hat Volt den neuen Besitzerschlüssel nicht gesendet. Gib Speicherplatz frei und versuche es erneut.</string>
     <string name="ble_failed_find_mismatch" volt:src="4549812aa55aa5ffabb66aa863995505872f0cde">Das ist nicht %1$s: Die Seriennummer ist anders. Es wurde nichts gespeichert.</string>
-    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f">%1$s konnte unter dieser Adresse nicht geprüft werden. Es wurde nichts gespeichert. Versuche es erneut mit „In der Nähe suchen“.</string>
+    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f" volt:attempt="2">%1$s konnte unter dieser Adresse nicht überprüft werden. Es wurde nichts gespeichert. Versuche erneut, „In der Nähe finden“ auszuprobieren.</string>
     <string name="ble_found_new_address" volt:src="10d9b7a526cd313ea7f57dc5f9bbbbc143018203">%1$s unter einer neuen Bluetooth-Adresse gefunden</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Signal verloren</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Änderung nicht bestätigt</string>

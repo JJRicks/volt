@@ -35,7 +35,7 @@
     <string name="ble_failed_new_key_elsewhere" volt:src="1c0b385e8b0ccb748d54eea3df06fca3c6441f4f">Esta chave nova foi primeiro para outra trotinete. Liga essa trotinete por perto e tenta novamente.</string>
     <string name="ble_failed_new_key_unsaved" volt:src="1ebe16bb5235dd8b36f294f81200e98507ddb6d4">Não foi possível guardar a configuração, por isso a Volt não enviou a chave nova. Liberta algum espaço de armazenamento e tenta novamente.</string>
     <string name="ble_failed_find_mismatch" volt:src="4549812aa55aa5ffabb66aa863995505872f0cde">Esta não é %1$s: o número de série é diferente. Nada foi guardado.</string>
-    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f">Não foi possível verificar %1$s nesse endereço. Nada foi guardado. Tenta novamente «Encontrar por perto».</string>
+    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f" volt:attempt="2">Não foi possível verificar %1$s nesse endereço. Nada foi guardado. Experimenta «Encontrar por perto» novamente.</string>
     <string name="ble_found_new_address" volt:src="10d9b7a526cd313ea7f57dc5f9bbbbc143018203">Encontrou-se %1$s num novo endereço Bluetooth</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Perdeu-se o sinal</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Alteração não confirmada</string>

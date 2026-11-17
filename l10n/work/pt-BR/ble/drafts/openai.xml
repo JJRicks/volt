@@ -35,7 +35,7 @@
     <string name="ble_failed_new_key_elsewhere" volt:src="1c0b385e8b0ccb748d54eea3df06fca3c6441f4f">Esta nova chave foi enviada primeiro a outro patinete. Ligue esse patinete perto de você e tente novamente.</string>
     <string name="ble_failed_new_key_unsaved" volt:src="1ebe16bb5235dd8b36f294f81200e98507ddb6d4">Não foi possível salvar a configuração inicial, então o Volt não enviou a nova chave. Libere espaço de armazenamento e tente novamente.</string>
     <string name="ble_failed_find_mismatch" volt:src="4549812aa55aa5ffabb66aa863995505872f0cde">Este não é %1$s: o número de série é diferente. Nada foi salvo.</string>
-    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f">Não foi possível verificar %1$s nesse endereço. Nada foi salvo. Tente usar “Encontrar por perto” novamente.</string>
+    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f" volt:attempt="2">Não foi possível verificar %1$s nesse endereço. Nada foi salvo. Faça uma nova tentativa com “Encontrar por perto”.</string>
     <string name="ble_found_new_address" volt:src="10d9b7a526cd313ea7f57dc5f9bbbbc143018203">O Volt encontrou %1$s em um novo endereço Bluetooth</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Sinal perdido</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Alteração não confirmada</string>
@@ -61,7 +61,7 @@
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conecte o patinete primeiro</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Aguarde uma nova conexão com o patinete.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Resolva o aviso %1$d do patinete antes de bloquear.</string>
-    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Faça o patinete parar primeiro</string>
+    <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244" volt:attempt="2">Pare o patinete primeiro</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Indisponível no momento</string>
     <string name="ble_outside_domain" volt:src="83ccb0307f7518bc4a90026bca28b92ed5084d52">O app oficial não oferece este valor</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: valor já definido.</string>

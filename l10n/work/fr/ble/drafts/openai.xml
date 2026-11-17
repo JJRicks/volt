@@ -35,7 +35,7 @@
     <string name="ble_failed_new_key_elsewhere" volt:src="1c0b385e8b0ccb748d54eea3df06fca3c6441f4f">Cette nouvelle clé a d’abord été envoyée à une autre trottinette. Allumez cette trottinette à proximité et réessayez.</string>
     <string name="ble_failed_new_key_unsaved" volt:src="1ebe16bb5235dd8b36f294f81200e98507ddb6d4">Impossible d’enregistrer la configuration, donc Volt n’a pas envoyé la nouvelle clé. Libérez de l’espace de stockage et réessayez.</string>
     <string name="ble_failed_find_mismatch" volt:src="4549812aa55aa5ffabb66aa863995505872f0cde">Ce n’est pas %1$s : son numéro de série est différent. Rien n’a été enregistré.</string>
-    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f">Vérification impossible à cette adresse : %1$s. Rien n’a été enregistré. Réessayez avec « Retrouver à proximité ».</string>
+    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f" volt:attempt="2">Impossible de vérifier la trottinette (%1$s) à cette adresse. Rien n’a été enregistré. Réessayez avec « Trouver à proximité ».</string>
     <string name="ble_found_new_address" volt:src="10d9b7a526cd313ea7f57dc5f9bbbbc143018203">Trottinette trouvée à une nouvelle adresse Bluetooth : %1$s</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Signal perdu</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Changement non confirmé</string>

@@ -87,9 +87,9 @@
     <string name="hub_qa_record_round" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Kaydet</string>
     <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a">Bitiş hedefi</string>
     <string name="hub_qa_alerts_round" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Uyarılar</string>
-    <string name="hub_qa_cruise_round" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Hız sabitleyici</string>
+    <string name="hub_qa_cruise_round" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878" volt:attempt="2">Sabitleme</string>
     <string name="hub_qa_traction_round" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Çekiş</string>
-    <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Geri kazanım</string>
+    <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea" volt:attempt="2">Kazanım</string>
     <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330">Aşırı hız</string>
     <string name="hub_qa_descent_round" volt:src="83aabaef6fccc26a2b05bdf6965a81609fbd1dd3">Yokuş inişi</string>
     <string name="hub_list_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>

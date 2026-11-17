@@ -49,7 +49,7 @@
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Bağlantı kurulumu bu telefondan silinecek. Kaydedilen sürüşler ve şarj kayıtları kalacak.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Önce yedeği kaydet</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Unut</string>
-    <string name="more_scooters_forget_owner_warning" volt:src="fa86328936297b67be02970febecd58e5128f833">Scooter, sahipliği bırakılana kadar sahip anahtarını saklar. Unutma işlemi Volt’un kopyasını siler, bu yüzden yedeğiniz yoksa scooter’a sahip olarak tekrar bağlanamayabilirsiniz.</string>
+    <string name="more_scooters_forget_owner_warning" volt:src="fa86328936297b67be02970febecd58e5128f833" volt:attempt="2">Scooter, serbest bırakılana kadar sahip anahtarını saklar. Scooter’ı unutmak Volt’taki kopyayı siler; bu nedenle yedeğiniz yoksa scooter’a sahibi olarak yeniden bağlanamayabilirsiniz.</string>
     <string name="more_scooters_forget_backed_up" volt:src="5f769678c1022437c26e0482b1292d8c2a120eeb">Bu anahtarı içeren yedeğin kaydedildiği zaman: %1$s.</string>
     <string name="more_scooters_forget_backup_needed" volt:src="4483ec9e2f095b8e1084997f96f95049bb8eaf88">Önce bu anahtarı içeren bir yedek kaydedin. Scooter’ı yeniden yeni bir scooter gibi kullanmak için bunun yerine “Bu scooter’ın sahipliğini bırak…” düğmesini kullanın.</string>
     <string name="more_scooters_release" volt:src="700ec9ec671bad88248d630e22ba58c07bef9d27">Bu scooter’ın sahipliğini bırak…</string>
@@ -83,7 +83,7 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">sn.</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Otomatik bağlan</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Arka planda bağlı kal</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Kayıt sırasında bağlantı her zaman korunur</string>
+    <string name="more_prefs_background_sub" volt:src="72a034c2acd35f0fa065e73cba4010accf1ba188" volt:attempt="2">Kayıtlar bağlantıyı korur; şarj sırasında Canlı şarj ve şarj uyarıları da bağlantıyı korur</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Ekranı açık tut</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Kayıt sırasında</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Sürüşleri otomatik bitir</string>

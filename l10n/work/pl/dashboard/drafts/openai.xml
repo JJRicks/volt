@@ -463,7 +463,7 @@
     <string name="dashboard_scale_minimum_in" volt:src="1b901ce0b176e22d3dcb439b4453a257d4c556df">Minimum skali w jednostce: %1$s</string>
     <string name="dashboard_odometer_carry_spoken" volt:src="f80911e697b6652067d8691400e0b8bbbfed6cbe">%1$s. Uwzględnia dystans przeniesiony po zresetowaniu. Dotknij dwukrotnie, aby zobaczyć szczegóły.</string>
     <string name="dashboard_odometer_carry_title" volt:src="b3e821e9385bc53f5fd7af3745f3f2b75dda941e">Przeniesiony przebieg całkowity</string>
-    <string name="dashboard_odometer_carry_what" volt:src="10d4c7561f4c13960986494f5dc7f05dee4914bf">Data zmiany: %1$s. Przebieg całkowity Twojej hulajnogi zmniejszył się z wartości %2$s do wartości %3$s. Aplikacja Volt kontynuuje zliczanie przebiegu całkowitego od ostatniej odczytanej wartości.</string>
+    <string name="dashboard_odometer_carry_what" volt:src="10d4c7561f4c13960986494f5dc7f05dee4914bf" volt:attempt="2">Data: %1$s. Przebieg całkowity hulajnogi cofnął się z wartości %2$s do wartości %3$s. Aplikacja Volt wznowiła liczenie od ostatniego odczytu, dzięki czemu przebieg całkowity w aplikacji Volt jest nadal naliczany.</string>
     <string name="dashboard_odometer_carry_includes" volt:src="2e9b542919bf1340bb48e3876b936937f92b5f07">Uwzględnia dystans sprzed resetu: %1$s (data resetu: %2$s)</string>
     <string name="dashboard_odometer_carry_includes_many" volt:src="e76877d02cec3ee85a96495ce025a202f70ee725">Uwzględnia dystans sprzed resetów: %1$s (data ostatniego resetu: %2$s)</string>
     <string name="dashboard_odometer_carry_scooter" volt:src="520d8a30d9bfa5e65b87a86057cd232500965e53">Odczyt z hulajnogi</string>

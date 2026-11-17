@@ -84,14 +84,14 @@
     <string name="hub_service_card_none" volt:src="4084c88a190fce45a520a84f0eaab0d8779505bd">Keine Prüfungen eingerichtet</string>
     <string name="hub_whats_new_cut" volt:src="9bf205d7894e61f6643060ec3c6b7c801d1ff8fa">Das sind die ersten Hinweise. Die Versionsseite enthält alle.</string>
     <string name="hub_qa_ride_round" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Fahren</string>
-    <string name="hub_qa_record_round" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Aufzeichnen</string>
+    <string name="hub_qa_record_round" volt:src="73efc7c413b95081edaff9094760e244ceb41319" volt:attempt="2">Aufnahme</string>
     <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a">Fertig bis</string>
-    <string name="hub_qa_alerts_round" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Warnungen</string>
+    <string name="hub_qa_alerts_round" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02" volt:attempt="2">Warnung</string>
     <string name="hub_qa_cruise_round" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Tempomat</string>
     <string name="hub_qa_traction_round" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Traktion</string>
-    <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Rückgewinnung</string>
-    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330">Tempobremse</string>
-    <string name="hub_qa_descent_round" volt:src="83aabaef6fccc26a2b05bdf6965a81609fbd1dd3">Bergabfahrt</string>
+    <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea" volt:attempt="2">Rückgewinnung</string>
+    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330" volt:attempt="2">Übertempo</string>
+    <string name="hub_qa_descent_round" volt:src="83aabaef6fccc26a2b05bdf6965a81609fbd1dd3" volt:attempt="2">Bergab</string>
     <string name="hub_list_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="hub_qa_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Einstellungen suchen</string>
     <string name="hub_qa_search_settings_short" volt:src="3f3dacec55518e55832c230ba1007f8e0ae1fc27">Suche</string>
