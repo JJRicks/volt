@@ -367,6 +367,8 @@ Picking any other scooter asks first: Volt will send your scooter's owner key to
 
 Volt is verified on the US UT5 MAX only. Other standard NAVEE scooters connect with the same owner setup and show live readings, battery data, ride recording and the lock.
 
+**Recognised models:** every scooter in NAVEE's model catalog is recognised by the model ID it advertises and pictured: the UT, NT, XT, N, ST, GT, G, S, V, E and EasyRide series, the P50 (named only, without a photo) and the K100 kids' scooters. Recognised and pictured; controls follow the official app's per-model list; owner-tested on: the UT5 MAX, plus a few controls on the N65i, ST3 Pro, GT5 Max and GT3 Max. A recognised model gets its name and photo, nothing else: its controls are the same as before, and Volt still asks its owners for a compatibility report.
+
 - **Lock:** locking needs fresh status, the scooter stopped and a recent motion report; unlocking needs only a fresh connection, so you can always unlock offline. The switch moves only after the scooter confirms.
 - **Limited controls:** the scooter's settings pages (Battery & charging, Controls, Lights & sound and Security, and their settings sub-pages except Charge history & recordings) show a short banner and hide controls Volt has not mapped for your model. Saved Quick access tiles stay in your layout and show “—”. Controls the official app doesn't offer for your model can be tried from [Experimental controls](#experimental-controls).
 - **Identify:** when the model is unknown, tap **Identify** in the banner. Volt reconnects through a short scan to read the model ID the scooter advertises. It sends no scooter command and is unavailable while recording.

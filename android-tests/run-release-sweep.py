@@ -202,6 +202,11 @@ STEPS += [
     inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Every model's photo framed like the UT5 MAX's (owner, Nov 17 2026): the whole set side by side, and Home (Widgets and Clean)
+    # as the UT5 MAX, GT3 Max, GT5 Max and N65i, at 412 dp in light and dark and on the Fold unfolded.
+    inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
+    inst('model-photos-412-dark', T + 'ModelPhotosValidation', '-e', 'theme', 'dark', '-e', 'size_label', '412', size='412x915'),
+    inst('model-photos-fold', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', 'fold', size='790x820'),
     inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
     inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),
     inst('reveal-motion-controls', T + 'RevealMotionValidation', '-e', 'part', 'controls', size='412x915'),

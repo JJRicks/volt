@@ -10,7 +10,7 @@ public final class ModelRegistryTest {
         // Touch the registry before ScooterCommands so a static-initialiser cycle would show here.
         check(ModelRegistry.resolve(advertised("25381")).layer==ModelRegistry.Layer.UT5_MAX&&ModelRegistry.variant("clock_sync",advertised("25381"),null,null)==ModelRegistry.CLOCK
             &&ModelRegistry.variant("lock",advertised("25381"),null,null).id.equals("lock.ut5"),"Registry initialises first");
-        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); gt3Report(); waitingPhotos(); ownerAnswers();
+        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); gt3Report(); waitingPhotos(); ownerAnswers(); catalog();
         System.out.println("ModelRegistry tests passed: "+assertions+" assertions");
     }
 
@@ -182,13 +182,14 @@ public final class ModelRegistryTest {
             &&ModelRegistry.chargeReferenceProduct(ultra)==-1&&ModelRegistry.rangeFollowProduct(ultra)==0,
             "Only the names follow the UT5 MAX: its sibling stays raw, and no UT5 MAX charge, capacity or range assumption applies");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
-        // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
+        // The XT5 Pro: named from an owner's report (24162, EU, group S), pictured from the model catalog (version 20); its full
+        // drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
-        check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()
-            &&!ModelRegistry.showsPhoto(xt5),"XT5 Pro name and line, without a photo");
+        check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).equals("xt5pro")
+            &&ModelRegistry.showsPhoto(xt5),"XT5 Pro name, line and catalog photo");
         check(ModelRegistry.reported(xt5)&&ReportInvite.model(xt5).isEmpty()&&!ReportInvite.model(xt5Sibling).isEmpty(),"The XT5 Pro is reported; its siblings are still offered");
         check(ModelRegistry.driveModeLabelProduct(xt5)==25462&&ModelRegistry.driveModeLabelProduct(xt5Sibling)==0,"XT5 Pro drive modes use the GT5 Max names; its sibling stays raw");
-        check(ModelRegistry.modelName(xt5Sibling).isEmpty()&&ModelRegistry.ownerPhoto("XT5 Pro").isEmpty(),"Another 2416 ID stays unnamed; an XT5 Pro answer has no photo to show");
+        check(ModelRegistry.modelName(xt5Sibling).isEmpty()&&ModelRegistry.ownerPhoto("XT5 Pro").equals("xt5pro"),"Another 2416 ID stays unnamed; an XT5 Pro answer shows its photo");
         for(String f:new String[]{"lock","maximum_speed","charge_limit","cruise_control","traction_control"}){
             ModelRegistry.Rule named=ModelRegistry.rule(f,xt5,null,null),plain=ModelRegistry.rule(f,xt5Sibling,null,null);
             check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,"Naming the XT5 Pro changes no rule: "+f);
@@ -253,12 +254,20 @@ public final class ModelRegistryTest {
             check(keys.add(w.getValue()),"Two models share the photo "+w.getValue());
         }
         check(!ModelRegistry.WAITING_PHOTOS.containsKey("GT5 Max")&&!ModelRegistry.WAITING_PHOTOS.containsKey("GT3 Max"),"GT5 Max and GT3 Max no longer wait for IDs");
-        check(ModelRegistry.ownerPhoto("XT5 Ultra").equals("xt5ultra"),"An owner's XT5 Ultra answer shows its waiting photo");
-        // Each photo key is bundled and decodable by ScooterPhotos, so moving a model into KNOWN needs nothing else.
-        String photos=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java")),java.nio.charset.StandardCharsets.UTF_8);
+        check(ModelRegistry.ownerPhoto("XT5 Ultra").equals("xt5ultra"),"An owner's XT5 Ultra answer shows its photo (known by Model ID since version 20)");
+        // Listed names the catalog pictures under a series name show that photo.
+        for(java.util.Map.Entry<String,String> m:ModelRegistry.SERIES_PHOTOS.entrySet()){
+            check(m.getKey().equals(NaveeModels.exact(m.getKey()))&&keys.contains(m.getValue()),"A series photo is for a listed model and a known photo: "+m);
+            check(ModelRegistry.ownerPhoto(m.getKey()).equals(m.getValue()),"An owner's answer shows the series photo: "+m.getKey());
+        }
+        // Each photo key is bundled and decodable by ScooterPhotos (a key may share another's file), so moving a model into KNOWN needs nothing else.
+        java.util.List<String> photos=java.nio.file.Files.readAllLines(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java"),java.nio.charset.StandardCharsets.UTF_8);
         for(String key:keys){
-            check(new java.io.File("res/drawable-nodpi/"+key+".webp").isFile(),"No bundled photo for "+key);
-            check(photos.contains("case \""+key+"\": return R.drawable."+key+";"),"ScooterPhotos cannot show "+key);
+            String file=null;
+            for(String line:photos){java.util.regex.Matcher m=java.util.regex.Pattern.compile("return R\\.drawable\\.(\\w+);").matcher(line);
+                if(line.contains("case \""+key+"\":")&&m.find())file=m.group(1);}
+            check(file!=null,"ScooterPhotos cannot show "+key);
+            check(new java.io.File("res/drawable-nodpi/"+file+".webp").isFile(),"No bundled photo for "+key+" ("+file+")");
         }
         check(ModelRegistry.photo(advertised("23451")).isEmpty()&&ModelRegistry.modelName(advertised("23451")).isEmpty(),"An unknown Model ID gets no waiting photo");
     }
@@ -276,13 +285,83 @@ public final class ModelRegistryTest {
         check(ModelRegistry.photo(said.withFirmware(DeviceDescriptor.Firmware.NONE,false)).equals("gt5max")&&ModelRegistry.photo(said.withAdvertised("23451",5)).equals("gt5max"),"The answer survives firmware and advertised updates");
         check(ModelRegistry.photo(unknown.withOwnerModel("ST3 Pro")).equals("st3pro")&&ModelRegistry.photo(unknown.withOwnerModel("UT5 Max")).equals("ut5max")
             &&ModelRegistry.photo(unknown.withOwnerModel("N65i")).equals("n65i"),"A model Volt knows by another ID, or the UT5 MAX, uses its photo");
-        check(ModelRegistry.modelName(unknown.withOwnerModel("GT3 Pro")).equals("GT3 Pro")&&ModelRegistry.photo(unknown.withOwnerModel("GT3 Pro")).isEmpty(),"A listed model without a photo is named only");
+        check(ModelRegistry.modelName(unknown.withOwnerModel("N40")).equals("N40")&&ModelRegistry.photo(unknown.withOwnerModel("N40")).isEmpty(),"A listed model without a photo is named only");
+        check(ModelRegistry.photo(unknown.withOwnerModel("GT3 Pro")).equals("gt3pro")&&ModelRegistry.photo(unknown.withOwnerModel("V40i")).equals("v40series"),
+            "A listed answer the catalog pictures shows that photo, its own or its series'");
         check(ModelRegistry.modelName(advertised("22131").withOwnerModel("GT5 Max")).equals("N65i")&&ModelRegistry.photo(advertised("22131").withOwnerModel("GT5 Max")).equals("n65i")
             &&ModelRegistry.modelName(advertised("25381").withOwnerModel("GT3 Max")).equals("UT5 MAX"),"Volt's own identification always wins");
         for(String odd:new String[]{"Mystery GT9","gt5 max","GT5 Max ",""})
             check(ModelRegistry.modelName(unknown.withOwnerModel(odd)).isEmpty()&&ModelRegistry.photo(unknown.withOwnerModel(odd)).isEmpty(),"Only an exact listed name counts: '"+odd+"'");
         check(ModelRegistry.modelName(DeviceDescriptor.simulated("23451",0).withOwnerModel("GT5 Max")).isEmpty(),"The simulator ignores an answer");
         check(unknown.ownerModel.isEmpty()&&unknown.withOwnerModel(null).ownerModel.isEmpty()&&unknown.withOwnerModel("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx").ownerModel.isEmpty(),"No answer, a null or an oversized one is none");
+    }
+
+    /**
+     * NAVEE's model catalog (the maintainer's copy, 17 November 2026): every scooter Model ID in it, with the name Volt shows.
+     * Kids' K100 scooters are listed too (group M in the official app's rules); the Birdie golf carts are not scooters.
+     */
+    static final String[][] CATALOG={
+        {"27452","NT3 Max"},{"25463","GT5 Max"},{"25093","N65i II"},{"26432","E60 Pro"},{"26202","UT3 Max"},{"26192","UT3 Pro"},{"26122","E60 Pro"},
+        {"26232","V45i"},{"26342","E20 Lite"},{"26112","E45 Pro"},{"26142","S2"},{"25431","NT5 Max"},{"25852","UT5 Ultra X"},{"24492","NT5 Ultra X"},
+        {"26582","NT5 Ultra"},{"25432","NT5 Max"},{"26572","NT5 Max+"},{"25732","E25 Go"},{"25472","UT5 Ultra"},{"25382","UT5 MAX"},{"25462","GT5 Max"},
+        {"25452","GT5 Pro"},{"25172","ST5 Max"},{"25362","S2"},{"25092","N65i II"},{"25292","XT5 Max"},{"24432","XT5 Ultra"},{"25192","G5 Max"},
+        {"25182","G5 Pro"},{"24422","G5"},{"24162","XT5 Pro"},{"25042","K100"},{"25052","K100 Pro"},{"25062","K100 Max"},{"24412","ST5 Pro"},
+        {"24382","V50i Pro II"},{"24372","V40i Pro II"},{"24362","V25i Pro II"},{"23263","V3 Pro"},{"24222","EasyRide 25 Pro"},{"24172","EasyRide 20"},
+        {"23452","ST3 Pro"},{"24012","ST3"},{"24182","GT3 Max"},{"24022","GT3"},{"24032","GT3 Pro"},{"23531","P50"},{"23262","V60i Pro"},
+        {"23261","V60i Pro"},{"23342","S60"},{"23341","S60"},{"23222","S40"},{"23221","S40"},{"23272","V25 Pro Series"},{"23271","V25 Pro Series"},
+        {"23282","V40 Series"},{"23281","V40 Series"},{"23292","V50i Pro"},{"23291","V50i Pro"},{"22131","N65i"},{"23141","V25 Series"},{"23142","V25 Series"}};
+    /** Every catalog scooter is named and pictured by its exact Model ID; naming changes no rule and adds no report. */
+    private static void catalog() {
+        check(CATALOG.length==62,"62 catalog scooter IDs");
+        Set<String> seen=new HashSet<>();
+        for(String[] c:CATALOG){
+            DeviceDescriptor d=advertised(c[0]);
+            check(seen.add(c[0]),"Listed once: "+c[0]);
+            check(ModelRegistry.modelName(d).equals(c[1])&&ModelRegistry.modelLine(d).equals(c[1]),"Catalog name for "+c[0]+": "+ModelRegistry.modelName(d));
+            // The P50 is the one catalog scooter the catalog has no picture of.
+            check(c[0].equals("23531")?!ModelRegistry.showsPhoto(d):ModelRegistry.showsPhoto(d),"Catalog photo for "+c[0]+": '"+ModelRegistry.photo(d)+"'");
+            check(layer(d)==(c[0].equals("25382")?ModelRegistry.Layer.UT5_MAX:ModelRegistry.oemListed(c[0])?ModelRegistry.Layer.OEM_GROUP:ModelRegistry.Layer.SHARED),
+                "Naming changes no layer: "+c[0]);
+            // A serial that disagrees still drops the name and photo; a sibling ID (another fifth digit) gets neither.
+            check(ModelRegistry.modelName(both("Q2213ZZ9US7777777",c[0])).isEmpty()||c[0].startsWith("2213"),"A conflicting serial is unnamed: "+c[0]);
+            String sibling=c[0].substring(0,4)+"9";
+            if(!c[0].equals("25382"))check(ModelRegistry.modelName(advertised(sibling)).isEmpty()&&!ModelRegistry.showsPhoto(advertised(sibling)),"An unlisted sibling ID stays unnamed: "+sibling);
+        }
+        // The UT5 MAX keeps its own photo; a different catalog picture never reaches the owner's scooter.
+        check(ModelRegistry.photo(advertised("25382")).equals("ut5max")&&ModelRegistry.photo(advertised("25852")).equals("ut5ultrax"),"UT5 MAX and UT5 Ultra X keep their photos");
+        // Several IDs of one model share its photo; the two S2 IDs have two pictures in the catalog.
+        check(ModelRegistry.photo(advertised("25462")).equals(ModelRegistry.photo(advertised("25463")))&&ModelRegistry.photo(advertised("23141")).equals(ModelRegistry.photo(advertised("23142"))),
+            "IDs of one model share a photo");
+        check(!ModelRegistry.photo(advertised("25362")).equals(ModelRegistry.photo(advertised("26142"))),"The two S2 IDs keep their own pictures");
+        // Golf carts stay an unsupported product, unnamed.
+        for(String golf:new String[]{"24352","25152"})
+            check(layer(advertised(golf))==ModelRegistry.Layer.UNSUPPORTED_PRODUCT&&ModelRegistry.modelName(advertised(golf)).isEmpty(),"A Birdie golf cart is not named: "+golf);
+        // REPORTED stays the models with real owner reports.
+        check(ModelRegistry.REPORTED.equals(new HashSet<>(java.util.Arrays.asList("22131","23452","24162","24182","25462","25852"))),"REPORTED is unchanged: "+ModelRegistry.REPORTED);
+        // Naming verifies nothing: a newly named model's controls keep their evidence (no Volt-verified row, the shared lock),
+        // its drive modes stay raw and it is still offered a compatibility report.
+        Set<String> owners=new HashSet<>(java.util.Arrays.asList("22131","23452","24162","24182","25462","25852","25382"));
+        java.util.List<ScooterCommands.Feature> features=new java.util.ArrayList<>(ScooterCommands.catalog());
+        features.addAll(ScooterCommands.oemOnly());
+        for(String[] c:CATALOG){
+            if(owners.contains(c[0]))continue;
+            DeviceDescriptor d=advertised(c[0]);
+            check(!ModelRegistry.reported(d)&&ReportInvite.model(d).equals(c[0]),"A newly named model is still offered a report: "+c[0]);
+            check(ModelRegistry.driveModeLabelProduct(d)==0,"A newly named model's drive modes stay raw: "+c[0]);
+            for(ScooterCommands.Feature f:features){
+                ModelRegistry.Rule r=ModelRegistry.rule(f.key,d,null,null);
+                check(r.evidence!=CapabilityResolver.Evidence.VOLT_VERIFIED&&!ModelRegistry.unconfirmed(d,f.key),"Naming verifies nothing: "+c[0]+" "+f.key);
+            }
+            check(ModelRegistry.rule("lock",d,null,null).evidence==CapabilityResolver.Evidence.SHARED_CONTRACT,"The shared lock keeps its evidence: "+c[0]);
+        }
+        // Every bundled model photo is one ScooterPhotos can show (nothing ships unused).
+        String photos;
+        try{photos=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java")),java.nio.charset.StandardCharsets.UTF_8);}
+        catch(java.io.IOException e){throw new AssertionError(e);}
+        for(java.io.File f:new java.io.File("res/drawable-nodpi").listFiles()){
+            String name=f.getName();if(!name.endsWith(".webp")||name.contains("_folded")||name.contains("_charge"))continue;
+            check(photos.contains("return R.drawable."+name.replace(".webp","")+";"),"A bundled photo nothing shows: "+name);
+        }
     }
 
     private static void assumptions() {
@@ -355,7 +434,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==19,"Registry version records the lower kick-start try outside the low-start region, traction control wherever the official app shows it and the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
+        check(ModelRegistry.VERSION==20,"Registry version records every catalog scooter named and pictured, the lower kick-start try outside the low-start region, traction control wherever the official app shows it and the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");

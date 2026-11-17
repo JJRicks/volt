@@ -34,8 +34,24 @@ final class ChargeFolded {
     static final Model GT3_MAX = new Model("gt3max", 1100, 483, 480);
     static final Model GT5_MAX = new Model("gt5max", 1100, 538, 537);
     static final Model XT5_ULTRA = new Model("xt5ultra", 1100, 526, 524);
+    /**
+     * NAVEE's folded side views from its model catalog, supplied by the maintainer on 17 November 2026, for models with
+     * no folded picture before (the owner: "fill in any missing folded ones dont replace any"): trimmed, at most 1100 px
+     * wide, the GT5 Pro's floor shadow cut away. GT3 and GT3 Pro are one image in the catalog.
+     */
+    static final Model G5_PRO = new Model("g5pro", 1100, 506, 505);
+    static final Model GT3 = new Model("gt3", 1100, 483, 481);
+    static final Model GT3_PRO = new Model("gt3pro", 1100, 483, 481);
+    static final Model GT5_PRO = new Model("gt5pro", 1100, 493, 491);
+    static final Model K100_MAX = new Model("k100max", 1100, 552, 551);
+    static final Model N65I_II = new Model("n65iii", 1100, 524, 522);
+    static final Model V25_SERIES = new Model("v25series", 720, 337, 336);
+    static final Model V40_SERIES = new Model("v40series", 716, 349, 348);
+    static final Model XT5_MAX = new Model("xt5max", 1100, 478, 475);
+    static final Model XT5_PRO = new Model("xt5pro", 1100, 524, 522);
 
-    private static final Model[] ALL = {ST3_PRO, N65I, GT3_MAX, GT5_MAX, XT5_ULTRA};
+    private static final Model[] ALL = {ST3_PRO, N65I, GT3_MAX, GT5_MAX, XT5_ULTRA,
+            G5_PRO, GT3, GT3_PRO, GT5_PRO, K100_MAX, N65I_II, V25_SERIES, V40_SERIES, XT5_MAX, XT5_PRO};
 
     /** The model's folded picture, or null when it has none. */
     static Model forKey(String key) {

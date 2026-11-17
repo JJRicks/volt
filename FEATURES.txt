@@ -428,6 +428,38 @@ saves the new address; any other is refused with nothing saved and no retry.
 Rules in FindNearby (tests/l10n/FindNearbyTest.java); not yet tried on a real
 scooter whose address changed.
 
+EVERY NAVEE SCOOTER RECOGNISED AND PICTURED (UNRELEASED)
+
+Volt names and pictures every scooter in NAVEE's model catalog (the
+maintainer's copy, 17 November 2026) by the exact Model ID it advertises: 62
+IDs, the UT5 MAX (25382, its own layer) included and the Birdie golf carts
+left out. Recognised and pictured; controls follow the official app's
+per-model list (OEM 2.1.9's prefix groups); owner-tested on: the UT5 MAX, plus
+a few controls on the N65i, ST3 Pro, GT5 Max and GT3 Max (see the top of this
+file). Naming verifies nothing: no control, region rule, speed choice or
+safety gate changes, drive-mode codes stay raw except where an owner named
+them, and every newly named model is still asked for a compatibility report.
+The two S2 IDs (25362, 26142) are newer than OEM 2.1.9's model list and keep
+Volt's shared default (the lock and readings); every other catalog ID is in
+its list. The K100 kids' scooters (25042, 25052, 25062) are the official app's
+group M. All catalog scooters use the same Bluetooth service as the UT5 MAX in
+the official app; only e-bikes and the exoskeleton use another.
+Photos: front three-quarter views, each trimmed and scaled to the UT5 MAX
+photo's height, baseline and centre on a transparent square, so every place a
+photo shows (Home, Clean Home, the charging view, My scooters, setup's
+connected picture) frames them alike. Models whose catalog image is the same
+share a file; the P50 has none and is named only. The UT5 MAX and UT5 Ultra X
+photos and charging pictures are unchanged (the UT5 MAX's is the reference),
+and the folded charging photos of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5
+Ultra stay those models' own. The catalog's folded side views fill in ten more:
+G5 Pro, GT3, GT3 Pro, GT5 Pro, K100 Max, N65i II, V25 Series, V40 Series, XT5
+Max and XT5 Pro show their folded picture under the charging percentage, placed
+as the other folded pictures are (80% of the width, tyres on the shared floor,
+no cable). Other models keep their photo while charging. Which scooter is this? lists the catalog's newer models; a V25, V25 Pro,
+V25i Pro, V40i, V40i Pro or EasyRide answer shows the catalog's series photo.
+ModelRegistryTest checks every catalog ID's name and photo and that REPORTED
+is unchanged; ModelPhotosValidation renders the whole set at 412 dp.
+
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
 The parked scooter accepted a changed value, reported that new value, and

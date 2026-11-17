@@ -18,9 +18,12 @@ public final class SimulatorModels {
     /** One picker entry: the advertised Model ID ("" is the UT5 MAX simulator), its serial region (or null) and its name. */
     public static final class Entry {
         public final String pid, region, name;
-        Entry(String pid, String region, String name) { this.pid = pid; this.region = region; this.name = name; }
-        /** The picker line: the model's name, with the region when the model has more than one. */
-        public String label() { return region == null ? name : name + " (" + region + ")"; }
+        /** True when another Model ID has the same name (the catalog's NT5 Max is 25431 and 25432): the line shows the ID. */
+        final boolean shared;
+        Entry(String pid, String region, String name) { this(pid, region, name, false); }
+        Entry(String pid, String region, String name, boolean shared) { this.pid = pid; this.region = region; this.name = name; this.shared = shared; }
+        /** The picker line: the model's name, with its Model ID when another ID shares the name and the region when the model has more than one. */
+        public String label() { return name + (shared ? " " + pid : "") + (region == null ? "" : " (" + region + ")"); }
         public DeviceDescriptor descriptor() { return DeviceDescriptor.simulated(pid, 0, region); }
         @Override public String toString() { return label(); }
     }
@@ -43,11 +46,13 @@ public final class SimulatorModels {
         List<String> ut5 = regionGroups("");
         for (String region : ut5) out.add(new Entry("", ut5.size() == 1 ? null : region, "UT5 MAX"));
         List<Map.Entry<String, String[]>> known = new ArrayList<>(ModelRegistry.knownModels().entrySet());
-        Collections.sort(known, (a, b) -> a.getValue()[0].compareToIgnoreCase(b.getValue()[0]));
+        Collections.sort(known, (a, b) -> { int byName = a.getValue()[0].compareToIgnoreCase(b.getValue()[0]); return byName != 0 ? byName : a.getKey().compareTo(b.getKey()); });
+        Map<String, Integer> named = new LinkedHashMap<>();
+        for (Map.Entry<String, String[]> model : known) named.merge(model.getValue()[0], 1, Integer::sum);
         for (Map.Entry<String, String[]> model : known) {
             List<String> regions = regionGroups(model.getKey());
             for (String region : regions)
-                out.add(new Entry(model.getKey(), regions.size() == 1 ? null : region, model.getValue()[0]));
+                out.add(new Entry(model.getKey(), regions.size() == 1 ? null : region, model.getValue()[0], named.get(model.getValue()[0]) > 1));
         }
         out.add(new Entry(MAPPED, null, "Mapped model (synthetic 24431)"));
         out.add(new Entry(UNKNOWN, null, "Unknown model (synthetic 39991)"));

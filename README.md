@@ -37,7 +37,7 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 
 ## Install & connect
 
-**You'll need:** Android **8.0+** with Bluetooth LE and an already activated, owner-bound **NAVEE scooter**. Available controls depend on the model; the US UT5 MAX is physically verified, while other models use mappings from the official app. [Compatibility details →](docs/user-guide.md#other-navee-models)
+**You'll need:** Android **8.0+** with Bluetooth LE and an already activated, owner-bound **NAVEE scooter**. Every NAVEE scooter model is recognised and pictured. Available controls depend on the model; the US UT5 MAX is physically verified, while other models use mappings from the official app. [Compatibility details →](docs/user-guide.md#other-navee-models)
 
 1. **Install Volt.** Download the `.apk` from [Releases](https://github.com/JJRicks/volt/releases/latest), open it on your phone and allow installation when Android asks.
 2. **Pair once.** Keep your powered-on scooter nearby and safely parked, and confirm it connects in NAVEE. Follow Volt's recommended [Chrome + USB setup](https://pairscooter.jjricks.com/), or choose another route in the [setup guide](docs/getting-started.md). You can also import an existing setup or full backup.

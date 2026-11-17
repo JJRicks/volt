@@ -31,8 +31,9 @@ public final class ChargePictureTest {
     }
 
     private static void folded() {
-        String[] keys = {"st3pro", "n65i", "gt3max", "gt5max", "xt5ultra"};
-        require(ChargeFolded.all().length == keys.length, "five folded pictures");
+        String[] keys = {"st3pro", "n65i", "gt3max", "gt5max", "xt5ultra",
+                "g5pro", "gt3", "gt3pro", "gt5pro", "k100max", "n65iii", "v25series", "v40series", "xt5max", "xt5pro"};
+        require(ChargeFolded.all().length == keys.length, "fifteen folded pictures");
         for (String key : keys) {
             ChargeFolded.Model m = ChargeFolded.forKey(key);
             require(m != null && m.key.equals(key), key + " has a folded picture");
@@ -49,7 +50,9 @@ public final class ChargePictureTest {
 
     /** Each model's place on the prototype's phone (models.json phone_layout_dp), at 3 px per dp. */
     private static void placement() {
-        double[][] expected = {{49.0, 252.6}, {49.0, 242.1}, {49.0, 255.1}, {49.0, 242.3}, {49.0, 245.2}};
+        double[][] expected = {{49.0, 252.6}, {49.0, 242.1}, {49.0, 255.1}, {49.0, 242.3}, {49.0, 245.2},
+                {49.0, 249.5}, {49.0, 254.9}, {49.0, 254.9}, {49.0, 252.6}, {49.0, 239.2}, {49.0, 245.7}, {49.0, 247.6}, {49.0, 242.8},
+                {49.0, 256.2}, {49.0, 245.7}};
         ChargeFolded.Model[] all = ChargeFolded.all();
         // The stage's floor: the tyres at 362.6 dp on screen; the stage's top anywhere above (here at 200 dp).
         float floor = (float) ((362.6 - 200) * 3);
@@ -546,15 +549,16 @@ public final class ChargePictureTest {
         keys.add(ModelRegistry.ownerPhoto("UT5 Max"));
         for (String[] named : ModelRegistry.knownModels().values()) keys.add(ModelRegistry.ownerPhoto(named[0]));
         for (String name : ModelRegistry.WAITING_PHOTOS.keySet()) keys.add(ModelRegistry.ownerPhoto(name));
-        String[] pictures = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra"};
+        String[] pictures = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra",
+                "g5pro", "gt3", "gt3pro", "gt5pro", "k100max", "n65iii", "v25series", "v40series", "xt5max", "xt5pro"};
         for (String key : pictures) {
             require(keys.contains(key), key + ": ModelRegistry gives it to a model");
             require((ChargeWireModels.forKey(key) != null) != (ChargeFolded.forKey(key) != null), key + ": exactly one picture");
         }
         int pictured = 0;
         for (String key : keys) if (ChargeWireModels.forKey(key) != null || ChargeFolded.forKey(key) != null) pictured++;
-        near(pictured, 7, 0, "the seven bundled models each have a picture");
-        near(ChargeWireModels.all().length + ChargeFolded.all().length, 7, 0, "and the tables have no other");
+        near(pictured, 17, 0, "the seventeen pictured models each have a picture");
+        near(ChargeWireModels.all().length + ChargeFolded.all().length, 17, 0, "and the tables have no other");
     }
 
     /**

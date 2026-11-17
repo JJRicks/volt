@@ -29,7 +29,8 @@ import java.util.function.BooleanSupplier;
 
 /**
  * Disposable empty emulator, radio off. The charging pictures (ChargePicture: the animated wire picture of the UT5
- * MAX and UT5 Ultra X, the folded stills of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5 Ultra) on Widgets Home's
+ * MAX and UT5 Ultra X, the folded stills of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5 Ultra, and since 17 Nov 2026
+ * the catalog's of the G5 Pro, GT3, GT3 Pro, GT5 Pro, K100 Max, N65i II, V25 Series, V40 Series, XT5 Max and XT5 Pro) on Widgets Home's
  * charging takeover and Clean Home's charging view, on the developer simulator (a UT5 MAX charging). Each model's
  * picture is shown through ChargePicture.tourKey; the wire pictures are also frozen mid-pulse, mid-sweep and in the
  * fast mode (ChargeWireView.tourSeconds and tourWatts), with the animator off (it turns it off itself).
@@ -46,7 +47,8 @@ import java.util.function.BooleanSupplier;
  * Screenshots of every state go to files/charge-picture-validation.
  */
 public final class ChargePictureValidation extends Instrumentation {
-    private static final String[] KEYS = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra"};
+    private static final String[] KEYS = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra",
+            "g5pro", "gt3", "gt3pro", "gt5pro", "k100max", "n65iii", "v25series", "v40series", "xt5max", "xt5pro"};
     /** The frozen moments: {seconds, watts} and their names (the prototype's stills). */
     private static final double[][] PHASES = {{1.0, 119}, {2.0, 119}, {3.0, 540}};
     private static final String[] PHASE_NAMES = {"pulse", "sweep", "fast"};
