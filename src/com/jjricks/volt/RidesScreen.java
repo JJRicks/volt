@@ -318,7 +318,12 @@ public final class RidesScreen implements AppScreen {
         boolean simulating = service.simulating();
         String startLabel = simulating ? T.ridesSimulatingExit() : saving ? T.ridesSavingSensorsButton() : T.ridesStartRecording();
         String startSpoken = simulating ? T.ridesSimulatingExitDescription() : startLabel;
-        connectButton.setVisibility(!ready && !recording ? View.VISIBLE : View.GONE);
+        // Starting or stopping a recording trades the record card for the live card in one motion, and Connect comes
+        // and goes with the link: each fades while the rest of the page glides (Motion.reveal). The first reveal opens
+        // the motion, so everything else this refresh changes on the page joins it; a refresh that changes none of them
+        // moves nothing.
+        Motion.reveal(page, activeCard, recording);
+        Motion.reveal(page, connectButton, !ready && !recording);
         if (mode == SUMMARY) refreshRecordTile(recording, simulating, saving, ready, startLabel, startSpoken);
         else {
             label(recordButton, startLabel);
@@ -327,17 +332,15 @@ public final class RidesScreen implements AppScreen {
             if (simulating) { recordButton.setBackground(ui.shape(ui.raised, 14, 0)); recordButton.setTextColor(ui.muted); }
             else if (recordButton.getBackground() != recordFill) { recordButton.setBackground(recordFill); recordButton.setTextColor(recordInk); }
             if (simulating) recordButton.setContentDescription(startSpoken);
-            recordButton.setVisibility(recording ? View.GONE : View.VISIBLE);
+            Motion.reveal(page, recordButton, !recording);
             // The card is the button alone, gone while recording.
             recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), ui.dp(6));
-            recordCard.setVisibility(recording ? View.GONE : View.VISIBLE);
+            Motion.reveal(page, recordCard, !recording);
         }
         label(endButton, error == null ? T.ridesEnd() : T.ridesRetrySave());
         endButton.setContentDescription(error == null ? T.ridesEndDescription() : T.ridesRetrySave());
         endButton.setEnabled(service.rides != null && !saving);
-        if ((activeCard.getVisibility() == View.VISIBLE) != recording && activeCard.getParent() instanceof ViewGroup)
-            Motion.animateChanges((ViewGroup) activeCard.getParent());
-        activeCard.setVisibility(recording ? View.VISIBLE : View.GONE); if (recording) refreshActive();
+        if (recording) refreshActive();
         refreshHistory(); updateComparisonActions();
         for (Runnable refresh : new ArrayList<>(phoneRefreshers)) refresh.run();
     }
@@ -531,15 +534,18 @@ public final class RidesScreen implements AppScreen {
         describeStat(activeBattery, activeBatteryUnit);
         refreshSensorIcons();
         gapChip.setText(s.gapCount == 1 ? T.ridesGapOne() : T.ridesGaps(s.gapCount, s.gapCount)); gapChip.setContentDescription(gapChip.getText());
-        gapChip.setVisibility(s.gapCount > 0 ? View.VISIBLE : View.GONE);
-        recoveredChip.setVisibility(s.recovered ? View.VISIBLE : View.GONE);
+        // Chips, the lost-link pill and Reconnect, and the error line come and go with the ride: each fades while the
+        // card glides; the live numbers and chart change in place (Motion.reveal's instant views).
+        View[] live = {(View) activeDistance.getParent().getParent(), liveChart};
+        Motion.reveal(page, gapChip, s.gapCount > 0, live);
+        Motion.reveal(page, recoveredChip, s.recovered, live);
         coverageText.setText(T.ridesCoverage(percent(s.electricalCoverage)));
         coverageText.setContentDescription(T.ridesCoverageDescription(percent(s.electricalCoverage), duration(s.electricalCoverageMs), duration(s.elapsedMs)));
         boolean disconnected = !service.ble.connected();
-        disconnectedPill.setVisibility(disconnected ? View.VISIBLE : View.GONE);
-        reconnectButton.setVisibility(disconnected ? View.VISIBLE : View.GONE);
+        Motion.reveal(page, disconnectedPill, disconnected, live);
+        Motion.reveal(page, reconnectButton, disconnected, live);
         activeQuality.setText(error == null ? "" : error);
-        activeQuality.setVisibility(error == null ? View.GONE : View.VISIBLE);
+        Motion.reveal(page, activeQuality, error != null, live);
         liveChart.set(points(trend, chartKey), chartUnit(chartKey), chartColor(chartKey), T.ridesChartWaiting());
     }
     /** ScooterService.phoneStatus() in the display language, from its flags (status() stays the English id). */
@@ -1543,16 +1549,28 @@ public final class RidesScreen implements AppScreen {
             content.addView(new HeadingTag(ui.sectionLabel(title), chip)); nextRideTag = chip;
         }
         LinearLayout sensors = ui.groupCard();
-        switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
+        switchRow(sensors, "pin", gpsRouteTitle(), T.ridesGpsRouteSub(), "phone_gps", true);
         ui.divider(sensors);
         android.hardware.SensorManager sensorManager = host.activity().getSystemService(android.hardware.SensorManager.class);
         boolean barometer = sensorManager != null && sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_PRESSURE) != null;
-        infoRow(sensors, "wave", T.ridesBarometer(), null, barometer ? T.ridesBarometerAuto() : T.ridesBarometerGps());
+        infoRow(sensors, "wave", barometerTitle(), null, barometer ? T.ridesBarometerAuto() : T.ridesBarometerGps());
         ui.divider(sensors);
-        switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
+        switchRow(sensors, "motion", motionTitle(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
         return close;
+    }
+    /** The phone sensors' row titles, shown on their rows and named by search (searchRowTitles). */
+    private static String gpsRouteTitle() { return T.ridesGpsRoute(); }
+    private static String barometerTitle() { return T.ridesBarometer(); }
+    private static String motionTitle() { return T.ridesMotionSensors(); }
+    /**
+     * The names the phone sensors' rows show, in the current language, on Recording settings (GPS route, Barometer
+     * elevation, Motion sensors), for that page's own search result (HubSearch.Gates.pageRowTitles); empty for any other
+     * page.
+     */
+    static String[] searchRowTitles(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {gpsRouteTitle(), barometerTitle(), motionTitle()} : new String[0];
     }
     /** The orange LAB badge More uses, placed after a row or section title. */
     private TextView labBadge() {

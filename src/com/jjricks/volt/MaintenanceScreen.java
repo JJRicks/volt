@@ -616,8 +616,9 @@ final class MaintenanceScreen {
             fromBox.addView(fieldLabel(T.maintenanceCountingFrom()));
             Flow from = new Flow();
             TextView now = ui.chip(T.maintenanceWhenNow(), true, null), past = ui.chip(T.maintenanceWhenEarlier(), false, null);
+            now.setTag("maintenance_when_now"); past.setTag("maintenance_when_earlier");
             from.addView(now); from.addView(past); fromBox.addView(from);
-            LinearLayout pastBox = column(); pastBox.setVisibility(View.GONE);
+            LinearLayout pastBox = column(); pastBox.setVisibility(View.GONE); pastBox.setTag("maintenance_earlier_rows");
             pastBox.addView(fieldLabel(T.maintenanceDate()));
             dateButton.setOnClickListener(v -> pickDate(fromWall[0], wall -> { fromWall[0] = wall; dateButton.setText(date(wall)); dateButton.setContentDescription(date(wall)); }));
             pastBox.addView(dateButton);
@@ -627,8 +628,9 @@ final class MaintenanceScreen {
             boolean offerOdometer = s.distance.hasBaseline();
             odometerLabel.setVisibility(offerOdometer ? View.VISIBLE : View.GONE); odometer.setVisibility(offerOdometer ? View.VISIBLE : View.GONE);
             odometerNote.setVisibility(offerOdometer ? View.VISIBLE : View.GONE);
-            now.setOnClickListener(v -> { earlier[0] = false; ui.styleChip(now, true); ui.styleChip(past, false); pastBox.setVisibility(View.GONE); fromWall[0] = System.currentTimeMillis(); });
-            past.setOnClickListener(v -> { earlier[0] = true; ui.styleChip(now, false); ui.styleChip(past, true); pastBox.setVisibility(View.VISIBLE); });
+            // The date and odometer rows fade in and out while the rest of the sheet, and its height, glide.
+            now.setOnClickListener(v -> { earlier[0] = false; ui.styleChip(now, true); ui.styleChip(past, false); Motion.reveal(content, pastBox, false); fromWall[0] = System.currentTimeMillis(); });
+            past.setOnClickListener(v -> { earlier[0] = true; ui.styleChip(now, false); ui.styleChip(past, true); Motion.reveal(content, pastBox, true); });
             fromBox.addView(pastBox);
             content.addView(fromBox);
         }
@@ -637,10 +639,12 @@ final class MaintenanceScreen {
         content.addView(notifyRow(notify));
         Runnable showMode = () -> {
             for (int i = 0; i < 3; i++) ui.styleChip(modeChips[i], mode[0] == i);
-            distanceBox.setVisibility(mode[0] != 1 ? View.VISIBLE : View.GONE);
-            timeBox.setVisibility(mode[0] != 0 ? View.VISIBLE : View.GONE);
-            either.setVisibility(mode[0] == 2 ? View.VISIBLE : View.GONE);
-            reason.setVisibility(mode[0] != 1 && distanceNote != MaintenanceView.DistanceNote.NONE ? View.VISIBLE : View.GONE);
+            // What a mode shows fades in and out while the rest of the sheet, and its height, glide (Motion.reveal);
+            // built before the sheet is laid out, the first one is simply there.
+            Motion.reveal(content, distanceBox, mode[0] != 1);
+            Motion.reveal(content, timeBox, mode[0] != 0);
+            Motion.reveal(content, either, mode[0] == 2);
+            Motion.reveal(content, reason, mode[0] != 1 && distanceNote != MaintenanceView.DistanceNote.NONE);
         };
         for (int i = 0; i < 3; i++) {
             int index = i;
@@ -806,7 +810,7 @@ final class MaintenanceScreen {
             TextView note = ui.caption(T.maintenanceOdometerThenNote()); note.setPadding(ui.dp(2), ui.dp(6), ui.dp(2), 0); pastBox.addView(note);
         }
         content.addView(pastBox);
-        change.setOnClickListener(v -> { earlier[0] = true; today.setVisibility(View.GONE); change.setVisibility(View.GONE); pastBox.setVisibility(View.VISIBLE); });
+        change.setOnClickListener(v -> { earlier[0] = true; Motion.reveal(content, today, false); Motion.reveal(content, change, false); Motion.reveal(content, pastBox, true); });
         TextView confirm = ui.button(T.maintenanceMarkDone(), () -> {
             // An earlier odometer reading, in km (NaN: done at the latest reading at save time).
             double typedKm = Double.NaN;

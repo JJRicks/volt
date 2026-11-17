@@ -95,6 +95,19 @@ final class HubSearch {
          * short label a control's row shows, a hand-built row's main_search_* words); null for none.
          */
         default CharSequence[] words(String id) { return null; }
+        /**
+         * The name a settings row shows, in the current language, for a row HubText names none for: one only its own
+         * screen's file reads (Recording settings' Auto-save rides and Folder; #393 council review, second round); null
+         * for none (the row is then not listed).
+         */
+        default CharSequence settingTitle(String tag) { return null; }
+        /**
+         * The names, in the current language, of the rows a page always shows that have no search entry of their own
+         * (HubSearchTables.pageRows), for a page whose rows only its own screens' files name (Recording settings: Keep
+         * screen awake, Background recording, Map settings and the phone sensors; #393 council review, third round,
+         * finding 2); null for none. The page's result then matches them as it matches their English titles.
+         */
+        default CharSequence[] pageRowTitles(String page) { return null; }
     }
 
     /** The Scooter tab's search normalization (MainActivity.normalize): lower case, no spaces, underscores or hyphens. */
@@ -209,6 +222,9 @@ final class HubSearch {
             boolean shared = more != null && sharedPageWords(page);
             String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null || shared ? "" : " " + more.english());
             CharSequence[] words = more == null || (shared && more.toString().equals(more.english())) ? null : new CharSequence[] {more};
+            // The names its rows show in the current language, as their English titles are in its English words.
+            CharSequence[] rows = gates.pageRowTitles(page);
+            if (rows != null && rows.length > 0) words = words == null ? rows : join(words, rows);
             entries.add(new Entry(Kind.PAGE, page, english, title, words, null, Target.PAGE, null, null));
         }
         return entries;
@@ -309,6 +325,13 @@ final class HubSearch {
         return entries;
     }
 
+    /** first's words, then rest's (neither null). */
+    private static CharSequence[] join(CharSequence[] first, CharSequence[] rest) {
+        CharSequence[] all = java.util.Arrays.copyOf(first, first.length + rest.length);
+        System.arraycopy(rest, 0, all, first.length, rest.length);
+        return all;
+    }
+
     /** first, then rest (either may be null). */
     private static CharSequence[] concat(CharSequence first, CharSequence[] rest) {
         int more = rest == null ? 0 : rest.length;
@@ -318,14 +341,21 @@ final class HubSearch {
         return all;
     }
 
-    /** The settings rows (HubSearchTables.SETTINGS), by their shown names and English words. */
-    static List<Entry> settings() {
+    /**
+     * The settings rows (HubSearchTables.SETTINGS, then SCREEN_NAMED_SETTINGS), by their shown names and English words:
+     * the name HubText gives, else the one the gates give (Gates.settingTitle), whose English is in the row's words.
+     */
+    static List<Entry> settings(Gates gates) {
         List<Entry> entries = new ArrayList<>();
-        for (String tag : HubSearchTables.SETTINGS) {
+        List<String> tags = new ArrayList<>(java.util.Arrays.asList(HubSearchTables.SETTINGS));
+        tags.addAll(java.util.Arrays.asList(HubSearchTables.SCREEN_NAMED_SETTINGS));
+        for (String tag : tags) {
             Msg title = HubText.settingTitle(tag);
+            CharSequence shown = title != null ? title : gates == null ? null : gates.settingTitle(tag);
             String page = HubSearchTables.settingPage(tag);
-            if (title == null || page == null) continue;
-            entries.add(new Entry(Kind.SETTING, page, title.english() + " " + HubSearchTables.settingWords(tag), title, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
+            if (shown == null || page == null) continue;
+            String english = (title == null ? "" : title.english() + " ") + HubSearchTables.settingWords(tag);
+            entries.add(new Entry(Kind.SETTING, page, english, shown, HubSearchTables.settingAnchor(tag), Target.PAGE, null));
         }
         return entries;
     }
@@ -378,6 +408,24 @@ final class HubSearch {
     }
 
     /**
+     * Whether Search hides the whole page header when headerHidden says so, or only its own rows (back link, connection
+     * line, title). In tabletop posture (a horizontal hinge) the header is the pane above the hinge, and Search's field
+     * sits in it under those rows (MainActivity), so only the rows go: the field stays above the hinge and the results
+     * start below it, as Clean Home keeps its header and top area in that pane (TopArea.tabletopDp). Hiding the whole
+     * pane would run the field and results across the hinge (#393 council review, second round, finding 7).
+     */
+    static boolean hidesWholeHeader(boolean tabletop) { return !tabletop; }
+
+    /**
+     * The height of the pane above the hinge on Search in tabletop posture (MainActivity.fitTabletopSearch): to the hinge
+     * ({@code toHinge}), or, while the keyboard is up, just the field's (WRAP_CONTENT, -2). The keyboard takes its height
+     * from the half below the hinge, so keeping the whole upper pane left the results a row or two between the hinge and
+     * the keyboard; with the pane shrunk they rise under the field, across the hinge, until the keyboard goes (#393
+     * council review, third round, finding 5).
+     */
+    static int tabletopPaneHeight(int toHinge, boolean keyboard) { return keyboard ? -2 : Math.max(1, toHinge); }
+
+    /**
      * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
      * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
      * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)
@@ -412,6 +460,20 @@ final class HubSearch {
      * value; the mock-up's ride row has none of its own).
      */
     static boolean valueStrong(Kind kind) { return kind == Kind.READING; }
+
+    /**
+     * Whether every reading among the results shows a saved value (none live: the scooter is not connected), so their
+     * heading must not say "Live readings" (the council's emulator check of #393, second round). False with no reading.
+     */
+    static boolean readingsAllSaved(List<Entry> results) {
+        boolean any = false;
+        for (Entry entry : results) {
+            if (entry == null || entry.kind != Kind.READING) continue;
+            if (entry.live == null || !Boolean.FALSE.equals(entry.live.get())) return false;
+            any = true;
+        }
+        return any;
+    }
 
     /**
      * Whether the result count shows as a line under the field. The Layout Plan's mock-up has none: the groups follow the

@@ -65,14 +65,40 @@ final class HubSearchTables {
     static final String SETTING_BACKUP = "data-backup";
     static final String SETTING_REPORT_ISSUE = "more-report-issue";
     static final String SETTING_DEVELOPER = "developer-options-menu";
+    /**
+     * Ride backups: its one home is the Ride page (RidesScreen builds the row only there), so it has an entry of its own
+     * that opens the Ride page with the row on screen (#393 council review, second round, finding 2: its words were on
+     * All rides & compare, which no longer shows it).
+     */
+    static final String SETTING_RIDE_BACKUPS = "ride-backups-menu";
+    /**
+     * Recording settings' ride auto-save switch and its folder row (MoreScreen.autoSaveGroup, built only on Ride ›
+     * Recording settings): entries of their own that open that page at the row (#393 council review, second round,
+     * finding 3: their words were on Data & history, which no longer shows them). Named through the gates
+     * (MoreScreen.searchTitle), the one file that reads their text.
+     */
+    static final String SETTING_AUTO_SAVE = "preference-auto-save-rides", SETTING_AUTO_SAVE_FOLDER = "preference-auto-save-folder";
+    /**
+     * Recording settings' End rides automatically and Start recording in the background switches: entries of their own,
+     * so the names shown on them find them in every language, not only their English words (#393 council review, second
+     * round, finding 5). Their tags: a new one on End rides automatically (MoreScreen.recording, named through the gates:
+     * MoreScreen.searchTitle) and the background switch's own.
+     */
+    static final String SETTING_RIDE_AUTO_STOP = "preference_ride_auto_stop", SETTING_RECORD_BACKGROUND = "preference-auto-record-background";
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
             SETTING_HOME_STYLE, SETTING_UNITS, SETTING_DISPLAY, SETTING_HAPTICS, SETTING_LANGUAGE,
             SETTING_RIDING_AUTO_OPEN, SETTING_RIDING_AUTO_RECORD, SETTING_RIDING_HIDE_STATUS_BAR, SETTING_RIDING_CLOCK_SECONDS,
             SETTING_RIDING_BRIGHTNESS, SETTING_RIDING_NIGHT, SETTING_UPDATE_AUTO, SETTING_CHECK_UPDATES, SETTING_BACKUP,
-            SETTING_REPORT_ISSUE, SETTING_DEVELOPER,
+            SETTING_REPORT_ISSUE, SETTING_DEVELOPER, SETTING_RIDE_BACKUPS, SETTING_RECORD_BACKGROUND,
     };
+
+    /**
+     * Settings rows search names through its gates (HubSearch.Gates.settingTitle), not HubText: rows whose text only
+     * their own screen's file reads (MoreScreen.searchTitle). HubText names every row in SETTINGS.
+     */
+    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_RIDE_AUTO_STOP, SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER};
 
     /**
      * The page that holds a hand-built row. Rows still on a scooter page are found in ControlsPages; the rows no
@@ -123,7 +149,9 @@ final class HubSearchTables {
 
     /**
      * The page that holds a settings row: Settings, except the riding-mode switches (Ride › Riding mode), Record rides
-     * automatically (Ride › Recording settings) and the issue report (Service › Reports).
+     * automatically, End rides automatically, Start recording in the background and ride auto-save (Ride › Recording
+     * settings), the issue report (Service › Reports) and Ride backups
+     * (the Ride page).
      */
     static String settingPage(String tag) {
         if (tag == null) return null;
@@ -131,8 +159,11 @@ final class HubSearchTables {
             case SETTING_RIDING_AUTO_OPEN: case SETTING_RIDING_HIDE_STATUS_BAR:
             case SETTING_RIDING_CLOCK_SECONDS: case SETTING_RIDING_BRIGHTNESS: case SETTING_RIDING_NIGHT:
                 return HubPages.RIDE_RIDING;
-            case SETTING_RIDING_AUTO_RECORD: return HubPages.RIDE_RECORDING;
+            case SETTING_RIDING_AUTO_RECORD: case SETTING_AUTO_SAVE: case SETTING_AUTO_SAVE_FOLDER:
+            case SETTING_RIDE_AUTO_STOP: case SETTING_RECORD_BACKGROUND:
+                return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
+            case SETTING_RIDE_BACKUPS: return HubPages.RIDE;
             default: return java.util.Arrays.asList(SETTINGS).contains(tag) ? HubPages.SETTINGS : null;
         }
     }
@@ -174,29 +205,73 @@ final class HubSearchTables {
             case SETTING_BACKUP: return "back up backup restore export import";
             case SETTING_REPORT_ISSUE: return "report issue bug problem email";
             case SETTING_DEVELOPER: return "developer options simulate simulation debug";
+            case SETTING_RIDE_BACKUPS: return "ride backups backup restore import export rides";
+            // Their titles are in their words: the gates name them (Gates.settingTitle), with no English of their own.
+            case SETTING_AUTO_SAVE: return "auto-save rides autosave auto save rides save rides automatically export rides json csv";
+            case SETTING_AUTO_SAVE_FOLDER: return "folder auto-save rides folder autosave folder save rides to folder";
+            case SETTING_RIDE_AUTO_STOP: return "end rides automatically auto stop stop rides automatically ride end";
+            case SETTING_RECORD_BACKGROUND: return "start recording in the background background recording auto record";
             default: return null;
         }
     }
 
     /**
-     * A page's English search words besides its title; "" for a page with none. They hold the title of every row the
-     * page shows that has no search entry of its own, so typing the name written on a row finds the page that holds it
-     * (#393 emulator check: 45 of 114 settings rows were not found; tests/l10n/HubSearchTest.java fails for a settings
-     * row whose title search does not find).
+     * A page's English search words besides its title; "" for a page with none: its own words (pageOwnWords) and the
+     * titles of the rows it always shows that have no search entry of their own (pageRows), so typing the name written
+     * on a row finds the page that holds it (#393 emulator check: 45 of 114 settings rows were not found;
+     * tests/l10n/HubSearchTest.java fails for a settings row whose title search does not find).
      */
     static String pageWords(String page) {
+        StringBuilder words = new StringBuilder(pageOwnWords(page));
+        for (String row : pageRows(page)) words.append(words.length() == 0 ? "" : " ").append(row.toLowerCase(java.util.Locale.ROOT));
+        return words.toString();
+    }
+
+    /**
+     * The English titles, exactly as shown, of the rows a page always shows (on the developer simulator's UT5 MAX, in
+     * English) that have no search entry of their own; empty for a page with none. HubValidation's search-targets walk
+     * (#393 council review, second round) types each title, opens this page's result and requires a row reading that
+     * title on it, so a title can't point at a page that no longer holds its row. A row shown only in some states (while a
+     * charge records, on one Android version, while disconnected) keeps its words in pageOwnWords instead.
+     */
+    static String[] pageRows(String page) {
+        if (page == null) return new String[0];
+        switch (page) {
+            case HubPages.RIDE_RIDES: return new String[] {"Compare two rides"};
+            case HubPages.RIDE_RECORDING: return new String[] {"Keep screen awake", "Background recording", "Map settings", "GPS route",
+                    "Barometer elevation", "Motion sensors"};
+            case HubPages.RIDE_RIDING: return new String[] {"Screen rotation"};
+            case HubPages.BATTERY_HISTORY: return new String[] {"Record charges automatically", "Export charge recordings"};
+            case HubPages.SECURITY: return new String[] {"PIN unlock", "Set or change PIN", "Pair this phone with scooter", "Unlock without phone"};
+            case HubPages.SERVICE: return new String[] {"Diagnostics & connection activity"};
+            case HubPages.SERVICE_EXPERIMENTAL: return new String[] {"Controls to try", "Command evidence", "Clear try results"};
+            case HubPages.DATA: return new String[] {"Favorites"};
+            case HubPages.DATA_STORAGE: return new String[] {"Save readings history", "Clear this scooter's history", "Clear all readings history"};
+            case HubPages.SETTINGS: return new String[] {"Appearance"};
+            case HubPages.SETTINGS_HOME: return new String[] {"Show charging automatically", "Show the last ride after riding"};
+            case HubPages.SETTINGS_SCOOTERS: return new String[] {"Connect automatically", "Stay connected in background", "Telemetry refresh"};
+            case HubPages.SETTINGS_ABOUT: return new String[] {"Nearby devices", "Location", "Notifications", "Online map", "Connection activity",
+                    "Licenses & attribution"};
+            case HubPages.SETTINGS_DEVELOPER: return new String[] {"Compatibility checker", "Simulate scooter as connected", "Simulated model"};
+            default: return new String[0];
+        }
+    }
+
+    /** A page's own English search words (pageWords without its rows' titles); "" for a page with none. */
+    static String pageOwnWords(String page) {
         if (page == null) return "";
         switch (page) {
             case HubPages.RIDE: return "ride rides riding recent";
-            case HubPages.RIDE_RIDES: return "all rides compare history list compare two rides ride backups";
-            case HubPages.RIDE_RECORDING: return "recording record rides automatically gps map sensors keep screen awake end rides automatically auto stop"
-                    + " start recording in the background background recording map settings gps route barometer elevation motion sensors";
-            case HubPages.RIDE_RIDING: return "riding mode display brightness night screen rotation reset volt auto brightness sunset from starts ends";
+            case HubPages.RIDE_RIDES: return "all rides compare history list";
+            case HubPages.RIDE_RECORDING: return "recording record rides automatically gps map sensors auto stop background recording gps route";
+            case HubPages.RIDE_RIDING: return "riding mode display brightness night reset volt auto brightness sunset from starts ends";
             case HubPages.BATTERY: return "battery charging charge limit";
             case HubPages.BATTERY_MODES: return "battery modes low battery mode long range";
             case HubPages.BATTERY_ESTIMATES: return "estimates range charger capacity";
-            case HubPages.BATTERY_HISTORY: return "charge history charge recordings record this charge record charges automatically export charge recordings"
-                    + " stop charge recording clear this scooter's charge recordings live update status";
+            // Record this charge and Stop charge recording show only while charging or recording; Live Update status only
+            // on Android 16; Clear this scooter's charge recordings only with recordings saved.
+            case HubPages.BATTERY_HISTORY: return "charge history charge recordings record this charge stop charge recording"
+                    + " clear this scooter's charge recordings live update status";
             case HubPages.CONTROLS: return "controls drive mode speed cruise";
             case HubPages.CONTROLS_ASSISTS: return "assists hill start parking walk";
             case HubPages.CONTROLS_LIMITS: return "speed limits overspeed";
@@ -205,23 +280,25 @@ final class HubSearchTables {
             // both): "star" doesn't list Line lights, and "line lights" finds its page (#404 review).
             case HubPages.LIGHTS_LINE: return "line lights zones ambient pattern color colour boost";
             case HubPages.LIGHTS_STAR: return "star lights zones ambient pattern color colour boost";
-            case HubPages.SECURITY: return "security lock pin proximity pairing pin unlock set or change pin pair this phone with scooter unlock without phone";
-            case HubPages.SERVICE: return "service maintenance diagnostics diagnostics & connection activity";
+            case HubPages.SECURITY: return "security lock pin proximity pairing";
+            case HubPages.SERVICE: return "service maintenance diagnostics";
             case HubPages.SERVICE_MAINTENANCE: return "maintenance reminders service check";
-            case HubPages.SERVICE_EXPERIMENTAL: return "experimental lab try test controls controls to try command evidence clear try results";
+            case HubPages.SERVICE_EXPERIMENTAL: return "experimental lab try test controls";
             case HubPages.SERVICE_COMPATIBILITY: return "compatibility test check model email to volt";
             case HubPages.SERVICE_REPORTS: return "reports report issue";
-            case HubPages.DATA: return "data live stats readings charts diagnostics favorites favourites";
-            case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable"
-                    + " save readings history clear this scooter's history clear all readings history auto-save rides folder";
-            case HubPages.SETTINGS: return "settings preferences options appearance theme dark light follow system";
-            case HubPages.SETTINGS_HOME: return "home style clean widgets show charging automatically show the last ride after riding quick actions";
+            case HubPages.DATA: return "data live stats readings charts diagnostics favourites";
+            case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable";
+            case HubPages.SETTINGS: return "settings preferences options theme dark light follow system";
+            case HubPages.SETTINGS_HOME: return "home style clean widgets quick actions";
             case HubPages.SETTINGS_UNITS: return "units miles kilometres";
-            case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect automatically stay connected in background telemetry refresh";
-            case HubPages.SETTINGS_ABOUT: return "about permissions version licenses nearby devices location notifications online map connection activity"
-                    + " licenses & attribution view full notices connect selected scooter";
-            case HubPages.SETTINGS_DEVELOPER: return "developer options simulate compatibility checker simulate scooter as connected simulated model"
-                    + " simulation scene drive mode load all widgets into slot 3 hide developer options";
+            case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect";
+            // View full notices sits under Licenses & attribution; Connect selected scooter shows only while not connected.
+            case HubPages.SETTINGS_ABOUT: return "about permissions version licenses view full notices connect selected scooter";
+            // Simulation scene, Drive mode and Load all widgets into slot 3 show only while simulating. Hide developer options
+            // is no row any more (its string, more_dev_hide, is unused since Developer options always show), but
+            // HubSearchTest still finds every row string by its title, so its words open the page it belonged to.
+            case HubPages.SETTINGS_DEVELOPER: return "developer options simulate simulation simulation scene drive mode load all widgets into slot 3"
+                    + " hide developer options";
             default: return "";
         }
     }

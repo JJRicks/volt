@@ -3,6 +3,7 @@ package com.jjricks.volt.tests;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.Instrumentation;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.DisplayTime;
 import com.jjricks.volt.HubPages;
 import com.jjricks.volt.HubText;
 import com.jjricks.volt.MainActivity;
@@ -47,6 +49,7 @@ import com.jjricks.volt.PhoneRideStore;
 import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.WideLayout;
 
 /**
@@ -64,15 +67,19 @@ import com.jjricks.volt.WideLayout;
  *   activity recreation (as a rotation or a language change makes) keeps the whole stack and the page shown.</li>
  *   <li><b>Search</b>: the header's search opens the search page with its field focused at the top (the page header
  *   stepped aside, Cancel beside the field) and the subjects listed; typing ("batt", as the plan's mock-up) hides the
- *   subjects and finds at least one result row (pictured with the keyboard gone); "maintenance" finds Reminders, which
- *   opens over the search, and Back returns to the search with its query and results; the next Back clears the query
- *   (the subjects come back), and the one after returns to Home; Cancel, and the page's back link once the field is
- *   empty and left, return to Home at once.</li>
+ *   subjects and finds at least one result row (pictured with the keyboard gone); "service", "tyre", "tire" and
+ *   "reminder" list Service › Maintenance's Reminders, and "maintenance" finds it and opens it over the search, and Back returns to the search with its query and results; the next Back clears the query
+ *   (the subjects come back), and the one after returns to Home; Cancel returns to Home at once, with a query typed or
+ *   with the field empty and left (the header stays hidden). Main's result check (#410's round) stays: "star" finds the
+ *   Star lights page, whose tap opens Lights & sound › Star lights with Search under it, and Back returns to Search with its query
+ *   and results kept (this part's search keeps them; main's Search was built afresh, empty).</li>
  *   <li><b>Moments</b>: the Lock bar (and the top area above it) stay at the same place and size while the top area
  *   changes from the battery card to the simulator's charging view and back, and to Just back for a ride saved just then
  *   (its ended line, distance, tiles and route bound by Clean Home's own refresh, the two lines on one line each, the
- *   three tile values at one size on one baseline and their names on one line each; the Ride row under it shows that
- *   ride, not "No rides yet"), and
+ *   three tile values at one size on one baseline and their names on one line each; the route panel, where the card's fit
+ *   leaves it room, shown wholly inside the window with the route drawn (at least four points), required unless the step
+ *   declares -e just_back_route optional, and then reported as not shown only where JustBackFit.split gives it up; the Ride
+ *   row under it shows that ride, not "No rides yet"), and
  *   so does Home's scooter name (home-switch-scooter), so an app-side scroll jump between moments fails. Home is scrolled
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
@@ -109,7 +116,12 @@ import com.jjricks.volt.WideLayout;
  *
  * Pass -e mode all (the default) for all of the above. -e mode widgets-pages checks only how Widgets Home reaches Search
  * and Settings, starting on Widgets: the dock's All sheet lists both and they open over Home (part 11 kept main's header
- * on Widgets Home, at the owner's answer on #392). -e theme dark|light and -e text_scale (1 by default) as the other
+ * on Widgets Home, at the owner's answer on #392). -e mode no-nearby runs with Nearby devices permission not granted (the
+ * runner grants none; ScooterService then never binds, so there is no simulator): every scooter page and sub-page shows
+ * the not-connected line, and its tap opens the connection details with "Allow Nearby devices"; Settings shows none
+ * (withoutNearby). -e mode search-targets checks that every search result lands on what it names (searchTargets: every
+ * page, setting, hand-built row and control search lists, and every row title a page's search words name; #393 council
+ * review, second round). -e theme dark|light and -e text_scale (1 by default) as the other
  * fixture runners. -e lock_bar_arrival under|above|below requires where Widgets' Lock bar is, against the dock, as Widgets
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
@@ -142,6 +154,13 @@ public final class HubValidation extends Instrumentation {
         SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT, "about-menu");
     }
     private Bundle arguments;
+    /** The search result the walk opens: "star" finds the Star lights page (HubSearchTables' page words), by its result row's tag (HubSearchScreen.tag). */
+    private static final String SEARCH_QUERY = "star", SEARCH_RESULT = "hub-search-page-" + HubPages.LIGHTS_STAR;
+    /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
+    private static final String NO_NEARBY = "no-nearby";
+    /** -e mode search-targets: every search result lands on what it names (searchTargets). */
+    private static final String SEARCH_TARGETS = "search-targets";
+    private boolean noNearby;
     /** ROUTED's list for the simulated model the walk runs on. */
     private List<String> mayRoute = Collections.emptyList();
     private String simulatedModel = "";
@@ -160,10 +179,12 @@ public final class HubValidation extends Instrumentation {
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
-            admit(); admitted = true;
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-pages"), "Unknown -e mode " + mode + " (all or widgets-pages)");
+            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY) || mode.equals(SEARCH_TARGETS),
+                    "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY + " or " + SEARCH_TARGETS + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
+            noNearby = mode.equals(NO_NEARBY);
+            admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", arguments.getString("theme", "dark")).putString("units", "mi")
@@ -173,17 +194,26 @@ public final class HubValidation extends Instrumentation {
                     .commit(), "Fixture settings failed");
             seed();
             launch();
+            if (noNearby) {
+                withoutNearby();
+                noBind();
+                targetWaitsForService();
+            } else {
             simulate();
             if (widgetsFirst) widgetsPages(true);
+            else if (mode.equals(SEARCH_TARGETS)) searchTargets();
             else {
                 cleanSubjects();
+                quickActionsBothWays();
                 pageStack();
                 connectionLine();
                 search();
                 moments();
                 widgets();
+                edgeScrollbars();
             }
             noCommands();
+            }
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -192,7 +222,7 @@ public final class HubValidation extends Instrumentation {
             result.putStringArrayList("routed_pages", routed); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             if (admitted && activity != null) try {
-                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false);
+                main(() -> { if (activity.service() != null) activity.service().setSimulation(false); if (controlDialog() != null) controlDialog().dismiss(); activity.finish(); ScooterService.setUiVisible(false);
                     getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
             } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -256,6 +286,163 @@ public final class HubValidation extends Instrumentation {
         checks.add("Routed pages: " + routed + ", exactly the ones the simulated model hides (" + mayRoute + ")");
     }
 
+    /**
+     * Wide Clean Home: quick actions edited either way reach the scooter pane, and neither edit undoes the other (#394
+     * council review, second round, 1). Settings › Home style › Quick actions changes the fourth slot from the page pane:
+     * the scooter pane shows it, still the same pane (never rebuilt), on Settings and back on Home. Then Home's own Edit
+     * sheet (a long-press on the quick actions) changes the third: the scooter pane shows both, and both are stored. The
+     * four as stored before are put back at the end, and the scooter pane follows that too. Nothing taps a quick action.
+     */
+    private void quickActionsBothWays() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] == null) return;
+        String key = onMain(() -> (String) staticCall(appClass("HomeQuickActions"), "key", new Class<?>[]{String.class},
+                activity.service().profiles.active().id));
+        String storedBefore = settings().getString(key, null);
+        List<String> before = paneQuick();
+        require(before.size() == 4, "The scooter pane does not show four quick actions: " + before);
+        // From Settings › Home style, in the page pane: the fourth slot.
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        reach(HubPages.SETTINGS_HOME, Collections.singletonList(SETTINGS_ROWS.get(HubPages.SETTINGS_HOME)));
+        arrived(HubPages.SETTINGS_HOME, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_HOME);
+        tapTag("home-style-quick-actions");
+        Supplier<View> slots = () -> sheetRoot(field(activity, "screen"), "slotsSheet");
+        await(() -> onMain(() -> slots.get() != null), "Home style's Quick actions did not open the four");
+        tapIn(slots, "home-edit-slot-4", "Home style's fourth quick action");
+        Supplier<View> settingsPicker = () -> pickerRoot(field(field(activity, "screen"), "chooser"));
+        String fourth = pickOther(settingsPicker, before, "Home style's picker");
+        List<String> afterSettings = new ArrayList<>(before);
+        afterSettings.set(3, fourth);
+        await(() -> onMain(() -> paneQuick().equals(afterSettings)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home style changed the fourth quick action to " + fourth + " (expected " + afterSettings + ")");
+        requireSamePane(pane, "Home style's quick-action edit");
+        HubTestPages.back(this, activity);
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        main(() -> require(paneQuick().equals(afterSettings), "Back on Home the scooter pane shows " + paneQuick() + ", not Home style's " + afterSettings));
+        requireSamePane(pane, HubPages.HOME);
+        screenshot("home-after-settings-quick-edit");
+        // From Home's own Edit sheet: the third slot. It starts from the four as stored, so the fourth stays.
+        main(() -> {
+            ViewGroup grid = root().findViewWithTag("home-quick-actions");
+            require(grid != null && grid.getChildCount() > 0 && grid.getChildAt(0).performLongClick(), "A long-press on Home's quick actions did not open Edit");
+        });
+        settle();
+        Supplier<View> edit = () -> sheetRoot(field(activity, "homeScreen"), "editSheet");
+        await(() -> onMain(() -> edit.get() != null), "Home's Edit sheet did not open");
+        tapIn(edit, "home-edit-slot-3", "Edit's third quick action");
+        Supplier<View> homePicker = () -> pickerRoot(field(field(activity, "homeScreen"), "parts"));
+        String third = pickOther(homePicker, afterSettings, "Home's picker");
+        List<String> both = new ArrayList<>(afterSettings);
+        both.set(2, third);
+        await(() -> onMain(() -> paneQuick().equals(both)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home's Edit changed the third quick action to " + third + " (expected " + both + ": Home style's change kept)");
+        main(() -> require(storedQuick().equals(both), "Stored quick actions are " + storedQuick() + ", expected both changes " + both));
+        requireSamePane(pane, "Home's quick-action edit");
+        requireHome("CleanHomeScreen");
+        // Put the four back as they were stored; the scooter pane follows that as well.
+        SharedPreferences.Editor restore = settings().edit();
+        require((storedBefore == null ? restore.remove(key) : restore.putString(key, storedBefore)).commit(), "Restoring the quick actions failed");
+        await(() -> onMain(() -> paneQuick().equals(before)), () -> "The scooter pane shows " + onMain(this::paneQuick) + " after the four were put back to " + before);
+        requireSamePane(pane, HubPages.HOME);
+        checks.add("Wide Clean Home: a quick action changed in Settings › Home style shows in the scooter pane (not rebuilt) on Settings and back on Home; one changed then from Home's Edit sheet keeps the first change, and both are stored");
+    }
+
+    /** The ids of the quick actions the scooter pane shows (its grid's cells), in order. */
+    private List<String> paneQuick() {
+        ViewGroup grid = root().findViewWithTag("hub-scooter-pane").findViewWithTag("home-quick-actions");
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; grid != null && i < grid.getChildCount(); i++) {
+            Object entry = fieldOrNull(grid.getChildAt(i), "entry");
+            if (entry != null) ids.add((String) field(entry, "id"));
+        }
+        return ids;
+    }
+    /** The active scooter's four as stored (HomeQuickEditor.load). */
+    @SuppressWarnings("unchecked")
+    private List<String> storedQuick() {
+        return (List<String>) staticCall(appClass("HomeQuickEditor"), "load",
+                new Class<?>[]{ScooterService.class, SharedPreferences.class}, activity.service(), settings());
+    }
+    /** A package-private class of the app's, by its simple name. */
+    private Class<?> appClass(String name) {
+        try { return Class.forName("com.jjricks.volt." + name, true, activity.getClassLoader()); } catch (ClassNotFoundException error) { throw new IllegalStateException(error); }
+    }
+    /** The window of the sheet in owner's field, while it shows; else null. */
+    private static View sheetRoot(Object owner, String name) {
+        Object sheet = owner == null ? null : fieldIn(owner, name);
+        return sheet instanceof Dialog && ((Dialog) sheet).isShowing() ? ((Dialog) sheet).getWindow().getDecorView() : null;
+    }
+    /** The quick-action picker's window: a DashboardScreen part's (QuickChooser, CleanParts) outer screen's sheet. */
+    private static View pickerRoot(Object part) {
+        return part == null ? null : sheetRoot(fieldIn(part, "this$0"), "dialog");
+    }
+    /** Taps the first shown, enabled choice of the picker whose id is not in avoid; its id. */
+    private String pickOther(Supplier<View> picker, List<String> avoid, String label) {
+        await(() -> onMain(() -> picker.get() != null), label + " did not open");
+        String id = onMain(() -> {
+            List<View> rows = new ArrayList<>();
+            collectTagged(picker.get(), "quick-choice:", rows);
+            for (View row : rows) {
+                String choice = ((String) row.getTag()).substring("quick-choice:".length());
+                if (shown(row) && row.isEnabled() && !avoid.contains(choice)) return choice;
+            }
+            return null;
+        });
+        require(id != null, label + " offers no other choice than " + avoid);
+        tapIn(picker, "quick-choice:" + id, label + "'s " + id);
+        await(() -> onMain(() -> picker.get() == null), label + " stayed open after a choice");
+        settle();
+        return id;
+    }
+    private static void collectTagged(View view, String prefix, List<View> into) {
+        if (view == null) return;
+        if (view.getTag() instanceof String && ((String) view.getTag()).startsWith(prefix)) into.add(view);
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collectTagged(((ViewGroup) view).getChildAt(i), prefix, into);
+    }
+    private static Object fieldIn(Object target, String name) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+            catch (NoSuchFieldException next) { /* the superclass may declare it */ }
+            catch (IllegalAccessException error) { throw new IllegalStateException(error); }
+        }
+        return null;
+    }
+
+    /**
+     * Two panes while disconnected (#394 council review, second round): the page header's connection line and Clean's
+     * status line beside it give the same "last seen", the newer of the last connection and the newest reading (Clean's
+     * rule). The last connection is saved at most once a minute; here it is put ten minutes before the newest reading,
+     * in memory only and put back after, so the two rules would show different times.
+     */
+    private void sameLastSeen() {
+        if (!onMain(this::twoPanes)) return;
+        ScooterProfiles.Profile active = onMain(() -> activity.service().profiles.active());
+        long saved = active.lastConnected;
+        long newest = onMain(() -> {
+            long found = 0;
+            for (TelemetryHistory.Reading r : activity.service().displayReadings().values())
+                if (r != null && r.value != null) found = Math.max(found, r.capturedWallMs);
+            return found;
+        });
+        require(newest > 0, "The disconnected simulator kept no reading to be last seen by");
+        main(() -> { active.lastConnected = newest - 10 * 60_000L; activity.redraw(); });
+        try {
+            String expected = onMain(() -> DisplayTime.dateTime(activity, settings(), newest));
+            String[] read = new String[2];
+            await(() -> onMain(() -> {
+                read[0] = String.valueOf(root().findViewWithTag("hub-page-connection").getContentDescription());
+                read[1] = String.valueOf(((TextView) invoke(field(field(activity, "homeScreen"), "parts"), "status", new Class<?>[0])).getContentDescription());
+                return read[0].contains(expected) && read[1].contains(expected);
+            }), () -> "Two panes disconnected: the page header says \"" + read[0] + "\" and Clean's status line \"" + read[1] + "\"; both should say last seen " + expected);
+        } finally {
+            main(() -> active.lastConnected = saved);
+        }
+        checks.add("Wide Clean Home, disconnected: the page header's connection line and Clean's status line give the same last-seen time (the newest reading's, newer than the last connection)");
+    }
+
     /** Opening a page already in the stack closes the pages above it; Home resets it; recreation keeps it. */
     private void pageStack() throws Exception {
         tapTag("home-subject-" + HubPages.SERVICE);
@@ -281,9 +468,10 @@ public final class HubValidation extends Instrumentation {
      * The page header's connection line follows the connection (the contributor's decision, 14 Nov, #383): the walk ends
      * the simulated connection on Battery & charging (BleController.disconnect, which in simulation only sets the state:
      * no radio, no command) and the line shows there, tappable, between the back link and the title; Settings still shows
-     * none. Reconnected on that page (BleController.connectLast, the simulator's own connect), the line blanks and keeps
-     * its room, so the title keeps its place; opened again, connected, the page has no line. The simulator's settings stay
-     * as they were (noCommands checks them at the end).
+     * none. Reconnected on that page (BleController.connectLast, the simulator's own connect), the line goes with its
+     * room and, once the motion settles, the title is where a connected page opened fresh has it (the owner's motion
+     * sweep pick, 15 Nov, in place of the blank room #383 kept); opened again, connected, the page has no line. The
+     * simulator's settings stay as they were (noCommands checks them at the end).
      */
     private void connectionLine() throws Exception {
         requireHome("CleanHomeScreen");
@@ -298,6 +486,7 @@ public final class HubValidation extends Instrumentation {
         requireInPage("hub-page-connection", "Battery's connection line");
         String said = onMain(() -> ((TextView) root().findViewWithTag("hub-page-connection")).getText().toString());
         require(said.startsWith("Disconnected"), "Battery's connection line reads \"" + said + "\" while disconnected");
+        sameLastSeen();
         screenshot("page-disconnected");
         systemBack();
         requireHome("CleanHomeScreen");
@@ -310,24 +499,456 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
         require(requireHeader(HubPages.BATTERY, true) == titleTop, "Battery's title moved between two disconnected visits");
         main(ble::connectLast);
-        await(() -> onMain(() -> ble.ready() && root().findViewWithTag("hub-page-connection").getVisibility() == View.INVISIBLE),
-                () -> "Reconnected on Battery, its connection line is " + onMain(() -> root().findViewWithTag("hub-page-connection").getVisibility()) + ", not blank keeping its room");
+        await(() -> onMain(() -> ble.ready() && root().findViewWithTag("hub-page-connection").getVisibility() == View.GONE),
+                () -> "Reconnected on Battery, its connection line is " + onMain(() -> root().findViewWithTag("hub-page-connection").getVisibility()) + ", not gone");
         settle();
-        int reconnectedTop = onMain(() -> {
-            View line = root().findViewWithTag("hub-page-connection");
-            ViewGroup header = (ViewGroup) line.getParent();
-            return windowRect(header.getChildAt(header.indexOfChild(line) + 1)).top;
-        });
-        require(reconnectedTop == titleTop, "Battery's title moved from " + titleTop + " to " + reconnectedTop + " px as the scooter reconnected");
+        int reconnectedTop = requireHeader(HubPages.BATTERY, false);
+        require(reconnectedTop < titleTop, "Battery's title stayed at " + reconnectedTop + " px (" + titleTop + " with the line) as the scooter reconnected");
         systemBack();
         requireHome("CleanHomeScreen");
         tapTag("home-subject-" + HubPages.BATTERY);
         arrived(HubPages.BATTERY, HubPages.HOME, HubPages.BATTERY);
-        requireHeader(HubPages.BATTERY, false);
+        int freshTop = requireHeader(HubPages.BATTERY, false);
+        require(reconnectedTop == freshTop, "Reconnected on Battery its title settled at " + reconnectedTop + " px, opened connected at " + freshTop + " px");
         systemBack();
         requireHome("CleanHomeScreen");
         checks.add("Page header: connected, every page shows its back link and title and no connection line, Settings never; disconnected (the simulator's state only), Battery shows"
-                + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line blanks with the title in place, and the page opened again has none");
+                + " \"" + said + "\" between them, tappable, and Settings none; reconnected on the page the line goes and the title settles where a connected page has it, and the page opened again has none");
+    }
+
+    /**
+     * -e mode no-nearby (#410 review): without Nearby devices permission ScooterService never binds (MainActivity's
+     * ensureService), so the scooter is not connected: every subject page and every sub-page shows the connection line
+     * between its back link and its title (HubPages.pageConnectionLine), and Settings and its pages show none. Search
+     * shows neither: with Cancel beside its field its whole page header steps aside (HubSearch.headerHidden), the line
+     * with it, and Cancel returns Home. The
+     * subjects open from Home's rows; their sub-pages open by the page stack's route (without the service a hosted page
+     * holds no rows; the full walk checks the rows). On Battery & charging and on its first sub-page the line's tap opens
+     * the connection details, whose state reads "No permission" and whose button is "Allow Nearby devices" (pictured, not
+     * tapped: it would ask for the permission). That sub-page rebuilt by an activity recreation (as a rotation makes) shows
+     * the line again at once, as no bind is coming. Nothing binds the service (noBind).
+     */
+    private void withoutNearby() throws Exception {
+        screenshot("no-nearby-home");
+        String subPage = children(HubPages.BATTERY).get(0);
+        for (String subject : HubPages.SUBJECTS) {
+            tapTag("home-subject-" + subject);
+            arrived(subject, HubPages.HOME, subject);
+            requireHeader(subject, true);
+            if (subject.equals(HubPages.BATTERY)) {
+                screenshot("no-nearby-battery");
+                connectionDetails(subject, "no-nearby-battery-details");
+            }
+            for (String child : children(subject)) {
+                open(child);
+                arrived(child, HubPages.HOME, subject, child);
+                requireHeader(child, true);
+                if (child.equals(subPage)) {
+                    screenshot("no-nearby-" + child);
+                    connectionDetails(child, "no-nearby-" + child + "-details");
+                    recreateActivity();
+                    arrived(child, HubPages.HOME, subject, child);
+                    requireHeader(child, true);
+                    screenshot("no-nearby-" + child + "-recreated");
+                }
+                systemBack();
+                arrived(subject, HubPages.HOME, subject);
+                requireHeader(subject, true);
+            }
+            systemBack();
+            requireHome("CleanHomeScreen");
+        }
+        // Search (part 12): its page header steps aside for the field and Cancel (HubSearch.headerHidden, always with
+        // Cancel), the connection line with it; Cancel is the one way out, and goes Home.
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        main(() -> {
+            require(!shown(root().findViewWithTag("hub-back")) && !shown(root().findViewWithTag("hub-page-connection")),
+                    "Search without Nearby permission shows its page header or the connection line with Cancel beside its field");
+            require(shown(root().findViewWithTag("hub-search-cancel")), "Search without Nearby permission has no Cancel beside its field");
+        });
+        screenshot("no-nearby-search");
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireHeader(HubPages.SETTINGS, false);
+        for (String child : children(HubPages.SETTINGS)) {
+            open(child);
+            arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireHeader(child, false);
+            systemBack();
+            arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        }
+        screenshot("no-nearby-settings");
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        checks.add("Without Nearby devices permission (none granted; the service never binds): every subject and every sub-page shows the connection line"
+                + " between its back link and title (Search's header steps aside for its field and Cancel, the line with it); on Battery & charging and " + subPage + " its tap opens the connection details (\"No permission\", \"Allow Nearby devices\");"
+                + " " + subPage + " rebuilt by a recreation shows it at once; Settings and its pages show none");
+    }
+
+    /**
+     * Taps the page's connection line and requires the connection details it opens to say the permission is missing and
+     * offer "Allow Nearby devices" (the button is not tapped); pictured as shot, then closed.
+     */
+    private void connectionDetails(String page, String shot) throws Exception {
+        main(() -> click(root().findViewWithTag("hub-page-connection"), page + "'s connection line"));
+        AlertDialog[] dialog = new AlertDialog[1];
+        await(() -> onMain(() -> { dialog[0] = controlDialog(); return dialog[0] != null && dialog[0].isShowing(); }), page + "'s connection line did not open the connection details");
+        settle();
+        main(() -> {
+            View content = dialog[0].getWindow().getDecorView();
+            require(hasText(content, "No permission"), "The connection details from " + page + " do not say \"No permission\"");
+            android.widget.Button allow = dialog[0].getButton(AlertDialog.BUTTON_NEGATIVE);
+            require(shown(allow) && "Allow Nearby devices".equalsIgnoreCase(allow.getText().toString()), "The connection details from " + page + " offer \""
+                    + (allow == null ? null : allow.getText()) + "\", not \"Allow Nearby devices\"");
+        });
+        screenshot(shot, onMain(() -> dialog[0].getWindow().getDecorView()));
+        main(() -> dialog[0].dismiss());
+        await(() -> onMain(() -> !dialog[0].isShowing()), "The connection details did not close");
+        settle();
+    }
+
+    /** MainActivity's connection details dialog (its controlDialog), or null. Main thread. */
+    private AlertDialog controlDialog() { return activity == null ? null : (AlertDialog) field(activity, "controlDialog"); }
+
+    /** Without Nearby permission nothing bound the service, so nothing could reach a scooter or start a recording. */
+    private void noBind() {
+        main(() -> {
+            require(activity.service() == null, "ScooterService bound without Nearby permission");
+            require(field(activity, "riding") == null, "Riding mode opened during the walk");
+        });
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "The walk granted " + permission);
+        checks.add("No scooter work: the service never bound, Nearby permission is still not granted, no riding mode");
+    }
+
+    /**
+     * Without Nearby permission Settings is the loading page until the scooter service binds, and a search result's
+     * target waits for the real page (#393 council review, third round, finding 4: the loading page used it up, so the
+     * Updates sheet never opened). Check for updates' result opens Settings as the loading page with its target still
+     * owed (MainActivity.pageArgs), through a rebuild too; then, Nearby devices granted and the loading page's Allow
+     * pressed (requestBluetooth binds once granted), Settings is built and its Updates sheet opens holding Check for
+     * updates. Runs after noBind, which this ends: the service binds here.
+     */
+    private void targetWaitsForService() throws Exception {
+        String anchor = "check-updates", tag = "hub-search-setting-" + anchor;
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        require(typeAndFind("Check for updates", tag), "Search without Nearby permission lists no Check for updates result ("
+                + onMain(() -> resultRows(root().findViewWithTag("hub-search-results"))) + " result rows)");
+        tapTag(tag);
+        await(() -> onMain(() -> HubPages.SETTINGS.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))),
+                () -> "Check for updates' result opened " + onMain(() -> field(activity, "selectedPage")) + ", not Settings");
+        settle();
+        for (String when : new String[] {"as Settings opened", "after a rebuild"}) {
+            if (when.startsWith("after")) { main(() -> activity.rebuild()); settle(); }
+            main(() -> {
+                String built = field(activity, "screen").getClass().getSimpleName();
+                require(built.equals("LoadingScreen"), "Without Nearby permission Settings was built as " + built + ", not the loading page (" + when + ")");
+                Object owed = field(activity, "pageArgs");
+                require(owed != null && anchor.equals(field(owed, "anchor")), "The loading page used up Check for updates' target " + when
+                        + " (owed: " + (owed == null ? "nothing" : field(owed, "anchor")) + ")");
+            });
+        }
+        screenshot("no-nearby-settings-loading");
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            getUiAutomation().grantRuntimePermission(getTargetContext().getPackageName(), permission);
+        main(() -> activity.requestBluetooth());
+        await(() -> onMain(() -> activity.service() != null && field(activity, "screen").getClass().getSimpleName().equals("MoreScreen")),
+                () -> "With Nearby granted, Settings was not built (" + onMain(() -> field(activity, "screen").getClass().getSimpleName()) + ", service "
+                        + onMain(() -> activity.service() != null) + ")");
+        String[] place = {"not checked", null};
+        await(() -> { settle(); String[] now = onMain(() -> placeOf(anchor)); place[0] = now[0]; place[1] = now[1]; return now[0] == null && "sheet".equals(now[1]); },
+                () -> "With Nearby granted, Settings did not open its Updates sheet with Check for updates in it (" + place[0] + ", " + place[1] + ")");
+        main(() -> require(field(activity, "pageArgs") == null, "Settings, built, left Check for updates' target owed"));
+        screenshot("no-nearby-settings-updates");
+        checks.add("Without Nearby permission, Check for updates' result opens Settings as the loading page with its target kept through a rebuild;"
+                + " once Nearby is granted and the service binds, Settings opens its Updates sheet holding Check for updates");
+    }
+
+    /**
+     * -e mode search-targets (#393 council review, second round: three results opened a page that no longer held what
+     * was searched for, after pages were rebuilt): every search result lands on what it names. The entries come from
+     * search's own sources (HubSearch.pages, settings, rows and controls, read by reflection with MainActivity's own
+     * gates), so an entry added later is covered as it is added. For each one the walk types the name it shows, taps its
+     * result, and requires its page on top and, for an entry naming a row, that row shown and inside the window once
+     * revealed; for a control a sheet over the page holds (Settings' Updates sheet: Automatic update checks and Check for
+     * updates), the sheet open with the control shown in it. Then every row title a page's search words name
+     * (HubSearchTables.pageRows): it types the title, opens that page's result and requires a row reading the title on
+     * the page. Back returns to Search after each (closing a sheet first). Every mismatch is collected, and the step
+     * fails listing them all. A setting search leaves out for a page of the same name (HubSearch.search) is checked
+     * through that page's result.
+     */
+    private void searchTargets() throws Exception {
+        requireHome("CleanHomeScreen");
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        List<String> problems = new ArrayList<>(), notes = new ArrayList<>();
+        int checked = 0, anchored = 0, held = 0;
+        for (Object entry : onMain(this::searchEntries)) {
+            String kind = String.valueOf(field(entry, "kind")), page = (String) field(entry, "page"), anchor = (String) field(entry, "anchor");
+            String name = onMain(() -> String.valueOf(field(entry, "shown")));
+            String what = kind.toLowerCase(Locale.ROOT) + " \"" + name + "\" (" + page + (anchor == null ? "" : ", " + anchor) + ")";
+            String tag = "hub-search-" + kind.toLowerCase(Locale.ROOT) + "-" + (anchor != null ? anchor : page);
+            if (!typeAndFind(name, tag)) {
+                String instead = "hub-search-page-" + samePage(name);
+                if (!"SETTING".equals(kind) || samePage(name) == null || !onMain(() -> shown(root().findViewWithTag(instead)))) {
+                    problems.add(what + ": typing its name lists no result for it (" + onMain(() -> resultRows(root().findViewWithTag("hub-search-results"))) + " result rows)");
+                    continue;
+                }
+                notes.add(what + " is listed as the page " + samePage(name) + " of the same name");
+                continue;
+            }
+            String problem = openResult(tag, page);
+            if (problem == null && anchor != null) {
+                String[] place = onMain(() -> placeOf(anchor));
+                problem = place[0];
+                if (problem == null) { anchored++; if ("sheet".equals(place[1])) held++; }
+            }
+            if (problem != null) problems.add(what + ": " + problem);
+            else checked++;
+            backToSearch();
+        }
+        int titles = 0;
+        for (String page : HubPages.ALL) {
+            for (String title : pageRows(page)) {
+                String tag = "hub-search-page-" + page, what = "\"" + title + "\" (a row title in " + page + "'s search words)";
+                if (!typeAndFind(title, tag)) {
+                    if (onMain(() -> !pageListed(page))) notes.add(what + ": " + page + " is not offered on this model");
+                    else problems.add(what + ": typing it does not list " + page);
+                    continue;
+                }
+                String problem = openResult(tag, page);
+                if (problem == null && !onMain(() -> hasFoldedText(((View) invoke(field(activity, "screen"), "view", new Class<?>[0])), fold(title))))
+                    problem = page + " has no row reading \"" + title + "\"";
+                if (problem != null) problems.add(what + ": " + problem);
+                else titles++;
+                backToSearch();
+            }
+        }
+        checks.add("Search targets: " + checked + " results opened their page" + " (" + anchored + " with their row revealed inside the window, " + held
+                + " of them in the sheet that holds them), " + titles + " row titles found on the page their words open" + (notes.isEmpty() ? "" : "; notes: " + notes));
+        try { readingKept(); }
+        catch (RuntimeException failure) { problems.add("a reading result: " + failure.getMessage()); }
+        require(problems.isEmpty(), problems.size() + " search results do not land on what they name:\n  " + String.join("\n  ", problems));
+    }
+
+    /**
+     * A reading opened from Search keeps Readings filtered to it through a rebuild (as a rotation or an unfold makes,
+     * MainActivity.onConfigurationChanged) and an activity recreation while Data stays open; once the owner types their
+     * own search on Readings, a recreation restores that search, not the reading (third round, finding 3); and the next
+     * ordinary visit to Data shows every reading (#393 council review, second round, finding 6; the first review's finding 4).
+     */
+    private void readingKept() throws Exception {
+        String[] key = new String[1];
+        main(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); field.setText("battery"); });
+        settle();
+        main(() -> {
+            View found = firstTagged(root().findViewWithTag("hub-search-results"), "hub-search-reading-");
+            require(found != null, "Search for \"battery\" lists no reading");
+            key[0] = ((String) found.getTag()).substring("hub-search-reading-".length());
+        });
+        tapTag("hub-search-reading-" + key[0]);
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(key[0], "opened from Search");
+        main(() -> activity.rebuild()); settle();
+        requirePinned(key[0], "after a rebuild (as a rotation or an unfold makes)");
+        recreateActivity();
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(key[0], "after an activity recreation");
+        screenshot("search-reading-recreated");
+        // The owner types their own search on Readings: the reading is let go, and a recreation now restores their search,
+        // not the reading (#393 council review, third round, finding 3: the reading saved at the last rebuild came back).
+        main(() -> ((EditText) field(field(activity, "screen"), "search")).setText("volt"));
+        settle();
+        requirePinned(null, "once the owner typed their own search");
+        recreateActivity();
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        requirePinned(null, "after the owner typed their own search and a recreation");
+        String[] typed = {null};
+        await(() -> onMain(() -> "volt".contentEquals(typed[0] = String.valueOf(((EditText) field(field(activity, "screen"), "search")).getText()))),
+                () -> "After the owner typed \"volt\" on Readings and a recreation, its field reads \"" + typed[0] + "\"");
+        screenshot("search-reading-typed-recreated");
+        // The owner's own search is kept in stats_query: clear it so later steps see Readings unfiltered.
+        main(() -> ((EditText) field(field(activity, "screen"), "search")).setText(""));
+        settle();
+        backToSearch();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        tapTag("home-subject-" + HubPages.DATA);
+        arrived(HubPages.DATA, HubPages.HOME, HubPages.DATA);
+        requirePinned(null, "on the next ordinary visit");
+        systemBack();
+        requireHome("CleanHomeScreen");
+        checks.add("A reading opened from Search (" + key[0] + ") keeps Readings filtered to it through a rebuild and a recreation; once the owner types \"volt\" there a recreation restores their search, not the reading; the next ordinary visit shows every reading");
+    }
+
+    /** Data's Readings shows reading by itself (StatsScreen's pinned reading), or none for null. */
+    private void requirePinned(String reading, String when) {
+        await(() -> onMain(() -> field(activity, "screen").getClass().getSimpleName().equals("StatsScreen")), "Data's Readings did not open " + when);
+        Object pinned = onMain(() -> field(field(activity, "screen"), "pinned"));
+        require(reading == null ? pinned == null : reading.equals(pinned), "Readings " + when + " shows " + (pinned == null ? "every reading" : "only " + pinned)
+                + ", not " + (reading == null ? "every reading" : "only " + reading));
+    }
+
+    /** A shown view under view with this tag, or null. Main thread. */
+    private static View shownTagged(View view, String tag) {
+        if (view == null) return null;
+        if (tag.equals(view.getTag()) && view.isShown()) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View found = shownTagged(((ViewGroup) view).getChildAt(i), tag); if (found != null) return found; }
+        return null;
+    }
+
+    /** The first shown view under view whose tag starts with prefix, or null. Main thread. */
+    private static View firstTagged(View view, String prefix) {
+        if (view == null || !view.isShown()) return null;
+        if (view.getTag() instanceof String && ((String) view.getTag()).startsWith(prefix)) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { View found = firstTagged(((ViewGroup) view).getChildAt(i), prefix); if (found != null) return found; }
+        return null;
+    }
+
+    /** Search's entries for pages, settings, hand-built rows and controls (those that open a page), as search builds them now. Main thread. */
+    private List<Object> searchEntries() {
+        try {
+            ClassLoader loader = activity.getClassLoader();
+            Class<?> search = Class.forName("com.jjricks.volt.HubSearch", true, loader), gatesType = Class.forName("com.jjricks.volt.HubSearch$Gates", true, loader);
+            Object gates = invoke(activity, "searchGates", new Class<?>[0]);
+            List<Object> all = new ArrayList<>();
+            all.addAll((List<?>) staticCall(search, "pages", new Class<?>[]{gatesType}, gates));
+            Object settings;
+            try { settings = staticCall(search, "settings", new Class<?>[]{gatesType}, gates); }
+            catch (IllegalStateException older) { settings = staticCall(search, "settings", new Class<?>[0]); }
+            all.addAll((List<?>) settings);
+            all.addAll((List<?>) staticCall(search, "rows", new Class<?>[]{gatesType}, gates));
+            Supplier<CharSequence> badge = () -> "Experimental";
+            all.addAll((List<?>) staticCall(search, "controls", new Class<?>[]{gatesType, Supplier.class}, gates, badge));
+            List<Object> opening = new ArrayList<>();
+            for (Object entry : all) if ("PAGE".equals(String.valueOf(field(entry, "target")))) opening.add(entry);
+            return opening;
+        } catch (ClassNotFoundException missing) { throw new IllegalStateException(missing); }
+    }
+
+    /** HubSearchTables.pageRows(page) (the row titles a page's words name); none where the table has no such list. */
+    private String[] pageRows(String page) {
+        try { return (String[]) staticCall(Class.forName("com.jjricks.volt.HubSearchTables", true, activity.getClassLoader()), "pageRows", new Class<?>[]{String.class}, page); }
+        catch (ClassNotFoundException missing) { throw new IllegalStateException(missing); }
+    }
+
+    /** Whether search lists page as a page result on this model (HubSearch.pages with MainActivity's gates). Main thread. */
+    private boolean pageListed(String page) {
+        for (Object entry : searchEntries()) if ("PAGE".equals(String.valueOf(field(entry, "kind"))) && page.equals(field(entry, "page"))) return true;
+        return false;
+    }
+
+    /** The page whose title is name (folded), or null: a setting of that name is listed as that page (HubSearch.search). Main thread. */
+    private String samePage(String name) {
+        return onMain(() -> {
+            for (Object entry : searchEntries())
+                if ("PAGE".equals(String.valueOf(field(entry, "kind"))) && fold(String.valueOf(field(entry, "shown"))).equals(fold(name))) return (String) field(entry, "page");
+            return null;
+        });
+    }
+
+    /** Types text into Search's field and returns whether the result row with this tag is shown. */
+    private boolean typeAndFind(String text, String tag) {
+        main(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); require(field != null, "Search has no field"); field.setText(text); });
+        settle();
+        return onMain(() -> shown(root().findViewWithTag(tag)));
+    }
+
+    /** Taps the result with this tag; null once page is on top, else what went wrong. */
+    private String openResult(String tag, String page) {
+        try { tapTag(tag); }
+        catch (RuntimeException failure) { return "its result could not be tapped (" + failure.getMessage() + ")"; }
+        long end = SystemClock.uptimeMillis() + 6000;
+        while (SystemClock.uptimeMillis() < end && !onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))))
+            SystemClock.sleep(50);
+        String now = onMain(() -> (String) field(activity, "selectedPage"));
+        if (!page.equals(now)) return "opened " + now + ", not " + page;
+        settle();
+        return null;
+    }
+
+    /**
+     * Where the row named by anchor is once the page revealed it: {problem or null, "page" or "sheet"}. In a sheet one of
+     * the page's parts shows over it (its "dialogs"), the control must be shown and wholly inside the sheet's window;
+     * on the page, the row the page names for it (AppScreen.anchor) or the view with that tag must be shown and inside
+     * the window (at least 40 dp of it, or all of a shorter row). Main thread.
+     */
+    private String[] placeOf(String anchor) {
+        Object screen = field(activity, "screen");
+        List<Object> parts = new ArrayList<>();
+        parts.add(screen);
+        if (screen.getClass().getSimpleName().equals("HubPageScreen")) parts.addAll((List<?>) field(screen, "parts"));
+        for (Object part : parts) {
+            Object dialogs = fieldOrNull(part, "dialogs");
+            if (!(dialogs instanceof List)) continue;
+            for (Object dialog : (List<?>) dialogs) {
+                if (!(dialog instanceof android.app.Dialog) || !((android.app.Dialog) dialog).isShowing() || ((android.app.Dialog) dialog).getWindow() == null) continue;
+                View control = ((android.app.Dialog) dialog).getWindow().getDecorView().findViewWithTag(anchor);
+                if (control == null) continue;
+                Rect visible = new Rect();
+                if (!shown(control) || !control.getGlobalVisibleRect(visible) || visible.height() < control.getHeight())
+                    return new String[]{"the sheet over the page holds " + anchor + " but it is not shown wholly (" + chain(control) + ")", "sheet"};
+                return new String[]{null, "sheet"};
+            }
+        }
+        View target;
+        try { Method method = screen.getClass().getMethod("anchor", String.class); method.setAccessible(true); target = (View) method.invoke(screen, anchor); }
+        catch (Exception error) { throw new IllegalStateException(error); }
+        View page = (View) invoke(screen, "view", new Class<?>[0]);
+        // The row is the shown view with the tag, as MainActivity.revealAnchor finds it (a page may hold a hidden one too).
+        if (target == null) target = shownTagged(page, anchor);
+        if (target == null) target = page.findViewWithTag(anchor);
+        if (target == null) return new String[]{"no view " + anchor + " on the page, and no sheet over it holds one", "page"};
+        if (!shown(target)) return new String[]{anchor + " is on the page but not shown (" + chain(target) + ")", "page"};
+        Rect visible = new Rect();
+        int least = Math.min(target.getHeight(), Math.round(40 * activity.getResources().getDisplayMetrics().density));
+        if (!target.getGlobalVisibleRect(visible) || visible.height() < least)
+            return new String[]{anchor + " was not brought inside the window (" + visible.toShortString() + " of " + target.getHeight() + " px shown)", "page"};
+        return new String[]{null, "page"};
+    }
+
+    /** Back to Search: Back closes a sheet over the result's page first, then leaves the page. */
+    private void backToSearch() {
+        for (int i = 0; i < 4; i++) {
+            if (onMain(() -> HubPages.SEARCH.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))) && !dialogShown()) return;
+            sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+            settle();
+        }
+        require(onMain(() -> HubPages.SEARCH.equals(field(activity, "selectedPage"))), "Back did not return to Search from " + onMain(() -> field(activity, "selectedPage")));
+    }
+
+    /** Whether one of the shown screen's parts has a sheet open (its "dialogs"). */
+    private boolean dialogShown() {
+        return onMain(() -> {
+            Object screen = field(activity, "screen");
+            List<Object> parts = new ArrayList<>();
+            parts.add(screen);
+            if (screen.getClass().getSimpleName().equals("HubPageScreen")) parts.addAll((List<?>) field(screen, "parts"));
+            for (Object part : parts) {
+                Object dialogs = fieldOrNull(part, "dialogs");
+                if (dialogs instanceof List) for (Object dialog : (List<?>) dialogs) if (dialog instanceof android.app.Dialog && ((android.app.Dialog) dialog).isShowing()) return true;
+            }
+            return false;
+        });
+    }
+
+    /** Lower case, one space between words, a typographic apostrophe as a plain one: how a row's title is compared. */
+    private static String fold(String text) {
+        return text == null ? "" : text.replace('’', '\'').replaceAll("\\s+", " ").trim().toLowerCase(Locale.ROOT);
+    }
+
+    /** Whether a shown TextView in view reads folded (fold) text. */
+    private static boolean hasFoldedText(View view, String folded) {
+        if (view instanceof TextView && view.isShown() && fold(((TextView) view).getText().toString()).equals(folded)) return true;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (hasFoldedText(((ViewGroup) view).getChildAt(i), folded)) return true;
+        return false;
     }
 
     /**
@@ -389,10 +1010,16 @@ public final class HubValidation extends Instrumentation {
             require(field[0] != null && windowRect(field[0]).equals(fieldAt), "The search field moved as the scooter reconnected");
             require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line after reconnecting");
         });
-        // "maintenance" finds the Reminders setting.
-        main(() -> field[0].setText("maintenance")); settle();
-        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>".
+        // The Reminders result: HubSearchScreen tags each result "hub-search-<kind>-<anchor or page>". Each word an owner
+        // might type for it finds it (#410 review: main's search found Maintenance reminders by no English word).
         String reminders = "hub-search-setting-" + HubPages.SERVICE_MAINTENANCE;
+        for (String word : new String[] {"service", "tyre", "tire", "reminder"}) {
+            main(() -> field[0].setText(word)); settle();
+            main(() -> require(shown(root().findViewWithTag(reminders)), "Search for \"" + word + "\" does not list Service › Maintenance's Reminders ("
+                    + resultRows(root().findViewWithTag("hub-search-results")) + " result rows)"));
+        }
+        // "maintenance" finds the Reminders setting, whose tap opens Service › Maintenance over Search.
+        main(() -> field[0].setText("maintenance")); settle();
         tapTag(reminders);
         arrived(HubPages.SERVICE_MAINTENANCE, HubPages.HOME, HubPages.SEARCH, HubPages.SERVICE_MAINTENANCE);
         systemBack();
@@ -403,14 +1030,14 @@ public final class HubValidation extends Instrumentation {
             require(shown(root().findViewWithTag(reminders)), "Back from a result lost the search's results");
         });
         hideKeyboard();
-        systemBack();
+        // Back reaches the page through the system's dispatch, which can land after settle() on a loaded emulator (hub-725
+        // failed here once on the council's pool): wait for the cleared query, then for the subjects, each with its message.
+        backPastKeyboard(() -> onMain(() -> { EditText now = firstEditText(activity.findViewById(android.R.id.content)); return now != null && now.getText().length() == 0; }),
+                "Back did not clear the search's query first");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
-        main(() -> {
-            EditText now = firstEditText(activity.findViewById(android.R.id.content));
-            require(now != null && now.getText().length() == 0, "Back did not clear the search's query first");
-            require(shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Back cleared the query but the subjects did not come back");
-        });
-        systemBack();
+        await(() -> onMain(() -> shown(root().findViewWithTag("home-subject-" + HubPages.RIDE))), "Back cleared the query but the subjects did not come back");
+        requireStack(HubPages.HOME, HubPages.SEARCH);
+        backPastKeyboard(this::onHome, "Back from the empty search did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         // Cancel leaves at once, query and all.
@@ -432,7 +1059,34 @@ public final class HubValidation extends Instrumentation {
         tapTag("hub-search-cancel");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
-        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"maintenance\" finds Reminders, which opens over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left");
+        // A result opens its page over Search (#410's round, adapted): "star" finds the Star lights page (and not Line
+        // lights), whose tap opens Lights & sound › Star lights with Search under it; Back returns to Search with "star"
+        // and its results kept, as this part's search keeps them (main's Search was built afresh, empty).
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        main(() -> firstEditText(activity.findViewById(android.R.id.content)).setText(SEARCH_QUERY)); settle();
+        main(() -> require(!shown(root().findViewWithTag("home-subject-" + HubPages.RIDE)), "Search still lists the subjects while \"" + SEARCH_QUERY + "\" is typed"));
+        hideKeyboard();
+        main(() -> require(shown(root().findViewWithTag(SEARCH_RESULT)), "Search for \"" + SEARCH_QUERY + "\" does not show the Star lights page ("
+                + resultRows(root().findViewWithTag("hub-search-results")) + " result rows; " + chain(root().findViewWithTag(SEARCH_RESULT)) + ")"));
+        screenshot("search-star");
+        tapTag(SEARCH_RESULT);
+        arrived(HubPages.LIGHTS_STAR, HubPages.HOME, HubPages.SEARCH, HubPages.LIGHTS_STAR);
+        screenshot("search-opened-star-lights");
+        systemBack();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        String[] kept = new String[1];
+        await(() -> onMain(() -> {
+            EditText now = firstEditText(activity.findViewById(android.R.id.content));
+            kept[0] = now == null ? null : now.getText().toString();
+            return now != null && SEARCH_QUERY.contentEquals(now.getText()) && shown(root().findViewWithTag(SEARCH_RESULT));
+        }), () -> "Back from the Star lights result shows Search with the query \"" + kept[0] + "\"; this part's search keeps \"" + SEARCH_QUERY + "\" and its results");
+        hideKeyboard();
+        tapTag("hub-search-cancel");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Search: opens focused at the top with the header stepped aside and the subjects listed; typing \"batt\" hides them and finds at least one result row; \"service\", \"tyre\", \"tire\" and \"reminder\" list Service › Maintenance's Reminders, and \"maintenance\" finds it and opens Service › Maintenance over the search; the connection dropping and coming back while searching moves neither the field nor Cancel and shows no header; Back returns to the search with its query and results, then clears it, then returns to Home; Cancel returns to Home at once, with a query or empty, and the header stays hidden while the field is empty and left;"
+                + " \"star\" finds Star lights, whose tap opens it over Search (stack Home, Search, Star lights); Back returns to Search with \"star\" and its results kept");
     }
 
     /** The search page's field (HubSearchScreen.TAG_FIELD). */
@@ -455,7 +1109,9 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         requireSamePane(pane, "Search from the keyboard");
         hideKeyboard();
-        systemBack();
+        // Search asks for a keyboard (MainActivity.focusPageSearch) that can show after hideKeyboard on a loaded emulator
+        // and take the first Back (#394 council review, second round: hub-725 failed 3 of 3 here on a second emulator).
+        backPastKeyboard(this::onHome, "Back from the search opened by the keyboard did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
@@ -498,10 +1154,27 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> { activity.redraw(); return ((Integer) field(clean, "moment")) == 2; }), "Clean Home does not show Just back for a ride that just ended");
         Object card = onMain(() -> field(clean, "justBack"));
         main(() -> require(ride.equals(invoke(card, "rideId", new Class<?>[0])), "Just back shows another ride than the one just saved"));
-        // The route is read on a worker once the card is bound.
-        await(() -> onMain(() -> field(field(card, "route"), "route") != null), "Just back drew no route for the ride's GPS fixes");
         int[] justBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, justBack), "The Lock bar or the scooter name moved for the Just back card: " + describe(parked) + " -> " + describe(justBack));
+        // The route panel as it is on screen: shown with at least the room it draws in (JustBackView's MIN_ROUTE_DP; under it
+        // the panel draws nothing) and wholly inside the window, with the ride's route drawn in it: at least ROUTE_POINTS
+        // points, read on a worker once the card is bound (an unreadable journal or a ride with no usable fixes gives the
+        // empty route, drawn as a placeholder icon, which fails here; #410 council, final review, finding 1). The route is
+        // required unless the step declares -e just_back_route optional (the sweep's four Hub steps declare nothing, so
+        // 344x882 and 725x604 at 1x and 1.4x text must draw it); then the panel may be gone only where JustBackFit.split,
+        // given the room the card's own layout leaves it, gives it up, and the walk says the route was not shown.
+        String panelShown = onMain(() -> routeOnScreen(card)), routeShown = panelShown;
+        boolean routeOptional = "optional".equals(arguments.getString("just_back_route", "required"));
+        if (routeShown == null) {
+            require(routeOptional, "Just back shows no route panel at this window (" + onMain(() -> routeFit(card)) + "); this step requires the route (-e just_back_route optional for a window where the fit gives it up)");
+            require(onMain(() -> routeFit(card)[1] == 0), "Just back's route panel is not shown, though JustBackFit.split gives it room (" + Arrays.toString(onMain(() -> routeFit(card))) + ")");
+        } else {
+            int[] points = {0};
+            await(() -> onMain(() -> { float[] route = (float[]) field(field(card, "route"), "route"); points[0] = route == null ? -1 : (route.length - 2) / 2; return points[0] >= ROUTE_POINTS; }),
+                    () -> "Just back's route panel shows (" + panelShown + ") but its route has " + (points[0] < 0 ? "not arrived" : points[0] + " points") + ", not at least " + ROUTE_POINTS + " from the ride's 121 GPS fixes");
+            routeShown = panelShown + ", " + points[0] + " points";
+        }
+        String routeSaid = routeShown;
         main(() -> {
             for (String name : new String[]{"saved", "distance"}) {
                 TextView text = (TextView) field(card, name);
@@ -546,7 +1219,55 @@ public final class HubValidation extends Instrumentation {
         int[] afterJustBack = placeIn(clean, 2, "the Just back card");
         require(Arrays.equals(parked, afterJustBack), "Clean Home moved while Just back was pictured: " + describe(parked) + " -> " + describe(afterJustBack));
         checks.add("Moments: at Home's top, the Lock bar and the top area keep their place and size, and the scooter name its place, for the battery card, charging and Just back"
-                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and route shown; the Ride row shows that ride); each pictured at that scroll");
+                + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and "
+                + (routeSaid != null ? "its route drawn on screen (" + routeSaid + ")" : "no route shown: -e just_back_route optional, and JustBackFit.split gives up the route panel at this size")
+                + "; the Ride row shows that ride); each pictured at that scroll");
+    }
+
+    /** The least number of route points Just back must draw for the seeded ride (a start, an end and two between). */
+    private static final int ROUTE_POINTS = 4;
+
+    /**
+     * JustBackFit.split (package-private in the app, reached by reflection) for the room the card's own layout leaves
+     * between its ended line and its tiles, as JustBackView.onMeasure asks it: {distance box, route panel, route gap} px.
+     * Main thread.
+     */
+    private int[] routeFit(Object card) {
+        ViewGroup view = (ViewGroup) card;
+        View first = (View) field(card, "first"), tiles = (View) field(card, "tiles");
+        int room = view.getHeight() - view.getPaddingTop() - view.getPaddingBottom() - outer(first) - outer(tiles);
+        float density = activity.getResources().getDisplayMetrics().density;
+        try {
+            Class<?> fit = Class.forName("com.jjricks.volt.JustBackFit", true, card.getClass().getClassLoader());
+            Method split = fit.getDeclaredMethod("split", int.class, int.class, int.class, int.class, int.class);
+            split.setAccessible(true);
+            Field gap = card.getClass().getDeclaredField("ROUTE_GAP_DP");
+            gap.setAccessible(true);
+            return (int[]) split.invoke(null, room, (Integer) field(card, "distanceFull"), (Integer) field(card, "distanceFloor"),
+                    Math.round(((Integer) field(card, "MIN_ROUTE_DP")) * density), Math.round(gap.getInt(null) * density));
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+    /** A child's height with its top and bottom margins (JustBackView.outer). */
+    private static int outer(View child) {
+        ViewGroup.MarginLayoutParams size = (ViewGroup.MarginLayoutParams) child.getLayoutParams();
+        return child.getHeight() + size.topMargin + size.bottomMargin;
+    }
+
+    /**
+     * Just back's route panel (JustBackView's route, tag home-just-back-route) where an owner sees it: shown, at least
+     * MIN_ROUTE_DP high (under that it draws nothing) and wholly inside the window, unclipped. Its size and place, or null
+     * where the card's fit gave the panel up (gone, or too low to draw). Main thread.
+     */
+    private String routeOnScreen(Object card) {
+        View panel = (View) field(card, "route");
+        int least = Math.round(((Integer) field(card, "MIN_ROUTE_DP")) * activity.getResources().getDisplayMetrics().density);
+        if (!shown(panel) || panel.getHeight() < least) return null;
+        Rect seen = new Rect(), place = windowRect(panel);
+        require(panel.getGlobalVisibleRect(seen) && seen.width() >= panel.getWidth() - 1 && seen.height() >= panel.getHeight() - 1,
+                "Just back's route panel " + place.toShortString() + " is not wholly on screen (visible " + seen.toShortString() + ")");
+        Rect window = new Rect(0, 0, root().getWidth(), root().getHeight());
+        require(window.contains(place), "Just back's route panel " + place.toShortString() + " runs outside the window " + window.toShortString());
+        return panel.getWidth() + "x" + panel.getHeight() + " px at " + place.left + "," + place.top;
     }
 
     /**
@@ -650,15 +1371,15 @@ public final class HubValidation extends Instrumentation {
                 + "the Lock bar " + lockBar + " the dock as Home opens, and Home scrolls it fully clear of the dock");
         // All: the sheet with every subject; a row opens its subject and closes the sheet.
         for (String subject : HubPages.SUBJECTS) {
-            AlertDialog[] sheet = {openAllSheet()};
+            View[] sheet = {openAllSheet()};
             main(() -> {
-                View content = sheet[0].getWindow().getDecorView();
+                View content = sheet[0];
                 require(content.findViewWithTag("hub-dock-sheet") != null, "The All sheet has no content tag");
                 for (String each : HubPages.SUBJECTS) require(shown(content.findViewWithTag("home-subject-" + each)), "The All sheet does not list " + each);
             });
-            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet", onMain(() -> sheet[0].getWindow().getDecorView()));
-            tapIn(() -> sheet[0].getWindow().getDecorView(), "home-subject-" + subject, "home-subject-" + subject + " in the All sheet");
-            await(() -> onMain(() -> !sheet[0].isShowing()), "The All sheet stayed open after opening " + subject);
+            if (subject.equals(HubPages.SUBJECTS.get(0))) screenshot("widgets-all-sheet", sheet[0]);
+            tapIn(() -> sheet[0], "home-subject-" + subject, "home-subject-" + subject + " in the All sheet");
+            await(() -> onMain(() -> !sheet[0].isAttachedToWindow()), "The All sheet stayed open after opening " + subject);
             arrived(subject, HubPages.HOME, subject);
             systemBack();
             requireHome("DashboardScreen");
@@ -672,6 +1393,57 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
+     * The page scroller's bar at the window's edge (the owner, 16 Nov: "Screen edge is reasonable probably"): Clean Home and
+     * a subject page (MainActivity's own scroller, with the side padding), Settings (its screen's own scroller) and Widgets Home.
+     */
+    private void edgeScrollbars() throws Exception {
+        requireHome("CleanHomeScreen");
+        requireEdgeScrollbar("Clean Home");
+        String subject = HubPages.SUBJECTS.get(0);
+        tapTag("home-subject-" + subject);
+        arrived(subject, HubPages.HOME, subject);
+        requireEdgeScrollbar(subject);
+        systemBack();
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireEdgeScrollbar("Settings");
+        HubTestPages.back(this, activity);
+        switchStyle(WIDGETS);
+        requireHome("DashboardScreen");
+        requireEdgeScrollbar("Widgets Home");
+        switchStyle(CLEAN);
+        requireHome("CleanHomeScreen");
+        checks.add("Page scrollbar at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on Clean Home, " + subject + ", Settings and Widgets Home");
+    }
+
+    /**
+     * MainActivity's page scroller draws its vertical bar over its padding (SCROLLBARS_OUTSIDE_OVERLAY), its edges are the
+     * window's content edges (inside the system bars), and the bar fits the gutter on its side (the scroller's padding plus
+     * its content's), so it never covers the content.
+     */
+    private void requireEdgeScrollbar(String where) {
+        main(() -> {
+            Object page = field(activity, "scroll");
+            require(page instanceof ScrollView, where + " has no page scroller");
+            ScrollView scroll = (ScrollView) page;
+            require(scroll.getScrollBarStyle() == View.SCROLLBARS_OUTSIDE_OVERLAY, where + "'s page scrollbar style is " + scroll.getScrollBarStyle()
+                    + ", expected SCROLLBARS_OUTSIDE_OVERLAY (" + View.SCROLLBARS_OUTSIDE_OVERLAY + ")");
+            require(scroll.isVerticalScrollBarEnabled(), where + "'s page scroller has no vertical bar");
+            View window = (View) field(activity, "root");
+            Rect at = windowRect(scroll), frame = windowRect(window);
+            int left = frame.left + window.getPaddingLeft(), right = frame.right - window.getPaddingRight();
+            require(at.left == left && at.right == right, where + "'s page scroller spans " + at.left + ".." + at.right + " px, the window's content " + left + ".." + right);
+            boolean rtl = scroll.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            View content = scroll.getChildCount() > 0 ? scroll.getChildAt(0) : null;
+            int gutter = rtl ? scroll.getPaddingLeft() + (content == null ? 0 : content.getPaddingLeft())
+                    : scroll.getPaddingRight() + (content == null ? 0 : content.getPaddingRight());
+            require(scroll.getVerticalScrollbarWidth() > 0 && scroll.getVerticalScrollbarWidth() <= gutter, where + "'s page scrollbar is "
+                    + scroll.getVerticalScrollbarWidth() + " px wide, its gutter " + gutter + " px");
+        });
+    }
+
+    /**
      * How Widgets Home reaches Search and Settings: its header is main's (no search or gear of its own, the owner's answer
      * on #392), and the dock's All sheet lists both first, under Clean Home's header tags; each opens over Home and Back
      * returns to Widgets Home. Alone (-e mode widgets-pages) it takes its own screenshots.
@@ -682,18 +1454,20 @@ public final class HubValidation extends Instrumentation {
         main(() -> require(root().findViewWithTag("home-search") == null && root().findViewWithTag("home-settings") == null,
                 "Widgets Home's header has a search or gear of its own; part 11 keeps main's header"));
         for (String[] each : new String[][]{{"home-search", HubPages.SEARCH}, {"home-settings", HubPages.SETTINGS}}) {
-            AlertDialog sheet = openAllSheet();
-            main(() -> require(shown(sheet.getWindow().getDecorView().findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
-            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages", onMain(() -> sheet.getWindow().getDecorView()));
-            tapIn(() -> sheet.getWindow().getDecorView(), each[0], each[0] + " in the All sheet");
-            await(() -> onMain(() -> !sheet.isShowing()), "The All sheet stayed open after " + each[0]);
+            View sheet = openAllSheet();
+            main(() -> require(shown(sheet.findViewWithTag(each[0])), "The All sheet has no " + each[0] + " row"));
+            if (alone && each[1].equals(HubPages.SEARCH)) screenshot("widgets-all-sheet-pages", sheet);
+            tapIn(() -> sheet, each[0], each[0] + " in the All sheet");
+            await(() -> onMain(() -> !sheet.isAttachedToWindow()), "The All sheet stayed open after " + each[0]);
             arrived(each[1], HubPages.HOME, each[1]);
             if (each[1].equals(HubPages.SEARCH)) {
                 await(() -> onMain(() -> { EditText field = firstEditText(activity.findViewById(android.R.id.content)); return field != null && field.hasFocus(); }),
                         "Search opened from the All sheet without its field focused");
                 hideKeyboard();
+                backPastKeyboard(this::onHome, "Back from Search did not return to Widgets Home");
+            } else {
+                systemBack();
             }
-            systemBack();
             requireHome("DashboardScreen");
         }
         checks.add("Widgets Home keeps main's header; the All sheet's Search and Settings rows open those pages over Home, and Back returns to Widgets Home");
@@ -780,12 +1554,14 @@ public final class HubValidation extends Instrumentation {
         page.scrollBy(0, by);
     }
 
-    /** Taps the dock's All item and returns its sheet, open and settled. */
-    private AlertDialog openAllSheet() {
+    /** Taps the dock's All item and returns its sheet (DragSheet's overlay in Volt's window), open and settled. */
+    private View openAllSheet() {
         dockStays("Widgets Home before All");
         tapTag("hub-dock-handle");
-        AlertDialog[] sheet = new AlertDialog[1];
-        await(() -> onMain(() -> { sheet[0] = (AlertDialog) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isShowing(); }), "All did not open the subjects sheet");
+        View[] sheet = new View[1];
+        await(() -> onMain(() -> { sheet[0] = (View) field(dock(), "sheet"); return sheet[0] != null && sheet[0].isAttachedToWindow(); }), "All did not open the subjects sheet");
+        // Until its spring has settled open (DragSheet's state OPEN), so a picture or a tap finds it in place.
+        await(() -> onMain(() -> { Object drag = field(dock(), "drag"); return drag != null && Integer.valueOf(4).equals(field(drag, "state")); }), "The All sheet did not settle open");
         settle();
         return sheet[0];
     }
@@ -903,6 +1679,47 @@ public final class HubValidation extends Instrumentation {
         return null;
     }
     private void systemBack() { sendKeyDownUpSync(KeyEvent.KEYCODE_BACK); settle(); }
+    /**
+     * Back meant for the page, past a keyboard that came up late. hideKeyboard waits out a keyboard already shown, but on
+     * a loaded emulator the one Search asks for (MainActivity.focusPageSearch) can show after that, and Android gives Back
+     * to a shown keyboard first. So a frame callback watches the keyboard: when Back closed one instead of reaching the
+     * page (done still false), Back again, up to three times. Waits on what is seen, not on time; a Back that shows no
+     * effect within 3 s (lost while a slow emulator's window was still settling) is pressed again too, within the three.
+     */
+    private void backPastKeyboard(BooleanSupplier done, String message) {
+        if (Build.VERSION.SDK_INT < 30) { systemBack(); await(done, message); return; }
+        int[] closed = {0};
+        boolean[] watching = {true}, was = {false};
+        android.view.Choreographer.FrameCallback[] watch = new android.view.Choreographer.FrameCallback[1];
+        main(() -> {
+            was[0] = keyboardShown();
+            watch[0] = time -> {
+                if (!watching[0]) return;
+                boolean now = keyboardShown();
+                if (was[0] && !now) closed[0]++;
+                was[0] = now;
+                android.view.Choreographer.getInstance().postFrameCallback(watch[0]);
+            };
+            android.view.Choreographer.getInstance().postFrameCallback(watch[0]);
+        });
+        try {
+            List<String> missed = new ArrayList<>();
+            for (int tries = 0; tries < 3; tries++) {
+                int before = onMain(() -> closed[0]);
+                systemBack();
+                long end = SystemClock.uptimeMillis() + 3000;
+                while (!done.getAsBoolean() && onMain(() -> closed[0] <= before) && SystemClock.uptimeMillis() < end) SystemClock.sleep(50);
+                if (done.getAsBoolean()) return;
+                missed.add(onMain(() -> closed[0] > before) ? "closed a keyboard" : "no effect in 3 s (" + onMain(this::whereNow) + ")");
+            }
+            require(false, message + " (three Backs: " + missed + ")");
+        } finally {
+            main(() -> watching[0] = false);
+        }
+    }
+    private boolean keyboardShown() { WindowInsets insets = root().getRootWindowInsets(); return insets != null && insets.isVisible(WindowInsets.Type.ime()); }
+    private boolean onHome() { return onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage"))); }
+
     private void hideKeyboard() {
         main(() -> {
             View focus = activity.getCurrentFocus();
@@ -923,6 +1740,16 @@ public final class HubValidation extends Instrumentation {
     private void arrived(String page, String... stack) {
         await(() -> onMain(() -> page.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))), () -> "Expected page " + page + ", shown " + onMain(() -> field(activity, "selectedPage")));
         settle();
+        // A page arrives sliding in from the side as it fades in (Motion.crossfade): what follows measures it once it has
+        // come to rest (HubTestPages.awaitAtRest), as UiOrganizationValidation's navigation check does (#393, third round).
+        if (!HubPages.HOME.equals(page)) {
+            HubTestPages.awaitAtRest(this, () -> {
+                List<View> moving = new ArrayList<>();
+                moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel"));
+                moving.add(firstEditText(activity.findViewById(android.R.id.content)));
+                return moving;
+            });
+        }
         requireStack(stack);
         if (!HubPages.HOME.equals(page)) main(() -> {
             View back = root().findViewWithTag("hub-back");
@@ -933,7 +1760,7 @@ public final class HubValidation extends Instrumentation {
             require(back.getContentDescription() != null && back.getContentDescription().length() > 0, page + "'s back link has no spoken name");
         });
         if (!HubPages.HOME.equals(page)) {
-            boolean connected = onMain(() -> activity.service().ble.ready());
+            boolean connected = onMain(() -> activity.service() != null && activity.service().ble.ready());
             // Search with Cancel beside its field hides the whole header, the connection line with it (part 12).
             if (searchHeaderAside(page)) main(() -> require(!shown(root().findViewWithTag("hub-page-connection")), "Search shows a connection line with its header stepped aside"));
             // The contributor's decision (14 Nov, #383): the connection line only while not connected, never on Settings.
@@ -987,7 +1814,7 @@ public final class HubValidation extends Instrumentation {
         // The wide Clean Home (part 13): Home's page pane is HubHomePane, beside the Clean Home of the scooter pane.
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
                 && field(activity, "screen").getClass().getSimpleName().equals("CleanHomeScreen".equals(screenClass) && twoPanes() ? "HubHomePane" : screenClass)),
-                "Home is not " + screenClass);
+                () -> "Home is not " + screenClass + " (" + onMain(this::whereNow) + ")");
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
         // -e wide true or false: Clean Home takes two panes where the window gets the wide layout at this text size, and
@@ -1005,6 +1832,16 @@ public final class HubValidation extends Instrumentation {
      */
     private boolean panesExpected() {
         return Boolean.parseBoolean(arguments.getString("wide", "false")) && WideLayout.wide(widthDp(), textScale());
+    }
+    /** Where the app is, for a failure: the page, its screen, a rebuild in progress, the page stack and the focused window. */
+    @SuppressWarnings("unchecked")
+    private String whereNow() {
+        Object screen = field(activity, "screen");
+        String stack;
+        try { stack = String.valueOf(invoke(field(activity, "nav"), "pages", new Class<?>[0])); } catch (RuntimeException error) { stack = "?"; }
+        return "page " + field(activity, "selectedPage") + ", screen " + (screen == null ? "none" : screen.getClass().getSimpleName())
+                + ", rebuilding " + field(activity, "rebuilding") + ", stack " + stack + ", activity focused " + activity.hasWindowFocus()
+                + ", resumed " + !activity.isFinishing();
     }
     private Object dock() {
         Object dock = field(activity, "dock");
@@ -1128,7 +1965,7 @@ public final class HubValidation extends Instrumentation {
         removeMonitor(monitor);
         require(next instanceof MainActivity && next != before, "The activity was not recreated");
         activity = (MainActivity) next;
-        await(() -> activity.service() != null, "The recreated activity has no service");
+        if (!noNearby) await(() -> activity.service() != null, "The recreated activity has no service");
         settle();
     }
 
@@ -1142,7 +1979,8 @@ public final class HubValidation extends Instrumentation {
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Refusing existing private data");
         for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
-            require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
+            if (noNearby) require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "-e mode " + NO_NEARBY + " needs Nearby permission not granted (" + permission + " is)");
+            else require(getTargetContext().checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
         BluetoothManager manager = getTargetContext().getSystemService(BluetoothManager.class);
         require(manager == null || manager.getAdapter() == null || !manager.getAdapter().isEnabled(), "Emulator Bluetooth must stay off");
     }
@@ -1156,7 +1994,10 @@ public final class HubValidation extends Instrumentation {
     }
     private void launch() {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-        await(() -> activity.service() != null, "App did not launch"); settle();
+        // Without Nearby permission the service never binds (MainActivity.ensureService); Home shows instead.
+        if (noNearby) requireHome("CleanHomeScreen");
+        else await(() -> activity.service() != null, "App did not launch");
+        settle();
     }
     /** The developer simulator's UT5 MAX, connected; its settings now are the ones a command would change. */
     private void simulate() {
@@ -1210,6 +2051,20 @@ public final class HubValidation extends Instrumentation {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) found += resultRows(((ViewGroup) view).getChildAt(i));
         return found;
     }
+    /** A view and its ancestors' classes and visibility (V, I, G) and heights, for a failure message. Main thread. */
+    private static String chain(View view) {
+        if (view == null) return "no such view";
+        StringBuilder out = new StringBuilder();
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null)
+            out.append(out.length() == 0 ? "" : " < ").append(at.getClass().getSimpleName()).append(at.getVisibility() == View.VISIBLE ? "/V" : at.getVisibility() == View.INVISIBLE ? "/I" : "/G").append(at.getHeight());
+        return out.toString();
+    }
+    /** Whether a shown TextView in view reads text. */
+    private static boolean hasText(View view, String text) {
+        if (view instanceof TextView && view.isShown() && text.contentEquals(((TextView) view).getText())) return true;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (hasText(((ViewGroup) view).getChildAt(i), text)) return true;
+        return false;
+    }
     private static EditText firstEditText(View view) {
         if (view instanceof EditText && view.isShown()) return (EditText) view;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) { EditText found = firstEditText(((ViewGroup) view).getChildAt(i)); if (found != null) return found; }
@@ -1251,5 +2106,17 @@ public final class HubValidation extends Instrumentation {
         try { Class<?> type = target.getClass(); while (type != null) { try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); } catch (NoSuchMethodException next) { type = type.getSuperclass(); } }
             throw new NoSuchMethodException(name);
         } catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private Object staticCall(Class<?> type, String name, Class<?>[] types, Object... args) {
+        try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(null, args); }
+        catch (Exception error) { throw new IllegalStateException(type.getSimpleName() + "." + name, error); }
+    }
+    private Object fieldOrNull(Object target, String name) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+            catch (NoSuchFieldException next) { /* the superclass may declare it */ }
+            catch (IllegalAccessException error) { throw new IllegalStateException(error); }
+        }
+        return null;
     }
 }

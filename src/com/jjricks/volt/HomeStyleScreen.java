@@ -129,7 +129,9 @@ final class HomeStyleScreen implements AppScreen {
                 next.set(index, picked);
                 HomeQuickEditor.save(host.service(), preferences, next);
                 if (slotsSheet != null && slotsSheet.isShowing()) slotsSheet.dismiss();
-                refresh();
+                // The whole window, not this page alone: on two panes the scooter pane's Clean Home shows the new four at
+                // once (CleanHomeScreen.followQuick; #394 council review, second round, 1).
+                host.redraw();
             });
         }), new LinearLayout.LayoutParams(-1, -2));
         slotsSheet = host.showSheet(content);

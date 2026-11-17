@@ -225,6 +225,7 @@ public final class MoreScreen implements AppScreen {
         cardDestination = indexView;
         Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
         updatesRow.view.setTag("settings-updates");
+        updatesIndexRow = standalone ? null : updatesRow.view;
         valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? ((RowLine) updatesAuto.view).fallback : null));
         indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
@@ -406,6 +407,14 @@ public final class MoreScreen implements AppScreen {
         cardDestination.addView(view); return view;
     }
     private LinearLayout group() { LinearLayout g = ui.groupCard(); cardDestination.addView(g); return g; }
+    /**
+     * A notice or button that comes and goes with the connection or a switch: it fades while the rest of its page
+     * glides (Motion.reveal); a refresh that leaves it as it is moves nothing. Show and hide such views only here.
+     */
+    private static void reveal(View view, boolean shown) {
+        Motion.reveal(Motion.pageOf(view), view, shown);
+    }
+
     private TextView footnote(String value) {
         TextView text = ui.caption(value); text.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(12));
         cardDestination.addView(text); return text;
@@ -790,9 +799,11 @@ public final class MoreScreen implements AppScreen {
     private void recording() {
         LinearLayout connection = group();
         connection.setTag("preference-recording-options");
-        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
+        preferenceToggle(connection, "screen", awakeTitle(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        Row autoStop = preferenceToggle(connection, "walk", autoStopTitle(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        // Search's End rides automatically result opens this page at this switch (HubSearchTables.SETTING_RIDE_AUTO_STOP).
+        autoStop.view.setTag(HubSearchTables.SETTING_RIDE_AUTO_STOP);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
         // Its one home in the Hub: search's Record rides automatically result opens this page and finds the switch by its tag
         // (HubSearchTables.SETTING_RIDING_AUTO_RECORD, as on riding mode's own menu; #393 review, finding 3).
@@ -804,14 +815,15 @@ public final class MoreScreen implements AppScreen {
         // (AutoStartPolicy.backgroundSwitchDrawnOn). AutoStartPolicy.recordsNow decides.
         Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
                 enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
-        inBackground.view.setTag("preference-auto-record-background");
+        // Search's Start recording in the background result opens this page at this switch (HubSearchTables.SETTING_RECORD_BACKGROUND).
+        inBackground.view.setTag(HubSearchTables.SETTING_RECORD_BACKGROUND);
         valueRefreshers.add(() -> {
             boolean autoRecord = settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
             refreshSwitch(inBackground, AutoStartPolicy.backgroundSwitchDrawnOn(autoRecord, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)), autoRecord);
         });
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
-        Row background = row(connection, "battery", T.morePrefsBattery(), null,
+        Row background = row(connection, "battery", batteryTitle(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
@@ -820,7 +832,7 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
-        Row map = row(connection, "map", T.morePrefsMap(), null, this::mapSettings);
+        Row map = row(connection, "map", mapTitle(), null, this::mapSettings);
         valueRefreshers.add(() -> map.value(basemapSummary()));
         autoSaveGroup();
     }
@@ -1220,6 +1232,27 @@ public final class MoreScreen implements AppScreen {
     }
     /** The open Updates sheet's title, or null: hidden while GitHub's consent opens over the sheet (showOverUpdates). */
     private View updatesSheetTitle;
+    /** Settings' Updates row (the index's), or null on a page that shows one section. */
+    private View updatesIndexRow;
+    /** Whether a search anchor names a control the Updates sheet holds (its switch, its manual check). */
+    private static boolean heldByUpdates(String id) {
+        return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);
+    }
+    /**
+     * Search's Automatic update checks and Check for updates (#393 council review, second round, finding 1): both are in
+     * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
+     */
+    @Override public View anchor(String id) {
+        return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
+    }
+    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    @Override public boolean openHeld(String id) {
+        if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
+        updatesSheet();
+        View control = updatesBox.findViewWithTag(id);
+        if (control != null) Motion.beforeNextDraw(control, () -> { if (!closed) HubSearchScreen.flash(control, ui); }, null);
+        return true;
+    }
     /**
      * Shows a dialog that opens from the Updates sheet's switch or Check for updates. The sheet stays open under it, and
      * the dialog sits a little lower than the sheet's top, so its edge would cut through the sheet's "Updates" title:
@@ -1413,9 +1446,11 @@ public final class MoreScreen implements AppScreen {
         label(T.moreAutoSaveHeading());
         LinearLayout box = group();
         autoSaveSwitch(box);
-        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+        Row folder = row(box, "export", autoSaveFolderTitle(), T.moreAutoSaveNoFolder(), () -> {
             if (RideAutoExportFolder.on(settings())) chooseAutoSaveFolder(false);
         });
+        // Search's Folder result opens this page at this row (HubSearchTables.SETTING_AUTO_SAVE_FOLDER).
+        folder.view.setTag(HubSearchTables.SETTING_AUTO_SAVE_FOLDER);
         valueRefreshers.add(() -> {
             RideAutoExport.RowState state = autoSaveFolderState();
             folder.enabled(state != RideAutoExport.RowState.OFF);
@@ -1428,11 +1463,43 @@ public final class MoreScreen implements AppScreen {
     }
     private void autoSaveSwitch(LinearLayout box) {
         Row[] self = new Row[1];
-        self[0] = toggleRow(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), on -> {
+        self[0] = toggleRow(box, "download", autoSaveTitle(), T.moreAutoSaveJsonSub(), on -> {
             if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(true); }
             else { RideAutoExportFolder.set(host.activity(), settings(), on); host.redraw(); }
         });
+        // Search's Auto-save rides result opens this page at this switch (HubSearchTables.SETTING_AUTO_SAVE).
+        self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);
         valueRefreshers.add(() -> refreshSwitch(self[0], RideAutoExportFolder.on(settings()), true));
+    }
+    /** End rides automatically's title, shown on the switch and named by search (searchTitle). */
+    private static String autoStopTitle() { return T.morePrefsAutoStop(); }
+    /** The auto-save switch's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveTitle() { return T.moreAutoSaveJson(); }
+    /** The auto-save folder row's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }
+    /**
+     * The name Recording settings shows on a row search lists whose text only this file reads (HubSearch.Gates.settingTitle,
+     * MainActivity's search gates); null for any other tag.
+     */
+    static String searchTitle(String tag) {
+        if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();
+        if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
+        if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
+        return null;
+    }
+    /** Keep screen awake's title, shown on its switch and named by search (searchRowTitles). */
+    private static String awakeTitle() { return T.morePrefsAwake(); }
+    /** Background recording's title (the battery use row), shown on it and named by search (searchRowTitles). */
+    private static String batteryTitle() { return T.morePrefsBattery(); }
+    /** Map settings' title, shown on its row and named by search (searchRowTitles). */
+    private static String mapTitle() { return T.morePrefsMap(); }
+    /**
+     * The names Recording settings shows, in the current language, on its rows search has no entry for
+     * (HubSearchTables.pageRows: Keep screen awake, Background recording, Map settings), for the page's own result
+     * (HubSearch.Gates.pageRowTitles); empty for any other page. The phone sensors' are RidesScreen's.
+     */
+    static String[] searchRowTitles(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {awakeTitle(), batteryTitle(), mapTitle()} : new String[0];
     }
     /** The folder row's state: the switch, the stored folder, its grant and the failure id. */
     private RideAutoExport.RowState autoSaveFolderState() {
@@ -1888,14 +1955,15 @@ public final class MoreScreen implements AppScreen {
         labFoot.setText((r.layer == ModelRegistry.Layer.OEM_GROUP
                 ? T.moreLabFootOem()
                 : offeredElsewhere ? T.moreLabFootElsewhere() : T.moreLabFoot()) + kept);
-        labConnect.setVisibility(ble.state() == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        boolean offline = ble.state() == BleController.State.DISCONNECTED;
+        reveal(labConnect, offline);
         CapabilityResolver.Reason held = null;
         List<String> live = new ArrayList<>(tryable); live.addAll(verify);
         for (String key : live) { CapabilityResolver.Reason reason = ble.tryDecision(key).reason; if (held == null && LAB_HELD.contains(reason)) held = reason; }
         // Disconnected, the Connect button says it; while connecting, the notice does.
-        String notice = held == null || held == CapabilityResolver.Reason.NOT_CONNECTED && labConnect.getVisibility() == View.VISIBLE ? ""
+        String notice = held == null || held == CapabilityResolver.Reason.NOT_CONNECTED && offline ? ""
                 : held == CapabilityResolver.Reason.NOT_CONNECTED ? T.moreConnecting() : labHeld(held);
-        labNotice.setText(notice); labNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
+        labNotice.setText(notice); reveal(labNotice, !notice.isEmpty());
         for (LabRow row : labRows) refreshLabRow(ble, row);
         if (labSheet != null) labSheet.refresh();
     }
@@ -2845,7 +2913,7 @@ public final class MoreScreen implements AppScreen {
         }
         if (simulationRow != null) {
             refreshSwitch(simulationRow, simulating, s != null);
-            simulationStatus.setVisibility(simulating ? View.VISIBLE : View.GONE);
+            reveal(simulationStatus, simulating);
             simulationModelRow.value(SimulatorModels.shortLabel(s == null ? SimulatorModels.entries().get(0)
                     : SimulatorModels.find(s.ble.simulationModel(), s.ble.simulationRegion())));
             simulationModelRow.enabled(s != null);
@@ -3022,12 +3090,15 @@ public final class MoreScreen implements AppScreen {
         List<ScooterProfiles.Profile> all = s.profiles.all();
         String unavailable = s.scooterChangeUnavailable();
         scooterListNotice.setText(unavailable != null ? unavailable : all.isEmpty() ? T.moreScootersEmpty() : "");
-        scooterListNotice.setVisibility(scooterListNotice.getText().length() == 0 ? View.GONE : View.VISIBLE);
+        reveal(scooterListNotice, scooterListNotice.getText().length() > 0);
         // Keep blocked actions tappable so their reason is available, including to screen readers.
         addScooterButton.setAlpha(unavailable == null ? 1f : .5f);
         List<String> ids = new ArrayList<>(); for (ScooterProfiles.Profile item : all) ids.add(item.id);
+        // New cards are built in place, without motion; otherwise a card's changes glide (Motion.reveal).
+        ViewGroup glide = Motion.pageOf(scooterList);
         if (!ids.equals(new ArrayList<>(scooterCards.keySet()))) {
             scooterList.removeAllViews(); scooterCards.clear();
+            glide = null;
             for (String id : ids) { ScooterCard card = new ScooterCard(id); scooterCards.put(id, card); scooterList.addView(card.card); }
         }
         for (ScooterProfiles.Profile item : all) {
@@ -3038,7 +3109,9 @@ public final class MoreScreen implements AppScreen {
             card.name.setText(item.displayName());
             // A held release (BleController.releaseHeld) says why Volt won't connect by itself; the line wraps at whole words.
             String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : s.ble.releaseHeld(item.id) ? T.bleReleaseHeld() : T.moreScootersOffline();
-            card.stateLine.setVisibility(selected ? View.VISIBLE : View.GONE);
+            // Connecting, connected or choosing another scooter changes a card's lines and its button: they fade while
+            // the cards glide.
+            Motion.reveal(glide, card.stateLine, selected);
             card.status.setText(detail); card.status.setTextColor(ui.muted);
             DeviceDescriptor descriptor = item.savedDescriptor();
             boolean hasPhoto = ScooterPhotos.show(card.photo, descriptor, 4);
@@ -3048,15 +3121,15 @@ public final class MoreScreen implements AppScreen {
             if (model.isEmpty()) model = T.moreScootersModelUnknown();
             if (item.role == 1) model += T.moreScootersSharedSuffix();
             card.model.setText(model);
-            card.lastSeen.setVisibility(item.lastConnected > 0 && !connected ? View.VISIBLE : View.GONE);
+            Motion.reveal(glide, card.lastSeen, item.lastConnected > 0 && !connected);
             if (item.lastConnected > 0) card.lastSeen.setText(T.moreScootersLastConnected(DateUtils.getRelativeTimeSpanString(
                     item.lastConnected, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)));
             card.card.setBackground(ui.shape(ui.surface, 22, ui.outline));
             card.edit.setContentDescription(T.moreScootersEditNamed(item.displayName())); card.edit.setTooltipText(T.moreScootersEdit());
             String action = connected ? T.moreScootersDisconnect() : connecting ? T.commonCancel() : T.moreConnect();
             card.connect.setText(action); card.connect.setContentDescription(T.moreScootersActionNamed(action, item.displayName()));
-            card.connect.setVisibility(selected ? View.VISIBLE : View.GONE);
-            card.use.setVisibility(selected ? View.GONE : View.VISIBLE);
+            Motion.reveal(glide, card.connect, selected);
+            Motion.reveal(glide, card.use, !selected);
             card.use.setContentDescription(T.moreScootersUseNamed(item.displayName()));
             card.connect.setAlpha(unavailable == null ? 1f : .5f); card.use.setAlpha(unavailable == null ? 1f : .5f);
         }
@@ -3144,10 +3217,10 @@ public final class MoreScreen implements AppScreen {
         bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
         // On Scooter › Security the lock bar above has Connect (ControlsPages.CONNECT_ABOVE): one Connect per page.
-        securityConnect.setVisibility(!embedded && link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
+        reveal(securityConnect, !embedded && link == BleController.State.DISCONNECTED);
         String notice = owner ? T.moreSecurityNotice() : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
-        securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
+        reveal(securityNotice, !notice.isEmpty());
         refreshLab(s);
     }
 
@@ -3230,7 +3303,8 @@ public final class MoreScreen implements AppScreen {
                 showReset[0].run();
             });
             reset.view.setTag("preference_riding_brightness_reset");
-            showReset[0] = () -> reset.view.setVisibility(RidingBrightness.learned(store) ? View.VISIBLE : View.GONE);
+            // Forgetting takes the row away: it fades while the note below glides up (Motion.reveal).
+            showReset[0] = () -> Motion.reveal(content, reset.view, RidingBrightness.learned(store));
             showReset[0].run();
             note(box, sensor ? T.ridingDisplayNote() : T.ridingDisplayNoteNoSensor());
             content.addView(box);
@@ -3318,12 +3392,14 @@ public final class MoreScreen implements AppScreen {
             refreshNight = () -> {
                 boolean scheduled = NightSchedule.SCHEDULED.equals(NightSchedule.mode(preferences.getString(NightSchedule.MODE_KEY, NightSchedule.OFF)));
                 boolean sun = NightSchedule.SUN.equals(NightSchedule.schedule(preferences.getString(NightSchedule.SCHEDULE_KEY, NightSchedule.SUN)));
-                schedule[0].setVisibility(scheduled ? View.VISIBLE : View.GONE);
-                schedule[1].setVisibility(scheduled ? View.VISIBLE : View.GONE);
+                // Rows a choice reveals fade in and out while the rest glides (Motion.reveal); a refresh that keeps
+                // them as they are moves nothing.
+                Motion.reveal(content, schedule[0], scheduled);
+                Motion.reveal(content, schedule[1], scheduled);
                 long now = System.currentTimeMillis();
                 NightSchedule.State state = RidingNight.state(context, preferences, now);
                 boolean custom = scheduled && (!sun || state.source == NightSchedule.Source.NONE);
-                shownRows(box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
+                shownRows(content, box, new View[]{from.view, starts.view, ends.view}, new boolean[]{scheduled && sun, custom, custom});
                 boolean ride = RidingNight.usesRideArea(preferences);
                 from.value(ride ? T.ridingNightFromRide() : T.ridingNightFromZone());
                 from.sub(state.source == NightSchedule.Source.RIDE ? T.ridingNightSourceRide()
@@ -3337,7 +3413,7 @@ public final class MoreScreen implements AppScreen {
                         : state.today == SunTimes.Day.Kind.ALWAYS_DAY ? T.ridingNightNoSunset()
                         : state.today == SunTimes.Day.Kind.ALWAYS_NIGHT ? T.ridingNightNoSunrise() : "";
                 next.setText(text);
-                next.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
+                Motion.reveal(content, next, !text.isEmpty());
             };
             refreshNight.run();
             // The ride's area is read in the background (it's never stored); the caption follows once it's known.
@@ -3412,13 +3488,16 @@ public final class MoreScreen implements AppScreen {
             return DisplayTime.clock(context, preferences, wall);
         }
 
-        /** Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. */
-        private static void shownRows(LinearLayout box, View[] rows, boolean[] shown) {
+        /**
+         * Shows the chosen rows of a group, in order; each row's divider shows only below another shown row. Rows that
+         * come or go fade while the rest of root glides (Motion.reveal).
+         */
+        private static void shownRows(ViewGroup root, LinearLayout box, View[] rows, boolean[] shown) {
             boolean above = false;
             for (int i = 0; i < rows.length; i++) {
-                rows[i].setVisibility(shown[i] ? View.VISIBLE : View.GONE);
+                Motion.reveal(root, rows[i], shown[i]);
                 int at = box.indexOfChild(rows[i]);
-                if (at > 0 && i > 0) box.getChildAt(at - 1).setVisibility(shown[i] && above ? View.VISIBLE : View.GONE);
+                if (at > 0 && i > 0) Motion.reveal(root, box.getChildAt(at - 1), shown[i] && above);
                 above |= shown[i];
             }
         }

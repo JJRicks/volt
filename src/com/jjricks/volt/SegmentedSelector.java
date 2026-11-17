@@ -69,6 +69,12 @@ public final class SegmentedSelector extends HorizontalScrollView {
         requestLayout();
     }
 
+    /** Wrapped rows of equal length where they can be (SelectorWrap.balancedColumns): two rows of two, not three and one. */
+    public void setBalancedRows(boolean balanced) {
+        track.balanced = balanced;
+        requestLayout();
+    }
+
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         track.wrapWidth = track.wrapChoices && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED
                 ? Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight()) : 0;
@@ -111,7 +117,7 @@ public final class SegmentedSelector extends HorizontalScrollView {
         final RectF indicator = new RectF();
         ValueAnimator animation;
         int selected = -1;
-        boolean wrapChoices;
+        boolean wrapChoices, balanced;
         int wrapWidth, rowCount = 1, columnCount;
         final ArrayList<android.graphics.Rect> bounds = new ArrayList<>();
         final ArrayList<Integer> rows = new ArrayList<>(), columns = new ArrayList<>();
@@ -165,14 +171,15 @@ public final class SegmentedSelector extends HorizontalScrollView {
                 TextView button = choices.get(i);
                 button.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                 natural[i] = button.getMeasuredWidth(); naturalTotal += natural[i];
-                // Keep whole words readable at the user's font size. Only the opted-in lights
-                // use this fit-or-wrap path; the other shared selectors retain their layout.
+                // Keep whole words readable at the user's font size. Only the opted-in selectors (lights, Rides'
+                // colours, Data's sections) use this fit-or-wrap path; the others retain their layout.
                 for (String word : button.getText().toString().split("\\s+")) wordMinimum = Math.max(wordMinimum,
                         (int)Math.ceil(button.getPaint().measureText(word)) + button.getCompoundPaddingLeft() + button.getCompoundPaddingRight());
             }
-            boolean single = naturalTotal <= available;
-            columnCount = single ? choices.size() : Math.max(1, Math.min(choices.size(), available / wordMinimum));
-            rowCount = (choices.size() + columnCount - 1) / columnCount;
+            boolean single = SelectorWrap.oneRow(naturalTotal, available);
+            columnCount = balanced ? SelectorWrap.balancedColumns(choices.size(), naturalTotal, available, wordMinimum)
+                    : SelectorWrap.columns(choices.size(), naturalTotal, available, wordMinimum);
+            rowCount = SelectorWrap.rows(choices.size(), columnCount);
             int y = getPaddingTop();
             for (int first = 0, row = 0; first < choices.size(); first += columnCount, row++) {
                 int count = Math.min(columnCount, choices.size() - first), x = getPaddingLeft(), rowHeight = 0;

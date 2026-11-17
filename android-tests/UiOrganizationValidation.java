@@ -494,10 +494,12 @@ public final class UiOrganizationValidation extends Instrumentation {
         }); waitForIdleSync();
         main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "A reboot left " + HubTestPages.current(activity) + " open"));
         requireScreenText(APP_PREFERENCES_ROW);
-        // A subject is never closed: an expired return to Settings itself stays there.
+        // A subject is never closed: leaving Settings itself starts no clock (nothing to close), and an expired return
+        // to it (a clock left from before) stays there.
         main(() -> {
             callActivityOnPause(activity);
-            settings.edit().putInt(HUB_AWAY_BOOT, -2).commit();
+            require(!settings.contains(HUB_AWAY_AT) && !settings.contains(HUB_AWAY_BOOT), "Leaving Settings itself started the away clock");
+            settings.edit().putLong(HUB_AWAY_AT, SystemClock.elapsedRealtime() - 60_000).putInt(HUB_AWAY_BOOT, -2).commit();
             callActivityOnResume(activity);
         }); waitForIdleSync();
         main(() -> require(HubPages.SETTINGS.equals(HubTestPages.current(activity)), "An expired return closed Settings itself"));
@@ -590,9 +592,21 @@ public final class UiOrganizationValidation extends Instrumentation {
     /**
      * The way around fits on the page shown, as the tab bar's five targets had to: on Home, Home's ways in (Widgets Home's
      * dock items and its All item; Clean Home's subject rows, search and gear); on any other page, its back link. Each is
-     * shown, uncut, at least 48 dp tall (and wide, where it has no caption), with its caption laid out whole.
+     * shown, uncut, at least 48 dp tall (and wide, where it has no caption), with its caption laid out whole. Measured
+     * once the page has come to rest (HubTestPages.awaitAtRest): a page arrives sliding in from the side as it fades in
+     * (Motion.crossfade), and mid-slide Search's Cancel, at the right edge, still runs past it (#393 council review,
+     * third round). A target that never comes to rest is measured anyway and fails here as before.
      */
     private void assertNavigationFits() {
+        HubTestPages.awaitAtRest(this, () -> {
+            List<View> moving = new ArrayList<>();
+            if (HubPages.HOME.equals(HubTestPages.current(activity))) {
+                Object dock = field(activity, "dock");
+                moving.add(dock != null ? (View) invoke(dock, "view") : root().findViewWithTag("home-search"));
+                if (dock == null) moving.add(root().findViewWithTag("home-settings"));
+            } else { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel")); }
+            return moving;
+        });
         main(() -> {
             List<View> targets = new ArrayList<>();
             if (HubPages.HOME.equals(HubTestPages.current(activity))) {

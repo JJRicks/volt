@@ -65,11 +65,15 @@ final class HubSearchScreen implements AppScreen {
     /** Whether Cancel shows beside the field (the frame names one): the page header then stays hidden. */
     private final boolean hasCancel;
     private final LinearLayout view, results;
+    /** The field with Cancel beside it: the page's top, or the tabletop pane's (takeTop). */
+    private final LinearLayout top;
     /** Named like the other search fields (validations find a screen's field by this name). */
     private final EditText search;
     private final TextView count;
     private final CleanSubjects subjects;
     private String query;
+    /** The readings group's heading while reading results show, or null: it follows whether they are live (writeValues). */
+    private TextView readingsLabel;
     /** The result rows shown, so a refresh writes their values again without rebuilding them. */
     private final List<ResultRow> values = new ArrayList<>();
     private final List<HubSearch.Entry> shown = new ArrayList<>();
@@ -107,7 +111,7 @@ final class HubSearchScreen implements AppScreen {
         // The long placeholder only where it fits whole; else the short "Search" (HubSearch.longHintFits).
         search.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, orr, ob) -> { if (!closed) fitHint(search); });
         // The field at the very top with Cancel beside it, as the Layout Plan's search mock-up.
-        LinearLayout top = new LinearLayout(host.activity());
+        top = new LinearLayout(host.activity());
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
@@ -193,6 +197,18 @@ final class HubSearchScreen implements AppScreen {
 
     @Override public View view() { return view; }
 
+    /** The search field, wherever it is: in the page's top, or in the tabletop pane above the hinge (takeTop). */
+    EditText field() { return search; }
+
+    /**
+     * Tabletop posture: takes the field and Cancel out of the page for MainActivity to put in the pane above the hinge
+     * (HubSearch.hidesWholeHeader), keeping their layout; the results stay in the page, below the hinge.
+     */
+    View takeTop() {
+        if (top.getParent() == view) view.removeView(top);
+        return top;
+    }
+
     @Override public void refresh() {
         if (closed) return;
         subjects.refresh();
@@ -233,7 +249,7 @@ final class HubSearchScreen implements AppScreen {
         List<HubSearch.Entry> index = new ArrayList<>(HubSearch.pages(gates));
         index.addAll(HubSearch.controls(gates, HubText::experimentalBadge));
         index.addAll(HubSearch.rows(gates));
-        index.addAll(HubSearch.settings());
+        index.addAll(HubSearch.settings(gates));
         index.addAll(StatsScreen.readingEntries(host));
         index.addAll(rideEntries());
         return index;
@@ -242,6 +258,7 @@ final class HubSearchScreen implements AppScreen {
     private void applyFilter() {
         if (closed) return;
         results.removeAllViews();
+        readingsLabel = null;
         values.clear();
         shown.clear();
         boolean searching = !HubSearch.normalize(query).isEmpty();
@@ -271,6 +288,7 @@ final class HubSearchScreen implements AppScreen {
                 // makes field-to-label the same 14 dp as between groups, as the mock-up spaces them (#393 review).
                 if (results.getChildCount() == 0) label.setPaddingRelative(ui.dp(4), ui.dp(2), ui.dp(4), ui.dp(6));
                 if (android.os.Build.VERSION.SDK_INT >= 28) label.setAccessibilityHeading(true);
+                if (group == HubSearch.Kind.READING) readingsLabel = label;
                 results.addView(label);
                 card = ui.groupCard();
                 results.addView(card, new LinearLayout.LayoutParams(-1, -2));
@@ -477,6 +495,12 @@ final class HubSearchScreen implements AppScreen {
             Integer colour = entry.live == null ? null : Boolean.TRUE.equals(entry.live.get()) ? ui.text : ui.muted;
             CharSequence age = entry.note == null || now == null || now.length() == 0 ? null : entry.note.get();
             values.get(i).write(now, colour, age);
+        }
+        // Every reading shown is a saved one (not connected): their heading is Readings' own name, not "Live readings".
+        if (readingsLabel != null) {
+            String heading = (HubSearch.readingsAllSaved(shown) ? StatsScreen.readingsTitle() : groupTitle(HubSearch.Kind.READING).render())
+                    .toUpperCase(Fmt.locale(Locale.ROOT));
+            if (!heading.contentEquals(readingsLabel.getText())) readingsLabel.setText(heading);
         }
     }
 

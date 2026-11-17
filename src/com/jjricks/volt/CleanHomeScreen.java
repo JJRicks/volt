@@ -34,7 +34,9 @@ import java.util.List;
  * <p>On a wide window (hub layout plan 1.11, PR 13) the same Home is the scooter pane at the left of two (pane mode):
  * the subjects move to the page pane beside it (HubHomePane) with the search field, so the header leaves out its search
  * button, and the Service card (HubServiceCard) fills the room left below the quick actions. Page navigation happens in
- * the other pane; this one is built once per rebuild and never changes while browsing.
+ * the other pane; this one is built once per rebuild and never changes while browsing. Its four quick actions follow
+ * what is stored without a rebuild (followQuick): an edit in Settings › Home style beside it, or untouched defaults
+ * following the scooter's model, changes only the four, so the page pane and any sheet open over it stay.
  */
 final class CleanHomeScreen implements AppScreen {
     /** View tags: the header's buttons, the top area, the lock slot, the quick actions and the Edit sheet's slots. */
@@ -65,7 +67,7 @@ final class CleanHomeScreen implements AppScreen {
     private boolean recordingWhenLooked, listing;
     /** The ride whose route was asked for, so each ride's route is read once. */
     private String routeAsked;
-    private final QuickAccessGrid quick;
+    private QuickAccessGrid quick;
     /** The seven subjects (one-pane Home), or the Service card (the wide Home's scooter pane); the other is null. */
     private final CleanSubjects subjects;
     private final HubServiceCard serviceCard;
@@ -75,14 +77,15 @@ final class CleanHomeScreen implements AppScreen {
     private final int aboveDp;
     /** From the header's top to its status line's text (px): the wide Home's page pane starts level with it. */
     private int statusTextTop;
-    private final List<String> quickIds;
-    /** The scooter's model as known when this Home was built; the default quick actions follow it. */
-    private final String modelIdentity;
+    /** The four shown (in pane mode, the four stored, as last seen: followQuick). */
+    private List<String> quickIds;
+    /** The scooter's model as known when this Home was built (in pane mode, last seen); the default quick actions follow it. */
+    private String modelIdentity;
     /**
      * The default four for the scooter as known when this Home was built (owner's answer 11 on #383: they follow
      * what the scooter supports, HomeQuickDefaults); untouched defaults follow when that changes.
      */
-    private final List<String> defaults;
+    private List<String> defaults;
     private int moment = -1;
     private boolean closed;
     private android.app.AlertDialog editSheet;
@@ -159,8 +162,14 @@ final class CleanHomeScreen implements AppScreen {
         findSize.bottomMargin = ui.dp(12);
         page.addView(parts.findCard(), findSize);
 
-        // The top area: one height for every moment, so the Lock bar and the quick actions never move.
-        top = new FrameLayout(host.activity());
+        // The top area: one height for every moment, so the Lock bar and the quick actions never move. Its height is
+        // TopArea's for the window, less what Find it nearby takes over it, and within the pane above a hinge.
+        View find = parts.findCard();
+        top = new FrameLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(topHeight(find), MeasureSpec.EXACTLY));
+            }
+        };
         top.setTag(TAG_TOP);
         overview = parts.overview();
         charging = parts.chargingView();
@@ -171,7 +180,7 @@ final class CleanHomeScreen implements AppScreen {
         top.addView(justBack, new FrameLayout.LayoutParams(-1, -1));
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
-        page.addView(top, new LinearLayout.LayoutParams(-1, topHeight()));
+        page.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
         FrameLayout lock = new FrameLayout(host.activity());
         lock.setTag(TAG_LOCK);
@@ -185,11 +194,7 @@ final class CleanHomeScreen implements AppScreen {
         modelIdentity = parts.identity(built == null ? null : built.profiles.active());
         defaults = HomeQuickDefaults.forScooter(built);
         quickIds = loadQuick();
-        quick = new QuickAccessGrid(host, quickIds, this::quickAction, HomeQuickActions::entry);
-        quick.setTag(TAG_QUICK);
-        // Editing the four: a long-press on any of them opens the Edit sheet (the style, then the four), and TalkBack
-        // offers it as the long-press action named "Edit Home". The header has no Edit button, as the mock-up.
-        quick.editOnLongPress(HubText.editTitle().render(), this::showEdit);
+        quick = quickGrid(quickIds);
         LinearLayout.LayoutParams quickSize = new LinearLayout.LayoutParams(-1, -2);
         quickSize.topMargin = ui.dp(12);
         page.addView(quick, quickSize);
@@ -225,6 +230,7 @@ final class CleanHomeScreen implements AppScreen {
      * header does; the Lock bar, quick actions and subjects stay below it. The same views keep updating.
      */
     View takeHeader() {
+        tabletop = true;
         LinearLayout pane = column();
         for (View part : new View[] {header, top}) {
             ViewGroup.LayoutParams params = part.getLayoutParams();
@@ -242,7 +248,9 @@ final class CleanHomeScreen implements AppScreen {
         // This scooter's model or what it offers became known (or changed): untouched default quick actions follow
         // it, as the widget dashboard's default tiles do. Not while Edit is open; the four stored by the owner never
         // change here.
-        if (current != null && (editSheet == null || !editSheet.isShowing())
+        // In pane mode the four change in place instead (followQuick): a rebuild would close the page pane's page too.
+        if (pane) followQuick(service, current);
+        else if (current != null && (editSheet == null || !editSheet.isShowing())
                 && preferences.getString(HomeQuickActions.key(current.id), null) == null
                 && (!modelIdentity.equals(parts.identity(current)) || !defaults.equals(HomeQuickDefaults.forScooter(service)))) {
             host.rebuild();
@@ -412,6 +420,45 @@ final class CleanHomeScreen implements AppScreen {
         return new ArrayList<>(HomeQuickActions.load(stored, defaults));
     }
 
+    /** The four as round buttons; a long-press on any opens the Edit sheet. */
+    private QuickAccessGrid quickGrid(List<String> ids) {
+        QuickAccessGrid grid = new QuickAccessGrid(host, ids, this::quickAction, HomeQuickActions::entry);
+        grid.setTag(TAG_QUICK);
+        // Editing the four: a long-press on any of them opens the Edit sheet (the style, then the four), and TalkBack
+        // offers it as the long-press action named "Edit Home". The header has no Edit button, as the mock-up.
+        grid.editOnLongPress(HubText.editTitle().render(), this::showEdit);
+        return grid;
+    }
+
+    /**
+     * Pane mode: the four shown follow the four stored, in place (#394 council review, second round, 1 and 3). The
+     * scooter pane stays up while Settings › Home style changes them in the page pane, and untouched defaults follow
+     * the scooter's model as it becomes known; either way only the quick actions change, never the whole window, so
+     * the page beside it and any sheet open over it stay. Not while Edit is open (its slots show the four).
+     */
+    private void followQuick(ScooterService service, ScooterProfiles.Profile current) {
+        if (editSheet != null && editSheet.isShowing()) return;
+        if (current != null && preferences.getString(HomeQuickActions.key(current.id), null) == null) {
+            String identity = parts.identity(current);
+            List<String> now = HomeQuickDefaults.forScooter(service);
+            if (!modelIdentity.equals(identity) || !defaults.equals(now)) { modelIdentity = identity; defaults = now; }
+        }
+        List<String> stored = loadQuick();
+        if (!stored.equals(quickIds)) showQuick(stored);
+    }
+
+    /** Replaces the quick actions in place with ids (same place and size in the page). */
+    private void showQuick(List<String> ids) {
+        quickIds = new ArrayList<>(ids);
+        QuickAccessGrid next = quickGrid(quickIds);
+        ViewGroup parent = (ViewGroup) quick.getParent();
+        int at = parent.indexOfChild(quick);
+        ViewGroup.LayoutParams size = quick.getLayoutParams();
+        parent.removeViewAt(at);
+        parent.addView(next, at, size);
+        quick = next;
+    }
+
     private void saveQuick(List<String> ids) {
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
@@ -431,6 +478,8 @@ final class CleanHomeScreen implements AppScreen {
         if (service != null && service.profiles.active() != null) {
             TextView label = ui.sectionLabel(HubText.editQuickActions().render());
             content.addView(label);
+            // The four as stored now (on two panes Settings › Home style may have changed them beside this Home).
+            if (pane) followQuick(service, service.profiles.active());
             LinearLayout card = HomeQuickEditor.slots(host, quickIds, this::changeSlot);
             content.addView(card, new LinearLayout.LayoutParams(-1, -2));
         }
@@ -444,18 +493,59 @@ final class CleanHomeScreen implements AppScreen {
             next.set(index, picked);
             saveQuick(next);
             if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
-            // The new four show on the rebuilt Home.
-            host.rebuild();
+            // In pane mode the new four show in place, so the page pane keeps its page; on one pane the rebuilt Home shows them.
+            if (pane) showQuick(next);
+            else host.rebuild();
         });
     }
 
     // ===== Sizes and small views =====
 
-    /** TopArea's share of this window, with the app's and the system's text scale together. */
-    private int topHeight() {
+    /**
+     * TopArea's height for this window (pixels), with the app's and the system's text scale together. Measured with the
+     * page, after the header and Find it nearby: while that card shows over the area, its height and margins come out of
+     * the room the area may take (TopArea.heightDp's aboveDp). The card shows over every moment alike, so the area keeps
+     * one height for all three; it changes only when the card comes or goes, as the Lock bar always moved for it. In
+     * tabletop posture the area stays within the pane above the hinge, less the header and the pane's padding
+     * (TopArea.tabletopDp), in every moment alike. In the wide Home's scooter pane the window's height leaves out what
+     * shows above the panes (aboveDp, the Simulation banner), so the quick actions keep their names on first view.
+     */
+    private int topHeight(View find) {
         Configuration configuration = host.activity().getResources().getConfiguration();
         float scale = ui.textScale * configuration.fontScale;
-        return TopArea.heightPx(configuration.screenHeightDp - aboveDp, ui.wideLayout(), scale, host.activity().getResources().getDisplayMetrics().density);
+        float density = host.activity().getResources().getDisplayMetrics().density;
+        int above = 0;
+        if (find != null && find.getVisibility() == View.VISIBLE && find.getParent() == top.getParent()) {
+            ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) find.getLayoutParams();
+            above = Math.round((find.getMeasuredHeight() + margins.topMargin + margins.bottomMargin) / density);
+        }
+        int area = TopArea.heightDp(configuration.screenWidthDp, configuration.screenHeightDp - aboveDp, ui.wideLayout(), scale, above);
+        int pane = tabletop ? paneRoom() : -1;
+        if (pane >= 0) area = TopArea.tabletopDp(area, Math.round(pane / density));
+        return Math.round(area * density);
+    }
+
+    /** Set by takeHeader: the header and the area are in the pane above a hinge. */
+    private boolean tabletop;
+
+    /**
+     * Tabletop posture: the pane's height (MainActivity's upper scroller, a fixed height) less the header's measured
+     * height and every padding between that pane and the area, in pixels; -1 while it cannot be known.
+     */
+    private int paneRoom() {
+        int used = header.getMeasuredHeight();
+        ViewGroup.LayoutParams headerSize = header.getLayoutParams();
+        if (headerSize instanceof ViewGroup.MarginLayoutParams)
+            used += ((ViewGroup.MarginLayoutParams) headerSize).topMargin + ((ViewGroup.MarginLayoutParams) headerSize).bottomMargin;
+        for (android.view.ViewParent parent = top.getParent(); parent instanceof View; parent = parent.getParent()) {
+            View view = (View) parent;
+            if (view instanceof android.widget.ScrollView) {
+                int height = view.getLayoutParams() == null ? -1 : view.getLayoutParams().height;
+                return height > 0 ? Math.max(0, height - used - view.getPaddingTop() - view.getPaddingBottom()) : -1;
+            }
+            used += view.getPaddingTop() + view.getPaddingBottom();
+        }
+        return -1;
     }
 
     /** One grid row of the widget dashboard's Lock bar: 64 dp grown with large text, less its 10 dp gap. */

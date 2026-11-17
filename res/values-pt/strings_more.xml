@@ -376,10 +376,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Os resultados das tentativas mantêm-se neste telemóvel até serem incluídos num relatório de compatibilidade que envies ou até os limpares."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Os controlos que a app oficial oferece para o teu modelo ficam em «Definições da trotinete». Limites de velocidade, carregamento, o bloqueio, o PIN, o desbloqueio por proximidade e o relógio nunca são adicionados aqui. A Volt nunca altera o firmware.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Os controlos que a app oficial oferece para o teu modelo ficam em «Definições da trotinete». A Volt nunca altera o firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">A Volt nunca altera o firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -400,8 +396,6 @@
     <string name="more_lab_intro_untested">A app oficial não oferece estes controlos para %1$s. Experimenta um com a trotinete parada; a Volt faz a releitura da definição.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">A app oficial oferece estes controlos para %1$s, mas a Volt não os testou nesse modelo. Experimenta um com a trotinete parada; a Volt faz a releitura da definição.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Nada a experimentar para %1$s: a app oficial já oferece os controlos que a Volt poderia experimentar. Estão em «Definições da trotinete».</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">A Volt não envia comandos de trotinete para este produto.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -410,8 +404,6 @@
     <string name="more_lab_empty_conflict">O ID do modelo desta trotinete não corresponde ao número de série, por isso a Volt não oferece nada a experimentar.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">A app oficial não lista este modelo, por isso a Volt não consegue saber que controlos lhe faltam. Ainda não há nada a experimentar.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Identifica primeiro o teu modelo na página «Trotinete». Depois, a Volt lista o que podes experimentar.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Conecta a trotinete para veres o que podes experimentar.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -612,8 +604,6 @@
     <string name="more_about_notifications_sub">Notificação de gravação com «Parar»</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Os teus dados</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Todos os dados ficam neste telemóvel. «Cópia de segurança e restauro» está em «Mais».</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Mapa online</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->

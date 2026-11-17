@@ -374,10 +374,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Resultaten van pogingen blijven op deze telefoon tot je ze meestuurt in een compatibiliteitsrapport of tot je ze wist."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Functies die de officiële app voor je model aanbiedt, blijven in ‘Stepinstellingen’. Snelheidslimieten, laden, de vergrendeling, de PIN, ontgrendeling bij nabijheid en de klok worden hier nooit toegevoegd. Volt wijzigt nooit de firmware.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Functies die de officiële app voor je model aanbiedt, blijven in ‘Stepinstellingen’. Volt wijzigt nooit de firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt wijzigt nooit de firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -398,8 +394,6 @@
     <string name="more_lab_intro_untested">De officiële app biedt deze functies niet aan voor %1$s. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling daarna terug.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">De officiële app biedt deze functies aan voor %1$s, maar Volt heeft ze daarop niet getest. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling daarna terug.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Niets om te proberen op %1$s: de officiële app biedt de functies die Volt zou kunnen proberen al aan. Ze staan in ‘Stepinstellingen’.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt stuurt geen stepopdrachten naar dit product.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -408,8 +402,6 @@
     <string name="more_lab_empty_conflict">Het Model-ID van deze step komt niet overeen met het serienummer, dus biedt Volt niets om te proberen.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">De officiële app vermeldt dit model niet, dus Volt kan niet bepalen welke functies ontbreken. Nog niets om te proberen.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Identificeer eerst je model op de pagina ‘Step’. Volt laat dan zien wat je kunt proberen.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Maak verbinding met je step om te zien wat je kunt proberen.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -609,8 +601,6 @@
     <string name="more_about_notifications_sub">Opnamemelding met ‘Stop’</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Je gegevens</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Alle gegevens blijven op deze telefoon. ‘Back-up en herstel’ staat in ‘Meer’.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Online kaart</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->

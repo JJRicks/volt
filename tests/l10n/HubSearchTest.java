@@ -45,13 +45,60 @@ public final class HubSearchTest {
         @Override public String language() { return "es"; }
     };
 
+    /** A shipped language as the app shows it: res/values-<dir>/strings_*.xml, English (T's own) where a key has none. */
+    private static final class Catalog implements T.Source {
+        private final java.util.Map<String, String> text = new java.util.HashMap<>();
+        private final String language;
+        Catalog(String dir, String tag) {
+            language = tag;
+            load("res/values-" + dir);
+        }
+        private void load(String folder) {
+            java.util.regex.Pattern string = java.util.regex.Pattern.compile("<string name=\"([^\"]+)\"[^>]*>(.*?)</string>", java.util.regex.Pattern.DOTALL);
+            try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get(folder))) {
+                for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                    if (!file.getFileName().toString().startsWith("strings_")) continue;
+                    java.util.regex.Matcher m = string.matcher(read(file.toString()));
+                    while (m.find()) text.put(m.group(1), m.group(2).replace("\\'", "'").replace("\\\"", "\"").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">"));
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        @Override public String string(int id) { return text.get(T.key(id)); }
+        @Override public String plural(int id, long quantity) { return null; }
+        @Override public String language() { return language; }
+    }
+
     private static void check(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
 
     private static final HubSearch.Gates ALL = new HubSearch.Gates() {
         @Override public boolean row(String id) { return true; }
         @Override public boolean lab(String key) { return false; }
         @Override public boolean page(String page) { return true; }
+        @Override public CharSequence settingTitle(String tag) { return recordingTitle(tag); }
+        @Override public CharSequence[] pageRowTitles(String page) { return recordingRows(page); }
     };
+
+    /**
+     * As MoreScreen.searchRowTitles and RidesScreen.searchRowTitles (MainActivity's gates join them; rowsOnTheirPages
+     * checks they read the same strings): the names Recording settings shows on its rows with no entry of their own.
+     */
+    private static String[] recordingRows(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {T.morePrefsAwake(), T.morePrefsBattery(), T.morePrefsMap(),
+                T.ridesGpsRoute(), T.ridesBarometer(), T.ridesMotionSensors()} : null;
+    }
+
+    /**
+     * As MoreScreen.searchTitle (MainActivity's gates name these rows through it; rowsOnTheirPages checks it reads the
+     * same strings): the names Recording settings shows on rows whose text only MoreScreen reads.
+     */
+    private static String recordingTitle(String tag) {
+        if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return T.morePrefsAutoStop();
+        if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return T.moreAutoSaveJson();
+        if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return T.moreAutoSaveFolder();
+        return null;
+    }
     private static final HubSearch.Gates NONE = new HubSearch.Gates() {
         @Override public boolean row(String id) { return false; }
         @Override public boolean lab(String key) { return false; }
@@ -77,9 +124,13 @@ public final class HubSearchTest {
             reviewNotes();
             earlyReview();
             settingsRowsFindable();
+            anchorsBuilt();
+            maintenanceFindable();
             layoutRules();
             T.install(ZONES);
             zones();
+            T.install(new Catalog("pt", "pt-PT"));
+            recordingInPortuguese();
             T.install(FOREIGN);
             shown();
         } finally {
@@ -180,7 +231,7 @@ public final class HubSearchTest {
         all.addAll(pages);
         all.addAll(HubSearch.controls(ALL, () -> "Experimental"));
         all.addAll(HubSearch.rows(ALL));
-        all.addAll(HubSearch.settings());
+        all.addAll(HubSearch.settings(ALL));
         for (HubSearch.Entry e : all) {
             check(HubPages.known(e.page), "a known page: " + e.page);
             check(e.page.equals(HubPages.canonical(e.page)), "a canonical page: " + e.page);
@@ -206,8 +257,9 @@ public final class HubSearchTest {
         check(HubSearchTables.rowPage(HubSearchTables.ROW_CHARGE_DONE_BY).equals(ControlsPages.pageOf("timed_charging")), "Done by follows its parent");
         // Settings rows: every tag has its page and words; the riding switches are on Ride › Riding mode, except Record
         // rides automatically, whose one home is Ride › Recording settings (#393 review, finding 3).
-        check(HubSearch.settings().size() == HubSearchTables.SETTINGS.length, "every settings row");
-        for (String tag : HubSearchTables.SETTINGS) {
+        check(HubSearch.settings(ALL).size() == HubSearchTables.SETTINGS.length + HubSearchTables.SCREEN_NAMED_SETTINGS.length, "every settings row");
+        check(HubSearch.settings(NONE).size() == HubSearchTables.SETTINGS.length, "a row the gates don't name is not listed");
+        for (String tag : allSettings()) {
             check(HubSearchTables.settingPage(tag) != null && HubSearchTables.settingWords(tag) != null, "page and words for " + tag);
             if (tag.startsWith("preference_riding_") && !tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD))
                 check(HubSearchTables.settingPage(tag).equals(HubPages.RIDE_RIDING), "riding switch " + tag);
@@ -233,8 +285,47 @@ public final class HubSearchTest {
         List<HubSearch.Entry> index = new ArrayList<>(HubSearch.rows(ALL));
         check(firstPage(index, "deadline").equals(HubPages.BATTERY), "deadline finds Done by");
         check(firstPage(index, "km/h").equals(HubPages.CONTROLS), "km/h finds the top speed card");
-        check(firstPage(HubSearch.settings(), "backup").equals(HubPages.SETTINGS), "backup finds Back up & restore");
+        check(firstPage(HubSearch.settings(ALL), "backup").equals(HubPages.SETTINGS), "backup finds Back up & restore");
         check(firstPage(HubSearch.pages(ALL), "live stats").equals(HubPages.DATA), "Live Stats finds Data");
+    }
+
+    /**
+     * Recording settings' switches by the names they show in Portuguese (Portugal), as the app ships them (#393 council
+     * review, second round, finding 5: they were found by English words only), and the rows this round moved, which the
+     * gates and HubText name in every language.
+     */
+    private static void recordingInPortuguese() {
+        check("Terminar viagens automaticamente".equals(T.morePrefsAutoStop()), "Portuguese (Portugal) is installed: " + T.morePrefsAutoStop());
+        List<HubSearch.Entry> index = everything();
+        String[][] cases = {
+                {"Terminar viagens automaticamente", HubSearchTables.SETTING_RIDE_AUTO_STOP, HubPages.RIDE_RECORDING},
+                {"Iniciar a gravação em segundo plano", HubSearchTables.SETTING_RECORD_BACKGROUND, HubPages.RIDE_RECORDING},
+                {"terminar viagens", HubSearchTables.SETTING_RIDE_AUTO_STOP, HubPages.RIDE_RECORDING},
+                {"gravacao em segundo plano", HubSearchTables.SETTING_RECORD_BACKGROUND, HubPages.RIDE_RECORDING},
+                {"Guardar viagens automaticamente", HubSearchTables.SETTING_AUTO_SAVE, HubPages.RIDE_RECORDING},
+                {"Pasta", HubSearchTables.SETTING_AUTO_SAVE_FOLDER, HubPages.RIDE_RECORDING},
+                {"Cópias de segurança de viagens", HubSearchTables.SETTING_RIDE_BACKUPS, HubPages.RIDE},
+        };
+        for (String[] c : cases) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, c[0])) found |= c[1].equals(e.anchor) && c[2].equals(e.page) && e.kind == HubSearch.Kind.SETTING;
+            check(found, "\"" + c[0] + "\" finds " + c[1] + " on " + c[2] + " in Portuguese (Portugal)");
+        }
+        // Recording settings' other rows (HubSearchTables.pageRows) by the names they show in Portuguese (Portugal): the
+        // page's own result lists them as it lists their English titles (#393 council review, third round, finding 2).
+        check("Manter o ecrã ligado".equals(T.morePrefsAwake()) && "Sensores de movimento".equals(T.ridesMotionSensors()), "the rows' Portuguese names: "
+                + T.morePrefsAwake() + ", " + T.ridesMotionSensors());
+        for (String name : new String[] {"Manter o ecrã ligado", "Sensores de movimento", "manter o ecra ligado", "Gravação em segundo plano",
+                "Definições do mapa", "Rota GPS", "Altitude barométrica"}) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, name)) found |= e.kind == HubSearch.Kind.PAGE && HubPages.RIDE_RECORDING.equals(e.page);
+            check(found, "\"" + name + "\" lists Recording settings in Portuguese (Portugal)");
+        }
+        check(HubSearchTables.pageRows(HubPages.RIDE_RECORDING).length == recordingRows(HubPages.RIDE_RECORDING).length,
+                "every row title Recording settings lists in English has its shown name for search");
+        boolean none = true;
+        for (HubSearch.Entry e : HubSearch.search(HubSearch.pages(LAB), "Manter o ecrã ligado")) none &= !HubPages.RIDE_RECORDING.equals(e.page);
+        check(none, "without the gates' names, the Portuguese row name finds nothing (the case the review found)");
     }
 
     private static String firstPage(List<HubSearch.Entry> index, String query) {
@@ -317,10 +408,11 @@ public final class HubSearchTest {
         check(more.contains("autoRecordRow.view.setTag(HubSearchTables.SETTING_RIDING_AUTO_RECORD);"),
                 "Recording settings tags its Record rides automatically switch");
         check(read("src/com/jjricks/volt/HubRidingSettings.java").contains(".withoutAutoRecord()"), "Riding mode leaves the switch out");
-        for (String tag : HubSearchTables.SETTINGS) {
+        for (String tag : allSettings()) {
             String page = HubSearchTables.settingPage(tag);
-            // Every other settings row is built by MoreScreen (Settings, its pages, Reports and riding mode's menu).
-            if (!tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD))
+            // Every other settings row is built by MoreScreen (Settings, its pages, Reports and riding mode's menu), but Ride
+            // backups, which RidesScreen builds on the Ride page only.
+            if (!tag.equals(HubSearchTables.SETTING_RIDING_AUTO_RECORD) && !tag.equals(HubSearchTables.SETTING_RIDE_BACKUPS))
                 check(more.contains("\"" + tag + "\"") || more.contains("HubSearchTables." + constant(tag)), "MoreScreen carries the tag " + tag + " (" + page + ")");
         }
         // Brightness and Night vision bring their selectors on screen, not the cards below them (#393 review, note 6).
@@ -330,6 +422,122 @@ public final class HubSearchTest {
         check(read("src/com/jjricks/volt/RidingBrightness.java").contains("\"riding_brightness\"")
                 && read("src/com/jjricks/volt/NightSchedule.java").contains("\"riding_night_vision\""), "by their preference keys");
         check(HubSearchTables.settingAnchor(HubSearchTables.SETTING_UNITS).equals(HubSearchTables.SETTING_UNITS), "other rows by their own tag");
+        // Auto-save rides and its folder live on Ride › Recording settings only (#393 council review, second round, finding 3):
+        // their results open that page at the row, named as MoreScreen names them, and Data & history's words don't name them.
+        for (String tag : new String[] {HubSearchTables.SETTING_AUTO_SAVE, HubSearchTables.SETTING_AUTO_SAVE_FOLDER})
+            check(HubSearchTables.settingPage(tag).equals(HubPages.RIDE_RECORDING) && tag.equals(HubSearchTables.settingAnchor(tag)), "auto-save on Recording settings: " + tag);
+        check(more.contains("private static String autoStopTitle() { return T.morePrefsAutoStop(); }")
+                && more.contains("if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();")
+                && more.contains("Row autoStop = preferenceToggle(connection, \"walk\", autoStopTitle(),") && more.contains("autoStop.view.setTag(HubSearchTables.SETTING_RIDE_AUTO_STOP);")
+                && more.contains("inBackground.view.setTag(HubSearchTables.SETTING_RECORD_BACKGROUND);"), "Recording settings names and tags its two switches for search");
+        check(more.contains("private static String autoSaveTitle() { return T.moreAutoSaveJson(); }")
+                && more.contains("private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }")
+                && more.contains("if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();")
+                && more.contains("if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();"), "MoreScreen names the auto-save rows for search");
+        check(more.contains("self[0] = toggleRow(box, \"download\", autoSaveTitle(),") && more.contains("self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);")
+                && more.contains("Row folder = row(box, \"export\", autoSaveFolderTitle(),") && more.contains("folder.view.setTag(HubSearchTables.SETTING_AUTO_SAVE_FOLDER);"),
+                "the auto-save switch and folder row show those names and carry those tags");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("@Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}"),
+                "MainActivity's search gates name them through MoreScreen.searchTitle");
+        // Recording settings' other rows: the names they show, read by the files that show them (third round, finding 2).
+        String rides = read("src/com/jjricks/volt/RidesScreen.java");
+        check(more.contains("private static String awakeTitle() { return T.morePrefsAwake(); }") && more.contains("preferenceToggle(connection, \"screen\", awakeTitle(),")
+                && more.contains("private static String batteryTitle() { return T.morePrefsBattery(); }") && more.contains("row(connection, \"battery\", batteryTitle(),")
+                && more.contains("private static String mapTitle() { return T.morePrefsMap(); }") && more.contains("row(connection, \"map\", mapTitle(),")
+                && more.contains("new String[] {awakeTitle(), batteryTitle(), mapTitle()}"), "MoreScreen names Recording settings' rows for search as it shows them");
+        check(rides.contains("private static String gpsRouteTitle() { return T.ridesGpsRoute(); }") && rides.contains("switchRow(sensors, \"pin\", gpsRouteTitle(),")
+                && rides.contains("private static String barometerTitle() { return T.ridesBarometer(); }") && rides.contains("infoRow(sensors, \"wave\", barometerTitle(),")
+                && rides.contains("private static String motionTitle() { return T.ridesMotionSensors(); }") && rides.contains("switchRow(sensors, \"motion\", motionTitle(),")
+                && rides.contains("new String[] {gpsRouteTitle(), barometerTitle(), motionTitle()}"), "RidesScreen names the phone sensors' rows for search as it shows them");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("String[] more=MoreScreen.searchRowTitles(page),rides=RidesScreen.searchRowTitles(page);"),
+                "MainActivity's search gates join both files' row names");
+        for (String word : new String[] {"auto-save", "autosave", "Auto-save rides", "folder"}) {
+            List<HubSearch.Entry> found = HubSearch.search(everything(), word);
+            check(!found.isEmpty(), "\"" + word + "\" finds something");
+            boolean recording = false;
+            for (HubSearch.Entry e : found) {
+                check(!e.page.equals(HubPages.DATA_STORAGE), "\"" + word + "\" does not list Data & history");
+                recording |= e.page.equals(HubPages.RIDE_RECORDING) && e.anchor != null && e.anchor.startsWith("preference-auto-save-");
+            }
+            check(recording, "\"" + word + "\" lists Recording settings' auto-save row");
+        }
+        // Ride backups has one home, the Ride page (#393 council review, second round, finding 2): its result opens that page
+        // with the row on screen, and All rides & compare's words no longer name it. (rides: RidesScreen, read above.)
+        check(HubSearchTables.settingPage(HubSearchTables.SETTING_RIDE_BACKUPS).equals(HubPages.RIDE)
+                && HubSearchTables.SETTING_RIDE_BACKUPS.equals(HubSearchTables.settingAnchor(HubSearchTables.SETTING_RIDE_BACKUPS)), "Ride backups opens the Ride page at its row");
+        check(rides.contains("if (mode == SUMMARY) {\n            Row backups = navRow(null, M.ridesBackups(), \"\", \"\", this::rideBackups);\n            backups.view.setTag(\"ride-backups-menu\");"),
+                "RidesScreen builds the Ride backups row, so tagged, on the Ride page only");
+        check(!HubSearchTables.pageWords(HubPages.RIDE_RIDES).contains("backup"), "All rides & compare's words do not name Ride backups");
+        List<HubSearch.Entry> backups = HubSearch.search(everything(), "ride backups");
+        check(!backups.isEmpty() && backups.get(0).page.equals(HubPages.RIDE) && HubSearchTables.SETTING_RIDE_BACKUPS.equals(backups.get(0).anchor),
+                "\"ride backups\" lists the Ride page's Ride backups row first");
+        for (HubSearch.Entry e : backups) check(!e.page.equals(HubPages.RIDE_RIDES), "\"ride backups\" does not list All rides & compare");
+        // Automatic update checks and Check for updates are in the Updates sheet (part 11): Settings brings its Updates row on
+        // screen for them and opens the sheet over it (#393 council review, second round, finding 1).
+        check(more.contains("return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);")
+                && more.contains("return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;")
+                && more.contains("updatesSheet();\n        View control = updatesBox.findViewWithTag(id);"), "Settings opens the Updates sheet for the update results");
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);"), "the host opens a sheet that holds a result");
+        // Service › Reports holds Report an issue twice, the index's hidden: the result brings the shown one on screen.
+        check(read("src/com/jjricks/volt/MainActivity.java").contains("if(target==null)target=shownWithTag(page.view(),anchor);"), "the host reveals the shown view with a result's tag");
+    }
+
+    /**
+     * Every place search names is one some page builds (#393 council review, second round: three results pointed at a
+     * place that no longer held what was searched for). Each settings row's anchor is a view tag page code sets: its
+     * literal outside search's own files, a setTag of its HubSearchTables constant, or a setTag of a prefix and a key
+     * ("preference-selector-" + key); each row title a page's words name (HubSearchTables.pageRows) is the English of a
+     * catalog string. Whether the row is on that page, or in a sheet over it, is HubValidation's search-targets walk.
+     */
+    private static void anchorsBuilt() {
+        StringBuilder code = new StringBuilder();
+        try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get("src/com/jjricks/volt"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                String name = file.getFileName().toString();
+                if (!name.endsWith(".java") || name.equals("HubSearchTables.java") || name.equals("HubSearch.java") || name.equals("HubText.java")) continue;
+                code.append(read(file.toString())).append('\n');
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        String all = code.toString();
+        List<String> unbuilt = new ArrayList<>();
+        for (String tag : allSettings()) {
+            String anchor = HubSearchTables.settingAnchor(tag);
+            if (anchor == null) continue;
+            boolean built = all.contains("\"" + anchor + "\"") || constant(anchor) != null && all.contains("setTag(HubSearchTables." + constant(anchor) + ")");
+            for (int cut = anchor.length() - 1; !built && cut > 0; cut--) {
+                char c = anchor.charAt(cut - 1);
+                if (c == '-' || c == '_') built = all.contains("setTag(\"" + anchor.substring(0, cut) + "\" + ");
+            }
+            if (!built) unbuilt.add(tag + " -> " + anchor);
+        }
+        check(unbuilt.isEmpty(), "search anchors no page code builds: " + unbuilt);
+        Set<String> english = new HashSet<>();
+        java.util.regex.Pattern string = java.util.regex.Pattern.compile("<string name=\"[^\"]+\"[^>]*>(.*?)</string>", java.util.regex.Pattern.DOTALL);
+        try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get("res/values"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                if (!file.getFileName().toString().startsWith("strings_")) continue;
+                java.util.regex.Matcher m = string.matcher(read(file.toString()));
+                while (m.find()) english.add(m.group(1).replace("\\'", "'").replace("&amp;", "&").trim());
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        List<String> unnamed = new ArrayList<>();
+        for (String page : HubPages.ALL)
+            for (String title : HubSearchTables.pageRows(page)) {
+                if (!english.contains(title)) unnamed.add(page + ": " + title);
+                check(HubSearchTables.pageWords(page).contains(title.toLowerCase(Locale.ROOT)), "a page's words hold its rows' titles: " + title);
+            }
+        check(unnamed.isEmpty(), "row titles in HubSearchTables.pageRows that no catalog string reads: " + unnamed);
+    }
+
+    /** HubSearchTables.SETTINGS and SCREEN_NAMED_SETTINGS. */
+    private static List<String> allSettings() {
+        List<String> all = new ArrayList<>(Arrays.asList(HubSearchTables.SETTINGS));
+        all.addAll(Arrays.asList(HubSearchTables.SCREEN_NAMED_SETTINGS));
+        return all;
     }
 
     private static String constant(String tag) {
@@ -384,7 +592,7 @@ public final class HubSearchTest {
         List<HubSearch.Entry> all = new ArrayList<>(HubSearch.pages(ALL));
         all.addAll(HubSearch.controls(ALL, () -> "Experimental"));
         all.addAll(HubSearch.rows(ALL));
-        all.addAll(HubSearch.settings());
+        all.addAll(HubSearch.settings(ALL));
         return all;
     }
 
@@ -406,6 +614,25 @@ public final class HubSearchTest {
      * catalog entry says it is on a Hub settings page (volt:screen), so a row added there later fails here until search
      * finds it (an entry in HubSearchTables or its page's words).
      */
+    /**
+     * Service › Maintenance reminders by its English words (#410 review, notes for part 12: main's Scooter tab search
+     * found it by no English word, its words being MaintenanceScreen.NO_WORDS). Here its page and its Reminders row carry
+     * HubSearchTables' words, so each word an owner might type finds a result that opens Service › Maintenance.
+     */
+    private static void maintenanceFindable() {
+        List<HubSearch.Entry> index = everything();
+        for (String word : new String[] {"maintenance", "Maintenance", "service", "tyre", "tire", "reminder", "reminders"}) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, word)) found |= e.page.equals(HubPages.SERVICE_MAINTENANCE);
+            check(found, "\"" + word + "\" finds Service › Maintenance");
+        }
+        // "maintenance" ranks it near the top: among the first three results (it is the page's title word).
+        List<HubSearch.Entry> first = HubSearch.search(index, "maintenance");
+        boolean early = false;
+        for (int i = 0; i < Math.min(3, first.size()); i++) early |= first.get(i).page.equals(HubPages.SERVICE_MAINTENANCE);
+        check(early, "\"maintenance\" lists Service › Maintenance among its first results");
+    }
+
     private static void settingsRowsFindable() {
         List<HubSearch.Entry> index = everything();
         String[] walked = {
@@ -471,6 +698,57 @@ public final class HubSearchTest {
      * steps aside while searching; the long placeholder only where it fits whole (344 dp at 1.4x, part 13's 262 dp pane).
      */
     private static void layoutRules() {
+        // The readings' heading says "Live readings" unless every reading shown is a saved value (the council's emulator
+        // check, second round): then Readings' own name (StatsScreen.readingsTitle).
+        HubSearch.Entry live = HubSearch.reading("speed_kmh", "Speed", "Speed", () -> "0", () -> true);
+        HubSearch.Entry saved = HubSearch.reading("battery_percent", "Battery", "Battery", () -> "80 %", () -> false);
+        HubSearch.Entry page = HubSearch.pages(ALL).get(0);
+        check(HubSearch.readingsAllSaved(Arrays.asList(page, saved)), "every reading saved");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(saved, live)), "one live reading keeps Live readings");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(page)), "no reading, no saved heading");
+        check(!HubSearch.readingsAllSaved(Arrays.asList(HubSearch.reading("x", "X", "X", () -> "1", null))), "a reading that doesn't say is not saved");
+        check(read("src/com/jjricks/volt/StatsScreen.java").contains("static String readingsTitle() { return sectionLabels(new String[] {\"Readings\"})[0]; }"),
+                "the saved heading is Readings' tab label, through Live Stats' own labels");
+
+        // Tabletop posture keeps the pane above the hinge: only the header's rows go, and Search's field sits in the pane
+        // (#393 council review, second round, finding 7). Not reproducible on the emulator rig (no hinge to fake).
+        check(HubSearch.hidesWholeHeader(false) && !HubSearch.hidesWholeHeader(true), "tabletop hides only the header's rows");
+        // While the keyboard is up the pane shrinks to the field, so the results aren't squeezed between the hinge and the
+        // keyboard; the keyboard gone, it reaches the hinge again (#393 council review, third round, finding 5).
+        check(HubSearch.tabletopPaneHeight(600, false) == 600 && HubSearch.tabletopPaneHeight(600, true) == -2 && HubSearch.tabletopPaneHeight(0, false) == 1,
+                "tabletop Search's upper pane: to the hinge, or the field's height while the keyboard is up");
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
+                && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
+                && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
+        check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
+                && main.contains("tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);")
+                && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
+        // A recreation restores the reading Readings shows now, not as of the last rebuild (third round, finding 3).
+        check(main.contains("saved.putString(\"search_reading\",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));")
+                && main.contains("boolean readingDropped=readingLetGo();"), "onSaveInstanceState drops a reading the owner let go by typing since the last rebuild");
+        // Opening Search focuses its field wherever it is: in tabletop posture takeTop moved it out of the page's view, so
+        // the page's own view has none (#393 council review, third round, finding 1).
+        String searchScreen = read("src/com/jjricks/volt/HubSearchScreen.java");
+        check(main.contains("EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);")
+                && searchScreen.contains("EditText field() { return search; }") && searchScreen.contains("top.addView(search, "),
+                "focusPageSearch asks Search for its own field, which takeTop carries into the tabletop pane");
+        // The page header's connection line glides only while the header's rows show (#519's motion): behind the header Search
+        // keeps hidden it changes unseen, with no fade or glide of the results under it.
+        check(main.contains("&&!sheetShowing()&&headerRowsShown();") && main.contains("private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}"),
+                "the connection line does not glide behind Search's hidden header");
+        // The wide Home's page pane (part 13) as one pane: its header is the rows Search steps aside, and the page's
+        // scroller sits in a frame of its own under it, so the line glides there too and behind Search it changes unseen.
+        check(main.contains("if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}")
+                && main.contains("pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));")
+                && main.contains("connectionTitle=null;pageContent=rightPage;"), "the page pane's header rows and page frame are a one-pane page's");
+        // A page changed in the pane (no rebuild) keeps Readings' reading by the same rule, and the loading page there keeps a
+        // result's target for the rebuild that builds the real page (#393's third and fourth rounds).
+        check(main.contains("searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);\n        LinearLayout pane=rightPage;")
+                && main.contains("try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}\n        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);")
+                && main.contains("if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);\n        redraw();\n        showUpdateCheck();\n        // Back on Home"),
+                "the page pane keeps a search's reading and a target the loading page can't use");
+
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
         int phone = 344 - 2 * 18 - 2 * 14 - 10, phoneChevron = phone - 23, wide = 725 - 2 * 24 - 2 * 14 - 10;
@@ -513,6 +791,12 @@ public final class HubSearchTest {
         check(!HubSearch.headerHidden(false, false, "") && !HubSearch.headerHidden(false, false, "   "), "without Cancel, shown when the field is empty and left");
         // With Cancel beside the field (the search page), always hidden: one way out, the field at the very top.
         check(HubSearch.headerHidden(true, false, "") && HubSearch.headerHidden(true, false, "   ") && HubSearch.headerHidden(true, true, "batt"), "with Cancel, always hidden");
+        // Without Nearby devices permission (the service never binds) Search's header would carry the not-connected line
+        // (HubPages.pageConnectionLine, #410 review), but on the search page, with Cancel, the whole header is hidden, the
+        // line with it; part 13's pane (no Cancel) shows it whenever the field is empty and left.
+        check(HubPages.pageConnectionLine(HubPages.SEARCH, false, false, false, false) == HubPages.LINE_SHOWN, "Search's header would say not connected without Nearby permission");
+        check(HubSearch.headerHidden(true, false, ""), "the search page hides that header, line and all");
+        check(!HubSearch.headerHidden(false, false, "") && HubSearch.headerHidden(false, true, ""), "without Cancel the line shows when not searching, and steps aside while searching");
         // The placeholder: "Search settings, readings and rides" is about 232 dp at 14 sp and 1.0x; the field's room for
         // text is its width less 16 dp padding at each end and the 20 dp magnifier with its 10 dp gap.
         float hint = 232;

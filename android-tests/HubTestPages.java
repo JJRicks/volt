@@ -323,22 +323,26 @@ public final class HubTestPages {
             awaitPage(instrumentation, activity, target, "the dock item " + item[0].getTag() + " on page " + HubPages.HOME);
             return true;
         }
-        // The sheet: shown, with its window focused, and exactly one shown row to target in it.
+        // The sheet (DragSheet's overlay in Volt's window): shown, and exactly one shown row to target in it.
         String rowTag = HubPages.SETTINGS.equals(target) ? "home-settings" : HubPages.SEARCH.equals(target) ? "home-search" : "home-subject-" + target;
         View[] root = {null}, row = {null};
+        View[] open = {null};
         long until = SystemClock.uptimeMillis() + WAIT_MS;
         while (SystemClock.uptimeMillis() < until && row[0] == null) {
             onMain(instrumentation, () -> {
                 Object sheet = field(dock[0], "sheet");
-                if (!(sheet instanceof android.app.Dialog) || !((android.app.Dialog) sheet).isShowing()) { problem[0] = "The dock's All item did not open its sheet"; return; }
-                View decor = ((android.app.Dialog) sheet).getWindow().getDecorView();
+                if (!(sheet instanceof View) || !((View) sheet).isAttachedToWindow()) { problem[0] = "The dock's All item did not open its sheet"; return; }
+                // Springing open (DragSheet): its rows are still moving, so a tap waits for it to settle (state OPEN).
+                Object drag = field(dock[0], "drag");
+                if (drag == null || !Integer.valueOf(4).equals(field(drag, "state"))) { problem[0] = "The dock's All sheet did not settle open"; return; }
+                View decor = (View) sheet;
                 List<View> shown = new ArrayList<>();
                 for (View view : descendants(decor)) if (rowTag.equals(view.getTag()) && view.isShown()) shown.add(view);
                 if (shown.isEmpty()) problem[0] = "The dock's All sheet shows no row to " + target;
                 else if (shown.size() > 1) problem[0] = "The dock's All sheet shows " + shown.size() + " rows to " + target;
                 else if (!shown.get(0).isEnabled()) problem[0] = "The All sheet's row to " + target + " is disabled";
                 else if (!shown.get(0).isClickable() || !shown.get(0).hasOnClickListeners()) problem[0] = "The All sheet's row to " + target + " is not tappable";
-                else { root[0] = decor; row[0] = shown.get(0); problem[0] = null; }
+                else { root[0] = decor; row[0] = shown.get(0); open[0] = decor; problem[0] = null; }
             });
             if (row[0] == null) SystemClock.sleep(40);
         }
@@ -346,6 +350,15 @@ public final class HubTestPages {
         String name = "the All sheet's row " + rowTag + " on page " + HubPages.HOME;
         tapIn(instrumentation, activity, root[0], row[0], name);
         awaitPage(instrumentation, activity, target, name);
+        // The sheet settles closed over the page it opened, taking every touch until it is gone: the next tap waits for that.
+        boolean[] showing = {true};
+        until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            onMain(instrumentation, () -> showing[0] = open[0].isAttachedToWindow());
+            if (!showing[0]) break;
+            SystemClock.sleep(20);
+        }
+        if (showing[0]) throw new IllegalStateException("The dock's All sheet stayed open after " + name);
         return true;
     }
 
@@ -381,6 +394,56 @@ public final class HubTestPages {
             SystemClock.sleep(60);
         }
         throw new IllegalStateException("Widgets Home's dock did not settle (" + state[0] + ")");
+    }
+
+    /**
+     * Waits, up to {@link #WAIT_MS}, until each view is at rest as a rider sees it once the page has arrived: it and every
+     * view it sits in fully opaque with no offset (a page change slides the new page in from the side while it fades in,
+     * Motion.crossfade and Motion.page, for Motion.PAGE_MS; a reveal glides what is around it, Motion.changing), and its
+     * place on screen the same on three reads in a row, as {@link #tapView} waits for a row before tapping it. A view
+     * that is not shown counts as at rest (the caller's own check reports it). Returns whether all came to rest; it never
+     * throws for a view that keeps moving, so the caller's own check then measures it and fails with its own message.
+     * {@code views} is asked again on every read (main thread), so a rebuild that replaces the page while this waits is
+     * followed to the new views, not taken as rest by the old ones leaving the window. Instrumentation thread.
+     */
+    public static boolean awaitAtRest(Instrumentation instrumentation, java.util.function.Supplier<List<View>> views) {
+        String[] last = {null};
+        int still = 0;
+        long until = SystemClock.uptimeMillis() + WAIT_MS;
+        while (SystemClock.uptimeMillis() < until) {
+            instrumentation.waitForIdleSync();
+            String[] state = {""};
+            boolean[] resting = {true};
+            onMain(instrumentation, () -> {
+                StringBuilder places = new StringBuilder();
+                for (View view : views.get()) {
+                    if (view == null || !view.isShown()) continue;
+                    places.append(System.identityHashCode(view)).append('@');
+                    if (changing(view)) resting[0] = false;
+                    for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
+                        View each = (View) at;
+                        if (each.getAlpha() < 1f || each.getTranslationX() != 0f || each.getTranslationY() != 0f) resting[0] = false;
+                    }
+                    int[] place = new int[2]; view.getLocationOnScreen(place);
+                    places.append(place[0]).append(',').append(place[1]).append(' ').append(view.getWidth()).append('x').append(view.getHeight()).append(';');
+                }
+                state[0] = places.toString();
+            });
+            if (resting[0] && state[0].equals(last[0])) { if (++still >= 2) return true; }
+            else still = 0;
+            last[0] = resting[0] ? state[0] : null;
+            SystemClock.sleep(50);
+        }
+        return false;
+    }
+
+    /** Motion.changing (package-private in the app): view is arriving through a reveal, or sits in one still moving. Main thread. */
+    private static boolean changing(View view) {
+        try {
+            Method method = Class.forName("com.jjricks.volt.Motion", true, view.getContext().getClassLoader()).getDeclaredMethod("changing", View.class);
+            method.setAccessible(true);
+            return (Boolean) method.invoke(null, view);
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion.changing", error); }
     }
 
     /** Null when the dock sits at HubPages.dockTop in its frame (its bottom margin above the frame's bottom), else why not. Main thread. */

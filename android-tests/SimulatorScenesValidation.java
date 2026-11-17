@@ -48,12 +48,19 @@ import com.jjricks.volt.TelemetryHistory;
  * a history point, a recorded ride, a charge recording and a saved riding power scale beforehand. Then simulation ends and every private
  * store is compared with its state before: databases, files and no_backup byte for byte, preferences key by key, the
  * command log's new records (simulated sessions only), and no notification raised meanwhile.
+ *
+ * The run turns Android's animator duration scale off (and restores the emulator's own value at the end): every
+ * capture waits for the main thread to go idle, and on the release sweep's software-rendered emulator the charging
+ * picture's running pulses (the UT5 MAX's and UT5 Ultra X's wire picture, on the charging view's glow loop) rarely let
+ * it, so the 344 dp steps took two to three times as long as without the pictures and sometimes ran out of time. No
+ * scene, capture or assertion here depends on an animation running; the pulses themselves are checked by
+ * MotionPolishValidation (they animate with animations on, nothing else moves) and ChargePictureValidation.
  */
 public final class SimulatorScenesValidation extends Instrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;
-    private String immersivePrevious;
+    private String immersivePrevious, animatorPrevious;
     private File evidence;
     private final ArrayList<String> screenshots = new ArrayList<>();
     private final StringBuilder notes = new StringBuilder();
@@ -71,6 +78,10 @@ public final class SimulatorScenesValidation extends Instrumentation {
             admit(); admitted = true;
             immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
             shell("settings put secure immersive_mode_confirmations confirmed");
+            // Animations off for the run, so a capture's wait for idle is not starved by the charging picture's pulses
+            // (see the class comment); the app takes it with its first window (checked once it shows); restored in finally.
+            animatorPrevious = shell("settings get global animator_duration_scale").trim();
+            shell("settings put global animator_duration_scale 0");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "simulator-scenes");
             require(evidence.isDirectory() || evidence.mkdirs(), "Evidence directory");
             String theme = arguments.getString("theme", "dark");
@@ -94,6 +105,7 @@ public final class SimulatorScenesValidation extends Instrumentation {
             seedCharge(id[0], System.currentTimeMillis() - 86400000L);
             activity = (MainActivity)startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && root().isAttachedToWindow() && root().getWidth() > 0, "App did not launch", 8000); settle();
+            await(() -> android.animation.ValueAnimator.getDurationScale() == 0f, "The app did not take the animator scale 0", 8000);
             ScooterService service = activity.service();
             // Real data the simulator must leave alone: a last-seen snapshot and a history point, and charge alert settings
             // (so a model without a charge limit shows its countdown while charging).
@@ -272,6 +284,9 @@ public final class SimulatorScenesValidation extends Instrumentation {
         } finally {
             result.putStringArrayList("screenshots", screenshots); result.putBoolean("physical_device_tested", false);
             if (evidence != null) try (FileOutputStream out = new FileOutputStream(new File(evidence, "notes.txt"))) { out.write(notes.toString().getBytes(StandardCharsets.UTF_8)); } catch (Exception ignored) { }
+            if (animatorPrevious != null) try {
+                shell(animatorPrevious.isEmpty() || animatorPrevious.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + animatorPrevious);
+            } catch (Exception ignored) { }
             if (immersivePrevious != null) try {
                 shell(immersivePrevious.isEmpty() || immersivePrevious.equals("null") ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
             } catch (Exception ignored) { }

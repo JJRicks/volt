@@ -12,4 +12,11 @@ public interface AppScreen {
      * hand-built row's id) or its view tag. Null lets the host look the tag up in the page itself.
      */
     default View anchor(String id) { return null; }
+    /**
+     * After search brought anchor(id)'s row on screen: opens the sheet that holds what the id names, when a sheet over
+     * the page holds it rather than the page (Settings' Updates sheet holds Automatic update checks and Check for
+     * updates), and brings it on screen there; true when it did (the host then leaves the row on the page unflashed).
+     * Back closes the sheet first, then leaves the page, as from any other result.
+     */
+    default boolean openHeld(String id) { return false; }
 }

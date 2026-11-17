@@ -376,10 +376,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Les résultats des essais restent sur ce téléphone jusqu’à ce qu’un rapport de compatibilité que vous envoyez les inclue ou que vous les effaciez."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Les commandes proposées par l’application officielle pour votre modèle restent dans « Réglages de la trottinette ». Les limites de vitesse, la recharge, le verrouillage, le code PIN, le déverrouillage par proximité et l’horloge ne sont jamais ajoutés ici. Volt ne modifie jamais le micrologiciel.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Les commandes proposées par l’application officielle pour votre modèle restent dans « Réglages de la trottinette ». Volt ne modifie jamais le micrologiciel.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt ne modifie jamais le micrologiciel.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -400,8 +396,6 @@
     <string name="more_lab_intro_untested">L’application officielle ne propose pas ces commandes pour %1$s. Essayez-en une pendant que la trottinette est immobile ; Volt relit ensuite le réglage.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">L’application officielle propose ces commandes pour %1$s, mais Volt ne les a pas testées sur ce modèle. Essayez-en une pendant que la trottinette est immobile ; Volt relit ensuite le réglage.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Rien à essayer sur %1$s : l’application officielle propose déjà les commandes que Volt pourrait essayer. Elles se trouvent dans « Réglages de la trottinette ».</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt n’envoie aucune commande de trottinette à ce produit.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -410,8 +404,6 @@
     <string name="more_lab_empty_conflict">Le Model ID de cette trottinette ne correspond pas à son numéro de série ; Volt ne propose donc rien à essayer.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">L’application officielle ne répertorie pas ce modèle : Volt ne peut donc pas savoir quelles commandes lui manquent. Rien à essayer pour le moment.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Identifiez d’abord votre modèle sur la page « Trottinette ». Volt listera ensuite ce que vous pouvez essayer.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Connectez votre trottinette pour voir ce que vous pouvez essayer.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -612,8 +604,6 @@
     <string name="more_about_notifications_sub">Notification d’enregistrement avec « Arrêter »</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Vos données</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Toutes les données restent sur ce téléphone. « Sauvegarde et restauration » se trouve dans « Plus ».</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Carte en ligne</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->

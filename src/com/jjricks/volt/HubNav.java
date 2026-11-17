@@ -42,6 +42,26 @@ final class HubNav {
         static Args rideAndBack(String id) { return new Args(null, false, id, null, null, true); }
     }
 
+    /**
+     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built the loading page,
+     * which can't use them (no scooter service yet: opening, or no Nearby devices permission), so the rebuild that builds
+     * the real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
+     * none (the page consumed them). Opening, leaving or resetting a page drops them as before.
+     */
+    static Args owed(Args args, boolean loading) { return loading ? args : null; }
+
+    /**
+     * The reading Data's Readings shows by itself (#393 council review, second round, finding 6): the one this visit's
+     * arguments name (a search result's), else the one kept from that visit while Data stays in the page stack, so a
+     * rebuild (rotating, unfolding, a theme or text size change, a recreation) keeps it; else none. Once Data has left
+     * the stack (Back to the search, Home), the next ordinary visit shows every reading; and once the owner typed a
+     * search of their own on Readings (dropped: Readings let the reading go), a rebuild doesn't bring it back.
+     */
+    static String keptReading(Args args, String kept, List<String> stack, boolean dropped) {
+        if (args != null && args.reading != null) return args.reading;
+        return kept != null && !dropped && stack != null && stack.contains(HubPages.DATA) ? kept : null;
+    }
+
     private final ArrayList<String> stack = new ArrayList<>();
 
     HubNav() { stack.add(HubPages.HOME); }
@@ -86,11 +106,19 @@ final class HubNav {
      * which stays open; Home and a subject's own page are kept. True when the stack changed.
      */
     boolean closeSubPages() {
+        if (!subPagesOpen()) return false;
         List<String> kept = HubPages.path(HubPages.subjectOf(current()));
-        if (kept.equals(stack)) return false;
         stack.clear();
         stack.addAll(kept);
         return true;
+    }
+
+    /**
+     * Whether the stack holds pages that {@link #closeSubPages} would close: anything above the shown page's subject (a
+     * sub-page, or pages opened through other subjects). False at Home and on a subject's, Settings' or Search's own page.
+     */
+    boolean subPagesOpen() {
+        return !HubPages.path(HubPages.subjectOf(current())).equals(stack);
     }
 
     /** How long Volt may stay in the background before its open sub-pages close (generalizes More's old minute). */
@@ -110,14 +138,18 @@ final class HubNav {
     static final long LAUNCH_GRACE_MS = 2_000;
 
     /**
-     * Whether leaving starts the away clock that closes sub-pages after RETENTION_MS (#392 early review). Not while one of
+     * Whether leaving starts the away clock that closes sub-pages after RETENTION_MS (#392 early review). Only when there is
+     * something for it to close: subPagesOpen is {@link #subPagesOpen} for the stack being left, so Home, a subject's own
+     * page and Search never write the clock's keys. Not while setup (first-run or rerun) fills the window: setupShowing,
+     * since finishing setup opens Home whatever stack is under it. Not while one of
      * Volt's own dialogs or sheets is showing (an editor such as a ride's notes may hold unsaved text, and the rebuild on
      * return would dismiss it): ownDialogShowing comes from OwnDialogs, so a window that is not Volt's (the notification
      * shade, the other app in split screen) never counts. Not when a page itself sent the owner to another app just
      * before (an email to send, a file to save or pick): launchedAt is when Volt last started an activity (negative for
      * none), and the page they were using is kept for their return. A clock that went backwards does not count.
      */
-    static boolean awayClockStarts(boolean ownDialogShowing, long launchedAt, long now) {
+    static boolean awayClockStarts(boolean subPagesOpen, boolean setupShowing, boolean ownDialogShowing, long launchedAt, long now) {
+        if (!subPagesOpen || setupShowing) return false;
         boolean launched = launchedAt >= 0 && now >= launchedAt && now - launchedAt <= LAUNCH_GRACE_MS;
         return !ownDialogShowing && !launched;
     }

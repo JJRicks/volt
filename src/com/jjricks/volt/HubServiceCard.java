@@ -18,7 +18,8 @@ import java.util.List;
  * due follows with a grey dot and a muted status ("Brakes · 18 days left"). The orange means due only, as on the Service
  * row and the dock (the owner's answer on #394; the contributor's decision service-dot-due-only). The words for what is
  * left are the Maintenance page's own, rendered when a line is built (MaintenanceScreen.Check); a line puts its status
- * under the name when the two do not fit side by side (HubServiceFit), so a word is never broken. With reminders off the
+ * under the name when the whole name does not fit its two lines beside it (HubServiceFit), so a word is never broken
+ * and a name is never cut short where it would fit underneath. With reminders off the
  * card says so with the page's title and the Service row's own "Off", as that row beside it does. Its title, the empty line and the
  * spoken due line come from HubText. A tap opens Service › Maintenance reminders. Rebuilt only when what it shows
  * changed, never on a plain telemetry refresh.
@@ -110,8 +111,11 @@ final class HubServiceCard {
         dot.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         TextView name = ui.text(nameText, HubServiceFit.NAME_SP, false);
         name.setTypeface(ui.medium());
-        name.setMaxLines(2);
+        name.setMaxLines(HubServiceFit.NAME_LINES);
         name.setEllipsize(TextUtils.TruncateAt.END);
+        // Wrapped as HubServiceFit.lines counts its lines: at spaces, greedily, never hyphenated.
+        name.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+        name.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
         if (spoken != null) name.setContentDescription(spoken);
         TextView status = ui.text(statusText, HubServiceFit.STATUS_SP, false);
         status.setTextColor(due ? ui.orange : ui.muted);
@@ -125,9 +129,9 @@ final class HubServiceCard {
         LinearLayout body = new LinearLayout(host.activity()) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 float room = MeasureSpec.getSize(widthSpec);
+                // The status at its whole-pixel width, as the row gives it; the whole name must fit its two lines beside it.
                 boolean beside = HubServiceFit.beside(room, ui.dp(HubServiceFit.GAP_DP),
-                        status.getPaint().measureText(statusText),
-                        HubServiceFit.longestWord(nameText, name.getPaint()::measureText));
+                        (float) Math.ceil(status.getPaint().measureText(statusText)), nameText, name.getPaint()::measureText);
                 place(this, name, status, beside);
                 super.onMeasure(widthSpec, heightSpec);
             }
