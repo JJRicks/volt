@@ -8,18 +8,19 @@ import android.graphics.RectF;
 import android.view.View;
 
 /**
- * The handlebar for "Unlock without phone" (owner, Nov 17 2026), drawn from the UT5 MAX as the rider sees it: the left
- * switch (turn-signal rocker in the middle, light button above it, M/power button below it, boost trigger underneath),
- * the dashboard, and the brake lever ahead of the right grip. The parts the guide's steps use are in the accent with
+ * The handlebar for "Unlock without phone" (owner, Nov 17 2026), drawn from the UT5 MAX as the rider sees it (the owner's
+ * photos and the UT5 MAX manual's handlebar figure): the left grip with the brake lever ahead of it, the left switch
+ * (turn-signal rocker in the middle, light button above it, M/power button below it, boost trigger underneath), and the
+ * dashboard on its stem; the right half of the bar is left out. The parts the guide's steps use are in the accent with
  * numbered markers matching the steps (1 rocker, 2 brake lever, 3 M/power); everything else is the theme's greys. It is
  * drawn on a {@link #WIDTH} x {@link #HEIGHT} grid scaled to the view, so it stays crisp at any size, and draws no words
  * (the button markings are shapes); its screen-reader text is the caller's. Never mirrored: it pictures real hardware.
  */
 public final class HandlebarDiagram extends View {
     /** The design grid, in units. */
-    public static final float WIDTH = 322, HEIGHT = 114;
+    public static final float WIDTH = 256, HEIGHT = 114;
     /** Design points inside each accent part (rocker, brake lever, M/power) and the neutral light button, for tests. */
-    public static final float[][] ACCENT_POINTS = {{93, 66}, {300, 32}, {107, 75}}, NEUTRAL_POINTS = {{109, 39}};
+    public static final float[][] ACCENT_POINTS = {{93, 66}, {40, 40}, {107, 75}}, NEUTRAL_POINTS = {{109, 39}};
     private static final float BAR = 62, LINE = 1.4f, FINE = 1.1f;
     private final Ui ui;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -65,20 +66,21 @@ public final class HandlebarDiagram extends View {
         for (float x = 16; x < 64; x += 6) line(canvas, x, BAR - 12, x - 5, BAR + 12, faint, 1);
         part(canvas, round(128, BAR - 13, 144, BAR + 13, 4), body, edge, LINE);
         part(canvas, poly(144, BAR - 15, 172, BAR - 17, 172, BAR + 17, 144, BAR + 15), body, edge, LINE);
-        // Right side: sleeve, collar, grip and bar end.
-        part(canvas, poly(242, BAR - 17, 264, BAR - 15, 264, BAR + 15, 242, BAR + 17), body, edge, LINE);
-        part(canvas, round(264, BAR - 12, 276, BAR + 12, 4), body, edge, LINE);
-        part(canvas, round(274, BAR - 15, 314, BAR + 15, 9), body, edge, LINE);
-        part(canvas, round(310, BAR - 11, 318, BAR + 11, 3), body, edge, LINE);
-        for (float x = 282; x < 310; x += 6) line(canvas, x + 5, BAR - 12, x, BAR + 12, faint, 1);
-        // 2: the brake lever, ahead of the right grip (above it, as the rider looks down), pivoting at the collar.
+        // 2: the brake lever, ahead of the left grip (above it, as the rider looks down); its perch is under the switch.
         Path lever = new Path();
-        lever.moveTo(265, 34); lever.lineTo(274, 30); lever.lineTo(314, 25); lever.quadTo(319, 25, 319, 30); lever.lineTo(318, 34);
-        lever.quadTo(317, 37, 313, 37); lever.lineTo(278, 40); lever.lineTo(272, 47); lever.lineTo(265, 47); lever.close();
+        lever.moveTo(70, 34); lever.lineTo(24, 37.5f); lever.quadTo(10, 38.5f, 6, 41); lever.quadTo(3, 44, 7, 46); lever.lineTo(22, 45.5f);
+        lever.lineTo(70, 42); lever.close();
         part(canvas, lever, accent, accent, LINE);
-        dot(canvas, 269, 41, 2.2f, on);
 
-        // The dashboard between the sleeves: its display and the chevron light strip on each side.
+        // The stem under the dashboard, and a stub of the bar beyond it (the right half is not pictured).
+        paint.setStyle(Paint.Style.FILL); paint.setColor(body);
+        canvas.drawPath(poly(190, 88, 222, 88, 225, HEIGHT, 187, HEIGHT), paint);
+        line(canvas, 190, 88, 187, HEIGHT, edge, LINE); line(canvas, 222, 88, 225, HEIGHT, edge, LINE);
+        paint.setStyle(Paint.Style.FILL); paint.setColor(body);
+        canvas.drawPath(poly(242, BAR - 17, 255, BAR - 16, 255, BAR + 16, 242, BAR + 17), paint);
+        line(canvas, 242, BAR - 17, 255, BAR - 16, edge, LINE); line(canvas, 242, BAR + 17, 255, BAR + 16, edge, LINE);
+
+        // The dashboard: its display and the chevron light strip on each side.
         Path dash = new Path();
         dash.moveTo(172, 34); dash.lineTo(240, 34); dash.quadTo(246, 34, 246, 40); dash.lineTo(244, 84); dash.quadTo(243, 92, 235, 92);
         dash.lineTo(177, 92); dash.quadTo(169, 92, 168, 84); dash.lineTo(166, 40); dash.quadTo(166, 34, 172, 34); dash.close();
@@ -125,8 +127,8 @@ public final class HandlebarDiagram extends View {
         line(canvas, 124.5f, 76, 124.5f, 80, on, FINE);
 
         // Step markers, each with a leader to its part.
-        marker(canvas, 1, 50, 16, 76, 52);
-        marker(canvas, 2, 296, 12, 296, 28.5f);
+        marker(canvas, 1, 90, 12, 88, 52);
+        marker(canvas, 2, 34, 14, 34, 40);
         marker(canvas, 3, 152, 102, 131, 82);
         canvas.restore();
     }

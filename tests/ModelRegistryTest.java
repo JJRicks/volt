@@ -182,6 +182,10 @@ public final class ModelRegistryTest {
             &&ModelRegistry.chargeReferenceProduct(ultra)==-1&&ModelRegistry.rangeFollowProduct(ultra)==0,
             "Only the names follow the UT5 MAX: its sibling stays raw, and no UT5 MAX charge, capacity or range assumption applies");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
+        // Unlock without phone's handlebar drawing: the UT5 MAX and the models the official app pictures with it (2538, 2547, 2585).
+        check(ModelRegistry.ut5Handlebar(serial("Q2538ZZ9US7777777"))&&ModelRegistry.ut5Handlebar(ultra)&&ModelRegistry.ut5Handlebar(advertised("25471"))
+            &&!ModelRegistry.ut5Handlebar(advertised("24182"))&&!ModelRegistry.ut5Handlebar(advertised("22131"))&&!ModelRegistry.ut5Handlebar(null),
+            "The UT5 handlebar drawing is for 2538, 2547 and 2585 only");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
         check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()

@@ -971,6 +971,8 @@ public final class ModelRegistry {
 
     // Model assumptions kept out of telemetry: true only for the exact UT5 MAX layer.
     public static boolean ut5Max(DeviceDescriptor d){return d!=null&&resolve(d).layer==Layer.UT5_MAX;}
+    /** The UT5 handlebar (Unlock without phone's drawing): the UT5 MAX, and Q, the models OEM 2.1.9 shows the same manual-unlock pictures for. */
+    public static boolean ut5Handlebar(DeviceDescriptor d){return ut5Max(d)||any(d,Q);}
     public static Double ratedWh(DeviceDescriptor d){return ut5Max(d)?716.04:null;}
     public static boolean showsPhoto(DeviceDescriptor d){return !photo(d).isEmpty();}
     /** Exact advertised Model IDs Volt already has a compatibility report for; extend it each release. */
