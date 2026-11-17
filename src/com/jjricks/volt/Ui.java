@@ -58,6 +58,12 @@ public final class Ui {
      * red is not); the accent itself on light.
      */
     public final int accentText;
+    /**
+     * The accent for small text and its icon on the accent's own tint (the red Charging pill: the accent at alpha 34 on
+     * dark, 24 on light, over the page). Dark: accentText, about 7.5:1. Light: a deeper red, #C02026, about 4.7:1
+     * (the accent itself is about 4.0:1 there). ChargePictureTest checks both against 4.5:1.
+     */
+    public final int accentOnTint;
     public final float textScale;
     private final float density;
     private final Typeface REGULAR, MEDIUM, SEMIBOLD, BOLD;
@@ -76,6 +82,7 @@ public final class Ui {
         accent = Color.parseColor(dark ? "#E32B2F" : "#D3252A");
         accentDeep = Color.parseColor(dark ? "#B81B22" : "#A8161C");
         accentText = dark ? Color.parseColor("#FF8A8C") : accent;
+        accentOnTint = dark ? accentText : Color.parseColor("#C02026");
         onAccent = Color.WHITE;
         ok = Color.parseColor(dark ? "#5FCB7E" : "#1E8A47");
         blue = Color.parseColor(dark ? "#8FC2FF" : "#2F6DB5");

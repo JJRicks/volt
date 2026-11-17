@@ -3077,14 +3077,17 @@ public final class DashboardScreen implements AppScreen {
                     72, metrics.density);
         }
 
-        /** The red ⚡ Charging pill (Widgets' and Clean's): accent text and bolt on an accent tint (ChargingFit's LINE_ sizes). */
+        /**
+         * The red ⚡ Charging pill (Widgets' and Clean's): its words and bolt in Ui.accentOnTint (4.5:1 or more on the
+         * tint; the accent itself was about 3.8:1 dark, 4.0:1 light) on an accent tint (ChargingFit's LINE_ sizes).
+         */
         private void pill(TextView line) {
             line.setTypeface(ui.semibold());
-            line.setTextColor(ui.accent);
+            line.setTextColor(ui.accentOnTint);
             line.setGravity(Gravity.CENTER_VERTICAL);
             line.setPadding(ui.dp(ChargingFit.LINE_START_DP), ui.dp(ChargingFit.LINE_PAD_DP), ui.dp(ChargingFit.LINE_END_DP), ui.dp(ChargingFit.LINE_PAD_DP));
             line.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 34 : 24), 100, 0));
-            line.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accent, ChargingFit.LINE_GLYPH_DP), null, null, null);
+            line.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accentOnTint, ChargingFit.LINE_GLYPH_DP), null, null, null);
             line.setCompoundDrawablePadding(ui.dp(ChargingFit.LINE_GLYPH_GAP_DP));
         }
 

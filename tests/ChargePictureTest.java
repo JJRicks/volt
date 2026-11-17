@@ -26,6 +26,7 @@ public final class ChargePictureTest {
         fontScale();
         nonlinearFont();
         registryKeys();
+        pillContrast();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
 
@@ -554,6 +555,72 @@ public final class ChargePictureTest {
         for (String key : keys) if (ChargeWireModels.forKey(key) != null || ChargeFolded.forKey(key) != null) pictured++;
         near(pictured, 7, 0, "the seven bundled models each have a picture");
         near(ChargeWireModels.all().length + ChargeFolded.all().length, 7, 0, "and the tables have no other");
+    }
+
+    /**
+     * The red ⚡ Charging pill (Clean's and Widgets', DashboardScreen.ChargingHero.pill): its 12.5 sp words and bolt keep
+     * 4.5:1 (Ui's bar for small text) on its tint, the accent at the pill's alpha composited over the page, in both
+     * themes (council review of #527, P2: the accent itself was about 3.8:1 dark, 4.0:1 light). The colours are read
+     * from Ui.java and the pill's code, so a change to either is checked.
+     */
+    private static void pillContrast() {
+        String ui = source("src/com/jjricks/volt/Ui.java"), dash = source("src/com/jjricks/volt/DashboardScreen.java");
+        String[] bg = pair(ui, "\\bbg = Color\\.parseColor\\(dark \\? \"#(\\w{6})\" : \"#(\\w{6})\"\\)");
+        String[] accent = pair(ui, "\\baccent = Color\\.parseColor\\(dark \\? \"#(\\w{6})\" : \"#(\\w{6})\"\\)");
+        String accentTextDark = pair(ui, "\\baccentText = dark \\? Color\\.parseColor\\(\"#(\\w{6})\"\\) : accent;")[0];
+        String onTintLight = pair(ui, "\\baccentOnTint = dark \\? accentText : Color\\.parseColor\\(\"#(\\w{6})\"\\);")[0];
+        int start = dash.indexOf("private void pill(TextView line)");
+        require(start > 0, "the pill's code is in DashboardScreen");
+        String pill = dash.substring(start, dash.indexOf("\n        }", start));
+        String[] alpha = pair(pill, "Ui\\.withAlpha\\(ui\\.accent, ui\\.dark \\? (\\d+) : (\\d+)\\)");
+        require(pill.contains("setTextColor(ui.accentOnTint)") && pill.contains("glyphDrawable(\"bolt\", ui.accentOnTint"),
+                "the pill's words and bolt use Ui.accentOnTint");
+        String[][] themes = {{"dark", accentTextDark, accent[0], alpha[0], bg[0]}, {"light", onTintLight, accent[1], alpha[1], bg[1]}};
+        for (String[] t : themes) {
+            int tint = over(Integer.parseInt(t[2], 16), Integer.parseInt(t[3]), Integer.parseInt(t[4], 16));
+            double ratio = contrast(Integer.parseInt(t[1], 16), tint);
+            System.out.println(String.format(java.util.Locale.US, "  the pill, %s: #%s on #%06X: %.2f:1", t[0], t[1], tint, ratio));
+            require(ratio >= 4.5, "the pill's words, " + t[0] + ": #" + t[1] + " on its tint is " + ratio + ":1, under 4.5:1");
+        }
+    }
+
+    private static String source(String path) {
+        try { return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("cannot read " + path, e); }
+    }
+
+    private static String[] pair(String text, String regex) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(regex).matcher(text);
+        require(m.find(), "found " + regex);
+        String[] out = new String[m.groupCount()];
+        for (int i = 0; i < out.length; i++) out[i] = m.group(i + 1);
+        return out;
+    }
+
+    /** The colour {@code rgb} at {@code alpha} (0-255) over {@code bg}, per channel, rounded as an 8-bit canvas does. */
+    private static int over(int rgb, int alpha, int bg) {
+        int out = 0;
+        for (int shift = 16; shift >= 0; shift -= 8) {
+            int f = rgb >> shift & 255, b = bg >> shift & 255;
+            out |= Math.round(b + (f - b) * alpha / 255f) << shift;
+        }
+        return out;
+    }
+
+    /** WCAG 2 contrast ratio of two opaque colours. */
+    private static double contrast(int a, int b) {
+        double la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05);
+    }
+
+    private static double luminance(int rgb) {
+        double[] w = {.2126, .7152, .0722};
+        double sum = 0;
+        for (int i = 0; i < 3; i++) {
+            double c = (rgb >> (16 - 8 * i) & 255) / 255.0;
+            sum += w[i] * (c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4));
+        }
+        return sum;
     }
 
     private static void near(double actual, double expected, double tolerance, String message) {
