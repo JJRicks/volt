@@ -46,9 +46,9 @@ import com.jjricks.volt.ScooterProfiles;
  *   "sent" answer Email to Volt stores hides it too; with no answer it is back;</li>
  *   <li>no cut or mid-word-broken text on the banner, the row or the sheet.</li>
  * </ul>
- * Screenshots (-e size_label, -e theme): the page with the banner, the new row, the sheet, and the page after the X. An
- * app without the invite (a release sweep's base app: no hub_charge_invite_title string) gets the same screenshot names
- * of the Battery page and passes.
+ * Screenshots (-e size_label, -e theme): the page with the banner, the new row, the sheet, and the page after the X. The
+ * row and the bar graph are checked on every app; an app without the invite (no hub_charge_invite_title string: built
+ * before its strings, or a release sweep's base app) gets the invite's screenshot names of the Battery page and passes.
  */
 public final class ChargeInviteValidation extends Instrumentation {
     private static final String KEY = "charge_invite", BANNER = "battery-charge-invite", HIDE = "battery-charge-invite-hide",
@@ -76,10 +76,12 @@ public final class ChargeInviteValidation extends Instrumentation {
                 OnboardingScreen.markDone(getTargetContext());
             });
             launch();
-            if (!inviteBuilt()) baseApp();
+            if (!rowBuilt()) baseApp(true);
+            else if (!inviteBuilt()) { row(); barGraphStillOpens(); baseApp(false); }
             else {
-                bannerAndRow();
+                row();
                 barGraphStillOpens();
+                banner();
                 sheet();
                 dismissed();
                 sentAndBack();
@@ -97,8 +99,8 @@ public final class ChargeInviteValidation extends Instrumentation {
         }
     }
 
-    /** The page opens with the banner at its top and the Charge history & recordings row; the row opens the page. */
-    private void bannerAndRow() throws Exception {
+    /** The page opens with the banner at its top. */
+    private void banner() throws Exception {
         battery();
         main(() -> {
             require(!settings().contains(KEY), "The invite has an answer before anyone gave one");
@@ -116,6 +118,11 @@ public final class ChargeInviteValidation extends Instrumentation {
         });
         shot("battery-banner-" + label);
         checks.add("Battery & charging: the invite banner at the top of the page, its words whole, its X named and 48 dp");
+    }
+
+    /** The page's Charge history & recordings row; a rider's tap on it opens the page. */
+    private void row() throws Exception {
+        battery();
         View[] row = {null};
         main(() -> {
             row[0] = HubTestPages.shownTag(activity, LINK);
@@ -224,15 +231,24 @@ public final class ChargeInviteValidation extends Instrumentation {
         checks.add("Recordings sent: hidden; an unknown stored word: shown");
     }
 
-    /** A release sweep's base app has no invite: the same screenshots of the Battery page, and a pass. */
-    private void baseApp() throws Exception {
+    /** An app without the invite (no hub_charge_invite_title string): the same screenshots of the Battery page, and a pass. */
+    private void baseApp(boolean withRow) throws Exception {
         battery();
-        for (String name : new String[]{"battery-banner-", "battery-row-", "sheet-", "sheet-end-", "record-row-", "battery-dismissed-"}) shot(name + label);
-        checks.add("This app has no charge recordings invite (a release sweep's base app); the Battery page is captured without it");
+        if (withRow) shot("battery-row-" + label);
+        for (String name : new String[]{"battery-banner-", "sheet-", "sheet-end-", "record-row-", "battery-dismissed-"}) shot(name + label);
+        checks.add(withRow ? "This app predates the Charge history & recordings row (a release sweep's base app); the Battery page is captured without it"
+                : "This app has no charge recordings invite yet (its strings ship in their own pull request); the Battery page is captured without it");
     }
 
     // ===== Helpers =====
 
+    /** Whether the app has the row: its HISTORY card has a tag of its own since the row took "hub-link-" (a base app's card has that tag). */
+    private boolean rowBuilt() {
+        battery();
+        boolean[] built = {false};
+        main(() -> { Object screen = field(activity, "screen"); View page = screen instanceof com.jjricks.volt.AppScreen ? ((com.jjricks.volt.AppScreen) screen).view() : null; built[0] = page != null && page.findViewWithTag(CARD) != null; });
+        return built[0];
+    }
     private boolean inviteBuilt() {
         Context app = getTargetContext();
         return app.getResources().getIdentifier("hub_charge_invite_title", "string", app.getPackageName()) != 0;
