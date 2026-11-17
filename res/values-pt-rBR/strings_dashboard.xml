@@ -6,6 +6,10 @@
     <string name="dashboard_connection_details">Detalhes da conexão</string>
     <!-- src:d29edf4406118b6d22bf304e73cac8f710e25cc7 -->
     <string name="dashboard_your_scooter">Seu patinete</string>
+    <!-- src:25d19464e3a4ad962ee2ae794aaf354b30ebef28 -->
+    <string name="dashboard_find_nearby_text">%1$s não está respondendo. Se o patinete estiver ligado e por perto, talvez tenha um novo endereço Bluetooth.</string>
+    <!-- src:5dfc221fe534308c831b6a5343a1c055477b16f4 -->
+    <string name="dashboard_find_nearby">Procurar por perto</string>
     <!-- src:04d970d8898d8fe14cdc52d0738a243c1d4038c0 -->
     <string name="dashboard_rename_scooter">Renomear patinete</string>
     <!-- src:2687eeb904ef71b1b6894fa98c829296d128a554 -->
@@ -50,6 +54,8 @@
     <string name="dashboard_at_target">Meta atingida</string>
     <!-- src:e70dad5ed71099f9155e397d97a0018215b65f60 -->
     <string name="dashboard_duration_hours">≈ %1$s h %2$s min</string>
+    <!-- src:b9fb4887ba744f3f87621e15c8d5d05bc75ce876 -->
+    <string name="dashboard_duration_hours_narrow">≈%1$sh %2$smin</string>
     <!-- src:8b9cc956124d255f24e5b813b707af58689963d1 -->
     <string name="dashboard_duration_minutes">≈ %1$s min</string>
     <!-- src:8935eeb43bf670537f732e96d163a18604d9f110 -->
@@ -756,4 +762,30 @@
     <string name="dashboard_scale_maximum_in">Máximo da escala em %1$s</string>
     <!-- src:1b901ce0b176e22d3dcb439b4453a257d4c556df -->
     <string name="dashboard_scale_minimum_in">Mínimo da escala em %1$s</string>
+    <!-- src:f80911e697b6652067d8691400e0b8bbbfed6cbe -->
+    <string name="dashboard_odometer_carry_spoken">%1$s. Inclui distância somada de antes de uma redefinição. Toque duas vezes para ver os detalhes.</string>
+    <!-- src:b3e821e9385bc53f5fd7af3745f3f2b75dda941e -->
+    <string name="dashboard_odometer_carry_title">Odômetro com distância somada</string>
+    <!-- src:10d4c7561f4c13960986494f5dc7f05dee4914bf -->
+    <string name="dashboard_odometer_carry_what">Em %1$s, o odômetro do seu patinete voltou de %2$s para %3$s. O Volt continuou a partir do último número que leu, então o odômetro no Volt continua contando.</string>
+    <!-- src:2e9b542919bf1340bb48e3876b936937f92b5f07 -->
+    <string name="dashboard_odometer_carry_includes">Inclui %1$s de antes de uma redefinição (%2$s)</string>
+    <!-- src:e76877d02cec3ee85a96495ce025a202f70ee725 -->
+    <string name="dashboard_odometer_carry_includes_many">Inclui %1$s de antes de redefinições (a mais recente em %2$s)</string>
+    <!-- src:520d8a30d9bfa5e65b87a86057cd232500965e53 -->
+    <string name="dashboard_odometer_carry_scooter">Leitura do próprio patinete</string>
+    <!-- src:f870db01daa9a569dc546a43fda3ec7ba0889608 -->
+    <string name="dashboard_odometer_carry_shown">Exibido no Volt</string>
+    <!-- src:978faa47dc1c88bab4b3afbb431f07826d28196b -->
+    <string name="dashboard_odometer_carry_note">O Volt não pode alterar o número do próprio patinete, por isso o visor do patinete mostra a contagem desde a redefinição. Viagens, autonomia e lembretes de manutenção continuam usando o número do próprio patinete.</string>
+    <!-- src:62cccd8577893e6638ee0529b7f83949d506fb7f -->
+    <string name="dashboard_odometer_carry_undo">Remover a distância somada</string>
+    <!-- src:45c9b9d8c88bacb3ee004f07747a4e11990d4a97 -->
+    <string name="dashboard_odometer_carry_undo_title">Remover a distância somada?</string>
+    <!-- src:3543f7f40e8b7e8b11e27cc6b2085c448d56194c -->
+    <string name="dashboard_odometer_carry_undo_message">O odômetro no Volt voltará para %1$s, sem a distância de %2$s somada em %3$s. Não será possível adicioná-la novamente mais tarde.</string>
+    <!-- src:2d4e099e5aba896d7050ae793b84a6a23704c86f -->
+    <string name="dashboard_odometer_carry_undo_confirm">Remover</string>
+    <!-- src:c18d0ae4f75505fff1e0a7d9b7c40b3ad6d5d5db -->
+    <string name="dashboard_odometer_carry_removed">Distância somada removida</string>
 </resources>

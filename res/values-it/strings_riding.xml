@@ -10,6 +10,22 @@
     <string name="riding_screen_description">Vista di guida</string>
     <!-- src:48bb68250fa0bc39a723c0fbde0ad659e0e5c3ac -->
     <string name="riding_back">Esci dalla vista di guida</string>
+    <!-- src:854dcb67cb0bb78512ab70c0b7c215e52cb83f23 -->
+    <string name="riding_alert_low">Carica sotto %1$s%%</string>
+    <!-- src:f5e4bfec940dba0f898116e7e1227b2da2e8c4e0 -->
+    <string name="riding_alert_low_short">Sotto %1$s%%</string>
+    <!-- src:fb0b84b30c107175947bb29691f29ce463b78fb6 -->
+    <string name="riding_alert_charged">Caricato a %1$s%%</string>
+    <!-- src:366956c11da1d218267c66f6035b9fcf80fae8e7 -->
+    <string name="riding_alert_charged_short">Caricato</string>
+    <!-- src:74b74e872b211ea42c2b50f641e0431f2398a2fb -->
+    <string name="riding_alert_stop">Interrompi</string>
+    <!-- src:08b811ccbec2a1eed9974ec0432d24dec7024caa -->
+    <string name="riding_alert_stop_short">Interrompi</string>
+    <!-- src:3be2d4ca7a9873f99f23fda19ad4e59388d53175 -->
+    <string name="riding_alert_close">Chiudi l\'avviso</string>
+    <!-- src:7de70eaff3962a1ffb6faac108e77ec4797ce542 -->
+    <string name="riding_alert_spoken">%1$s. %2$s</string>
     <!-- src:a816b4a5952b183a3b7a57488079ff7a4970050c -->
     <string name="riding_status_connected_mode">%1$s · Connesso</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
@@ -214,6 +230,10 @@
     <string name="riding_content_trace_power">Solo potenza</string>
     <!-- src:c9b66119fd75a26eceeeb811eb804979ab757f7e -->
     <string name="riding_content_trace_speed">Solo velocità</string>
+    <!-- src:43de23093e1d6c080f7b87b5e581309e39ab0711 -->
+    <string name="riding_content_none">Nessuno</string>
+    <!-- src:dd47d3466a7a272d2ccaa5dc0263eb9c10e1c51c -->
+    <string name="riding_editor_beside_speed">Chip sotto la velocità</string>
     <!-- src:4976986f5fbce567e5d066aa06b37310c19beb34 -->
     <string name="riding_switch_power_bar">Barra della potenza</string>
     <!-- src:4f73cf59b202e8e361b1dd77c9d9c532e6526120 -->

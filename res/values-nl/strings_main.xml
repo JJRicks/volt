@@ -191,6 +191,21 @@
     </plurals>
     <!-- src:6801c41ddbd8a9ef7d66c7806562c01c3d210fe4 -->
     <string name="main_scan_option">%1$s, %2$s%3$s, adres eindigt op %4$s</string>
+    <!-- src:5622737b7ee69869fa25c076ea590c965f9bc3a1 -->
+    <string name="main_find_title">%1$s in de buurt zoeken</string>
+    <!-- src:95393b3e1288d46b3bb45a65b82176c4c079e4d3 -->
+    <string name="main_find_saved_address">Opgeslagen adres</string>
+    <!-- src:2f6ec6c6c339510ec4e80d653740a6eb5be60ed0 -->
+    <string name="main_find_state_saved_address">, opgeslagen adres</string>
+    <!-- src:bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b -->
+    <plurals name="main_find_hidden">
+        <item quantity="one">%1$d andere step verborgen (ander model)</item>
+        <item quantity="other">%1$d andere steps verborgen (ander model)</item>
+    </plurals>
+    <!-- src:5db8ba189368792f25c46b450dcc10cee9c58250 -->
+    <string name="main_find_confirm_title">Verbinding maken met deze step als %1$s?</string>
+    <!-- src:db97083ab6bb7adc78590c6c1a6128f7bca2a8bb -->
+    <string name="main_find_confirm_body">Volt stuurt de eigenaarssleutel van %1$s naar deze step. Een step zonder eigenaar (nieuw of gereset) zou die eigenaarssleutel overnemen, dus kies alleen je eigen step, met je telefoon er vlak naast.</string>
     <!-- src:6640722465af5d836e628164e3b8b0d667cf2537 -->
     <string name="main_group_ride">Rijden</string>
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->

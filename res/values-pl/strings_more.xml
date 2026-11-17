@@ -84,6 +84,10 @@
     <string name="more_scooters_forget">Zapomnij tę hulajnogę</string>
     <!-- src:214e6ed679b82875242979b8390e8d1dfe73ad56 -->
     <string name="more_scooters_forget_named">Zapomnij hulajnogę: %1$s</string>
+    <!-- src:36fa502b3d743203d54646bff813a3b8f4751d9d -->
+    <string name="more_scooters_find_new_address">Znajdź pod nowym adresem</string>
+    <!-- src:026ffc9c7547962d6e390c876e8c5077b52e5a4f -->
+    <string name="more_scooters_find_new_address_named">Znajdź hulajnogę %1$s pod nowym adresem</string>
     <!-- src:9db47f71b6bc98710f775f02e4c80221edbf86dc -->
     <string name="more_scooters_enter_name">Wpisz nazwę hulajnogi</string>
     <!-- src:7926521c882a2e7ca90abae823f2a69fa8e33152 -->
@@ -94,6 +98,42 @@
     <string name="more_scooters_save_backup">Najpierw zapisz kopię zapasową</string>
     <!-- src:75872781b896acdf04cc53236237c84863dd2857 -->
     <string name="more_scooters_forget_action">Zapomnij</string>
+    <!-- src:fa86328936297b67be02970febecd58e5128f833 -->
+    <string name="more_scooters_forget_owner_warning">Hulajnoga zachowuje swój klucz właściciela, dopóki się jej nie zrzekniesz. Zapomnienie usuwa kopię klucza z aplikacji Volt, więc bez kopii zapasowej ponowne połączenie się jako jej właściciel może nie być możliwe.</string>
+    <!-- src:5f769678c1022437c26e0482b1292d8c2a120eeb -->
+    <string name="more_scooters_forget_backed_up">Kopię zapasową z tym kluczem zapisano: %1$s.</string>
+    <!-- src:4483ec9e2f095b8e1084997f96f95049bb8eaf88 -->
+    <string name="more_scooters_forget_backup_needed">Najpierw należy zapisać kopię zapasową z tym kluczem. Aby zamiast tego hulajnoga znów była jak nowa, należy użyć opcji „Zrzeknij się tej hulajnogi”.</string>
+    <!-- src:700ec9ec671bad88248d630e22ba58c07bef9d27 -->
+    <string name="more_scooters_release">Zrzeknij się tej hulajnogi…</string>
+    <!-- src:fb25cc3c4c3c8d6843ef30a74548b45ce18e813b -->
+    <string name="more_scooters_release_named">Zrzeknij się hulajnogi: %1$s</string>
+    <!-- src:bc26e8a3afbba3603622b5ac75abedb115eb6396 -->
+    <string name="more_scooters_release_connect_first">Najpierw należy połączyć się z tą hulajnogą, aby się jej zrzec.</string>
+    <!-- src:e1e99c773016303e1307c2d1459633788ea3efb0 -->
+    <string name="more_scooters_release_title">Zrzec się hulajnogi: %1$s?</string>
+    <!-- src:940f26ba52f268ab0167b232dd13c4a7cf2258c6 -->
+    <string name="more_scooters_release_body">Hulajnoga zapomni swój klucz właściciela, a aplikacja Volt usunie ją z tego telefonu. Potem każdy w pobliżu będzie mógł ją dodać w aplikacji NAVEE lub w aplikacji Volt. Jeśli dodano ją w aplikacji NAVEE, Twoje konto w tej aplikacji nadal będzie ją zawierać.</string>
+    <!-- src:a966e89cfabc8d4d60492392e99c99feefbc8c51 -->
+    <string name="more_scooters_release_action">Zrzeknij się</string>
+    <!-- src:4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703 -->
+    <string name="more_scooters_released">Zrzeczono się hulajnogi</string>
+    <!-- src:53a5b4cbb5433229a2b95cf55b33c20319375ca2 -->
+    <string name="more_scooters_release_refused">Hulajnoga odrzuciła zrzeczenie się. Pozostaje zapisana w aplikacji Volt.</string>
+    <!-- src:02df0809209475398031fe9a4333bda4e9f9a5fe -->
+    <string name="more_scooters_release_unconfirmed">Hulajnoga nie potwierdziła zrzeczenia się. Pozostaje zapisana w aplikacji Volt.</string>
+    <!-- src:842e08407ba34879137b5f38a3f84cc8f57d579d -->
+    <string name="more_scooters_release_not_sent">Nie wysłano polecenia zrzeczenia się. Hulajnoga pozostaje zapisana w aplikacji Volt.</string>
+    <!-- src:1554f7352a60182cfc7408561ab3dcb4ad64ba8b -->
+    <string name="more_scooters_release_held_title">Hulajnoga %1$s nie potwierdziła zrzeczenia się</string>
+    <!-- src:4ef32f776404358f5562056c22818041360d34a4 -->
+    <string name="more_scooters_release_held_body">Być może zrzeczenie się nastąpiło. Jeśli tak, hulajnoga nie zna już tego klucza i można ją dodać w aplikacji NAVEE lub innym kluczem właściciela aplikacji Volt. Aplikacja Volt nie połączy się z nią sama, dopóki nie dokonasz wyboru.</string>
+    <!-- src:5f029298852d5600fb27464b025d03b02eea5aeb -->
+    <string name="more_scooters_release_held_remove">Usuń z aplikacji Volt</string>
+    <!-- src:7405213e2d5feb7533a817dbf9530cea921c280d -->
+    <string name="more_scooters_release_held_reconnect">Połącz ponownie</string>
+    <!-- src:90bd11ba915515f4530fb3b74db021f0833eead9 -->
+    <string name="more_scooters_release_held_reconnect_note">Jeśli zrzeczenie się nastąpiło, ponowne połączenie znów uczyni aplikację Volt jej właścicielem.</string>
     <!-- src:40d57941835556fe6430b2e5a7840750d8408b3f -->
     <string name="more_prefs_appearance">Wygląd</string>
     <!-- src:13ef75b12132c118c49106ae3778ff9058ab58d4 -->
@@ -380,6 +420,10 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Wyniki prób pozostają na tym telefonie, dopóki nie zostaną uwzględnione w wysłanym przez Ciebie raporcie zgodności lub dopóki ich nie wyczyścisz."</string>
+    <!-- src:98f20fb6388aa8e2510cf516190649be9646459c -->
+    <string name="more_lab_foot_oem">Funkcje oferowane przez oficjalną aplikację dla Twojego modelu pozostają na swoich stronach. Limity prędkości, ładowanie, blokada, PIN, odblokowanie zbliżeniowe i zegar nigdy nie są tutaj dodawane. Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
+    <!-- src:d7eaa8c93aabd13af7c8d1c98feab66159f644a0 -->
+    <string name="more_lab_foot_elsewhere">Funkcje oferowane przez oficjalną aplikację dla Twojego modelu pozostają na swoich stronach. Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -408,6 +452,8 @@
     <string name="more_lab_empty_conflict">Model ID tej hulajnogi nie jest zgodny z jej numerem seryjnym, dlatego aplikacja Volt nie oferuje funkcji do wypróbowania.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">Oficjalna aplikacja nie zawiera tego modelu, więc aplikacja Volt nie może ustalić, których funkcji w nim brakuje. Nie ma jeszcze nic do wypróbowania.</string>
+    <!-- src:c7404734d6e98be34382660c8ad9b3505c31e670 -->
+    <string name="more_lab_empty_identify">Najpierw należy zidentyfikować model w sekcji Serwis › Test zgodności. Aplikacja Volt pokaże wtedy, co można wypróbować.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Aby zobaczyć, co można wypróbować, należy połączyć się z hulajnogą.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -609,6 +655,8 @@
     <string name="more_about_notifications_sub">Powiadomienie o nagrywaniu z przyciskiem „Zatrzymaj”</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Twoje dane</string>
+    <!-- src:c98d3e9202d1b276d52fccbfd99f0106616db70b -->
+    <string name="more_about_data_note">Wszystkie dane pozostają na tym telefonie. Opcja „Kopia zapasowa i przywracanie” jest w sekcji „Ustawienia”.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Mapa online</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->
@@ -688,6 +736,18 @@
     <string name="more_dev_simulate">Symuluj połączenie z hulajnogą</string>
     <!-- src:d1f71ab8da3622272a8550620b16eb90a8c0f5fd -->
     <string name="more_dev_simulated_model">Symulowany model</string>
+    <!-- src:06c23103136ed05e9b5571db1dc39cb0d6b294df -->
+    <string name="more_dev_simulation_scene">Scenariusz</string>
+    <!-- src:1cbc72e5488ab96cea6887e887dd9b1428ca0ee4 -->
+    <string name="more_dev_simulation_scene_parked">Na postoju</string>
+    <!-- src:10021cd9dfd5543792f2617db36dfe71d358bb6e -->
+    <string name="more_dev_simulation_scene_riding">Jazda</string>
+    <!-- src:7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74 -->
+    <string name="more_dev_simulation_scene_charging">Ładowanie</string>
+    <!-- src:09197979bc4431ba371d1ccb80be6b4623f1d53d -->
+    <string name="more_dev_simulation_drive_mode">Tryb jazdy</string>
+    <!-- src:ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b -->
+    <string name="more_dev_simulation_drive_mode_code">%1$s (kod %2$s)</string>
     <!-- src:ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650 -->
     <string name="more_dev_simulation_active">Symulacja aktywna · przykładowe dane</string>
     <!-- src:7ba690e370878c8a9dd9152ce3649c1a56544346 -->

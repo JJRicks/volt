@@ -130,4 +130,126 @@
     <string name="hub_battery_charging_to">Cargando hasta %1$s</string>
     <!-- src:f8b39f35e6840be9c07be56a9b06967254904792 -->
     <string name="hub_battery_not_charging">No está cargando</string>
+    <!-- src:3f3dacec55518e55832c230ba1007f8e0ae1fc27 -->
+    <string name="hub_page_search">Búsqueda</string>
+    <!-- src:3cd0bd11faa9499cce304127482e557fe0df78ed -->
+    <string name="hub_search_hint">Buscar ajustes, lecturas y viajes</string>
+    <!-- src:269d5870221d30fa7e4397f0a6305b83c393b526 -->
+    <string name="hub_search_none">Sin coincidencias</string>
+    <!-- src:e72848a64ab4fab3cffef53dee93c7bd93b2f0a4 -->
+    <plurals name="hub_search_count">
+        <item quantity="one">%1$d resultado</item>
+        <item quantity="many">%1$d resultados</item>
+        <item quantity="other">%1$d resultados</item>
+    </plurals>
+    <!-- src:1846969941ff2b0d71f50a727e056ac63712e621 -->
+    <string name="hub_search_group_pages">Páginas</string>
+    <!-- src:e86b6584388de41a9aafcdb81bbeab808696221e -->
+    <string name="hub_search_group_settings">Ajustes</string>
+    <!-- src:8e89a587acabbf82d6e019c874202d2918df79c4 -->
+    <string name="hub_search_group_readings">Lecturas en vivo</string>
+    <!-- src:b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11 -->
+    <string name="hub_search_group_rides">Viajes</string>
+    <!-- src:29f4f0f26970cb0f5d24278d1616d2348a525f31 -->
+    <string name="hub_search_in">En %1$s</string>
+    <!-- src:d0bcd46187123795e39bbc27f03fe610abe07736 -->
+    <string name="hub_search_battery_history">historial carga cargas grabaciones grabación grabar captura capturar exportar descargar correo email enviar borrar eliminar cargador original rápido</string>
+    <!-- src:67435a64c679f18d3751915caff465b697f6ec70 -->
+    <string name="hub_dock_all">Todas las secciones</string>
+    <!-- src:7bc49be9c2447d81fab0633a184d5553b98271e0 -->
+    <string name="hub_all">Todas</string>
+    <!-- src:5e8fe10836e82ac03860dbab1dd2336e5085f18b -->
+    <string name="hub_service_card_title">Próximas revisiones</string>
+    <!-- src:4084c88a190fce45a520a84f0eaab0d8779505bd -->
+    <string name="hub_service_card_none">Sin revisiones programadas</string>
+    <!-- src:9bf205d7894e61f6643060ec3c6b7c801d1ff8fa -->
+    <string name="hub_whats_new_cut">Estas son las primeras notas. La página de versiones las tiene todas.</string>
+    <!-- src:6640722465af5d836e628164e3b8b0d667cf2537 -->
+    <string name="hub_qa_ride_round">Conducir</string>
+    <!-- src:73efc7c413b95081edaff9094760e244ceb41319 -->
+    <string name="hub_qa_record_round">Grabar</string>
+    <!-- src:a7c2266a0fd74c9e8df226458362dfcadd06bd4a -->
+    <string name="hub_qa_charge_done_by_round">Fin carga</string>
+    <!-- src:7463b09504a12e15a09561e3e0add16f6cbf5c02 -->
+    <string name="hub_qa_alerts_round">Alertas</string>
+    <!-- src:4bcaf6456fc552b2062a5529d8b0bed3f7322878 -->
+    <string name="hub_qa_cruise_round">Crucero</string>
+    <!-- src:05821cbe978e95762699a8e0792b1ccbce6e141a -->
+    <string name="hub_qa_traction_round">Tracción</string>
+    <!-- src:98733b2dbd677ee389f2e1a99bdea5c640b6fcea -->
+    <string name="hub_qa_recovery_round">Recarga</string>
+    <!-- src:ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330 -->
+    <string name="hub_qa_overspeed_round">Exceso vel.</string>
+    <!-- src:83aabaef6fccc26a2b05bdf6965a81609fbd1dd3 -->
+    <string name="hub_qa_descent_round">Descenso</string>
+    <!-- src:17fa93aa43e4818263fea1e38df93c71bc52ecfa -->
+    <string name="hub_list_separator">", "</string>
+    <!-- src:ee643c7c7cb7e105854fc4dac61639bf9efe1752 -->
+    <string name="hub_qa_search_settings">Buscar ajustes</string>
+    <!-- src:3f3dacec55518e55832c230ba1007f8e0ae1fc27 -->
+    <string name="hub_qa_search_settings_short">Buscar</string>
+    <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
+    <string name="hub_just_back_battery">Batería</string>
+    <!-- src:50f369a58a796cbe5e0fddd6cbc43dc05caa82c9 -->
+    <string name="hub_just_back_time_seconds">%1$s s</string>
+    <!-- src:527c09cc01b303ca9b4a2b459fcec9501e2b81a0 -->
+    <string name="hub_just_back_time_minutes">%1$s min</string>
+    <!-- src:1dc3d211d8aed28b8668d896a43f8eee5046c369 -->
+    <string name="hub_just_back_time_hours">%1$s h %2$s min</string>
+    <!-- src:d572002e16c54c30dd9f16f4894ef25ffeee1c53 -->
+    <plurals name="hub_just_back_time_spoken_seconds">
+        <item quantity="one">%1$d segundo</item>
+        <item quantity="many">%1$d segundos</item>
+        <item quantity="other">%1$d segundos</item>
+    </plurals>
+    <!-- src:f3017641d0dca07b69d95ea55dbde888bd9d2cc9 -->
+    <plurals name="hub_just_back_time_spoken_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="many">%1$d minutos</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <!-- src:59b286df76309b40d6b630eb9b74fff0b4820347 -->
+    <plurals name="hub_just_back_time_spoken_hours">
+        <item quantity="one">%1$d hora</item>
+        <item quantity="many">%1$d horas</item>
+        <item quantity="other">%1$d horas</item>
+    </plurals>
+    <!-- src:2d3dacf52b2e03498713ce8ccea2f6833184ac4e -->
+    <string name="hub_just_back_time_spoken_hours_minutes">%1$s y %2$s</string>
+    <!-- src:e53772391f587e805e0c0982f88e9371f9a85283 -->
+    <string name="hub_just_back_spoken_now">El viaje terminó hace un momento, %1$s. Se abrirá el viaje.</string>
+    <!-- src:05689bd631a761e77785198271ff8366416b07ec -->
+    <plurals name="hub_just_back_spoken_minutes">
+        <item quantity="one">El viaje terminó hace %1$d minuto, %2$s. Se abrirá el viaje.</item>
+        <item quantity="many">El viaje terminó hace %1$d minutos, %2$s. Se abrirá el viaje.</item>
+        <item quantity="other">El viaje terminó hace %1$d minutos, %2$s. Se abrirá el viaje.</item>
+    </plurals>
+    <!-- src:7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74 -->
+    <string name="hub_battery_section_charging">Carga</string>
+    <!-- src:2deed1ef9f0ed4e22b4caa9f0fa01a841518d557 -->
+    <string name="hub_battery_section_history">Historial</string>
+    <!-- src:0f91c3b2e9fb0032e20ae09bd82d5b14b94c3d5d -->
+    <string name="hub_battery_last_charge">Última carga: %1$s · %2$s</string>
+    <!-- src:ccba91f62f6e7c6a9d597327bf8ccfa18f75a171 -->
+    <string name="hub_battery_last_charge_span">Última carga: %1$s</string>
+    <!-- src:5177e76d27890797d8c8a2c3cec30fe83b453474 -->
+    <string name="hub_controls_more">Más controles</string>
+    <!-- src:beee0e56d8c58929562a19ed900517ed1255a14a -->
+    <string name="hub_controls_assists_sub">Al caminar, potencia, descenso en pendiente, arranque por impulso</string>
+    <!-- src:cb5499f36a43dae173cc3e4c5875772523c8955d -->
+    <string name="hub_controls_limits_sub">Personalizado, por modo, exceso de velocidad</string>
+    <!-- src:7ba690e370878c8a9dd9152ce3649c1a56544346 -->
+    <string name="hub_ride_simulating">Simulando</string>
+    <!-- src:434d8b94e161eb402693481fd01c982abd66bfdb -->
+    <string name="hub_ride_today">Hoy, %1$s</string>
+    <!-- src:bd3b6b493f95b918f1d8f818437f61cd4ca5de26 -->
+    <string name="hub_ride_yesterday">Ayer, %1$s</string>
+    <!-- src:5ebb5b423afbf76a36a5b5283d316cc816770e09 -->
+    <string name="hub_settings_section_scooters">Patinetes y datos</string>
+    <!-- src:6e44444ab3475c72debc9c18d401486ec9525c77 -->
+    <string name="hub_settings_section_about">Acerca de</string>
+    <!-- src:5788727f67a69c019150c29e83b6ed19afc723e4 -->
+    <string name="hub_done_by_enable">Activar</string>
+    <!-- src:10ddb96ce8684534811909cebbb00490ce6a86ad -->
+    <string name="hub_done_by_finish">Hora de fin de carga</string>
 </resources>

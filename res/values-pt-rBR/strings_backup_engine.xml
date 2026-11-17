@@ -246,6 +246,8 @@
     <string name="backup_engine_choose_what_restore">Escolha o que restaurar.</string>
     <!-- src:e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e -->
     <string name="backup_engine_replace_everything_needs_complete">“Substituir tudo” precisa de um backup completo com todas as categorias.</string>
+    <!-- src:0699d5067d41acd9a3462ee638114449be135978 -->
+    <string name="backup_engine_replace_owner_key_unsaved">Falta neste backup uma chave de proprietário que somente este telefone tem. Faça primeiro um backup deste telefone.</string>
     <!-- src:d1d0d37a81f3fa72fb318efe8ef837302d4b4599 -->
     <string name="backup_engine_choose_where_each_scooters">Escolha para onde vão os dados de cada patinete.</string>
     <!-- src:9c98d5835c2e279cd216567138e61662ddd0df4d -->

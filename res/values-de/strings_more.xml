@@ -84,6 +84,10 @@
     <string name="more_scooters_forget">Diesen Scooter entfernen</string>
     <!-- src:214e6ed679b82875242979b8390e8d1dfe73ad56 -->
     <string name="more_scooters_forget_named">%1$s entfernen</string>
+    <!-- src:36fa502b3d743203d54646bff813a3b8f4751d9d -->
+    <string name="more_scooters_find_new_address">Unter neuer Adresse suchen</string>
+    <!-- src:026ffc9c7547962d6e390c876e8c5077b52e5a4f -->
+    <string name="more_scooters_find_new_address_named">%1$s unter neuer Adresse suchen</string>
     <!-- src:9db47f71b6bc98710f775f02e4c80221edbf86dc -->
     <string name="more_scooters_enter_name">Gib einen Scooter-Namen ein</string>
     <!-- src:7926521c882a2e7ca90abae823f2a69fa8e33152 -->
@@ -94,6 +98,42 @@
     <string name="more_scooters_save_backup">Zuerst Backup speichern</string>
     <!-- src:75872781b896acdf04cc53236237c84863dd2857 -->
     <string name="more_scooters_forget_action">Entfernen</string>
+    <!-- src:fa86328936297b67be02970febecd58e5128f833 -->
+    <string name="more_scooters_forget_owner_warning">Der Scooter behält seinen Besitzerschlüssel, bis er freigegeben wird. Beim Entfernen wird die Kopie in Volt gelöscht, sodass du dich ohne Backup möglicherweise nicht mehr als Besitzer verbinden kannst.</string>
+    <!-- src:5f769678c1022437c26e0482b1292d8c2a120eeb -->
+    <string name="more_scooters_forget_backed_up">Backup mit diesem Besitzerschlüssel gespeichert: %1$s.</string>
+    <!-- src:4483ec9e2f095b8e1084997f96f95049bb8eaf88 -->
+    <string name="more_scooters_forget_backup_needed">Speichere zuerst ein Backup mit diesem Besitzerschlüssel. Soll der Scooter stattdessen wieder wie neu sein, verwende „Diesen Scooter freigeben“.</string>
+    <!-- src:700ec9ec671bad88248d630e22ba58c07bef9d27 -->
+    <string name="more_scooters_release">Diesen Scooter freigeben…</string>
+    <!-- src:fb25cc3c4c3c8d6843ef30a74548b45ce18e813b -->
+    <string name="more_scooters_release_named">%1$s freigeben</string>
+    <!-- src:bc26e8a3afbba3603622b5ac75abedb115eb6396 -->
+    <string name="more_scooters_release_connect_first">Verbinde dich zuerst mit diesem Scooter, um ihn freizugeben.</string>
+    <!-- src:e1e99c773016303e1307c2d1459633788ea3efb0 -->
+    <string name="more_scooters_release_title">%1$s freigeben?</string>
+    <!-- src:940f26ba52f268ab0167b232dd13c4a7cf2258c6 -->
+    <string name="more_scooters_release_body">Dein Scooter vergisst seinen Besitzerschlüssel und Volt entfernt den Scooter von diesem Telefon. Danach kann jeder in der Nähe ihn mit der NAVEE-App oder Volt hinzufügen. Wenn du ihn in der NAVEE-App hinzugefügt hast, bleibt er dort in deinem Konto aufgeführt.</string>
+    <!-- src:a966e89cfabc8d4d60492392e99c99feefbc8c51 -->
+    <string name="more_scooters_release_action">Freigeben</string>
+    <!-- src:4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703 -->
+    <string name="more_scooters_released">Scooter freigegeben</string>
+    <!-- src:53a5b4cbb5433229a2b95cf55b33c20319375ca2 -->
+    <string name="more_scooters_release_refused">Der Scooter hat die Freigabe abgelehnt. Er bleibt in Volt gespeichert.</string>
+    <!-- src:02df0809209475398031fe9a4333bda4e9f9a5fe -->
+    <string name="more_scooters_release_unconfirmed">Der Scooter hat die Freigabe nicht bestätigt. Er bleibt in Volt gespeichert.</string>
+    <!-- src:842e08407ba34879137b5f38a3f84cc8f57d579d -->
+    <string name="more_scooters_release_not_sent">Die Freigabe wurde nicht gesendet. Der Scooter bleibt in Volt gespeichert.</string>
+    <!-- src:1554f7352a60182cfc7408561ab3dcb4ad64ba8b -->
+    <string name="more_scooters_release_held_title">%1$s hat die Freigabe nicht bestätigt</string>
+    <!-- src:4ef32f776404358f5562056c22818041360d34a4 -->
+    <string name="more_scooters_release_held_body">Der Scooter wurde möglicherweise freigegeben. Falls das geschehen ist, kennt er diesen Besitzerschlüssel nicht mehr und kann mit der NAVEE-App oder einem anderen Volt-Besitzerschlüssel hinzugefügt werden. Volt verbindet sich nicht von selbst erneut mit ihm, bis du eine Auswahl triffst.</string>
+    <!-- src:5f029298852d5600fb27464b025d03b02eea5aeb -->
+    <string name="more_scooters_release_held_remove">Aus Volt entfernen</string>
+    <!-- src:7405213e2d5feb7533a817dbf9530cea921c280d -->
+    <string name="more_scooters_release_held_reconnect">Neu verbinden</string>
+    <!-- src:90bd11ba915515f4530fb3b74db021f0833eead9 -->
+    <string name="more_scooters_release_held_reconnect_note">Falls der Scooter freigegeben wurde, wird Volt durch das erneute Verbinden wieder sein Besitzer.</string>
     <!-- src:40d57941835556fe6430b2e5a7840750d8408b3f -->
     <string name="more_prefs_appearance">Darstellung</string>
     <!-- src:13ef75b12132c118c49106ae3778ff9058ab58d4 -->
@@ -376,6 +416,10 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Ergebnisse beim Ausprobieren bleiben auf diesem Telefon, bis ein von dir gesendeter Kompatibilitätsbericht sie enthält oder du sie löschst."</string>
+    <!-- src:98f20fb6388aa8e2510cf516190649be9646459c -->
+    <string name="more_lab_foot_oem">Funktionen, die die offizielle App für dein Modell anbietet, bleiben auf ihren eigenen Seiten. Tempolimits, Laden, Sperre, PIN, Näherungsentsperrung und Uhr werden hier niemals hinzugefügt. Volt ändert niemals die Firmware.</string>
+    <!-- src:d7eaa8c93aabd13af7c8d1c98feab66159f644a0 -->
+    <string name="more_lab_foot_elsewhere">Funktionen, die die offizielle App für dein Modell anbietet, bleiben auf ihren eigenen Seiten. Volt ändert niemals die Firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt ändert niemals die Firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -396,6 +440,8 @@
     <string name="more_lab_intro_untested">Die offizielle App bietet diese für %1$s nicht an. Nur ausprobieren, während der Scooter geparkt ist; Volt fragt die Einstellung danach ab.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">Die offizielle App bietet diese für %1$s an, aber Volt hat sie dort nicht getestet. Nur ausprobieren, während der Scooter geparkt ist; Volt fragt die Einstellung danach ab.</string>
+    <!-- src:e3e64baef0955008d83ada821de7cc592e177373 -->
+    <string name="more_lab_empty_oem">Für %1$s gibt es nichts auszuprobieren: Die offizielle App bietet bereits die Funktionen an, die Volt ausprobieren könnte. Sie befinden sich auf ihren eigenen Seiten.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt sendet keine Scooter-Befehle an dieses Produkt.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -404,6 +450,8 @@
     <string name="more_lab_empty_conflict">Die Modell-ID dieses Scooters stimmt nicht mit seiner Seriennummer überein, daher bietet Volt nichts zum Ausprobieren an.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">Die offizielle App führt dieses Modell nicht auf, daher kann Volt nicht erkennen, welche Funktionen ihm fehlen. Noch nichts zum Ausprobieren.</string>
+    <!-- src:c7404734d6e98be34382660c8ad9b3505c31e670 -->
+    <string name="more_lab_empty_identify">Lass dein Modell zuerst unter „Service › Kompatibilitätsprüfung“ erkennen. Danach zeigt Volt, was du ausprobieren kannst.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Verbinde dich mit deinem Scooter, um zu sehen, was du ausprobieren kannst.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -603,6 +651,8 @@
     <string name="more_about_notifications_sub">Benachrichtigung zur Aufzeichnung mit Stopp</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Deine Daten</string>
+    <!-- src:c98d3e9202d1b276d52fccbfd99f0106616db70b -->
+    <string name="more_about_data_note">Alle Daten bleiben auf diesem Telefon. „Backup &amp; Wiederherstellung“ findest du unter „Einstellungen“.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Online-Karte</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->
@@ -680,6 +730,18 @@
     <string name="more_dev_simulate">Scooter als verbunden simulieren</string>
     <!-- src:d1f71ab8da3622272a8550620b16eb90a8c0f5fd -->
     <string name="more_dev_simulated_model">Simuliertes Modell</string>
+    <!-- src:06c23103136ed05e9b5571db1dc39cb0d6b294df -->
+    <string name="more_dev_simulation_scene">Szene</string>
+    <!-- src:1cbc72e5488ab96cea6887e887dd9b1428ca0ee4 -->
+    <string name="more_dev_simulation_scene_parked">Geparkt</string>
+    <!-- src:10021cd9dfd5543792f2617db36dfe71d358bb6e -->
+    <string name="more_dev_simulation_scene_riding">Fahrt</string>
+    <!-- src:7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74 -->
+    <string name="more_dev_simulation_scene_charging">Akku lädt</string>
+    <!-- src:09197979bc4431ba371d1ccb80be6b4623f1d53d -->
+    <string name="more_dev_simulation_drive_mode">Fahrmodus</string>
+    <!-- src:ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b -->
+    <string name="more_dev_simulation_drive_mode_code">%1$s (Code %2$s)</string>
     <!-- src:ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650 -->
     <string name="more_dev_simulation_active">Simulation aktiv · Beispieldaten</string>
     <!-- src:7ba690e370878c8a9dd9152ce3649c1a56544346 -->
