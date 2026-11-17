@@ -39,6 +39,8 @@ public final class UnlockGuideValidation extends Instrumentation {
     private String label = "";
     private int assertions;
     private String ut5, other;
+    /** The redrawn handlebar's class. Named, not referenced, outside verifyDrawing: the base app (old inner class) lacks it. */
+    private static final String REDRAWN = "com.jjricks.volt.HandlebarDiagram";
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
@@ -99,7 +101,14 @@ public final class UnlockGuideValidation extends Instrumentation {
             for (String step : new String[]{T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()})
                 require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
             if (!drawn) {
-                require(drawing == null && find(panel, v -> v instanceof HandlebarDiagram) == null, "Another model's guide shows the UT5 MAX handlebar");
+                View redrawn = find(panel, v -> REDRAWN.equals(v.getClass().getName()));
+                if (redrawn == null && drawing != null) {
+                    // The base app (before the redraw) shows its old drawing for every model: reported, not failed, so a
+                    // census of the base still captures the guide.
+                    checks.add(label + ": the base app's old drawing (" + drawing.getClass().getSimpleName() + ") is shown for this model too");
+                    return;
+                }
+                require(drawing == null && redrawn == null, "Another model's guide shows the UT5 MAX handlebar");
                 checks.add(label + ": another model's guide shows the three steps and no handlebar drawing");
                 return;
             }
@@ -109,7 +118,8 @@ public final class UnlockGuideValidation extends Instrumentation {
             require(drawing.getHeight() > 0, "The drawing has no height");
             checks.add(label + ": the guide's drawing is " + Math.round(drawing.getWidth() / density()) + "x" + Math.round(drawing.getHeight() / density())
                     + " dp in a " + Math.round(panel.getWidth() / density()) + " dp dialog, whole across, beside the three steps; it says '" + drawing.getContentDescription() + "'");
-            verifyDrawing(drawing);
+            if (REDRAWN.equals(drawing.getClass().getName())) verifyDrawing(drawing);
+            else checks.add(label + ": the base app's old drawing (" + drawing.getClass().getSimpleName() + "); the redraw's checks do not apply");
         });
         shot(label + "-guide");
         main(() -> dialog[0].dismiss()); settle();
@@ -120,7 +130,6 @@ public final class UnlockGuideValidation extends Instrumentation {
      * names the numbered parts. Main thread.
      */
     private void verifyDrawing(View drawing) {
-        require(drawing instanceof HandlebarDiagram, "The guide's drawing is a " + drawing.getClass().getSimpleName() + ", not the handlebar drawing");
         HandlebarDiagram diagram = (HandlebarDiagram) drawing;
         float drawn = Math.min(drawing.getWidth(), 420 * density()), expected = drawn * HandlebarDiagram.HEIGHT / HandlebarDiagram.WIDTH;
         require(Math.abs(drawing.getHeight() - expected) <= 2, "The drawing is " + drawing.getHeight() + " px tall, not " + Math.round(expected) + " px for its width");

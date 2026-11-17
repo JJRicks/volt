@@ -186,6 +186,11 @@ public final class ModelRegistryTest {
         check(ModelRegistry.ut5Handlebar(serial("Q2538ZZ9US7777777"))&&ModelRegistry.ut5Handlebar(ultra)&&ModelRegistry.ut5Handlebar(advertised("25471"))
             &&!ModelRegistry.ut5Handlebar(advertised("24182"))&&!ModelRegistry.ut5Handlebar(advertised("22131"))&&!ModelRegistry.ut5Handlebar(null),
             "The UT5 handlebar drawing is for 2538, 2547 and 2585 only");
+        // A Model ID mismatch is ambiguous: a GT3 Max serial advertising 2585, or the UT5 MAX's serial advertising another model.
+        check(!ModelRegistry.ut5Handlebar(DeviceDescriptor.of("Q2418ZZ9US7777777","25852",1,null,false,DeviceDescriptor.Transport.STANDARD,0))
+            &&!ModelRegistry.ut5Handlebar(DeviceDescriptor.of("Q2538ZZ9US7777777","24182",1,null,false,DeviceDescriptor.Transport.STANDARD,0))
+            &&ModelRegistry.ut5Handlebar(DeviceDescriptor.of("Q2538ZZ9US7777777","25381",1,null,false,DeviceDescriptor.Transport.STANDARD,0)),
+            "The UT5 handlebar drawing needs an unambiguous model: no drawing on a serial and advertisement that disagree");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
         check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()
