@@ -3,6 +3,8 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="openai" volt:model="gpt-6.1-terra" volt:prompt="standard">
     <string name="dashboard_connection_details" volt:src="eccce163502fa78ca3de68436575176d5b46f437">Dettagli connessione</string>
     <string name="dashboard_your_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">Il tuo monopattino</string>
+    <string name="dashboard_find_nearby_text" volt:src="25d19464e3a4ad962ee2ae794aaf354b30ebef28">%1$s non risponde. Se è acceso e si trova nelle vicinanze, potrebbe avere un nuovo indirizzo Bluetooth.</string>
+    <string name="dashboard_find_nearby" volt:src="5dfc221fe534308c831b6a5343a1c055477b16f4">Cerca nelle vicinanze</string>
     <string name="dashboard_rename_scooter" volt:src="04d970d8898d8fe14cdc52d0738a243c1d4038c0">Rinomina il monopattino</string>
     <string name="dashboard_undo_edit" volt:src="2687eeb904ef71b1b6894fa98c829296d128a554">Annulla la modifica alla dashboard</string>
     <string name="dashboard_redo_edit" volt:src="edab63ce2fb93ded501d602abc5f9516876a4157">Ripeti la modifica alla dashboard</string>
@@ -25,6 +27,7 @@
     <string name="dashboard_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Modalità di guida</string>
     <string name="dashboard_at_target" volt:src="bfe77cb8f5f6b49d12a329434929b912ff092d08">Obiettivo raggiunto</string>
     <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60">≈ %1$s h %2$s min</string>
+    <string name="dashboard_duration_hours_narrow" volt:src="b9fb4887ba744f3f87621e15c8d5d05bc75ce876">≈%1$s h %2$s min</string>
     <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1">≈ %1$s min</string>
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Fino al limite di %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Tempo fino a %1$s</string>
@@ -429,4 +432,17 @@
     <string name="dashboard_recording_spoken_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="dashboard_scale_maximum_in" volt:src="bb914ca34e8c256845c5c3853eda58d2e07d23ce">Massimo della scala in %1$s</string>
     <string name="dashboard_scale_minimum_in" volt:src="1b901ce0b176e22d3dcb439b4453a257d4c556df">Minimo della scala in %1$s</string>
+    <string name="dashboard_odometer_carry_spoken" volt:src="f80911e697b6652067d8691400e0b8bbbfed6cbe">%1$s. Include la distanza riportata dopo un azzeramento. Tocca due volte per i dettagli.</string>
+    <string name="dashboard_odometer_carry_title" volt:src="b3e821e9385bc53f5fd7af3745f3f2b75dda941e">Odometro con distanza riportata</string>
+    <string name="dashboard_odometer_carry_what" volt:src="10d4c7561f4c13960986494f5dc7f05dee4914bf">In data %1$s l\'odometro del tuo monopattino è passato da %2$s a %3$s. Volt ha ripreso dall\'ultimo valore letto, così l\'odometro in Volt continua a contare.</string>
+    <string name="dashboard_odometer_carry_includes" volt:src="2e9b542919bf1340bb48e3876b936937f92b5f07">Include %1$s precedenti a un azzeramento (%2$s)</string>
+    <string name="dashboard_odometer_carry_includes_many" volt:src="e76877d02cec3ee85a96495ce025a202f70ee725">Include %1$s precedenti agli azzeramenti (il più recente in data %2$s)</string>
+    <string name="dashboard_odometer_carry_scooter" volt:src="520d8a30d9bfa5e65b87a86057cd232500965e53">Lettura indicata dal monopattino</string>
+    <string name="dashboard_odometer_carry_shown" volt:src="f870db01daa9a569dc546a43fda3ec7ba0889608">Mostrato in Volt</string>
+    <string name="dashboard_odometer_carry_note" volt:src="978faa47dc1c88bab4b3afbb431f07826d28196b">Volt non può cambiare il valore del monopattino, quindi il display del monopattino mostra il conteggio dall\'azzeramento. Corse, autonomia e promemoria di manutenzione continuano a usare il valore del monopattino.</string>
+    <string name="dashboard_odometer_carry_undo" volt:src="62cccd8577893e6638ee0529b7f83949d506fb7f">Rimuovi la distanza riportata</string>
+    <string name="dashboard_odometer_carry_undo_title" volt:src="45c9b9d8c88bacb3ee004f07747a4e11990d4a97">Vuoi rimuovere la distanza riportata?</string>
+    <string name="dashboard_odometer_carry_undo_message" volt:src="3543f7f40e8b7e8b11e27cc6b2085c448d56194c">L\'odometro in Volt tornerà a %1$s, senza la distanza di %2$s riportata in data %3$s. Non potrai aggiungerla di nuovo in seguito.</string>
+    <string name="dashboard_odometer_carry_undo_confirm" volt:src="2d4e099e5aba896d7050ae793b84a6a23704c86f">Rimuovi</string>
+    <string name="dashboard_odometer_carry_removed" volt:src="c18d0ae4f75505fff1e0a7d9b7c40b3ad6d5d5db">Distanza riportata rimossa</string>
 </resources>

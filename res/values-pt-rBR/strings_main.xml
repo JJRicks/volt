@@ -192,6 +192,22 @@
     </plurals>
     <!-- src:6801c41ddbd8a9ef7d66c7806562c01c3d210fe4 -->
     <string name="main_scan_option">%1$s, %2$s%3$s, endereço terminado em %4$s</string>
+    <!-- src:5622737b7ee69869fa25c076ea590c965f9bc3a1 -->
+    <string name="main_find_title">Procurar %1$s por perto</string>
+    <!-- src:95393b3e1288d46b3bb45a65b82176c4c079e4d3 -->
+    <string name="main_find_saved_address">Endereço salvo</string>
+    <!-- src:2f6ec6c6c339510ec4e80d653740a6eb5be60ed0 -->
+    <string name="main_find_state_saved_address">, endereço salvo</string>
+    <!-- src:bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b -->
+    <plurals name="main_find_hidden">
+        <item quantity="one">%1$d outro patinete oculto (modelo diferente)</item>
+        <item quantity="many">%1$d outros patinetes ocultos (modelo diferente)</item>
+        <item quantity="other">%1$d outros patinetes ocultos (modelo diferente)</item>
+    </plurals>
+    <!-- src:5db8ba189368792f25c46b450dcc10cee9c58250 -->
+    <string name="main_find_confirm_title">Conectar este patinete como %1$s?</string>
+    <!-- src:db97083ab6bb7adc78590c6c1a6128f7bca2a8bb -->
+    <string name="main_find_confirm_body">O Volt vai enviar a chave de proprietário de %1$s a este patinete. Um patinete ainda sem proprietário (novo ou redefinido) ficaria com essa chave, então escolha somente o seu patinete, com o telefone bem ao lado dele.</string>
     <!-- src:6640722465af5d836e628164e3b8b0d667cf2537 -->
     <string name="main_group_ride">Condução</string>
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
@@ -616,6 +632,8 @@
     <string name="main_report_email_next">Seu app de e-mail será aberto em seguida para que você possa ler primeiro.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Escolha seu patinete ou “Não tenho certeza” e depois toque em “Enviar”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">Será anexado um arquivo de diagnóstico: detalhes do app, do telefone e do patinete, as configurações e a última falha do Volt, o número de gravações, eventos recentes de conexão e de controles e o histórico de carregamento e de programação do patinete selecionado, com horários. Nunca inclui sua chave de proprietário, PIN, número de série, localização nem nomes.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Enviar e-mail ao Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

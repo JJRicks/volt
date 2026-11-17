@@ -18,6 +18,8 @@
     <string name="compat_preview_report">Previsualizar informe</string>
     <!-- src:7393e79b1d7b7004e922147bbd058fb347783333 -->
     <string name="compat_no_finished_check">Aún no hay ninguna comprobación terminada</string>
+    <!-- src:780bfedd7257990a493fc6f1164fcde3df631c08 -->
+    <string name="compat_footer">La comprobación solo lee datos. Los intentos están en «Servicio» › «Controles experimentales» y el informe incluye sus resultados. Nunca modifica el firmware.</string>
     <!-- src:465b99a776e3987ff95e10fad6eac713fc821b6e -->
     <string name="compat_connect_to_check">Conecta el patinete para comprobarlo.</string>
     <!-- src:dba08d09f91ad6e2257006954ea15fc634a57b8c -->

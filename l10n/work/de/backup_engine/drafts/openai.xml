@@ -129,6 +129,7 @@
     <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Das Backup enthält eine Ladeaufzeichnung mehrfach.</string>
     <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Wähle aus, was wiederhergestellt werden soll.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">Für „Alles ersetzen“ wird ein vollständiges Backup mit allen Kategorien benötigt.</string>
+    <string name="backup_engine_replace_owner_key_unsaved" volt:src="0699d5067d41acd9a3462ee638114449be135978">In diesem Backup fehlt ein Besitzerschlüssel, der nur auf diesem Telefon vorhanden ist. Erstelle zuerst ein Backup dieses Telefons.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Wähle für jeden Scooter aus, wohin seine Daten gehören.</string>
     <string name="backup_engine_choose_scooter_using_setup" volt:src="9c98d5835c2e279cd216567138e61662ddd0df4d">Wähle einen Scooter aus, der diesen Besitzerschlüssel verwendet, oder füge einen weiteren Scooter hinzu.</string>
     <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">Gespeicherte Aufzeichnungen können nicht gelesen werden.</string>
