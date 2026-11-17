@@ -82,13 +82,30 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
+    /**
+     * The wide Clean Home (hub layout plan 1.11, PR 13): the scooter pane (homeScreen, built once per rebuild and kept while
+     * pages change beside it) and the page pane's column (rightPage: the shown page's header and screen); both null on every
+     * other layout. paneLocks counts the lock views the scooter pane registered; a page's own (Security's) come after them.
+     */
+    private CleanHomeScreen homeScreen;
+    private LinearLayout rightPage;
+    private int paneLocks;
+    /** True while createScreen builds a page for the page pane: a page that splits into panes of its own keeps one. */
+    private boolean paneHosted;
+    /** The wide Home's panes: the scooter pane's and the page pane's minimum widths (dp). */
+    private static final int PANE_LEFT_DP=320,PANE_RIGHT_DP=260;
+    /** The window size, text size and language at which a subject's name could not fit the page pane: Home takes one pane there. */
+    private static String onePaneHomeAt="";
     private final LinkedHashMap<String,Integer> scrollPositions=new LinkedHashMap<>();
     private ScooterService scooterService;
     private SharedPreferences preferences,documents;
     private Ui design;
     private FoldMonitor fold;
     private FrameLayout root,pageFrame;
-    /** The column under the window's top: the page header, then pageFrame (the page's scroll and the dock). */
+    /**
+     * The column under the window's top: the page header, then pageFrame (the page's scroll and the dock). On the wide
+     * Home's two panes, the page pane's column (rightPage): its header, then pageFrame with the page's scroll.
+     */
     private LinearLayout pageContent;
     private ScrollView scroll;
     private AppScreen screen;
@@ -187,7 +204,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View pageHeader;
     /**
      * The header's own rows (back link, connection line, title): pageHeader itself, except in tabletop posture, where
-     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them).
+     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them). On two panes, the page
+     * pane's header (null on Home there).
      */
     private View pageHeaderRows;
     /** On Search in tabletop posture, the pane above the hinge and the spacer over the hinge (fitTabletopSearch); else null. */
@@ -361,7 +379,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
         if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
-        if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
+        if(screen!=null)screen.close();closeHomePane();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null&&isFinishing())scooterService.ble.telemetry.followSpeed(null);
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         ChargeSend.MAILBOX.unregister(chargeMail,isChangingConfigurations());
@@ -477,6 +495,21 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public Activity activity(){return this;}
     @Override public boolean resumed(){return resumed;}
     @Override public Ui ui(){return design;}
+    /**
+     * A page's width: the window's, or in the wide Home's page pane that pane's (as HubPanes will split it, gutter on the
+     * window's centre line), plus the 18 dp a side a phone page pads itself by, which the window's width includes too.
+     */
+    @Override public int contentWidthDp(){
+        int width=getResources().getConfiguration().screenWidthDp;
+        if(!paneHosted&&rightPage==null)return width-2*pageSideDp();
+        int row=width-2*24;
+        return HubSplit.split(row,20,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,HubSplit.centreLeft(width,20,24),0,0,8).right(row)+2*18;
+    }
+    /** The space (dp) each side of the shown page's column on one pane (PageColumn): 0 on a phone, on Home and in the page pane. */
+    private int pageSideDp(){
+        if(!PageColumn.capped(selectedPage))return 0;
+        return PageColumn.sideDp(getResources().getConfiguration().screenWidthDp,design.textScale*getResources().getConfiguration().fontScale);
+    }
     @Override public ScooterService service(){return scooterService;}
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}
     /** A display form that may be a Msg or plain text; null shows nothing. */
@@ -514,7 +547,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
-        lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
+        lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();if(homeScreen!=null)homeScreen.refresh();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
         for (ChargeDoneRow row : doneSheetRows) row.refresh();
@@ -546,7 +579,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         // Readings let a search result's reading go (the owner typed their own search): a rebuild doesn't bring it back.
         boolean readingDropped=readingLetGo();
-        captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
+        captureScroll();if(screen!=null)screen.close();closeHomePane();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);
         expanded=design.wideLayout();
@@ -602,6 +635,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         shell.addView(simulationNotice, new LinearLayout.LayoutParams(-1, -2));
         // The Hub has no tab bar or side rail (PR 11): the page has the window's full width; Home is the root of every stack.
         LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));pageContent=content;
+        HubNav.Args args=pageArgs;pageArgs=null;
+        // A search result's reading stays Readings' filter through rebuilds (rotation, unfolding) while Data is in the stack.
+        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
+        // Wide Clean Home: the scooter pane beside the page pane, which shows every page (hub layout plan 1.11, PR 13).
+        if(twoPaneHome())buildPanes(content,args);
+        else{
+        // A one-column page keeps to a readable width on a wide window, centred with its header (PageColumn).
+        int side=design.dp(pageSideDp());content.setPadding(side,0,side,0);
         LinearLayout header=makeHeader();pageHeaderRows=header;
         LinearLayout tabletopPane=null;
         if(horizontalHinge()){
@@ -615,9 +656,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
-        HubNav.Args args=pageArgs;pageArgs=null;
-        // A search result's reading stays Readings' filter through rebuilds (rotation, unfolding) while Data is in the stack.
-        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
         screen=createScreen(selectedPage,args);
         // The loading page (no scooter service yet: opening, or no Nearby devices permission) can't use a result's target; the
         // rebuild that builds the real page does (#393 council review, third round, finding 4).
@@ -649,6 +687,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
             dock.padScroller(scroll,scroll.getPaddingBottom());
         }
+        }
         Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();
         styleSystemBars();
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
@@ -676,9 +715,135 @@ public final class MainActivity extends Activity implements ScreenHost {
         try{all=preferences.getAll();}catch(RuntimeException e){return;}
         Object origin=all.get(HomeStyle.ORIGIN_KEY);
         // On Home, either style, and not while it is being edited.
-        boolean onHome=HubPages.HOME.equals(selectedPage)&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)&&!screen.busy();
+        // The wide Clean Home counts too: its page pane shows Home (HubHomePane) beside the scooter pane (#394 early review, 4).
+        boolean homeShown=screen instanceof DashboardScreen||screen instanceof CleanHomeScreen?!screen.busy():screen instanceof HubHomePane&&homeScreen!=null&&!homeScreen.busy();
+        boolean onHome=HubPages.HOME.equals(selectedPage)&&homeShown;
         if(!HomeStyle.showWhatsNew(origin instanceof String?(String)origin:null,Boolean.TRUE.equals(all.get(HomeStyle.WHATS_NEW_SHOWN_KEY)),Boolean.TRUE.equals(all.get(HomeStyle.RESTORED_NOTICE_KEY)),onboarding!=null,riding!=null,onHome,resumed))return;
         whatsNewSheet=WhatsNewSheet.show(this,preferences);
+    }
+    /**
+     * The wide Clean Home (hub layout plan 1.11, PR 13) on this window: the Clean style on a wide window (Ui.wideLayout, so
+     * large text that keeps the phone layout keeps it) with room for both panes, not in tabletop posture (Home's header
+     * then sits above the hinge, as on one pane), and not where a subject's name once failed to fit the page pane.
+     */
+    private boolean twoPaneHome(){
+        if(!expanded||horizontalHinge()||!HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences)))return false;
+        Configuration c=getResources().getConfiguration();
+        return HubSplit.fits(c.screenWidthDp-2*24,20,PANE_LEFT_DP,PANE_RIGHT_DP)&&!paneKey().equals(onePaneHomeAt);
+    }
+    /** This window's size, text size and language, as MoreScreen keys its one-pane fallback. */
+    private String paneKey(){
+        Configuration c=getResources().getConfiguration();
+        return c.screenWidthDp+"x"+c.screenHeightDp+"@"+design.textScale*c.fontScale+"/"+Fmt.displayLocale().toLanguageTag();
+    }
+    /**
+     * The wide Clean Home's two panes: the scooter pane at the left (Clean Home in pane mode: header, top area, Lock bar,
+     * quick actions and the Service card), which page changes never rebuild, and the page pane at the right (Home's search
+     * field and subjects, or the open page with a back link). The gutter sits on the window's centre line or the hinge.
+     */
+    private void buildPanes(LinearLayout content,HubNav.Args args){
+        clearDashboardLock();profileTitle=null;connectionTitle=null;liveStatsTitle=null;
+        // The Simulation banner above the panes takes window height the top area must leave for the quick actions.
+        int aboveDp=simulationNotice!=null&&simulationNotice.getVisibility()==View.VISIBLE?bannerHeightDp(simulationNotice):0;
+        homeScreen=new CleanHomeScreen(this,homeActions(),true,aboveDp);
+        paneLocks=dashboardLocks.size();
+        ScrollView left=new ScrollView(this);left.setTag(TAG_SCOOTER_PANE);left.setFillViewport(true);left.setClipToPadding(false);
+        // No scroll bar over the cards' edges: the pane scrolls only with large text, and the mock-up draws none.
+        left.setVerticalScrollBarEnabled(false);
+        left.setPadding(0,design.dp(6),0,design.dp(16));
+        View home=homeScreen.view();if(home.getParent() instanceof ViewGroup)((ViewGroup)home.getParent()).removeView(home);
+        left.addView(home,new ScrollView.LayoutParams(-1,-2));
+        FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
+        rightPage=column();right.addView(rightPage,new FrameLayout.LayoutParams(-1,-1));
+        // The page pane starts level with the scooter pane's status line ("Connected · Sport"), as the wide mock-ups
+        // line up the search field with it; its end keeps the scroll bar's room (PANE_BAR_DP), taken from the window's 24 dp.
+        rightPage.setPaddingRelative(0,homeScreen.statusTextTop(),0,0);
+        // The last rung of the subjects' narrow-label ladder: one pane at this size, text size and language from now on.
+        // The key is this layout's, taken now; the posted callback is dropped once these panes are gone or the window
+        // changed (a fold, a resize, a text-size change), so it never marks a size that did not fail.
+        final String key=paneKey();
+        final HubPanes[] built=new HubPanes[1];
+        HubPanes panes=new HubPanes(this,design,left,right,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,verticalHinge()?fold.hinge:null,
+                ()->screen instanceof HubHomePane&&((HubHomePane)screen).wordsBreak(),
+                ()->{
+                    if(destroyed||rebuilding||built[0]==null||!built[0].isAttachedToWindow()||!key.equals(paneKey()))return;
+                    onePaneHomeAt=key;rebuild();
+                });
+        built[0]=panes;
+        panes.setPaddingRelative(design.dp(24),0,design.dp(24-PANE_BAR_DP),0);
+        content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
+        fillPagePane(args);
+    }
+    /** The page pane's scroll bar room at its end (dp): the bar sits beside the cards, not over their edges. */
+    private static final int PANE_BAR_DP=8;
+    /** A banner's height (dp) at this window's width, before layout. */
+    private int bannerHeightDp(View banner){
+        int width=getResources().getDisplayMetrics().widthPixels;
+        banner.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+        return (int)Math.ceil(banner.getMeasuredHeight()/getResources().getDisplayMetrics().density);
+    }
+    /** View tags of the wide Home's panes. */
+    static final String TAG_SCOOTER_PANE="hub-scooter-pane",TAG_PAGE_PANE="hub-page-pane";
+    /**
+     * Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller, in a
+     * frame of its own under the header, as on one pane (pageContent, pageHeaderRows, pageFrame), so Search steps the
+     * pane's header rows aside and a page's connection line glides with the page under it. The loading page keeps a
+     * result's target for the rebuild that builds the real page (HubNav.owed), as on one pane.
+     */
+    private void fillPagePane(HubNav.Args args){
+        rightPage.removeAllViews();
+        // The old page's connection line goes with its header; Home in the page pane has none (the scooter pane shows the state).
+        pageHeader=null;pageHeaderRows=null;liveStatsTitle=null;connectionTitle=null;pageContent=rightPage;
+        if(HubPages.HOME.equals(selectedPage))connectionLinePage=null;
+        LinearLayout header=HubPages.HOME.equals(selectedPage)?null:makePaneHeader();
+        if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}
+        paneHosted=true;
+        try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}
+        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
+        View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
+        if(screenView instanceof ScrollView){
+            scroll=(ScrollView)screenView;
+            // Every page sits flush with the pane's edges, as the Layout Plan's page pane (the pane already keeps the
+            // window's 24 dp and the gutter): a page with its own scroller (Settings, Data) drops the side padding it
+            // gives its column on a phone, so it lines up with the header and with every other page (#394 early review, 5).
+            View column=scroll.getChildCount()>0?scroll.getChildAt(0):null;
+            if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
+            scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_BAR_DP),scroll.getPaddingBottom());
+        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_BAR_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The bar draws in the scroller's end padding, beside the cards (on a phone it sits in the page margin).
+        scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+        scrollPage=selectedPage;
+        pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+        rightPage.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
+    }
+    /**
+     * Another page in the wide Home's page pane, sliding in by depth; the scooter pane stays as it is. The page's own lock
+     * (Security's) goes with the page; the scooter pane's stays registered.
+     */
+    private void swapPagePane(int direction){
+        if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
+        // As rebuild: Readings let a search result's reading go once the owner typed a search of their own there.
+        boolean readingDropped=readingLetGo();
+        if(screen!=null)screen.close();
+        while(dashboardLocks.size()>paneLocks){DashboardLockViews lock=dashboardLocks.remove(dashboardLocks.size()-1);if(lock.lockControl!=null)lock.lockControl.stopMotion();}
+        if(dashboardLocks.isEmpty())clearDashboardLock();else loadLockViews(dashboardLocks.get(0));
+        HubNav.Args args=pageArgs;pageArgs=null;
+        // Data in the page pane keeps a search result's reading by the same rule as a full page (HubNav.keptReading).
+        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
+        LinearLayout pane=rightPage;
+        Motion.page(pane,direction,()->fillPagePane(args));
+        Motion.quietScrollbars(pane);
+        int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
+        if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);
+        redraw();
+        showUpdateCheck();
+        // Back on Home in the page pane: the one-time What's new sheet may show now, as after a rebuild onto Home.
+        if(HubPages.HOME.equals(selectedPage))handler.post(this::maybeShowWhatsNew);
+    }
+    /** Closes the wide Home's scooter pane, if this layout has one. */
+    private void closeHomePane(){
+        if(homeScreen!=null){homeScreen.close();homeScreen=null;}
+        rightPage=null;
     }
     /**
      * The screen for a page. Home shows Clean Home or the widget dashboard (home_style); the scooter subjects (Battery &
@@ -688,6 +853,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private AppScreen createScreen(String page,HubNav.Args args){
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
+        // The wide Home's page pane at Home: the search field and the subjects (the scooter pane is beside it).
+        if(HubPages.HOME.equals(page)&&paneHosted)return new HubHomePane(this,()->{open(HubPages.SEARCH);focusPageSearch();},()->homeScreen==null?null:homeScreen.foundRide());
         if(HubPages.HOME.equals(page))return HomeStyle.CLEAN.equals(HomeStylePrefs.of(preferences))?new CleanHomeScreen(this,homeActions()):new DashboardScreen(this,homeActions());
         if(HubPages.SEARCH.equals(page))return searchPage();
         switch(HubPages.subjectOf(page)){
@@ -696,10 +863,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(scooterService==null)return new LoadingScreen();
         switch(page){
-            case HubPages.DATA:return new StatsScreen(this,false,searchReading);
-            case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
+            // In the wide Home's page pane, Live Stats and All rides take one pane (paneHosted).
+            case HubPages.DATA:return new StatsScreen(this,paneHosted,searchReading);
+            case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY,paneHosted);
             case HubPages.RIDE_RIDES:{
-                RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);
+                RidesScreen rides=new RidesScreen(this,RidesScreen.ALL,paneHosted);
                 // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
                 String ride=args==null?null:args.ride;
                 // A search result's ride: closing its details goes back past All rides, to the search.
@@ -746,7 +914,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(page.equals(HubPages.SERVICE))return new HubListScreen(this,HubSubjects.service(this,this::openDiagnostics));
         if(page.equals(HubPages.SERVICE_MAINTENANCE)){
             // The page header shows its title and back link, so the screen leaves out its own.
-            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded);
+            MaintenanceScreen maintenance=new MaintenanceScreen(this,null,expanded&&!paneHosted,expanded);
             return new AppScreen(){
                 @Override public View view(){return maintenance.view();}
                 @Override public void refresh(){maintenance.refresh();}
@@ -919,7 +1087,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return dashboardLock=makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return dashboardLock=makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
-            // The search page (HubSearchScreen) with its field focused; Clean's search button and the Widgets dock's All sheet.
+            // The search page (HubSearchScreen) with its field focused; Clean's search button and the Widgets dock's All sheet
+            // (the wide Home's page-pane field opens it the same way, from HubHomePane).
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
             // A What's new notice that came due while Widgets was being edited (a restore meanwhile) shows as editing ends, not
@@ -1415,6 +1584,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Home is the root of every stack, so every other page has a back link to the page under it (Home for a subject).
         if(nav.size()>1)header.addView(backLink(nav.pages().get(nav.size()-2)),new LinearLayout.LayoutParams(-2,-2));
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
+        addConnectionLine(header);
+        addPageTitle(header);
+        profileTitle=null;
+        return header;
+    }
+    /**
+     * The page header's connection line under its back link, by HubPages.headerConnectionLine: on one pane and in the wide
+     * Home's page pane alike, shown only while the scooter is not connected and never on Settings (the contributor's
+     * decision, 14 Nov, #383). connectionTitle must be the new line's label, sized and set in the header's style.
+     */
+    private void addConnectionLine(LinearLayout header){
         connectionTitle.setTypeface(design.regular());connectionTitle.setTag(TAG_PAGE_CONNECTION);
         // Shown only while the scooter is not connected, never on Settings (HubPages.headerConnectionLine). A rebuild of the
         // same page keeps what the line had (whether it showed, and the state it last showed); another page starts afresh.
@@ -1424,6 +1604,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         // rebuild the binding makes; without Nearby devices permission no bind comes and the line shows (pageConnectionLine).
         applyPageConnectionLine(headerBle!=null&&headerBle.ready(),false);
         header.addView(connectionTitle);
+    }
+    /** The page's title under its back link and connection line: Data keeps Live Stats' title with its live dot. */
+    private void addPageTitle(LinearLayout header){
         liveStatsTitle=null;
         // Data's own page keeps Live Stats' title with its live dot; every other page shows its own title (HubText).
         if(HubPages.DATA.equals(selectedPage)){
@@ -1432,6 +1615,21 @@ public final class MainActivity extends Activity implements ScreenHost {
             TextView title=design.text(HubText.title(selectedPage),24,true);title.setPadding(0,design.dp(2),0,0);
             if(Build.VERSION.SDK_INT>=28)title.setAccessibilityHeading(true);header.addView(title);
         }
+    }
+    /**
+     * A page's header in the wide Home's page pane: its back link, the connection line by one pane's rule (only while not
+     * connected, never on Settings; connected, the scooter pane beside it already shows the state) and its title. A
+     * subject's page goes back to the pane's list of subjects, so its link says "All" (TalkBack: "Back to All subjects");
+     * a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
+     */
+    private LinearLayout makePaneHeader(){
+        // In the page pane, the header keeps the scroll bar's room at its end too, so it ends where the cards end.
+        LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_BAR_DP),design.dp(6));
+        String parent=nav.size()>1?nav.pages().get(nav.size()-2):HubPages.HOME;
+        header.addView(HubPages.HOME.equals(parent)?backLink(HubText.all(),HubText.backTo(HubText.dockAll())):backLink(parent),new LinearLayout.LayoutParams(-2,-2));
+        connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
+        addConnectionLine(header);
+        addPageTitle(header);
         profileTitle=null;
         return header;
     }
@@ -1467,10 +1665,14 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
         CharSequence name=HubText.title(to);
+        return backLink(name,HubText.backTo(name));
+    }
+    /** A back link showing name, read as spoken. */
+    private View backLink(CharSequence name,CharSequence spoken){
         LinearLayout backRow=row();backRow.setGravity(Gravity.CENTER_VERTICAL);backRow.setMinimumHeight(design.dp(48));
         backRow.addView(design.icon("back",16,design.accent),new LinearLayout.LayoutParams(design.dp(16),design.dp(16)));
         TextView backText=design.text(name,13.5f,false);backText.setTypeface(design.medium());backText.setTextColor(design.accent);backText.setPadding(design.dp(4),0,design.dp(10),0);backRow.addView(backText);
-        backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(HubText.backTo(name));backRow.setBackground(rowRipple());
+        backRow.setClickable(true);backRow.setFocusable(true);backRow.setContentDescription(spoken);backRow.setBackground(rowRipple());
         backRow.setTag("hub-back");backRow.setOnClickListener(v->navigateBack(true));
         return backRow;
     }
@@ -1483,7 +1685,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void open(String page){open(page,null);}
     @Override public void open(String page,HubNav.Args args){
         String target=HubPages.canonical(page);
-        if(target.equals(selectedPage)){pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
+        if(target.equals(selectedPage)){
+            // Already shown. With arguments (a ride to open, a row to bring on screen, a control to try) it shows again
+            // with them: the wide Home's scooter pane stays beside its own open page, so Just back can be tapped again
+            // over All rides (#394 early review, 7). Without, it scrolls to its top.
+            if(args!=null){captureScroll();pageArgs=args;arrived(selectedPage);return;}
+            pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;
+        }
         String from=selectedPage;
         captureScroll();leaving(from,target);
         // Search opened afresh (Home's button) starts empty; Back to it from a result keeps the query.
@@ -1509,7 +1717,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void arrived(String from){
         String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();
         if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
-        transitionRebuild(HubNav.direction(from,page));
+        // The wide Clean Home changes only its page pane; the scooter pane never changes while browsing.
+        if(rightPage!=null&&homeScreen!=null&&!rebuilding&&twoPaneHome())swapPagePane(HubNav.direction(from,page));
+        else transitionRebuild(HubNav.direction(from,page));
     }
     /** Brief returns preserve the Live Stats section; a longer absence starts at Overview. */
     private void markStatsAway(){
@@ -1588,6 +1798,10 @@ public final class MainActivity extends Activity implements ScreenHost {
                 ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING||ble.connected())&&!ready;
         ScooterProfiles.Profile active=scooterService==null?null:scooterService.profiles.active();
         long last=active==null?0:active.lastConnected;
+        // On two panes the page header's connection line shows beside Clean's status line: it takes Clean's "last seen",
+        // the newer of the last connection and the newest reading (DashboardScreen.refreshHeader), so the two agree (#394
+        // council review, second round). One pane keeps the last connection, as before.
+        if(homeScreen!=null&&scooterService!=null&&!ready&&!connecting)for(TelemetryHistory.Reading r:scooterService.displayReadings().values())if(r!=null&&r.value!=null)last=Math.max(last,r.capturedWallMs);
         String scooterName=active==null?T.mainLockYourScooter():active.name;
         pumpLockQueue(ble,ready,shownLock,pending);
         if(active!=null)scooterName=active.shownName();
@@ -1653,11 +1867,13 @@ public final class MainActivity extends Activity implements ScreenHost {
      * laid out, with Volt in front and Home the page in view, not being edited, rebuilt or covered by one of the window's
      * own sheets (the dock's All sheet: the change under it is instant, as before). The card itself is the root: on
      * Widgets its tile is a grid cell the rider sized, and on Clean a fixed slot, so neither moves anything around it.
-     * Null otherwise: the change is instant.
+     * Null otherwise: the change is instant. On two panes (the wide Clean Home) the card is the scooter pane's, in view
+     * beside whatever page the page pane shows, so it animates there too.
      */
     private ViewGroup lockMotionRoot(){
-        if(!resumed||rebuilding||destroyed||riding!=null||!HubPages.HOME.equals(selectedPage)||lockReady==null||lockOffline==null||sheetShowing())return null;
-        if(!(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen))return null;
+        boolean pane=homeScreen!=null;
+        if(!resumed||rebuilding||destroyed||riding!=null||!pane&&!HubPages.HOME.equals(selectedPage)||lockReady==null||lockOffline==null||sheetShowing())return null;
+        if(!pane&&!(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen))return null;
         if(screen instanceof DashboardScreen&&((DashboardScreen)screen).isEditing())return null;
         android.view.ViewParent parent=lockReady.getParent();
         if(!(parent instanceof ViewGroup)||lockOffline.getParent()!=parent)return null;
@@ -2360,7 +2576,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      * page doesn't show stay in their (detached) section bodies. The search page (spec.search; the Scooter tab's index
      * before PR 11) shows only the search field: typing finds any row on any page, grouped by section as before, and
      * the subject list hides.
-     * Every page is one column, wide screens included (the Hub's two panes come in PR 13).
+     * Every page is one column, wide screens included, and so in the wide Home's page pane (HubPanes).
      */
     private final class ControlsScreen implements AppScreen {
         private final ControlsPages.Spec spec;
@@ -4988,7 +5204,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(unavailable!=null){toast(unavailable);return;}
         enteringMaintenance=true;resumed=false;connectionHaptics.cancel();pendingConnect=pendingScan=pendingFind=false;
         closeQuickMenu();if(scanDialog!=null)scanDialog.dismiss();if(controlDialog!=null)controlDialog.dismiss();
-        if(screen!=null){screen.close();screen=null;}onboarding=null;
+        if(screen!=null){screen.close();screen=null;}closeHomePane();onboarding=null;
         preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         handler.removeCallbacksAndMessages(null);fold.stop();
         if(scooterService!=null)scooterService.unlisten(serviceChanged);

@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.DisplayTime;
 import com.jjricks.volt.HubPages;
 import com.jjricks.volt.HubText;
 import com.jjricks.volt.MainActivity;
@@ -48,6 +49,7 @@ import com.jjricks.volt.PhoneRideStore;
 import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.WideLayout;
 
 /**
@@ -97,6 +99,14 @@ import com.jjricks.volt.WideLayout;
  *   Settings never shows one. The walk ends the simulated connection on Battery & charging (the simulator's state only;
  *   nothing reaches a scooter): the line shows there, tappable, and Settings still has none; reconnected on the page, the
  *   line blanks with the title in place, and the page opened again has none.</li>
+ *   <li><b>Wide Clean Home</b> (part 13): on a window with room for two panes (MainActivity.twoPaneHome), Clean Home is
+ *   the scooter pane (tag hub-scooter-pane) beside the page pane (tag hub-page-pane), whose Home is HubHomePane. The
+ *   walk above runs in the page pane (Home's subjects and search field are HubHomePane's; the moments are the scooter
+ *   pane's Clean Home's), and every page it opens must leave the scooter pane the same view (never rebuilt by
+ *   browsing). Battery & charging › Estimates & charger must hold the usable-energy panel and Settings › Home style
+ *   both style previews inside the page pane, no wider than it. With -e wide true, Clean Home must take two panes
+ *   every time Home shows where the window gets the wide layout at its text size (WideLayout.wide), and one where large
+ *   text keeps the phone layout (725x604 dp at 1.4x, hub-725-large); with -e wide false, one.</li>
  *   <li><b>Taps</b>: every tap first scrolls its view into sight and, on Widgets Home, out from under the pinned dock as a
  *   rider would; the view's centre must then be on screen and, on a page with the dock, above the dock; a view an owner
  *   cannot see is not tapped.</li>
@@ -194,6 +204,7 @@ public final class HubValidation extends Instrumentation {
             else if (mode.equals(SEARCH_TARGETS)) searchTargets();
             else {
                 cleanSubjects();
+                quickActionsBothWays();
                 pageStack();
                 connectionLine();
                 search();
@@ -224,15 +235,22 @@ public final class HubValidation extends Instrumentation {
     private void cleanSubjects() throws Exception {
         requireHome("CleanHomeScreen");
         main(() -> require(field(activity, "dock") == null, "Clean Home shows the dock"));
+        if (panesExpected())
+            main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
+                    "Clean Home on a wide window did not take two panes"));
+        Object[] pane = scooterPane();
         screenshot("clean-home");
         for (String subject : HubPages.SUBJECTS) {
             tapTag("home-subject-" + subject);
             arrived(subject, HubPages.HOME, subject);
             main(() -> require(field(activity, "dock") == null, subject + " shows the dock"));
+            requireSamePane(pane, subject);
             screenshot("subject-" + subject);
             for (String child : children(subject)) {
                 reach(child, Arrays.asList("hub-link-" + child, "hub-row-" + child));
                 arrived(child, HubPages.HOME, subject, child);
+                requireSamePane(pane, child);
+                if (child.equals(HubPages.BATTERY_ESTIMATES)) requireInPage("battery-usable-energy", "The usable-energy panel");
                 HubTestPages.back(this, activity);
                 arrived(subject, HubPages.HOME, subject);
             }
@@ -240,7 +258,9 @@ public final class HubValidation extends Instrumentation {
             requireHome("CleanHomeScreen");
             requireStack(HubPages.HOME);
         }
+        requireSamePane(pane, HubPages.HOME);
         checks.add("Clean Home: each subject row opens its subject over Home; each sub-page opens from it; back links and Back return");
+        if (pane[0] != null) checks.add("Wide Clean Home: two panes; every page opens in the page pane and leaves the scooter pane as it was; Estimates & charger holds the usable-energy panel there");
         // Settings behind the gear, and its own rows.
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
@@ -250,14 +270,177 @@ public final class HubValidation extends Instrumentation {
             require(tag != null, "HubValidation names no Settings row for " + child + " (SETTINGS_ROWS)");
             reach(child, Collections.singletonList(tag));
             arrived(child, HubPages.HOME, HubPages.SETTINGS, child);
+            requireSamePane(pane, child);
+            if (child.equals(HubPages.SETTINGS_HOME)) {
+                requireInPage("home-style-clean", "Home style's Clean preview");
+                requireInPage("home-style-widgets", "Home style's Widgets preview");
+            }
             systemBack();
             arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         }
+        if (pane[0] != null) checks.add("Wide Clean Home: Settings › Home style shows both style previews inside the page pane, no wider than it");
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
         for (String page : mayRoute) require(routed.contains(page), page + " is listed as routed for model \"" + simulatedModel + "\" but the walk never reached it");
         checks.add("Routed pages: " + routed + ", exactly the ones the simulated model hides (" + mayRoute + ")");
+    }
+
+    /**
+     * Wide Clean Home: quick actions edited either way reach the scooter pane, and neither edit undoes the other (#394
+     * council review, second round, 1). Settings › Home style › Quick actions changes the fourth slot from the page pane:
+     * the scooter pane shows it, still the same pane (never rebuilt), on Settings and back on Home. Then Home's own Edit
+     * sheet (a long-press on the quick actions) changes the third: the scooter pane shows both, and both are stored. The
+     * four as stored before are put back at the end, and the scooter pane follows that too. Nothing taps a quick action.
+     */
+    private void quickActionsBothWays() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] == null) return;
+        String key = onMain(() -> (String) staticCall(appClass("HomeQuickActions"), "key", new Class<?>[]{String.class},
+                activity.service().profiles.active().id));
+        String storedBefore = settings().getString(key, null);
+        List<String> before = paneQuick();
+        require(before.size() == 4, "The scooter pane does not show four quick actions: " + before);
+        // From Settings › Home style, in the page pane: the fourth slot.
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        reach(HubPages.SETTINGS_HOME, Collections.singletonList(SETTINGS_ROWS.get(HubPages.SETTINGS_HOME)));
+        arrived(HubPages.SETTINGS_HOME, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_HOME);
+        tapTag("home-style-quick-actions");
+        Supplier<View> slots = () -> sheetRoot(field(activity, "screen"), "slotsSheet");
+        await(() -> onMain(() -> slots.get() != null), "Home style's Quick actions did not open the four");
+        tapIn(slots, "home-edit-slot-4", "Home style's fourth quick action");
+        Supplier<View> settingsPicker = () -> pickerRoot(field(field(activity, "screen"), "chooser"));
+        String fourth = pickOther(settingsPicker, before, "Home style's picker");
+        List<String> afterSettings = new ArrayList<>(before);
+        afterSettings.set(3, fourth);
+        await(() -> onMain(() -> paneQuick().equals(afterSettings)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home style changed the fourth quick action to " + fourth + " (expected " + afterSettings + ")");
+        requireSamePane(pane, "Home style's quick-action edit");
+        HubTestPages.back(this, activity);
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        main(() -> require(paneQuick().equals(afterSettings), "Back on Home the scooter pane shows " + paneQuick() + ", not Home style's " + afterSettings));
+        requireSamePane(pane, HubPages.HOME);
+        screenshot("home-after-settings-quick-edit");
+        // From Home's own Edit sheet: the third slot. It starts from the four as stored, so the fourth stays.
+        main(() -> {
+            ViewGroup grid = root().findViewWithTag("home-quick-actions");
+            require(grid != null && grid.getChildCount() > 0 && grid.getChildAt(0).performLongClick(), "A long-press on Home's quick actions did not open Edit");
+        });
+        settle();
+        Supplier<View> edit = () -> sheetRoot(field(activity, "homeScreen"), "editSheet");
+        await(() -> onMain(() -> edit.get() != null), "Home's Edit sheet did not open");
+        tapIn(edit, "home-edit-slot-3", "Edit's third quick action");
+        Supplier<View> homePicker = () -> pickerRoot(field(field(activity, "homeScreen"), "parts"));
+        String third = pickOther(homePicker, afterSettings, "Home's picker");
+        List<String> both = new ArrayList<>(afterSettings);
+        both.set(2, third);
+        await(() -> onMain(() -> paneQuick().equals(both)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home's Edit changed the third quick action to " + third + " (expected " + both + ": Home style's change kept)");
+        main(() -> require(storedQuick().equals(both), "Stored quick actions are " + storedQuick() + ", expected both changes " + both));
+        requireSamePane(pane, "Home's quick-action edit");
+        requireHome("CleanHomeScreen");
+        // Put the four back as they were stored; the scooter pane follows that as well.
+        SharedPreferences.Editor restore = settings().edit();
+        require((storedBefore == null ? restore.remove(key) : restore.putString(key, storedBefore)).commit(), "Restoring the quick actions failed");
+        await(() -> onMain(() -> paneQuick().equals(before)), () -> "The scooter pane shows " + onMain(this::paneQuick) + " after the four were put back to " + before);
+        requireSamePane(pane, HubPages.HOME);
+        checks.add("Wide Clean Home: a quick action changed in Settings › Home style shows in the scooter pane (not rebuilt) on Settings and back on Home; one changed then from Home's Edit sheet keeps the first change, and both are stored");
+    }
+
+    /** The ids of the quick actions the scooter pane shows (its grid's cells), in order. */
+    private List<String> paneQuick() {
+        ViewGroup grid = root().findViewWithTag("hub-scooter-pane").findViewWithTag("home-quick-actions");
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; grid != null && i < grid.getChildCount(); i++) {
+            Object entry = fieldOrNull(grid.getChildAt(i), "entry");
+            if (entry != null) ids.add((String) field(entry, "id"));
+        }
+        return ids;
+    }
+    /** The active scooter's four as stored (HomeQuickEditor.load). */
+    @SuppressWarnings("unchecked")
+    private List<String> storedQuick() {
+        return (List<String>) staticCall(appClass("HomeQuickEditor"), "load",
+                new Class<?>[]{ScooterService.class, SharedPreferences.class}, activity.service(), settings());
+    }
+    /** A package-private class of the app's, by its simple name. */
+    private Class<?> appClass(String name) {
+        try { return Class.forName("com.jjricks.volt." + name, true, activity.getClassLoader()); } catch (ClassNotFoundException error) { throw new IllegalStateException(error); }
+    }
+    /** The window of the sheet in owner's field, while it shows; else null. */
+    private static View sheetRoot(Object owner, String name) {
+        Object sheet = owner == null ? null : fieldIn(owner, name);
+        return sheet instanceof Dialog && ((Dialog) sheet).isShowing() ? ((Dialog) sheet).getWindow().getDecorView() : null;
+    }
+    /** The quick-action picker's window: a DashboardScreen part's (QuickChooser, CleanParts) outer screen's sheet. */
+    private static View pickerRoot(Object part) {
+        return part == null ? null : sheetRoot(fieldIn(part, "this$0"), "dialog");
+    }
+    /** Taps the first shown, enabled choice of the picker whose id is not in avoid; its id. */
+    private String pickOther(Supplier<View> picker, List<String> avoid, String label) {
+        await(() -> onMain(() -> picker.get() != null), label + " did not open");
+        String id = onMain(() -> {
+            List<View> rows = new ArrayList<>();
+            collectTagged(picker.get(), "quick-choice:", rows);
+            for (View row : rows) {
+                String choice = ((String) row.getTag()).substring("quick-choice:".length());
+                if (shown(row) && row.isEnabled() && !avoid.contains(choice)) return choice;
+            }
+            return null;
+        });
+        require(id != null, label + " offers no other choice than " + avoid);
+        tapIn(picker, "quick-choice:" + id, label + "'s " + id);
+        await(() -> onMain(() -> picker.get() == null), label + " stayed open after a choice");
+        settle();
+        return id;
+    }
+    private static void collectTagged(View view, String prefix, List<View> into) {
+        if (view == null) return;
+        if (view.getTag() instanceof String && ((String) view.getTag()).startsWith(prefix)) into.add(view);
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collectTagged(((ViewGroup) view).getChildAt(i), prefix, into);
+    }
+    private static Object fieldIn(Object target, String name) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+            catch (NoSuchFieldException next) { /* the superclass may declare it */ }
+            catch (IllegalAccessException error) { throw new IllegalStateException(error); }
+        }
+        return null;
+    }
+
+    /**
+     * Two panes while disconnected (#394 council review, second round): the page header's connection line and Clean's
+     * status line beside it give the same "last seen", the newer of the last connection and the newest reading (Clean's
+     * rule). The last connection is saved at most once a minute; here it is put ten minutes before the newest reading,
+     * in memory only and put back after, so the two rules would show different times.
+     */
+    private void sameLastSeen() {
+        if (!onMain(this::twoPanes)) return;
+        ScooterProfiles.Profile active = onMain(() -> activity.service().profiles.active());
+        long saved = active.lastConnected;
+        long newest = onMain(() -> {
+            long found = 0;
+            for (TelemetryHistory.Reading r : activity.service().displayReadings().values())
+                if (r != null && r.value != null) found = Math.max(found, r.capturedWallMs);
+            return found;
+        });
+        require(newest > 0, "The disconnected simulator kept no reading to be last seen by");
+        main(() -> { active.lastConnected = newest - 10 * 60_000L; activity.redraw(); });
+        try {
+            String expected = onMain(() -> DisplayTime.dateTime(activity, settings(), newest));
+            String[] read = new String[2];
+            await(() -> onMain(() -> {
+                read[0] = String.valueOf(root().findViewWithTag("hub-page-connection").getContentDescription());
+                read[1] = String.valueOf(((TextView) invoke(field(field(activity, "homeScreen"), "parts"), "status", new Class<?>[0])).getContentDescription());
+                return read[0].contains(expected) && read[1].contains(expected);
+            }), () -> "Two panes disconnected: the page header says \"" + read[0] + "\" and Clean's status line \"" + read[1] + "\"; both should say last seen " + expected);
+        } finally {
+            main(() -> active.lastConnected = saved);
+        }
+        checks.add("Wide Clean Home, disconnected: the page header's connection line and Clean's status line give the same last-seen time (the newest reading's, newer than the last connection)");
     }
 
     /** Opening a page already in the stack closes the pages above it; Home resets it; recreation keeps it. */
@@ -299,8 +482,11 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> !ble.ready() && shown(root().findViewWithTag("hub-page-connection"))), "Battery's header shows no connection line once the scooter disconnected");
         settle();
         int titleTop = requireHeader(HubPages.BATTERY, true);
+        // On two panes the line is the page pane's own (part 13): it sits in the pane's header, not over the scooter pane.
+        requireInPage("hub-page-connection", "Battery's connection line");
         String said = onMain(() -> ((TextView) root().findViewWithTag("hub-page-connection")).getText().toString());
         require(said.startsWith("Disconnected"), "Battery's connection line reads \"" + said + "\" while disconnected");
+        sameLastSeen();
         screenshot("page-disconnected");
         systemBack();
         requireHome("CleanHomeScreen");
@@ -772,8 +958,12 @@ public final class HubValidation extends Instrumentation {
      * the field empty and left the header stays hidden (Cancel the one way out) and Cancel goes Home at once.
      */
     private void search() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] != null) keyboardSearch(pane);
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, HubPages.SEARCH);
+        if (pane[0] != null) requireInPage(SEARCH_FIELD, "The search page's field");
         EditText[] field = new EditText[1];
         await(() -> onMain(() -> { field[0] = firstEditText(activity.findViewById(android.R.id.content)); return field[0] != null && field[0].hasFocus(); }),
                 "The search page's field is not focused");
@@ -790,6 +980,9 @@ public final class HubValidation extends Instrumentation {
             int found = resultRows(root().findViewWithTag("hub-search-results"));
             require(found > 0, "Search found nothing for \"batt\" (" + found + " result rows shown)");
         });
+        // On two panes the results show in the page pane, and the scooter pane stays as it was.
+        if (pane[0] != null) requireInPage("hub-search-results", "Search's results");
+        requireSamePane(pane, "Search's results");
         // Pictured with the keyboard gone, so every window size pictures the typed query the same way.
         hideKeyboard();
         main(() -> require(!shown(root().findViewWithTag("hub-back")), "The page header came back while a query is typed"));
@@ -896,19 +1089,48 @@ public final class HubValidation extends Instrumentation {
                 + " \"star\" finds Star lights, whose tap opens it over Search (stack Home, Search, Star lights); Back returns to Search with \"star\" and its results kept");
     }
 
+    /** The search page's field (HubSearchScreen.TAG_FIELD). */
+    private static final String SEARCH_FIELD = "hub-search-field";
+
+    /**
+     * The wide Home's search field from a keyboard (#394 early review, finding 1): it takes focus by key, not by touch,
+     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home.
+     */
+    private void keyboardSearch(Object[] pane) throws Exception {
+        // A Tab leaves touch mode, as a keyboard's first key does.
+        sendKeyDownUpSync(KeyEvent.KEYCODE_TAB); settle();
+        main(() -> {
+            View field = root().findViewWithTag("home-search");
+            require(field != null && field.isFocusable() && !field.isFocusableInTouchMode(),
+                    "The wide Home's search field cannot take focus from a keyboard (or a tap would raise the keyboard)");
+            require(field.requestFocus() && field.hasFocus(), "The wide Home's search field did not take the keyboard's focus");
+        });
+        sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER); settle();
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        requireSamePane(pane, "Search from the keyboard");
+        hideKeyboard();
+        // Search asks for a keyboard (MainActivity.focusPageSearch) that can show after hideKeyboard on a loaded emulator
+        // and take the first Back (#394 council review, second round: hub-725 failed 3 of 3 here on a second emulator).
+        backPastKeyboard(this::onHome, "Back from the search opened by the keyboard did not return to Home");
+        requireHome("CleanHomeScreen");
+        requireStack(HubPages.HOME);
+        checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
+    }
+
     /**
      * The Lock bar keeps its place and size, and Home's scooter name its place, while the top area changes moment; each
      * moment is pictured at the same scroll (Home's top).
      */
     private void moments() throws Exception {
         requireHome("CleanHomeScreen");
-        Object clean = field(activity, "screen");
-        main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
+        // On two panes the moments are the scooter pane's Clean Home's, scrolled in that pane (part 13).
+        Object clean = onMain(() -> twoPanes() ? field(activity, "homeScreen") : field(activity, "screen"));
+        main(() -> homeScroll().scrollTo(0, 0));
         settle();
         // The scroll bar a scroll shows fades on its own; every moment is pictured without it.
         SystemClock.sleep(ViewConfiguration.getScrollDefaultDelay() + ViewConfiguration.getScrollBarFadeDuration() + 100);
         settle();
-        main(() -> require(((ScrollView) field(activity, "scroll")).getScrollY() == 0, "Clean Home did not scroll back to its top"));
+        main(() -> require(homeScroll().getScrollY() == 0, "Clean Home did not scroll back to its top"));
         int[] parked = placeIn(clean, 0, "the battery card");
         screenshot("moment-parked");
         // Still the battery card after the picture, at the place measured.
@@ -978,8 +1200,10 @@ public final class HubValidation extends Instrumentation {
             }
         });
         // Part 9: the Ride row under it shows the ride Just back shows (CleanSubjects.rideFound), not "No rides yet": the
-        // seeded ride's 6.2 mi.
-        Object subjects = onMain(() -> field(clean, "subjects"));
+        // seeded ride's 6.2 mi. On two panes the subjects are the page pane's (HubHomePane), which takes the scooter
+        // pane's found ride (part 13).
+        Object subjects = onMain(() -> twoPanes() ? field(field(activity, "screen"), "subjects") : field(clean, "subjects"));
+        require(subjects != null, "Home's subject list was not found" + (twoPanes() ? " in the page pane" : ""));
         String none = HubText.rideNone().render();
         String[] rideLine = {null};
         await(() -> onMain(() -> {
@@ -1587,10 +1811,27 @@ public final class HubValidation extends Instrumentation {
         });
     }
     private void requireHome(String screenClass) {
+        // The wide Clean Home (part 13): Home's page pane is HubHomePane, beside the Clean Home of the scooter pane.
         await(() -> onMain(() -> HubPages.HOME.equals(field(activity, "selectedPage")) && field(activity, "screen") != null
-                && field(activity, "screen").getClass().getSimpleName().equals(screenClass)), () -> "Home is not " + screenClass + " (" + onMain(this::whereNow) + ")");
+                && field(activity, "screen").getClass().getSimpleName().equals("CleanHomeScreen".equals(screenClass) && twoPanes() ? "HubHomePane" : screenClass)),
+                () -> "Home is not " + screenClass + " (" + onMain(this::whereNow) + ")");
         settle();
         main(() -> require(root().findViewWithTag("hub-back") == null, "Home has a back link"));
+        // -e wide true or false: Clean Home takes two panes where the window gets the wide layout at this text size, and
+        // one pane on the phone and on a wide window whose large text keeps the phone layout, every time it shows.
+        if ("CleanHomeScreen".equals(screenClass) && arguments.containsKey("wide")) {
+            boolean wide = panesExpected();
+            main(() -> require(twoPanes() == wide && shown(root().findViewWithTag("hub-scooter-pane")) == wide && shown(root().findViewWithTag("hub-page-pane")) == wide,
+                    wide ? "Clean Home on a wide window did not take two panes" : "Clean Home took two panes on a window whose layout is the phone's ("
+                            + widthDp() + " dp, " + textScale() + "x text)"));
+        }
+    }
+    /**
+     * Two panes are expected with -e wide true on a window that gets the wide layout at this text size (WideLayout.wide):
+     * at 725x604 dp and 1x; not at 1.4x, where 725 / 1.4 < 650 keeps the phone layout (hub-725-large).
+     */
+    private boolean panesExpected() {
+        return Boolean.parseBoolean(arguments.getString("wide", "false")) && WideLayout.wide(widthDp(), textScale());
     }
     /** Where the app is, for a failure: the page, its screen, a rebuild in progress, the page stack and the focused window. */
     @SuppressWarnings("unchecked")
@@ -1606,6 +1847,36 @@ public final class HubValidation extends Instrumentation {
         Object dock = field(activity, "dock");
         require(dock != null, "Widgets Home has no dock");
         return dock;
+    }
+    /** The wide Clean Home's two panes are up (MainActivity.homeScreen is the scooter pane's Clean Home). Call on the main thread. */
+    private boolean twoPanes() { return field(activity, "homeScreen") != null; }
+
+    /** Home's scroller: the scooter pane on two panes (part 13), else the page's. Main thread. */
+    private ScrollView homeScroll() {
+        return twoPanes() ? (ScrollView) root().findViewWithTag("hub-scooter-pane") : (ScrollView) field(activity, "scroll");
+    }
+    /** The scooter pane's view and its Clean Home, or nulls on one pane. */
+    private Object[] scooterPane() {
+        return onMain(() -> twoPanes() ? new Object[]{root().findViewWithTag("hub-scooter-pane"), field(activity, "homeScreen")} : new Object[]{null, null});
+    }
+    /** On two panes: the scooter pane is still the one captured (browsing never rebuilds it). */
+    private void requireSamePane(Object[] pane, String page) {
+        if (pane[0] == null) return;
+        main(() -> require(root().findViewWithTag("hub-scooter-pane") == pane[0] && field(activity, "homeScreen") == pane[1],
+                "The scooter pane was rebuilt opening " + page));
+    }
+    /** The view tagged tag exists and, on two panes, sits inside the page pane and is no wider than it. */
+    private void requireInPage(String tag, String what) {
+        main(() -> {
+            View view = root().findViewWithTag(tag);
+            require(view != null, what + " is missing (tag " + tag + ")");
+            if (!twoPanes()) return;
+            View pane = root().findViewWithTag("hub-page-pane");
+            boolean inside = false;
+            for (View at = view; at != null && !inside; at = at.getParent() instanceof View ? (View) at.getParent() : null) inside = at == pane;
+            require(inside, what + " is not in the page pane");
+            require(view.getWidth() <= pane.getWidth(), what + " is wider than the page pane");
+        });
     }
     /** The room a phone dock has (HubPages.dockRoom of the window's width, as HubDock measures it). */
     private int dockRoomDp() { return HubPages.dockRoom(widthDp()); }
