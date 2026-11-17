@@ -1256,6 +1256,10 @@ public final class MoreScreen implements AppScreen {
     @Override public boolean openHeld(String id) {
         if (ChargeInvite.RECORD_ANCHOR.equals(id)) {
             ScooterService s = service();
+            // Refused: say the reason now, as a tap on the row does, not an earlier recording's outcome its status line may
+            // still hold (ScooterService.chargeOutcomeOverReason; #538 review, F05).
+            String refused = closed || s == null || s.isChargeRecording() ? null : s.chargeCaptureUnavailable();
+            if (refused != null) host.toast(refused);
             if (closed || chargeCaptureRow == null || s == null || s.isChargeRecording() || s.chargeCaptureUnavailable() != null) return false;
             recordChargeDialog(s);
             return true;

@@ -148,6 +148,27 @@ public final class HubText {
     public static Msg chargeSendNoEmail() { return M.hubChargeSendNoEmail(); }
     /** Toast when that row is tapped while a charge is being recorded (recordings are sent only once capture stops). */
     public static Msg chargeSendBusy() { return M.hubChargeSendBusy(); }
+
+    // ===== Battery & charging: the invite to record charges (ChargeInvite) =====
+
+    /** The banner's title, and the sheet's. */
+    public static Msg chargeInviteTitle() { return M.hubChargeInviteTitle(); }
+    /** The banner's second line. */
+    public static Msg chargeInviteBody() { return M.hubChargeInviteBody(); }
+    /** TalkBack's name for the banner's X, which hides it for good. */
+    public static Msg chargeInviteHide() { return M.hubChargeInviteHide(); }
+    /** The sheet's first sentence. */
+    public static Msg chargeInviteIntro() { return M.hubChargeInviteIntro(); }
+    /** The sheet's points, in order; the first and last name the controls they point to, in the current language. */
+    public static Msg[] chargeInviteSteps() {
+        return new Msg[] {
+                M.hubChargeInviteStepRecord(M.moreDevRecord(), M.moreChargeAutoRecord()),
+                M.hubChargeInviteStepAny(),
+                M.hubChargeInviteStepFull(),
+                M.hubChargeInviteStepNearby(),
+                M.hubChargeInviteStepSend(rowTitle(HubPages.BATTERY_HISTORY), chargeSendRow()),
+        };
+    }
     /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
     public static Msg chargerRow() { return M.mainRowCharger(); }
     /** That row's value while Automatic has not recognized the charger. */
