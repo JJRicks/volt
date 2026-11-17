@@ -134,6 +134,8 @@ final class ChargeWireView extends ChargePicture {
         live.invalidate();
     }
 
+    @Override float arrivalFill() { return arriveFill; }
+
     /** Hides the cable between the cut-out's right edge and where its drawn-in end has reached (plug < 1). */
     private void clipPlug(Canvas canvas, float layerWidth) {
         if (plug >= 1) return;

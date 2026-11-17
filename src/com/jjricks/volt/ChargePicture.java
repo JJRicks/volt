@@ -101,6 +101,9 @@ abstract class ChargePicture {
      */
     void arrival(float plug, float charge, float fill) {}
 
+    /** The bay's lit share arrival last set (0: none; the still picture has no bay). */
+    float arrivalFill() { return 0; }
+
     /** The prototype's track (dp), whose top the tyres' gap is measured from (its foot is the app's track's foot). */
     static final float TRACK_DP = 8;
 

@@ -40,7 +40,10 @@ import com.jjricks.volt.ScooterService;
  * <li>a change that plays no in-between frames, or a part that jumps between two frames close together (an opacity by
  *     more than 0.6, a place, size or height by more than 60% of its whole travel), the number included where the card's
  *     and the charging view's hand over, and a view that disappears while still showing;</li>
- * <li>the charge pulse running before the arrival ends, or not running after it;</li>
+ * <li>the charge pulse running before the arrival ends, or not running after it, or (Widgets) stopping before the
+ *     takeover's fade-out has ended;</li>
+ * <li>the bay's light going out in one frame (or rising) when an unplug turns the change back after the bay lit up;</li>
+ * <li>a tap on Widgets' charging-time tile reaching it while the takeover still opens;</li>
  * <li>a quick unplug mid-arrival that does not turn back from where it is (its progress rises again: a double play);</li>
  * <li>any motion with Android's animations off (scale 0), or on recreation (Home rebuilt while charging or parked);</li>
  * <li>a resting view that is not exactly as Home shows it without the change (positions, offsets, opacity, the card's
@@ -55,6 +58,8 @@ public final class ChargeTransitionValidation extends Instrumentation {
     private ScooterService service;
     private int assertions;
     private String scaleBefore = "";
+    /** Set once this run has changed the animator duration scale: only then does it put the one it found back (F01). */
+    private boolean scaleTouched;
     private final ArrayList<String> checks = new ArrayList<>();
     private final StringBuilder notes = new StringBuilder();
     private float density = 1;
@@ -66,6 +71,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         try {
             admit();
             scaleBefore = shell("settings get global animator_duration_scale").trim();
+            scaleTouched = true;
             setScale("1");
             main(() -> {
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
@@ -112,6 +118,11 @@ public final class ChargeTransitionValidation extends Instrumentation {
             back.addAll(record(() -> charging(false), () -> !cleanChanging() && moment(clean()) == 0, 4000, 600));
             cleanReversal("Clean replugged mid-arrival", back);
             same("Clean parked at rest after the reversal", parkedState(), parkedRef);
+            // Unplugged late in the arrival, with the bay already lighting up: the light drains with the reversal (F02).
+            List<float[]> late = record(() -> charging(true), () -> cleanChanging() && progress() >= .9f, 3000, 0);
+            late.addAll(record(() -> charging(false), () -> !cleanChanging() && moment(clean()) == 0, 4000, 600));
+            bayDrains("Clean unplugged after the bay lit", late, P, ACTIVE, FILL, NAMES);
+            same("Clean parked at rest after the late reversal", parkedState(), parkedRef);
             // Recreated while parked.
             noMotion("Clean recreated while parked", recreate(() -> moment(clean()) == 0), false);
             same("Clean parked at rest after recreation", parkedState(), parkedRef);
@@ -137,6 +148,10 @@ public final class ChargeTransitionValidation extends Instrumentation {
             List<float[]> wBack = record(() -> charging(true), () -> widgetsChanging() && revealProgress() >= .35f, 3000, 0);
             wBack.addAll(record(() -> charging(false), () -> !widgetsChanging() && !heroShown(), 4000, 600));
             widgetsReversal("Widgets replugged mid-opening", wBack);
+            List<float[]> wLate = record(() -> charging(true), () -> widgetsChanging() && revealProgress() >= .9f, 3000, 0);
+            wLate.addAll(record(() -> charging(false), () -> !widgetsChanging() && !heroShown(), 4000, 600));
+            bayDrains("Widgets unplugged after the bay lit", wLate, W_P, W_ACTIVE, W_FILL, W_NAMES);
+            tapWhileOpening();
             main(() -> { service.ble.setSimulationCharging(true); activity.redraw(); });
             await(() -> heroShown() && !widgetsChanging(), "Widgets charging did not settle", 5000);
             SystemClock.sleep(1300);
@@ -150,7 +165,8 @@ public final class ChargeTransitionValidation extends Instrumentation {
             result.putString("trace", trace.toString());
         } finally {
             try { writeNotes(); } catch (Throwable ignored) {}
-            try { shell(scaleBefore.isEmpty() || scaleBefore.equals("null") ? "settings put global animator_duration_scale 1" : "settings put global animator_duration_scale " + scaleBefore); } catch (Throwable ignored) {}
+            // Only what this run changed: a run admit() refused touched nothing, so it restores nothing (council review of #534, F01).
+            if (scaleTouched) try { shell(scaleBefore.isEmpty() || scaleBefore.equals("null") ? "settings put global animator_duration_scale 1" : "settings put global animator_duration_scale " + scaleBefore); } catch (Throwable ignored) {}
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             if (activity != null) try { main(() -> { if (service != null && service.simulating()) service.setSimulation(false); activity.finish(); ScooterService.setUiVisible(false);
@@ -163,11 +179,11 @@ public final class ChargeTransitionValidation extends Instrumentation {
 
     /** Sample columns (Clean). */
     private static final int T = 0, ACTIVE = 1, P = 2, CARD = 3, PHOTO = 4, IMAGE = 5, IMAGE_SCALE = 6, IMAGE_X = 7, IMAGE_Y = 8,
-            NUM_X = 9, NUM_Y = 10, NUM_SIZE = 11, LINE = 12, ROWS = 13, ROWS_Y = 14, PULSE = 15, GLOW = 16, HERO_SHOWN = 17, CARD_SHOWN = 18;
+            NUM_X = 9, NUM_Y = 10, NUM_SIZE = 11, LINE = 12, ROWS = 13, ROWS_Y = 14, PULSE = 15, GLOW = 16, HERO_SHOWN = 17, CARD_SHOWN = 18, FILL = 19;
     private static final int[] OPACITIES = {CARD, PHOTO, IMAGE, LINE, ROWS, GLOW};
     private static final int[] PLACES = {IMAGE_SCALE, IMAGE_X, IMAGE_Y, NUM_X, NUM_Y, NUM_SIZE, ROWS_Y};
     private static final String[] NAMES = {"t", "active", "p", "card", "photo", "image", "image scale", "image x", "image y",
-            "number x", "number y", "number size", "line", "readings", "readings y", "pulse", "glow", "hero shown", "card shown"};
+            "number x", "number y", "number size", "line", "readings", "readings y", "pulse", "glow", "hero shown", "card shown", "bay fill"};
 
     private void cleanChange(String what, List<float[]> frames, boolean in) {
         int between = 0;
@@ -243,8 +259,8 @@ public final class ChargeTransitionValidation extends Instrumentation {
 
     // ---- Widgets' checks ------------------------------------------------------------------------------------------
 
-    private static final int W_T = 0, W_ACTIVE = 1, W_P = 2, W_HEIGHT = 3, W_ALPHA = 4, W_STAGE = 5, W_ROWS = 6, W_LINE = 7, W_PULSE = 8, W_SHOWN = 9, W_ID = 10;
-    private static final String[] W_NAMES = {"t", "active", "p", "height", "alpha", "stage", "readings", "line", "pulse", "shown", "hero"};
+    private static final int W_T = 0, W_ACTIVE = 1, W_P = 2, W_HEIGHT = 3, W_ALPHA = 4, W_STAGE = 5, W_ROWS = 6, W_LINE = 7, W_PULSE = 8, W_SHOWN = 9, W_ID = 10, W_FILL = 11;
+    private static final String[] W_NAMES = {"t", "active", "p", "height", "alpha", "stage", "readings", "line", "pulse", "shown", "hero", "bay fill"};
 
     private void sameHero(String what, List<float[]> frames) {
         for (float[] f : frames) require(f[W_ID] == frames.get(0)[W_ID], what + ": Widgets Home was rebuilt during the change");
@@ -257,6 +273,12 @@ public final class ChargeTransitionValidation extends Instrumentation {
         require(between >= (in ? 6 : 4), what + ": only " + between + " frames in between");
         smooth(what, frames, new int[] {W_ALPHA, W_STAGE, W_ROWS, W_LINE}, new int[] {W_HEIGHT}, W_NAMES);
         for (float[] f : frames) if (in && f[W_ACTIVE] > 0) require(f[W_PULSE] == 0, what + ": the charge pulse ran before the takeover had arrived");
+        // Closing from open, the pulse and the lit cells run on under the fade-out until it ends (council review of #534, F05).
+        if (!in) {
+            int under = 0;
+            for (float[] f : frames) if (f[W_ACTIVE] > 0 && f[W_SHOWN] > 0) { require(f[W_PULSE] > 0, what + ": the charge pulse stopped under the fade-out (p " + fmt(f[W_P]) + ")"); under++; }
+            require(under >= 3, what + ": only " + under + " frames of the fade-out seen");
+        }
         if (in) require(frames.get(frames.size() - 1)[W_PULSE] > 0, what + ": the charge pulse did not start after the arrival");
         note(what + ": " + between + " frames in between over " + Math.round(span(frames)) + " ms");
         assertions++; checks.add(what);
@@ -286,6 +308,84 @@ public final class ChargeTransitionValidation extends Instrumentation {
         }
         note(what + ": " + frames.size() + " frames, all at rest");
         assertions++; checks.add(what);
+    }
+
+    /** The charging-time tile's saved reading choices (ChargeTimeReadings.KEY + a profile id), each scooter's. */
+    private java.util.Map<String, Object> readingChoices() {
+        java.util.TreeMap<String, Object> out = new java.util.TreeMap<>();
+        for (java.util.Map.Entry<String, ?> e : settings().getAll().entrySet()) if (e.getKey().startsWith("charge_time_reading_")) out.put(e.getKey(), e.getValue());
+        return out;
+    }
+
+    /** The picture's bay light (ChargePicture.arrivalFill), 0 without a wire picture. Main thread. */
+    private static float bayFill(View hero) {
+        Object picture = field(hero, "picture");
+        if (picture == null) return 0;
+        return (Float) invoke(picture, "arrivalFill", new Class<?>[0]);
+    }
+
+    /**
+     * A reversal after the arrival's fill phase (council review of #534, F02): the bay was lit when the change turned back,
+     * and from then its light only goes down, by at most half of what was lit in one frame, to none at rest; it never
+     * goes out in one frame. Frames are compared as the pop rule does (close together, progress moving a frame's worth).
+     */
+    private void bayDrains(String what, List<float[]> frames, int p, int active, int fill, String[] names) {
+        float top = -1, lit = 0, last = -1;
+        boolean turned = false;
+        int draining = 0;
+        float[] previous = null;
+        for (float[] f : frames) {
+            if (f[active] > 0) {
+                if (last >= 0 && f[p] < last - 1e-4f && !turned) { turned = true; lit = previous == null ? f[fill] : previous[fill]; }
+                top = Math.max(top, f[p]); last = f[p];
+            }
+            if (turned && previous != null && f[0] - previous[0] <= 25 && Math.abs(f[p] - previous[p]) <= Math.max(.06f, .15f * (f[0] - previous[0]) / 25f)) {
+                require(f[fill] <= previous[fill] + 1e-3f, what + ": the bay's light rose on the way back: " + row(previous, names) + " -> " + row(f, names));
+                require(previous[fill] - f[fill] <= Math.max(.02f, lit / 2), what + ": the bay's light dropped " + fmt(previous[fill] - f[fill]) + " of "
+                        + fmt(lit) + " in one frame: " + row(previous, names) + " -> " + row(f, names));
+                if (f[fill] > 0) draining++;
+            }
+            previous = f;
+        }
+        require(turned && top >= .85f && top < 1, what + ": it did not turn back late in the arrival (highest progress " + top + ")");
+        require(lit > .05f, what + ": the bay was not lit when it turned back (" + fmt(lit) + ")");
+        require(draining >= 2, what + ": the bay's light went out in " + draining + " frames");
+        require(frames.get(frames.size() - 1)[fill] == 0, what + ": the bay is still lit at rest");
+        note(what + ": turned back at p " + fmt(top) + " with the bay lit to " + fmt(lit) + ", drained over " + draining + " frames");
+        assertions++; checks.add(what);
+    }
+
+    /**
+     * A tap on the charging-time tile while Widgets' takeover opens (council review of #534, F04): its parts are not all
+     * visible yet, so the takeover takes the tap and the tile gets no touch at all (and so saves no reading choice).
+     */
+    private void tapWhileOpening() {
+        int[] touched = {0};
+        java.util.Map<String, Object> before = readingChoices();
+        main(() -> charging(true));
+        await(() -> widgetsChanging() && revealProgress() >= .1f, "Widgets' takeover did not start opening", 3000);
+        main(() -> {
+            View hero = hero(), tile = (View) field(hero, "timeTile");
+            require(field(hero, "reveal") != null, "The takeover finished opening before the tap");
+            tile.setOnTouchListener((v, e) -> { touched[0]++; return false; });
+            int[] heroAt = new int[2], tileAt = new int[2];
+            hero.getLocationInWindow(heroAt); tile.getLocationInWindow(tileAt);
+            float x = tileAt[0] - heroAt[0] + tile.getWidth() / 2f, y = tileAt[1] - heroAt[1] + Math.max(1, tile.getHeight()) / 2f;
+            long now = SystemClock.uptimeMillis();
+            for (int action : new int[] {android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP}) {
+                android.view.MotionEvent event = android.view.MotionEvent.obtain(now, now + (action == android.view.MotionEvent.ACTION_UP ? 60 : 0), action, x, y, 0);
+                hero.dispatchTouchEvent(event);
+                event.recycle();
+            }
+        });
+        await(() -> !widgetsChanging() && heroShown(), "Widgets charging did not settle after the tap", 5000);
+        main(() -> ((View) field(hero(), "timeTile")).setOnTouchListener(null));
+        require(touched[0] == 0, "Widgets opening: the charging-time tile took " + touched[0] + " touch events before it showed");
+        require(before.equals(readingChoices()), "Widgets opening: a tap saved a reading choice: " + before + " -> " + readingChoices());
+        main(() -> charging(false));
+        await(() -> !widgetsChanging() && !heroShown(), "Widgets parked did not settle after the tap check", 5000);
+        note("Widgets opening: a tap on the charging-time tile mid-opening reached nothing");
+        assertions++; checks.add("Widgets opening: the takeover takes a tap until its parts show; the charging-time tile gets none");
     }
 
     // ---- The pop rule ---------------------------------------------------------------------------------------------
@@ -414,6 +514,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         f[W_PULSE] = field(hero, "pulse") != null ? 1 : 0;
         f[W_SHOWN] = shown ? 1 : 0;
         f[W_ID] = System.identityHashCode(hero);
+        f[W_FILL] = shown ? bayFill(hero) : 0;
         return f;
     }
 
@@ -460,6 +561,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         f[GLOW] = heroShown ? (Float) field(hero, "glowShown") : 0;
         f[HERO_SHOWN] = heroShown ? 1 : 0;
         f[CARD_SHOWN] = cardShown ? 1 : 0;
+        f[FILL] = heroShown ? bayFill(hero) : 0;
         return f;
     }
 
