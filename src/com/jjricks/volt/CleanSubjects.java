@@ -23,7 +23,7 @@ import java.util.Locale;
  * page's list while its field is empty (PR 11): each row has the subject's icon, name and a
  * live one-line summary, and opens the subject's own page (ScreenHost.open with its HubPages id: the pages parts 3-5
  * built, pushed on Home's page stack). While a maintenance check is due, an orange dot leads Service's summary. A
- * summary whose state isn't known shows no line. The scooter subjects' lines come from HubSubjects.summary (the rules
+ * summary whose state isn't known shows no line, and its row keeps the height of a row with one, its name centred. The scooter subjects' lines come from HubSubjects.summary (the rules
  * in HubSummaries); Ride's and Data's lines are this list's own (Ride shows the running recording while a ride
  * records, HubSummaries.rideLine). Words from HubText.
  */
@@ -92,13 +92,10 @@ final class CleanSubjects {
         LinearLayout.LayoutParams tileSize = new LinearLayout.LayoutParams(ui.dp(33), ui.dp(33));
         tileSize.setMarginEnd(ui.dp(12));
         line.addView(tile, tileSize);
-        LinearLayout words = new LinearLayout(host.activity());
-        words.setOrientation(LinearLayout.VERTICAL);
         TextView name = ui.text(HubText.title(subject), 15.5f, false);
         name.setTypeface(ui.medium());
         name.setMaxLines(2);
         name.setIncludeFontPadding(false);
-        words.addView(name, new LinearLayout.LayoutParams(-1, -2));
         // The summary line, under the name: Service's due dot leads it ("● Tyre check in 40 mi"), as in the plan.
         LinearLayout summary = new LinearLayout(host.activity());
         summary.setOrientation(LinearLayout.HORIZONTAL);
@@ -121,6 +118,22 @@ final class CleanSubjects {
         value.setEllipsize(TextUtils.TruncateAt.END);
         value.setVisibility(View.GONE);
         summary.addView(value, new LinearLayout.LayoutParams(0, -2, 1));
+        // Every row keeps the height it has with its summary, with the name centred in it, while the summary isn't known
+        // yet (Controls before the riding mode is read, Security before the PIN and proximity are): the owner's request on
+        // #394, 17 Nov. The summary stays GONE, so TalkBack reads no empty line.
+        LinearLayout words = new LinearLayout(host.activity()) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                super.onMeasure(widthSpec, heightSpec);
+                if (value.getVisibility() != View.GONE || MeasureSpec.getMode(heightSpec) == MeasureSpec.EXACTLY) return;
+                int unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
+                value.measure(unspecified, unspecified);
+                int full = getPaddingTop() + name.getMeasuredHeight() + value.getMeasuredHeight() + getPaddingBottom();
+                if (full > getMeasuredHeight()) setMeasuredDimension(getMeasuredWidth(), resolveSize(full, heightSpec));
+            }
+        };
+        words.setOrientation(LinearLayout.VERTICAL);
+        words.setGravity(Gravity.CENTER_VERTICAL);
+        words.addView(name, new LinearLayout.LayoutParams(-1, -2));
         words.addView(summary, new LinearLayout.LayoutParams(-1, -2));
         line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams chevronSize = new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15));
