@@ -3,6 +3,8 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="dashboard_connection_details" volt:src="eccce163502fa78ca3de68436575176d5b46f437">Detalhes da ligação</string>
     <string name="dashboard_your_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">A tua trotinete</string>
+    <string name="dashboard_find_nearby_text" volt:src="25d19464e3a4ad962ee2ae794aaf354b30ebef28">%1$s não está a responder. Se a trotinete estiver ligada e por perto, pode ter um novo endereço Bluetooth.</string>
+    <string name="dashboard_find_nearby" volt:src="5dfc221fe534308c831b6a5343a1c055477b16f4">Procurar por perto</string>
     <string name="dashboard_rename_scooter" volt:src="04d970d8898d8fe14cdc52d0738a243c1d4038c0">Mudar o nome da trotinete</string>
     <string name="dashboard_undo_edit" volt:src="2687eeb904ef71b1b6894fa98c829296d128a554">Anular edição do painel</string>
     <string name="dashboard_redo_edit" volt:src="edab63ce2fb93ded501d602abc5f9516876a4157">Refazer edição do painel</string>
@@ -25,6 +27,7 @@
     <string name="dashboard_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Modo de condução</string>
     <string name="dashboard_at_target" volt:src="bfe77cb8f5f6b49d12a329434929b912ff092d08">Objetivo atingido</string>
     <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60">≈ %1$s h %2$s min</string>
+    <string name="dashboard_duration_hours_narrow" volt:src="b9fb4887ba744f3f87621e15c8d5d05bc75ce876">≈%1$sh%2$smin</string>
     <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1">≈ %1$s min</string>
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Até ao limite de %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Tempo até %1$s</string>
@@ -429,4 +432,17 @@
     <string name="dashboard_recording_spoken_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="dashboard_scale_maximum_in" volt:src="bb914ca34e8c256845c5c3853eda58d2e07d23ce">Máximo da escala em %1$s</string>
     <string name="dashboard_scale_minimum_in" volt:src="1b901ce0b176e22d3dcb439b4453a257d4c556df">Mínimo da escala em %1$s</string>
+    <string name="dashboard_odometer_carry_spoken" volt:src="f80911e697b6652067d8691400e0b8bbbfed6cbe">%1$s. Inclui distância transitada de antes de uma reposição. Toca duas vezes para ver os detalhes.</string>
+    <string name="dashboard_odometer_carry_title" volt:src="b3e821e9385bc53f5fd7af3745f3f2b75dda941e">Distância total transitada</string>
+    <string name="dashboard_odometer_carry_what" volt:src="10d4c7561f4c13960986494f5dc7f05dee4914bf">Em %1$s, a distância total da tua trotinete recuou de %2$s para %3$s. A Volt continuou a partir do último número que viu, por isso a distância total na Volt continua a contar.</string>
+    <string name="dashboard_odometer_carry_includes" volt:src="2e9b542919bf1340bb48e3876b936937f92b5f07">Inclui %1$s de antes de uma reposição (%2$s)</string>
+    <string name="dashboard_odometer_carry_includes_many" volt:src="e76877d02cec3ee85a96495ce025a202f70ee725">Inclui %1$s de antes de reposições (a mais recente em %2$s)</string>
+    <string name="dashboard_odometer_carry_scooter" volt:src="520d8a30d9bfa5e65b87a86057cd232500965e53">Leitura da própria trotinete</string>
+    <string name="dashboard_odometer_carry_shown" volt:src="f870db01daa9a569dc546a43fda3ec7ba0889608">Mostrado na Volt</string>
+    <string name="dashboard_odometer_carry_note" volt:src="978faa47dc1c88bab4b3afbb431f07826d28196b">A Volt não consegue alterar o número da própria trotinete, por isso o ecrã da trotinete mostra a contagem desde a reposição. As viagens, a autonomia e os lembretes de manutenção continuam a usar o número da própria trotinete.</string>
+    <string name="dashboard_odometer_carry_undo" volt:src="62cccd8577893e6638ee0529b7f83949d506fb7f">Remover a distância transitada</string>
+    <string name="dashboard_odometer_carry_undo_title" volt:src="45c9b9d8c88bacb3ee004f07747a4e11990d4a97">Remover a distância transitada?</string>
+    <string name="dashboard_odometer_carry_undo_message" volt:src="3543f7f40e8b7e8b11e27cc6b2085c448d56194c">A distância total na Volt volta a %1$s, sem os %2$s transitados em %3$s. Não podes voltar a adicioná-los depois.</string>
+    <string name="dashboard_odometer_carry_undo_confirm" volt:src="2d4e099e5aba896d7050ae793b84a6a23704c86f">Remover</string>
+    <string name="dashboard_odometer_carry_removed" volt:src="c18d0ae4f75505fff1e0a7d9b7c40b3ad6d5d5db">Distância transitada removida</string>
 </resources>

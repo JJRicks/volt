@@ -6,6 +6,7 @@
     <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Bilgisayara bağlan</string>
     <string name="onboarding_step_run_helper" volt:src="156f834730eeac180c962741e3f0828ee4daafb8">Yakalama aracını çalıştır</string>
     <string name="onboarding_step_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">İçe aktar</string>
+    <string name="onboarding_step_new_key" volt:src="1af40adc5e22b6a0a53863d492e67bd17869408d">Sahip anahtarı</string>
     <string name="onboarding_step_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Yakındaki cihazlar</string>
     <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Scooter’a bağlan</string>
     <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Kurulum adımı: %1$d / 7</string>
@@ -49,6 +50,8 @@
     <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Sahip kurulum dosyasını içe aktar</string>
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Yalnızca scooter erişimi · sürüş veya geçmiş yok</string>
     <string name="onboarding_path_identity" volt:src="d961ad5c00ad8effde507bf15d014e73b523ab29">12 karakterli sahip anahtarını gir</string>
+    <string name="onboarding_path_new_key" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Yeni sahip anahtarı oluştur</string>
+    <string name="onboarding_path_new_key_detail" volt:src="f695e6ad02bbc18ce4a1b414e86bc381381229a9">Yeni veya sıfırlanmış scooter · bilgisayar gerekmez</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Android 11 veya daha yenisi gerekir</string>
     <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Android 11 veya daha yenisi gerekir</string>
@@ -61,7 +64,7 @@
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Devam et</string>
     <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Önce seçilen sahip dosyasını içe aktarmayı tamamlayın.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Kurulum şimdilik atlansın mı?</string>
-    <string name="onboarding_skip_message" volt:src="2ebd2136ff09aba32eb39b4fc15c6ce9f462415c">Scooter’ı daha sonra “Daha fazla” sekmesinden ekleyin.</string>
+    <string name="onboarding_skip_message" volt:src="fd894d5886133bef30a7eb4a2f11be3b7569fc87">Scooter’ınızı daha sonra Ayarlar › Scooterlarım bölümünden ekleyin.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Devam et</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Başlamadan önce</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">NAVEE uygulaması çalışıyor</string>
@@ -161,6 +164,26 @@
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Farklı bir dosya seç</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Shizuku yüklü değil</string>
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Önce kaydı durdurun</string>
+    <string name="onboarding_new_title" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Yeni sahip anahtarı oluştur</string>
+    <string name="onboarding_new_body" volt:src="9b9f43625124da4a7ce73bc9f42654de01d92dfc">Volt bir sahip anahtarı oluşturur ve bu telefonda saklar. Sahibi olmayan bir scooter, kendisine verilen ilk anahtarı kabul eder.</string>
+    <string name="onboarding_new_unowned" volt:src="44c901a962ae29ccdd339e0a6798a06f29b0bbaa">Scooter yeni veya sıfırlanmış</string>
+    <string name="onboarding_new_unowned_detail" volt:src="5b3d1d715451f3597301465890a2b78cac6c06c2">Daha önce hiç kurulmamış veya NAVEE uygulamasından kaldırılmış</string>
+    <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">NAVEE uygulaması, üzerinde Volt’un anahtarı varken bu scooter’ı ekleyemez. Geri dönmek için önce Volt’ta serbest bırakın.</string>
+    <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Bu scooter’ın zaten bir sahibi var, bu nedenle yeni anahtarı reddetti. Scooter’ı NAVEE uygulamasından kaldırıp yeniden deneyin veya başka bir yöntemle kurun.</string>
+    <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Başka bir yöntemle kur</string>
+    <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">Yeni sahip anahtarı kaydedilemedi. Depolama alanında yer açın ve yeniden deneyin.</string>
+    <string name="onboarding_done_new_key_note" volt:src="b8fce5b72d286bfe3edbe88e557c01b28f870aa0">Volt bu scooter’ın sahip anahtarını oluşturdu ve bu anahtar yalnızca bu telefonda bulunuyor. Başka bir telefonda kurabilmek için Volt’u yedekleyin.</string>
+    <string name="onboarding_key_title" volt:src="99e4b93f9bb07c68da624cdfbb46b412293b173a">Sahip anahtarını bir yere yaz</string>
+    <string name="onboarding_key_body" volt:src="282c5da63dbeaffc51931849c4a1789ce2060df3">Bu anahtar yalnızca bu telefonda bulunur. Bir kopyası olmadan telefonu veya Volt’un verilerini kaybederseniz scooter’ınıza tekrar erişemezsiniz. Anahtarı bir yere yazıp güvenli bir yerde saklayın ya da bir yedek dosyası kaydedin. Ekran görüntüsü almak da işe yarar.</string>
+    <string name="onboarding_key_write" volt:src="a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c">Lütfen bunu bir yere yazın!</string>
+    <string name="onboarding_key_spoken" volt:src="357ab99111c6e4f1b113db3d144c633881f771c7">Sahip anahtarı: %1$s</string>
+    <string name="onboarding_key_save" volt:src="6bef92dcca50b07d22b5b8ab7f09da79aa960432">Yedek dosyasını kaydet</string>
+    <string name="onboarding_key_saved" volt:src="c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4">Yedek kaydedildi</string>
+    <string name="onboarding_key_done_wait" volt:src="e8da8521c2b44b2b1b8a537e4113f74379437adb">Bitti (%1$d)</string>
+    <plurals name="onboarding_key_done_wait_description" volt:src="cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419">
+        <item quantity="one">Bitti, %1$d saniye içinde kullanılabilir</item>
+        <item quantity="other">Bitti, %1$d saniye içinde kullanılabilir</item>
+    </plurals>
     <string name="onboarding_identity_title" volt:src="56062797f9d331b9ceb3280ae89b5de65d366fcf">Sahip anahtarını gir</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">Şifre değil.</string>
     <string name="onboarding_identity_hint" volt:src="35dda17c04b627a1ee00aceee1a23956c878a9f1">Sahip anahtarı, 12 karakter veya özel yedek</string>

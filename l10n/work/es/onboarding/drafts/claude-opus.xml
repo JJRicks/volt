@@ -6,6 +6,7 @@
     <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Conectar computadora</string>
     <string name="onboarding_step_run_helper" volt:src="156f834730eeac180c962741e3f0828ee4daafb8">Ejecutar herramienta</string>
     <string name="onboarding_step_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importar</string>
+    <string name="onboarding_step_new_key" volt:src="1af40adc5e22b6a0a53863d492e67bd17869408d">Clave de propietario</string>
     <string name="onboarding_step_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Dispositivos cercanos</string>
     <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Conectar patinete</string>
     <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Configuración: paso %1$d de 7</string>
@@ -49,6 +50,8 @@
     <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Importar un archivo de configuración del propietario</string>
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Solo acceso al patinete · sin viajes ni historial</string>
     <string name="onboarding_path_identity" volt:src="d961ad5c00ad8effde507bf15d014e73b523ab29">Escribir una clave de propietario de 12 caracteres</string>
+    <string name="onboarding_path_new_key" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Crear una clave de propietario nueva</string>
+    <string name="onboarding_path_new_key_detail" volt:src="f695e6ad02bbc18ce4a1b414e86bc381381229a9">Patinete nuevo o restablecido · sin computadora</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Requiere Android 11 o posterior</string>
     <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Requiere Android 11 o posterior</string>
@@ -61,7 +64,7 @@
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Continuar</string>
     <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Primero termina de importar el archivo de propietario que seleccionaste.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">¿Omitir la configuración por ahora?</string>
-    <string name="onboarding_skip_message" volt:src="2ebd2136ff09aba32eb39b4fc15c6ce9f462415c">Agrega tu patinete más tarde en «Más».</string>
+    <string name="onboarding_skip_message" volt:src="fd894d5886133bef30a7eb4a2f11be3b7569fc87">Agrega tu patinete más tarde en Ajustes › Mis patinetes.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Seguir configurando</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Antes de empezar</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">La app de NAVEE funciona</string>
@@ -161,6 +164,27 @@
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Elegir otro archivo</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Shizuku no está instalado</string>
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Detén primero la grabación</string>
+    <string name="onboarding_new_title" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Crear una clave de propietario nueva</string>
+    <string name="onboarding_new_body" volt:src="9b9f43625124da4a7ce73bc9f42654de01d92dfc">Volt crea una clave de propietario y la guarda en este teléfono. Un patinete sin propietario se queda con la primera clave que recibe.</string>
+    <string name="onboarding_new_unowned" volt:src="44c901a962ae29ccdd339e0a6798a06f29b0bbaa">El patinete es nuevo o se restableció</string>
+    <string name="onboarding_new_unowned_detail" volt:src="5b3d1d715451f3597301465890a2b78cac6c06c2">Nunca configurado, o eliminado de la app de NAVEE</string>
+    <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">La app de NAVEE no puede agregar este patinete mientras tenga la clave de Volt. Para volver a usarla, libéralo primero en Volt.</string>
+    <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Este patinete ya tiene propietario, así que rechazó la clave nueva. Elimínalo de la app de NAVEE e inténtalo de nuevo, o configúralo de otra forma.</string>
+    <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Configurar de otra forma</string>
+    <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">No se pudo guardar la clave de propietario nueva. Libera algo de almacenamiento e inténtalo de nuevo.</string>
+    <string name="onboarding_done_new_key_note" volt:src="b8fce5b72d286bfe3edbe88e557c01b28f870aa0">Volt creó la clave de propietario de este patinete y solo está en este teléfono. Haz una copia de seguridad de Volt para poder configurarlo en otro teléfono.</string>
+    <string name="onboarding_key_title" volt:src="99e4b93f9bb07c68da624cdfbb46b412293b173a">Anota tu clave de propietario</string>
+    <string name="onboarding_key_body" volt:src="282c5da63dbeaffc51931849c4a1789ce2060df3">Esta clave solo existe en este teléfono. Si pierdes el teléfono o los datos de Volt sin una copia, no podrás volver a entrar en tu patinete. Anótala y guárdala en un lugar seguro, o guarda un archivo de copia de seguridad. Una captura de pantalla también sirve.</string>
+    <string name="onboarding_key_write" volt:src="a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c">¡Anota esta clave!</string>
+    <string name="onboarding_key_spoken" volt:src="357ab99111c6e4f1b113db3d144c633881f771c7">Clave de propietario: %1$s</string>
+    <string name="onboarding_key_save" volt:src="6bef92dcca50b07d22b5b8ab7f09da79aa960432">Guardar archivo de copia de seguridad</string>
+    <string name="onboarding_key_saved" volt:src="c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4">Copia de seguridad guardada</string>
+    <string name="onboarding_key_done_wait" volt:src="e8da8521c2b44b2b1b8a537e4113f74379437adb">Listo (%1$d)</string>
+    <plurals name="onboarding_key_done_wait_description" volt:src="cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419">
+        <item quantity="one">Listo, disponible en %1$d segundo</item>
+        <item quantity="many">Listo, disponible en %1$d segundos</item>
+        <item quantity="other">Listo, disponible en %1$d segundos</item>
+    </plurals>
     <string name="onboarding_identity_title" volt:src="56062797f9d331b9ceb3280ae89b5de65d366fcf">Escribir la clave de propietario</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">No es una contraseña.</string>
     <string name="onboarding_identity_hint" volt:src="35dda17c04b627a1ee00aceee1a23956c878a9f1">Clave de propietario, 12 caracteres, o una copia de seguridad privada</string>

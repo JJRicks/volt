@@ -22,6 +22,12 @@
     <string name="ble_status_checking_compatibility">Comprobando compatibilidad…</string>
     <!-- src:743208d1de13b4c7f17550fc7b2f34e5fdd54d60 -->
     <string name="ble_status_setting_clock">Estableciendo la hora del patinete desde este teléfono…</string>
+    <!-- src:3278a55a28be6a38784b18011183e9cb68d06b18 -->
+    <string name="ble_status_releasing">Liberando el patinete…</string>
+    <!-- src:27fd91857fecb730a6a12e559973648f3484dc17 -->
+    <string name="ble_release_held">Liberación no confirmada · no se reconectará</string>
+    <!-- src:772be0b099f67e1368e9a128e8bbbc9ad5c4e85c -->
+    <string name="ble_release_held_short">Liberación no confirmada</string>
     <!-- src:728cf773a5c57a15f19c5c603f34929b6502bb7f -->
     <string name="ble_reading">Leyendo %1$s…</string>
     <!-- src:d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c -->
@@ -58,6 +64,16 @@
     <string name="ble_failed_not_saved">No es el patinete guardado</string>
     <!-- src:0b4b8c62d1732ffe5ff49209dd9489c809d02aab -->
     <string name="ble_failed_other_saved">Este es %1$s. Selecciónalo en «Mis patinetes» o busca tu patinete nuevo.</string>
+    <!-- src:1c0b385e8b0ccb748d54eea3df06fca3c6441f4f -->
+    <string name="ble_failed_new_key_elsewhere">Esta nueva clave de propietario se envió primero a otro patinete. Enciende ese patinete cerca de ti e inténtalo de nuevo.</string>
+    <!-- src:1ebe16bb5235dd8b36f294f81200e98507ddb6d4 -->
+    <string name="ble_failed_new_key_unsaved">No se pudo guardar la configuración, así que Volt no envió la nueva clave de propietario. Libera espacio de almacenamiento e inténtalo de nuevo.</string>
+    <!-- src:4549812aa55aa5ffabb66aa863995505872f0cde -->
+    <string name="ble_failed_find_mismatch">Este no es %1$s: su número de serie es diferente. No se guardó nada.</string>
+    <!-- src:8d513c8a2ff0e7c8de2a948f2764ee04e434df6f -->
+    <string name="ble_failed_find_unchecked">No se pudo comprobar %1$s en esa dirección durante el intento. No se guardó nada. Inténtalo de nuevo con «Buscar cerca».</string>
+    <!-- src:10d9b7a526cd313ea7f57dc5f9bbbbc143018203 -->
+    <string name="ble_found_new_address">Se encontró %1$s en una nueva dirección Bluetooth</string>
     <!-- src:1f23751172e9878adc6da281e6fe1b838304f246 -->
     <string name="ble_failed_signal_lost">Se perdió la señal</string>
     <!-- src:4c195e7bcd1298d452edb1bb8278469fa48ea9e3 -->

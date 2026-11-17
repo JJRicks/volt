@@ -240,6 +240,8 @@
     <string name="backup_engine_choose_what_restore">Välj vad som ska återställas.</string>
     <!-- src:e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e -->
     <string name="backup_engine_replace_everything_needs_complete">”Ersätt allt” kräver en fullständig säkerhetskopia med alla kategorier.</string>
+    <!-- src:0699d5067d41acd9a3462ee638114449be135978 -->
+    <string name="backup_engine_replace_owner_key_unsaved">Den här säkerhetskopian saknar en ägarnyckel som bara den här telefonen har. Säkerhetskopiera den här telefonen först.</string>
     <!-- src:d1d0d37a81f3fa72fb318efe8ef837302d4b4599 -->
     <string name="backup_engine_choose_where_each_scooters">Välj var varje elsparkcykels data ska hamna.</string>
     <!-- src:9c98d5835c2e279cd216567138e61662ddd0df4d -->

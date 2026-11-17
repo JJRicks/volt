@@ -12,6 +12,8 @@
     <string name="onboarding_step_run_helper">Esegui lo strumento di acquisizione</string>
     <!-- src:a6b482de3d161b45d9c046be02d131f0bbe97ba8 -->
     <string name="onboarding_step_import">Importa</string>
+    <!-- src:1af40adc5e22b6a0a53863d492e67bd17869408d -->
+    <string name="onboarding_step_new_key">Chiave del proprietario</string>
     <!-- src:7b4b991b39abcc06a1ca302148bcf8c2f024c2e5 -->
     <string name="onboarding_step_nearby">Dispositivi nelle vicinanze</string>
     <!-- src:c0b161edeeceec2afc3d6edb3d932c48ce0394d1 -->
@@ -98,6 +100,10 @@
     <string name="onboarding_path_owner_file_detail">Solo accesso al monopattino · niente corse né cronologia</string>
     <!-- src:d961ad5c00ad8effde507bf15d014e73b523ab29 -->
     <string name="onboarding_path_identity">Inserisci una chiave del proprietario di 12 caratteri</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_path_new_key">Crea una nuova chiave del proprietario</string>
+    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
+    <string name="onboarding_path_new_key_detail">Monopattino nuovo o reimpostato · senza computer</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Richiede Android 11 o versioni successive</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -122,6 +128,8 @@
     <string name="onboarding_finish_import_first">Completa prima l\'importazione del file del proprietario selezionato.</string>
     <!-- src:a0e1b8855a5a0586cbf31d9ca0589ca93c83c695 -->
     <string name="onboarding_skip_title">Vuoi saltare la configurazione per ora?</string>
+    <!-- src:fd894d5886133bef30a7eb4a2f11be3b7569fc87 -->
+    <string name="onboarding_skip_message">Aggiungi il monopattino più tardi in Impostazioni › I miei monopattini.</string>
     <!-- src:9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9 -->
     <string name="onboarding_skip_keep_going">Continua</string>
     <!-- src:ea9dc58d381ab136f8d8332bf41d32f90bd93983 -->
@@ -320,6 +328,44 @@
     <string name="onboarding_shizuku_missing">L\'app Shizuku non è installata</string>
     <!-- src:bbfd4e2ebace2075a9a264ed278320d87fbfa1fb -->
     <string name="onboarding_stop_recording">Interrompi prima la registrazione</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_new_title">Crea una nuova chiave del proprietario</string>
+    <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
+    <string name="onboarding_new_body">Volt crea una chiave del proprietario e la conserva su questo telefono. Un monopattino senza proprietario accetta la prima chiave che riceve.</string>
+    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
+    <string name="onboarding_new_unowned">Il monopattino è nuovo o reimpostato</string>
+    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
+    <string name="onboarding_new_unowned_detail">Mai configurato o rimosso dall\'app NAVEE</string>
+    <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
+    <string name="onboarding_new_navee_note">L\'app NAVEE non può aggiungere questo monopattino finché ha la chiave di Volt. Per tornare all\'app NAVEE, rilascialo prima in Volt.</string>
+    <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->
+    <string name="onboarding_new_refused">Questo monopattino ha già un proprietario, quindi ha rifiutato la nuova chiave. Rimuovilo dall\'app NAVEE e riprova, oppure configuralo in un altro modo.</string>
+    <!-- src:c1c5a5b0c56c6d3755c62adf36a948419bd31a8f -->
+    <string name="onboarding_new_other_way">Configura in un altro modo</string>
+    <!-- src:4de2502027c3ae77e8c820d10f9676531c5b73eb -->
+    <string name="onboarding_new_save_failed">Non è stato possibile salvare la nuova chiave del proprietario. Libera spazio di archiviazione e riprova.</string>
+    <!-- src:b8fce5b72d286bfe3edbe88e557c01b28f870aa0 -->
+    <string name="onboarding_done_new_key_note">Volt ha creato la chiave del proprietario di questo monopattino, che si trova solo su questo telefono. Esegui il backup di Volt per poterlo configurare su un altro telefono.</string>
+    <!-- src:99e4b93f9bb07c68da624cdfbb46b412293b173a -->
+    <string name="onboarding_key_title">Annota la tua chiave del proprietario</string>
+    <!-- src:282c5da63dbeaffc51931849c4a1789ce2060df3 -->
+    <string name="onboarding_key_body">Questa chiave esiste solo su questo telefono. Se perdi il telefono o i dati di Volt senza una copia, non potrai più accedere al tuo monopattino. Annotala e conservala in un posto sicuro, oppure salva un file di backup. Va bene anche uno screenshot.</string>
+    <!-- src:a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c -->
+    <string name="onboarding_key_write">Annota questa chiave!</string>
+    <!-- src:357ab99111c6e4f1b113db3d144c633881f771c7 -->
+    <string name="onboarding_key_spoken">Chiave del proprietario: %1$s</string>
+    <!-- src:6bef92dcca50b07d22b5b8ab7f09da79aa960432 -->
+    <string name="onboarding_key_save">Salva il file di backup</string>
+    <!-- src:c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4 -->
+    <string name="onboarding_key_saved">Backup salvato</string>
+    <!-- src:e8da8521c2b44b2b1b8a537e4113f74379437adb -->
+    <string name="onboarding_key_done_wait">Fine (%1$d)</string>
+    <!-- src:cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419 -->
+    <plurals name="onboarding_key_done_wait_description">
+        <item quantity="one">Fine, disponibile tra %1$d secondo</item>
+        <item quantity="many">Fine, disponibile tra %1$d di secondi</item>
+        <item quantity="other">Fine, disponibile tra %1$d secondi</item>
+    </plurals>
     <!-- src:56062797f9d331b9ceb3280ae89b5de65d366fcf -->
     <string name="onboarding_identity_title">Inserisci la chiave del proprietario</string>
     <!-- src:93d797cd102b7651e85c5d04d50ddf7833e030af -->
