@@ -47,8 +47,10 @@ public final class CleanHeaderFitTest {
         CleanHeaderFit.Width w = width(text, wider);
         float status = lineDp(12.5f * text, 1);
         // The status line's tap target: its own band above the name row, which no other view covers.
-        require(CleanHeaderFit.statusTargetDp(status) >= CleanHeaderFit.TARGET_DP, at + ": the status line keeps a 48 dp target");
-        require(CleanHeaderFit.statusTargetDp(status) >= CleanHeaderFit.TOP_DP + status, at + ": the status band holds its text");
+        // Its text sits TOP_DP under the header's top, which is right under the status bar (owner, 17 Nov 2026): the band
+        // is the text and that room, no taller, so no empty band pushes the text down.
+        require(CleanHeaderFit.statusTargetDp(status) == CleanHeaderFit.TOP_DP + status, at + ": the status band holds its text and the room above it, no more");
+        require(CleanHeaderFit.statusTargetDp(status) >= 24, at + ": the status line keeps a full-width target at least 24 dp tall");
         for (String name : new String[]{"Your scooter", "Midnight Runner", "Segway Ninebot Max G2", "Max", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}) {
             CleanHeaderFit.Name fit = CleanHeaderFit.name(name, room, w);
             require(fit.lines >= 1 && fit.lines <= 2, at + ": " + name + " takes one or two lines: " + fit);
@@ -58,8 +60,8 @@ public final class CleanHeaderFitTest {
             float header = CleanHeaderFit.heightDp(status, nameDp);
             // Two targets that do not overlap: the status band and the name row stack, nothing shared.
             require(header >= CleanHeaderFit.statusTargetDp(status) + CleanHeaderFit.nameRowDp(nameDp), at + ": the status band and the name row, stacked");
-            require(header >= 2 * CleanHeaderFit.TARGET_DP, at + ": two 48 dp targets, the name row's and the status line's");
-            if (fit.lines == 1) require(header <= 100, at + ": " + name + " on one line: two 48 dp bands, " + header);
+            require(header >= CleanHeaderFit.TARGET_DP + CleanHeaderFit.TOP_DP + status, at + ": the name row's 48 dp target under the status band");
+            if (fit.lines == 1) require(header <= (text > 1 ? 92 : 82), at + ": " + name + " on one line: the status band and a 48 dp name row, " + header);
             else require(header <= 136, at + ": " + name + " on two lines: the header is at most 136 dp, " + header);
             if (!fit.clipped) require(CleanHeaderFit.fits(name, room / fit.scale, fit.lines, w), at + ": " + name + " fits as fitted: " + fit);
         }
@@ -101,12 +103,13 @@ public final class CleanHeaderFitTest {
         require(CleanHeaderFit.nameRoomDp(100) == 0, "no room is no room");
     }
 
-    /** The header's targets: a 48 dp name row and status target, 48 dp buttons around a 40 dp disc. */
+    /** The header's targets: a 48 dp name row, the status line's band, 48 dp buttons around a 40 dp disc. */
     private static void targets() {
         require(CleanHeaderFit.TARGET_DP >= 48, "targets are at least 48 dp (docs/development-notes.md)");
         require(CleanHeaderFit.DISC_DP <= CleanHeaderFit.TARGET_DP && CleanHeaderFit.DISC_DP >= 36, "a disc inside its target");
         require(CleanHeaderFit.statusTargetDp(80) == 80 + CleanHeaderFit.TOP_DP, "a tall status line keeps the space above it");
-        require(CleanHeaderFit.statusTargetDp(12.5f * 1.327f) >= 48, "the 12.5 sp status line has a 48 dp target");
+        require(CleanHeaderFit.TOP_DP == 8, "the status line's text 8 dp under the status bar, as the widget dashboard's (owner, 17 Nov 2026)");
+        require(CleanHeaderFit.statusTargetDp(12.5f * 1.327f) < 30, "the 12.5 sp status line's band is the text and its top room, no empty 48 dp band above it");
         require(CleanHeaderFit.nameRowDp(10) == 48, "a short name keeps a full target");
         require(CleanHeaderFit.BUTTONS == 2, "two buttons beside the name, search and Settings, as the mock-up (no Edit)");
         require(CleanHeaderFit.nameRoomDp(308) == 308 - 2 * 48 - CleanHeaderFit.BUTTON_GAP_DP, "the name's room is the row less two buttons");

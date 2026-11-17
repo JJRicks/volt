@@ -486,10 +486,12 @@ public final class HubTestPages {
     }
 
     /**
-     * As {@link #requireEndClearOfDock(Instrumentation, MainActivity)}, and the page's scroll bar too (council P3 on #508):
-     * at Home's end its thumb ends the track, and where the dock covers the bar's column (a phone's edge-to-edge dock) the
-     * thumb must end at or above the dock's top, never under it; beside a wide window's centred dock it keeps its length.
-     * The bar is held on (no fade) while it is measured; atEnd, when given, runs then (a validation's picture of it).
+     * As {@link #requireEndClearOfDock(Instrumentation, MainActivity)}, and the page's scroll bar too. It was required to
+     * end above the dock (council P3 on #508); the owner then took the bar off Home (17 Nov 2026: "Let's kill the
+     * scrollbar on the home screen in Widgets and Clean"), and the dock shows only on Widgets Home, so no page with a bar
+     * sits over it: Home's scroller must have its vertical bar off, held off with fading off at its end (a bar would show
+     * then). The thumb mapping that kept a bar above the dock (HubDock.AboveDock) stays on that scroller and is unit-tested
+     * (tests/HubPagesTest, HubPages.barAboveDock). atEnd, when given, runs at the end (a validation's picture of it).
      */
     public static String requireEndClearOfDock(Instrumentation instrumentation, MainActivity activity, Runnable atEnd) {
         showDock(instrumentation, activity);
@@ -516,9 +518,8 @@ public final class HubTestPages {
             else if (barEnd > dockAt[1]) problem[0] = "Scrolled to its end, Widgets Home's Lock bar is still under the dock (" + seen[0] + ")";
         });
         if (problem[0] != null) throw new IllegalStateException(problem[0]);
-        // The scroll bar: held on and drawn at the end, then its thumb's place read back (API 29+, where a view hands out
-        // its thumb drawable; the bounds are the ones the last draw gave it).
-        if (android.os.Build.VERSION.SDK_INT < 29) return seen[0] + "; scroll bar not checked below API 29";
+        // No scroll bar on Home (owner, 17 Nov 2026): held on (no fade) at the end, a bar would be drawn now; the scroller
+        // must have none.
         onMain(instrumentation, () -> { ScrollView scroll = (ScrollView) field(activity, "scroll"); scroll.setScrollbarFadingEnabled(false); scroll.invalidate(); });
         instrumentation.waitForIdleSync();
         SystemClock.sleep(300);
@@ -526,24 +527,9 @@ public final class HubTestPages {
         try {
             if (atEnd != null) atEnd.run();
             onMain(instrumentation, () -> {
-                View view = (View) call(dock[0], "view");
                 ScrollView scroll = (ScrollView) field(activity, "scroll");
-                if (!scroll.canScrollVertically(-1)) { seen[0] += "; no scroll bar (Home fits the window)"; return; }
-                android.graphics.drawable.Drawable thumb = scroll.getVerticalScrollbarThumbDrawable();
-                if (thumb == null) { problem[0] = "Widgets Home's page scroller has no thumb drawable"; return; }
-                Rect bounds = thumb.getBounds();
-                int top = scroll.getScrollY(), bottom = top + scroll.getHeight();
-                if (bounds.isEmpty() || bounds.top < top || bounds.bottom > bottom) {
-                    problem[0] = "Widgets Home's scroll bar was not drawn at its end (thumb " + bounds.toShortString() + ", scroller " + top + ".." + bottom + ")";
-                    return;
-                }
-                int[] scrollAt = new int[2], dockAt = new int[2]; scroll.getLocationOnScreen(scrollAt); view.getLocationOnScreen(dockAt);
-                int thumbLeft = scrollAt[0] + bounds.left - scroll.getScrollX(), thumbRight = scrollAt[0] + bounds.right - scroll.getScrollX();
-                int thumbTop = scrollAt[1] + bounds.top - top, thumbBottom = scrollAt[1] + bounds.bottom - top;
-                boolean covered = thumbRight > dockAt[0] && thumbLeft < dockAt[0] + view.getWidth();
-                seen[0] += "; scroll bar thumb " + thumbLeft + ".." + thumbRight + " x " + thumbTop + ".." + thumbBottom + (covered ? " over the dock's columns" : " beside the dock");
-                if (covered && thumbBottom > dockAt[1])
-                    problem[0] = "Scrolled to its end, Widgets Home's scroll bar runs under the dock (" + seen[0] + ", dock top " + dockAt[1] + ")";
+                if (scroll.isVerticalScrollBarEnabled()) problem[0] = "Widgets Home's page scroller shows a vertical bar; Home has none (owner, 17 Nov 2026)";
+                else seen[0] += "; no page scroll bar on Home" + (scroll.canScrollVertically(-1) ? " (scrolled to its end)" : " (Home fits the window)");
             });
         } finally {
             onMain(instrumentation, () -> ((ScrollView) field(activity, "scroll")).setScrollbarFadingEnabled(true));

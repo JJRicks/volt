@@ -1440,30 +1440,69 @@ public final class HubValidation extends Instrumentation {
     }
 
     /**
-     * The page scroller's bar at the window's edge (the owner, 16 Nov: "Screen edge is reasonable probably"): Clean Home and
-     * a subject page (MainActivity's own scroller, with the side padding), Settings (its screen's own scroller) and Widgets Home.
+     * The page scroller's bar (the owner, 16 Nov: "Screen edge is reasonable probably"; 17 Nov: "Let's kill the scrollbar
+     * on the home screen in Widgets and Clean but we can keep it in submenus"): Clean Home and Widgets Home show none, on
+     * one pane or two (HubPages.pageScrollBar); a subject page (MainActivity's own scroller, with the side padding) and
+     * Settings (its screen's own scroller) keep it at the window's edge. Each is checked scrolled (Home scrolled down, the
+     * bar held on so a bar that is there would show) and pictured.
      */
     private void edgeScrollbars() throws Exception {
         requireHome("CleanHomeScreen");
         boolean wideClean = onMain(this::twoPanes);
-        requireEdgeScrollbar("Clean Home");
+        requireNoPageScrollbar("Clean Home");
         String subject = HubPages.SUBJECTS.get(0);
         tapTag("home-subject-" + subject);
         arrived(subject, HubPages.HOME, subject);
         requireEdgeScrollbar(subject);
         systemBack();
         requireHome("CleanHomeScreen");
+        // Settings scrolled, its bar held on: the picture shows the bar Home no longer has.
         tapTag("home-settings");
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         requireEdgeScrollbar("Settings");
+        scrolledPicture("settings-scrolled-bar");
         HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        scrolledPicture("clean-home-scrolled-no-bar");
+        requireNoPageScrollbar("Clean Home after Settings");
         switchStyle(WIDGETS);
         requireHome("DashboardScreen");
-        requireEdgeScrollbar("Widgets Home");
+        requireNoPageScrollbar("Widgets Home");
+        scrolledPicture("widgets-home-scrolled-no-bar");
         switchStyle(CLEAN);
         requireHome("CleanHomeScreen");
-        checks.add("Page scrollbar at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on Clean Home, " + subject + ", Settings and Widgets Home"
-                + (wideClean ? "; on two panes the page pane's scroller spans that pane, which reaches the window's edge" : ""));
+        checks.add("Page scrollbar (owner, 17 Nov): none on Clean Home and Widgets Home" + (wideClean ? " (both panes)" : "")
+                + "; at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on " + subject + " and Settings"
+                + (wideClean ? "; on two panes the page pane's scroller spans that pane, which reaches the window's edge" : "")
+                + "; Home's bar comes back off after Settings, which keeps its own");
+    }
+
+    /**
+     * Home shows no page scroll bar (the owner, 17 Nov 2026; HubPages.pageScrollBar): MainActivity's page scroller has its
+     * vertical bar off, and on two panes so has the scooter pane's. Main thread work only.
+     */
+    private void requireNoPageScrollbar(String where) {
+        main(() -> {
+            Object page = field(activity, "scroll");
+            require(page instanceof ScrollView, where + " has no page scroller");
+            require(!((ScrollView) page).isVerticalScrollBarEnabled(), where + "'s page scroller shows a vertical bar; Home has none (owner, 17 Nov)");
+            View left = root().findViewWithTag("hub-scooter-pane");
+            if (left != null) require(!left.isVerticalScrollBarEnabled(), where + "'s scooter pane shows a vertical bar");
+        });
+    }
+
+    /**
+     * The page scrolled a little way down with its bar held on (no fade), pictured, then back at its top: where the page
+     * has a bar it shows in the picture, and on Home none does. Fits a page that does not scroll as it is.
+     */
+    private void scrolledPicture(String name) throws Exception {
+        main(() -> { ScrollView scroll = (ScrollView) field(activity, "scroll"); scroll.setScrollbarFadingEnabled(false); scroll.scrollTo(0, Math.round(160 * activity.getResources().getDisplayMetrics().density)); scroll.invalidate(); });
+        settle();
+        try { screenshot(name); }
+        finally {
+            main(() -> { ScrollView scroll = (ScrollView) field(activity, "scroll"); scroll.scrollTo(0, 0); scroll.setScrollbarFadingEnabled(true); });
+            settle();
+        }
     }
 
     /**
@@ -1588,7 +1627,7 @@ public final class HubValidation extends Instrumentation {
             });
             dockStays(where + " with the Lock bar scrolled clear");
         }
-        // Pictured at its end with the scroll bar held on: the bar ends above the dock (council P3 on #508).
+        // Pictured at its end with fading held off: Home shows no scroll bar (owner, 17 Nov 2026).
         String end = HubTestPages.requireEndClearOfDock(this, activity, () -> {
             try { screenshot("widgets-home-end"); } catch (Exception error) { throw new IllegalStateException(error); }
         });

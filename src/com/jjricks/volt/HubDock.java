@@ -286,6 +286,10 @@ final class HubDock {
      * track, where the theme has one) now draw on a track that ends at the dock's top wherever the dock covers the bar's
      * column; beside a wide window's centred dock the bar keeps its whole length. Android 10 (API 29) and later: before
      * it a view can't take another thumb drawable, so there the bar still runs under the dock.
+     *
+     * <p>Widgets Home has no page scroll bar now (the owner, 17 Nov 2026; HubPages.pageScrollBar), so on Home the wrapper
+     * draws nothing. It stays on the scroller the dock pads, so a bar shown over the dock (should one come back) still ends
+     * at its top; its mapping is HubPages.barAboveDock, which tests/HubPagesTest checks.
      */
     private void barAboveDock(android.widget.ScrollView scroll) {
         if (Build.VERSION.SDK_INT < 29) return;
@@ -321,11 +325,8 @@ final class HubDock {
         @Override public void setBounds(int left, int top, int right, int bottom) {
             if (scroll != null) {
                 int start = scroll.getScrollY(), length = scroll.getHeight(), cover = coverOf(scroll, left, right);
-                if (cover > 0 && length > cover) {
-                    float scale = (length - cover) / (float) length;
-                    top = start + Math.round((top - start) * scale);
-                    bottom = start + Math.round((bottom - start) * scale);
-                }
+                top = HubPages.barAboveDock(top, start, length, cover);
+                bottom = HubPages.barAboveDock(bottom, start, length, cover);
             }
             super.setBounds(left, top, right, bottom);
         }

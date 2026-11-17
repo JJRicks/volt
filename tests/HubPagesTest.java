@@ -22,11 +22,55 @@ public final class HubPagesTest {
         dock();
         dockMorph();
         dockKeyboard();
+        homeScrollAndTop();
+        barAboveDock();
         riding();
         connectionLine();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
         System.out.println("HubPages: " + checks + " checks passed");
+    }
+
+    /**
+     * The owner, 17 Nov 2026: no page scroll bar on Home (either style, either pane), every other page keeps #522's; and
+     * Home's header right under the status bar, every other page keeping its scroller's top room.
+     */
+    private static void homeScrollAndTop() {
+        require(!HubPages.pageScrollBar(HubPages.HOME), "Home has no page scroll bar");
+        for (String page : HubPages.ALL) if (!page.equals(HubPages.HOME)) require(HubPages.pageScrollBar(page), page + " keeps its page scroll bar");
+        require(HubPages.pageScrollBar(HubPages.SETTINGS) && HubPages.pageScrollBar(HubPages.SUBJECTS.get(0)), "Settings and a subject keep the bar");
+        require(HubPages.pageTopDp(HubPages.HOME, false) == 0, "Home's header starts right under the status bar");
+        require(HubPages.pageTopDp(HubPages.HOME, true) == HubPages.PAGE_TOP_DP, "In tabletop posture Home's lower pane keeps its room");
+        for (String page : HubPages.ALL) if (!page.equals(HubPages.HOME)) {
+            require(HubPages.pageTopDp(page, false) == HubPages.PAGE_TOP_DP && HubPages.pageTopDp(page, true) == HubPages.PAGE_TOP_DP, page + " keeps its top room");
+        }
+    }
+
+    /**
+     * The page scroll bar's thumb over the dock (HubDock.AboveDock, council P3 on #508): mapped onto the track above the
+     * dock, it keeps its proportions, ends at the dock's top at the page's end, and stays put with no dock over its column.
+     */
+    private static void barAboveDock() {
+        int length = 2000, cover = 400, start = 5000;
+        // Nothing over the bar's column, or a cover the whole height: as the platform placed it.
+        require(HubPages.barAboveDock(start + 1234, start, length, 0) == start + 1234, "No dock: the bar where it is");
+        require(HubPages.barAboveDock(start + 1234, start, length, length) == start + 1234, "A cover the scroller's height: unchanged");
+        require(HubPages.barAboveDock(start + 1234, start, length, -10) == start + 1234, "A negative cover counts as none");
+        // The track's ends: its top stays, its bottom (the scroller's) lands on the dock's top.
+        require(HubPages.barAboveDock(start, start, length, cover) == start, "The track's top stays");
+        require(HubPages.barAboveDock(start + length, start, length, cover) == start + length - cover, "The track's end is the dock's top");
+        // A thumb keeps its proportions: half way down the whole height is half way down the shortened track.
+        int top = HubPages.barAboveDock(start + 900, start, length, cover), bottom = HubPages.barAboveDock(start + 1100, start, length, cover);
+        require(top == start + 720 && bottom == start + 880, "The thumb scaled by the share above the dock: " + top + ".." + bottom);
+        // At the page's end the thumb's bottom is the track's end: never under the dock.
+        require(HubPages.barAboveDock(start + length, start, length, cover) <= start + length - cover, "At the end the thumb ends at the dock's top");
+        // Monotonic: a lower edge never maps above a higher one.
+        int last = Integer.MIN_VALUE;
+        for (int edge = start; edge <= start + length; edge += 37) {
+            int mapped = HubPages.barAboveDock(edge, start, length, cover);
+            require(mapped >= last && mapped >= start && mapped <= start + length - cover, "Monotonic and inside the track: " + edge);
+            last = mapped;
+        }
     }
 
     private static void tree() {
