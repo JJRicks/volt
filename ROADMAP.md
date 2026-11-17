@@ -15,7 +15,7 @@ Native speakers are welcome to spot-check a beta language, especially its safety
 
 ## Features
 
-- **Reorder More's menu,** as the dashboard and the Scooter tab already can be.
+- **Reorder Settings' rows** (once More's menu), as the dashboard already can be.
 
 ## Investigating
 
