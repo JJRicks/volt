@@ -199,6 +199,7 @@ public final class HubValidation extends Instrumentation {
                 search();
                 moments();
                 widgets();
+                edgeScrollbars();
             }
             noCommands();
             }
@@ -1165,6 +1166,57 @@ public final class HubValidation extends Instrumentation {
         requireHome("CleanHomeScreen");
         main(() -> require(field(activity, "dock") == null && root().findViewWithTag("hub-dock") == null, "Clean Home kept the dock"));
         checks.add("Home style switches between Clean and Widgets in place; only Widgets has the dock");
+    }
+
+    /**
+     * The page scroller's bar at the window's edge (the owner, 16 Nov: "Screen edge is reasonable probably"): Clean Home and
+     * a subject page (MainActivity's own scroller, with the side padding), Settings (its screen's own scroller) and Widgets Home.
+     */
+    private void edgeScrollbars() throws Exception {
+        requireHome("CleanHomeScreen");
+        requireEdgeScrollbar("Clean Home");
+        String subject = HubPages.SUBJECTS.get(0);
+        tapTag("home-subject-" + subject);
+        arrived(subject, HubPages.HOME, subject);
+        requireEdgeScrollbar(subject);
+        systemBack();
+        requireHome("CleanHomeScreen");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        requireEdgeScrollbar("Settings");
+        HubTestPages.back(this, activity);
+        switchStyle(WIDGETS);
+        requireHome("DashboardScreen");
+        requireEdgeScrollbar("Widgets Home");
+        switchStyle(CLEAN);
+        requireHome("CleanHomeScreen");
+        checks.add("Page scrollbar at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on Clean Home, " + subject + ", Settings and Widgets Home");
+    }
+
+    /**
+     * MainActivity's page scroller draws its vertical bar over its padding (SCROLLBARS_OUTSIDE_OVERLAY), its edges are the
+     * window's content edges (inside the system bars), and the bar fits the gutter on its side (the scroller's padding plus
+     * its content's), so it never covers the content.
+     */
+    private void requireEdgeScrollbar(String where) {
+        main(() -> {
+            Object page = field(activity, "scroll");
+            require(page instanceof ScrollView, where + " has no page scroller");
+            ScrollView scroll = (ScrollView) page;
+            require(scroll.getScrollBarStyle() == View.SCROLLBARS_OUTSIDE_OVERLAY, where + "'s page scrollbar style is " + scroll.getScrollBarStyle()
+                    + ", expected SCROLLBARS_OUTSIDE_OVERLAY (" + View.SCROLLBARS_OUTSIDE_OVERLAY + ")");
+            require(scroll.isVerticalScrollBarEnabled(), where + "'s page scroller has no vertical bar");
+            View window = (View) field(activity, "root");
+            Rect at = windowRect(scroll), frame = windowRect(window);
+            int left = frame.left + window.getPaddingLeft(), right = frame.right - window.getPaddingRight();
+            require(at.left == left && at.right == right, where + "'s page scroller spans " + at.left + ".." + at.right + " px, the window's content " + left + ".." + right);
+            boolean rtl = scroll.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            View content = scroll.getChildCount() > 0 ? scroll.getChildAt(0) : null;
+            int gutter = rtl ? scroll.getPaddingLeft() + (content == null ? 0 : content.getPaddingLeft())
+                    : scroll.getPaddingRight() + (content == null ? 0 : content.getPaddingRight());
+            require(scroll.getVerticalScrollbarWidth() > 0 && scroll.getVerticalScrollbarWidth() <= gutter, where + "'s page scrollbar is "
+                    + scroll.getVerticalScrollbarWidth() + " px wide, its gutter " + gutter + " px");
+        });
     }
 
     /**
