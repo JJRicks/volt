@@ -1073,7 +1073,9 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         requireSamePane(pane, "Search from the keyboard");
         hideKeyboard();
-        systemBack();
+        // Search asks for a keyboard (MainActivity.focusPageSearch) that can show after hideKeyboard on a loaded emulator
+        // and take the first Back (#394 council review, second round: hub-725 failed 3 of 3 here on a second emulator).
+        backPastKeyboard(this::onHome, "Back from the search opened by the keyboard did not return to Home");
         requireHome("CleanHomeScreen");
         requireStack(HubPages.HOME);
         checks.add("Wide Home: the search field takes focus from a keyboard, not a tap, and Enter opens Search in the page pane with the scooter pane unchanged");
