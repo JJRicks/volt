@@ -225,8 +225,8 @@ public final class ChargePictureTest {
         boolean wide = WideLayout.wide(width, text);
         int inner = TopArea.heightDp(width, height, wide, text);
         int across = Math.min(width - 36, 560);
-        int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f);
-        int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
+        int[] pill = ChargingFitTest.pill(ChargingFit.LINE_SP * text, across, 1);
+        int oneLine = pill[0], line = pill[1];
         int percent = Math.round(ChargingFit.PERCENT_SP * text * 1.17f);
         float tile = 20 + 12 * text * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP * text, ChargingFit.VALUE_SP * text * 1.33f);
         int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);
@@ -452,8 +452,8 @@ public final class ChargePictureTest {
         boolean wide = WideLayout.wide(width, fontScale);
         int inner = TopArea.heightDp(width, height, wide, fontScale);
         int across = Math.min(width - 36, 560);
-        int oneLine = Math.round(toDp(ChargingFit.LINE_SP, fontScale, table) * 1.17f);
-        int line = 12.7f * toDp(ChargingFit.LINE_SP, fontScale, table) > across ? 2 * oneLine : oneLine;
+        int[] pill = ChargingFitTest.pill(toDp(ChargingFit.LINE_SP, fontScale, table), across, 1);
+        int oneLine = pill[0], line = pill[1];
         int percent = Math.round(toDp(72, fontScale, table) * ChargingFit.PERCENT_SP / 72f * 1.17f);
         float tile = 20 + toDp(12, fontScale, table) * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP, toDp(ChargingFit.VALUE_SP, fontScale, table) * 1.33f);
         int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);

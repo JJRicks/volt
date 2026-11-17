@@ -5,8 +5,9 @@ package com.jjricks.volt;
  * the Layout Plan's clean-charging mock-up draws it (the contributor's decisions on #383, 13 Nov 2026). Pure Java, so
  * the JVM suite tests it at the sizes the maintainers check (tests/ChargingFitTest.java).
  *
- * <p>The view sits on the page background and stacks, top to bottom: the muted "Charging to your N% limit" line,
- * centred; a stage holding the big percentage at its top, centred, with the scooter's photo large under it and
+ * <p>The view sits on the page background and stacks, top to bottom: the line, Widgets' red ⚡ "Charging to your N%
+ * limit" pill (the owner and a contributor, 17 Nov 2026; it was a plain muted line), centred; a stage holding the
+ * big percentage at its top, centred, with the scooter's photo large under it and
  * reaching up behind the number (a soft dark fade behind the number keeps it readable), the red glow under the wheels
  * and the track along the stage's bottom; then the two readings (charging power and the time to the limit or to
  * full). The photo takes whatever height the stage has, so it is as large as the slot allows.
@@ -36,8 +37,12 @@ package com.jjricks.volt;
 final class ChargingFit {
     /** The track's thickness (the mock-up's 7 dp) and how far the limit's tick reaches above and below it. */
     static final int TRACK_DP = 7, TICK_DP = 4;
-    /** The space between the line and the stage (the top of the percentage and of the photo). */
-    static final int LINE_GAP_DP = 8;
+    /**
+     * The space between the line and the stage (the top of the percentage and of the photo): 4 dp under the pill, whose
+     * own 4 dp padding below its words keeps the mock-up's 8 dp between the words and the stage (it was 8 dp under the
+     * plain line).
+     */
+    static final int LINE_GAP_DP = 4;
     /** The space between the scooter's wheels and the track, and between a stage-filling percentage and the track. */
     static final int PHOTO_GAP_DP = 8;
     /** The space between the track and the readings: the mock-up's 24 dp, closing to 12 dp on a short slot. */
@@ -52,8 +57,14 @@ final class ChargingFit {
     static final int VALUE_SP = 21, VALUE_MIN_DP = 28, PAIR_DP = 240;
     /** The percentage's text size (sp, before the text scale): the Layout Plan's 60 sp, as on the battery card. */
     static final int PERCENT_SP = 60;
-    /** The line's text size (sp, before the text scale): the mock-up's 15 sp. */
-    static final float LINE_SP = 15;
+    /**
+     * The line: Widgets' ⚡ Charging pill on Clean too (the owner and a contributor, 17 Nov 2026; it was the mock-up's
+     * plain 15 sp line). Its text size (sp, before the text scale), its padding above and below, at its start and at
+     * its end, and the bolt before the words with its gap (dp, not scaled). It is the text plus 8 dp tall (about 23 dp
+     * at 1x, 5 dp taller than the plain line was) and 41 dp wider than its words; the plan takes its measured height.
+     */
+    static final float LINE_SP = 12.5f;
+    static final int LINE_PAD_DP = 4, LINE_START_DP = 10, LINE_END_DP = 12, LINE_GLYPH_DP = 14, LINE_GLYPH_GAP_DP = 5;
     /** The percentage keeps half its size while the line shows; without the line it may get as small as this share. */
     static final float HALF_SCALE = .5f, PERCENT_MIN_SCALE = .3f;
     /** The least share of its size the percentage takes over the readings once the track has made way (9 sp at 1x, about 13 sp at 1.4x). */

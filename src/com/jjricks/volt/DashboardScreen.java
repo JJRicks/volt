@@ -2625,35 +2625,25 @@ public final class DashboardScreen implements AppScreen {
             setGravity(Gravity.CENTER_HORIZONTAL);
             setPadding(0, ui.dp(2), 0, ui.dp(14));
             setVisibility(View.GONE);
-            chip = ui.text(T.dashboardCharging(), 12.5f, false);
-            chip.setTypeface(ui.semibold());
-            chip.setTextColor(ui.accent);
-            chip.setGravity(Gravity.CENTER_VERTICAL);
-            chip.setPadding(ui.dp(10), ui.dp(4), ui.dp(12), ui.dp(4));
-            chip.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 34 : 24), 100, 0));
-            chip.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accent, 14), null, null, null);
-            chip.setCompoundDrawablePadding(ui.dp(5));
-            chipShort = clean ? ui.text(HubText.charging().render(), 12.5f, false) : null;
+            chip = ui.text(T.dashboardCharging(), ChargingFit.LINE_SP, false);
+            pill(chip);
+            chipShort = clean ? ui.text(HubText.charging().render(), ChargingFit.LINE_SP, false) : null;
             if (clean) {
-                // On the page background, no card: a plain muted line (the mock-up's 15 sp), centred, no chip, no bolt.
+                // On the page background, no card: Widgets' red ⚡ Charging pill, centred over the stage (the owner and a
+                // contributor, 17 Nov 2026: "the clean home charging screen is missing the ⚡️Charging red pill that is
+                // present on widgets"; it was a plain muted 15 sp line, no chip, no bolt). Its words wrap to two lines
+                // where they must, and give way to "Charging" where the slot is short (ChargingFit).
+                pill(chipShort);
                 setPadding(0, 0, 0, 0);
                 setClipChildren(false);
                 setClipToPadding(false);
-                for (TextView line : new TextView[] {chip, chipShort}) {
-                    line.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, line.getTextSize() * ChargingFit.LINE_SP / 12.5f);
-                    line.setTypeface(ui.regular());
-                    line.setTextColor(ui.muted);
-                    line.setGravity(Gravity.CENTER);
-                    line.setPadding(0, 0, 0, 0);
-                    line.setBackground(null);
-                    line.setCompoundDrawablesRelative(null, null, null, null);
-                }
+                chip.setGravity(Gravity.CENTER);
                 chip.setMaxLines(2);
                 chipShort.setMaxLines(1);
                 chipShort.setVisibility(View.GONE);
             }
-            addView(chip, new LinearLayout.LayoutParams(clean ? -1 : -2, -2));
-            if (clean) addView(chipShort, new LinearLayout.LayoutParams(-1, -2));
+            addView(chip, new LinearLayout.LayoutParams(-2, -2));
+            if (clean) addView(chipShort, new LinearLayout.LayoutParams(-2, -2));
             percent = ui.text("—", 72, true);
             percent.setGravity(Gravity.CENTER);
             percent.setLineSpacing(0, 1);
@@ -2841,8 +2831,10 @@ public final class DashboardScreen implements AppScreen {
             int inner = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom();
             int across = MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY), free = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED);
             percentScale(1);
-            chip.measure(across, free);
-            chipShort.measure(across, free);
+            // The pill is as wide as its words, at most the slot's width.
+            int upTo = MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST);
+            chip.measure(upTo, free);
+            chipShort.measure(upTo, free);
             percent.measure(free, free);
             rows.measure(across, free);
             int fullPercent = percent.getMeasuredHeight();
@@ -3085,7 +3077,18 @@ public final class DashboardScreen implements AppScreen {
                     72, metrics.density);
         }
 
-        /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
+        /** The red ⚡ Charging pill (Widgets' and Clean's): accent text and bolt on an accent tint (ChargingFit's LINE_ sizes). */
+        private void pill(TextView line) {
+            line.setTypeface(ui.semibold());
+            line.setTextColor(ui.accent);
+            line.setGravity(Gravity.CENTER_VERTICAL);
+            line.setPadding(ui.dp(ChargingFit.LINE_START_DP), ui.dp(ChargingFit.LINE_PAD_DP), ui.dp(ChargingFit.LINE_END_DP), ui.dp(ChargingFit.LINE_PAD_DP));
+            line.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 34 : 24), 100, 0));
+            line.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accent, ChargingFit.LINE_GLYPH_DP), null, null, null);
+            line.setCompoundDrawablePadding(ui.dp(ChargingFit.LINE_GLYPH_GAP_DP));
+        }
+
+        /** Clean's pill text: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
         private CharSequence cleanLine(boolean hasLimit, double limit) {
             return (hasLimit ? HubText.chargingToLimit(Fmt.percent(Fmt.integerNumber(Math.round(limit)))) : HubText.charging()).render();
         }
