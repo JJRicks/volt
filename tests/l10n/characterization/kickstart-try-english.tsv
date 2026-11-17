@@ -41,32 +41,32 @@ variant KickStartTry.UT5 label 81	81 km/h
 variant KickStartTry.UT5 label 100	100 km/h
 variant KickStartTry.UT5 label 101	101 km/h
 variant KickStartTry.UT5 label 255	255 km/h
-caution KickStartTry.OEM note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.OEM note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution KickStartTry.OEM note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.OEM note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution KickStartTry.OEM ut5 0	null
 caution KickStartTry.OEM lab 0	null
-caution KickStartTry.UT5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution KickStartTry.UT5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution KickStartTry.UT5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution KickStartTry.UT5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution KickStartTry.UT5 ut5 0	null
 caution KickStartTry.UT5 lab 0	null
 refusal encode KickStartTry.OEM -1	The official app doesn't offer this value
