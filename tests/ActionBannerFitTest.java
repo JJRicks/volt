@@ -71,7 +71,10 @@ public final class ActionBannerFitTest {
                 {"pt", "Relógio da trotinete", "Sincronizar"}, {"pt-BR", "Relógio do patinete", "Sincronizar"}, {"es", "Reloj del patinete", "Sincronizar"},
                 {"fr", "Horloge de la trottinette", "Synchroniser"}, {"it", "Orologio del monopattino", "Sincronizza"}, {"pl", "Zegar hulajnogi", "Synchronizuj"},
                 {"sv", "Elsparkcykelns klocka", "Synkronisera"}, {"tr", "Scooter saati", "Eşitle"}};
-        int moved = 0, rewrapped = 0, cut = 0, broke524 = 0;
+        int moved = 0, rewrapped = 0, cut = 0, broke524 = 0, gone = 0;
+        // The clock spinner hides keeping its room (INVISIBLE): MainActivity hides it by this, BannerBody counts it so.
+        require(ActionBannerFit.reserved(spinner, true, false) == spinner && ActionBannerFit.reserved(spinner, false, true) == spinner
+                && ActionBannerFit.reserved(spinner, false, false) == 0, "the spinner's room: kept while it shows, and hidden only when it keeps its room");
         for (int window : new int[]{220, 240, 260, 280, 300, 320, 344, 360, 412})
             for (float scale : new float[]{1f, 1.1f, 1.15f, 1.3f, 1.35f, 1.4f})
                 for (String[] language : languages) {
@@ -82,12 +85,18 @@ public final class ActionBannerFitTest {
                     float text = width(label, language[2], context);
                     float pill = ActionBannerFit.pill(text, ActionBannerFit.PILL_PAD_DP, ActionBannerFit.PILL_MIN_DP);
                     String at = language[0] + " at " + window + " dp, " + scale + "x";
-                    // As BannerBody decides: the pill is the action (the spinner is not in it), the spinner's room is kept
-                    // out of the name's whether it shows or not, and the name's lines beside the pill count against its two.
-                    int linesBeside = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, false, false) - tile, nameWidth).size();
-                    boolean hidden = ActionBannerFit.actionBelow(room, pill, gap, word, spinner, linesBeside, 2);
-                    boolean showing = ActionBannerFit.actionBelow(room, pill, gap, word, spinner, linesBeside, 2);
-                    require(hidden == showing, at + ": the same with the spinner shown and hidden");
+                    // As BannerBody decides: the pill is the action (the spinner is not in it), the spinner's room is what
+                    // ActionBannerFit.reserved counts for it idle (hidden as ASIDE_KEEPS_ROOM says) and syncing (shown), and
+                    // the name's lines beside the pill count against its two. Kept, the decision is the same in both.
+                    float idleRoom = ActionBannerFit.reserved(spinner, false, ActionBannerFit.ASIDE_KEEPS_ROOM), syncRoom = ActionBannerFit.reserved(spinner, true, ActionBannerFit.ASIDE_KEEPS_ROOM);
+                    require(idleRoom == syncRoom && syncRoom == spinner, at + ": the spinner's room the same idle (" + idleRoom + ") and syncing (" + syncRoom + ")");
+                    boolean hidden = below(language[1], room, pill, gap, word, idleRoom, tile, nameWidth);
+                    boolean showing = below(language[1], room, pill, gap, word, syncRoom, tile, nameWidth);
+                    require(hidden == showing, at + ": Sync beside or under the same with the spinner shown and hidden");
+                    // Hidden as GONE (its room given back while idle), the row would change somewhere when a sync starts.
+                    boolean goneBelow = below(language[1], room, pill, gap, word, 0, tile, nameWidth);
+                    if (goneBelow != showing || !lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, 0, goneBelow, ActionBannerFit.asideByPill(room, pill, 0, text, word)) - tile, nameWidth)
+                            .equals(lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, showing, ActionBannerFit.asideByPill(room, pill, spinner, text, word)) - tile, nameWidth))) gone++;
                     // #506's rule, the spinner inside the action and so counted only while it shows: it moved the pill.
                     if (ActionBannerFit.actionBelow(room, pill, gap, word) != ActionBannerFit.actionBelow(room, pill + spinner, gap, word)) moved++;
                     // The name's lines: its room is the same idle and syncing (the spinner keeps its room, shown or not), in
@@ -95,9 +104,10 @@ public final class ActionBannerFitTest {
                     // re-wrap (and Sync, under it, move down) when a sync started or ended.
                     // Under the name, the spinner after Sync where both fit, or where its room on the name's line would break
                     // the name's longest word (council review of #524); decided from the texts and the room alone.
-                    boolean byPill = ActionBannerFit.asideByPill(room, pill, spinner, text, word);
-                    java.util.List<String> idle = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, showing, byPill) - tile, nameWidth);
-                    java.util.List<String> syncing = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, spinner, hidden, byPill) - tile, nameWidth);
+                    boolean byPill = ActionBannerFit.asideByPill(room, pill, syncRoom, text, word);
+                    require(byPill == ActionBannerFit.asideByPill(room, pill, idleRoom, text, word), at + ": the spinner's place the same idle and syncing");
+                    java.util.List<String> idle = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, idleRoom, hidden, ActionBannerFit.asideByPill(room, pill, idleRoom, text, word)) - tile, nameWidth);
+                    java.util.List<String> syncing = lines(language[1], ActionBannerFit.wordsRoom(room, pill, gap, syncRoom, showing, byPill) - tile, nameWidth);
                     require(idle.equals(syncing), at + ": the name wraps the same idle " + idle + " and syncing " + syncing);
                     boolean below520 = ActionBannerFit.actionBelow(room, pill, gap, word, spinner);
                     float room520 = (below520 ? room : room - pill - gap) - tile;
@@ -135,6 +145,7 @@ public final class ActionBannerFitTest {
         require(moved > 0, "#506's rule moves the pill somewhere in this matrix (" + moved + " cases), so the check above has teeth");
         require(rewrapped > 0, "#520's name re-wraps somewhere in this matrix (" + rewrapped + " cases), so the check above has teeth");
         require(cut > 0, "#520's rule cuts the name somewhere in this matrix (" + cut + " cases), so the check above has teeth");
+        require(gone > 0, "an idle spinner that gave its room back (GONE) would change the row somewhere in this matrix (" + gone + " cases), so the checks above have teeth");
         require(broke524 > 0, "#524's rule breaks the name's longest word somewhere in this matrix (" + broke524 + " cases), so the check above has teeth");
         // The council's cases. German at 1.4x on 412 dp: under the name, syncing or not (main put it beside, then under).
         java.awt.Font name14 = regular.deriveFont(15 * 1.4f), label14 = bold.deriveFont(12.5f * 1.4f);
@@ -215,6 +226,12 @@ public final class ActionBannerFitTest {
         }
         require(!ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 2, 2) && ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 3, 2) && !ActionBannerFit.actionBelow(100, 20, 8, 10, 0, 9, 0),
                 "lines count only against a limit");
+    }
+
+    /** As BannerBody decides Sync beside or under the name with {@code reserve} counted for the spinner: two lines beside. */
+    private static boolean below(String name, float room, float pill, float gap, float word, float reserve, float tile, ActionBannerFit.Width width) {
+        int linesBeside = lines(name, ActionBannerFit.wordsRoom(room, pill, gap, reserve, false, false) - tile, width).size();
+        return ActionBannerFit.actionBelow(room, pill, gap, word, reserve, linesBeside, 2);
     }
 
     /**

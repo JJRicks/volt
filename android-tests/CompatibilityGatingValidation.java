@@ -226,6 +226,10 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                 require(clockKnown == !pid.equals("39991"), label + ": clock row is offered for the UT5 MAX and the mapped group only");
                 CapabilityResolver.Decision clock = ble.decision("clock_sync");
                 require(((View)field(screen, "clockButton")).isEnabled() == (clock.available() || clock.blockedByRide()), label + ": clock row enabled state");
+                // With no sync running the clock row's spinner is hidden but keeps its room (INVISIBLE, never GONE), so the
+                // name does not re-wrap and Sync does not move when a sync starts or ends (council review of #524).
+                if (clockKnown && !"clock_sync".equals(ble.pending()))
+                    require(((View)field(screen, "clockSpinner")).getVisibility() == View.INVISIBLE, label + ": the idle clock spinner keeps its room (INVISIBLE, not GONE)");
                 // The top speed card leads Controls.
                 View topSpeed = (View)field(field(screen, "topSpeed"), "card");
                 CapabilityResolver.Decision speed = ble.decision("maximum_speed");

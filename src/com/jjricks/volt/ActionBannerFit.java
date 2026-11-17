@@ -15,6 +15,22 @@ final class ActionBannerFit {
     /** The gap between the words and the pill beside them (dp): the words' end margin. */
     static final int GAP_DP = 8;
 
+    /**
+     * Whether what comes and goes beside the words (the clock row's spinner) keeps its room while hidden (INVISIBLE), so
+     * the row is the same idle and syncing (council review of #520). MainActivity hides the clock spinner by this, and
+     * BannerBody counts its room by {@link #reserved}; false would give the room back while idle (GONE) and re-wrap the
+     * name, or move Sync, when a sync starts or ends.
+     */
+    static final boolean ASIDE_KEEPS_ROOM = true;
+
+    /**
+     * The room counted for what comes and goes beside the words ({@code reserve} wide): all of it while it shows, and
+     * while hidden only if it keeps its room ({@code keepsRoom}: INVISIBLE, not GONE).
+     */
+    static float reserved(float reserve, boolean showing, boolean keepsRoom) {
+        return showing || keepsRoom ? Math.max(0f, reserve) : 0f;
+    }
+
     /** A text's width on one line, in the same unit as the room (pixels on a device). */
     interface Width { float of(String text); }
 

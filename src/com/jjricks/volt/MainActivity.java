@@ -2686,7 +2686,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(lightsBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(lightsBody.getChildAt(0));lightsBody.addView(line,0,new LinearLayout.LayoutParams(-1,design.dp(1)));}
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             clockLine=new SettingLine("history",M.mainRowClock(),null);
-            clockSpinner=new Spinner();clockSpinner.setVisibility(View.INVISIBLE);
+            clockSpinner=new Spinner();clockSpinner.setVisibility(idleAside());
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
             // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
@@ -3013,7 +3013,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
             clockLine.name.setTextColor(clockReady?design.text:design.muted);
             // Results are row state: a spinner while sending, then "Sent 14:02" (no clock readback exists) or a short failure.
-            clockSpinner.setVisibility(clockPending?View.VISIBLE:View.INVISIBLE);
+            clockSpinner.setVisibility(clockPending?View.VISIBLE:idleAside());
             String clock=ble==null?null:ble.commandResults().get("clock_sync");String chip=clockPending?null:resultChip(ble,"clock_sync");
             long sent=ble==null?0:ble.commandResultTime("clock_sync");
             boolean accepted=!clockPending&&clock!=null&&clock.startsWith("Accepted")&&sent>0;
@@ -3225,6 +3225,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The clock row's spinner with its margin (rowSpinnerSize), kept out of the Sync pill's decision (ActionBannerFit). */
     static final int CLOCK_SPINNER_ROOM_DP=30;
+    /** How the clock row's spinner hides while no sync runs: keeping its room (ActionBannerFit.ASIDE_KEEPS_ROOM), INVISIBLE. */
+    private static int idleAside(){return ActionBannerFit.ASIDE_KEEPS_ROOM?View.INVISIBLE:View.GONE;}
     private LinearLayout.LayoutParams rowSpinnerSize(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(20),design.dp(20));p.setMarginStart(design.dp(10));return p;}
     /** A small red chip for a failed change; it sits on the row just before the value or switch. */
     private TextView failureChip(){
@@ -3355,6 +3357,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean below=false,byPill=false;int side=pad;
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
+                // The room the aside takes: while it shows, or hidden but keeping its room (INVISIBLE, never GONE).
+                float reserve=aside==null?this.reserve:ActionBannerFit.reserved(this.reserve,aside.getVisibility()==VISIBLE,aside.getVisibility()!=GONE);
                 // The pill's own width: its label with its own padding (ActionBannerFit.pill), whatever padding a narrow
                 // window left it with last time, so the decision never depends on that.
                 action.measure(MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED),MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED));
