@@ -378,10 +378,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Wyniki prób pozostają na tym telefonie, dopóki nie zostaną uwzględnione w wysłanym przez Ciebie raporcie zgodności lub dopóki ich nie wyczyścisz."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Funkcje oferowane przez oficjalną aplikację dla Twojego modelu pozostają w sekcji „Ustawienia hulajnogi”. Limity prędkości, ładowanie, blokada, PIN, odblokowanie zbliżeniowe i zegar nigdy nie są tutaj dodawane. Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Funkcje oferowane przez oficjalną aplikację dla Twojego modelu pozostają w sekcji „Ustawienia hulajnogi”. Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Aplikacja Volt nigdy nie zmienia oprogramowania sprzętowego.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -402,8 +398,6 @@
     <string name="more_lab_intro_untested">Oficjalna aplikacja nie oferuje tych funkcji dla %1$s. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">Oficjalna aplikacja oferuje te funkcje dla %1$s, ale aplikacja Volt nie przetestowała ich w tym modelu. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Brak funkcji do wypróbowania dla %1$s: oficjalna aplikacja oferuje już funkcje, które aplikacja Volt mogłaby wypróbować. Znajdują się w sekcji „Ustawienia hulajnogi”.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Aplikacja Volt nie wysyła do tego produktu żadnych poleceń dla hulajnogi.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -412,8 +406,6 @@
     <string name="more_lab_empty_conflict">Model ID tej hulajnogi nie jest zgodny z jej numerem seryjnym, dlatego aplikacja Volt nie oferuje funkcji do wypróbowania.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">Oficjalna aplikacja nie zawiera tego modelu, więc aplikacja Volt nie może ustalić, których funkcji w nim brakuje. Nie ma jeszcze nic do wypróbowania.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Najpierw należy zidentyfikować model na ekranie „Hulajnoga”. Aplikacja Volt wyświetli wtedy, co można wypróbować.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Aby zobaczyć, co można wypróbować, należy połączyć się z hulajnogą.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -615,8 +607,6 @@
     <string name="more_about_notifications_sub">Powiadomienie o nagrywaniu z przyciskiem „Zatrzymaj”</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Twoje dane</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">Wszystkie dane pozostają na tym telefonie. Opcja „Kopia zapasowa i przywracanie” znajduje się w sekcji „Więcej”.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Mapa online</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->

@@ -125,6 +125,9 @@ public final class StatsScreen implements AppScreen {
     /** paneHosted: shown in a pane beside another page (hub layout plan, PR 13), so never in two panes of its own. */
     StatsScreen(ScreenHost host, boolean paneHosted) { this(host, paneHosted, null); }
 
+    /** The reading Readings shows by itself (a Hub search result's), or null: none, or the owner typed a search of their own. */
+    String pinnedReading() { return pinned; }
+
     /** pin: a reading's key to show by itself on Readings for this visit (a Hub search result), or null. */
     StatsScreen(ScreenHost host, boolean paneHosted, String pin) {
         this.host = host; ui = host.ui(); service = host.service(); preferences = service.settings;
@@ -145,6 +148,9 @@ public final class StatsScreen implements AppScreen {
         String[] sections = wide ? WIDE_SECTIONS : SECTIONS;
         sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sectionLabels(sections), choice -> selectSection(sections[choice]));
         sectionTabs.useCompactPadding();
+        // Every section's name whole at every width and text size: one row while the names fit, else balanced rows of
+        // equal columns (SelectorWrap), never a name cut at the strip's end (344 dp at 1.4x showed "Diagno").
+        sectionTabs.setWrapChoices(true); sectionTabs.setBalancedRows(true);
         sectionTabs.setTag("live-stats-sections");
         sectionTabs.select(java.util.Arrays.asList(sections).indexOf(selectedSection), false);
         LinearLayout tabHolder = vertical();
@@ -321,6 +327,11 @@ public final class StatsScreen implements AppScreen {
         for (int i = 0; i < sections.length; i++) labels[i] = T.render(SECTION_LABELS[known.indexOf(sections[i])]);
         return labels;
     }
+    /**
+     * Readings' tab label ("Readings"), in the current language: Hub search's heading over reading results when every one
+     * is a saved value (HubSearch.readingsAllSaved), where its own "Live readings" would be wrong.
+     */
+    static String readingsTitle() { return sectionLabels(new String[] {"Readings"})[0]; }
     private static String validSection(String section) {
         for (String known : SECTIONS) if (known.equals(section)) return known;
         return "Overview";

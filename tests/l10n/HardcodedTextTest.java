@@ -53,7 +53,8 @@ public final class HardcodedTextTest {
             equal(model, shown, "model phrase " + model);
             equal(HardcodedTextEnglishTest.Base.labIntro(true, true, model), T.moreLabIntroUntested(shown), "untested intro " + model);
             equal(HardcodedTextEnglishTest.Base.labIntro(false, true, model), T.moreLabIntroVerify(shown), "verify intro " + model);
-            equal(HardcodedTextEnglishTest.Base.labNothingOem(model), T.moreLabEmptyOem(shown), "nothing to try " + model);
+            // The base's place, Scooter settings, became "on their own pages" (l10n/english-changes.tsv, more_lab_empty_oem).
+            equal(HardcodedTextEnglishTest.Base.labNothingOem(model).replace("They're in Scooter settings.", "They're on their own pages."), T.moreLabEmptyOem(shown), "nothing to try " + model);
             equal(HardcodedTextEnglishTest.Base.sheetHeading(true, model), T.moreLabSheetUnverified(shown), "unverified " + model);
             equal(HardcodedTextEnglishTest.Base.sheetHeading(false, model), T.moreLabSheetUntested(shown), "untested " + model);
         }

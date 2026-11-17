@@ -37,7 +37,7 @@ public final class ChargingFitTest {
 
     private static Case window(int width, int height, float text, int bars, boolean pill, float taller) {
         boolean wide = WideLayout.wide(width, text);
-        int inner = TopArea.heightDp(height - bars, wide, text);
+        int inner = TopArea.heightDp(width, height - bars, wide, text);
         int across = Math.min(width - 36, 560);
         int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f * taller);
         int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;

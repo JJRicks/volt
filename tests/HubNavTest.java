@@ -15,6 +15,8 @@ public final class HubNavTest {
         restore();
         arguments();
         retention();
+        keptReading();
+        owed();
         System.out.println("HubNav: " + checks + " checks passed");
     }
 
@@ -121,6 +123,42 @@ public final class HubNavTest {
         require(!HubNav.Args.ride("r1").backAfterRide, "Home's last ride keeps All rides under its details");
     }
 
+    /**
+     * A search result's reading stays Readings' filter through rebuilds while Data is in the stack, and the next ordinary
+     * visit shows every reading (#393 council review, second round, finding 6; the first review's finding 4 stays fixed).
+     */
+    private static void keptReading() {
+        java.util.List<String> onData = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        java.util.List<String> above = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA, HubPages.DATA_STORAGE);
+        require("speed_kmh".equals(HubNav.keptReading(HubNav.Args.reading("speed_kmh"), null, onData, false)), "A result's reading filters this visit");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)), "A rebuild (rotation, unfold) keeps it while Data is shown");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", above, false)), "A page above Data keeps it for the return to Data");
+        require("battery_percent".equals(HubNav.keptReading(HubNav.Args.reading("battery_percent"), "speed_kmh", onData, false)), "A new result's reading replaces it");
+        require(HubNav.keptReading(null, "speed_kmh", java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH), false) == null, "Data left the stack: it is dropped");
+        require(HubNav.keptReading(null, null, java.util.Arrays.asList(HubPages.HOME, HubPages.DATA), false) == null, "The next ordinary visit shows every reading");
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null, "The owner typed their own search: a rebuild doesn't bring the reading back");
+        // MainActivity.onSaveInstanceState saves this, not the reading as of the last rebuild (#393 council review, third
+        // round, finding 3): typed on Readings since, a recreation restores the owner's search; not typed, the reading.
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null && "speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)),
+                "What a recreation restores follows whether the owner typed since the last rebuild");
+        require(HubNav.keptReading(HubNav.Args.anchor("row"), null, onData, false) == null, "Other arguments carry no reading");
+        require(HubNav.keptReading(null, "speed_kmh", null, false) == null, "No stack, no reading");
+    }
+
+    /**
+     * A result's target waits out the loading page (#393 council review, third round, finding 4): without Nearby devices
+     * permission Settings is the loading page until the service binds, and the rebuild after that must still have the
+     * Updates sheet's anchor to reveal it.
+     */
+    private static void owed() {
+        HubNav.Args updates = HubNav.Args.anchor("preference-update-check");
+        require(HubNav.owed(updates, true) == updates, "The loading page keeps the result's target for the real page");
+        require(HubNav.owed(updates, false) == null, "The real page consumes it: a later rebuild doesn't reveal it again");
+        require(HubNav.owed(null, true) == null, "Nothing owed without arguments");
+        HubNav.Args ride = HubNav.Args.rideAndBack("r1");
+        require(HubNav.owed(ride, true) == ride && HubNav.owed(HubNav.Args.reading("speed_kmh"), true).reading.equals("speed_kmh"), "Every kind of target waits");
+    }
+
     private static void retention() {
         // A long time away closes sub-pages back to their subject; Home and a subject's own page stay.
         HubNav nav = new HubNav();
@@ -141,20 +179,67 @@ public final class HubNavTest {
         require(HubNav.awayExpired(1_000, 3, 1_001, 4), "A reboot closes them");
         // When leaving starts that clock (#392 early review): not over Volt's own dialog (a ride's notes being typed),
         // not when a page itself opened another app just before (an email, a file picker).
-        require(HubNav.awayClockStarts(false, -1, 50_000), "Plain leave: the clock starts");
-        require(!HubNav.awayClockStarts(true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
-        require(HubNav.awayClockStarts(false, -1, 50_000),
+        require(HubNav.awayClockStarts(true, false, false, -1, 50_000), "Plain leave: the clock starts");
+        require(!HubNav.awayClockStarts(true, false, true, -1, 50_000), "Leaving with Volt's own dialog showing: the stack is kept");
+        require(HubNav.awayClockStarts(true, false, false, -1, 50_000),
                 "Focus lost to a window that is not Volt's (the notification shade, split screen), then leave: the clock starts");
-        require(!HubNav.awayClockStarts(true, 40_000, 50_000), "A dialog showing and an old launch: kept");
-        require(!HubNav.awayClockStarts(false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
-        require(!HubNav.awayClockStarts(false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
-        require(HubNav.awayClockStarts(false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
-        require(HubNav.awayClockStarts(false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        require(!HubNav.awayClockStarts(true, false, true, 40_000, 50_000), "A dialog showing and an old launch: kept");
+        require(!HubNav.awayClockStarts(true, false, false, 49_500, 50_000), "A page opened another app 0.5 s before: kept");
+        require(!HubNav.awayClockStarts(true, false, false, 50_000 - HubNav.LAUNCH_GRACE_MS, 50_000), "Opened another app at the grace's end: kept");
+        require(HubNav.awayClockStarts(true, false, false, 40_000, 50_000), "An app opened long before leaving: the clock starts");
+        require(HubNav.awayClockStarts(true, false, false, 60_000, 50_000), "A launch on a clock that went backwards: the clock starts");
+        // Only where it has something to close: Home, a subject's own page and setup never start it (nothing is written).
+        require(!HubNav.awayClockStarts(false, false, false, -1, 50_000), "Nothing a minute away would close: no clock");
+        require(!HubNav.awayClockStarts(true, true, false, -1, 50_000), "Setup fills the window: no clock");
+        require(!HubNav.awayClockStarts(false, true, false, -1, 50_000), "First-run setup over Home: no clock");
+        require(!HubNav.awayClockStarts(false, false, true, -1, 50_000) && !HubNav.awayClockStarts(false, false, false, 49_500, 50_000),
+                "No sub-page, with a dialog or a launch: still no clock");
+        awayClock();
         // The page header's link goes where it says: on Search it skips the query-clearing step; elsewhere the page's own Back runs.
         require(HubNav.linkSkipsPageBack(HubPages.SEARCH), "Search's link goes to the page it names");
         require(!HubNav.linkSkipsPageBack(HubPages.SETTINGS), "Settings' link keeps the page's own Back step");
         require(!HubNav.linkSkipsPageBack(HubPages.RIDE), "Ride's link keeps the page's own Back step");
         require(!HubNav.linkSkipsPageBack(null), "No page: the page's own Back step");
+    }
+
+    /** HubNav.subPagesOpen, which feeds awayClockStarts, is true exactly where closeSubPages would change the stack. */
+    private static void awayClock() {
+        HubNav nav = new HubNav();
+        require(!nav.subPagesOpen(), "Home: nothing to close, no clock");
+        nav.open(HubPages.BATTERY);
+        require(!nav.subPagesOpen(), "A subject's own page: nothing to close, no clock");
+        nav.reset(HubPages.SETTINGS);
+        require(!nav.subPagesOpen(), "Settings' own page: no clock");
+        nav.reset(HubPages.SEARCH);
+        require(!nav.subPagesOpen(), "Search: no clock");
+        nav.reset(HubPages.DATA);
+        require(!nav.subPagesOpen(), "Data's own page: no clock (Live Stats keeps its own section reset)");
+        nav.open(HubPages.DATA_STORAGE);
+        require(nav.subPagesOpen(), "A sub-page: the clock starts, as before");
+        nav.reset(HubPages.SETTINGS_SCOOTERS);
+        require(nav.subPagesOpen(), "A Settings page: the clock starts");
+        nav.reset(HubPages.HOME); nav.open(HubPages.BATTERY); nav.open(HubPages.DATA);
+        require(nav.subPagesOpen(), "A subject opened through another subject: the clock starts");
+        // Part 12's search: Search itself has nothing to close; a page opened from a result sits above it, so the clock
+        // starts, and an expired return closes back to that page's subject (Search, a page like Home's buttons, goes).
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.SERVICE_MAINTENANCE);
+        require(nav.subPagesOpen(), "A sub-page opened from a search result: the clock starts");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.SERVICE), "An expired return from a result's sub-page lands on its subject");
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.BATTERY);
+        require(nav.subPagesOpen(), "A subject opened from a search result: the clock starts (Search is under it)");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.BATTERY), "An expired return from a result's subject keeps that subject");
+        require(HubNav.awayClockStarts(true, false, false, -1, 1_000) && !HubNav.awayClockStarts(false, false, false, -1, 1_000),
+                "Leaving over a result's page starts the clock; leaving Search itself does not");
+        String[][] stacks = {
+            {HubPages.HOME}, {HubPages.HOME, HubPages.BATTERY}, {HubPages.HOME, HubPages.SEARCH},
+            {HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT}, {HubPages.HOME, HubPages.DATA, HubPages.DATA_STORAGE},
+            {HubPages.HOME, HubPages.SERVICE, HubPages.SERVICE_MAINTENANCE}};
+        for (String[] pages : stacks) {
+            HubNav a = HubNav.restore(pages, pages[pages.length - 1]);
+            boolean open = a.subPagesOpen();
+            require(open == a.closeSubPages() && !a.subPagesOpen(), "Clock and close agree: " + Arrays.toString(pages));
+            require(open == (pages.length > 2), "Only a page above its subject has something to close: " + Arrays.toString(pages));
+        }
     }
 
     private static boolean stack(HubNav nav, String... pages) { return Arrays.equals(nav.toArray(), pages); }

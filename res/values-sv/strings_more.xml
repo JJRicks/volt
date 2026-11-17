@@ -374,10 +374,6 @@
     </plurals>
     <!-- src:3c7675e38cfd808769aaa4affa4f534fdaca4f0c -->
     <string name="more_lab_kept">" Provresultat finns kvar på den här telefonen tills de ingår i en kompatibilitetsrapport som du skickar eller tills du rensar dem."</string>
-    <!-- src:ecff20416d3296fcf9881f1dc4bd91e1394f58cd -->
-    <string name="more_lab_foot_oem">Reglagen som den officiella appen erbjuder för din modell finns kvar i Elsparkcykelinställningar. Hastighetsgränser, laddning, låset, PIN-koden, närhetsupplåsning och klockan läggs aldrig till här. Volt ändrar aldrig firmware.</string>
-    <!-- src:1868e868e0eaa49d1febb61622c913ae00a783bc -->
-    <string name="more_lab_foot_elsewhere">Reglagen som den officiella appen erbjuder för din modell finns kvar i Elsparkcykelinställningar. Volt ändrar aldrig firmware.</string>
     <!-- src:9a5be7e6efcfd479bf592775b2ed74d28f73ed10 -->
     <string name="more_lab_foot">Volt ändrar aldrig firmware.</string>
     <!-- src:b4c0a438574c095b4ede900ca9521fc63e577840 -->
@@ -398,8 +394,6 @@
     <string name="more_lab_intro_untested">Den officiella appen erbjuder inte de här reglagen för %1$s. Prova ett när elsparkcykeln är parkerad; Volt läser tillbaka värdet.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">Den officiella appen erbjuder de här reglagen för %1$s, men Volt har inte testat dem på den modellen. Prova ett när elsparkcykeln är parkerad; Volt läser tillbaka värdet.</string>
-    <!-- src:cf0c0a3ef355428f536348c2fc015fa371b3eaf8 -->
-    <string name="more_lab_empty_oem">Inget att prova på %1$s: den officiella appen erbjuder redan de reglage som Volt skulle kunna prova. De finns i Elsparkcykelinställningar.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Volt skickar inga kommandon för elsparkcyklar till den här produkten.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->
@@ -408,8 +402,6 @@
     <string name="more_lab_empty_conflict">Den här elsparkcykelns modell-ID stämmer inte med serienumret, så Volt erbjuder inget att prova.</string>
     <!-- src:e101b8215127670be192f6a22ca39547a7a1d38e -->
     <string name="more_lab_empty_unlisted">Den officiella appen listar inte den här modellen, så Volt kan inte avgöra vilka reglage den saknar. Inget att prova ännu.</string>
-    <!-- src:74eddd21a1f2d66bc4f30d73b694019e8d9e8770 -->
-    <string name="more_lab_empty_identify">Identifiera din modell på elsparkcykelsidan först. Volt listar sedan vad du kan prova.</string>
     <!-- src:a07ef4a149b4163296fd76d62d131ad688add832 -->
     <string name="more_lab_empty_connect">Anslut till elsparkcykeln för att se vad du kan prova.</string>
     <!-- src:cbfda571f17c2852b0a76bbaedf03778c84eb3e2 -->
@@ -609,8 +601,6 @@
     <string name="more_about_notifications_sub">Inspelningsavisering med Stoppa</string>
     <!-- src:bff068be8607335f2e381f25fe22f5632c537e5e -->
     <string name="more_about_your_data">Din data</string>
-    <!-- src:b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc -->
-    <string name="more_about_data_note">All data stannar på den här telefonen. Säkerhetskopiering och återställning finns under Mer.</string>
     <!-- src:1a751189b102df124580ebe64eaae2545a1cd4e0 -->
     <string name="more_about_online_map">Onlinekarta</string>
     <!-- src:4bd368f28de01f04ce96ffa9ef018cace5a5190e -->
