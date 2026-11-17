@@ -475,9 +475,11 @@ final class Motion {
 
     /**
      * {@link #takeTurns}' stand-in for ChangeBounds: a view that stays shown but sits somewhere else after the change (the
-     * page's foot below sections of different lengths) is in its new place from the first frame, as without motion, and
-     * fades in there rather than gliding across the page or popping. Turned back mid-fade, it fades on from the opacity
-     * it was drawn at. The root itself (the page, which only changes length) never fades.
+     * page's foot below sections of different lengths) crossfades between the two places instead of gliding across the
+     * page or jumping: it is in its new place from the first frame (taking input there, as without motion) and fades in
+     * over CHANGE_MS, while its picture fades out where it was over EXIT_MS (an overlay, which takes no input). Turned
+     * back mid-fade, it fades on from the opacity it was drawn at. The root itself (the page, which only changes length)
+     * never fades. Its curves are its own: the set's interpolator is not taken.
      */
     private static final class Refade extends Transition {
         private static final String TOP = "volt:refade:top", ALPHA = "volt:refade:alpha", SHOWN = "volt:refade:shown";
@@ -488,19 +490,57 @@ final class Motion {
         }
         @Override public void captureStartValues(TransitionValues values) { capture(values); }
         @Override public void captureEndValues(TransitionValues values) { capture(values); }
+        @Override public Transition setInterpolator(TimeInterpolator interpolator) { return this; }
         @Override public Animator createAnimator(ViewGroup root, TransitionValues start, TransitionValues end) {
             // Views that come or go are Veil's.
             if (start == null || end == null || end.view == root || !Boolean.TRUE.equals(start.values.get(SHOWN)) || !Boolean.TRUE.equals(end.values.get(SHOWN))) return null;
-            if (start.values.get(TOP).equals(end.values.get(TOP))) return null;
+            int was = (Integer) start.values.get(TOP), now = (Integer) end.values.get(TOP);
+            if (was == now || !(end.view.getParent() instanceof View)) return null;
             View view = end.view;
-            float from = (Float) start.values.get(ALPHA);
-            ValueAnimator animator = ValueAnimator.ofFloat(from < 1 ? from : 0, 1);
-            animator.addUpdateListener(a -> view.setTransitionAlpha((float) a.getAnimatedValue()));
-            animator.addListener(new AnimatorListenerAdapter() {
-                // Ended, or cut short (a later change starts its own fade from the opacity captured before this).
-                @Override public void onAnimationEnd(Animator a) { view.setTransitionAlpha(1); }
+            float from = (Float) start.values.get(ALPHA), in = from < 1 ? from : 0;
+            Echo echo = new Echo(view, root, was - now, from);
+            ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+            animator.setInterpolator(new LinearInterpolator());
+            animator.addUpdateListener(a -> {
+                float t = a.getAnimatedFraction();
+                view.setTransitionAlpha(in + (1 - in) * STANDARD.getInterpolation(t));
+                echo.alpha = from * (1 - STANDARD.getInterpolation(Math.min(1f, t * CHANGE_MS / EXIT_MS)));
+                echo.invalidateSelf();
             });
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationStart(Animator a) { echo.show(); }
+                // Ended, or cut short (a later change starts its own fade from the opacity captured before this).
+                @Override public void onAnimationEnd(Animator a) { view.setTransitionAlpha(1); echo.drop(); }
+            });
+            view.setTransitionAlpha(in);
             return animator;
+        }
+        /** The picture of a view that moved, drawn {@code shift} px from its new place (where it was), at {@code alpha}. */
+        private static final class Echo extends Drawable {
+            final View view;
+            final ViewGroup root;
+            final int shift;
+            float alpha;
+            private final int[] at = new int[2], base = new int[2];
+            Echo(View view, ViewGroup root, int shift, float alpha) { this.view = view; this.root = root; this.shift = shift; this.alpha = alpha; }
+            void show() { setBounds(0, 0, Math.max(1, root.getWidth()), Math.max(1, root.getHeight())); root.getOverlay().add(this); }
+            void drop() { root.getOverlay().remove(this); }
+            @Override public void draw(Canvas canvas) {
+                if (alpha <= 0 || !(view.getParent() instanceof View) || view.getWidth() <= 0 || view.getHeight() <= 0) return;
+                View parent = (View) view.getParent();
+                parent.getLocationInWindow(at);
+                root.getLocationInWindow(base);
+                int save = canvas.save();
+                // As Ghost draws: the overlay draws in the root's content coordinates.
+                canvas.translate(at[0] - base[0] + root.getScrollX() - parent.getScrollX() + view.getLeft(),
+                        at[1] - base[1] + root.getScrollY() - parent.getScrollY() + view.getTop() + shift);
+                canvas.saveLayerAlpha(0, 0, view.getWidth(), view.getHeight(), Math.round(255 * Math.min(1, alpha)));
+                view.draw(canvas);
+                canvas.restoreToCount(save);
+            }
+            @Override public void setAlpha(int alpha) {}
+            @Override public void setColorFilter(ColorFilter filter) {}
+            @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
         }
     }
 

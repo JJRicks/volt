@@ -679,7 +679,9 @@ public final class StatsScreen implements AppScreen {
             signature += r != null && r.live && r.value != null ? "+" : "-";
         }
         if (!signature.equals(favouritesShown)) {
-            favouritesShown = signature; favouritesCard.removeAllViews(); favouriteRows.clear();
+            // A card that goes (the last favourite removed) keeps its rows, no longer updated, so its picture fades out
+            // with them rather than as an empty box; the next card built empties it first.
+            favouritesShown = signature; if (!order.isEmpty()) favouritesCard.removeAllViews(); favouriteRows.clear();
             for (StatsCharts.Card card : favouriteCharts.values()) chartBrowser.release(card); favouriteCharts.clear();
             for (String id : order) {
                 boolean chart = id.startsWith("chart:"); String key = id.substring(id.indexOf(':') + 1);
