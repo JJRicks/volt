@@ -184,9 +184,11 @@ public final class ControlsPagesTest {
                 "The Charger row's charger is its sub-line");
         // Charge history & recordings' link draws the chart its recordings row uses, never the default star.
         require(source.contains("caseHubPages.BATTERY_HISTORY:return\"chart\";"), "Charge history & recordings has the chart icon");
-        // Battery & charging's HISTORY card opens Charge history & recordings and carries that link's tag.
+        // Battery & charging's HISTORY card opens Charge history & recordings, a second way in beside the page's link row
+        // (owner, Nov 17 2026), under a tag of its own so one row carries "hub-link-" to the page.
         require(source.contains("historyCard=newChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));")
-                && source.contains("historyCard.card.setTag(\"hub-link-\"+HubPages.BATTERY_HISTORY);"), "The HISTORY card opens Charge history & recordings");
+                && source.contains("historyCard.card.setTag(ChargeHistoryCard.TAG);") && !source.contains("historyCard.card.setTag(\"hub-link-\""),
+                "The HISTORY card opens Charge history & recordings, tagged apart from its link row");
         require(source.contains("for(LinearLayoutbody:cardBodies)if(body!=pageBody&&body!=linksBody)body.setVisibility(hideDividers(body)?View.VISIBLE:View.GONE);"),
                 "Every card of rows shows only while one of its rows does");
     }

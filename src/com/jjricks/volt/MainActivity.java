@@ -2787,8 +2787,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
                     view.addView(design.sectionLabel(RidesScreen.historyLabel()));
                     historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
-                    // Tagged as the link it stands in for, so the walk that opens sub-pages by their link finds it.
-                    historyCard.card.setTag("hub-link-"+HubPages.BATTERY_HISTORY);
+                    // A tag of its own: the page's Charge history & recordings link row carries "hub-link-" (owner, Nov 17 2026),
+                    // and the walks that open a sub-page by its link want exactly one row to it.
+                    historyCard.card.setTag(ChargeHistoryCard.TAG);
                     view.addView(historyCard.card);continue;
                 }
                 LinearLayout body=design.groupCard();cardBodies.add(body);
