@@ -302,6 +302,12 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
           inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'lock_bar_arrival', 'under', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-no-nearby-344', T + 'HubValidation', '-e', 'mode', 'no-nearby', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])]
+# The same start, one grant each (#523 council review, findings 2 and 3): hub-no-nearby-target-344 grants Nearby devices
+# from the loading page a search result opened (Record rides automatically's, Ride › Recording settings), and that result's
+# target is revealed once the service binds, with no return to Search; hub-no-nearby-still-344 grants it from Settings'
+# card scrolled partly out of view at animator scale 0 (Remove animations), and Settings lands where the card's top was.
+STEPS += [inst(f'hub-no-nearby-{m}-344', T + 'HubValidation', '-e', 'mode', f'no-nearby-{m}', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])
+          for m in ('target', 'still')]
 # Search lands on what it names (#393 council review, second round): every page, setting, hand-built row and control search
 # lists on the simulator, and every row title a page's search words name, opened from its result (HubValidation -e mode
 # search-targets), at the walk's four sizes.

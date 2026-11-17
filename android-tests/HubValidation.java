@@ -112,7 +112,12 @@ import com.jjricks.volt.WideLayout;
  * shows its rows under the Allow Nearby devices card, each app row working (withoutNearby, settingsWithoutNearby); a
  * search result naming a Settings control reveals it there at once, and one on a page that waits for the service keeps
  * its target (targetsWithoutNearby); last, the permission is granted from that card, Settings changes in place
- * (grantFromSettings), and Settings' results still reveal their targets (targetsAfterGrant). -e mode search-targets
+ * (grantFromSettings), and Settings' results still reveal their targets (targetsAfterGrant). -e mode no-nearby-target
+ * and -e mode no-nearby-still begin the same way and grant the permission once each, so each is its own run (#523 council
+ * review, findings 2 and 3): no-nearby-target grants it from the loading page Record rides automatically's result opened,
+ * and that kept target is revealed once the service binds, without going back to Search (targetAfterBind); no-nearby-still
+ * grants it from Settings' card scrolled partly out of view with Android's Remove animations (animator scale 0), and the
+ * rows land where the card's visible part began, not past Settings' top (grantStill). -e mode search-targets
  * checks that every search result lands on what it names (searchTargets: every page, setting, hand-built row and control
  * search lists, and every row title a page's search words name; #393 council review, second round). -e theme dark|light
  * and -e text_scale (1 by default) as the other
@@ -152,6 +157,10 @@ public final class HubValidation extends Instrumentation {
     private static final String SEARCH_QUERY = "star", SEARCH_RESULT = "hub-search-page-" + HubPages.LIGHTS_STAR;
     /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
     private static final String NO_NEARBY = "no-nearby";
+    /** -e mode no-nearby-target and no-nearby-still: one grant each, after the same start (targetAfterBind, grantStill). */
+    private static final String NO_NEARBY_TARGET = "no-nearby-target", NO_NEARBY_STILL = "no-nearby-still";
+    /** The animator scale found before grantStill set it to 0 (restored at the end), or null. */
+    private String foundScale;
     /** -e mode search-targets: every search result lands on what it names (searchTargets). */
     private static final String SEARCH_TARGETS = "search-targets";
     private boolean noNearby;
@@ -174,10 +183,11 @@ public final class HubValidation extends Instrumentation {
         Bundle result = new Bundle();
         try {
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY) || mode.equals(SEARCH_TARGETS),
-                    "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY + " or " + SEARCH_TARGETS + ")");
+            require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET)
+                    || mode.equals(NO_NEARBY_STILL) || mode.equals(SEARCH_TARGETS), "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY
+                    + ", " + NO_NEARBY_TARGET + ", " + NO_NEARBY_STILL + " or " + SEARCH_TARGETS + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
-            noNearby = mode.equals(NO_NEARBY);
+            noNearby = mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET) || mode.equals(NO_NEARBY_STILL);
             admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
@@ -188,7 +198,13 @@ public final class HubValidation extends Instrumentation {
                     .commit(), "Fixture settings failed");
             seed();
             launch();
-            if (noNearby) {
+            if (mode.equals(NO_NEARBY_TARGET)) {
+                noBind();
+                targetAfterBind();
+            } else if (mode.equals(NO_NEARBY_STILL)) {
+                noBind();
+                grantStill();
+            } else if (noNearby) {
                 withoutNearby();
                 noBind();
                 targetsWithoutNearby();
@@ -215,6 +231,9 @@ public final class HubValidation extends Instrumentation {
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks);
             result.putStringArrayList("routed_pages", routed); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
+            if (foundScale != null) try {
+                shell(foundScale.equals("null") || foundScale.isEmpty() ? "settings put global animator_duration_scale 1" : "settings put global animator_duration_scale " + foundScale);
+            } catch (Throwable ignored) { }
             if (admitted && activity != null) try {
                 main(() -> { if (activity.service() != null) activity.service().setSimulation(false); if (controlDialog() != null) controlDialog().dismiss(); activity.finish(); ScooterService.setUiVisible(false);
                     getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
@@ -689,28 +708,7 @@ public final class HubValidation extends Instrumentation {
             }
         }));
         tapTag(NEARBY_ALLOW);
-        android.view.accessibility.AccessibilityNodeInfo allow = null;
-        long end = SystemClock.uptimeMillis() + 10000;
-        while (allow == null && SystemClock.uptimeMillis() < end) {
-            // Android's permission dialog is the active window while it asks.
-            List<android.view.accessibility.AccessibilityNodeInfo> roots = new ArrayList<>();
-            roots.add(getUiAutomation().getRootInActiveWindow());
-            try { for (android.view.accessibility.AccessibilityWindowInfo window : getUiAutomation().getWindows()) roots.add(window.getRoot()); }
-            catch (RuntimeException windowsUnavailable) { /* the active window is enough */ }
-            for (android.view.accessibility.AccessibilityNodeInfo node : roots) {
-                if (node == null) continue;
-                List<android.view.accessibility.AccessibilityNodeInfo> found = node.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/permission_allow_button");
-                if (found.isEmpty()) found = node.findAccessibilityNodeInfosByViewId("com.android.packageinstaller:id/permission_allow_button");
-                if (!found.isEmpty()) { allow = found.get(0); break; }
-            }
-            if (allow == null) SystemClock.sleep(100);
-        }
-        require(allow != null, "Allow Nearby devices on Settings' card did not ask Android for the permission");
-        require(allow.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK), "Android's Allow could not be tapped");
-        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}) {
-            String wanted = permission;
-            await(() -> getTargetContext().checkSelfPermission(wanted) == PackageManager.PERMISSION_GRANTED, "Android's Allow did not grant " + wanted);
-        }
+        allowInAndroid("Settings' card");
         await(() -> onMain(() -> activity.service() != null), "The service did not bind once Nearby devices was granted");
         await(() -> onMain(() -> field(activity, "screen") != before && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Settings was not rebuilt for the service");
         settle(); SystemClock.sleep(400); settle();
@@ -742,6 +740,162 @@ public final class HubValidation extends Instrumentation {
         checks.add("Nearby devices granted from Settings' card (Allow Nearby devices, then Android's Allow): the card fades in place while the rows glide up, no frame"
                 + " moving the Language row down or by more than half the card (" + seen.size() + " frames, through the service binding and Settings' rebuild); the stack"
                 + " stays Home, Settings, the scroll at its top, no card, My scooters no longer dimmed, no connection line");
+    }
+
+    /**
+     * Android's permission dialog, which Allow Nearby devices on from opened: taps its Allow and waits for both Nearby
+     * devices permissions.
+     */
+    private void allowInAndroid(String from) {
+        android.view.accessibility.AccessibilityNodeInfo allow = null;
+        long end = SystemClock.uptimeMillis() + 10000;
+        while (allow == null && SystemClock.uptimeMillis() < end) {
+            // Android's permission dialog is the active window while it asks.
+            List<android.view.accessibility.AccessibilityNodeInfo> roots = new ArrayList<>();
+            roots.add(getUiAutomation().getRootInActiveWindow());
+            try { for (android.view.accessibility.AccessibilityWindowInfo window : getUiAutomation().getWindows()) roots.add(window.getRoot()); }
+            catch (RuntimeException windowsUnavailable) { /* the active window is enough */ }
+            for (android.view.accessibility.AccessibilityNodeInfo node : roots) {
+                if (node == null) continue;
+                List<android.view.accessibility.AccessibilityNodeInfo> found = node.findAccessibilityNodeInfosByViewId("com.android.permissioncontroller:id/permission_allow_button");
+                if (found.isEmpty()) found = node.findAccessibilityNodeInfosByViewId("com.android.packageinstaller:id/permission_allow_button");
+                if (!found.isEmpty()) { allow = found.get(0); break; }
+            }
+            if (allow == null) SystemClock.sleep(100);
+        }
+        require(allow != null, "Allow Nearby devices on " + from + " did not ask Android for the permission");
+        require(allow.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK), "Android's Allow could not be tapped");
+        for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT}) {
+            String wanted = permission;
+            await(() -> getTargetContext().checkSelfPermission(wanted) == PackageManager.PERMISSION_GRANTED, "Android's Allow did not grant " + wanted);
+        }
+    }
+
+    /**
+     * -e mode no-nearby-target (#523 council review, finding 2): a page that needs the service keeps a search result's
+     * target while it waits (HubNav.owed), and the page the service builds reveals it. Record rides automatically's
+     * result opens Ride › Recording settings as the loading page with its target owed; Nearby devices is granted from
+     * that page's own Allow Nearby devices; once the service binds, Recording settings is built for it with Record rides
+     * automatically revealed (shown and inside the window), nothing left owed, the page stack unchanged: no return to
+     * Search in between.
+     */
+    private void targetAfterBind() throws Exception {
+        requireHome("CleanHomeScreen");
+        tapTag("home-search");
+        arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
+        hideKeyboard();
+        String anchor = "preference_riding_auto_record", tag = "hub-search-setting-" + anchor;
+        require(typeAndFind("Record rides automatically", tag), "Search without Nearby permission lists no Record rides automatically result ("
+                + onMain(() -> resultRows(root().findViewWithTag("hub-search-results"))) + " result rows)");
+        String opened = openResult(tag, HubPages.RIDE_RECORDING);
+        require(opened == null, "Record rides automatically's result " + opened);
+        List<String> stack = onMain(() -> new ArrayList<>((List<String>) invoke(field(activity, "nav"), "pages", new Class<?>[0])));
+        Object waiting = onMain(() -> field(activity, "screen"));
+        main(() -> {
+            require(waiting.getClass().getSimpleName().equals("LoadingScreen"), "Without Nearby permission Recording settings was built as "
+                    + waiting.getClass().getSimpleName() + ", not the loading page");
+            Object owed = field(activity, "pageArgs");
+            require(owed != null && anchor.equals(field(owed, "anchor")), "The loading page used up Record rides automatically's target (owed: "
+                    + (owed == null ? "nothing" : field(owed, "anchor")) + ")");
+        });
+        screenshot("no-nearby-target-waits");
+        tapTag(NEARBY_ALLOW);
+        allowInAndroid("Recording settings' loading page");
+        await(() -> onMain(() -> activity.service() != null), "The service did not bind once Nearby devices was granted from Recording settings");
+        await(() -> onMain(() -> field(activity, "screen") != waiting && !field(activity, "screen").getClass().getSimpleName().equals("LoadingScreen")
+                && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Recording settings was not built for the service");
+        settle();
+        main(() -> {
+            require(HubPages.RIDE_RECORDING.equals(field(activity, "selectedPage")), "Once the service bound, " + field(activity, "selectedPage") + " shows, not Recording settings");
+            List<String> now = (List<String>) invoke(field(activity, "nav"), "pages", new Class<?>[0]);
+            require(stack.equals(now), "The page stack changed from " + stack + " to " + now + " through the grant");
+            require(field(activity, "pageArgs") == null, "Recording settings left Record rides automatically's target owed once the service bound");
+        });
+        String[] place = {"not checked", null};
+        await(() -> { settle(); String[] at = onMain(() -> placeOf(anchor)); place[0] = at[0]; place[1] = at[1]; return at[0] == null; },
+                () -> "Once the service bound, Recording settings did not reveal Record rides automatically (" + place[0] + ")");
+        screenshot("no-nearby-target-revealed");
+        checks.add("Without Nearby permission Record rides automatically's result opens Recording settings as the loading page, its target owed; granted from"
+                + " that page's Allow Nearby devices, the service binds and Recording settings reveals Record rides automatically, nothing owed, the stack "
+                + stack + " unchanged (no return to Search)");
+    }
+
+    /**
+     * -e mode no-nearby-still (#523 council review, finding 3): with Android's Remove animations (animator scale 0),
+     * Settings scrolled until its Allow Nearby devices card is partly out of view with Allow still shown, and the
+     * permission granted from it: the card goes at once and Settings' scroll moves to where the card's top was, so the
+     * rows begin where its visible part began, not past Settings' top; still so once the service bound and Settings was
+     * built again.
+     */
+    private void grantStill() throws Exception {
+        scale("0");
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        // The card's lead (LoadingScreen's view: the card and its margin) and its top in the scroll's content.
+        int[] place = onMain(() -> {
+            View card = root().findViewWithTag(NEARBY_CARD), allow = root().findViewWithTag(NEARBY_ALLOW);
+            require(shown(card) && shown(allow), "Settings has no Allow Nearby devices card before the grant");
+            ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
+            View lead = (View) card.getParent();
+            int top = 0; View in = lead;
+            for (; in != null && in.getParent() != page; in = in.getParent() instanceof View ? (View) in.getParent() : null) top += in.getTop();
+            require(in != null, "Settings' card is not in its scroll");
+            top += in.getTop();
+            int allowTop = 0;
+            for (View at = allow; at != lead; at = (View) at.getParent()) allowTop += at.getTop();
+            return new int[]{top, lead.getHeight(), allowTop};
+        });
+        int top = place[0], into = place[2] / 2;
+        require(into > 4, "Settings' card has no room above Allow Nearby devices to scroll away (" + place[2] + " px)");
+        main(() -> ((ScrollView) field(field(activity, "screen"), "scroll")).scrollTo(0, top + into));
+        settle();
+        Object before = onMain(() -> field(activity, "screen"));
+        main(() -> {
+            ScrollView page = (ScrollView) field(before, "scroll");
+            require(page.getScrollY() == top + into, "Settings did not scroll the card partly out of view (" + page.getScrollY() + ", wanted " + (top + into) + ")");
+            View allow = root().findViewWithTag(NEARBY_ALLOW);
+            Rect seen = new Rect();
+            require(shown(allow) && allow.getGlobalVisibleRect(seen) && seen.height() == allow.getHeight(), "Allow Nearby devices is not wholly shown on the part-scrolled card");
+        });
+        screenshot("no-nearby-still-before");
+        // Tapped where it is: a tap that scrolled it into view first would undo the part-scrolled card.
+        main(() -> click(root().findViewWithTag(NEARBY_ALLOW), "Allow Nearby devices"));
+        allowInAndroid("Settings' part-scrolled card");
+        await(() -> onMain(() -> { View card = root().findViewWithTag(NEARBY_CARD); return card == null || !shown(card); }), "Settings' card did not go once Nearby devices was granted");
+        settle();
+        main(() -> {
+            ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
+            require(Math.abs(page.getScrollY() - top) <= 2, "With Remove animations Settings stayed scrolled to " + page.getScrollY() + " px once the card went, past its top ("
+                    + top + " px, where the card's top was)");
+        });
+        await(() -> onMain(() -> activity.service() != null), "The service did not bind once Nearby devices was granted");
+        await(() -> onMain(() -> field(activity, "screen") != before && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Settings was not rebuilt for the service");
+        settle();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        main(() -> {
+            require(root().findViewWithTag(NEARBY_CARD) == null || !shown(root().findViewWithTag(NEARBY_CARD)), "Settings still shows the Allow Nearby devices card once granted");
+            ScrollView page = (ScrollView) field(field(activity, "screen"), "scroll");
+            require(Math.abs(page.getScrollY() - top) <= 2, "Once the service bound, Settings is scrolled to " + page.getScrollY() + " px, not " + top
+                    + " px (where the card's top was)");
+        });
+        screenshot("no-nearby-still-granted");
+        checks.add("With Remove animations, Nearby devices granted from Settings' card scrolled " + into + " px out of view: the card goes at once and Settings'"
+                + " scroll moves to where its top was (" + top + " px), still there once the service bound and Settings was rebuilt");
+    }
+    /** Android's animator duration scale, as Developer options' Animator duration scale (0 is Remove animations). */
+    private void scale(String value) throws Exception {
+        if (foundScale == null) foundScale = shell("settings get global animator_duration_scale").trim();
+        shell("settings put global animator_duration_scale " + value);
+        float target = Float.parseFloat(value);
+        await(() -> android.animation.ValueAnimator.getDurationScale() == target, "Animator scale did not reach " + value);
+    }
+    private String shell(String command) throws Exception {
+        android.os.ParcelFileDescriptor pipe = getUiAutomation().executeShellCommand(command);
+        try (java.io.InputStream in = new android.os.ParcelFileDescriptor.AutoCloseInputStream(pipe)) {
+            StringBuilder out = new StringBuilder(); byte[] buffer = new byte[4096]; int n;
+            while ((n = in.read(buffer)) >= 0) out.append(new String(buffer, 0, n, "UTF-8"));
+            return out.toString();
+        }
     }
 
     /** Without Nearby permission nothing bound the service, so nothing could reach a scooter or start a recording. */
