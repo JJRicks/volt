@@ -6,4 +6,4 @@
 {"back":"Charge below %1$s%%","key":"riding_alert_low","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"854dcb67cb0bb78512ab70c0b7c215e52cb83f23","target":"Carica sotto %1$s%%"}
 {"back":"Charged to %1$s%%","key":"riding_alert_charged","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fb0b84b30c107175947bb29691f29ce463b78fb6","target":"Caricato a %1$s%%"}
 {"back":"Charged","key":"riding_alert_charged_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"366956c11da1d218267c66f6035b9fcf80fae8e7","target":"Caricato"}
-{"back":"Stop","key":"riding_alert_stop","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"74b74e872b211ea42c2b50f641e0431f2398a2fb","target":"Interrompi"}
+{"back":"Stop tone","key":"riding_alert_stop","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"74b74e872b211ea42c2b50f641e0431f2398a2fb","target":"Interrompi tono"}
