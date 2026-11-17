@@ -79,3 +79,5 @@
 {"calls":1,"keys":2,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":2,"stage":"backtranslate","when":"2026-11-17T10:12:04Z"}
 {"chunk":0,"keys":21,"model":"gpt-6.1-sol","provider":"openai","stage":"api-call","step":"backtranslate","usage":{"input_tokens":1379,"input_tokens_details.cache_write_tokens":1376,"input_tokens_details.cached_tokens":0,"output_tokens":709,"output_tokens_details.reasoning_tokens":0,"total_tokens":2088},"when":"2026-11-17T10:33:10Z"}
 {"calls":1,"keys":21,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":21,"stage":"backtranslate","when":"2026-11-17T10:33:10Z"}
+{"chunk":0,"keys":1,"model":"gpt-6.1-sol","provider":"openai","stage":"api-call","step":"backtranslate","usage":{"input_tokens":174,"input_tokens_details.cache_write_tokens":0,"input_tokens_details.cached_tokens":0,"output_tokens":137,"output_tokens_details.reasoning_tokens":87,"total_tokens":311},"when":"2026-11-17T11:28:02Z"}
+{"calls":1,"keys":1,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":1,"stage":"backtranslate","when":"2026-11-17T11:28:02Z"}
