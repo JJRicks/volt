@@ -224,6 +224,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final ServiceConnection serviceConnection=new ServiceConnection(){
         @Override public void onServiceConnected(ComponentName name,IBinder binder){
             if(destroyed || enteringMaintenance || startupRedirect)return;
+            // Anything here may rebuild the page (visible() can run the service's listeners at once, and on two panes Home's
+            // refresh rebuilds): the update notice's check waits for the callback's own rebuild (showUpdateCheck).
+            checkHeld++;
+            try{connected(binder);}finally{checkHeld--;}
+            showUpdateCheck();
+        }
+        private void connected(IBinder binder){
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
@@ -233,7 +240,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(resumed){maybeApplyOwnerImport();if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}
             // Settings' Nearby devices card still leaving (granted from it a moment ago): the rebuild waits for its motion to
             // end, so the rows finish gliding into its room instead of jumping there.
-            if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){handler.postDelayed(serviceRebuild,Motion.CHANGE_MS+40);return;}
+            if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){serviceRebuildOwed=true;handler.postDelayed(serviceRebuild,Motion.CHANGE_MS+40);return;}
             rebuild();
         }
         @Override public void onServiceDisconnected(ComponentName name){
@@ -330,10 +337,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Settings is built before the service binds now (the contributor's decision, 15 Nov, #383), and the bind builds it
         // again, which would close the check's dialog and drop its result: with Nearby devices granted the check waits for
         // the bind (onResume starts it), as it did on the loading page. Without it no bind is coming and it runs at once.
-        if(!resumed||scooterService==null&&binding)return;
+        // Nor while onResume or the bind callback runs (checkHeld), or while the service's rebuild is still to come
+        // (serviceRebuildOwed): a rebuild nested in them would start it, and theirs would close it (#523 council review,
+        // second round).
+        if(!resumed||checkHeld>0||serviceRebuildOwed||scooterService==null&&binding)return;
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
+    /** onResume or onServiceConnected is running (showUpdateCheck waits for its end). */
+    private int checkHeld;
+    /** onServiceConnected left the service's rebuild for after the Nearby devices card's motion (serviceRebuild). */
+    private boolean serviceRebuildOwed;
     /**
      * A maintenance notice was tapped while riding mode or setup was up (onNewIntent), or at a cold start: its page opens
      * as soon as they close. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
@@ -343,7 +357,15 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
     private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
+        super.onResume();if(startupRedirect || enteringMaintenance)return;
+        // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
+        checkHeld++;
+        try{resume();}finally{checkHeld--;}
+        // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
+        showUpdateCheck();
+    }
+    private void resume(){
+        resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         // A long time away closes sub-pages back to their subject; Data keeps Live Stats' own shorter section reset.
         boolean expired=expireAway();
@@ -353,8 +375,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService!=null){maybeApplyOwnerImport();scooterService.visible(true);if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}if(scooterService.ble.connected())scooterService.ble.refresh(false);}
         handler.removeCallbacks(pulse);handler.post(pulse);
         finishRidePermission();
-        // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
-        showUpdateCheck();
     }
     /** Off screen is onStop to onStart: a permission dialog only pauses. A close happens before anything is drawn, so no transition. */
     @Override protected void onStart(){
@@ -584,7 +604,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean readingLetGo(){return screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;}
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
-        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);handler.removeCallbacks(serviceRebuild);rebuilding=true;
+        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);handler.removeCallbacks(serviceRebuild);serviceRebuildOwed=false;rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
