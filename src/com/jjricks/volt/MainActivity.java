@@ -301,7 +301,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(riding!=null||onboarding!=null||ridingRestore){pendMaintenance(true);return;}
         captureScroll();showMaintenanceFromNotice();preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
-    /** Settings, then the manual update check's dialog once Settings is on screen (showUpdateCheck). */
+    /** Settings, then the manual update check's dialog once Settings is on screen and the service bound or not coming (showUpdateCheck). */
     private void openUpdateCheck(boolean now){
         updateCheckPending=true;clearAway();
         if(!now){showPage(HubPages.SETTINGS);return;}
@@ -309,6 +309,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void showUpdateCheck(){
         if(!updateCheckPending||!(screen instanceof MoreScreen))return;
+        // Settings is built before the service binds now (the contributor's decision, 15 Nov, #383), and the bind builds it
+        // again, which would close the check's dialog and drop its result: with Nearby devices granted the check waits for
+        // the bind (onResume starts it), as it did on the loading page. Without it no bind is coming and it runs at once.
+        if(!resumed||scooterService==null&&binding)return;
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
@@ -331,6 +335,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService!=null){maybeApplyOwnerImport();scooterService.visible(true);if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}if(scooterService.ble.connected())scooterService.ble.refresh(false);}
         handler.removeCallbacks(pulse);handler.post(pulse);
         finishRidePermission();
+        // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
+        showUpdateCheck();
     }
     /** Off screen is onStop to onStart: a permission dialog only pauses. A close happens before anything is drawn, so no transition. */
     @Override protected void onStart(){
