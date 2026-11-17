@@ -399,8 +399,10 @@ public final class HubTestPages {
     /**
      * Waits, up to {@link #WAIT_MS}, until each view is at rest as a rider sees it once the page has arrived: it and every
      * view it sits in fully opaque with no offset (a page change slides the new page in from the side while it fades in,
-     * Motion.crossfade and Motion.page, for Motion.PAGE_MS; a reveal glides what is around it, Motion.changing), and its
-     * place on screen the same on three reads in a row, as {@link #tapView} waits for a row before tapping it. A view
+     * Motion.crossfade and Motion.page, for Motion.PAGE_MS; a reveal glides what is around it, Motion.changing), no page
+     * change's snapshot of the old page still fading over its window (Motion.covered: a change between pages at the same
+     * depth fades the old page in the root's overlay while the new one sits still under it; #393 council review, fourth
+     * round, finding 1), and its place on screen the same on three reads in a row, as {@link #tapView} waits for a row before tapping it. A view
      * that is not shown counts as at rest (the caller's own check reports it). Returns whether all came to rest; it never
      * throws for a view that keeps moving, so the caller's own check then measures it and fails with its own message.
      * {@code views} is asked again on every read (main thread), so a rebuild that replaces the page while this waits is
@@ -419,7 +421,7 @@ public final class HubTestPages {
                 for (View view : views.get()) {
                     if (view == null || !view.isShown()) continue;
                     places.append(System.identityHashCode(view)).append('@');
-                    if (changing(view)) resting[0] = false;
+                    if (changing(view) || motion("covered", view)) resting[0] = false;
                     for (Object at = view; at instanceof View; at = ((View) at).getParent()) {
                         View each = (View) at;
                         if (each.getAlpha() < 1f || each.getTranslationX() != 0f || each.getTranslationY() != 0f) resting[0] = false;
@@ -438,12 +440,15 @@ public final class HubTestPages {
     }
 
     /** Motion.changing (package-private in the app): view is arriving through a reveal, or sits in one still moving. Main thread. */
-    private static boolean changing(View view) {
+    private static boolean changing(View view) { return motion("changing", view); }
+
+    /** Calls Motion's package-private {@code name}(View) test of view (changing, covered). Main thread. */
+    private static boolean motion(String name, View view) {
         try {
-            Method method = Class.forName("com.jjricks.volt.Motion", true, view.getContext().getClassLoader()).getDeclaredMethod("changing", View.class);
+            Method method = Class.forName("com.jjricks.volt.Motion", true, view.getContext().getClassLoader()).getDeclaredMethod(name, View.class);
             method.setAccessible(true);
             return (Boolean) method.invoke(null, view);
-        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion.changing", error); }
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion." + name, error); }
     }
 
     /** Null when the dock sits at HubPages.dockTop in its frame (its bottom margin above the frame's bottom), else why not. Main thread. */

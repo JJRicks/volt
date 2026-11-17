@@ -748,6 +748,16 @@ public final class HubSearchTest {
                 && main.contains("try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}\n        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);")
                 && main.contains("if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);\n        redraw();\n        showUpdateCheck();\n        // Back on Home"),
                 "the page pane keeps a search's reading and a target the loading page can't use");
+        // The validations' rest wait also waits out a page change's snapshot fading over the window: between pages at the same
+        // depth the new page sits still under the old one's cover in the root's overlay (#393 council review, fourth round,
+        // finding 1).
+        String motion = read("src/com/jjricks/volt/Motion.java"), pages = read("android-tests/HubTestPages.java");
+        check(motion.contains("root.getOverlay().add(cover);\n        covers.put(cover, new WeakReference<>(root));")
+                && motion.contains("covers.remove(cover); root.getOverlay().remove(cover);")
+                && motion.contains("covers.put(cover, new WeakReference<>(sibling ? parent : decor));")
+                && motion.contains("running.remove(pageView); covers.remove(cover);")
+                && pages.contains("if (changing(view) || motion(\"covered\", view)) resting[0] = false;"),
+                "Motion reports a page change's cover until it ends, and HubTestPages.awaitAtRest waits for it");
 
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
