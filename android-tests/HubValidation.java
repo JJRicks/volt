@@ -202,6 +202,7 @@ public final class HubValidation extends Instrumentation {
             else if (mode.equals(SEARCH_TARGETS)) searchTargets();
             else {
                 cleanSubjects();
+                quickActionsBothWays();
                 pageStack();
                 connectionLine();
                 search();
@@ -280,6 +281,131 @@ public final class HubValidation extends Instrumentation {
         checks.add("Clean Home's gear opens Settings over Home; Settings' rows open its pages; Back returns to Settings, its back link to Home");
         for (String page : mayRoute) require(routed.contains(page), page + " is listed as routed for model \"" + simulatedModel + "\" but the walk never reached it");
         checks.add("Routed pages: " + routed + ", exactly the ones the simulated model hides (" + mayRoute + ")");
+    }
+
+    /**
+     * Wide Clean Home: quick actions edited either way reach the scooter pane, and neither edit undoes the other (#394
+     * council review, second round, 1). Settings › Home style › Quick actions changes the fourth slot from the page pane:
+     * the scooter pane shows it, still the same pane (never rebuilt), on Settings and back on Home. Then Home's own Edit
+     * sheet (a long-press on the quick actions) changes the third: the scooter pane shows both, and both are stored. The
+     * four as stored before are put back at the end, and the scooter pane follows that too. Nothing taps a quick action.
+     */
+    private void quickActionsBothWays() throws Exception {
+        Object[] pane = scooterPane();
+        if (pane[0] == null) return;
+        String key = onMain(() -> (String) staticCall(appClass("HomeQuickActions"), "key", new Class<?>[]{String.class},
+                activity.service().profiles.active().id));
+        String storedBefore = settings().getString(key, null);
+        List<String> before = paneQuick();
+        require(before.size() == 4, "The scooter pane does not show four quick actions: " + before);
+        // From Settings › Home style, in the page pane: the fourth slot.
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        reach(HubPages.SETTINGS_HOME, Collections.singletonList(SETTINGS_ROWS.get(HubPages.SETTINGS_HOME)));
+        arrived(HubPages.SETTINGS_HOME, HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_HOME);
+        tapTag("home-style-quick-actions");
+        Supplier<View> slots = () -> sheetRoot(field(activity, "screen"), "slotsSheet");
+        await(() -> onMain(() -> slots.get() != null), "Home style's Quick actions did not open the four");
+        tapIn(slots, "home-edit-slot-4", "Home style's fourth quick action");
+        Supplier<View> settingsPicker = () -> pickerRoot(field(field(activity, "screen"), "chooser"));
+        String fourth = pickOther(settingsPicker, before, "Home style's picker");
+        List<String> afterSettings = new ArrayList<>(before);
+        afterSettings.set(3, fourth);
+        await(() -> onMain(() -> paneQuick().equals(afterSettings)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home style changed the fourth quick action to " + fourth + " (expected " + afterSettings + ")");
+        requireSamePane(pane, "Home style's quick-action edit");
+        HubTestPages.back(this, activity);
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        HubTestPages.back(this, activity);
+        requireHome("CleanHomeScreen");
+        main(() -> require(paneQuick().equals(afterSettings), "Back on Home the scooter pane shows " + paneQuick() + ", not Home style's " + afterSettings));
+        requireSamePane(pane, HubPages.HOME);
+        screenshot("home-after-settings-quick-edit");
+        // From Home's own Edit sheet: the third slot. It starts from the four as stored, so the fourth stays.
+        main(() -> {
+            ViewGroup grid = root().findViewWithTag("home-quick-actions");
+            require(grid != null && grid.getChildCount() > 0 && grid.getChildAt(0).performLongClick(), "A long-press on Home's quick actions did not open Edit");
+        });
+        settle();
+        Supplier<View> edit = () -> sheetRoot(field(activity, "homeScreen"), "editSheet");
+        await(() -> onMain(() -> edit.get() != null), "Home's Edit sheet did not open");
+        tapIn(edit, "home-edit-slot-3", "Edit's third quick action");
+        Supplier<View> homePicker = () -> pickerRoot(field(field(activity, "homeScreen"), "parts"));
+        String third = pickOther(homePicker, afterSettings, "Home's picker");
+        List<String> both = new ArrayList<>(afterSettings);
+        both.set(2, third);
+        await(() -> onMain(() -> paneQuick().equals(both)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after Home's Edit changed the third quick action to " + third + " (expected " + both + ": Home style's change kept)");
+        main(() -> require(storedQuick().equals(both), "Stored quick actions are " + storedQuick() + ", expected both changes " + both));
+        requireSamePane(pane, "Home's quick-action edit");
+        requireHome("CleanHomeScreen");
+        // Put the four back as they were stored; the scooter pane follows that as well.
+        SharedPreferences.Editor restore = settings().edit();
+        require((storedBefore == null ? restore.remove(key) : restore.putString(key, storedBefore)).commit(), "Restoring the quick actions failed");
+        await(() -> onMain(() -> paneQuick().equals(before)), () -> "The scooter pane shows " + onMain(this::paneQuick) + " after the four were put back to " + before);
+        requireSamePane(pane, HubPages.HOME);
+        checks.add("Wide Clean Home: a quick action changed in Settings › Home style shows in the scooter pane (not rebuilt) on Settings and back on Home; one changed then from Home's Edit sheet keeps the first change, and both are stored");
+    }
+
+    /** The ids of the quick actions the scooter pane shows (its grid's cells), in order. */
+    private List<String> paneQuick() {
+        ViewGroup grid = root().findViewWithTag("hub-scooter-pane").findViewWithTag("home-quick-actions");
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; grid != null && i < grid.getChildCount(); i++) {
+            Object entry = fieldOrNull(grid.getChildAt(i), "entry");
+            if (entry != null) ids.add((String) field(entry, "id"));
+        }
+        return ids;
+    }
+    /** The active scooter's four as stored (HomeQuickEditor.load). */
+    @SuppressWarnings("unchecked")
+    private List<String> storedQuick() {
+        return (List<String>) staticCall(appClass("HomeQuickEditor"), "load",
+                new Class<?>[]{ScooterService.class, SharedPreferences.class}, activity.service(), settings());
+    }
+    /** A package-private class of the app's, by its simple name. */
+    private Class<?> appClass(String name) {
+        try { return Class.forName("com.jjricks.volt." + name, true, activity.getClassLoader()); } catch (ClassNotFoundException error) { throw new IllegalStateException(error); }
+    }
+    /** The window of the sheet in owner's field, while it shows; else null. */
+    private static View sheetRoot(Object owner, String name) {
+        Object sheet = owner == null ? null : fieldIn(owner, name);
+        return sheet instanceof Dialog && ((Dialog) sheet).isShowing() ? ((Dialog) sheet).getWindow().getDecorView() : null;
+    }
+    /** The quick-action picker's window: a DashboardScreen part's (QuickChooser, CleanParts) outer screen's sheet. */
+    private static View pickerRoot(Object part) {
+        return part == null ? null : sheetRoot(fieldIn(part, "this$0"), "dialog");
+    }
+    /** Taps the first shown, enabled choice of the picker whose id is not in avoid; its id. */
+    private String pickOther(Supplier<View> picker, List<String> avoid, String label) {
+        await(() -> onMain(() -> picker.get() != null), label + " did not open");
+        String id = onMain(() -> {
+            List<View> rows = new ArrayList<>();
+            collectTagged(picker.get(), "quick-choice:", rows);
+            for (View row : rows) {
+                String choice = ((String) row.getTag()).substring("quick-choice:".length());
+                if (shown(row) && row.isEnabled() && !avoid.contains(choice)) return choice;
+            }
+            return null;
+        });
+        require(id != null, label + " offers no other choice than " + avoid);
+        tapIn(picker, "quick-choice:" + id, label + "'s " + id);
+        await(() -> onMain(() -> picker.get() == null), label + " stayed open after a choice");
+        settle();
+        return id;
+    }
+    private static void collectTagged(View view, String prefix, List<View> into) {
+        if (view == null) return;
+        if (view.getTag() instanceof String && ((String) view.getTag()).startsWith(prefix)) into.add(view);
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collectTagged(((ViewGroup) view).getChildAt(i), prefix, into);
+    }
+    private static Object fieldIn(Object target, String name) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); }
+            catch (NoSuchFieldException next) { /* the superclass may declare it */ }
+            catch (IllegalAccessException error) { throw new IllegalStateException(error); }
+        }
+        return null;
     }
 
     /** Opening a page already in the stack closes the pages above it; Home resets it; recreation keeps it. */
