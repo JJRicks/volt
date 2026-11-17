@@ -426,6 +426,7 @@ public final class ChargeAlertValidation extends Instrumentation {
             reveal(banner);
         });
         shot("sheet-notifications-off");
+        main(this::refitsOnNewText);
         main(() -> ((AlertDialog) field(activity, "controlDialog")).dismiss()); settle();
         main(() -> {
             View row = root().findViewWithTag("charge-alert-charge-row");
@@ -437,6 +438,54 @@ public final class ChargeAlertValidation extends Instrumentation {
         });
         shot("rows-notifications-off");
         checks.add("With notifications off the sheet says alerts work only while Volt is open and offers Allow; the row says so; nothing holds in the background");
+    }
+
+    /**
+     * The Allow row decides beside-or-under again when its text changes with the sheet open (council review of #520):
+     * TextView.setText asks for a new layout only when the text's height changes, so a new text with as many lines kept
+     * the old decision and broke a long word beside Allow ("Verbindungsbenac / hrichtigung", German at 1.4x). Here the
+     * refresh's own setText puts in a text as many lines tall beside Allow whose first word fits only under it; the row
+     * must ask for a layout, and a layout pass like the window's (the same measure specs) must put Allow under the text
+     * with the word whole. Then the sheet's own text back, Allow beside it again.
+     */
+    private void refitsOnNewText() {
+        View banner = sheet().findViewWithTag("charge-alert-permission");
+        TextView allow = banner.findViewWithTag("charge-alert-allow");
+        ViewGroup body = (ViewGroup) allow.getParent();
+        TextView text = (TextView) body.getChildAt(0);
+        require(text != allow && allow.getTop() < text.getBottom() && allow.getLeft() >= text.getRight(), "Allow is not beside the text to start with: " + texts(banner));
+        String was = text.getText().toString();
+        int beside = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
+        int whole = body.getWidth() - body.getPaddingLeft() - body.getPaddingRight() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
+        int lines = text.getLayout().getLineCount();
+        // A word a little wider than the text's room beside Allow (so it would break there), narrower than the row.
+        StringBuilder word = new StringBuilder("Notifications");
+        while (text.getPaint().measureText(word.toString()) <= beside + 4) word.append("off".charAt(word.length() % 3));
+        require(text.getPaint().measureText(word.toString()) < whole, "The test word does not fit the row: " + word);
+        String next = word.toString();
+        for (int i = 0; i < 40 && layoutLines(text, next, beside) < lines; i++) next += " off";
+        require(layoutLines(text, next, beside) == lines, "No text as many lines tall as \"" + was + "\" (" + lines + ")");
+        pass(banner);
+        require(!body.isLayoutRequested(), "The row still had a layout pending");
+        text.setText(next);
+        require(body.isLayoutRequested(), "A new text as many lines tall did not ask the Allow row for a layout, so it kept Allow beside it");
+        pass(banner);
+        require(allow.getTop() >= text.getBottom(), "Allow stayed beside a text whose first word fits only under it: " + text.getText());
+        require(text.getLayout().getLineEnd(0) >= word.length(), "The long word broke: " + text.getText().subSequence(0, text.getLayout().getLineEnd(0)));
+        text.setText(was);
+        require(body.isLayoutRequested(), "The sheet's own text back did not ask the Allow row for a layout");
+        pass(banner);
+        require(allow.getTop() < text.getBottom() && allow.getLeft() >= text.getRight(), "Allow did not come back beside the sheet's own text");
+        checks.add("With the sheet open, a new text in the Allow row (the refresh's own setText) decides beside or under again, even with as many lines: a word that fits only under Allow stays whole");
+    }
+    private static int layoutLines(TextView view, CharSequence text, int width) {
+        return android.text.StaticLayout.Builder.obtain(text, 0, text.length(), view.getPaint(), width).setBreakStrategy(view.getBreakStrategy())
+                .setHyphenationFrequency(view.getHyphenationFrequency()).setIncludePad(view.getIncludeFontPadding()).build().getLineCount();
+    }
+    /** A layout pass over the row as the window's traversal makes it: the row's own measure specs, then its layout. */
+    private static void pass(View row) {
+        row.measure(View.MeasureSpec.makeMeasureSpec(row.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        row.layout(row.getLeft(), row.getTop(), row.getRight(), row.getTop() + row.getMeasuredHeight());
     }
 
     /** Injects a policy for the selected scooter, stepped once with fresh synthetic charging readings. */

@@ -174,7 +174,13 @@ public final class ModelRegistryTest {
         check(ModelRegistry.reported(ultra)&&ReportInvite.model(ultra).isEmpty()&&!ReportInvite.model(ultraSibling).isEmpty(),"The UT5 Ultra X is reported; its unreported siblings are still offered");
         check(ModelRegistry.driveModeLabelProduct(advertised("24182"))==25462&&ModelRegistry.driveModeLabelProduct(advertised("24181"))==0,
             "The GT3 Max's owner-reported codes (2 Drive, 3 Sport, 11 Walk) get names; its unreported sibling's stay raw");
-        check(ModelRegistry.driveModeLabelProduct(ultra)==0,"The UT5 Ultra X's drive-mode codes stay unnamed until an owner reports them");
+        int ultraModes=ModelRegistry.driveModeLabelProduct(ultra);
+        check(ultraModes==2538&&"WALK".equals(Telemetry.drivingModeLabel(ultraModes,11.0))&&"ECO".equals(Telemetry.drivingModeLabel(ultraModes,2.0))
+            &&"SPORT".equals(Telemetry.drivingModeLabel(ultraModes,3.0))&&"5 (raw)".equals(Telemetry.drivingModeLabel(ultraModes,5.0)),
+            "The UT5 Ultra X uses the UT5 MAX's drive-mode names (assumed until its owner reports): 11 Walk, 2 Eco, 3 Sport");
+        check(ModelRegistry.driveModeLabelProduct(ultraSibling)==0&&!ModelRegistry.ut5Max(ultra)&&ModelRegistry.ratedWh(ultra)==null
+            &&ModelRegistry.chargeReferenceProduct(ultra)==-1&&ModelRegistry.rangeFollowProduct(ultra)==0,
+            "Only the names follow the UT5 MAX: its sibling stays raw, and no UT5 MAX charge, capacity or range assumption applies");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");

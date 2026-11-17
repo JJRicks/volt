@@ -104,7 +104,7 @@ still interrupt background work.
 **Basemap is optional and starts off if you have not saved a choice.** Existing
 explicit choices are preserved. The **Basemap** switch directly below a ride map,
 including the full-screen map, shares its remembered state with
-**Rides → Recording settings → Map settings**. The first new enable explains that the
+**Ride → Recording settings → Map settings**. The first new enable explains that the
 provider receives your IP address and viewed map area; choose **Enable basemap** or
 **Cancel**. Cancel keeps tiles off. Once you approve, that acknowledgement is
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
@@ -178,7 +178,7 @@ if you do not want them retained there.
 Exports only go to a destination you choose through the file picker or helper.
 A destination may itself sync to a cloud service.
 
-**Auto-save rides** (Rides → Recording settings, off by default) is the one export
+**Auto-save rides** (Ride → Recording settings, off by default) is the one export
 that runs without a prompt: after each ride you end, Volt writes that ride's
 Everything in one JSON (the same file as the Export ride data sheet's) into one
 folder you chose through Android's folder picker. It holds the ride's analysis
