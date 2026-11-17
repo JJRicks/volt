@@ -78,9 +78,13 @@ final class HubPanes extends LinearLayout {
         View window = getRootView();
         // Layout position, not on-screen position: a page transition slides this row in, and measuring mid-slide used to
         // leave the left pane narrow until the next layout.
-        int leftInWindow = Ui.layoutLeftInWindow(this) + getPaddingLeft();
-        if (isAttachedToWindow() && window != null && window.getWidth() > 0) centre = HubSplit.centreLeft(window.getWidth(), gap, leftInWindow);
-        if (hinge != null) { hingeLeft = hinge.left - leftInWindow; hingeWidth = hinge.width(); }
+        // The first pane's outer edge: the left padding, or in RTL (first pane at the right) the right one.
+        boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL, placed = isAttachedToWindow() && window != null && window.getWidth() > 0;
+        int windowWidth = placed ? window.getWidth() : 0;
+        int firstEdge = HubSplit.firstEdge(rtl, windowWidth, Ui.layoutLeftInWindow(this), getPaddingLeft(), size);
+        if (placed) centre = HubSplit.centreLeft(windowWidth, gap, firstEdge);
+        // In RTL the hinge is measured from the window's right edge, so it waits for the window's width.
+        if (hinge != null && (placed || !rtl)) { hingeLeft = HubSplit.hingeFromFirst(rtl, windowWidth, firstEdge, hinge.left, hinge.right); hingeWidth = hinge.width(); }
         return HubSplit.split(size, gap, minLeft, minRight, share, centre, hingeLeft, hingeWidth, ui.dp(8));
     }
 
