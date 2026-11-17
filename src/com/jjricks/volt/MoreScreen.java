@@ -1829,11 +1829,14 @@ public final class MoreScreen implements AppScreen {
     }
     private void pinGuide() {
         LinearLayout box = dialogBox(T.morePinGuideRow(), T.morePinGuideBody());
-        // The UT5 MAX handlebar as the rider sees it (owner, Nov 17 2026); its numbers match the steps below.
-        HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui);
-        diagram.setContentDescription(T.morePinDiagramLayout(T.morePinDiagram()));
-        LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
-        box.addView(diagram, dp);
+        // The UT5 MAX handlebar as the rider sees it (owner, Nov 17 2026); its numbers match the steps below. Other models'
+        // controls are not known here, so they get the steps without a picture rather than another scooter's switch.
+        if (service() != null && ModelRegistry.ut5Max(service().ble.descriptor())) {
+            HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui);
+            diagram.setContentDescription(T.morePinDiagramLayout(T.morePinDiagram()));
+            LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
+            box.addView(diagram, dp);
+        }
         String[] steps = {T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()};
         for (int i = 0; i < steps.length; i++) {
             LinearLayout line = row(); line.setPadding(0, ui.dp(5), 0, ui.dp(5));

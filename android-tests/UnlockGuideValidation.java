@@ -28,15 +28,17 @@ import com.jjricks.volt.*;
 /**
  * Disposable empty emulator, radio off. Security's "Unlock without phone" guide and its handlebar drawing (owner, Nov 17
  * 2026: the old drawing "is old and made by Codex and sucks"). At the emulator's current size, for each case of argument
- * cases (theme:text scale, comma separated; default light:1,dark:1,dark:1.4): reaches Security the rider's way, taps the
- * guide's row, and checks the drawing is shown whole inside the dialog with its screen-reader text, beside the three steps.
- * A screenshot of each case is taken for review. Sends no scooter command.
+ * cases (theme:text scale, comma separated; default light:1,dark:1,dark:1.4), with a saved UT5 MAX: reaches Security the
+ * rider's way, taps the guide's row, and checks the drawing is shown whole inside the dialog with its screen-reader text,
+ * beside the three steps. Then once with another saved model (a GT3 Max): the same steps, and no drawing, since the drawing
+ * pictures the UT5 MAX's controls. A screenshot of each case is taken for review. Sends no scooter command.
  */
 public final class UnlockGuideValidation extends Instrumentation {
     private MainActivity activity;
     private Bundle args;
     private String label = "";
     private int assertions;
+    private String ut5, other;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
@@ -47,16 +49,20 @@ public final class UnlockGuideValidation extends Instrumentation {
             main(() -> {
                 // Scooter pages need a saved scooter; nothing here connects to it.
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
-                ScooterProfiles.Profile p = profiles.create("Synthetic scooter", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
-                p.advertisedPid = "24182"; p.advertisedPidWall = System.currentTimeMillis(); profiles.update(p);
-                profiles.select(p.id); OnboardingScreen.markDone(getTargetContext());
+                ScooterProfiles.Profile p = profiles.create("Synthetic GT3 Max", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
+                p.advertisedPid = "24182"; p.advertisedPidWall = System.currentTimeMillis(); profiles.update(p); other = p.id;
+                ScooterProfiles.Profile u = profiles.create("Synthetic UT5 MAX", "000000000000", 0); u.serial = "X2538-SYNTHETIC"; profiles.update(u); ut5 = u.id;
+                profiles.select(ut5); OnboardingScreen.markDone(getTargetContext());
             });
             String size = args.getString("size_label", "size");
             for (String c : args.getString("cases", "light:1,dark:1,dark:1.4").split(",")) {
                 String[] parts = c.split(":");
                 label = size + "-" + parts[0] + "-" + parts[1];
-                verifyGuide(parts[0], Float.parseFloat(parts[1]));
+                verifyGuide(parts[0], Float.parseFloat(parts[1]), true);
             }
+            main(() -> new ScooterProfiles(getTargetContext()).select(other));
+            label = size + "-other-model";
+            verifyGuide("light", 1, false);
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", label + ": " + failure);
@@ -72,7 +78,7 @@ public final class UnlockGuideValidation extends Instrumentation {
         }
     }
 
-    private void verifyGuide(String theme, float textScale) throws Exception {
+    private void verifyGuide(String theme, float textScale, boolean drawn) throws Exception {
         if (activity != null) { MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle(); }
         require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                 .putString("theme", theme).putFloat("text_scale", textScale)
@@ -90,12 +96,17 @@ public final class UnlockGuideValidation extends Instrumentation {
         main(() -> {
             View panel = dialog[0].getWindow().getDecorView();
             View drawing = find(panel, v -> v.getContentDescription() != null && v.getContentDescription().toString().startsWith(T.morePinDiagram()));
+            for (String step : new String[]{T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()})
+                require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
+            if (!drawn) {
+                require(drawing == null && find(panel, v -> v instanceof HandlebarDiagram) == null, "Another model's guide shows the UT5 MAX handlebar");
+                checks.add(label + ": another model's guide shows the three steps and no handlebar drawing");
+                return;
+            }
             require(drawing != null && drawing.isShown(), "The guide shows no handlebar drawing");
             Rect visible = new Rect();
             require(drawing.getGlobalVisibleRect(visible) && visible.width() == drawing.getWidth(), "The drawing is clipped across: " + visible.width() + " of " + drawing.getWidth() + " px");
             require(drawing.getHeight() > 0, "The drawing has no height");
-            for (String step : new String[]{T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()})
-                require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
             checks.add(label + ": the guide's drawing is " + Math.round(drawing.getWidth() / density()) + "x" + Math.round(drawing.getHeight() / density())
                     + " dp in a " + Math.round(panel.getWidth() / density()) + " dp dialog, whole across, beside the three steps; it says '" + drawing.getContentDescription() + "'");
             verifyDrawing(drawing);
