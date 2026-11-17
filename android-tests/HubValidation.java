@@ -197,8 +197,8 @@ public final class HubValidation extends Instrumentation {
         try {
             String mode = arguments.getString("mode", "all");
             require(mode.equals("all") || mode.equals("widgets-pages") || mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET)
-                    || mode.equals(NO_NEARBY_STILL) || mode.equals(SEARCH_TARGETS), "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY
-                    + ", " + NO_NEARBY_TARGET + ", " + NO_NEARBY_STILL + " or " + SEARCH_TARGETS + ")");
+                    || mode.equals(NO_NEARBY_STILL) || mode.equals(NO_NEARBY_EXTERNAL) || mode.equals(SEARCH_TARGETS), "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY
+                    + ", " + NO_NEARBY_TARGET + ", " + NO_NEARBY_STILL + ", " + NO_NEARBY_EXTERNAL + " or " + SEARCH_TARGETS + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
             noNearby = mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET) || mode.equals(NO_NEARBY_STILL) || mode.equals(NO_NEARBY_EXTERNAL);
             admit(); admitted = true;
