@@ -1861,11 +1861,13 @@ public final class MainActivity extends Activity implements ScreenHost {
      * laid out, with Volt in front and Home the page in view, not being edited, rebuilt or covered by one of the window's
      * own sheets (the dock's All sheet: the change under it is instant, as before). The card itself is the root: on
      * Widgets its tile is a grid cell the rider sized, and on Clean a fixed slot, so neither moves anything around it.
-     * Null otherwise: the change is instant.
+     * Null otherwise: the change is instant. On two panes (the wide Clean Home) the card is the scooter pane's, in view
+     * beside whatever page the page pane shows, so it animates there too.
      */
     private ViewGroup lockMotionRoot(){
-        if(!resumed||rebuilding||destroyed||riding!=null||!HubPages.HOME.equals(selectedPage)||lockReady==null||lockOffline==null||sheetShowing())return null;
-        if(!(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen))return null;
+        boolean pane=homeScreen!=null;
+        if(!resumed||rebuilding||destroyed||riding!=null||!pane&&!HubPages.HOME.equals(selectedPage)||lockReady==null||lockOffline==null||sheetShowing())return null;
+        if(!pane&&!(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen))return null;
         if(screen instanceof DashboardScreen&&((DashboardScreen)screen).isEditing())return null;
         android.view.ViewParent parent=lockReady.getParent();
         if(!(parent instanceof ViewGroup)||lockOffline.getParent()!=parent)return null;
