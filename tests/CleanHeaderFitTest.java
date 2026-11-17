@@ -80,7 +80,10 @@ public final class CleanHeaderFitTest {
             CleanHeaderFit.Name longer = CleanHeaderFit.name("Segway Ninebot Kickscooter Max G2", room, w);
             require(longer.lines == 2 && !longer.clipped, at + ": a longer name takes two whole lines: " + longer);
             float one = CleanHeaderFit.heightDp(lineDp(12.5f, 1), lineDp(23, 1));
-            require(one == 100, at + ": one-line header is two 48 dp bands and 4 dp, " + one);
+            // The status band (its 8 dp top room and the line) over a 48 dp name row and 4 dp: about 77 dp, down from two
+            // 48 dp bands' 100, the gap at the top of Home closed (owner, 17 Nov 2026).
+            require(Math.abs(one - (CleanHeaderFit.TOP_DP + lineDp(12.5f, 1) + 48 + CleanHeaderFit.BOTTOM_DP)) < 1e-3 && one < 80,
+                    at + ": one-line header is the status band, a 48 dp name row and 4 dp, " + one);
         }
         if (window == 725) {
             require(CleanHeaderFit.name("Segway Ninebot Max G2", room, w).lines == 1, at + ": a long name on one line on a wide window");
