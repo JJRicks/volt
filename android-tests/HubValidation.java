@@ -1878,18 +1878,21 @@ public final class HubValidation extends Instrumentation {
      * Clean Home's subject rows are all one height (the owner's request on #394, 17 Nov), on one pane and on two (the
      * page pane's list): a row whose summary isn't known keeps the height of a row with one, its name centred, and its
      * summary stays out (GONE, so TalkBack reads no empty line). before null: Controls and Security have no summary yet
-     * (not connected); it returns the rows' heights. Otherwise, connected: it waits for their summaries and requires each
+     * (not connected); it returns the rows' heights. Otherwise, connected: it waits for Controls' summary (Security's stays
+     * unknown on the simulator, so rows with and without one are compared in the same list) and requires each
      * row at its height from before, and every row whose name is one line at one height. Returns the heights now.
      */
     private int[] evenSubjectRows(int[] before) throws Exception {
         requireHome("CleanHomeScreen");
         boolean connected = before != null;
-        List<String> pending = Arrays.asList(HubPages.CONTROLS, HubPages.SECURITY);
+        // Connected, Controls' summary comes (the simulator reports the riding mode); Security's stays unknown on the
+        // simulator, which never answers the PIN read, so the list has a row with and a row without a summary at once.
+        List<String> pending = connected ? Collections.singletonList(HubPages.CONTROLS) : Arrays.asList(HubPages.CONTROLS, HubPages.SECURITY);
         await(() -> onMain(() -> {
             for (String subject : pending) if (summaryShown(subject) != connected) return false;
             return true;
-        }), () -> onMain(() -> "Controls' and Security's summaries should " + (connected ? "show once connected" : "not show before the scooter connects")
-                + ": Controls " + chain(subjectPart(HubPages.CONTROLS, 1)) + ", Security " + chain(subjectPart(HubPages.SECURITY, 1))));
+        }), () -> onMain(() -> (connected ? "Controls' summary should show once connected: " : "Controls' and Security's summaries should not show before the scooter connects: ")
+                + "Controls " + chain(subjectPart(HubPages.CONTROLS, 1)) + ", Security " + chain(subjectPart(HubPages.SECURITY, 1))));
         settle();
         int[] heights = new int[HubPages.SUBJECTS.size()];
         String[] described = new String[1];
@@ -1922,7 +1925,7 @@ public final class HubValidation extends Instrumentation {
         });
         screenshot(connected ? "subjects-summaries" : "subjects-no-summaries");
         checks.add("Clean Home's subject rows " + (panesExpected() ? "(two panes, the page pane's list)" : "(one pane)") + (connected
-                ? ", connected: Controls and Security show summaries and every row keeps the height it had without one: "
+                ? ", connected: Controls shows its summary (Security's stays unknown on the simulator) and every row keeps the height it had before, with or without one: "
                 : ", not connected: Controls and Security have no summary (GONE, name centred) and every one-line row is one height: ") + described[0]);
         return heights;
     }
