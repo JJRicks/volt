@@ -202,6 +202,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
     /** The rebuild for the service once Settings' Nearby devices card has left (onServiceConnected). */
     private final Runnable serviceRebuild = () -> { if(!destroyed&&scooterService!=null)rebuild(); };
+    /** ensureService once Settings' Nearby devices card has left (ensureService). */
+    private final Runnable serviceStart = () -> { serviceStartOwed=false; if(!destroyed)ensureService(); };
+    /** ensureService left the service's start for after the card's motion (serviceStart): a bind is still coming. */
+    private boolean serviceStartOwed;
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
     private View pageHeader;
     /**
@@ -340,7 +344,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Nor while onResume or the bind callback runs (checkHeld), or while the service's rebuild is still to come
         // (serviceRebuildOwed): a rebuild nested in them would start it, and theirs would close it (#523 council review,
         // second round).
-        if(!resumed||checkHeld>0||serviceRebuildOwed||scooterService==null&&binding)return;
+        if(!resumed||checkHeld>0||serviceRebuildOwed||scooterService==null&&(binding||serviceStartOwed))return;
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
@@ -516,6 +520,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
+        // Granted from Settings' Nearby devices card a moment ago: the card is still leaving while the rows glide up. The
+        // service is created on this (main) thread, which stalls frames, so it starts once that motion has ended.
+        if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){
+            serviceStartOwed=true;handler.removeCallbacks(serviceStart);handler.postDelayed(serviceStart,Motion.CHANGE_MS+40);return;
+        }
+        serviceStartOwed=false;handler.removeCallbacks(serviceStart);
         try{
             Intent intent=new Intent(this,ScooterService.class);
             if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);else startService(intent);
