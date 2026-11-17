@@ -234,6 +234,7 @@ STEPS += [
     # each picture as the prototype draws it, the takeover's height while it opens, and the cable's clipping (simulator).
     inst('charge-pictures-344', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-pictures-344-14', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-344-light', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-pictures-725', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),

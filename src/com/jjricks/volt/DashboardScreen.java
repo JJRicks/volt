@@ -2644,6 +2644,8 @@ public final class DashboardScreen implements AppScreen {
             }
             addView(chip, new LinearLayout.LayoutParams(-2, -2));
             if (clean) addView(chipShort, new LinearLayout.LayoutParams(-2, -2));
+            // The pill draws last (getChildDrawingOrder), over the stage below it.
+            setChildrenDrawingOrderEnabled(true);
             percent = ui.text("—", 72, true);
             percent.setGravity(Gravity.CENTER);
             percent.setLineSpacing(0, 1);
@@ -2817,6 +2819,29 @@ public final class DashboardScreen implements AppScreen {
         }
 
         @Override protected void onDetachedFromWindow() { stopReveal(); super.onDetachedFromWindow(); }
+
+        /**
+         * The pill (chip, and Clean's chipShort) draws after the rest, so nothing the stage draws above itself covers
+         * it. The percentage's shade (Stage.drawChild) reaches above the stage, unclipped where the cable runs off or on
+         * Clean, and it lightened the light pill's words to about 4.4:1 (council review of #527, round 2). The others
+         * keep their order.
+         */
+        @Override protected int getChildDrawingOrder(int count, int i) {
+            int first = indexOfChild(chip), second = chipShort == null ? -1 : indexOfChild(chipShort);
+            int pills = (first >= 0 ? 1 : 0) + (second >= 0 ? 1 : 0), rest = count - pills;
+            if (pills == 0 || i < 0 || i >= count) return i;
+            if (i >= rest) {
+                int low = first < 0 ? second : second < 0 ? first : Math.min(first, second);
+                int high = first < 0 ? second : second < 0 ? first : Math.max(first, second);
+                return i == rest ? low : high;
+            }
+            // The i-th child that is not a pill.
+            for (int c = 0, n = 0; c < count; c++) {
+                if (c == first || c == second) continue;
+                if (n++ == i) return c;
+            }
+            return i;
+        }
 
         /**
          * Clean's fixed slot (council review 5886927849; the contributor's decisions on #383): the line (as it wraps),
