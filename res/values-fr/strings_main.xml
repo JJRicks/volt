@@ -616,6 +616,8 @@
     <string name="main_report_email_next">Votre application d’e-mail s’ouvrira ensuite pour que vous puissiez le lire avant l’envoi.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Choisissez votre trottinette ou « Je ne sais pas », puis appuyez sur « Envoyer ».</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">Un fichier de diagnostic sera joint : détails de l’application, du téléphone et de la trottinette, réglages et dernier plantage de Volt, nombre d’enregistrements, événements récents de connexion et de commande, ainsi que l’historique de recharge et de programmation de la trottinette sélectionnée, avec les heures. Il ne contient jamais votre clé de propriétaire, votre code PIN, votre numéro de série, votre position ni aucun nom.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">Envoyer un e-mail à Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

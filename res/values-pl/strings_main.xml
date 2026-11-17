@@ -618,6 +618,8 @@
     <string name="main_report_email_next">Następnie otworzy się aplikacja pocztowa, więc można najpierw przeczytać treść.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Wybierz swoją hulajnogę lub opcję „Nie wiem”, a następnie dotknij „Wyślij”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">Spowoduje to dołączenie pliku diagnostycznego: dane aplikacji, telefonu i hulajnogi, ustawienia i ostatnia awaria aplikacji Volt, liczba nagrań i zapisów ładowania, ostatnie zdarzenia połączenia i sterowania oraz historia ładowania i planów ładowania wybranej hulajnogi wraz z godzinami. Plik nigdy nie zawiera klucza właściciela, PIN-u, numeru seryjnego, lokalizacji ani nazw.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">E-mail do Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->
