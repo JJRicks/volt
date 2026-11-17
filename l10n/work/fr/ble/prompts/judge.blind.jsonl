@@ -1,8 +1,0 @@
-{"key": "ble_status_releasing", "verdict": "pick", "reason": "Release = libérer/libération across the group; a noun plus ellipsis for a process, per style.", "pick": "A"}
-{"key": "ble_release_held", "verdict": "pick", "reason": "Keeps both parts with the group word libération; non confirmée never reads as released.", "pick": "C"}
-{"key": "ble_release_held_short", "verdict": "pick", "reason": "First part only, group word libération.", "pick": "A"}
-{"key": "ble_failed_new_key_elsewhere", "verdict": "pick", "reason": "\"cette autre trottinette\" makes clear it is the other scooter to turn on; Réessayez for the retry.", "pick": "A"}
-{"key": "ble_failed_new_key_unsaved", "verdict": "pick", "reason": "Natural causal order, keeps the negation and the retry phrase.", "pick": "B"}
-{"key": "ble_failed_find_mismatch", "verdict": "confirm", "reason": "Back-translation matches: not that scooter, different serial number, nothing saved.", "confirm": {"lock_states_distinct": true, "on_off_never_always_not_inverted": true, "unverified_never_confirmed": true, "numbers_units_action_unchanged": true, "disclaimer_not_softened": true}}
-{"key": "ble_failed_find_unchecked", "verdict": "pick", "reason": "Only passing candidate; keeps the exact button name « Trouver à proximité ». \"Essayez à nouveau\" is forced by the glossary try row (false positive: the row lacks réessayez for ordinary retries).", "pick": "A"}
-{"key": "ble_found_new_address", "verdict": "pick", "reason": "Avoids agreeing a past participle with the name placeholder; Bluetooth address is the shipped term.", "pick": "A"}

@@ -22,3 +22,5 @@
 {"chunks":1,"draft":"claude-opus","keys":12,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"cab407d60d32","stage":"import-chunks","when":"2026-11-17T10:08:08Z"}
 {"chunk":0,"keys":8,"model":"gpt-6.1-sol","provider":"openai","stage":"api-call","step":"backtranslate","usage":{"input_tokens":345,"input_tokens_details.cache_write_tokens":0,"input_tokens_details.cached_tokens":0,"output_tokens":101,"output_tokens_details.reasoning_tokens":0,"total_tokens":446},"when":"2026-11-17T10:09:25Z"}
 {"calls":1,"keys":8,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":8,"stage":"backtranslate","when":"2026-11-17T10:09:25Z"}
+{"chunk":0,"keys":1,"model":"gpt-6.1-sol","provider":"openai","stage":"api-call","step":"backtranslate","usage":{"input_tokens":130,"input_tokens_details.cache_write_tokens":0,"input_tokens_details.cached_tokens":0,"output_tokens":18,"output_tokens_details.reasoning_tokens":0,"total_tokens":148},"when":"2026-11-17T10:32:39Z"}
+{"calls":1,"keys":1,"model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","received":1,"stage":"backtranslate","when":"2026-11-17T10:32:39Z"}

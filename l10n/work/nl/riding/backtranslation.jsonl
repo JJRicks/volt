@@ -6,3 +6,4 @@
 {"back":"Stop sound","key":"riding_alert_stop","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"74b74e872b211ea42c2b50f641e0431f2398a2fb","target":"Geluid stoppen"}
 {"back":"Stop","key":"riding_alert_stop_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"08b811ccbec2a1eed9974ec0432d24dec7024caa","target":"Stop"}
 {"back":"%1$s. %2$s","key":"riding_alert_spoken","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7de70eaff3962a1ffb6faac108e77ec4797ce542","target":"%1$s. %2$s"}
+{"back":"Charged to %1$s%%","key":"riding_alert_charged","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fb0b84b30c107175947bb29691f29ce463b78fb6","target":"Geladen tot %1$s%%"}

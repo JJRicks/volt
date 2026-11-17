@@ -3,3 +3,7 @@
 {"back":"Full","key":"riding_alert_full_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ac212b9682a4291b8ed466a08e804878d7bcd02e","target":"Pełna"}
 {"back":"Stop","key":"riding_alert_stop_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"08b811ccbec2a1eed9974ec0432d24dec7024caa","target":"Zatrzymaj"}
 {"back":"%1$s. %2$s","key":"riding_alert_spoken","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"7de70eaff3962a1ffb6faac108e77ec4797ce542","target":"%1$s. %2$s"}
+{"back":"Charged: %1$s%%","key":"riding_alert_charged","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"fb0b84b30c107175947bb29691f29ce463b78fb6","target":"Naładowano: %1$s%%"}
+{"back":"Charged","key":"riding_alert_charged_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"366956c11da1d218267c66f6035b9fcf80fae8e7","target":"Naładowano"}
+{"back":"Fully charged","key":"riding_alert_full","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"80b5a6cc81051776ed3a4148c3cf69215d5f22c4","target":"W pełni naładowana"}
+{"back":"Stop","key":"riding_alert_stop","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"74b74e872b211ea42c2b50f641e0431f2398a2fb","target":"Zatrzymaj"}
