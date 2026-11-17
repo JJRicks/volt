@@ -127,6 +127,11 @@ import com.jjricks.volt.ScooterProfiles;
  * Disconnect, on Widgets), shown as the simulator's link becomes ready and hidden by its dropout script, the app's own
  * way (the service tells the activity; no redraw is asked). {@code page-line}: the page header's connection line on
  * -e page controls|battery|lights|security|rides, shown by the dropout script and hidden as the link comes back.
+ * Live Stats on the simulator: {@code stats-tabs}, Diagnostics' section against Overview, chosen as a tab tap chooses
+ * it: they crossfade in place, the tabs never move and the page's foot fades in where it now sits (its scrolled check
+ * is the tabs half scrolled off, its tap check a tap where Overview's hint was and one on Diagnostics' Refresh, both
+ * mid-fade); {@code stats-favourites}, Overview's empty favourites hint against the favourites card, as the only
+ * favourite is removed and starred again (its tap check: the leaving row takes no tap).
  * -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
@@ -169,6 +174,9 @@ public final class RevealMotionValidation extends Instrumentation {
             if (part.equals("charge-alerts")) require(settings().edit().putBoolean("notification_prompted", true).commit(), "Alert fixture failed");
             if (part.equals("night")) require(settings().edit().putString("riding_night_vision", "off").putString("riding_night_schedule", "sun")
                     .putString("riding_night_ride_area", "decline").commit(), "Night vision fixture failed");
+            // Stats' favourites start with the one favourite starred: the hint is the site, offered as it is removed.
+            if (part.equals("stats-favourites")) require(settings().edit().putStringSet("stats_favourites", new java.util.HashSet<>(java.util.Collections.singletonList("battery_percent")))
+                    .commit(), "Favourites fixture failed");
             seed();
             launch();
             site = site();
@@ -208,6 +216,7 @@ public final class RevealMotionValidation extends Instrumentation {
                         if (alert) notes.add(site.name + ": no scrolled-end check (riding mode does not scroll)");
                         else if (part.equals("battery")) notes.add(site.name + ": no scrolled-end check (the line sits beside the level, so the card keeps its height)");
                         else if (part.equals("lock")) notes.add(site.name + ": no scrolled-end check (the card keeps its height: " + (home.equals("clean") ? "Clean's fixed lock slot" : "a Widgets tile is a grid cell the rider sized") + ")");
+                        else if (part.equals("stats-tabs")) tabsScrolled(site);
                         else scrolledEnd(site);
                     }
                     if (part.equals("page-line") && (only.isEmpty() || only.equals("mid"))) scrolledMid(site);
@@ -276,7 +285,8 @@ public final class RevealMotionValidation extends Instrumentation {
     private static final int STARVED_RETRIES = 3;
 
     private static final List<String> PARTS = java.util.Arrays.asList("find", "controls", "rides", "night", "scooters",
-            "charge-alerts", "maintenance-mode", "maintenance-earlier", "battery", "riding-alert", "onboarding", "lock", "page-line");
+            "charge-alerts", "maintenance-mode", "maintenance-earlier", "battery", "riding-alert", "onboarding", "lock", "page-line",
+            "stats-tabs", "stats-favourites");
     /** The pages -e part page-line runs on (-e page). */
     private static final List<String> LINE_PAGES = java.util.Arrays.asList("controls", "battery", "lights", "security", "rides");
 
@@ -294,6 +304,8 @@ public final class RevealMotionValidation extends Instrumentation {
             case "scooters": return connection("Settings › My scooters' last connected line", HubPages.SETTINGS_SCOOTERS, "MoreScreen", null);
             case "lock": return lockCard();
             case "page-line": return pageLine();
+            case "stats-tabs": return statsTabs();
+            case "stats-favourites": return statsFavourites();
             default: return findCard();
         }
     }
@@ -308,6 +320,7 @@ public final class RevealMotionValidation extends Instrumentation {
             case "maintenance-mode": case "maintenance-earlier": return HubPages.SERVICE_MAINTENANCE;
             case "battery": return HubPages.BATTERY;
             case "page-line": return linePageId();
+            case "stats-tabs": case "stats-favourites": return HubPages.DATA;
             default: return HubPages.HOME;
         }
     }
@@ -327,6 +340,200 @@ public final class RevealMotionValidation extends Instrumentation {
                 () -> main(() -> { activity.service().ble.setSimulationScript(""); activity.redraw(); }));
     }
 
+
+    // ===== Stats: the section tabs and the favourites =====
+
+    /** The open Stats page (Hub › Data's Live Stats). */
+    private Object stats() { return part("StatsScreen"); }
+    /** The simulator's link (memory only, never a command), so Stats has live readings to show, chart and log. */
+    private void statsSimulator() {
+        if (onMain(() -> !activity.service().simulating())) main(() -> require(activity.service().setSimulation(true), "The simulator did not start"));
+        await(() -> onMain(() -> activity.service().ble.ready()), "The simulator is not ready");
+        await(() -> onMain(() -> activity.service().displayReadings().containsKey("battery_percent")), "The simulator gave Stats no battery reading");
+        main(() -> activity.redraw());
+        settle();
+    }
+    private void selectStats(String section) {
+        main(() -> {
+            try {
+                Method select = stats().getClass().getDeclaredMethod("selectSection", String.class);
+                select.setAccessible(true);
+                select.invoke(stats(), section);
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+        });
+    }
+
+    /**
+     * Stats' section tabs (L8): Diagnostics against Overview, chosen the way a tab tap chooses it (selectSection). The
+     * sections crossfade in place: nothing slides and the tabs never move (they are the watched neighbours), and the page's
+     * foot (Data &amp; history's link), which sits somewhere else below a section of another length, fades in there
+     * ({@code with}) rather than jumping or gliding.
+     */
+    private Site statsTabs() {
+        statsSimulator();
+        Supplier<View> diagnostics = () -> (View) field(stats(), "diagnosticsSection");
+        Site tabs = new Site("Stats › Diagnostics' tab against Overview", diagnostics,
+                () -> new ArrayList<>(java.util.Collections.singletonList((View) field(stats(), "sectionTabs"))),
+                () -> selectStats("Diagnostics"), () -> selectStats("Overview"));
+        tabs.fadeOnly = true;
+        tabs.against = () -> new ArrayList<>(java.util.Collections.singletonList((View) field(stats(), "overviewSection")));
+        tabs.with = () -> new ArrayList<>(java.util.Collections.singletonList(storageFoot()));
+        return tabs;
+    }
+    /** The page's foot under every section: Data &amp; history's link. */
+    private View storageFoot() { return (View) invokeValue(field(stats(), "storageLink"), "view"); }
+
+    /**
+     * Stats › Overview's favourites (L7): the empty hint against the favourites card, as the rider's only favourite is
+     * removed (the hint arrives) and starred again (the card arrives), the app's own way (toggleFavourite, which the star
+     * and the detail sheet's Add and Remove run).
+     */
+    private Site statsFavourites() {
+        statsSimulator();
+        Supplier<View> hint = () -> (View) field(stats(), "favouritesHint");
+        Runnable remove = () -> main(() -> { if (favourite()) toggleFavourite(); });
+        Runnable add = () -> main(() -> { if (!favourite()) toggleFavourite(); });
+        Site favourites = new Site("Stats › Overview's favourites hint against the card", hint, () -> siblingsAfter(hint.get()), remove, add);
+        favourites.against = () -> new ArrayList<>(java.util.Collections.singletonList((View) field(stats(), "favouritesCard")));
+        return favourites;
+    }
+    /** The fixture's favourite reading is starred (main thread). */
+    @SuppressWarnings("unchecked")
+    private boolean favourite() { return ((java.util.Set<String>) field(stats(), "favourites")).contains("battery_percent"); }
+    private void toggleFavourite() {
+        try {
+            Method toggle = stats().getClass().getDeclaredMethod("toggleFavourite", String.class);
+            toggle.setAccessible(true);
+            toggle.invoke(stats(), "battery_percent");
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException(error); }
+    }
+
+    /**
+     * Stats' tabs on a scrolled page. The page scrolled so that the tabs are half off its top, Overview chosen: as
+     * before any motion, the page settles with the tabs at its top (or as far as the shorter page scrolls), and no frame
+     * draws the tabs off their way from where they were to where they rest. Scrolled to the very top, nothing moves.
+     */
+    private void tabsScrolled(Site site) {
+        site.show.run(); settleFor(SETTLE_MS);
+        requireRest(site, true, "before scrolling");
+        int[] expected = new int[1], from = new int[1];
+        main(() -> {
+            android.widget.ScrollView scroll = (android.widget.ScrollView) field(stats(), "sectionScroll");
+            View tabs = (View) field(stats(), "sectionTabs");
+            int top = (Integer) invokeValue(stats(), "tabsTop");
+            scroll.scrollTo(0, top + tabs.getHeight() / 2);
+            from[0] = scroll.getScrollY();
+            expected[0] = top;
+        });
+        require(from[0] > expected[0], site.name + ": the page did not scroll past the tabs' top (" + from[0] + ")");
+        settle();
+        Frames frames = record(site, site.hide);
+        requireRest(site, false, "after Overview was chosen on the scrolled page");
+        int[] now = new int[2];
+        main(() -> {
+            android.widget.ScrollView scroll = (android.widget.ScrollView) field(stats(), "sectionScroll");
+            now[0] = scroll.getScrollY();
+            now[1] = Math.max(0, scroll.getChildAt(0).getHeight() - scroll.getHeight());
+            require(scroll.getChildAt(0).getTranslationY() == 0, site.name + ": the page's content is left offset");
+        });
+        require(now[0] == Math.min(expected[0], now[1]), site.name + ": chosen on a scrolled page, the page rests at " + now[0] + " px, not with the tabs at its top ("
+                + expected[0] + ", or the end of the page at " + now[1] + ")");
+        onPath(frames, site.name + " chosen on a scrolled page");
+        checks.add(site.name + ": chosen with the tabs half scrolled off (" + from[0] + " px), the page rests with them at its top (" + now[0] + " px) and "
+                + frames.samples.size() + " frames draw the tabs only on their way (track " + track(frames, 0) + ")");
+    }
+
+    /**
+     * At scale 10, real taps through the window while Overview fades out and Diagnostics fades in: a tap where Overview's
+     * hint was drawn reaches none of Overview (it would open Readings), and one on Diagnostics' Refresh lands there. Every
+     * probed control is held by a touch probe that consumes the tap, so nothing opens or is sent.
+     */
+    private void tabsTaps() {
+        Site tabs = site;
+        View hint = onMain(() -> (View) field(stats(), "favouritesHint")), refresh = onMain(() -> (View) field(stats(), "refreshButton"));
+        require(onMain(() -> hint.isShown()), "Stats: Overview's empty hint is not shown before the taps");
+        float[] onHint = centre(hint);
+        tabs.show.run(); settleFor(SETTLE_MS);
+        float[] onRefresh = centre(refresh);
+        tabs.hide.run(); settleFor(SETTLE_MS);
+        List<String> reachedHint = new CopyOnWriteArrayList<>(), reachedRefresh = new CopyOnWriteArrayList<>(), reachedDiagnostics = new CopyOnWriteArrayList<>();
+        java.util.ArrayList<View> probed = new java.util.ArrayList<>();
+        main(() -> {
+            hint.setOnTouchListener((v, event) -> { reachedHint.add(MotionEvent.actionToString(event.getActionMasked())); return true; });
+            refresh.setOnTouchListener((v, event) -> { reachedRefresh.add(MotionEvent.actionToString(event.getActionMasked())); return true; });
+            // Every other control of Diagnostics (Export would open the system's file picker) only counts.
+            List<View> controls = new ArrayList<>(); clickables((View) field(stats(), "diagnosticsSection"), controls);
+            for (View control : controls) if (control != refresh) {
+                control.setOnTouchListener((v, event) -> { reachedDiagnostics.add(MotionEvent.actionToString(event.getActionMasked())); return true; });
+                probed.add(control);
+            }
+        });
+        scale(10);
+        try {
+            View overview = onMain(() -> (View) field(stats(), "overviewSection"));
+            tabs.show.run();
+            SystemClock.sleep(250);
+            float leavingAt = onMain(() -> drawn(overview));
+            require(leavingAt > .05f && leavingAt < .95f, "Stats: Overview is not mid-fade at the tap where its hint was (opacity " + leavingAt + ")");
+            tap(onHint);
+            SystemClock.sleep(150);
+            float arrivingAt = onMain(() -> drawn((View) field(stats(), "diagnosticsSection")));
+            require(arrivingAt > .05f && arrivingAt < .95f, "Stats: Diagnostics is not mid-fade at the tap on Refresh (opacity " + arrivingAt + ")");
+            tap(onRefresh);
+            SystemClock.sleep(300);
+            waitForIdleSync();
+            require(reachedHint.isEmpty(), "Stats: Overview's hint, fading out (opacity " + leavingAt + "), took a tap (" + reachedHint + ")");
+            require(onMain(() -> "Diagnostics".equals(field(stats(), "selectedSection"))), "Stats: a tap mid-fade changed the section to " + onMain(() -> field(stats(), "selectedSection")));
+            require(reachedRefresh.contains("ACTION_DOWN") && reachedRefresh.contains("ACTION_UP"), "Stats: Diagnostics' Refresh, fading in (opacity " + arrivingAt + "), did not get its tap (" + reachedRefresh + ")");
+            checks.add("Stats › tabs: at scale 10, a tap where Overview's hint was drawn fading out (opacity " + String.format(Locale.ROOT, "%.2f", leavingAt)
+                    + ") reached none of Overview" + (reachedDiagnostics.isEmpty() ? "" : " (Diagnostics' control there got it)") + ", and a tap on Diagnostics' Refresh fading in ("
+                    + String.format(Locale.ROOT, "%.2f", arrivingAt) + ") landed on it");
+        } finally {
+            main(() -> { hint.setOnTouchListener(null); refresh.setOnTouchListener(null); for (View control : probed) control.setOnTouchListener(null); });
+            scale(1);
+        }
+    }
+    private static void clickables(View view, List<View> out) {
+        if (view.isClickable()) out.add(view);
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) clickables(((ViewGroup) view).getChildAt(i), out);
+    }
+
+    /**
+     * At scale 10, the only favourite removed and a real tap where its row was, while the card fades out: the row does
+     * not take it (it would open the reading's details). The hint arriving there may (a probe holds it, so Readings
+     * does not open).
+     */
+    private void favouritesTaps() {
+        Site favourites = site;
+        favourites.hide.run(); settleFor(SETTLE_MS);
+        View card = onMain(() -> (View) field(stats(), "favouritesCard")), hint = onMain(() -> (View) field(stats(), "favouritesHint"));
+        View row = onMain(() -> ((ViewGroup) card).getChildAt(0));
+        require(row != null && onMain(() -> row.isShown() && row.isClickable()), "Stats: the favourites card has no row to tap");
+        float[] onRow = centre(row);
+        List<String> reachedRow = new CopyOnWriteArrayList<>(), reachedHint = new CopyOnWriteArrayList<>();
+        main(() -> {
+            row.setOnTouchListener((v, event) -> { reachedRow.add(MotionEvent.actionToString(event.getActionMasked())); return true; });
+            hint.setOnTouchListener((v, event) -> { reachedHint.add(MotionEvent.actionToString(event.getActionMasked())); return true; });
+        });
+        scale(10);
+        try {
+            favourites.show.run();
+            SystemClock.sleep(300);
+            float fading = onMain(() -> drawn(card));
+            require(fading > .05f && fading < .95f, "Stats: the favourites card is not mid-fade at the tap (opacity " + fading + ")");
+            tap(onRow);
+            SystemClock.sleep(300);
+            waitForIdleSync();
+            require(reachedRow.isEmpty(), "Stats: the favourite's row, fading out (opacity " + fading + "), took a tap (" + reachedRow + ")");
+            Object dialog = onMain(() -> field(stats(), "metricDialog"));
+            require(!(dialog instanceof android.app.Dialog) || !onMain(() -> ((android.app.Dialog) dialog).isShowing()), "Stats: a tap on the fading favourite opened its details");
+            checks.add("Stats › favourites: at scale 10, a tap where the removed favourite's row was drawn fading out (opacity " + String.format(Locale.ROOT, "%.2f", fading)
+                    + ") reached no row and opened nothing" + (reachedHint.contains("ACTION_UP") ? "; the arriving hint got it" : ""));
+        } finally {
+            main(() -> { row.setOnTouchListener(null); hint.setOnTouchListener(null); });
+            scale(1);
+        }
+    }
 
     // ===== C1 sites: sheets, the riding alert, the battery summary and setup =====
 
@@ -1842,6 +2049,8 @@ public final class RevealMotionValidation extends Instrumentation {
         else if (part.equals("riding-alert")) closeMidFade();
         else if (part.equals("lock")) lockTaps();
         else if (part.equals("page-line")) lineTaps();
+        else if (part.equals("stats-tabs")) tabsTaps();
+        else if (part.equals("stats-favourites")) favouritesTaps();
         else notes.add(site.name + ": no tap check for this part");
     }
 
