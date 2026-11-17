@@ -24,6 +24,7 @@ public final class ChargePictureTest {
         cableEnd();
         cableInColumn();
         fontScale();
+        nonlinearFont();
         registryKeys();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
@@ -428,6 +429,113 @@ public final class ChargePictureTest {
         ChargePictureFit.Fit narrow = ChargePictureFit.widgets(248 * D, SHARE, full, full / 1.4f, ChargePictureFit.growth(1, 1.4f), D);
         ChargePictureFit.Fit old = ChargePictureFit.widgets(248 * D, SHARE, full, full, 1, D);
         require(narrow.text > old.text + 5 * D, "280 dp at Android's 140%: the number grows: " + narrow.text / D + " (was " + old.text / D + ")");
+    }
+
+    /** Android 14's FontScaleConverter tables (sp to dp) at 130% and 200%: from about 30 sp a size barely grows. */
+    private static final float[] TABLE_SP = {8, 10, 12, 14, 18, 20, 24, 30, 100};
+    private static final float[] DP_130 = {10.4f, 13, 15.6f, 18.8f, 21.6f, 23.6f, 26.4f, 30, 100};
+    private static final float[] DP_200 = {16, 20, 24, 26, 30, 34, 36, 38, 100};
+
+    /** A size in sp as dp: Android 14's table (interpolated, from 0 below its first point), or linear (table null). */
+    private static float toDp(float sp, float fontScale, float[] table) {
+        if (table == null) return sp * fontScale;
+        int last = TABLE_SP.length - 1;
+        if (sp <= TABLE_SP[0]) return sp * table[0] / TABLE_SP[0];
+        int i = 1;
+        while (i < last && sp > TABLE_SP[i]) i++;
+        float x0 = TABLE_SP[i - 1], x1 = TABLE_SP[i], y0 = table[i - 1], y1 = table[i];
+        return y0 + (sp - x0) * (y1 - y0) / (x1 - x0);
+    }
+
+    /** {@link #slot} at Volt's 1.0x with Android's font at {@code fontScale}, each size converted as {@link #toDp} does. */
+    private static int[] slotAt(int width, int height, float fontScale, float[] table) {
+        boolean wide = WideLayout.wide(width, fontScale);
+        int inner = TopArea.heightDp(width, height, wide, fontScale);
+        int across = Math.min(width - 36, 560);
+        int oneLine = Math.round(toDp(ChargingFit.LINE_SP, fontScale, table) * 1.17f);
+        int line = 12.7f * toDp(ChargingFit.LINE_SP, fontScale, table) > across ? 2 * oneLine : oneLine;
+        int percent = Math.round(toDp(72, fontScale, table) * ChargingFit.PERCENT_SP / 72f * 1.17f);
+        float tile = 20 + toDp(12, fontScale, table) * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP, toDp(ChargingFit.VALUE_SP, fontScale, table) * 1.33f);
+        int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);
+        return new int[] {(int) (inner * D), (int) (line * D), (int) (oneLine * D), (int) (percent * D), (int) (readings * D), (int) (across * D)};
+    }
+
+    /**
+     * A larger Android font size never makes the percentage smaller than at 100% (review of #483, P3). From Android 14
+     * large sizes grow nonlinearly (72 sp at 130% is 72 dp, at 200% about 75 dp), so the number's 1.0x size is found
+     * from its measured growth (ChargePictureFit.sizeGrowth), not by dividing by the font size; before Android 14 (sp
+     * linear) the two are the same and nothing changes. At 344 x 882 and 725 x 604 dp, Clean and Widgets, Volt at 1.0x:
+     * the number is at least its size at 100% wherever the slot's plan keeps the percentage's full size, never smaller
+     * than the earlier rule made it, and grows from the picture's share as far as the picture allows.
+     */
+    private static void nonlinearFont() {
+        near(ChargePictureFit.sizeGrowth(72 * D, 72, D), 1, 1e-6, "100%: no growth");
+        near(ChargePictureFit.sizeGrowth(72 * 1.3f * D, 72, D), 1.3f, 1e-6, "linear 130%: the font size");
+        near(ChargePictureFit.sizeGrowth(toDp(72, 1.3f, DP_130) * D, 72, D), 1, 1e-6, "Android 14 at 130%: 72 sp is 72 dp");
+        near(ChargePictureFit.sizeGrowth(toDp(72, 2, DP_200) * D, 72, D), 75.2f / 72, 1e-4, "Android 14 at 200%: 72 sp is 75.2 dp");
+        near(ChargePictureFit.sizeGrowth(0, 72, D), 1, 0, "unknown: 1");
+        near(ChargePictureFit.sizeGrowth(72 * D, 72, 0), 1, 0, "no density: 1");
+        Object[][] cases = {{"Android 14 at 130%", 1.3f, DP_130}, {"Android 14 at 200%", 2f, DP_200},
+                {"Android 13 at 130%", 1.3f, null}, {"Android 13 at 200%", 2f, null}};
+        for (int[] window : new int[][] {{344, 882}, {725, 604}}) {
+            String size = window[0] + "x" + window[1];
+            int[] base = slot(window[0], window[1], 1);
+            float cleanBase = ChargePictureFit.cleanSlot(base[0], base[1], base[2], base[3], base[4], base[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D, 1, D).fit.text;
+            float w = (window[0] - 32) * D;
+            float widgetsBase = ChargePictureFit.widgets(w, SHARE, 60 * D, 60 * D, 1, D).text;
+            for (Object[] c : cases) {
+                String name = size + " " + c[0];
+                float fontScale = (float) c[1];
+                float[] table = (float[]) c[2];
+                int[] s = slotAt(window[0], window[1], fontScale, table);
+                // The number's full size: its 72 sp as converted, at the Layout Plan's 60/72 (DashboardScreen).
+                float full = toDp(72, fontScale, table) * D * ChargingFit.PERCENT_SP / 72f;
+                float grown = ChargePictureFit.sizeGrowth(toDp(72, fontScale, table) * D, 72, D);
+                ChargePictureFit.SlotFit fit = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, full, fontScale, grown, D);
+                ChargePictureFit.Fit f = fit.fit;
+                float earlier = ChargePictureFit.cleanSlot(s[0], s[1], s[2], s[3], s[4], s[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, full, fontScale, D).fit.text;
+                // Where the slot's plan keeps the percentage's full size (ChargingFit: a slot too short for it shrinks it,
+                // #449's rule, whatever the picture), the number is at least its size at 100%; and never smaller than
+                // the fit that divided by the font size.
+                if (fit.plan.percentScale >= 1) require(f.text >= cleanBase - .01f, name + " Clean: the number " + f.text / D + " dp is smaller than at 100% (" + cleanBase / D + ")");
+                require(f.text >= earlier - .01f, name + " Clean: the number " + f.text / D + " dp is smaller than the earlier rule's " + earlier / D);
+                float oneX = 60 * D * fit.plan.percentScale;
+                require(f.text <= ChargePictureFit.TEXT_PER_BOX * f.box * fontScale + .5f || f.text <= oneX + .5f,
+                        name + " Clean: the number " + f.text / D + " outgrows its picture " + f.box / D);
+                require(f.text <= full * fit.plan.percentScale + .01f, name + " Clean: never above its full size");
+                float share = (float) (ChargePictureFit.TEXT_PER_BOX * f.box);
+                require(f.text >= Math.min(oneX, share * fontScale) - .5f || f.text >= full * fit.plan.percentScale - .5f,
+                        name + " Clean: the number " + f.text / D + " does not grow as far as the picture allows (" + Math.min(oneX, share * fontScale) / D + ")");
+                // Before Android 14 the measured growth is the font size: the fit is the earlier rule's.
+                if (table == null) near(f.text, earlier, 1e-3, name + " Clean: unchanged where sp is linear");
+                ChargePictureFit.Fit wf = ChargePictureFit.widgets(w, SHARE, full, full / Math.max(1, grown), fontScale, D);
+                require(wf.text >= widgetsBase - .01f, name + " Widgets: the number " + wf.text / D + " dp is smaller than at 100% (" + widgetsBase / D + ")");
+                require(wf.text <= ChargePictureFit.TEXT_PER_BOX * wf.box * fontScale + .5f || wf.text <= 60 * D + .5f,
+                        name + " Widgets: the number " + wf.text / D + " outgrows its picture " + wf.box / D);
+                if (table == null) near(wf.text, ChargePictureFit.widgets(w, SHARE, full, full / fontScale, fontScale, D).text, 1e-3, name + " Widgets: unchanged where sp is linear");
+            }
+        }
+        // The review's case on the emulator: 344 x 882 at Android 14's 130%, Volt at 1.0x, Clean's stage leaving the
+        // picture a 51.9 dp share. The number's 72 sp converts to 72 dp (60 dp at the Layout Plan's 60/72), so dividing
+        // by the font size took its 1.0x size as 46.2 dp and capped it at the share, 51.9 dp (it was 60 dp at 100%); its
+        // measured growth (1.0) keeps its 1.0x size at 60 dp, and the share grown by the font size allows it.
+        float full = toDp(72, 1.3f, DP_130) * D * ChargingFit.PERCENT_SP / 72f;
+        near(full, 60 * D, 1e-3, "72 sp at Android 14's 130% at 60/72: 60 dp");
+        float box = (float) (51.9 * D / ChargePictureFit.TEXT_PER_BOX);
+        float linear = ChargePictureFit.text(box, full, full / 1.3f, 1.3f);
+        float measured = ChargePictureFit.text(box, full, full / ChargePictureFit.sizeGrowth(toDp(72, 1.3f, DP_130) * D, 72, D), 1.3f);
+        near(linear / D, 51.9, 1e-3, "dividing by the font size: capped at the 51.9 dp share");
+        near(measured / D, 60, 1e-3, "the measured growth: 60 dp, as at 100%");
+        // Widgets at 344 and 725 dp: the share allows the full 60 dp both ways (Android 14 does not grow 72 sp at 130%).
+        for (int width : new int[] {344, 725}) {
+            float w = (width - 32) * D;
+            near(ChargePictureFit.widgets(w, SHARE, full, full / ChargePictureFit.sizeGrowth(72 * D, 72, D), 1.3f, D).text / D, 60, 1e-3, width + " Widgets at 130%: 60 dp");
+        }
+        // Volt's own Text size at Android's 100% (no converter: linear) fits as before.
+        int[] v = slot(725, 604, 1.4f);
+        near(ChargePictureFit.cleanSlot(v[0], v[1], v[2], v[3], v[4], v[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * 1.4f, 1.4f, ChargePictureFit.sizeGrowth(72 * 1.4f * D, 72, D), D).fit.text,
+                ChargePictureFit.cleanSlot(v[0], v[1], v[2], v[3], v[4], v[5], FOOT, ChargePicture_LIFT * D, 0, SHARE, 60 * D * 1.4f, 1.4f, D).fit.text, 1e-3,
+                "725x604 at Volt's 1.4x: as before");
     }
 
     /** Each charging picture's key is a photo key ModelRegistry gives a model (review of #483, C9). */

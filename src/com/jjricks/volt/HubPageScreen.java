@@ -27,4 +27,12 @@ final class HubPageScreen implements AppScreen {
     @Override public void close() { for (AppScreen part : parts) part.close(); }
     @Override public boolean back() { for (AppScreen part : parts) if (part.back()) return true; return false; }
     @Override public boolean busy() { for (AppScreen part : parts) if (part.busy()) return true; return false; }
+    @Override public View anchor(String id) {
+        for (AppScreen part : parts) { View found = part.anchor(id); if (found != null) return found; }
+        return null;
+    }
+    @Override public boolean openHeld(String id) {
+        for (AppScreen part : parts) if (part.openHeld(id)) return true;
+        return false;
+    }
 }
