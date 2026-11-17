@@ -327,12 +327,12 @@ final class ChargeTransition {
             float images = fade(seg(p, .15f, .5f));
             for (View image : hero.images()) image.setAlpha(images);
             hero.glowIn(fade(seg(p, .3f, .8f)));
-            float line = ease(seg(p, .5f, .82f));
-            for (View v : hero.lines()) v.setAlpha(line);
-            hero.riseLines((1 - line) * hero.dp(10));
-            float rows = ease(seg(p, .6f, .92f));
-            hero.rows().setAlpha(rows);
-            hero.rows().setTranslationY((1 - rows) * hero.dp(14));
+            // Opacity on Motion's even fade curve, the rise on its arrival curve (a fast start on opacity reads as a cut).
+            float line = seg(p, .5f, .82f), rows = seg(p, .6f, .92f);
+            for (View v : hero.lines()) v.setAlpha(fade(line));
+            hero.riseLines((1 - ease(line)) * hero.dp(10));
+            hero.rows().setAlpha(fade(rows));
+            hero.rows().setTranslationY((1 - ease(rows)) * hero.dp(14));
             picture(hero, p, in, .4f, .68f);
             if (g == null) {
                 flight.hide();
@@ -445,20 +445,19 @@ final class ChargeTransition {
     /** Widgets' takeover at progress p: the hero's own fade and rise, then its parts. */
     static void styleWidgets(Hero hero, float p, boolean in) {
         View view = hero.view();
-        float whole = seg(p, 0, .35f);
+        float whole = fade(seg(p, 0, .35f));
         view.setAlpha(whole);
         view.setTranslationY(-hero.dp(16) * (1 - whole));
         quiet(view, !in);
         // The whole stage (picture, number and charge bar) arrives together, so the bar never shows alone.
         hero.stage().setAlpha(fade(seg(p, .18f, .5f)));
-        hero.percent().setAlpha(seg(p, .35f, .65f));
-        hero.glowIn(seg(p, .4f, .8f));
-        float line = ease(seg(p, .3f, .6f));
-        for (View v : hero.lines()) v.setAlpha(line);
-        hero.riseLines((1 - line) * hero.dp(8));
-        float rows = ease(seg(p, .55f, .9f));
-        hero.rows().setAlpha(rows);
-        hero.rows().setTranslationY((1 - rows) * hero.dp(12));
+        hero.percent().setAlpha(fade(seg(p, .35f, .65f)));
+        hero.glowIn(fade(seg(p, .4f, .8f)));
+        float line = seg(p, .3f, .6f), rows = seg(p, .55f, .9f);
+        for (View v : hero.lines()) v.setAlpha(fade(line));
+        hero.riseLines((1 - ease(line)) * hero.dp(8));
+        hero.rows().setAlpha(fade(rows));
+        hero.rows().setTranslationY((1 - ease(rows)) * hero.dp(12));
         picture(hero, p, in, .45f, .72f);
         hero.stage().invalidate();
     }
