@@ -310,7 +310,10 @@ public final class HubPlanTextTest {
         check(editor.contains("QuickAccessGrid.roundNames(entry)")
                 && editor.contains("return QuickActionLayout.firstNames(HubText.listSeparator().render(), ladders);"),
                 "Home style's row lists the names the round buttons show (part 10's short ones first)");
-        check(editor.contains("names.add(fullName(id).toString());"), "Home style's row is read by the actions' full names");
+        check(editor.contains("names.add(spokenName(id).toString());") && editor.contains("return round != null ? round.render() : fullName(id);"),
+                "Home style's row is read by the actions' full names");
+        check(editor.contains("Msg round = HomeQuickActions.RIDING.equals(id) ? HubText.quickActionRoundName(id) : null;"),
+                "Home style's row reads riding mode by its round button's name, not the RIDE pill's (a trip in pt and es)");
         String style = read("src/com/jjricks/volt/HomeStyleScreen.java");
         check(style.contains("quickNames.setContentDescription(spoken)") && style.contains("HomeQuickEditor.spokenSummary(ids)"),
                 "Home style's line speaks the full names");

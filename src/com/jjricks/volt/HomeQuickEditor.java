@@ -60,12 +60,23 @@ final class HomeQuickEditor {
     /**
      * The four names TalkBack reads for the line: each action's full name, as its round button and the editing list
      * speak it ("Charge done by" rather than "Charge by", "Cruise control" rather than "Cruise"), so a short name is never
-     * all a listener hears. Joined by the language's list separator.
+     * all a listener hears. Riding mode is read by the name the line and its round button show (spokenName). Joined by the
+     * language's list separator.
      */
     static String spokenSummary(List<String> ids) {
         List<String> names = new ArrayList<>();
-        for (String id : ids) names.add(fullName(id).toString());
+        for (String id : ids) names.add(spokenName(id).toString());
         return String.join(HubText.listSeparator().render(), names);
+    }
+
+    /**
+     * An action's name in the line's spoken summary: its full name (fullName), except riding mode, read by its round
+     * button's name (HubText.quickActionRoundName: "Ride" as riding, "Condução", "Conducción"). Its entry's own label is
+     * the Widgets RIDE pill's, which some languages give as a trip ("VIAGEM", "VIAJE"), next to Rides ("Viagens").
+     */
+    private static CharSequence spokenName(String id) {
+        Msg round = HomeQuickActions.RIDING.equals(id) ? HubText.quickActionRoundName(id) : null;
+        return round != null ? round.render() : fullName(id);
     }
 
     /**
