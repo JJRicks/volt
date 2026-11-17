@@ -93,18 +93,7 @@ final class HomeStylePreview extends View {
         power = Fmt.quantity(Fmt.integerNumber(412), Fmt.unit(UnitCode.WATT)).toString();
         temperature = DisplayTemperature.format(31.0, settings.getString("temperature_unit", "c"), 0);
         health = Fmt.percent(Fmt.integerNumber(96)).toString();
-        // The owner's own four, as Clean shows them (CleanHomeScreen.loadQuick), or this scooter's defaults.
-        String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
-        for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
-            QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-            if (entry != null) {
-                String[] names = QuickAccessGrid.roundNames(entry), action = new String[names.length + 2];
-                action[0] = QuickAccessGrid.roundGlyph(id, entry.icon);
-                action[1] = id;
-                System.arraycopy(names, 0, action, 2, names.length);
-                quick.add(action);
-            }
-        }
+        quick.addAll(quick(service, profile, settings));
         for (String id : model == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(model)) {
             QuickAccessActions.Entry entry = QuickAccessActions.find(id);
             if (entry != null) settingTiles.add(entry.icon);
@@ -128,6 +117,43 @@ final class HomeStylePreview extends View {
         dockLabels.add(HubText.all().render());
         setContentDescription(HubText.homeStylePreview(clean).render());
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+    }
+
+    /**
+     * Clean's four as stored now (icon, id, then the name ladder): the owner's own four, as Clean shows them
+     * (CleanHomeScreen.loadQuick), or this scooter's defaults.
+     */
+    private static List<String[]> quick(ScooterService service, ScooterProfiles.Profile profile, SharedPreferences settings) {
+        List<String[]> quick = new ArrayList<>();
+        String stored = profile == null ? null : settings.getString(HomeQuickActions.key(profile.id), null);
+        for (String id : HomeQuickActions.load(stored, HomeQuickDefaults.forScooter(service))) {
+            QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
+            if (entry != null) {
+                String[] names = QuickAccessGrid.roundNames(entry), action = new String[names.length + 2];
+                action[0] = QuickAccessGrid.roundGlyph(id, entry.icon);
+                action[1] = id;
+                System.arraycopy(names, 0, action, 2, names.length);
+                quick.add(action);
+            }
+        }
+        return quick;
+    }
+
+    /**
+     * Reads the four again from where they are stored and redraws when they changed (Settings › Home style's refresh):
+     * on two panes an edit from Home's long-press sheet in the scooter pane leaves the page beside it unrebuilt (#394
+     * council review, third round, P3). The scooter is the one this drawing was made for: another one rebuilds the page.
+     */
+    void refreshQuick(ScreenHost host) {
+        ScooterService service = host.service();
+        ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
+        List<String[]> now = quick(service, profile, getContext().getSharedPreferences("app_settings", Context.MODE_PRIVATE));
+        boolean same = now.size() == quick.size();
+        for (int i = 0; same && i < now.size(); i++) same = java.util.Arrays.equals(now.get(i), quick.get(i));
+        if (same) return;
+        quick.clear();
+        quick.addAll(now);
+        invalidate();
     }
 
     private static String distance(double value, boolean metric, int decimals) {

@@ -36,6 +36,8 @@ final class HomeStyleScreen implements AppScreen {
     /** The scooter whose four the row shows ("" for none); another one being active rebuilds the page. */
     private final String profileId;
     private DashboardScreen.QuickChooser chooser;
+    /** The picker's drawings: refresh redraws their quick actions from the stored four. */
+    private final List<HomeStylePreview> previews = new java.util.ArrayList<>();
     private android.app.AlertDialog slotsSheet;
     private boolean closed;
 
@@ -48,7 +50,9 @@ final class HomeStyleScreen implements AppScreen {
         view.setOrientation(LinearLayout.VERTICAL);
         // The activity's header already shows this page's title (HubText) under its back link, as for every page
         // below a tab's root, so the page adds none of its own (as More's sections opened as pages do).
-        view.addView(HomeStylePicker.build(host, preferences), new LinearLayout.LayoutParams(-1, -2));
+        View picker = HomeStylePicker.build(host, preferences);
+        view.addView(picker, new LinearLayout.LayoutParams(-1, -2));
+        previews(picker, previews);
         LinearLayout card = ui.groupCard();
         ScooterService service = host.service();
         ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
@@ -82,6 +86,16 @@ final class HomeStyleScreen implements AppScreen {
             String spoken = HomeQuickEditor.spokenSummary(ids);
             if (!spoken.contentEquals(String.valueOf(quickNames.getContentDescription()))) quickNames.setContentDescription(spoken);
         }
+        // The drawings too: on two panes an edit from Home's long-press sheet in the scooter pane doesn't rebuild this
+        // page, so Clean's preview takes the stored four here (#394 council review, third round, P3).
+        for (HomeStylePreview preview : previews) preview.refreshQuick(host);
+    }
+
+    /** The style drawings under view, in order. */
+    private static void previews(View view, List<HomeStylePreview> into) {
+        if (view instanceof HomeStylePreview) into.add((HomeStylePreview) view);
+        else if (view instanceof android.view.ViewGroup)
+            for (int i = 0; i < ((android.view.ViewGroup) view).getChildCount(); i++) previews(((android.view.ViewGroup) view).getChildAt(i), into);
     }
 
     @Override public void close() {
