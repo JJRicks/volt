@@ -11,6 +11,8 @@ public interface ScreenHost {
      * time (MainActivity.watchWindowBack). Settings' granted Nearby devices card leaves only then. Resumed by default.
      */
     default boolean windowBack() { return resumed(); }
+    /** Settings saw Nearby devices permission granted: the service starts if it isn't bound or starting. Nothing by default. */
+    default void nearbyGranted() {}
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */
     void open(String page);

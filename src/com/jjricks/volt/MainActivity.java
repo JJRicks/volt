@@ -204,7 +204,16 @@ public final class MainActivity extends Activity implements ScreenHost {
     };
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
     /** The rebuild for the service once Settings' Nearby devices card has left (onServiceConnected). */
-    private final Runnable serviceRebuild = () -> { if(!destroyed&&scooterService!=null)rebuild(); };
+    private final Runnable serviceRebuild = () -> { if(!destroyed&&scooterService!=null)rebuildForService(); };
+    /**
+     * The service's rebuild (bound, or its rebuild owed after the Nearby devices card's motion). A manual update check under
+     * way on Settings would be closed with the page and its result dropped: it is carried across the way the update notice's
+     * check is (updateCheckPending, showUpdateCheck runs it on the rebuilt Settings; #536 council review, finding 1).
+     */
+    private void rebuildForService(){
+        if(screen instanceof MoreScreen&&((MoreScreen)screen).updateCheckRunning())updateCheckPending=true;
+        rebuild();
+    }
     /** ensureService once Settings' Nearby devices card has left (ensureService). */
     private final Runnable serviceStart = () -> { serviceStartOwed=false; if(!destroyed)ensureService(); };
     /** ensureService left the service's start for after the card's motion (serviceStart): a bind is still coming. */
@@ -248,7 +257,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Settings' Nearby devices card still leaving (granted from it a moment ago): the rebuild waits for its motion to
             // end, so the rows finish gliding into its room instead of jumping there.
             if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){serviceRebuildOwed=true;handler.postDelayed(serviceRebuild,Motion.CHANGE_MS+40);return;}
-            rebuild();
+            rebuildForService();
         }
         @Override public void onServiceDisconnected(ComponentName name){
             scooterService=null;bound=false;binding=false;observeConnectionFeedback(true);rebuild();
@@ -295,7 +304,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -386,6 +395,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private static final int WINDOW_BACK_FRAMES=4;
     private static final long WINDOW_BACK_MS=600;
     @Override public boolean windowBack(){return windowBack;}
+    /**
+     * Settings saw Nearby devices granted with no pause around it (Android's settings beside Volt in split screen, where
+     * both stay resumed, so onResume never runs): the service starts from there too. ensureService waits for the card's
+     * glide as ever (#536 council review, finding 3).
+     */
+    @Override public void nearbyGranted(){if(!destroyed&&hasBluetoothPermission())ensureService();}
     private void watchWindowBack(){
         windowBack=false;int watch=++windowBackWatch;long until=SystemClock.uptimeMillis()+WINDOW_BACK_MS;
         float hz=getWindowManager().getDefaultDisplay().getRefreshRate();
@@ -494,6 +509,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
         for(String page:HubPages.ALL)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
+        // Settings' kept scroll counts the Nearby devices card while it shows: so does its restored copy (#536 council review, finding 2).
+        saved.putInt("settings_nearby_height",settingsNearbyHeight);
         super.onSaveInstanceState(saved);
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

@@ -2640,10 +2640,15 @@ public final class MoreScreen implements AppScreen {
         });
         showOverUpdates(dialog);
     }
+    /** The manual update check's Checking dialog, while it shows (updateCheckRunning). */
+    private AlertDialog updateChecking;
+    /** A manual update check is under way: its Checking dialog shows (MainActivity carries it across the service's rebuild). */
+    boolean updateCheckRunning() { return !closed && updateChecking != null && updateChecking.isShowing(); }
     private void runUpdateCheck() {
         String installed = AppVersion.name(host.activity());
         LinearLayout box = dialogBox(T.moreUpdateChecking(), T.moreUpdateAsking());
         AlertDialog checking = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null).create();
+        updateChecking = checking;
         show(checking);
         Thread worker = new Thread(() -> {
             UpdateCheck.Result result;
@@ -3357,6 +3362,9 @@ public final class MoreScreen implements AppScreen {
         // its frames on time; MainActivity redraws Settings then), so its glide doesn't share the main thread with Volt's
         // return.
         if (!nearby || host.windowBack()) nearbyCard(!nearby);
+        // Granted with no pause around it (split screen beside Android's settings, both resumed): nothing else starts the
+        // service, so Settings asks for it; it starts once the card has left (#536 council review, finding 3).
+        if (nearby && host.windowBack()) host.nearbyGranted();
     }
 
     /**
