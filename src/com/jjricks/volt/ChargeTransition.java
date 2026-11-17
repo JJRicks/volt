@@ -26,8 +26,8 @@ import android.widget.TextView;
  * the two crossfade (a copy of the photo drawn over the top area; the picture's layers transformed from the photo's
  * box), the percentage travels from the card to its charging place and size, and the card fades away. Then the cable
  * past the cut-out is drawn in from the screen's edge, a bright dash runs in along it to the bay, the bay lights up to the
- * battery's percent, and the line and the readings rise in, about 55 ms apart. The bay's light fades as the charge pulse
- * takes over; the pulse is held until the arrival ends. Leaving (about 360 ms) plays it back: the readings and the line
+ * battery's percent, and the Charging pill and the readings rise in, about 55 ms apart. The bay's light fades as the charge pulse
+ * takes over; the pulse is held until the arrival ends. Leaving (about 360 ms) plays it back: the readings and the pill
  * go, the cable lets go, and the picture glides home into the card while the number flies back. Widgets' takeover opens
  * (or closes) as before, its parts arriving in the same order once it is open.
  *
@@ -45,7 +45,7 @@ final class ChargeTransition {
     /** The charging view's parts (DashboardScreen.ChargingHero). */
     interface Hero {
         View view();
-        /** The line over the percentage (Clean: the line and its short form; Widgets: the chip). */
+        /** The Charging pill over the percentage (Clean: the pill and its short form; Widgets: the pill). */
         View[] lines();
         TextView percent();
         ViewGroup stage();
@@ -327,12 +327,13 @@ final class ChargeTransition {
             float images = fade(seg(p, .15f, .5f));
             for (View image : hero.images()) image.setAlpha(images);
             hero.glowIn(fade(seg(p, .3f, .8f)));
-            // Opacity on Motion's even fade curve, the rise on its arrival curve (a fast start on opacity reads as a cut).
-            float line = seg(p, .5f, .82f), rows = seg(p, .6f, .92f);
-            for (View v : hero.lines()) v.setAlpha(fade(line));
-            hero.riseLines((1 - ease(line)) * hero.dp(10));
-            hero.rows().setAlpha(fade(rows));
-            hero.rows().setTranslationY((1 - ease(rows)) * hero.dp(14));
+            // The pill and the readings rise in on Motion's even curve, their opacity with them: their shares are short,
+            // and the arrival curve's fast start moved them too far in one frame (most of their rise when leaving).
+            float line = fade(seg(p, .5f, .82f)), rows = fade(seg(p, .6f, .92f));
+            for (View v : hero.lines()) v.setAlpha(line);
+            hero.riseLines((1 - line) * hero.dp(10));
+            hero.rows().setAlpha(rows);
+            hero.rows().setTranslationY((1 - rows) * hero.dp(14));
             picture(hero, p, in, .4f, .68f);
             if (g == null) {
                 flight.hide();
@@ -453,11 +454,11 @@ final class ChargeTransition {
         hero.stage().setAlpha(fade(seg(p, .18f, .5f)));
         hero.percent().setAlpha(fade(seg(p, .35f, .65f)));
         hero.glowIn(fade(seg(p, .4f, .8f)));
-        float line = seg(p, .3f, .6f), rows = seg(p, .55f, .9f);
-        for (View v : hero.lines()) v.setAlpha(fade(line));
-        hero.riseLines((1 - ease(line)) * hero.dp(8));
-        hero.rows().setAlpha(fade(rows));
-        hero.rows().setTranslationY((1 - ease(rows)) * hero.dp(12));
+        float line = fade(seg(p, .3f, .6f)), rows = fade(seg(p, .55f, .9f));
+        for (View v : hero.lines()) v.setAlpha(line);
+        hero.riseLines((1 - line) * hero.dp(8));
+        hero.rows().setAlpha(rows);
+        hero.rows().setTranslationY((1 - rows) * hero.dp(12));
         picture(hero, p, in, .45f, .72f);
         hero.stage().invalidate();
     }
