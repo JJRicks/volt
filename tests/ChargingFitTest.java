@@ -13,8 +13,9 @@ package com.jjricks.volt;
  *       from ChargingFit.PAIR_DP, else they stack with an 8 dp gap;</li>
  *   <li>text height: 1.17 times the text size without font padding (the line at ChargingFit.LINE_SP, the percentage
  *       at ChargingFit.PERCENT_SP, a tile's label at 12 sp), 1.33 times with it (a tile's value), times the text
- *       scale; the line wraps to two lines where "Charging to your 90% limit" (about 12.7 dp per sp) is wider than
- *       the slot;</li>
+ *       scale; the line is the ⚡ Charging pill ({@link #pill}): its text, 3 dp between two lines, and its padding
+ *       above and below; it wraps to two lines where "Charging to your 90% limit" in semibold (about 13.3 dp per sp)
+ *       with the pill's sides and bolt is wider than the slot;</li>
  *   <li>a tile: 10 dp padding above and below, the label line, 2 dp, the value (at least ChargingFit.VALUE_MIN_DP
  *       times the text scale); in the worst case its state pill wraps under the value.</li>
  * </ul>
@@ -39,14 +40,27 @@ public final class ChargingFitTest {
         boolean wide = WideLayout.wide(width, text);
         int inner = TopArea.heightDp(width, height - bars, wide, text);
         int across = Math.min(width - 36, 560);
-        int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f * taller);
-        int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
+        int[] chip = pill(ChargingFit.LINE_SP * text, across, taller);
+        int oneLine = chip[0], line = chip[1];
         int percent = Math.round(ChargingFit.PERCENT_SP * text * 1.17f * taller);
         float tile = 20 + 12 * text * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP * text, ChargingFit.VALUE_SP * text * 1.33f)
                 + (pill ? 11 * text * 1.17f + 6 + 4 : 0);
         int readings = Math.round((across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8) * taller);
         return new Case(width + "x" + height + " at " + text + "x" + (bars > 0 ? ", bars" : "") + (pill ? ", pill" : "")
                 + (taller > 1 ? ", taller" : ""), inner, line, oneLine, percent, readings);
+    }
+
+    /**
+     * The ⚡ Charging pill with its text {@code textDp} tall (dp) in a slot {@code across} dp wide: {one line, the line
+     * as it wraps}, in dp ({@code taller} times the text). Shared with ChargePictureTest.
+     */
+    static int[] pill(float textDp, int across, float taller) {
+        float words = 13.3f * textDp + ChargingFit.LINE_START_DP + ChargingFit.LINE_END_DP + ChargingFit.LINE_GLYPH_DP
+                + ChargingFit.LINE_GLYPH_GAP_DP;
+        int padding = 2 * ChargingFit.LINE_PAD_DP;
+        int one = Math.round(Math.max(textDp * 1.17f * taller, ChargingFit.LINE_GLYPH_DP)) + padding;
+        int two = Math.round(2 * textDp * 1.17f * taller + 3) + padding;
+        return new int[] {one, words > across ? two : one};
     }
 
     /** What must hold for every plan: it fills the slot exactly with the readings, and nothing overlaps. */

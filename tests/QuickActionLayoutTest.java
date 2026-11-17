@@ -37,6 +37,7 @@ public final class QuickActionLayoutTest {
         ladder();
         languages();
         oneWord();
+        firstNames();
         order();
         narrow();
         states();
@@ -192,6 +193,25 @@ public final class QuickActionLayoutTest {
         require(QuickActionLayout.oneWordFirst().length == 0, "no names: none");
         require(java.util.Arrays.equals(QuickActionLayout.oneWordFirst("Controle\u00a0de cruzeiro", "Cruzeiro"),
                 new String[]{"Cruzeiro", "Controle\u00a0de cruzeiro"}), "a no-break space counts as a space");
+    }
+
+    /**
+     * Settings › Home style's Quick actions line (the contributor's decision, 15 Nov, #383): the name each round button
+     * tries first, in order, never a later rung, joined by the separator given.
+     */
+    private static void firstNames() {
+        java.util.List<String[]> clean = java.util.Arrays.asList(new String[]{"Ride", null, "RIDE"}, new String[]{"Record", "Record ride"},
+                new String[]{"Charge by", "Charge done by", null, "Done by"}, new String[]{"Cruise", "Cruise control", "Cruise"});
+        require(QuickActionLayout.firstNames(", ", clean).equals("Ride, Record, Charge by, Cruise"), "each button's first name: " + QuickActionLayout.firstNames(", ", clean));
+        java.util.List<String[]> other = java.util.Arrays.asList(new String[]{"Alerts", "Charge alerts"}, new String[]{"Recovery", "Energy recovery"},
+                new String[]{"Overspeed", "Overspeed control"}, new String[]{"Descent", "Hill descent"});
+        require(QuickActionLayout.firstNames(", ", other).equals("Alerts, Recovery, Overspeed, Descent"), "the other set");
+        require(QuickActionLayout.firstNames(" · ", other).equals("Alerts · Recovery · Overspeed · Descent"), "the language's separator");
+        require(QuickActionLayout.firstNames(", ", java.util.Arrays.asList(new String[]{null, "", "Lights"}, new String[]{"Data"})).equals("Lights, Data"),
+                "no first name: the first non-empty one");
+        require(QuickActionLayout.firstNames(", ", java.util.Arrays.asList(new String[]{null}, null, new String[0], new String[]{"Rides"})).equals("Rides"),
+                "a ladder with no name is left out");
+        require(QuickActionLayout.firstNames(", ", new java.util.ArrayList<>()).isEmpty(), "no actions: an empty line");
     }
 
     /** Full size when it fits; smaller (never below the least share) while that keeps it whole; else the next rung. */

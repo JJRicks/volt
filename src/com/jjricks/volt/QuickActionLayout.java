@@ -99,6 +99,21 @@ final class QuickActionLayout {
         return names;
     }
 
+    /**
+     * Settings › Home style's Quick actions line (the contributor's decision, 15 Nov, #383): the names Clean's round
+     * buttons show, in order: each action's first name in its ladder, the one the button tries first at full size (part
+     * 10's short name where it has one: "Charge by", "Cruise"), joined by the language's list separator ("Ride, Record,
+     * Charge by, Cruise"). A ladder with no first name gives its first non-empty name, and one with none is left out.
+     */
+    static String firstNames(String separator, java.util.List<String[]> ladders) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (String[] ladder : ladders) {
+            if (ladder == null) continue;
+            for (String name : ladder) if (name != null && !name.isEmpty()) { names.add(name); break; }
+        }
+        return String.join(separator, names);
+    }
+
     /** No space of any kind inside the trimmed name. */
     private static boolean oneWord(String name) {
         String trimmed = name.trim();

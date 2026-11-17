@@ -73,10 +73,14 @@ public final class HubPages {
     public static final String DOCK_ALL_ICON = "more";
     /** The width one dock item needs at normal text size, in dp: a 48 dp target with room for its one-line label. */
     public static final int DOCK_ITEM_DP = 60;
-    /** The dock's margin from each side of a phone's window (the old tab bar's) and its inner padding, in dp. */
-    public static final int DOCK_SIDE_DP = 14, DOCK_PADDING_DP = 4;
+    /**
+     * In dp: where a phone dock's items start from each side of the window (the old floating tab bar's margin; the dock's
+     * sheet now runs edge to edge and keeps this as its side padding), the dock's inner padding, and how far its items sit
+     * above the screen's bottom edge or the navigation bar (the old bar's bottom margin, now part of the sheet).
+     */
+    public static final int DOCK_SIDE_DP = 14, DOCK_PADDING_DP = 4, DOCK_LIFT_DP = 10;
 
-    /** The room a phone's dock gives its items in a window widthDp wide: the window less the dock's margins and padding. */
+    /** The room a phone's dock gives its items in a window widthDp wide: the window less the dock's side padding. */
     public static int dockRoom(int widthDp) { return widthDp - 2 * DOCK_SIDE_DP - 2 * DOCK_PADDING_DP; }
 
     /**
@@ -108,19 +112,52 @@ public final class HubPages {
     }
 
     /**
-     * Where Widgets Home's dock sits: its top, in the page frame's pixels, for a frame frameBottom tall, a dock dockHeight
-     * tall and its bottom margin. The dock is pinned to the bottom at all times (the contributor's decision, 14 Nov, #383):
-     * it never lifts above the Lock bar and never steps aside for it, because on Widgets the Lock bar is one of the
-     * rider's own widgets and they can move it. Nothing about the page's widgets goes into this.
+     * Where Widgets Home's dock sits: its top, in window pixels, for a window whose bottom edge is windowBottom and a dock
+     * dockHeight tall. The dock's sheet runs down to the screen's bottom edge, under the navigation bar or gesture handle
+     * (the contributor's decision, 15 Nov, #383, as the Layout Plan's dock sheet), so nothing scrolls by beneath it; it is
+     * pinned there at all times (14 Nov): it never lifts above the Lock bar and never steps aside for it, because on
+     * Widgets the Lock bar is one of the rider's own widgets and they can move it. Nothing about the page's widgets goes
+     * into this.
      */
-    public static int dockTop(int frameBottom, int dockHeight, int bottomMargin) { return frameBottom - bottomMargin - dockHeight; }
+    public static int dockTop(int windowBottom, int dockHeight) { return windowBottom - dockHeight; }
+
+    /**
+     * The dock sheet's bottom padding: its inner padding, the lift and the navigation inset (window pixels), so its items
+     * sit lift above the navigation bar, where the old floating bar's items sat, while its surface runs on under the bar.
+     */
+    public static int dockBottomPadding(int padding, int lift, int inset) { return padding + lift + Math.max(0, inset); }
 
     /**
      * The bottom padding Widgets Home's scroller needs so every widget, the Lock bar included, can be scrolled fully clear of
-     * the pinned dock with gap to spare: the dock's height, its bottom margin and the gap (window pixels). Scrolled to its
-     * end, the page's last widget then ends at frameBottom - this, which is gap above dockTop.
+     * the pinned dock with gap to spare (window pixels). The scroller ends at the navigation inset; the dock, inset
+     * included, is dockHeight tall, so it rises dockHeight - inset above the scroller's bottom. Scrolled to its end, the
+     * page's last widget then ends at the scroller's bottom less this, which is gap above dockTop.
      */
-    public static int dockClearance(int dockHeight, int bottomMargin, int gap) { return Math.max(0, dockHeight) + bottomMargin + gap; }
+    public static int dockClearance(int dockHeight, int inset, int gap) { return Math.max(0, dockHeight - Math.max(0, inset)) + gap; }
+
+    /**
+     * The inset the dock's sheet runs on under (window pixels): the navigation bar's (or gesture handle's) height, never
+     * the keyboard's. A raised keyboard covers the navigation bar, and MainActivity's root then ends at the keyboard's top
+     * (its bottom padding is the larger of the two), so the dock sits on the keyboard as it does on main, its items lift
+     * above it: only the part of the navigation bar the keyboard leaves uncovered is still the dock's to cover. navigation
+     * and ime are the bottom insets of the system bars (and cutout) and of the keyboard; either may be 0 or negative.
+     */
+    public static int dockInset(int navigation, int ime) { return Math.max(0, Math.max(0, navigation) - Math.max(0, ime)); }
+
+    /**
+     * The dock sheet's surface around its view (its background's GradientDrawable bounds, relative to the view's own
+     * box): {left, top, right, bottom} insets, each px outward-negative as InsetDrawable takes them. Its 1 dp outline
+     * (line px) lies just outside the view along the bottom (past the screen's edge), and on a phone along both sides
+     * (past the screen's sides), so only the top edge and corners draw it; a wide dock keeps its side outline. This is
+     * the surface DragSheet reads as its morph's closed state (SheetMorph), so closed is this dock exactly.
+     */
+    public static int[] dockSheetInsets(boolean wide, int line) {
+        int side = wide ? 0 : -line;
+        return new int[] {side, 0, side, -line};
+    }
+
+    /** The dock sheet's corner radii, GradientDrawable's eight (x, y per corner from top left, clockwise): only its top two rounded. */
+    public static float[] dockSheetRadii(float radius) { return new float[] {radius, radius, radius, radius, 0, 0, 0, 0}; }
 
     /**
      * Where the bottom of the scroller's content sits once it is scrolled to its end, in the frame's pixels: a scroller
