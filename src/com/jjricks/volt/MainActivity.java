@@ -367,6 +367,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
         checkHeld++;
         try{resume();}finally{checkHeld--;}
+        // Settings' Nearby devices card, granted from Android's dialog: it leaves on the next turn, after Volt's return.
+        if(screen instanceof MoreScreen)handler.post(()->{if(resumed&&!destroyed&&screen instanceof MoreScreen)redraw();});
         // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
         showUpdateCheck();
     }

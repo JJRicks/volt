@@ -467,8 +467,15 @@ public final class MoreScreen implements AppScreen {
     private CharSequence scootersLine(boolean none, String name, String link) {
         return none ? T.moreIndexAdd() : T.moreIndexStatus(name, link);
     }
-    /** Settings' Nearby devices card is still leaving (its motion not ended): MainActivity waits before rebuilding the page. */
-    boolean nearbyCardLeaving() { return nearbyCard != null && nearbyCard.getVisibility() != View.VISIBLE && Motion.changing(nearbyCard); }
+    /**
+     * Settings' Nearby devices card is about to leave (granted, Volt not yet resumed) or still leaving (its motion not
+     * ended): MainActivity waits before starting the service and before rebuilding the page.
+     */
+    boolean nearbyCardLeaving() {
+        if (nearbyCard == null) return false;
+        // Shown with the permission granted: about to leave (refresh, once Volt is resumed).
+        return nearbyCard.getVisibility() == View.VISIBLE ? host.nearbyAllowed() : Motion.changing(nearbyCard);
+    }
     private LinearLayout column() {
         LinearLayout view = new LinearLayout(host.activity()); view.setOrientation(LinearLayout.VERTICAL); return view;
     }
@@ -3346,7 +3353,9 @@ public final class MoreScreen implements AppScreen {
         if (!nearby) scootersIndexRow.sub(onboardingNearby.title.getText());
         else if (!configured) scootersIndexRow.sub(scootersLine(true, null, null));
         refreshPermissions(nearby);
-        nearbyCard(!nearby);
+        // Granted from Android's permission dialog, which pauses Volt: the card leaves once Volt is resumed (MainActivity
+        // redraws Settings just after onResume), so its glide doesn't share the main thread with Volt's return.
+        if (!nearby || host.resumed()) nearbyCard(!nearby);
     }
 
     /**
