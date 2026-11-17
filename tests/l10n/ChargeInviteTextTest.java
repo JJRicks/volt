@@ -28,6 +28,8 @@ public final class ChargeInviteTextTest {
         check(record.contains(T.moreDevRecord()) && record.contains(T.moreChargeAutoRecord()),
                 "The first point names Record this charge and Record charges automatically: " + record);
         check(steps[2].render().contains("100%"), "Charging to 100% helps the most: " + steps[2].render());
+        // #538 review, P2: no promise that any length helps (a very short automatic recording isn't kept).
+        check(steps[1].render().equals("It doesn't have to be perfect. Even a partial charge helps."), "The second point: " + steps[1].render());
         check(steps[3].render().contains("near the scooter"), "The phone stays near the scooter: " + steps[3].render());
         check(send.contains(HubText.rowTitle(HubPages.BATTERY_HISTORY).render()) && send.contains(HubText.chargeSendRow().render()),
                 "The last point names Charge history & recordings and Email to Volt: " + send);
@@ -50,6 +52,13 @@ public final class ChargeInviteTextTest {
         check(sheet.contains("host.open(HubPages.BATTERY_HISTORY);"), "The sheet opens Charge history & recordings");
         check(sheet.contains("ui.secondaryButton(T.mainReportNotNow(),close)"), "Not now only closes the sheet");
         check(!sheet.contains("ChargeInvite.KEY"), "Nothing in the sheet answers the banner: only its X or a sent email does");
+        // #538 review: the chart tile gives way before a word of the banner would break (F03), and a refused Record this
+        // charge says the reason now, not an earlier recording's outcome (F05).
+        check(main.contains("intfits=widestWord(wordViews[0])<=room&&widestWord(wordViews[1])<=room?View.VISIBLE:View.GONE;"),
+                "The banner's tile gives way before a word would break");
+        String more = read("src/com/jjricks/volt/MoreScreen.java").replace(" ", "");
+        check(more.contains("Stringrefused=closed||s==null||s.isChargeRecording()?null:s.chargeCaptureUnavailable();\nif(refused!=null)host.toast(refused);"),
+                "A refused Record this charge from the sheet says the current reason");
     }
 
     private static String read(String path) throws Exception { return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8); }

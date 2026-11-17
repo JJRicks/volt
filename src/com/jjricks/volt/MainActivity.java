@@ -2994,15 +2994,30 @@ public final class MainActivity extends Activity implements ScreenHost {
          * A card on the page's surface, not a tinted status banner: it suggests, it doesn't warn.
          */
         private LinearLayout chargeInviteBanner(){
-            LinearLayout card=row();card.setGravity(Gravity.CENTER_VERTICAL);card.setTag(ChargeInvite.TAG_BANNER);
+            // The chart tile gives way when a word of the title or its line wouldn't fit whole beside it (a narrow window at
+            // large text; #538 review, F03): the words then take its room, and no word is broken.
+            View[] tileView={null};TextView[] wordViews={null,null};
+            LinearLayout card=new LinearLayout(MainActivity.this){
+                @Override protected void onMeasure(int widthSpec,int heightSpec){
+                    if(tileView[0]!=null&&wordViews[0]!=null&&MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED){
+                        int room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight()-design.dp(48)-design.dp(48);
+                        int fits=widestWord(wordViews[0])<=room&&widestWord(wordViews[1])<=room?View.VISIBLE:View.GONE;
+                        if(tileView[0].getVisibility()!=fits)tileView[0].setVisibility(fits);
+                    }
+                    super.onMeasure(widthSpec,heightSpec);
+                }
+            };
+            card.setOrientation(LinearLayout.HORIZONTAL);card.setGravity(Gravity.CENTER_VERTICAL);card.setTag(ChargeInvite.TAG_BANNER);
             card.setPaddingRelative(design.dp(14),design.dp(10),design.dp(4),design.dp(10));card.setMinimumHeight(design.dp(64));
             card.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,40)),design.shape(design.surface,20,0),null));
             LinearLayout.LayoutParams tile=new LinearLayout.LayoutParams(design.dp(36),design.dp(36));tile.setMarginEnd(design.dp(12));
-            card.addView(design.iconSquare("chart",design.accentText),tile);
+            View chart=design.iconSquare("chart",design.accentText);
+            card.addView(chart,tile);tileView[0]=chart;
             LinearLayout words=column();
             TextView title=design.text(HubText.chargeInviteTitle(),14,true);title.setTypeface(design.semibold());words.addView(title);
             TextView body=design.caption(HubText.chargeInviteBody().render());body.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
             body.setPadding(0,design.dp(3),0,0);words.addView(body);
+            wordViews[0]=title;wordViews[1]=body;
             card.addView(words,new LinearLayout.LayoutParams(0,-2,1));
             FrameLayout hide=new FrameLayout(MainActivity.this);hide.setTag(ChargeInvite.TAG_HIDE);
             android.graphics.drawable.GradientDrawable disc=new android.graphics.drawable.GradientDrawable();disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);disc.setColor(android.graphics.Color.TRANSPARENT);
@@ -3021,6 +3036,16 @@ public final class MainActivity extends Activity implements ScreenHost {
                 inviteSheet=ChargeInviteSheet.show(MainActivity.this,preferences);
             });
             return card;
+        }
+        /** The width of a view's widest word in its own paint and size (the room the invite banner keeps for it). */
+        private int widestWord(TextView view){
+            CharSequence text=view.getText();float widest=0;int start=0;
+            for(int i=0;i<=text.length();i++){
+                if(i<text.length()&&!Character.isWhitespace(text.charAt(i)))continue;
+                if(i>start)widest=Math.max(widest,view.getPaint().measureText(text,start,i));
+                start=i+1;
+            }
+            return (int)Math.ceil(widest);
         }
         /** Whether the invite shows now: a scooter is chosen and the person hasn't closed it or sent recordings (ChargeInvite.shows). */
         private boolean chargeInviteShows(){

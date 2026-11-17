@@ -144,8 +144,8 @@
     <string name="hub_charge_invite_intro" volt:screen="Charge recordings invite sheet" volt:purpose="caption" volt:safety="charge" volt:dnt="Volt">Volt learns how your scooter charges from real charges. Recordings make its charge time estimate more accurate.</string>
     <!-- The sheet's first point. %1$s is the "Record this charge" button's name, %2$s the "Record charges automatically" switch's name; both are in the sheet right below these points. -->
     <string name="hub_charge_invite_step_record" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Record your charges: tap %1$s while the scooter charges, or turn on %2$s.</string>
-    <!-- The sheet's second point: a recording doesn't need to be a full or tidy charge. -->
-    <string name="hub_charge_invite_step_any" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">It doesn\'t have to be perfect. Any charge helps, short ones too.</string>
+    <!-- The sheet's second point: a recording doesn't need to be a full or tidy charge; one that covers only part of a charge is useful too. (A very short automatic recording is not kept, so this promises a partial charge, not any length.) -->
+    <string name="hub_charge_invite_step_any" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">It doesn\'t have to be perfect. Even a partial charge helps.</string>
     <!-- The sheet's third point: a charge that goes all the way to a full battery is the most useful recording. -->
     <string name="hub_charge_invite_step_full" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Charging all the way to 100%% helps the most.</string>
     <!-- The sheet's fourth point: Volt records over Bluetooth, so the phone has to stay in range of the scooter. -->
