@@ -595,7 +595,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();bars=insets.getStableInsetBottom();}
             // The dock runs on under the navigation bar only, never the keyboard (HubPages.dockInset): with the keyboard up it sits on it, as the page frame does.
             dockInset=HubPages.dockInset(bars,b>bars?b:0);
-            boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
+            // The keyboard by SearchFocus's rule, which reads the resize inset before Android 11 (#393 council review, fourth round, finding 2).
+            boolean keyboard=SearchFocus.keyboardShown(insets,getResources().getDisplayMetrics().density);
             // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
             // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
             boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
@@ -971,13 +972,24 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
      * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
-     * third round, finding 5).
+     * third round, finding 5). Over a hinge that hides part of the window it keeps reaching the hinge, with the spacer over
+     * it, so no result sits under the hinge (HubSearch.tabletopShrinks; fourth round, finding 4), unless that leaves the
+     * results less than one result's room above the keyboard: then it shrinks after all (#540 council review).
      */
     private void fitTabletopSearch(){
         if(tabletopUpper==null||tabletopSpacer==null||fold==null)return;
-        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);
-        tabletopSpacer.setVisibility(keyboardShown?View.GONE:View.VISIBLE);
+        boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height(),tabletopResultsRoom(),HubSearch.tabletopRowRoom(getResources().getDisplayMetrics().density,design.textScale*getResources().getConfiguration().fontScale));
+        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);
+        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);
         tabletopUpper.requestLayout();
+    }
+    /** The results' height in tabletop Search with the pane kept to the hinge (HubSearch.tabletopResultsRoom), in pixels. */
+    private int tabletopResultsRoom(){
+        // The window's height as laid out; before the first layout (a recreation with the keyboard up), its bounds.
+        int window=getWindow().getDecorView().getHeight();
+        if(window<=0)window=Build.VERSION.SDK_INT>=30?getWindowManager().getCurrentWindowMetrics().getBounds().height():getResources().getDisplayMetrics().heightPixels;
+        int banner=simulationNotice!=null&&simulationNotice.getVisibility()==View.VISIBLE?Math.max(simulationNotice.getHeight(),simulationNotice.getMinHeight()):0;
+        return HubSearch.tabletopResultsRoom(window,bottomInset,fold.hinge.top,tabletopSpacer.getLayoutParams().height,banner);
     }
     /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */
     private static String cancelLabel(){return T.commonCancel();}
@@ -2622,6 +2634,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final TextView results,bannerText,bannerAction,clockButton,nameValue;
         private final EditText search;
         private final LinearLayout banner,readOnlyBanner,testBanner;private TextView identifyAction,testBannerText,testReviewAction;private String offeredKeys="";
+        /** Battery & charging's invite to record charges and send them to Volt (ChargeInvite); null on other pages. */
+        private final LinearLayout invite;
+        /** The invite's sheet while it shows (ChargeInviteSheet), closed with the page. */
+        private AlertDialog inviteSheet;
         private final View headlightRow,clockSpinner;
         private final SettingLine clockLine,chargerLine;
         private final ScheduleTestRow scheduleTest;
@@ -2674,6 +2690,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             testReviewAction=pill(T.mainControlsReview(),()->{GuidedTest running=scooterService==null?null:scooterService.ble.guidedTest();if(running!=null&&!running.terminal()&&running.keeps())open(HubPages.SERVICE_EXPERIMENTAL);else open(HubPages.SERVICE_COMPATIBILITY,HubNav.Args.recovery());});testReviewAction.setContentDescription(T.mainControlsReviewUnfinished());testReviewAction.setTag("scooter-review-test");testBanner.addView(new BannerBody(testBannerText,testReviewAction),bannerBodyParams());
             testBanner.setVisibility(View.GONE);view.addView(testBanner,new LinearLayout.LayoutParams(-1,-2));
             ((LinearLayout.LayoutParams)testBanner.getLayoutParams()).bottomMargin=design.dp(10);
+            // Battery & charging's invite to record charges (ChargeInvite; owner, Nov 17 2026): under the status banners,
+            // above the CHARGING rows. Its own state decides it from the start, so opening the page never animates it.
+            invite=HubPages.BATTERY.equals(spec.page)?chargeInviteBanner():null;
+            if(invite!=null){
+                LinearLayout.LayoutParams inviteParams=new LinearLayout.LayoutParams(-1,-2);inviteParams.bottomMargin=design.dp(4);
+                view.addView(invite,inviteParams);invite.setVisibility(chargeInviteShows()?View.VISIBLE:View.GONE);
+            }
             // The index: search over every page's rows. Other pages have no field (the index's search finds their rows).
             search=new EditText(MainActivity.this);search.setSingleLine(true);search.setHint(T.mainControlsSearch());design.styleSearch(search);search.setContentDescription(T.mainControlsSearchDescription());
             results=design.caption("");results.setPadding(design.dp(3),0,0,design.dp(8));
@@ -2783,8 +2806,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(ids.size()==1&&ControlsPages.CHARGE_HISTORY.equals(ids.get(0))){
                     view.addView(design.sectionLabel(RidesScreen.historyLabel()));
                     historyCard=new ChargeHistoryCard(MainActivity.this,design,()->open(HubPages.BATTERY_HISTORY));
-                    // Tagged as the link it stands in for, so the walk that opens sub-pages by their link finds it.
-                    historyCard.card.setTag("hub-link-"+HubPages.BATTERY_HISTORY);
+                    // A tag of its own: the page's Charge history & recordings link row carries "hub-link-" (owner, Nov 17 2026),
+                    // and the walks that open a sub-page by its link want exactly one row to it.
+                    historyCard.card.setTag(ChargeHistoryCard.TAG);
                     view.addView(historyCard.card);continue;
                 }
                 LinearLayout body=design.groupCard();cardBodies.add(body);
@@ -2982,13 +3006,83 @@ public final class MainActivity extends Activity implements ScreenHost {
             return false;
         }
         @Override public View view(){return view;}
-        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;}
+        @Override public void close(){if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}closeChargeDoneSheet();choiceSheet=null;if(inviteSheet!=null){inviteSheet.dismiss();inviteSheet=null;}}
+        /**
+         * The invite banner (ChargeInvite): the chart in an accent tile, "Help improve your charge time estimate" with its
+         * second line, and an X. The card opens the sheet that explains it (ChargeInviteSheet); the X hides it for good.
+         * A card on the page's surface, not a tinted status banner: it suggests, it doesn't warn.
+         */
+        private LinearLayout chargeInviteBanner(){
+            // The chart tile gives way when a word of the title or its line wouldn't fit whole beside it (a narrow window at
+            // large text; #538 review, F03): the words then take its room, and no word is broken.
+            View[] tileView={null};TextView[] wordViews={null,null};
+            LinearLayout card=new LinearLayout(MainActivity.this){
+                @Override protected void onMeasure(int widthSpec,int heightSpec){
+                    if(tileView[0]!=null&&wordViews[0]!=null&&MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED){
+                        int room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight()-design.dp(48)-design.dp(48);
+                        int fits=widestWord(wordViews[0])<=room&&widestWord(wordViews[1])<=room?View.VISIBLE:View.GONE;
+                        if(tileView[0].getVisibility()!=fits)tileView[0].setVisibility(fits);
+                    }
+                    super.onMeasure(widthSpec,heightSpec);
+                }
+            };
+            card.setOrientation(LinearLayout.HORIZONTAL);card.setGravity(Gravity.CENTER_VERTICAL);card.setTag(ChargeInvite.TAG_BANNER);
+            card.setPaddingRelative(design.dp(14),design.dp(10),design.dp(4),design.dp(10));card.setMinimumHeight(design.dp(64));
+            card.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,40)),design.shape(design.surface,20,0),null));
+            LinearLayout.LayoutParams tile=new LinearLayout.LayoutParams(design.dp(36),design.dp(36));tile.setMarginEnd(design.dp(12));
+            View chart=design.iconSquare("chart",design.accentText);
+            card.addView(chart,tile);tileView[0]=chart;
+            LinearLayout words=column();
+            TextView title=design.text(HubText.chargeInviteTitle(),14,true);title.setTypeface(design.semibold());words.addView(title);
+            TextView body=design.caption(HubText.chargeInviteBody().render());body.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
+            body.setPadding(0,design.dp(3),0,0);words.addView(body);
+            wordViews[0]=title;wordViews[1]=body;
+            card.addView(words,new LinearLayout.LayoutParams(0,-2,1));
+            FrameLayout hide=new FrameLayout(MainActivity.this);hide.setTag(ChargeInvite.TAG_HIDE);
+            android.graphics.drawable.GradientDrawable disc=new android.graphics.drawable.GradientDrawable();disc.setShape(android.graphics.drawable.GradientDrawable.OVAL);disc.setColor(android.graphics.Color.TRANSPARENT);
+            hide.setBackground(new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,40)),null,disc));
+            hide.addView(design.icon("close",16,design.muted),new FrameLayout.LayoutParams(design.dp(16),design.dp(16),Gravity.CENTER));
+            hide.setContentDescription(HubText.chargeInviteHide().render());hide.setClickable(true);hide.setFocusable(true);
+            hide.setOnClickListener(v->{
+                // Committed: a process ending right after the tap can't bring it back.
+                preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.DISMISSED).commit();
+                refreshInvite(true);
+            });
+            card.addView(hide,new LinearLayout.LayoutParams(design.dp(48),design.dp(48)));
+            card.setClickable(true);card.setFocusable(true);
+            card.setOnClickListener(v->{
+                if(inviteSheet!=null&&inviteSheet.isShowing())return;
+                inviteSheet=ChargeInviteSheet.show(MainActivity.this,preferences);
+            });
+            return card;
+        }
+        /** The width of a view's widest word in its own paint and size (the room the invite banner keeps for it). */
+        private int widestWord(TextView view){
+            CharSequence text=view.getText();float widest=0;int start=0;
+            for(int i=0;i<=text.length();i++){
+                if(i<text.length()&&!Character.isWhitespace(text.charAt(i)))continue;
+                if(i>start)widest=Math.max(widest,view.getPaint().measureText(text,start,i));
+                start=i+1;
+            }
+            return (int)Math.ceil(widest);
+        }
+        /** Whether the invite shows now: a scooter is chosen and the person hasn't closed it or sent recordings (ChargeInvite.shows). */
+        private boolean chargeInviteShows(){
+            boolean chosen=scooterService!=null&&scooterService.profiles!=null&&scooterService.profiles.active()!=null;
+            Object stored;try{stored=preferences.getAll().get(ChargeInvite.KEY);}catch(RuntimeException unreadable){stored=null;}
+            return ChargeInvite.shows(chosen,stored);
+        }
+        /** Shows or hides the invite as its rule says now; glides the page under it unless the caller says it moves rows itself. */
+        private void refreshInvite(boolean glides){
+            if(invite==null)return;
+            Motion.reveal(glides?Motion.pageOf(invite):null,invite,chargeInviteShows(),steadyRows());
+        }
         /** The page's sections other than its banners: they glide as a banner comes or goes, their insides unchanged. */
         private View[] steady=new View[0];
         private View[] steadyRows(){
-            if(steady.length+3==view.getChildCount())return steady;
+            if(steady.length+(invite==null?3:4)==view.getChildCount())return steady;
             java.util.List<View> rows=new java.util.ArrayList<>();
-            for(int i=0;i<view.getChildCount();i++){View child=view.getChildAt(i);if(child!=banner&&child!=readOnlyBanner&&child!=testBanner)rows.add(child);}
+            for(int i=0;i<view.getChildCount();i++){View child=view.getChildAt(i);if(child!=banner&&child!=readOnlyBanner&&child!=testBanner&&child!=invite)rows.add(child);}
             return steady=rows.toArray(new View[0]);
         }
         @Override public void refresh(){
@@ -3032,6 +3126,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 testReviewAction.setContentDescription(recordsLost?T.mainTestReviewRecords():testing?T.mainTestReviewSetting():!unfinished.isEmpty()&&unfinished.get(0).isTry()?T.mainTestReviewTry():T.mainControlsReviewUnfinished());
             }
             Motion.reveal(glide,identifyAction,ble!=null&&ble.modelUnidentified(),still);
+            if(invite!=null)Motion.reveal(glide,invite,chargeInviteShows(),still);
             if(refilter){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
@@ -4632,6 +4727,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         String body="Volt "+version+(export.model.isEmpty()?"":"\n"+export.model)+"\n";
         ChargeSend.Outcome outcome=ChargeSend.outcome(true,sendWithUri(subject,body,Uri.parse(export.attachment)));
         if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
+        // Recordings on their way to Volt: Battery & charging's invite to send them has done its job (ChargeInvite).
+        else if(outcome==ChargeSend.Outcome.SENT)preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();
     }
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}

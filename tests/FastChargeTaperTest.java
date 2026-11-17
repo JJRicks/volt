@@ -119,7 +119,7 @@ public final class FastChargeTaperTest {
                 "A 100% limit and Charge done by use the same displayed time");
         check(saved.fullSource == ChargeSessionStore.Source.FAST_REFERENCE && saved.limitSource == ChargeSessionStore.Source.FAST_REFERENCE
                 && saved.learnedSessions == 0, "Recorded as the bundled high-speed reference");
-        check(saved.version.equals("ut5-fast-taper-v8"), "Algorithm changes carry a new capture version");
+        check(saved.version.equals(ChargingEstimate.ESTIMATOR_VERSION), "Algorithm changes carry a new capture version");
         ChargingEstimate.Result lower = estimate(91, 53.551, 8.04, 95d, 2538, FAST, null, T0);
         near(15.3 * .04 / 8.04 * 60, lower.remainingMinutesToLimit, 1e-9, "A lower cutoff keeps the current rate");
         check(ChargingEstimate.recordingSnapshot(lower).limitSource == ChargeSessionStore.Source.CURRENT_RATE, "and says so");
@@ -206,7 +206,7 @@ public final class FastChargeTaperTest {
                 && mine.status.startsWith("Experimental UT5 MAX high-speed estimate from pack voltage")
                 && mine.label.equals(v7.label), "Shown and labelled as the existing high-speed estimate");
         ChargeSessionStore.Estimate saved = ChargingEstimate.recordingSnapshot(mine);
-        check(saved.version.equals("ut5-fast-taper-v8") && saved.fullSource == ChargeSessionStore.Source.FAST_REFERENCE
+        check(saved.version.equals(ChargingEstimate.ESTIMATOR_VERSION) && saved.fullSource == ChargeSessionStore.Source.FAST_REFERENCE
                 && saved.limitSource == ChargeSessionStore.Source.FAST_REFERENCE, "Recorded as FAST_REFERENCE under the new estimator version");
         check(mine.remainingMinutesToLimit.equals(mine.remainingMinutesToFull) && mine.planningMinutesToFull.equals(mine.remainingMinutesToFull),
                 "A 100% limit and Charge done by use the displayed time");
@@ -771,12 +771,25 @@ public final class FastChargeTaperTest {
         return ChargingEstimate.forScooter(base, live(soc, t), live(15.3, t), 2538, FAST, curve, null, null, t, t, null, taper);
     }
 
+    /**
+     * Standard-charger 99% samples whose time to 100% is ut5-stock-finish-v9's current-based finish: all
+     * 157 of session 2, the first finish. Later finishes use past charges' own finishes at 99%, unchanged.
+     */
+    static final int FINISH_CHANGED = 157, FINISH_WAS_CURRENT_RATE = 0;
+    private static boolean stockFinish(FastChargeTaperReplay.Row row) {
+        if (!row.sample.charger.equals("STOCK") || row.sample.soc < 99 || row.sample.soc >= 100 || row.full == null
+                || !row.source.equals("STOCK_REFERENCE")) return false;
+        Double model = Ut5MaxStockChargeReference.finishMinutes(row.sample.volts, Math.abs(row.sample.amps));
+        return model != null && Math.abs(model - row.full) <= 1e-9;
+    }
+
     /** Owner charges: high-speed fixes and parity for everything each step must not touch. */
     private static void replay(Path data) throws Exception {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
         List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
         check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
         int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, ownFast = 0, changed = 0, replaced = 0, planned = 0;
+        int finish = 0, finishWasCurrentRate = 0;
         double earlier = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
@@ -795,7 +808,16 @@ public final class FastChargeTaperTest {
             // v8 changes only samples where this charge's own taper is established.
             if (row.ownTaper) own++;
             if (row.ownTaper && row.sample.charger.equals("HIGH_SPEED")) ownFast++;
-            if (!same) {
+            // ut5-stock-finish-v9 changes only the standard charger's displayed 99% stage where the
+            // bundled reference supplies it: exactly the current-based finish, where v7 showed the
+            // voltage-matched reference or (when no stored voltage matched) the current rate.
+            boolean stockFinish = stockFinish(row);
+            if (!same && stockFinish) {
+                check(base[3].equals("STOCK_REFERENCE") || base[3].equals("CURRENT_RATE"),
+                        "Session " + row.sample.session + " at " + row.minutes + " min: the 99% finish replaces only the reference or current rate");
+                finish++;
+                if (base[3].equals("CURRENT_RATE")) finishWasCurrentRate++;
+            } else if (!same) {
                 changed++;
                 check(row.ownTaper && row.sample.charger.equals("HIGH_SPEED") && row.source.equals("FAST_REFERENCE") && row.learned == 0,
                         "Outside its own taper, session " + row.sample.session + " at " + row.minutes + " min keeps the v7 estimate");
@@ -815,11 +837,14 @@ public final class FastChargeTaperTest {
             }
             if (row.sample.charger.equals("STOCK") || row.sample.session == 4 && !row.ownTaper) {
                 if (row.sample.charger.equals("STOCK")) stock++; else reference++;
+                if (stockFinish) continue;
                 check(older == null ? row.full == null : row.full != null && Math.abs(older - row.full) <= 1e-6, "Unchanged estimate, session " + row.sample.session);
                 check(old[3].equals(row.source) && Integer.parseInt(old[4]) == row.learned, "Unchanged source, session " + row.sample.session);
             }
         }
         check(stock == 5457 && reference == 343 && recorded == 1028, "Parity covers all standard-charger samples and the reference charge before its own taper");
+        check(finish == FINISH_CHANGED && finishWasCurrentRate == FINISH_WAS_CURRENT_RATE,
+                "The v9 99% finish changed " + finish + " standard-charger samples, " + finishWasCurrentRate + " of them from the current rate");
         // Every high-speed sample that reaches its own taper keeps it (1,197). On standard-charger
         // samples, where the branch never applies, the recency check (RECENT_MS) clears the flag on
         // 59 samples of session 2 and the recent-pace check (SLOWER) on 145 of sessions 3 and 8-10.

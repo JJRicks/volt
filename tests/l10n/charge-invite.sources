@@ -1,0 +1,5 @@
+# Battery & charging's charge recordings invite (ChargeInvite): its banner and sheet text and their wiring.
+src/com/jjricks/volt/ChargeInvite.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java
+tests/l10n/ChargeInviteTextTest.java

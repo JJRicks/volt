@@ -1243,10 +1243,27 @@ public final class MoreScreen implements AppScreen {
      * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
      */
     @Override public View anchor(String id) {
+        // Battery & charging's invite sheet: its Record this charge brings this page's row on screen (ChargeInvite).
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) return chargeCaptureRow != null ? chargeCaptureRow.view : null;
         return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
     }
-    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    /**
+     * Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). For the charge
+     * invite's Record this charge (ChargeInvite.RECORD_ANCHOR), starts the row's own step (the charger question) when a
+     * recording can start now, exactly as tapping the row would; otherwise (none can start, or one is already recording)
+     * it does nothing, and the row flashes with its status line saying why.
+     */
     @Override public boolean openHeld(String id) {
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) {
+            ScooterService s = service();
+            // Refused: say the reason now, as a tap on the row does, not an earlier recording's outcome its status line may
+            // still hold (ScooterService.chargeOutcomeOverReason; #538 review, F05).
+            String refused = closed || s == null || s.isChargeRecording() ? null : s.chargeCaptureUnavailable();
+            if (refused != null) host.toast(refused);
+            if (closed || chargeCaptureRow == null || s == null || s.isChargeRecording() || s.chargeCaptureUnavailable() != null) return false;
+            recordChargeDialog(s);
+            return true;
+        }
         if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
         updatesSheet();
         View control = updatesBox.findViewWithTag(id);
@@ -1829,7 +1846,16 @@ public final class MoreScreen implements AppScreen {
     }
     private void pinGuide() {
         LinearLayout box = dialogBox(T.morePinGuideRow(), T.morePinGuideBody());
-        box.addView(new HandlebarDiagram(), new LinearLayout.LayoutParams(-1, ui.dp(116)));
+        // The scooter's handlebar as the rider sees it (owner, Nov 17 2026: "draw all the models that we have references
+        // for"), one drawing per set of the official app's unlock pictures; its numbers match the steps below. No drawing
+        // when the model is not certain.
+        ModelRegistry.Handlebar handlebar = service() == null ? null : ModelRegistry.unlockHandlebar(service().ble.descriptor());
+        if (handlebar != null) {
+            HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui, handlebar);
+            diagram.setContentDescription(T.morePinDiagram());
+            LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
+            box.addView(diagram, dp);
+        }
         String[] steps = {T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()};
         for (int i = 0; i < steps.length; i++) {
             LinearLayout line = row(); line.setPadding(0, ui.dp(5), 0, ui.dp(5));
@@ -1846,46 +1872,6 @@ public final class MoreScreen implements AppScreen {
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).setPositiveButton(T.moreGotIt(), null).create(); show(dialog);
     }
-    /** Schematic handlebar: 1 turn-signal button, 2 brake lever, 3 power button. */
-    private final class HandlebarDiagram extends View {
-        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        HandlebarDiagram() {
-            super(host.activity());
-            setContentDescription(T.morePinDiagram());
-        }
-        @Override protected void onDraw(Canvas canvas) {
-            float w = getWidth(), h = getHeight(), bar = h * .5f;
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(ui.dim); paint.setStrokeWidth(ui.dp(6));
-            canvas.drawLine(w * .1f, bar, w * .9f, bar, paint);
-            paint.setColor(ui.muted); paint.setStrokeWidth(ui.dp(13));
-            canvas.drawLine(w * .04f, bar, w * .17f, bar, paint); canvas.drawLine(w * .83f, bar, w * .96f, bar, paint);
-            // Brake lever under the left grip.
-            paint.setStrokeWidth(ui.dp(4)); canvas.drawLine(w * .22f, bar + ui.dp(6), w * .06f, bar + ui.dp(20), paint);
-            // Turn-signal switch pod beside the left grip.
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.raised);
-            RectF pod = new RectF(w * .21f, bar - ui.dp(15), w * .21f + ui.dp(22), bar + ui.dp(4));
-            canvas.drawRoundRect(pod, ui.dp(5), ui.dp(5), paint);
-            paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(ui.dp(1.2f)); paint.setColor(ui.muted);
-            canvas.drawRoundRect(pod, ui.dp(5), ui.dp(5), paint);
-            // Centre display with its power button.
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.raised);
-            canvas.drawCircle(w / 2, bar, ui.dp(15), paint);
-            paint.setStyle(Paint.Style.STROKE); paint.setColor(ui.muted); canvas.drawCircle(w / 2, bar, ui.dp(15), paint);
-            ui.drawIcon(canvas, "power", ui.text, w / 2, bar, ui.dp(16));
-            marker(canvas, "1", pod.centerX(), pod.top - ui.dp(14));
-            marker(canvas, "2", w * .1f, bar + ui.dp(36));
-            marker(canvas, "3", w / 2, bar - ui.dp(32));
-        }
-        private void marker(Canvas canvas, String number, float x, float y) {
-            float r = ui.dp(10);
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.accent); canvas.drawCircle(x, y, r, paint);
-            paint.setColor(ui.onAccent); paint.setTypeface(ui.bold()); paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(r * 1.15f);
-            canvas.drawText(number, x, y - (paint.descent() + paint.ascent()) / 2, paint);
-        }
-    }
-
     // ---- Experimental controls ------------------------------------------------------------
 
     /**

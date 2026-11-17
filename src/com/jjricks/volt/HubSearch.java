@@ -426,6 +426,40 @@ final class HubSearch {
     static int tabletopPaneHeight(int toHinge, boolean keyboard) { return keyboard ? -2 : Math.max(1, toHinge); }
 
     /**
+     * Whether tabletop Search's upper pane shrinks to the field (and the spacer over the hinge goes) for the keyboard
+     * ({@link #tabletopPaneHeight}): only while the keyboard is up, and only where the hinge hides nothing
+     * ({@code hingeThickness}, its height in pixels, 0). Results that rise under the field cross the hinge, so over a hinge
+     * that hides part of the window (two displays with a gap) a row there would be partly hidden; there the pane keeps
+     * reaching the hinge and the spacer covers it, and the results stay below it, above the keyboard (#393 council review,
+     * fourth round, finding 4). Unless the results would get less than one result's room there ({@code resultsRoom}, from
+     * tabletopResultsRoom, under {@code rowRoom}, from tabletopRowRoom): a low hinge or a tall keyboard can leave them no
+     * height at all, so no result could be seen or tapped until the keyboard went. Then the pane shrinks after all and the
+     * results rise under the field, across the hinge, the lesser problem (#540 council review).
+     */
+    static boolean tabletopShrinks(boolean keyboard, int hingeThickness, int resultsRoom, int rowRoom) {
+        return keyboard && (hingeThickness <= 0 || resultsRoom < rowRoom);
+    }
+
+    /**
+     * The results' height in tabletop Search with the pane kept to the hinge (MainActivity.fitTabletopSearch), in pixels:
+     * from below the spacer over the hinge ({@code hingeTop}, in window coordinates, plus {@code spacer}, and the simulation
+     * banner above the page, {@code banner}, which pushes the panes down) to the window's bottom inset ({@code bottomInset},
+     * the keyboard while it is up). Never below 0.
+     */
+    static int tabletopResultsRoom(int windowHeight, int bottomInset, int hingeTop, int spacer, int banner) {
+        return Math.max(0, windowHeight - bottomInset - hingeTop - spacer - banner);
+    }
+
+    /**
+     * The room one result needs at the results' top in tabletop Search, in pixels: the page's 6 dp top padding, the first
+     * group's heading (11 sp, 8 dp of padding), the card's 2 dp edge and a row (56 dp at least, its name and path in sp):
+     * 32 dp and 64 sp, so it grows with the text size ({@code density}, DisplayMetrics'; {@code textScale}, Volt's
+     * text size times the Configuration's font scale, as Ui sizes text; at least what Android 14's gentler scaling of
+     * large text gives, and never under the default's room, as a row is 56 dp at least).
+     */
+    static int tabletopRowRoom(float density, float textScale) { return Math.round(32 * density + 64 * density * Math.max(1f, textScale)); }
+
+    /**
      * Whether the field shows its long placeholder ("Search settings, readings and rides"): only when it fits whole in the room
      * the field has for text, else the short one ("Search"), so the placeholder is never cut, at 344 dp with 1.4x text
      * or in a pane 262 dp wide (part 13). Both in the same unit (pixels); a field not measured yet (room 0 or less)
