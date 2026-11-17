@@ -227,6 +227,11 @@ STEPS += [
     inst('reveal-motion-page-line-lights', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'lights', size='412x915'),
     inst('reveal-motion-page-line-security', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'security', size='412x915'),
     inst('reveal-motion-page-line-rides', T + 'RevealMotionValidation', '-e', 'part', 'page-line', '-e', 'page', 'rides', size='412x915'),
+    # Live Stats: the section tabs crossfade in place, the favourites card and its hint fade into each other's place.
+    inst('reveal-motion-stats-tabs-344', T + 'RevealMotionValidation', '-e', 'part', 'stats-tabs', size='344x882'),
+    inst('reveal-motion-stats-tabs-725', T + 'RevealMotionValidation', '-e', 'part', 'stats-tabs', size='725x604'),
+    inst('reveal-motion-stats-favourites-344', T + 'RevealMotionValidation', '-e', 'part', 'stats-favourites', size='344x882'),
+    inst('reveal-motion-stats-favourites-725', T + 'RevealMotionValidation', '-e', 'part', 'stats-favourites', size='725x604'),
     # The charging bar's draggable limit or alert mark (simulator): behaviour on the phone (dark) and the wide window (light),
     # then the mark and its value label at both ends in both themes at 1x and 1.4x text.
     inst('charge-bar', PKG + '.ChargeBarValidation', '-e', 'theme', 'dark', size=PHONE[0]),
@@ -237,6 +242,7 @@ STEPS += [
     # each picture as the prototype draws it, the takeover's height while it opens, and the cable's clipping (simulator).
     inst('charge-pictures-344', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-pictures-344-14', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-pictures-344-light', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-pictures-725', PKG + '.ChargePictureValidation', '-e', 'theme', 'light', '-e', 'size_label', '725', size=WIDE[0]),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),

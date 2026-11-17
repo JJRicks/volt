@@ -112,6 +112,7 @@ public final class DockSheetValidation extends Instrumentation {
             } else if (mode.equals("pose")) {
                 poses();
             } else {
+                steadyBars();
                 cap = (float) (spring("CAP_DP") * dp());
                 dp = dp();
                 scaleBefore = shell("settings get global animator_duration_scale").trim();
@@ -329,7 +330,9 @@ public final class DockSheetValidation extends Instrumentation {
         finger = new Finger(dockCentre());
         finger.moveBy(-.30f * travel, 500, 25);
         finger.moveBy(.30f * travel + 20 * dp, 500, 25);
-        main(() -> require(offset() >= travel - .5f, "Pulled back to its start, the sheet still shows " + (travel - offset()) + " px"));
+        // Against the sheet's own travel now (the window, and so the travel, can have changed since taps() measured it).
+        main(() -> { int now = (Integer) field(drag(), "travel");
+            require(offset() >= now - .5f, "Pulled back to its start, the sheet still shows " + (now - offset()) + " px (offset " + offset() + " of " + now + " px)"); });
         finger.hold(120);
         finger.up();
         awaitGone("a pull taken back to its start");
@@ -509,6 +512,10 @@ public final class DockSheetValidation extends Instrumentation {
     /**
      * A tap early in the opening (slowed; the first third of the travel, content still transparent) at a row's place under
      * the surface: nothing opens, and the sheet finishes opening. The tap is tried slower until it lands in that window.
+     * The tap on All is pressed without waiting for the app to go idle (press): on a slow emulator the main thread is busy
+     * drawing every frame of the slowed opening, so waitForIdleSync would return only once the sheet is open. If this
+     * thread still gets its first look after the opening has run (its frames, watched from before the tap, saw it), it is
+     * tried slower too; an opening no frame showed fails.
      */
     private void earlyTap() {
         requireHome();
@@ -516,12 +523,12 @@ public final class DockSheetValidation extends Instrumentation {
             scale(slower);
             HubTestPages.showDock(this, activity);
             States states = new States(null);
-            tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
-            float[] at = null;
-            long end = SystemClock.uptimeMillis() + 15000;
-            while (SystemClock.uptimeMillis() < end && (at = onMain(this::earlyRow)) == null) SystemClock.sleep(5);
-            require(at != null, "The slowed opening never showed a row under its surface (" + describe() + ")");
-            Finger finger = at[2] <= 1 / 3f ? new Finger(at) : null;
+            float[] at = pressAndLook(states);
+            if (at == null) {
+                require(states.saw(OPENING), "The slowed opening never showed a row under its surface (" + describe() + ")");
+                missed(slower, states);
+            }
+            Finger finger = at != null && at[2] <= 1 / 3f ? new Finger(at) : null;
             float[] landed = onMain(() -> drag() == null ? null : new float[]{1 - offset() / (Integer) field(drag(), "travel"), panel().getAlpha(), (Integer) field(drag(), "state")});
             boolean early = finger != null && landed != null && landed[2] == OPENING && landed[0] <= 1 / 3f && landed[1] < .5f;
             if (early) finger.up(); else if (finger != null) finger.cancel();
@@ -530,13 +537,13 @@ public final class DockSheetValidation extends Instrumentation {
             List<Integer> seen = states.stop();
             settle();
             String page = onMain(() -> HubTestPages.current(activity));
-            require(HubPages.HOME.equals(page), "A tap on a row early in the opening (" + pct(at[2]) + " of the way) opened " + page);
+            require(HubPages.HOME.equals(page), (at == null ? "The slowed opening (no early tap made)" : "A tap on a row early in the opening (" + pct(at[2]) + " of the way)") + " opened " + page);
             require(!seen.isEmpty() && seen.get(seen.size() - 1) == OPEN && !seen.contains(CLOSING), "After a tap early in the opening the sheet did not finish opening (states " + seen + ")");
             back(); awaitGone("Back");
             requireHome();
             if (early) {
                 checks.add("A tap at a row's place under the surface early in the opening (" + pct(landed[0]) + " of the way, content alpha " + round(landed[1]) + ", scale " + slower + "): nothing opens and the sheet finishes opening");
-                earlyDrag();
+                earlyDrag(slower);
                 break;
             }
             require(slower < 80, "The slowed opening passed its first third before a row showed under its surface");
@@ -544,30 +551,98 @@ public final class DockSheetValidation extends Instrumentation {
         scale(1);
     }
 
-    /** At the same slowed scale: a touch that starts there and moves down takes the sheet (its rows never get it), and nothing opens. */
-    private void earlyDrag() {
-        HubTestPages.showDock(this, activity);
-        tap(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
+    /**
+     * At the same slowed scale (or slower, as earlyTap, when this thread's first look comes too late): a touch that starts
+     * there and moves down takes the sheet (its rows never get it), and nothing opens.
+     */
+    private void earlyDrag(int slower) {
+        for (; ; slower *= 2) {
+            scale(slower);
+            HubTestPages.showDock(this, activity);
+            States states = new States(null);
+            float[] at = pressAndLook(states);
+            if (at == null || at[0] <= 0) {
+                require(at != null || states.saw(OPENING), "The slowed opening never showed a row under its surface again (" + describe() + ")");
+                if (at == null) missed(slower, states);
+                long end = SystemClock.uptimeMillis() + 30000;
+                while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
+                List<Integer> seen = states.stop();
+                settle();
+                require(onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity))), "The slowed opening opened " + onMain(() -> HubTestPages.current(activity)));
+                require(!seen.isEmpty() && seen.get(seen.size() - 1) == OPEN && !seen.contains(CLOSING), "The slowed opening did not finish opening (states " + seen + ")");
+                back(); awaitGone("Back");
+                requireHome();
+                require(slower < 80, "The slowed opening passed its first third before a row showed under its surface again");
+                continue;
+            }
+            states.stop();
+            Object sheet = onMain(this::drag);
+            int sheetTravel = onMain(() -> (Integer) field(sheet, "travel"));
+            Finger finger = new Finger(at);
+            boolean unreadable = onMain(() -> ((View) field(sheet, "panel")).getAlpha() < .5f);
+            finger.moveBy(.15f * sheetTravel, 300, 15);
+            Object held = onMain(() -> field(sheet, "state"));
+            finger.up();
+            require(!unreadable || Integer.valueOf(DRAGGED).equals(held), "A touch that began on a row early in the opening and moved down did not take the sheet (state " + held + ")");
+            long end = SystemClock.uptimeMillis() + 30000;
+            while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
+            settle();
+            require(onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity))), "A drag that began on a row early in the opening opened " + onMain(() -> HubTestPages.current(activity)));
+            if (onMain(() -> drag() != null)) { back(); }
+            awaitGone("a drag early in the opening");
+            requireHome();
+            if (unreadable) checks.add("A touch that began on a row early in the opening and moved down takes the sheet (DRAGGED) and opens nothing");
+            return;
+        }
+    }
+
+    /**
+     * Presses the dock's All (states already watching, from before the press) with no idle wait, then looks at the opening
+     * from this thread until earlyRow gives a point (returned), or the frames have seen the sheet open (null: the opening
+     * ran its course before this thread got a look), or 15 s pass (null).
+     */
+    private float[] pressAndLook(States states) {
+        press(onMain(() -> centreOf(root().findViewWithTag("hub-dock-handle"))));
         float[] at = null;
         long end = SystemClock.uptimeMillis() + 15000;
-        while (SystemClock.uptimeMillis() < end && (at = onMain(this::earlyRow)) == null) SystemClock.sleep(5);
-        require(at != null && at[0] > 0, "The slowed opening never showed a row under its surface again (" + describe() + ")");
-        Object sheet = onMain(this::drag);
-        int sheetTravel = onMain(() -> (Integer) field(sheet, "travel"));
-        Finger finger = new Finger(at);
-        boolean unreadable = onMain(() -> ((View) field(sheet, "panel")).getAlpha() < .5f);
-        finger.moveBy(.15f * sheetTravel, 300, 15);
-        Object held = onMain(() -> field(sheet, "state"));
-        finger.up();
-        require(!unreadable || Integer.valueOf(DRAGGED).equals(held), "A touch that began on a row early in the opening and moved down did not take the sheet (state " + held + ")");
-        end = SystemClock.uptimeMillis() + 30000;
-        while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
+        while (SystemClock.uptimeMillis() < end && (at = onMain(this::earlyRow)) == null && !states.saw(OPEN)) SystemClock.sleep(5);
+        return at;
+    }
+
+    /** The frames showed the slowed opening but this thread looked only after it: noted in the log, and tried slower. */
+    private void missed(int slower, States states) {
+        android.util.Log.w("DockSheetValidation", "The slowed opening (scale " + slower + ") ran before this thread could look (frames saw " + onMain(() -> new ArrayList<>(states.seen)) + "); trying slower");
+    }
+
+    /**
+     * Waits (up to 2 minutes) until the system's bars have held still for 6 s: the home app (which draws the taskbar and, on
+     * the emulator's three-button navigation, the bar's buttons) keeps one process, and Volt's window keeps its size and
+     * insets. After the sweep sets a step's window size the emulator's launcher can crash and restart over and over for up
+     * to about half a minute (at 725 x 604 dp: DeviceProfile.calculateCellWidth, divide by zero), and each time its taskbar
+     * goes and comes back, taking the window's bottom inset (168 px there) with it, and a new taskbar paints its own
+     * background for a moment. Measured meanwhile, the sheet's travel is 168 px too long and the screen's bottom shows the
+     * taskbar rather than the sheet. A system that never settles is noted, and the checks go on.
+     */
+    private void steadyBars() throws Exception {
+        String resolved = shell("cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME").trim();
+        String last = resolved.isEmpty() ? "" : resolved.substring(resolved.lastIndexOf('\n') + 1).trim();
+        String home = last.matches("[A-Za-z0-9_.]+/.+") ? last.substring(0, last.indexOf('/')) : null;
+        long start = SystemClock.uptimeMillis(), end = start + 120000, since = start;
+        String before = null;
+        boolean steady = false;
+        while (SystemClock.uptimeMillis() < end) {
+            String now = (home == null ? "" : shell("pidof " + home).trim()) + " | " + onMain(() -> {
+                View root = root(); android.view.WindowInsets insets = root.getRootWindowInsets();
+                return root.getWidth() + "x" + root.getHeight() + " " + (insets == null || Build.VERSION.SDK_INT < 30 ? "-" : insets.getInsets(android.view.WindowInsets.Type.systemBars()).toString());
+            });
+            if (!now.equals(before)) { before = now; since = SystemClock.uptimeMillis(); }
+            else if (SystemClock.uptimeMillis() - since >= 6000) { steady = true; break; }
+            SystemClock.sleep(100);
+        }
+        long waited = (SystemClock.uptimeMillis() - start) / 1000;
+        if (!steady) android.util.Log.w("DockSheetValidation", "The system's bars did not hold still for 6 s in 2 minutes (" + home + ": " + before + ")");
+        checks.add(steady ? "The system's bars held still for 6 s before the checks (home app " + home + ", " + waited + " s)" : "The system's bars never held still for 6 s in " + waited + " s (home app " + home + "); checked anyway");
         settle();
-        require(onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity))), "A drag that began on a row early in the opening opened " + onMain(() -> HubTestPages.current(activity)));
-        if (onMain(() -> drag() != null)) { back(); }
-        awaitGone("a drag early in the opening");
-        requireHome();
-        if (unreadable) checks.add("A touch that began on a row early in the opening and moved down takes the sheet (DRAGGED) and opens nothing");
     }
 
     /** On the main thread, while the sheet opens: {x, y, progress} of a point on a row inside the surface and the screen, or null. */
@@ -1437,6 +1512,8 @@ public final class DockSheetValidation extends Instrumentation {
         Integer last() { return onMain(() -> { record(); return seen.isEmpty() ? null : seen.get(seen.size() - 1); }); }
         /** True once the sheet is gone (the dock has none, or the watched sheet's overlay is down). */
         boolean gone() { return onMain(() -> { record(); return gone; }); }
+        /** True once any frame (or now) has shown the sheet in state. */
+        boolean saw(int state) { return onMain(() -> { record(); return seen.contains(state); }); }
         List<Integer> stop() { return onMain(() -> { run = false; record(); return new ArrayList<>(seen); }); }
     }
 
@@ -1614,6 +1691,11 @@ public final class DockSheetValidation extends Instrumentation {
     }
 
     private void tap(float x, float y) { Finger finger = new Finger(new float[]{x, y}); finger.up(); waitForIdleSync(); }
+    /**
+     * A tap with no wait for the app to go idle after it, for a tap whose animation is watched as it runs (on a slow
+     * emulator the main thread can be busy drawing every frame of it, and waitForIdleSync returns only after it ends).
+     */
+    private void press(float[] at) { new Finger(at).up(); }
     private void tap(float[] at) { tap(at[0], at[1]); }
     private void tapCentre(View view, String name) {
         float[] at = onMain(() -> { require(shown(view), name + " is not shown"); return centreOf(view); });
