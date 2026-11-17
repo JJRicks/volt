@@ -45,7 +45,6 @@ final class CleanHomeScreen implements AppScreen {
             TAG_SLOT = "home-edit-slot-";
     /** One column at most this wide on a wide window where the two-pane Home does not fit (plan 1.11). */
     private static final int MAX_WIDTH_DP = 560;
-    private static final int CROSSFADE_MS = 180;
 
     private final ScreenHost host;
     private final DashboardScreen.Actions actions;
@@ -87,6 +86,10 @@ final class CleanHomeScreen implements AppScreen {
      */
     private List<String> defaults;
     private int moment = -1;
+    /** The change between parked and charging ("Plug in", ChargeTransition); any other change crossfades (show). */
+    private ChargeTransition.Clean transition;
+    /** A crossfade between two other moments is under way (show): the top area takes no touches meanwhile. */
+    private boolean crossfading;
     private boolean closed;
     private android.app.AlertDialog editSheet;
 
@@ -169,6 +172,15 @@ final class CleanHomeScreen implements AppScreen {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(topHeight(find), MeasureSpec.EXACTLY));
             }
+
+            /**
+             * While the moment changes, the moment leaving takes no touch, and neither does the one arriving (aimed at what
+             * was there, as Motion.ignoreTouchesWhileChanging): the top area keeps the gesture, a press under way in a
+             * moment ends, and a drag still scrolls the page.
+             */
+            @Override public boolean onInterceptTouchEvent(android.view.MotionEvent event) {
+                return changing() || super.onInterceptTouchEvent(event);
+            }
         };
         top.setTag(TAG_TOP);
         overview = parts.overview();
@@ -181,6 +193,7 @@ final class CleanHomeScreen implements AppScreen {
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
         page.addView(top, new LinearLayout.LayoutParams(-1, -2));
+        transition = new ChargeTransition.Clean(top, overview, parts.parkedPhoto(), parts.parkedPercent(), parts.hero(), parts::chargingShown);
 
         FrameLayout lock = new FrameLayout(host.activity());
         lock.setTag(TAG_LOCK);
@@ -282,15 +295,26 @@ final class CleanHomeScreen implements AppScreen {
         if (serviceCard != null) serviceCard.refresh();
     }
 
-    /** Swaps the top area's content: a short crossfade on a change only, never on a telemetry refresh. */
+    /**
+     * Swaps the top area's content on a change only, never on a telemetry refresh, and at once on Home's first show (so
+     * opening Home, recreation and every rebuild stay still) or with animations off. Parked to charging or back plays
+     * "Plug in" (ChargeTransition); any other change is a crossfade at Motion's crossfade timing and its even fade curve
+     * (a fast-start curve on opacity read as a cut: the owner's "Charge by" jump, 17 Nov 2026).
+     */
     private void show(int next) {
         if (next == moment) return;
         boolean first = moment < 0;
         int previous = moment;
         moment = next;
+        if (!first) endCrossfade();
+        // Parked to charging or back (it says when the charging view counts as shown).
+        if (!first && transition.change(previous, next)) {
+            moments[HomeMoment.JUST_BACK].setVisibility(View.GONE);
+            moments[HomeMoment.JUST_BACK].setAlpha(1);
+            return;
+        }
         parts.chargingShown(next == HomeMoment.CHARGING);
         View in = moments[next];
-        for (View view : moments) view.animate().cancel();
         if (first || !Ui.motionEnabled() || !top.isAttachedToWindow()) {
             for (View view : moments) {
                 view.setAlpha(1);
@@ -303,12 +327,29 @@ final class CleanHomeScreen implements AppScreen {
         for (View view : moments) if (view != in && view != out) { view.setVisibility(View.GONE); view.setAlpha(1); }
         in.setAlpha(0);
         in.setVisibility(View.VISIBLE);
-        in.animate().alpha(1).setDuration(CROSSFADE_MS).setInterpolator(Motion.STANDARD).start();
-        out.animate().alpha(0).setDuration(CROSSFADE_MS).setInterpolator(Motion.STANDARD).withEndAction(() -> {
+        // The moment leaving is skipped by accessibility services and, with the top area, takes no touch (changing).
+        out.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        crossfading = true;
+        in.animate().alpha(1).setDuration(Motion.CROSSFADE_MS).setInterpolator(Motion.FADE).start();
+        out.animate().alpha(0).setDuration(Motion.CROSSFADE_MS).setInterpolator(Motion.FADE).withEndAction(() -> {
             out.setVisibility(View.GONE);
             out.setAlpha(1);
+            out.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            crossfading = false;
         }).start();
     }
+
+    /** Ends a crossfade where it is (the next change takes over from there). */
+    private void endCrossfade() {
+        for (View view : moments) {
+            view.animate().cancel();
+            view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+        }
+        crossfading = false;
+    }
+
+    /** The top area's moment is changing (a crossfade or "Plug in"): it takes no touches meanwhile. */
+    private boolean changing() { return crossfading || transition.changing(); }
 
     // ===== Just back: the last ride =====
 
@@ -397,7 +438,8 @@ final class CleanHomeScreen implements AppScreen {
 
     @Override public void close() {
         closed = true;
-        for (View view : moments) view.animate().cancel();
+        transition.settle();
+        endCrossfade();
         worker.shutdownNow();
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
         editSheet = null;
