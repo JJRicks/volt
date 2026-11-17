@@ -6,6 +6,11 @@ public interface ScreenHost {
     Activity activity(); Ui ui(); ScooterService service();
     /** The activity is resumed right now. False by default, so a host that doesn't say keeps riding mode's display paused. */
     default boolean resumed() { return false; }
+    /**
+     * Volt's window is back from what covered it (Android's permission dialog): resumed, focused again, and its frames on
+     * time (MainActivity.watchWindowBack). Settings' granted Nearby devices card leaves only then. Resumed by default.
+     */
+    default boolean windowBack() { return resumed(); }
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */
     void open(String page);

@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Choreographer;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.View;
@@ -367,10 +368,40 @@ public final class MainActivity extends Activity implements ScreenHost {
         // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
         checkHeld++;
         try{resume();}finally{checkHeld--;}
-        // Settings' Nearby devices card, granted from Android's dialog: it leaves on the next turn, after Volt's return.
-        if(screen instanceof MoreScreen)handler.post(()->{if(resumed&&!destroyed&&screen instanceof MoreScreen)redraw();});
+        // Settings' Nearby devices card, granted from Android's dialog: it leaves once Volt's window is back (watchWindowBack).
+        watchWindowBack();
         // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
         showUpdateCheck();
+    }
+    /**
+     * Volt's window is back (windowBack): resumed, focused again since, and WINDOW_BACK_FRAMES frames in a row on time.
+     * As Android's permission dialog leaves, Volt's window regains focus and is laid out again, and the main thread misses
+     * frames here and there: a glide started then loses them at its steepest, where one held-back frame steps the rows
+     * by more than half the Nearby devices card (#523 council review, third round: 230 px; then 320 px on a loaded
+     * emulator). Never later than WINDOW_BACK_MS after onResume, so a dialog of Volt's own or a busy phone can't keep it.
+     */
+    private boolean windowBack;
+    /** The watch under way (watchWindowBack); a newer one, or onPause, ends it. */
+    private int windowBackWatch;
+    private static final int WINDOW_BACK_FRAMES=4;
+    private static final long WINDOW_BACK_MS=600;
+    @Override public boolean windowBack(){return windowBack;}
+    private void watchWindowBack(){
+        windowBack=false;int watch=++windowBackWatch;long until=SystemClock.uptimeMillis()+WINDOW_BACK_MS;
+        float hz=getWindowManager().getDefaultDisplay().getRefreshRate();
+        // On time: within one and a half frames of the frame before.
+        long late=(long)(1.5e9/(hz>=1?hz:60));
+        Choreographer.getInstance().postFrameCallback(new Choreographer.FrameCallback(){
+            long last=-1;int onTime;
+            @Override public void doFrame(long time){
+                if(watch!=windowBackWatch||destroyed||!resumed)return;
+                onTime=hasWindowFocus()&&last>=0&&time-last<=late?onTime+1:0;last=time;
+                if(onTime<WINDOW_BACK_FRAMES&&SystemClock.uptimeMillis()<until){Choreographer.getInstance().postFrameCallback(this);return;}
+                windowBack=true;
+                // Settings' Nearby devices card, granted from Android's dialog, leaves now (MoreScreen.refreshWithoutService).
+                if(screen instanceof MoreScreen)handler.post(()->{if(windowBack&&!destroyed&&screen instanceof MoreScreen)redraw();});
+            }
+        });
     }
     private void resume(){
         resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
@@ -407,7 +438,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(HubNav.awayClockStarts(nav.subPagesOpen(),onboarding!=null,OwnDialogs.showing(),launchedAt,now))markAway();
         launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
-        resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
+        resumed=false;windowBack=false;windowBackWatch++;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
         super.onPause();
     }
