@@ -202,6 +202,11 @@ STEPS += [
     inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Security's Unlock without phone guide and its handlebar drawing (owner, Nov 17 2026): light, dark and large text
+    # at 412 dp, at 344 dp and on the unfolded Fold.
+    inst('unlock-guide-412', T + 'UnlockGuideValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('unlock-guide-344', T + 'UnlockGuideValidation', '-e', 'size_label', '344', size='344x882'),
+    inst('unlock-guide-fold', T + 'UnlockGuideValidation', '-e', 'size_label', 'fold', size='790x820'),
     inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
     inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),
     inst('reveal-motion-controls', T + 'RevealMotionValidation', '-e', 'part', 'controls', size='412x915'),
