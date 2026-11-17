@@ -2704,7 +2704,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(lightsBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(lightsBody.getChildAt(0));lightsBody.addView(line,0,new LinearLayout.LayoutParams(-1,design.dp(1)));}
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             clockLine=new SettingLine("history",M.mainRowClock(),null);
-            clockSpinner=new Spinner();clockSpinner.setVisibility(View.INVISIBLE);
+            clockSpinner=new Spinner();clockSpinner.setVisibility(idleAside());
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
             // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
@@ -3031,7 +3031,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
             clockLine.name.setTextColor(clockReady?design.text:design.muted);
             // Results are row state: a spinner while sending, then "Sent 14:02" (no clock readback exists) or a short failure.
-            clockSpinner.setVisibility(clockPending?View.VISIBLE:View.INVISIBLE);
+            clockSpinner.setVisibility(clockPending?View.VISIBLE:idleAside());
             String clock=ble==null?null:ble.commandResults().get("clock_sync");String chip=clockPending?null:resultChip(ble,"clock_sync");
             long sent=ble==null?0:ble.commandResultTime("clock_sync");
             boolean accepted=!clockPending&&clock!=null&&clock.startsWith("Accepted")&&sent>0;
@@ -3243,6 +3243,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The clock row's spinner with its margin (rowSpinnerSize), kept out of the Sync pill's decision (ActionBannerFit). */
     static final int CLOCK_SPINNER_ROOM_DP=30;
+    /** How the clock row's spinner hides while no sync runs: keeping its room (ActionBannerFit.ASIDE_KEEPS_ROOM), INVISIBLE. */
+    private static int idleAside(){return ActionBannerFit.ASIDE_KEEPS_ROOM?View.INVISIBLE:View.GONE;}
     private LinearLayout.LayoutParams rowSpinnerSize(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(20),design.dp(20));p.setMarginStart(design.dp(10));return p;}
     /** A small red chip for a failed change; it sits on the row just before the value or switch. */
     private TextView failureChip(){
@@ -3330,7 +3332,8 @@ public final class MainActivity extends Activity implements ScreenHost {
          * @param reserveDp room the content always keeps beside the words (the clock row's spinner), shown or not
          * @param aside what that room is for, the last child of {@code content} (a Slot): beside the pill, it stays at the
          *              end of the words' line, next to the pill; under the words it goes after the pill on the pill's line
-         *              where both fit (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
+         *              where both fit, or where keeping its room on the words' line would break their longest word
+         *              (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
          *              so nothing in the row moves or re-wraps when it comes and goes.
          * @param besideLines the most lines the words may take beside the pill (0: any); with more, the pill goes under
          *                    them, where they take what they need (the clock row's name: two beside Sync, never cut)
@@ -3372,6 +3375,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean below=false,byPill=false;int side=pad;
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
+                // The room the aside takes: while it shows, or hidden but keeping its room (INVISIBLE, never GONE).
+                float reserve=aside==null?this.reserve:ActionBannerFit.reserved(this.reserve,aside.getVisibility()==VISIBLE,aside.getVisibility()!=GONE);
                 // The pill's own width: its label with its own padding (ActionBannerFit.pill), whatever padding a narrow
                 // window left it with last time, so the decision never depends on that.
                 action.measure(MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED),MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED));
@@ -3383,7 +3388,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // limit, count their lines there too, so a word is never cut off at the end of their last line.
                 int own=words.getMaxLines(),max=besideLines>0?besideLines:own>0&&own<Integer.MAX_VALUE?own:0,lines=0;
                 if(max>0&&words.length()>0){
-                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
+                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
                     CharSequence t=words.getText();
                     lines=beside<=0?Integer.MAX_VALUE:android.text.StaticLayout.Builder.obtain(t,0,t.length(),words.getPaint(),beside)
                             .setBreakStrategy(words.getBreakStrategy()).setHyphenationFrequency(words.getHyphenationFrequency())
@@ -3391,11 +3396,15 @@ public final class MainActivity extends Activity implements ScreenHost {
                             .build().getLineCount();
                 }
                 below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve,lines,max);
-                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve);
+                // Under the words, the spinner after the pill where both fit, or where keeping its room on the words' line
+                // would break their longest word (the pill's padding then narrows): the same idle and syncing.
+                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve,label,word);
                 int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,byPill?pill+reserve:pill,words.getCompoundPaddingLeft())):0;
                 if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true,byPill);}
-                // Under the words in a window narrower than the pill itself: only the room around the label, kept whole.
-                if(below&&pill>room-wanted)side=(int)Math.floor(ActionBannerFit.stackedPad(room-wanted,label,pad));
+                // Under the words in a window narrower than the pill (and the spinner after it) itself: only the room
+                // around the label, kept whole.
+                float line=ActionBannerFit.stackedLine(room,wanted,reserve,byPill);
+                if(below&&pill>line)side=(int)Math.floor(ActionBannerFit.stackedPad(line,label,pad));
             }
             if(action.getPaddingLeft()!=side||action.getPaddingRight()!=side)action.setPadding(side,action.getPaddingTop(),side,action.getPaddingBottom());
             if(below!=(getOrientation()==VERTICAL)||aside!=null&&(aside.getParent()==actionLine)!=byPill)arrange(below,byPill);
