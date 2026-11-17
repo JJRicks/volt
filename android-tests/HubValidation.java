@@ -929,6 +929,8 @@ public final class HubValidation extends Instrumentation {
         });
         // Every frame from here: the Language row's top in the window (Integer.MIN_VALUE while none shows).
         List<Integer> frames = Collections.synchronizedList(new ArrayList<>());
+        // Each sampled frame's time (Choreographer's, ns), to tell a frame held back on the main thread from a jump.
+        List<Long> times = Collections.synchronizedList(new ArrayList<>());
         boolean[] sampling = {true};
         main(() -> android.view.Choreographer.getInstance().postFrameCallback(new android.view.Choreographer.FrameCallback() {
             @Override public void doFrame(long time) {
@@ -937,7 +939,7 @@ public final class HubValidation extends Instrumentation {
                 // A row not laid out yet (the rebuilt page's first pass) has no place to read.
                 boolean placed = row != null && row.isShown() && row.isLaidOut() && row.getHeight() > 0;
                 int[] at = new int[2]; if (placed) row.getLocationInWindow(at);
-                frames.add(placed ? at[1] : Integer.MIN_VALUE);
+                synchronized (frames) { frames.add(placed ? at[1] : Integer.MIN_VALUE); times.add(time); }
                 android.view.Choreographer.getInstance().postFrameCallback(this);
             }
         }));
@@ -950,13 +952,22 @@ public final class HubValidation extends Instrumentation {
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         requireHeader(HubPages.SETTINGS, false);
         List<Integer> seen = new ArrayList<>();
-        synchronized (frames) { for (Integer y : frames) if (y != Integer.MIN_VALUE) seen.add(y); }
+        List<Long> seenAt = new ArrayList<>();
+        synchronized (frames) { for (int i = 0; i < frames.size(); i++) if (frames.get(i) != Integer.MIN_VALUE) { seen.add(frames.get(i)); seenAt.add(times.get(i)); } }
         require(seen.size() > 5, "Too few frames of Settings were seen through the grant (" + seen.size() + ")");
         int expected = start[1] - (start[1] >= start[0] + start[2] ? start[2] : 0);
+        // While the row moves: its largest step and the longest time between two sampled frames (a frame held back).
+        int largest = 0; long gapMs = 0;
+        for (int i = 1; i < seen.size(); i++) if (!seen.get(i).equals(seen.get(i - 1))) {
+            largest = Math.max(largest, seen.get(i - 1) - seen.get(i));
+            gapMs = Math.max(gapMs, (seenAt.get(i) - seenAt.get(i - 1)) / 1000000);
+        }
         for (int i = 1; i < seen.size(); i++) {
             int step = seen.get(i) - seen.get(i - 1);
+            long ms = (seenAt.get(i) - seenAt.get(i - 1)) / 1000000;
             require(step <= 0, "Settings' Language row moved down " + step + " px in one frame through the grant (frames " + seen + ")");
-            require(-step <= start[2] / 2, "Settings' Language row jumped " + (-step) + " px in one frame through the grant (the card is " + start[2] + " px; frames " + seen + ")");
+            require(-step <= start[2] / 2, "Settings' Language row jumped " + (-step) + " px in one frame through the grant (the card is " + start[2] + " px; "
+                    + ms + " ms after the frame before; frames " + seen + ")");
         }
         main(() -> {
             require(root().findViewWithTag(NEARBY_CARD) == null || !shown(root().findViewWithTag(NEARBY_CARD)), "Settings still shows the Allow Nearby devices card once granted");
@@ -972,7 +983,8 @@ public final class HubValidation extends Instrumentation {
         });
         screenshot("no-nearby-settings-granted");
         checks.add("Nearby devices granted from Settings' card (Allow Nearby devices, then Android's Allow): the card fades in place while the rows glide up, no frame"
-                + " moving the Language row down or by more than half the card (" + seen.size() + " frames, through the service binding and Settings' rebuild); the stack"
+                + " moving the Language row down or by more than half the card (" + seen.size() + " frames, through the service binding and Settings' rebuild;"
+                + " largest step " + largest + " px of a " + start[2] + " px card, longest frame gap while moving " + gapMs + " ms); the stack"
                 + " stays Home, Settings, the scroll at its top, no card, My scooters no longer dimmed, no connection line");
     }
 
