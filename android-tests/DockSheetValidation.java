@@ -532,7 +532,7 @@ public final class DockSheetValidation extends Instrumentation {
             float[] landed = onMain(() -> drag() == null ? null : new float[]{1 - offset() / (Integer) field(drag(), "travel"), panel().getAlpha(), (Integer) field(drag(), "state")});
             boolean early = finger != null && landed != null && landed[2] == OPENING && landed[0] <= 1 / 3f && landed[1] < .5f;
             if (early) finger.up(); else if (finger != null) finger.cancel();
-            long until = SystemClock.uptimeMillis() + 30000;
+            long until = SystemClock.uptimeMillis() + settleWait(slower);
             while (SystemClock.uptimeMillis() < until) { Integer state = states.last(); if (state != null && state == OPEN || !onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity)))) break; SystemClock.sleep(10); }
             List<Integer> seen = states.stop();
             settle();
@@ -552,6 +552,21 @@ public final class DockSheetValidation extends Instrumentation {
     }
 
     /**
+     * How long (ms) to wait for the sheet's running settle to finish at animator scale {@code slower}: 30 s to spare plus
+     * one and a half times the settle's own length at that scale. The settle's length is its spring over the sheet's
+     * travel (DragSheet sets it on its animator, unscaled): about 525 ms for a 1279 px opening, so about 42 s at 80x,
+     * longer than the 30 s these waits had whatever the scale (council review of #526). With no settle running, 30 s.
+     */
+    private long settleWait(int slower) {
+        long settle = onMain(() -> {
+            Object sheet = drag();
+            Object animator = sheet == null ? null : field(sheet, "settling");
+            return animator instanceof ValueAnimator ? ((ValueAnimator) animator).getDuration() : 0L;
+        });
+        return 30000 + Math.round(1.5 * Math.max(1, slower) * Math.max(0, settle));
+    }
+
+    /**
      * At the same slowed scale (or slower, as earlyTap, when this thread's first look comes too late): a touch that starts
      * there and moves down takes the sheet (its rows never get it), and nothing opens.
      */
@@ -564,7 +579,7 @@ public final class DockSheetValidation extends Instrumentation {
             if (at == null || at[0] <= 0) {
                 require(at != null || states.saw(OPENING), "The slowed opening never showed a row under its surface again (" + describe() + ")");
                 if (at == null) missed(slower, states);
-                long end = SystemClock.uptimeMillis() + 30000;
+                long end = SystemClock.uptimeMillis() + settleWait(slower);
                 while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
                 List<Integer> seen = states.stop();
                 settle();
@@ -584,7 +599,7 @@ public final class DockSheetValidation extends Instrumentation {
             Object held = onMain(() -> field(sheet, "state"));
             finger.up();
             require(!unreadable || Integer.valueOf(DRAGGED).equals(held), "A touch that began on a row early in the opening and moved down did not take the sheet (state " + held + ")");
-            long end = SystemClock.uptimeMillis() + 30000;
+            long end = SystemClock.uptimeMillis() + settleWait(slower);
             while (SystemClock.uptimeMillis() < end && onMain(() -> drag() != null && !Integer.valueOf(OPEN).equals(field(drag(), "state")))) SystemClock.sleep(10);
             settle();
             require(onMain(() -> HubPages.HOME.equals(HubTestPages.current(activity))), "A drag that began on a row early in the opening opened " + onMain(() -> HubTestPages.current(activity)));
