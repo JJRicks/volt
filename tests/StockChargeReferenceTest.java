@@ -130,6 +130,80 @@ public final class StockChargeReferenceTest {
         check(mismatched.referenceToFull&&!mismatched.learnedToFull&&mismatched.status.contains("Experimental UT5 MAX"),"Mismatched private power does not discard a compatible default");
         System.out.printf(java.util.Locale.US,"Bundled stock reference: 50%% %.2f min; 95%% %.2f min; 99%% at 110/88/48 W %.2f / %.2f / %.2f min%n",
                 half.remainingMinutesToFull,fresh.remainingMinutesToFull,early,middle,late);
+        finishV9();
         System.out.println("StockChargeReference: "+checks+" checks passed");
+    }
+
+    /**
+     * ut5-stock-finish-v9 on synthetic 99% stages built from the fitted shape (no recordings): a charger
+     * holding constant current while pack voltage climbs to its constant-voltage line, then a current
+     * decay to 0.68 A, when 100% shows. Two shapes stand in for two scooters: the owner fit (1.95 A,
+     * tau 21.94, 8 minutes at constant current) and one like the other UT5 MAX (2.14 A, a 0.04 V lower
+     * line, tau 23.5, 4.5 minutes), each also read 0.15 and 0.3 V high and low, as another pack or
+     * charger can. The voltage match it replaced read the current rate (a few minutes) through most of
+     * a stage that lasts 25 to 32 minutes as soon as a pack sat 0.15 V off.
+     */
+    private static void finishV9(){
+        double end=Ut5MaxStockChargeReference.FINISH_END_AMPS;
+        // Constant voltage: the current alone decides, whatever the pack reads, below FADE_LOW_AMPS.
+        for(double amps=0.70;amps<1.3;amps+=0.05){
+            double tail=Ut5MaxStockChargeReference.FINISH_OFFSET+Ut5MaxStockChargeReference.FINISH_TAU*Math.log(amps/end);
+            for(double volts=54.2;volts<=54.9;volts+=0.1)
+                near(tail,Ut5MaxStockChargeReference.finishMinutes(volts,amps),1e-9,"Below 1.3 A pack voltage does not move the 99% finish at "+amps+" A, "+volts+" V");
+        }
+        near(Ut5MaxStockChargeReference.FINISH_OFFSET,Ut5MaxStockChargeReference.finishMinutes(54.4,0.6),1e-9,"At or below the end current only the offset remains");
+        check(Ut5MaxStockChargeReference.finishMinutes(54,0.01)==null&&Ut5MaxStockChargeReference.finishMinutes(54,3.5)==null
+                &&Ut5MaxStockChargeReference.finishMinutes(Double.NaN,1)==null,"No finish outside a usable current or without a voltage");
+        // Voltage can add at most the capped headroom's minutes, at full weight.
+        for(double amps=1.3;amps<=2.6;amps+=0.1){
+            double tail=Ut5MaxStockChargeReference.FINISH_OFFSET+Ut5MaxStockChargeReference.FINISH_TAU*Math.log(amps/end);
+            double cap=Ut5MaxStockChargeReference.FINISH_AH_PER_VOLT*Ut5MaxStockChargeReference.FINISH_MAX_HEADROOM/amps*60;
+            double line=Ut5MaxStockChargeReference.FINISH_CV_SET-Ut5MaxStockChargeReference.FINISH_CV_DROP*amps;
+            check(Ut5MaxStockChargeReference.finishMinutes(line-1.05,amps)==null&&Ut5MaxStockChargeReference.finishMinutes(55.2,amps)==null,
+                    "A contradictory 99% voltage gets no finish at "+amps+" A");
+            for(double volts=line-0.95;volts<=55.1;volts+=0.05){
+                double minutes=Ut5MaxStockChargeReference.finishMinutes(volts,amps);
+                check(minutes>=tail-1e-9&&minutes<=tail+cap+1e-9,"Voltage headroom stays bounded at "+amps+" A, "+volts+" V: "+minutes);
+            }
+        }
+        double[][] shapes={{1.95,0,21.94,8},{2.14,-0.04,23.5,4.5}};
+        for(double[] shape:shapes)for(double offset:new double[]{0,-0.15,0.15,-0.3,0.3}){
+            double worstShort=0,worstLong=0,sum=0,previous=Double.NaN,rise=0;int n=0;
+            for(double[] reading:stage(shape[0],shape[1],shape[2],shape[3])){
+                double volts=reading[0]+offset,amps=reading[1],left=reading[2];
+                ChargingEstimate.Result result=handover(99,volts,amps,100d);
+                check(result.referenceToFull&&!result.learnedToFull&&result.remainingMinutesToFull!=null,
+                        "The bundled 99% finish applies at "+amps+" A, "+volts+" V");
+                double error=result.remainingMinutesToFull-left;
+                worstShort=Math.min(worstShort,error);worstLong=Math.max(worstLong,error);sum+=Math.abs(error);n++;
+                if(!Double.isNaN(previous))rise=Math.max(rise,result.remainingMinutesToFull-previous);
+                previous=result.remainingMinutesToFull;
+            }
+            String where=shape[0]+" A shape, "+offset+" V offset";
+            // Charge done by keeps its 20-minute buffer: never 10 minutes short, even 0.3 V off.
+            check(worstShort>=-9.5,where+": at most 9.5 minutes short, was "+worstShort);
+            check(worstLong<=(offset<0?14:5),where+": at most "+(offset<0?14:5)+" minutes long, was "+worstLong);
+            check(sum/n<=(offset==0?1.5:5),where+": mean error "+sum/n);
+            check(rise<=0.5,where+": the countdown never climbs more than half a minute between readings, was "+rise);
+            if(offset==0)check(worstShort>=-2.5&&worstLong<=3,where+": within 2.5 minutes short and 3 long throughout, was "+worstShort+" to "+worstLong);
+        }
+    }
+
+    /**
+     * {volts, amps, minutes to 100%} every 10 s through a synthetic 99% stage: ccMinutes at constant
+     * current while voltage climbs 0.31 V to the line FINISH_CV_SET + lineShift - FINISH_CV_DROP x I,
+     * then current decaying with time constant tau along that line, 100% showing at 0.68 A.
+     */
+    private static java.util.List<double[]> stage(double cc,double lineShift,double tau,double ccMinutes){
+        java.util.List<double[]> rows=new java.util.ArrayList<>();
+        double line=Ut5MaxStockChargeReference.FINISH_CV_SET+lineShift,drop=Ut5MaxStockChargeReference.FINISH_CV_DROP;
+        double decay=tau*Math.log(cc/0.68),total=ccMinutes+decay;
+        for(double t=0;t<total;t+=1/6d){
+            double amps,volts;
+            if(t<ccMinutes){amps=cc;volts=line-drop*cc-0.31*(1-t/ccMinutes);}
+            else{amps=cc*Math.exp(-(t-ccMinutes)/tau);volts=line-drop*amps;}
+            rows.add(new double[]{volts,amps,total-t});
+        }
+        return rows;
     }
 }

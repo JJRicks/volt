@@ -123,7 +123,9 @@ metadata are absent.
   observed range. This is a plausibility check, not charger identification.
 - A substantial observed power rebound rejects stage matching. With a clear
   downward taper, production estimates use the same paired-voltage/power matcher
-  as the bundled reference, allowing the estimate to decrease while the gauge
+  as the bundled reference did until `ut5-stock-finish-v9` (the bundled reference now places the 99%
+  stage by charging current, see [stock-finish-estimates.md](stock-finish-estimates.md); past charges
+  keep this matcher), allowing the estimate to decrease while the gauge
   remains at 99%. Ambiguous candidate stages spanning more than ten minutes
   are refused. Nearly flat power
   uses the SOC interval's midpoint only for intervals no longer than ten minutes.
