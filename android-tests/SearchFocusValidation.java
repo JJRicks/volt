@@ -71,7 +71,7 @@ public final class SearchFocusValidation extends Instrumentation {
             for (String theme : new String[] {"dark", "light"}) {
                 main(() -> settings().edit().putString("theme", theme).apply());
                 await(() -> activity.ui().dark == theme.equals("dark"), 4000, "Theme did not apply");
-                controlsChecks(theme); tabletopChecks(theme); statsChecks(theme); dialogChecks(theme); assertNoScooterWork();
+                controlsChecks(theme); tabletopChecks(theme); tabletopLowHingeChecks(theme); statsChecks(theme); dialogChecks(theme); assertNoScooterWork();
             }
             result.putString("result", "PASS"); result.putStringArrayList("checks", new ArrayList<>(checks));
             result.putStringArrayList("screenshots", new ArrayList<>(screenshots)); result.putInt("check_count", checks.size());
@@ -157,6 +157,13 @@ public final class SearchFocusValidation extends Instrumentation {
                     require(!Rect.intersects(shown, hinge), theme + ": a result row shows under the " + thickness + " px hinge " + hinge.toShortString() + " (" + shown.toShortString() + ")");
                 }
             });
+            // And at least one result shows whole between the hinge and the keyboard, to be tapped (#540 council review).
+            int[] whole = {0};
+            if (thickness > 0) {
+                await(() -> (whole[0] = wholeResults(hub, hinge, window)) > 0, 4000,
+                        theme + ", thick hinge, keyboard up: no result shows whole and tappable between the hinge and the keyboard");
+                main(() -> tabletopKeyboardTop = keyboardTop(window));
+            }
             screenshot("tabletop-" + kind + "-" + theme);
             main(() -> getTargetContext().getSystemService(InputMethodManager.class).hideSoftInputFromWindow(root().getWindowToken(), 0));
             await(() -> !imeVisible(window), 4000, "Tabletop Search's keyboard did not close");
@@ -168,9 +175,89 @@ public final class SearchFocusValidation extends Instrumentation {
             fold();
             await(() -> !(Boolean)call(activity, "horizontalHinge") && field(activity, "tabletopUpper") == null, 4000, "The faked hinge did not go");
             checks.add(theme + ", " + kind + " hinge: tabletop Search " + (thickness == 0 ? "shrinks its pane to the field for the keyboard"
-                    : "keeps the spacer over the hinge for the keyboard, " + rows[0] + " result rows shown, none under the hinge"));
+                    : "keeps the spacer over the hinge for the keyboard, " + rows[0] + " result rows shown, none under the hinge, "
+                    + whole[0] + " results whole and tappable above the keyboard"));
         }
         waitForIdleSync();
+    }
+    /** The keyboard's top in window coordinates, read in tabletopChecks' thick-hinge pass (the hinge's keyboard). */
+    private int tabletopKeyboardTop;
+    /**
+     * A hinge so low that, with the keyboard up, the pane kept to it would leave the results less than one result's room
+     * (#540 council review; its geometry: a 600 dp window, the hinge at 300 dp, 8 dp thick, a 288 dp keyboard, so 0 dp):
+     * here 0 dp, then 60 dp, between the spacer under an 8 dp hinge and the keyboard read in tabletopChecks. The pane must
+     * shrink to the field after all, and at least one result must show whole above the keyboard, clear of the hinge, at
+     * least 48 dp tall and tappable. With the keyboard gone the pane reaches the hinge again.
+     */
+    private void tabletopLowHingeChecks(String theme) throws Exception {
+        Window window = activity.getWindow();
+        int thickness = activity.ui().dp(8), spacer = Math.max(activity.ui().dp(12), thickness), keyboardTop = tabletopKeyboardTop;
+        require(keyboardTop > activity.ui().dp(200), theme + ": tabletopChecks did not read the keyboard's top (" + keyboardTop + ")");
+        for (int roomDp : new int[] {0, 60}) {
+            int room = activity.ui().dp(roomDp);
+            Rect hinge = new Rect();
+            main(() -> { int top = keyboardTop - spacer - room; hinge.set(0, top, window.getDecorView().getWidth(), top + thickness); });
+            fold(new ResponsiveDashboardValidation.FakeFeature(hinge, 2, 1));
+            await(() -> (Boolean)call(activity, "horizontalHinge"), 4000, "The low faked hinge did not reach the layout");
+            HubTestPages.reach(this, activity, HubPages.SEARCH);
+            await(() -> HubPages.SEARCH.equals(HubTestPages.current(activity)) && field(activity, "tabletopUpper") != null, 6000,
+                    "Search did not open in tabletop posture over the low hinge");
+            await(() -> { View upper = (View)field(activity, "tabletopUpper"), cover = (View)field(activity, "tabletopSpacer");
+                    return upper.getLayoutParams().height > 0 && cover.getVisibility() == View.VISIBLE; }, 4000,
+                    theme + ", low hinge, no keyboard: the pane did not reach the hinge");
+            Object hub = HubTestPages.part(activity, "HubSearchScreen");
+            showKeyboard((EditText)field(hub, "search"), window, "speed");
+            awaitKeyboardSettled(window, "tabletop low hinge " + roomDp);
+            int[] whole = {0}, kept = {0};
+            await(() -> {
+                View upper = (View)field(activity, "tabletopUpper"), cover = (View)field(activity, "tabletopSpacer");
+                if (upper.getLayoutParams().height != -2 || cover.getVisibility() != View.GONE || upper.isLayoutRequested()) return false;
+                kept[0] = keyboardTop(window);
+                return (whole[0] = wholeResults(hub, hinge, window)) > 0;
+            }, 4000, theme + ", low hinge " + roomDp + " dp above the keyboard: the pane did not shrink to the field, or no result shows whole and tappable above the keyboard");
+            require(Math.abs(kept[0] - keyboardTop) <= activity.ui().dp(4), theme + ": the keyboard's top moved (" + keyboardTop + " to " + kept[0] + "), so the hinge is not where meant");
+            screenshot("tabletop-low-hinge-" + roomDp + "-" + theme);
+            main(() -> getTargetContext().getSystemService(InputMethodManager.class).hideSoftInputFromWindow(root().getWindowToken(), 0));
+            await(() -> !imeVisible(window), 4000, "Tabletop Search's keyboard did not close");
+            awaitKeyboardSettled(window, "tabletop low hinge " + roomDp + " closed");
+            await(() -> { View upper = (View)field(activity, "tabletopUpper"), cover = (View)field(activity, "tabletopSpacer");
+                    return upper.getLayoutParams().height > 0 && cover.getVisibility() == View.VISIBLE; }, 4000,
+                    theme + ", low hinge: with the keyboard gone the pane did not reach the hinge again");
+            main(() -> HubTestPages.open(activity, HubPages.HOME));
+            fold();
+            await(() -> !(Boolean)call(activity, "horizontalHinge") && field(activity, "tabletopUpper") == null, 4000, "The faked hinge did not go");
+            checks.add(theme + ", 8 dp hinge with " + roomDp + " dp for the results above the keyboard: tabletop Search shrinks its pane after all, "
+                    + whole[0] + " results whole and tappable above the keyboard, clear of the hinge");
+        }
+        waitForIdleSync();
+    }
+    /** The keyboard's top in window coordinates (the window's bottom while it is down). Call on the main thread. */
+    private static int keyboardTop(Window window) {
+        View decor = window.getDecorView();
+        return decor.getHeight() - decor.getRootWindowInsets().getInsets(WindowInsets.Type.ime()).bottom;
+    }
+    /**
+     * Search's results that show whole, above the keyboard, clear of the hinge, at least 48 dp tall, and can be tapped
+     * (a result row is clickable and enabled). Call on the main thread.
+     */
+    private int wholeResults(Object hub, Rect hinge, Window window) {
+        int top = keyboardTop(window), found = 0;
+        List<View> rows = new ArrayList<>();
+        collectResults((ViewGroup)field(hub, "results"), rows);
+        for (View row : rows) {
+            Rect shown = new Rect();
+            if (!row.isShown() || !row.getGlobalVisibleRect(shown)) continue;
+            if (shown.height() == row.getHeight() && shown.bottom <= top && !Rect.intersects(shown, hinge)
+                    && shown.height() >= activity.ui().dp(48) && row.isClickable() && row.isEnabled()) found++;
+        }
+        return found;
+    }
+    private static void collectResults(ViewGroup group, List<View> into) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getTag() instanceof String && ((String)child.getTag()).startsWith("hub-search-")) into.add(child);
+            else if (child instanceof ViewGroup) collectResults((ViewGroup)child, into);
+        }
     }
     /** Hands FoldMonitor a window layout with these features (none: no hinge), as the OEM window extensions would. */
     private void fold(ResponsiveDashboardValidation.FakeFeature... features) {

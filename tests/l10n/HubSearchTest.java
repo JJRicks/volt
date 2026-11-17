@@ -720,16 +720,31 @@ public final class HubSearchTest {
         // It shrinks only over a hinge that hides nothing: over one that hides part of the window (a thickness), the pane keeps
         // reaching the hinge and the spacer covers it while the keyboard is up, so no result row sits under it (fourth round,
         // finding 4).
-        check(HubSearch.tabletopShrinks(true, 0) && !HubSearch.tabletopShrinks(true, 84) && !HubSearch.tabletopShrinks(true, 1)
-                && !HubSearch.tabletopShrinks(false, 0) && !HubSearch.tabletopShrinks(false, 84),
+        check(HubSearch.tabletopShrinks(true, 0, 900, 252) && !HubSearch.tabletopShrinks(true, 84, 900, 252) && !HubSearch.tabletopShrinks(true, 1, 900, 252)
+                && !HubSearch.tabletopShrinks(false, 0, 900, 252) && !HubSearch.tabletopShrinks(false, 84, 900, 252),
                 "tabletop Search's pane shrinks for the keyboard only where the hinge hides nothing");
+        // Unless the results would get less than one result's room below the hinge: then it shrinks after all, so at least one
+        // result shows above the keyboard (#540 council review). The council's geometry, in dp at density 1: a 600 dp window,
+        // the hinge at 300 dp, 8 dp thick (a 12 dp spacer), a 288 dp keyboard: the results would get 0 dp.
+        int room = HubSearch.tabletopResultsRoom(600, 288, 300, 12, 0), row = HubSearch.tabletopRowRoom(1f, 1f);
+        check(room == 0 && row == 96 && HubSearch.tabletopShrinks(true, 8, room, row) && !HubSearch.tabletopShrinks(false, 8, room, row),
+                "tabletop Search shrinks over a thick hinge when the keyboard leaves the results no room");
+        check(HubSearch.tabletopShrinks(true, 8, row - 1, row) && !HubSearch.tabletopShrinks(true, 8, row, row)
+                && !HubSearch.tabletopShrinks(true, 8, HubSearch.tabletopResultsRoom(914, 336, 457, 12, 0), row),
+                "tabletop Search keeps the pane to a thick hinge while one result fits below it (a phone's 109 dp, hinge in the middle)");
+        check(HubSearch.tabletopResultsRoom(600, 0, 300, 12, 0) == 288 && HubSearch.tabletopResultsRoom(600, 0, 300, 12, 48) == 240
+                && HubSearch.tabletopResultsRoom(600, 400, 300, 12, 0) == 0,
+                "the results' room: window less keyboard, hinge, spacer and banner, never below 0");
+        check(HubSearch.tabletopRowRoom(2.625f, 1f) == 252 && HubSearch.tabletopRowRoom(1f, 1.4f) == 122 && HubSearch.tabletopRowRoom(1f, 0.85f) == 96,
+                "one result's room: 32 dp and 64 sp, never under the default's");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         check(main.contains("View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;")
                 && main.contains("if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,")
                 && main.contains("tabletopPane.addView(((HubSearchScreen)screen).takeTop());"), "MainActivity puts Search's field in the tabletop pane and hides only the rows");
         check(main.contains("if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}")
-                && main.contains("boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height());\n        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);\n        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);")
-                && main.contains("if(keyboardOnly)fitTabletopSearch();"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
+                && main.contains("boolean shrinks=HubSearch.tabletopShrinks(keyboardShown,fold.hinge.height(),tabletopResultsRoom(),HubSearch.tabletopRowRoom(getResources().getDisplayMetrics().density,design.textScale*getResources().getConfiguration().fontScale));\n        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,shrinks);\n        tabletopSpacer.setVisibility(shrinks?View.GONE:View.VISIBLE);")
+                && main.contains("if(keyboardOnly)fitTabletopSearch();")
+                && main.contains("return HubSearch.tabletopResultsRoom(window,bottomInset,fold.hinge.top,tabletopSpacer.getLayoutParams().height,banner);"), "MainActivity fits tabletop Search's upper pane to the keyboard in place, with no rebuild");
         // Before Android 11 the keyboard shows in the resize inset only: MainActivity reads it by SearchFocus's own rule, as the
         // bound fields do, not by an Android 11 check alone (#393 council review, fourth round, finding 2).
         String focus = read("src/com/jjricks/volt/SearchFocus.java");
