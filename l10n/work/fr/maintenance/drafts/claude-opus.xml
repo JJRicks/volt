@@ -17,7 +17,7 @@
     <string name="maintenance_tab_due" volt:src="6f3c512051b6d2f7fad34779ceb250f66eeea77b">%1$s, entretien à faire</string>
     <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Rappels d’entretien</string>
     <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Les contrôles que vous définissez s’affichent quand ils sont à faire</string>
-    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">Activez cette option pour ajouter vos propres rappels, par exemple contrôler la pression des pneus toutes les 2 semaines ou les freins tous les 300 mi. Volt affiche un contrôle ici et dans l’onglet « Trottinette » quand il est à faire.</string>
+    <string name="maintenance_off_explain" volt:src="a51240dc7ae0b3602de168ceec8c850d4c82cab9">Activez cette option pour ajouter vos propres rappels, par exemple vérifier la pression des pneus toutes les 2 semaines ou les freins tous les 300 mi. Volt affiche une vérification ici et sur le tableau de bord quand elle est à faire.</string>
     <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1">Ces rappels sont ceux que vous avez définis. Contrôlez votre trottinette dès que quelque chose vous semble anormal, quoi que dise un rappel.</string>
     <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">À faire maintenant</string>
     <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">À venir</string>
@@ -172,7 +172,7 @@
     <string name="maintenance_notify" volt:src="37cdc480a4aa94342fab06d7f6f17d9ff2efdf2a">Recevoir une notification</string>
     <string name="maintenance_notify_detail" volt:src="a62173aa99122e968d3a6456c2864202b8576ce0">Une notification, une seule fois, quand il est à faire</string>
     <string name="maintenance_channel" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Rappels d’entretien</string>
-    <string name="maintenance_channel_detail" volt:src="253b821ce1c206197ea1313c4e06e6f5f91387bd">Vérifications que vous définissez dans Trottinette › Atelier › Entretien, une seule fois quand chacune est à faire</string>
+    <string name="maintenance_channel_detail" volt:src="eb5c5dfeb924e5bcdb2e0bf7c079d8416326b3ef">Vérifications définies dans « Maintenance › Entretien », une fois à chaque échéance</string>
     <plurals name="maintenance_notice_title" volt:src="019e234eff3132c9cd55bac2fb8afb8733d192b4">
         <item quantity="one">%1$d contrôle à faire (%2$s)</item>
         <item quantity="many">%1$d de contrôles à faire (%2$s)</item>

@@ -70,6 +70,7 @@ Accepted abbreviations:
 |---|---|---|---|
 | Velocidade máxima | **Vel. máxima**, then **Vel. máx.** | 112 → 71 → 52 | The setting and the measured top speed alike (owner, 2026-11-11). Fits the 90dp tile; Riding mode's 80dp@15sp label takes *Vel. máx.* |
 | Velocidade média | **Vel. média** | 102 → 60 | |
+| Recuperação (de energia) | **Recup.** | 13.5sp: 80.7 → 42.2 | Only the one-word name on Clean Home's 72dp round button (`hub_qa_recovery_round`), where *Recuperação* does not fit; pt-BR ships the same. Never *Recarga*, which is charging (council review of #533). Added 2026-11-17 |
 | Distância total | **Dist. total** | 83 → 56 | The odometer (owner, 2026-11-11). *Dist.* only in *Dist. total* |
 | Temperatura | **Temp.** | 74 → 35 | |
 | Capacidade | **Capac.** | 66 → 38 | |

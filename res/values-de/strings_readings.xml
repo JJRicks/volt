@@ -507,6 +507,12 @@
     <string name="readings_chart_gps_acceleration">GPS-Beschleunigung</string>
     <!-- src:5e03198574edc59e86a254a341205f8e62a6aa92 -->
     <string name="readings_chart_energy_distance">Energie / Strecke</string>
+    <!-- src:c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601 -->
+    <string name="readings_chart_gps_accuracy">GPS-Genauigkeit</string>
+    <!-- src:b1b01669302e998e619e58732cf9a7febe96ec96 -->
+    <string name="readings_accuracy_value">±%1$s</string>
+    <!-- src:c19948a14a0e989b0ca349d0fe8f7ad0c2a71486 -->
+    <string name="readings_chart_axis_at_least">≥%1$s</string>
     <!-- src:025a56ff0a8058a86a507ab29885d9d88f2141f1 -->
     <string name="readings_chart_est_finish">Geschätztes Ladeende</string>
     <!-- src:14031bfeb3be34cbf79c3c63ca28dd159ab444da -->

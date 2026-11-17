@@ -193,6 +193,23 @@
     </plurals>
     <!-- src:6801c41ddbd8a9ef7d66c7806562c01c3d210fe4 -->
     <string name="main_scan_option">%1$s, %2$s%3$s, końcówka adresu: %4$s</string>
+    <!-- src:5622737b7ee69869fa25c076ea590c965f9bc3a1 -->
+    <string name="main_find_title">Znajdź w pobliżu: %1$s</string>
+    <!-- src:95393b3e1288d46b3bb45a65b82176c4c079e4d3 -->
+    <string name="main_find_saved_address">Zapisany adres</string>
+    <!-- src:2f6ec6c6c339510ec4e80d653740a6eb5be60ed0 -->
+    <string name="main_find_state_saved_address">, zapisany adres</string>
+    <!-- src:bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b -->
+    <plurals name="main_find_hidden">
+        <item quantity="one">Ukryto %1$d inną hulajnogę (inny model)</item>
+        <item quantity="few">Ukryto %1$d inne hulajnogi (inny model)</item>
+        <item quantity="many">Ukryto %1$d innych hulajnóg (inny model)</item>
+        <item quantity="other">Ukryto %1$d innej hulajnogi (inny model)</item>
+    </plurals>
+    <!-- src:5db8ba189368792f25c46b450dcc10cee9c58250 -->
+    <string name="main_find_confirm_title">Połączyć się z tą hulajnogą jako %1$s?</string>
+    <!-- src:db97083ab6bb7adc78590c6c1a6128f7bca2a8bb -->
+    <string name="main_find_confirm_body">Aplikacja Volt wyśle do tej hulajnogi klucz właściciela hulajnogi %1$s. Hulajnoga, która nie ma jeszcze właściciela (nowa lub zresetowana), przyjęłaby ten klucz, więc należy wybrać tylko własną hulajnogę, trzymając telefon tuż przy niej.</string>
     <!-- src:6640722465af5d836e628164e3b8b0d667cf2537 -->
     <string name="main_group_ride">Jazda</string>
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
@@ -618,6 +635,8 @@
     <string name="main_report_email_next">Następnie otworzy się aplikacja pocztowa, więc można najpierw przeczytać treść.</string>
     <!-- src:6fc85b101df7fc3f64829f1f129e863e273d071c -->
     <string name="main_report_choose_send">Wybierz swoją hulajnogę lub opcję „Nie wiem”, a następnie dotknij „Wyślij”.</string>
+    <!-- src:8d097556da17f4d4063725ba125e7dbef1eebdff -->
+    <string name="main_report_diagnostics_note">Spowoduje to dołączenie pliku diagnostycznego: dane aplikacji, telefonu i hulajnogi, ustawienia i ostatnia awaria aplikacji Volt, liczba nagrań i zapisów ładowania, ostatnie zdarzenia połączenia i sterowania oraz historia ładowania i planów ładowania wybranej hulajnogi wraz z godzinami. Plik nigdy nie zawiera klucza właściciela, PIN-u, numeru seryjnego, lokalizacji ani nazw.</string>
     <!-- src:3a8d007b3321b4ff9de08825a590fb17335a0fce -->
     <string name="main_report_email_title">E-mail do Volt</string>
     <!-- src:5fec0a930995b01e29010286e708bb1559719321 -->

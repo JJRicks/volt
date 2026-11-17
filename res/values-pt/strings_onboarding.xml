@@ -12,6 +12,8 @@
     <string name="onboarding_step_run_helper">Executar a ferramenta de captura</string>
     <!-- src:a6b482de3d161b45d9c046be02d131f0bbe97ba8 -->
     <string name="onboarding_step_import">Importar</string>
+    <!-- src:1af40adc5e22b6a0a53863d492e67bd17869408d -->
+    <string name="onboarding_step_new_key">Chave de proprietário</string>
     <!-- src:7b4b991b39abcc06a1ca302148bcf8c2f024c2e5 -->
     <string name="onboarding_step_nearby">Dispositivos próximos</string>
     <!-- src:c0b161edeeceec2afc3d6edb3d932c48ce0394d1 -->
@@ -98,6 +100,10 @@
     <string name="onboarding_path_owner_file_detail">Apenas acesso à trotinete · sem viagens nem histórico</string>
     <!-- src:d961ad5c00ad8effde507bf15d014e73b523ab29 -->
     <string name="onboarding_path_identity">Introduzir uma chave de proprietário de 12 carateres</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_path_new_key">Criar uma nova chave de proprietário</string>
+    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
+    <string name="onboarding_path_new_key_detail">Trotinete nova ou reposta · sem computador</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Requer Android 11 ou mais recente</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -122,6 +128,8 @@
     <string name="onboarding_finish_import_first">Termina primeiro a importação do ficheiro de proprietário selecionado.</string>
     <!-- src:a0e1b8855a5a0586cbf31d9ca0589ca93c83c695 -->
     <string name="onboarding_skip_title">Saltar a configuração por agora?</string>
+    <!-- src:fd894d5886133bef30a7eb4a2f11be3b7569fc87 -->
+    <string name="onboarding_skip_message">Adiciona a tua trotinete mais tarde em «Definições › As minhas trotinetes».</string>
     <!-- src:9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9 -->
     <string name="onboarding_skip_keep_going">Continuar</string>
     <!-- src:ea9dc58d381ab136f8d8332bf41d32f90bd93983 -->
@@ -320,6 +328,44 @@
     <string name="onboarding_shizuku_missing">O Shizuku não está instalado</string>
     <!-- src:bbfd4e2ebace2075a9a264ed278320d87fbfa1fb -->
     <string name="onboarding_stop_recording">Tens de parar a gravação primeiro</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_new_title">Criar uma nova chave de proprietário</string>
+    <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
+    <string name="onboarding_new_body">A Volt cria uma chave de proprietário e guarda-a neste telemóvel. Uma trotinete sem proprietário fica com a primeira chave que receber.</string>
+    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
+    <string name="onboarding_new_unowned">A trotinete é nova ou foi reposta</string>
+    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
+    <string name="onboarding_new_unowned_detail">Nunca configurada ou removida da app NAVEE</string>
+    <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
+    <string name="onboarding_new_navee_note">A app NAVEE não consegue adicionar esta trotinete enquanto tiver a chave da Volt. Para voltar à app NAVEE, liberta-a primeiro na Volt.</string>
+    <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->
+    <string name="onboarding_new_refused">Esta trotinete já tem um proprietário, por isso recusou a nova chave. Remove-a da app NAVEE e tenta novamente, ou configura de outra forma.</string>
+    <!-- src:c1c5a5b0c56c6d3755c62adf36a948419bd31a8f -->
+    <string name="onboarding_new_other_way">Configurar de outra forma</string>
+    <!-- src:4de2502027c3ae77e8c820d10f9676531c5b73eb -->
+    <string name="onboarding_new_save_failed">Não foi possível guardar a nova chave de proprietário. Liberta espaço de armazenamento e tenta novamente.</string>
+    <!-- src:b8fce5b72d286bfe3edbe88e557c01b28f870aa0 -->
+    <string name="onboarding_done_new_key_note">A Volt criou a chave de proprietário desta trotinete, e a chave só existe neste telemóvel. Faz uma cópia de segurança da Volt para poderes configurar a trotinete noutro telemóvel.</string>
+    <!-- src:99e4b93f9bb07c68da624cdfbb46b412293b173a -->
+    <string name="onboarding_key_title">Anotar a tua chave de proprietário</string>
+    <!-- src:282c5da63dbeaffc51931849c4a1789ce2060df3 -->
+    <string name="onboarding_key_body">Esta chave só existe neste telemóvel. Se perderes o telemóvel ou os dados da Volt sem uma cópia, não vais conseguir voltar a aceder à tua trotinete. Anota-a e guarda-a num sítio seguro, ou guarda um ficheiro de cópia de segurança. Uma captura de ecrã também serve.</string>
+    <!-- src:a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c -->
+    <string name="onboarding_key_write">Por favor, anota esta chave!</string>
+    <!-- src:357ab99111c6e4f1b113db3d144c633881f771c7 -->
+    <string name="onboarding_key_spoken">Chave de proprietário: %1$s</string>
+    <!-- src:6bef92dcca50b07d22b5b8ab7f09da79aa960432 -->
+    <string name="onboarding_key_save">Guardar ficheiro de cópia de segurança</string>
+    <!-- src:c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4 -->
+    <string name="onboarding_key_saved">Cópia de segurança guardada</string>
+    <!-- src:e8da8521c2b44b2b1b8a537e4113f74379437adb -->
+    <string name="onboarding_key_done_wait">Concluído (%1$d)</string>
+    <!-- src:cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419 -->
+    <plurals name="onboarding_key_done_wait_description">
+        <item quantity="one">Concluído, disponível daqui a %1$d segundo</item>
+        <item quantity="many">Concluído, disponível daqui a %1$d de segundos</item>
+        <item quantity="other">Concluído, disponível daqui a %1$d segundos</item>
+    </plurals>
     <!-- src:56062797f9d331b9ceb3280ae89b5de65d366fcf -->
     <string name="onboarding_identity_title">Introduzir chave de proprietário</string>
     <!-- src:93d797cd102b7651e85c5d04d50ddf7833e030af -->
