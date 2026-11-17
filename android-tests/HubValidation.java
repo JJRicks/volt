@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import com.jjricks.volt.BleController;
+import com.jjricks.volt.DisplayTime;
 import com.jjricks.volt.HubPages;
 import com.jjricks.volt.HubText;
 import com.jjricks.volt.MainActivity;
@@ -48,6 +49,7 @@ import com.jjricks.volt.PhoneRideStore;
 import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.WideLayout;
 
 /**
@@ -408,6 +410,38 @@ public final class HubValidation extends Instrumentation {
         return null;
     }
 
+    /**
+     * Two panes while disconnected (#394 council review, second round): the page header's connection line and Clean's
+     * status line beside it give the same "last seen", the newer of the last connection and the newest reading (Clean's
+     * rule). The last connection is saved at most once a minute; here it is put ten minutes before the newest reading,
+     * in memory only and put back after, so the two rules would show different times.
+     */
+    private void sameLastSeen() {
+        if (!onMain(this::twoPanes)) return;
+        ScooterProfiles.Profile active = onMain(() -> activity.service().profiles.active());
+        long saved = active.lastConnected;
+        long newest = onMain(() -> {
+            long found = 0;
+            for (TelemetryHistory.Reading r : activity.service().displayReadings().values())
+                if (r != null && r.value != null) found = Math.max(found, r.capturedWallMs);
+            return found;
+        });
+        require(newest > 0, "The disconnected simulator kept no reading to be last seen by");
+        main(() -> { active.lastConnected = newest - 10 * 60_000L; activity.redraw(); });
+        try {
+            String expected = onMain(() -> DisplayTime.dateTime(activity, settings(), newest));
+            String[] read = new String[2];
+            await(() -> onMain(() -> {
+                read[0] = String.valueOf(root().findViewWithTag("hub-page-connection").getContentDescription());
+                read[1] = String.valueOf(((TextView) invoke(field(field(activity, "homeScreen"), "parts"), "status", new Class<?>[0])).getContentDescription());
+                return read[0].contains(expected) && read[1].contains(expected);
+            }), () -> "Two panes disconnected: the page header says \"" + read[0] + "\" and Clean's status line \"" + read[1] + "\"; both should say last seen " + expected);
+        } finally {
+            main(() -> active.lastConnected = saved);
+        }
+        checks.add("Wide Clean Home, disconnected: the page header's connection line and Clean's status line give the same last-seen time (the newest reading's, newer than the last connection)");
+    }
+
     /** Opening a page already in the stack closes the pages above it; Home resets it; recreation keeps it. */
     private void pageStack() throws Exception {
         tapTag("home-subject-" + HubPages.SERVICE);
@@ -451,6 +485,7 @@ public final class HubValidation extends Instrumentation {
         requireInPage("hub-page-connection", "Battery's connection line");
         String said = onMain(() -> ((TextView) root().findViewWithTag("hub-page-connection")).getText().toString());
         require(said.startsWith("Disconnected"), "Battery's connection line reads \"" + said + "\" while disconnected");
+        sameLastSeen();
         screenshot("page-disconnected");
         systemBack();
         requireHome("CleanHomeScreen");

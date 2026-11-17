@@ -1796,6 +1796,10 @@ public final class MainActivity extends Activity implements ScreenHost {
                 ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING||ble.connected())&&!ready;
         ScooterProfiles.Profile active=scooterService==null?null:scooterService.profiles.active();
         long last=active==null?0:active.lastConnected;
+        // On two panes the page header's connection line shows beside Clean's status line: it takes Clean's "last seen",
+        // the newer of the last connection and the newest reading (DashboardScreen.refreshHeader), so the two agree (#394
+        // council review, second round). One pane keeps the last connection, as before.
+        if(homeScreen!=null&&scooterService!=null&&!ready&&!connecting)for(TelemetryHistory.Reading r:scooterService.displayReadings().values())if(r!=null&&r.value!=null)last=Math.max(last,r.capturedWallMs);
         String scooterName=active==null?T.mainLockYourScooter():active.name;
         pumpLockQueue(ble,ready,shownLock,pending);
         if(active!=null)scooterName=active.shownName();
