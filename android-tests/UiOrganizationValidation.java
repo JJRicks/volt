@@ -92,15 +92,19 @@ public final class UiOrganizationValidation extends Instrumentation {
                 main(() -> require(page.equals(HubTestPages.current(activity)), "Navigation did not reach " + page + " (" + HubTestPages.current(activity) + ")"));
                 assertNoScooterWork(); assertNavigationFits();
                 // No scooter is connected here: a page's header shows its connection line, tappable for the details; Settings
-                // never does (HubPages.headerConnectionLine, the contributor's decision of 14 Nov on #383).
+                // never does (HubPages.headerConnectionLine, the contributor's decision of 14 Nov on #383). Search with Cancel
+                // beside its field hides its whole header, the line with it (part 12, HubSearch.headerHidden).
                 if (!HubPages.HOME.equals(page)) main(() -> {
                     View line = root().findViewWithTag("hub-page-connection");
+                    View cancel = root().findViewWithTag("hub-search-cancel");
                     if (HubPages.SETTINGS.equals(page)) require(line == null || line.getVisibility() == View.GONE, "Settings shows the connection line");
+                    else if (HubPages.SEARCH.equals(page) && cancel != null && cancel.isShown())
+                        require(line == null || !line.isShown(), "Search shows the connection line with its header stepped aside for the field");
                     else require(line != null && line.isShown() && line.isClickable() && line.getHeight() > 0, "Not connected, " + page + "'s header shows no tappable connection line");
                 });
             }
             requireScreenText(APP_PREFERENCES_ROW);
-            check("Home and the four pages that replaced the tabs are reachable by touch; Home's ways in and every page's back link remain visible; not connected, each page but Settings shows its connection line");
+            check("Home and the four pages that replaced the tabs are reachable by touch; Home's ways in and every page's back link remain visible; not connected, each page but Settings shows its connection line (Search none while its header steps aside for the field)");
             screenshot("more-index-dark");
 
             // The Hub layout (#385) made the Scooter tab an index of subject pages: its RIDE, BATTERY and PROFILE groups
@@ -111,7 +115,8 @@ public final class UiOrganizationValidation extends Instrumentation {
             main(() -> {
                 require(HubPages.SEARCH.equals(HubTestPages.current(activity)), "Search did not open");
                 for (String subject : SUBJECTS) require(tagShown(subject(subject)), "Search lists no " + subject + " subject");
-                require(allFeatures().contains("maximum_speed") && !visibleFeatures().contains("maximum_speed"), "The index shows rows before a search");
+                // Part 12 (#393): Search is its own page (HubSearchScreen), results only once something is typed.
+                require(searchFound().isEmpty(), "Search shows results before a search: " + searchFound());
             });
             screenshot("scooter-dark");
             clickTag(subject(HubPages.CONTROLS));
@@ -129,16 +134,18 @@ public final class UiOrganizationValidation extends Instrumentation {
             main(() -> require(HubPages.CONTROLS_ASSISTS.equals(HubTestPages.current(activity)), "Controls' Assists link did not open its page"));
             HubTestPages.reach(this, activity, HubPages.SEARCH); hideKeyboard();
             main(() -> first(root(), EditText.class).setText("speed"));
+            waitForIdleSync();
             main(() -> {
-                Set<String> visible = visibleFeatures();
-                require(topSpeedShown() && visible.contains("start_speed"), "Speed search lost primary speed controls");
-                require(!visible.contains("energy_recovery"), "Speed search did not hide an unrelated setting");
-                for (String key : visible) require(!isLight(key), "Speed search should hide lighting settings");
+                // Search's results (part 12): each setting found is a row tagged hub-search-setting-<row or control key>.
+                Set<String> found = searchFound();
+                require(found.contains(TOP_SPEED_ROW) && found.contains("start_speed"), "Speed search lost primary speed controls: " + found);
+                require(!found.contains("energy_recovery"), "Speed search did not hide an unrelated setting");
+                for (String key : found) require(!isLight(key), "Speed search should hide lighting settings: " + key);
                 require(findText(root(), "LIGHTS") == null, "Speed search should hide the empty Lights group");
                 require(!tagShown(subject(HubPages.BATTERY)), "Speed search left the subject list shown");
             });
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(!topSpeedShown() && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")), "Back did not clear the settings search"));
+            main(() -> require(searchFound().isEmpty() && "".equals(field(field(activity, "screen"), "query")), "Back did not clear the settings search"));
             main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && tagShown(subject(HubPages.BATTERY)), "Back did not bring back the subject list"));
             check("Search lists the subjects; Controls shows the top speed card; search hides empty groups and Back clears it without control writes");
 
@@ -171,10 +178,11 @@ public final class UiOrganizationValidation extends Instrumentation {
             main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && tagShown(subject(HubPages.BATTERY)) && settings.getString("scooter_section", "").isEmpty(),
                     "Back from Lights did not return to Search"));
             main(() -> first(root(), EditText.class).setText("boost"));
-            main(() -> require(visibleFeatures().equals(new HashSet<>(Arrays.asList("line_boost_color", "star_boost_color", "parking_assist"))),
-                    "Global scooter search should find both Boost colors and Power Assist"));
+            waitForIdleSync();
+            main(() -> require(foundFeatures().equals(new HashSet<>(Arrays.asList("line_boost_color", "star_boost_color", "parking_assist"))),
+                    "Global scooter search should find both Boost colors and Power Assist: " + foundFeatures()));
             main(() -> invoke(activity, "navigateBack"));
-            main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && "".equals(field(HubTestPages.part(activity, "ControlsScreen"), "query")),
+            main(() -> require(HubPages.SEARCH.equals(HubTestPages.current(activity)) && "".equals(field(field(activity, "screen"), "query")),
                     "Back did not clear the boost search"));
             check("Lights & sound links Line lights and Star lights, which hold the zones; Search covers all settings; Back returns to Search");
 
@@ -584,9 +592,21 @@ public final class UiOrganizationValidation extends Instrumentation {
     /**
      * The way around fits on the page shown, as the tab bar's five targets had to: on Home, Home's ways in (Widgets Home's
      * dock items and its All item; Clean Home's subject rows, search and gear); on any other page, its back link. Each is
-     * shown, uncut, at least 48 dp tall (and wide, where it has no caption), with its caption laid out whole.
+     * shown, uncut, at least 48 dp tall (and wide, where it has no caption), with its caption laid out whole. Measured
+     * once the page has come to rest (HubTestPages.awaitAtRest): a page arrives sliding in from the side as it fades in
+     * (Motion.crossfade), and mid-slide Search's Cancel, at the right edge, still runs past it (#393 council review,
+     * third round). A target that never comes to rest is measured anyway and fails here as before.
      */
     private void assertNavigationFits() {
+        HubTestPages.awaitAtRest(this, () -> {
+            List<View> moving = new ArrayList<>();
+            if (HubPages.HOME.equals(HubTestPages.current(activity))) {
+                Object dock = field(activity, "dock");
+                moving.add(dock != null ? (View) invoke(dock, "view") : root().findViewWithTag("home-search"));
+                if (dock == null) moving.add(root().findViewWithTag("home-settings"));
+            } else { moving.add(root().findViewWithTag("hub-back")); moving.add(root().findViewWithTag("hub-search-cancel")); }
+            return moving;
+        });
         main(() -> {
             List<View> targets = new ArrayList<>();
             if (HubPages.HOME.equals(HubTestPages.current(activity))) {
@@ -603,6 +623,8 @@ public final class UiOrganizationValidation extends Instrumentation {
                 if (dock != null) require(root().findViewWithTag("hub-dock-handle") != null && root().findViewWithTag("hub-dock-handle").isShown(), "Widgets Home's dock has no All item");
             } else {
                 View back = root().findViewWithTag("hub-back");
+                // Search's header steps aside for its field (part 12, #393): Cancel beside the field is then its way back.
+                if (HubPages.SEARCH.equals(HubTestPages.current(activity)) && (back == null || !back.isShown())) back = root().findViewWithTag("hub-search-cancel");
                 require(back != null && back.isShown(), "Missing navigation: page " + HubTestPages.current(activity) + " has no back link");
                 targets.add(back);
             }
@@ -637,6 +659,26 @@ public final class UiOrganizationValidation extends Instrumentation {
     }
     /** The shown Scooter page's rows: a ControlsScreen, alone or a part of the page (the index, Battery & charging). */
     private Object controls() { return HubTestPages.part(activity, "ControlsScreen"); }
+    /** HubSearchTables' row id for the top speed card (ScooterMenuLayout.TOP_SPEED). */
+    private static final String TOP_SPEED_ROW = "top_speed";
+    /** The settings Search shows now (part 12's HubSearchScreen): each shown result tagged hub-search-setting-<id>, by id. Main thread. */
+    private Set<String> searchFound() {
+        Set<String> found = new HashSet<>();
+        View results = root().findViewWithTag("hub-search-results");
+        if (results == null || !results.isShown()) return found;
+        for (View view : descendants(results)) {
+            Object tag = view.getTag();
+            if (tag instanceof String && ((String) tag).startsWith("hub-search-setting-") && view.isShown()) found.add(((String) tag).substring("hub-search-setting-".length()));
+        }
+        return found;
+    }
+    /** searchFound() limited to the scooter's controls (ScooterCommands' catalog). Main thread. */
+    private Set<String> foundFeatures() {
+        Set<String> keys = new HashSet<>();
+        for (ScooterCommands.Feature feature : ScooterCommands.catalog()) keys.add(feature.key);
+        Set<String> found = searchFound(); found.retainAll(keys);
+        return found;
+    }
     private boolean topSpeedShown() { return ((View)field(field(controls(), "topSpeed"), "card")).isShown(); }
     private Set<String> lightFeatures() { Set<String> keys = new HashSet<>(); for (String key : visibleFeatures()) if (isLight(key)) keys.add(key); return keys; }
     private boolean tagShown(String tag) { View view = root().findViewWithTag(tag); return view != null && view.isShown(); }

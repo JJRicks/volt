@@ -83,6 +83,11 @@ abstract class ChargePicture {
     void watts(Double value) {}
     /** Redraws its moving layer, if any (each frame of the glow's loop). */
     void invalidateLive() {}
+    /**
+     * The host's check of whether the animation should run, called when Android's animator duration scale changes while
+     * the picture is attached (to 0: it rests; back from 0: it runs again). Only the wire picture watches the setting.
+     */
+    void onMotionChange(Runnable check) {}
 
     /** The prototype's track (dp), whose top the tyres' gap is measured from (its foot is the app's track's foot). */
     static final float TRACK_DP = 8;

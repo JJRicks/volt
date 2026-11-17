@@ -238,6 +238,7 @@ public final class MoreScreen implements AppScreen {
         cardDestination = indexView;
         Row updatesRow = row(laterGroup, null, updatesTitle.getText().toString(), null, this::updatesSheet);
         updatesRow.view.setTag("settings-updates");
+        updatesIndexRow = standalone ? null : updatesRow.view;
         valueRefreshers.add(() -> updatesRow.sub(UpdateCheckJob.enabled(settings()) ? ((RowLine) updatesAuto.view).fallback : null));
         indexRow(updatesRow);
         for (int i = 0; i < SECTIONS.length; i++) {
@@ -1060,25 +1061,31 @@ public final class MoreScreen implements AppScreen {
     private void recording() {
         LinearLayout connection = group();
         connection.setTag("preference-recording-options");
-        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
+        preferenceToggle(connection, "screen", awakeTitle(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        Row autoStop = preferenceToggle(connection, "walk", autoStopTitle(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
+        // Search's End rides automatically result opens this page at this switch (HubSearchTables.SETTING_RIDE_AUTO_STOP).
+        autoStop.view.setTag(HubSearchTables.SETTING_RIDE_AUTO_STOP);
         // Off by default. ScooterService/AutoStartPolicy decide; turning it on offers the ride location prompt first.
-        preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        // Its one home in the Hub: search's Record rides automatically result opens this page and finds the switch by its tag
+        // (HubSearchTables.SETTING_RIDING_AUTO_RECORD, as on riding mode's own menu; #393 review, finding 3).
+        Row autoRecordRow = preferenceToggle(connection, "walk", RidingSettingsMenu.autoRecordTitle(), RidingSettingsMenu.autoRecordSub(), AutoStartPolicy.AUTO_RECORD_KEY, false, this::offerRideLocation);
+        autoRecordRow.view.setTag(HubSearchTables.SETTING_RIDING_AUTO_RECORD);
         // Off by default, absent is off (owner's answer 18 on #383): lets that switch also start a ride while Volt is in the
         // background, where Android gives Volt no location, so the note under it says such a ride has no GPS route. It only
         // counts while Record rides automatically is on, so it waits greyed and drawn off until then, keeping its stored value
         // (AutoStartPolicy.backgroundSwitchDrawnOn). AutoStartPolicy.recordsNow decides.
         Row inBackground = toggleRow(connection, "walk", HubText.recordInBackground().render(), HubText.recordInBackgroundNote().render(),
                 enabled -> { settings().edit().putBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, enabled).apply(); host.redraw(); });
-        inBackground.view.setTag("preference-auto-record-background");
+        // Search's Start recording in the background result opens this page at this switch (HubSearchTables.SETTING_RECORD_BACKGROUND).
+        inBackground.view.setTag(HubSearchTables.SETTING_RECORD_BACKGROUND);
         valueRefreshers.add(() -> {
             boolean autoRecord = settings().getBoolean(AutoStartPolicy.AUTO_RECORD_KEY, false);
             refreshSwitch(inBackground, AutoStartPolicy.backgroundSwitchDrawnOn(autoRecord, settings().getBoolean(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false)), autoRecord);
         });
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
-        Row background = row(connection, "battery", T.morePrefsBattery(), null,
+        Row background = row(connection, "battery", batteryTitle(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
@@ -1087,7 +1094,7 @@ public final class MoreScreen implements AppScreen {
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
         });
-        Row map = row(connection, "map", T.morePrefsMap(), null, this::mapSettings);
+        Row map = row(connection, "map", mapTitle(), null, this::mapSettings);
         valueRefreshers.add(() -> map.value(basemapSummary()));
         autoSaveGroup();
     }
@@ -1488,6 +1495,27 @@ public final class MoreScreen implements AppScreen {
     }
     /** The open Updates sheet's title, or null: hidden while GitHub's consent opens over the sheet (showOverUpdates). */
     private View updatesSheetTitle;
+    /** Settings' Updates row (the index's), or null on a page that shows one section. */
+    private View updatesIndexRow;
+    /** Whether a search anchor names a control the Updates sheet holds (its switch, its manual check). */
+    private static boolean heldByUpdates(String id) {
+        return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);
+    }
+    /**
+     * Search's Automatic update checks and Check for updates (#393 council review, second round, finding 1): both are in
+     * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
+     */
+    @Override public View anchor(String id) {
+        return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
+    }
+    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    @Override public boolean openHeld(String id) {
+        if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
+        updatesSheet();
+        View control = updatesBox.findViewWithTag(id);
+        if (control != null) Motion.beforeNextDraw(control, () -> { if (!closed) HubSearchScreen.flash(control, ui); }, null);
+        return true;
+    }
     /**
      * Shows a dialog that opens from the Updates sheet's switch or Check for updates. The sheet stays open under it, and
      * the dialog sits a little lower than the sheet's top, so its edge would cut through the sheet's "Updates" title:
@@ -1681,9 +1709,11 @@ public final class MoreScreen implements AppScreen {
         label(T.moreAutoSaveHeading());
         LinearLayout box = group();
         autoSaveSwitch(box);
-        Row folder = row(box, "export", T.moreAutoSaveFolder(), T.moreAutoSaveNoFolder(), () -> {
+        Row folder = row(box, "export", autoSaveFolderTitle(), T.moreAutoSaveNoFolder(), () -> {
             if (RideAutoExportFolder.on(settings())) chooseAutoSaveFolder(false);
         });
+        // Search's Folder result opens this page at this row (HubSearchTables.SETTING_AUTO_SAVE_FOLDER).
+        folder.view.setTag(HubSearchTables.SETTING_AUTO_SAVE_FOLDER);
         valueRefreshers.add(() -> {
             RideAutoExport.RowState state = autoSaveFolderState();
             folder.enabled(state != RideAutoExport.RowState.OFF);
@@ -1696,11 +1726,43 @@ public final class MoreScreen implements AppScreen {
     }
     private void autoSaveSwitch(LinearLayout box) {
         Row[] self = new Row[1];
-        self[0] = toggleRow(box, "download", T.moreAutoSaveJson(), T.moreAutoSaveJsonSub(), on -> {
+        self[0] = toggleRow(box, "download", autoSaveTitle(), T.moreAutoSaveJsonSub(), on -> {
             if (on && !RideAutoExportFolder.ready(host.activity(), settings())) { refreshSwitch(self[0], false, true); chooseAutoSaveFolder(true); }
             else { RideAutoExportFolder.set(host.activity(), settings(), on); host.redraw(); }
         });
+        // Search's Auto-save rides result opens this page at this switch (HubSearchTables.SETTING_AUTO_SAVE).
+        self[0].view.setTag(HubSearchTables.SETTING_AUTO_SAVE);
         valueRefreshers.add(() -> refreshSwitch(self[0], RideAutoExportFolder.on(settings()), true));
+    }
+    /** End rides automatically's title, shown on the switch and named by search (searchTitle). */
+    private static String autoStopTitle() { return T.morePrefsAutoStop(); }
+    /** The auto-save switch's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveTitle() { return T.moreAutoSaveJson(); }
+    /** The auto-save folder row's title, shown on it and named by search (searchTitle). */
+    private static String autoSaveFolderTitle() { return T.moreAutoSaveFolder(); }
+    /**
+     * The name Recording settings shows on a row search lists whose text only this file reads (HubSearch.Gates.settingTitle,
+     * MainActivity's search gates); null for any other tag.
+     */
+    static String searchTitle(String tag) {
+        if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();
+        if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
+        if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
+        return null;
+    }
+    /** Keep screen awake's title, shown on its switch and named by search (searchRowTitles). */
+    private static String awakeTitle() { return T.morePrefsAwake(); }
+    /** Background recording's title (the battery use row), shown on it and named by search (searchRowTitles). */
+    private static String batteryTitle() { return T.morePrefsBattery(); }
+    /** Map settings' title, shown on its row and named by search (searchRowTitles). */
+    private static String mapTitle() { return T.morePrefsMap(); }
+    /**
+     * The names Recording settings shows, in the current language, on its rows search has no entry for
+     * (HubSearchTables.pageRows: Keep screen awake, Background recording, Map settings), for the page's own result
+     * (HubSearch.Gates.pageRowTitles); empty for any other page. The phone sensors' are RidesScreen's.
+     */
+    static String[] searchRowTitles(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {awakeTitle(), batteryTitle(), mapTitle()} : new String[0];
     }
     /** The folder row's state: the switch, the stored folder, its grant and the failure id. */
     private RideAutoExport.RowState autoSaveFolderState() {

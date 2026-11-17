@@ -52,10 +52,10 @@ public final class DashboardScreen implements AppScreen {
         /** Whether Home offers Find it nearby now (FindNearby.offerHome, and no recording). */
         default boolean findNearbyOffered() { return false; }
 
-        /** Clean Home's search button. */
+        /** Home header's search button (Clean and Widgets). */
         default void openSearch() { }
 
-        /** Clean Home's Settings button. */
+        /** Home header's Settings button (Clean and Widgets). */
         default void openSettings() { }
 
         /** Clean Home's scooter name: switch scooter. */
@@ -2883,7 +2883,7 @@ public final class DashboardScreen implements AppScreen {
                 float density = getResources().getDisplayMetrics().density;
                 ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
                         fullPercent, rows.getMeasuredHeight(), width, plan.stageHeight - pictureFloor(plan.stageHeight),
-                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), density).fit;
+                        ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), sizeGrowth(), density).fit;
                 if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
                 if (photoRoom) {
                     // On a stage taller than the two need (a wide phone's taller top area, #501), the number moves down
@@ -3006,6 +3006,8 @@ public final class DashboardScreen implements AppScreen {
             }
             picture = next;
             if (picture != null) {
+                // A new animator duration scale while Home stays on screen: rest at 0, run again back from it.
+                picture.onMotionChange(this::updatePulse);
                 View[] layers = picture.layers();
                 for (int i = 0; i < layers.length; i++) stage.addView(layers[i], i, new FrameLayout.LayoutParams(-1, -1));
             }
@@ -3070,6 +3072,17 @@ public final class DashboardScreen implements AppScreen {
          */
         private float textGrowth() {
             return ChargePictureFit.growth(ui.textScale, getResources().getConfiguration().fontScale);
+        }
+
+        /**
+         * How much larger than at 1.0x the percentage's own size really is (ChargePictureFit.sizeGrowth): its 72 sp at
+         * Volt's Text size as Android converts it, over 72 sp at 100%. From Android 14 large sizes grow less than the
+         * font size, so the fit finds the number's 1.0x size from this rather than from textGrowth (review of #483, P3).
+         */
+        private float sizeGrowth() {
+            android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+            return ChargePictureFit.sizeGrowth(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 72 * ui.textScale, metrics),
+                    72, metrics.density);
         }
 
         /** Clean's muted line: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
@@ -3138,7 +3151,7 @@ public final class DashboardScreen implements AppScreen {
                     int width = MeasureSpec.getSize(widthSpec);
                     float full = percentWidgetsPx * ChargingFit.PERCENT_SP / 72f;
                     float growth = textGrowth();
-                    fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, growth), growth,
+                    fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, sizeGrowth()), growth,
                             getResources().getDisplayMetrics().density);
                     if (percent.getTextSize() != fit.text) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fit.text);
                     percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));

@@ -1,8 +1,9 @@
 package com.jjricks.volt;
 
 /**
- * A subject page's banner with a pill action ("Last seen (disconnected)" with Connect, and the read-only and unfinished
- * test banners built the same way): the pill always shows its whole label at its own padding, and sits beside the
+ * A row with a pill action: a subject page's banner ("Last seen (disconnected)" with Connect, and the read-only and
+ * unfinished test banners built the same way), the clock row's Sync and the Allow rows of the Live charging and Battery
+ * alerts sheets: the pill always shows its whole label at its own padding, and sits beside the
  * banner's words while their longest word still fits on a line beside it; otherwise it goes under the words, so neither
  * the pill's label nor a word is ever cut. Pure Java.
  */
@@ -37,6 +38,33 @@ final class ActionBannerFit {
      * and the gap) is narrower than the words' longest word. Words that fit beside it wrap there as they need.
      */
     static boolean actionBelow(float room, float pill, float gap, float longestWord) {
-        return room - Math.max(0f, pill) - Math.max(0f, gap) < longestWord;
+        return actionBelow(room, pill, gap, longestWord, 0);
+    }
+
+    /**
+     * As {@link #actionBelow(float, float, float, float)} for words that keep {@code reserve} of their room for something
+     * that comes and goes beside them (the clock row's spinner while a sync is pending): the room is always counted
+     * without it, so the decision never changes when it shows or hides and the row stays still.
+     */
+    static boolean actionBelow(float room, float pill, float gap, float longestWord, float reserve) {
+        return room - Math.max(0f, reserve) - Math.max(0f, pill) - Math.max(0f, gap) < longestWord;
+    }
+
+    /**
+     * The pill's indent under the words: lined up with the words' text ({@code indent}, after a row's icon tile) where
+     * the pill still fits beside that indent, else at the row's start, so its label stays whole on a narrow window.
+     */
+    static float stackedIndent(float room, float pill, float indent) {
+        float wanted = Math.max(0f, indent);
+        return Math.max(0f, pill) <= room - wanted ? wanted : 0f;
+    }
+
+    /**
+     * The pill's padding a side under the words: its own {@code pad} while the pill fits the row's {@code room} with it;
+     * in a window so narrow that the pill alone is wider than its row (Sync in German at 1.4x in Android's narrowest
+     * 220 dp split-screen window), only what the row leaves around the label, so the label stays whole on one line.
+     */
+    static float stackedPad(float room, float label, float pad) {
+        return Math.min(Math.max(0f, pad), Math.max(0f, (room - Math.max(0f, label)) / 2));
     }
 }
