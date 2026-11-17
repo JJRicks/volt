@@ -244,6 +244,8 @@
     <string name="hub_settings_section_scooters">Monopattini e dati</string>
     <!-- src:6e44444ab3475c72debc9c18d401486ec9525c77 -->
     <string name="hub_settings_section_about">Informazioni</string>
+    <!-- src:5788727f67a69c019150c29e83b6ed19afc723e4 -->
+    <string name="hub_done_by_enable">Attiva «Ricarica entro»</string>
     <!-- src:10ddb96ce8684534811909cebbb00490ce6a86ad -->
     <string name="hub_done_by_finish">Orario limite</string>
 </resources>

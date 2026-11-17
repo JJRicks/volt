@@ -11,7 +11,7 @@
     <!-- src:48bb68250fa0bc39a723c0fbde0ad659e0e5c3ac -->
     <string name="riding_back">Salir de la vista de conducción</string>
     <!-- src:854dcb67cb0bb78512ab70c0b7c215e52cb83f23 -->
-    <string name="riding_alert_low">Menos del %1$s %%</string>
+    <string name="riding_alert_low">Batería por debajo del %1$s %%</string>
     <!-- src:f5e4bfec940dba0f898116e7e1227b2da2e8c4e0 -->
     <string name="riding_alert_low_short">Menos del %1$s %%</string>
     <!-- src:fb0b84b30c107175947bb29691f29ce463b78fb6 -->

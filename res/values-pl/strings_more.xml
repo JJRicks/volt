@@ -444,6 +444,8 @@
     <string name="more_lab_intro_untested">Oficjalna aplikacja nie oferuje tych funkcji dla %1$s. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
     <!-- src:de34d6a5a0f8ea41273413b6f176a359af2e55f8 -->
     <string name="more_lab_intro_verify">Oficjalna aplikacja oferuje te funkcje dla %1$s, ale aplikacja Volt nie przetestowała ich w tym modelu. Można wypróbować jedną z nich tylko wtedy, gdy hulajnoga jest zaparkowana; Volt odczyta potem ustawienie z hulajnogi.</string>
+    <!-- src:e3e64baef0955008d83ada821de7cc592e177373 -->
+    <string name="more_lab_empty_oem">Brak funkcji do wypróbowania dla %1$s: oficjalna aplikacja oferuje już funkcje, które aplikacja Volt mogłaby wypróbować. Znajdują się na swoich stronach.</string>
     <!-- src:8a1ea1801642efb3585de4dfa0381f5f5f56df0b -->
     <string name="more_lab_empty_product">Aplikacja Volt nie wysyła do tego produktu żadnych poleceń dla hulajnogi.</string>
     <!-- src:8845c7a77e90a9d0976d55cf8e88672d5268c5a9 -->

@@ -229,6 +229,8 @@
     <string name="hub_battery_last_charge_span">Son şarj: %1$s</string>
     <!-- src:5177e76d27890797d8c8a2c3cec30fe83b453474 -->
     <string name="hub_controls_more">Diğer özellikler</string>
+    <!-- src:beee0e56d8c58929562a19ed900517ed1255a14a -->
+    <string name="hub_controls_assists_sub">Yürüme, güç, yokuş inişi, kalkış hızı</string>
     <!-- src:cb5499f36a43dae173cc3e4c5875772523c8955d -->
     <string name="hub_controls_limits_sub">Özel, moda göre, aşırı hız</string>
     <!-- src:7ba690e370878c8a9dd9152ce3649c1a56544346 -->

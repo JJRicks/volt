@@ -100,6 +100,8 @@
     <string name="more_scooters_forget_action">Olvidar</string>
     <!-- src:fa86328936297b67be02970febecd58e5128f833 -->
     <string name="more_scooters_forget_owner_warning">El patinete conserva su clave de propietario hasta que se libere. Al olvidarlo, se elimina la copia de Volt, por lo que sin una copia de seguridad quizá no puedas volver a conectar el patinete como propietario.</string>
+    <!-- src:5f769678c1022437c26e0482b1292d8c2a120eeb -->
+    <string name="more_scooters_forget_backed_up">Se guardó una copia de seguridad con esta clave: %1$s.</string>
     <!-- src:4483ec9e2f095b8e1084997f96f95049bb8eaf88 -->
     <string name="more_scooters_forget_backup_needed">Guarda primero una copia de seguridad con esta clave. Si prefieres dejar el patinete como nuevo, usa «Liberar este patinete».</string>
     <!-- src:700ec9ec671bad88248d630e22ba58c07bef9d27 -->
