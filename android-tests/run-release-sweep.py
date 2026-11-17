@@ -202,6 +202,11 @@ STEPS += [
     inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Security's Unlock without phone guide and its handlebar drawing (owner, Nov 17 2026): light, dark and large text
+    # at 412 dp, at 344 dp and on the unfolded Fold.
+    inst('unlock-guide-412', T + 'UnlockGuideValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('unlock-guide-344', T + 'UnlockGuideValidation', '-e', 'size_label', '344', size='344x882'),
+    inst('unlock-guide-fold', T + 'UnlockGuideValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Battery & charging's Charge history & recordings row and its invite to record charges (owner, Nov 17 2026): the row and
     # the bar graph open the page; the banner's sheet, its actions, and the X's lasting answer. 412 dp both themes, the Fold open.
     inst('charge-invite-412', T + 'ChargeInviteValidation', '-e', 'size_label', '412', '-e', 'theme', 'light', size='412x915'),

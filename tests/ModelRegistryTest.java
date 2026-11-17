@@ -182,6 +182,26 @@ public final class ModelRegistryTest {
             &&ModelRegistry.chargeReferenceProduct(ultra)==-1&&ModelRegistry.rangeFollowProduct(ultra)==0,
             "Only the names follow the UT5 MAX: its sibling stays raw, and no UT5 MAX charge, capacity or range assumption applies");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
+        // Unlock without phone's handlebar drawings, in the official app's order (eCross, ST5, UT5, NT3, 2781/2782 none, NT5 M/S, standard).
+        ModelRegistry.Handlebar[] bars={ModelRegistry.Handlebar.UT5,ModelRegistry.Handlebar.UT5,ModelRegistry.Handlebar.UT5,ModelRegistry.Handlebar.UT5,
+            ModelRegistry.Handlebar.ST5,ModelRegistry.Handlebar.ST5,ModelRegistry.Handlebar.ST5,ModelRegistry.Handlebar.ECROSS,ModelRegistry.Handlebar.ECROSS,
+            ModelRegistry.Handlebar.NT3,ModelRegistry.Handlebar.NT5MS,ModelRegistry.Handlebar.STANDARD,ModelRegistry.Handlebar.STANDARD,null,null};
+        DeviceDescriptor[] riders={serial("Q2538ZZ9US7777777"),ultra,advertised("25471"),DeviceDescriptor.of("Q2538ZZ9US7777777","25381",1,null,false,DeviceDescriptor.Transport.STANDARD,0),
+            advertised("24411"),advertised("25171"),advertised("26201"),advertised("24431"),advertised("25291"),
+            advertised("27451"),advertised("27991"),advertised("24182"),advertised("22131"),advertised("27811"),advertised("27821")};
+        for(int i=0;i<riders.length;i++)check(ModelRegistry.unlockHandlebar(riders[i])==bars[i],"Unlock without phone draws "+bars[i]+" for "+riders[i]+", not "+ModelRegistry.unlockHandlebar(riders[i]));
+        // An uncertain model gets no drawing: a Model ID mismatch (a GT3 Max serial advertising 2585, the UT5 MAX's serial advertising 24182), no ID, null.
+        check(ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2418ZZ9US7777777","25852",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
+            &&ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2538ZZ9US7777777","24182",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
+            &&ModelRegistry.unlockHandlebar(DeviceDescriptor.of("","",0,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
+            &&ModelRegistry.unlockHandlebar(null)==null,
+            "Unlock without phone draws nothing for an uncertain model: a Model ID mismatch, no model ID, or none");
+        // A serial alone selects only the UT5 MAX (its own rule, as ut5Max): other families need the advertised Model ID.
+        check(ModelRegistry.unlockHandlebar(serial("Q2538ZZ9US7777777"))==ModelRegistry.Handlebar.UT5&&ModelRegistry.ut5Max(serial("Q2538ZZ9US7777777"))
+            &&ModelRegistry.unlockHandlebar(serial("Q2441ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2443ZZ9US7777777"))==null
+            &&ModelRegistry.unlockHandlebar(serial("Q2701ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2799ZZ9US7777777"))==null
+            &&ModelRegistry.unlockHandlebar(serial("Q2585ZZ9US7777777"))==null&&ModelRegistry.unlockHandlebar(serial("Q2418ZZ9US7777777"))==null,
+            "A serial alone draws only the UT5 MAX's handlebar; every other family needs the advertised Model ID");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
         DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
         check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()
