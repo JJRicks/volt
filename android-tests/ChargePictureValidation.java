@@ -402,11 +402,28 @@ public final class ChargePictureValidation extends Instrumentation {
             shell("settings put global animator_duration_scale " + (foundScale.equals("null") || foundScale.isEmpty() ? "1" : foundScale));
         } catch (Throwable ignored) {}
     }
+    /**
+     * Sets the animator scale and waits for the app's own ValueAnimator.getDurationScale() to take it. WindowManager sends
+     * a new scale only to processes whose windows it has registered, and only when the setting changes: a process whose
+     * first window opened its session while the setting was changing (setup puts 0 just before launch) can keep the old
+     * scale, and putting the same value again sends nothing (3 of 19 runs under load failed here within 10 s of launch;
+     * #521's review). So when the app has not taken it within 10 s, the setting is changed away and back, which makes
+     * WindowManager send it again to every registered window's process; up to three times, about 45 s in all. A scale the
+     * app still has not taken fails, naming the app's scale and the setting.
+     */
     private void scale(String value) throws Exception {
         if (foundScale == null) foundScale = shell("settings get global animator_duration_scale").trim();
         shell("settings put global animator_duration_scale " + value);
         float target = Float.parseFloat(value);
-        await(() -> ValueAnimator.getDurationScale() == target, "Animator scale did not reach " + value);
+        for (int resent = 0; ; resent++) {
+            if (within(10000, () -> ValueAnimator.getDurationScale() == target)) return;
+            if (resent == 3) break;
+            shell("settings put global animator_duration_scale " + (target == 1 ? "0.5" : "1"));
+            shell("settings put global animator_duration_scale " + value);
+        }
+        AtomicReference<Float> app = new AtomicReference<>(); main(() -> app.set(ValueAnimator.getDurationScale()));
+        throw new IllegalStateException("Animator scale did not reach " + value + " (the app's is " + app.get() + ", the setting "
+                + shell("settings get global animator_duration_scale").trim() + ", sent again 3 times)");
     }
     private String shell(String command) throws Exception {
         ParcelFileDescriptor pipe = getUiAutomation().executeShellCommand(command);
@@ -446,9 +463,13 @@ public final class ChargePictureValidation extends Instrumentation {
     private View root() { return (View) field(activity, "root"); }
     private void settle() { waitForIdleSync(); SystemClock.sleep(160); waitForIdleSync(); }
     private void await(BooleanSupplier condition, String message) {
-        long end = SystemClock.uptimeMillis() + 10000;
-        while (SystemClock.uptimeMillis() < end) { AtomicReference<Boolean> ready = new AtomicReference<>(); main(() -> ready.set(condition.getAsBoolean())); if (Boolean.TRUE.equals(ready.get())) return; SystemClock.sleep(40); }
-        throw new IllegalStateException(message);
+        if (!within(10000, condition)) throw new IllegalStateException(message);
+    }
+    /** Whether the condition (checked on the main thread) holds within {@code ms}. */
+    private boolean within(long ms, BooleanSupplier condition) {
+        long end = SystemClock.uptimeMillis() + ms;
+        while (SystemClock.uptimeMillis() < end) { AtomicReference<Boolean> ready = new AtomicReference<>(); main(() -> ready.set(condition.getAsBoolean())); if (Boolean.TRUE.equals(ready.get())) return true; SystemClock.sleep(40); }
+        return false;
     }
     private void main(Runnable action) {
         AtomicReference<Throwable> failure = new AtomicReference<>();
