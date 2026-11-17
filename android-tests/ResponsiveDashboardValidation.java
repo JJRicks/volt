@@ -1870,9 +1870,21 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         for (Object item : tiles()) if (((DashboardConfig.Widget)field(item, "widget")).type.equals(type)) return item;
         return null;
     }
+    /**
+     * The connected fixture's lock rows (lockReady, lockOffline) go through Motion.reveal with no root (an instant change),
+     * the only way the app shows and hides them since Motion C2 (#519): reveal skips a call that matches what it last asked,
+     * so a visibility set directly stayed on screen through the next updateHeader, and the next pass's Disconnected Lock bar
+     * kept the fixture's slider ("Unavailable") instead of Lock state unknown and Connect.
+     */
     private void setVisibilityIfPresent(String name, int visibility) {
         Object view = optionalField(activity, name);
-        if (view instanceof View) ((View)view).setVisibility(visibility);
+        if (!(view instanceof View)) return;
+        try {
+            Method reveal = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("reveal", ViewGroup.class, View.class, boolean.class, View[].class);
+            reveal.setAccessible(true);
+            reveal.invoke(null, null, view, visibility == View.VISIBLE, new View[0]);
+        } catch (Exception error) { throw new IllegalStateException("Motion.reveal for " + name, error); }
+        require(((View)view).getVisibility() == visibility, name + " did not take the fixture's visibility");
     }
     private static Object optionalField(Object target, String name) {
         try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(target); }
