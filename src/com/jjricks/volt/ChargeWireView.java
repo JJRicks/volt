@@ -116,6 +116,73 @@ final class ChargeWireView extends ChargePicture {
     private float bloomRatio, bloomRadius;
     private final int cableEdge, cableCore;
 
+    // ---- PROTOTYPE (charge transition, phase 1; ChargeTransition's variant A) ----
+    /** The cable past the cut-out drawn in from the edge (1 at rest), the dash running in (NaN: none), the bay's lit share. */
+    private float plug = 1, charge = Float.NaN, arriveFill;
+    private final int dashColor, dashGlow;
+
+    @Override android.graphics.RectF bounds() {
+        float s = placement.scale;
+        return s <= 0 ? null : new RectF(placement.left, placement.top, placement.left + model.width * s, placement.top + model.height * s);
+    }
+
+    @Override void arrival(float plug, float charge, float fill) {
+        boolean cable = plug != this.plug;
+        if (!cable && fill == arriveFill && (Float.isNaN(charge) ? Float.isNaN(this.charge) : charge == this.charge)) return;
+        this.plug = plug; this.charge = charge; arriveFill = fill;
+        if (cable) picture.invalidate();
+        live.invalidate();
+    }
+
+    /** Hides the cable between the cut-out's right edge and where its drawn-in end has reached (plug < 1). */
+    private void clipPlug(Canvas canvas, float layerWidth) {
+        if (plug >= 1) return;
+        float s = placement.scale;
+        float cutRight = placement.left + model.width * s;
+        float far = !Double.isInfinite(fadeEnd) ? (float) (placement.left + fadeEnd * s) : Float.isNaN(edge) ? layerWidth : Math.max(edge, layerWidth);
+        far = Math.max(far, cutRight) + 4;
+        float reached = cutRight + (1 - Math.max(0, plug)) * (far - cutRight);
+        canvas.clipOutRect(cutRight, -100000, reached, 100000);
+    }
+
+    /** The bay lit up to arriveFill (whole columns, the last one partly) and a dash running in along the cable. */
+    private void drawArrival(Canvas canvas) {
+        float s = placement.scale;
+        if (arriveFill > .001f) {
+            if (litPack == null) bakeLitPack();
+            if (litPack != null) {
+                float lit = arriveFill * ChargeWire.HALF_COLUMNS;
+                for (int c = 0; c < ChargeWire.HALF_COLUMNS; c++) {
+                    float level = Math.max(0, Math.min(1, lit - c));
+                    if (level <= .004f || litTo[c].isEmpty()) continue;
+                    strip.setAlpha(Math.round(255 * level));
+                    canvas.drawBitmap(litPack, litFrom[c], litTo[c], strip);
+                }
+            }
+        }
+        if (!Float.isNaN(charge) && charge > 0 && charge < 1) {
+            ChargeWire w = wire;
+            double run = w.length - w.cableStart;
+            double head = w.length - charge * run, tail = Math.min(head + Math.max(30, run * .22), w.length);
+            stretch(Math.max(w.cableStart, head), tail);
+            canvas.save();
+            canvas.translate(placement.left, placement.top);
+            canvas.scale(s, s);
+            stroke.setShader(null);
+            stroke.setStrokeCap(Paint.Cap.ROUND);
+            stroke.setColor(dashGlow);
+            stroke.setAlpha(110);
+            stroke.setStrokeWidth((float) model.cableWidth * 2.6f);
+            canvas.drawPath(comet, stroke);
+            stroke.setColor(dashColor);
+            stroke.setAlpha(255);
+            stroke.setStrokeWidth((float) model.cableWidth * .8f);
+            canvas.drawPath(comet, stroke);
+            stroke.setStrokeCap(Paint.Cap.BUTT);
+            canvas.restore();
+        }
+    }
+
     /** The baked resting picture and where its top-left pixel goes in the layer; null until drawn at a placement. */
     private Bitmap baked;
     private int bakedLeft, bakedTop;
@@ -140,6 +207,8 @@ final class ChargeWireView extends ChargePicture {
         density = context.getResources().getDisplayMetrics().density;
         boolean dark = ui.dark;
         int green = ui.ok;
+        dashColor = dark ? Color.parseColor("#D6FBE0") : ChargeWireComet.mix(green, Color.WHITE, .6f);
+        dashGlow = green;
         // The resting cable: light grey on the dark page (the cut-out's own), a darker grey on the light page so it
         // stays visible there; a lighter core along its middle keeps it round.
         cableEdge = Color.parseColor(dark ? "#B0B1AE" : "#8C8E89");
@@ -416,7 +485,11 @@ final class ChargeWireView extends ChargePicture {
         if (s <= 0 || cut == null) return;
         updateCable();
         if (baked == null) bake();
-        if (baked != null) canvas.drawBitmap(baked, bakedLeft, bakedTop, null);
+        if (baked == null) return;
+        canvas.save();
+        clipPlug(canvas, picture.getWidth());
+        canvas.drawBitmap(baked, bakedLeft, bakedTop, null);
+        canvas.restore();
     }
 
     /**
@@ -589,7 +662,17 @@ final class ChargeWireView extends ChargePicture {
         if (s <= 0 || cut == null) return;
         double frozen = tourSeconds;
         boolean tour = !Double.isNaN(frozen);
-        if (!running && !tour) return;
+        boolean arriving = arriveFill > .001f || !Float.isNaN(charge);
+        if (!running && !tour && !arriving) return;
+        canvas.save();
+        clipPlug(canvas, live.getWidth());
+        if (running || tour) drawRunning(canvas, frozen, tour);
+        drawArrival(canvas);
+        canvas.restore();
+    }
+
+    private void drawRunning(Canvas canvas, double frozen, boolean tour) {
+        float s = placement.scale;
         double t;
         ChargeWirePulses.Mode mode;
         if (tour) {

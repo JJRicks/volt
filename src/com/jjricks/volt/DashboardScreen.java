@@ -422,6 +422,10 @@ public final class DashboardScreen implements AppScreen {
         View findCard() { return findCard; }
         View overview() { return overview; }
         View chargingView() { return chargingHero; }
+        /** PROTOTYPE (ChargeTransition): the parked card's photo and percentage, and the charging view's parts. */
+        ImageView parkedPhoto() { return overview.overview == null ? null : overview.overview.picture; }
+        TextView parkedPercent() { return overview.overview == null ? null : overview.overview.percent; }
+        ChargeTransition.Hero hero() { return chargingHero; }
 
         /** The scooter this Home was built for; another one being active means Clean rebuilds. */
         String profileId() { return profileId; }
@@ -2555,7 +2559,33 @@ public final class DashboardScreen implements AppScreen {
      * reported, with the percentage, the scooter photo over a red glow and a floor line that
      * fills to the charge and then, in grey, to the charge limit.
      */
-    private final class ChargingHero extends LinearLayout {
+    private final class ChargingHero extends LinearLayout implements ChargeTransition.Hero {
+        // ---- PROTOTYPE (ChargeTransition, phase 1) ----
+        /** The pulse waits while the arrival plays; the floor glow's and track's share while it comes in. */
+        boolean holdPulse;
+        float glowShown = 1;
+        /** Widgets: the prototype's reveal progress (0 closed, 1 open) while it runs, and variant B's band. */
+        float protoP;
+        int protoKind;
+        ChargeTransition.Sweep protoSweep;
+        android.animation.ValueAnimator protoFill;
+        @Override public View view() { return this; }
+        @Override public View[] lines() { return clean ? new View[] {chip, chipShort} : new View[] {chip}; }
+        @Override public TextView percent() { return percent; }
+        @Override public ViewGroup stage() { return stage; }
+        @Override public View rows() { return rows; }
+        @Override public View[] images() { return picture != null ? picture.layers() : new View[] {photo}; }
+        @Override public android.graphics.RectF imageBounds() {
+            if (picture != null) return picture.bounds();
+            return photo.getWidth() > 0 ? ChargeTransition.content(photo) : null;
+        }
+        @Override public ChargePicture picture() { return picture; }
+        @Override public double level() { return level; }
+        @Override public void holdPulse(boolean hold) { if (holdPulse != hold) { holdPulse = hold; updatePulse(); } }
+        @Override public void glowIn(float shown) { if (glowShown != shown) { glowShown = shown; stage.invalidate(); } }
+        @Override public int accent() { return ui.accent; }
+        @Override public int dp(float value) { return ui.dp(value); }
+
         final TextView chip, percent, power;
         /** Clean: the line's one-line short form ("Charging"), shown in its place where the slot is short (ChargingFit). */
         final TextView chipShort;
@@ -2741,6 +2771,9 @@ public final class DashboardScreen implements AppScreen {
             if (reveal != null) { reveal.cancel(); reveal = null; }
             // Clean's top area owns the view's size and visibility.
             if (clean) { timeTile.settle(); updatePulse(); return; }
+            ChargeTransition.restWidgets(this);
+            if (protoSweep != null) { stage.getOverlay().remove(protoSweep); protoSweep = null; }
+            holdPulse = false;
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
@@ -2754,7 +2787,7 @@ public final class DashboardScreen implements AppScreen {
          */
         void updatePulse() {
             updateClip();
-            boolean run = shown && !closed && !editing && Ui.motionEnabled() && stage.onScreen
+            boolean run = shown && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
@@ -2794,6 +2827,7 @@ public final class DashboardScreen implements AppScreen {
         private void showAnimated(boolean show) {
             if (clean) { shown = show; updatePulse(); return; }
             if (show == shown) return;
+            if (ChargeTransition.variant != ChargeTransition.TODAY) { showAnimatedProto(show); return; }
             int current = getVisibility() == View.VISIBLE ? getHeight() : 0;
             shown = show; stopReveal();
             View parent = getParent() instanceof View ? (View)getParent() : null;
@@ -2822,6 +2856,58 @@ public final class DashboardScreen implements AppScreen {
                 }
             });
             getLayoutParams().height = start; requestLayout();
+            reveal.start();
+            updateClip();
+        }
+
+        /**
+         * PROTOTYPE (ChargeTransition): Widgets' takeover opening or closing as one progress, so a reversal turns back
+         * from where it is; it opens first, then its parts arrive (the variant's).
+         */
+        private void showAnimatedProto(boolean show) {
+            float from = reveal != null ? protoP : getVisibility() == View.VISIBLE ? 1 : 0;
+            int kind = reveal != null ? protoKind : ChargeTransition.variant;
+            shown = show;
+            if (protoFill != null) { protoFill.cancel(); protoFill = null; }
+            revealGeneration++;
+            if (reveal != null) { android.animation.ValueAnimator old = reveal; reveal = null; old.cancel(); }
+            View parent = getParent() instanceof View ? (View) getParent() : null;
+            if (!Ui.motionEnabled() || closed || parent == null || parent.getWidth() == 0) { stopReveal(); return; }
+            setVisibility(View.VISIBLE);
+            int width = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+            if (getLayoutParams() != null) getLayoutParams().height = -2;
+            measure(MeasureSpec.makeMeasureSpec(Math.max(1, width), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            int full = Math.max(1, getMeasuredHeight());
+            protoKind = kind;
+            if (kind == ChargeTransition.SWEEP && protoSweep == null) {
+                protoSweep = new ChargeTransition.Sweep(this, stage);
+                stage.getOverlay().add(protoSweep);
+            }
+            if (protoSweep != null && show) protoSweep.gain = 1;
+            float to = show ? 1 : 0;
+            final int generation = revealGeneration;
+            holdPulse = show;
+            updatePulse();
+            reveal = android.animation.ValueAnimator.ofFloat(from, to);
+            reveal.setDuration(Math.max(1, Math.round(ChargeTransition.widgetsMs(kind, show) * Math.abs(to - from))));
+            reveal.setInterpolator(ChargeTransition.LINEAR);
+            reveal.addUpdateListener(a -> {
+                if (generation != revealGeneration) return;
+                if (!Ui.motionEnabled() || closed) { stopReveal(); return; }
+                protoP = (Float) a.getAnimatedValue();
+                getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(kind, protoP)); requestLayout();
+                ChargeTransition.styleWidgets(this, kind, protoP, show, protoSweep);
+            });
+            reveal.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator animation) {
+                    if (generation != revealGeneration) return;
+                    stopReveal();
+                    if (show && kind == ChargeTransition.PLUG) protoFill = ChargeTransition.fadeFill(ChargingHero.this);
+                }
+            });
+            protoP = from;
+            getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(kind, from)); requestLayout();
+            ChargeTransition.styleWidgets(this, kind, from, show, protoSweep);
             reveal.start();
             updateClip();
         }
@@ -3185,7 +3271,11 @@ public final class DashboardScreen implements AppScreen {
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
                     // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
-                    if (trackShown) drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
+                    if (trackShown && glowShown > 0) {
+                        int save = glowShown < 1 ? canvas.saveLayerAlpha(0, 0, w, getHeight(), Math.round(255 * glowShown)) : -1;
+                        drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
+                        if (save >= 0) canvas.restoreToCount(save);
+                    }
                     return;
                 }
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
@@ -3206,7 +3296,7 @@ public final class DashboardScreen implements AppScreen {
                     canvas.scale(.94f + .06f * glow, ry / rx);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setShader(glowShader);
-                    paint.setAlpha(Math.round(255 * (.72f + .28f * glow)));
+                    paint.setAlpha(Math.round(255 * (.72f + .28f * glow) * glowShown));
                     canvas.drawCircle(0, 0, rx, paint);
                     paint.setShader(null);
                     paint.setAlpha(255);
@@ -3237,6 +3327,8 @@ public final class DashboardScreen implements AppScreen {
                     rx = pw * .4549f; ry = ph * .2494f;
                     alpha = pulse == null ? .85f : .81f + .07f * (2 * glow - 1);
                 }
+                alpha *= glowShown;
+                if (alpha <= 0) return;
                 if (rx <= 0) return;
                 int color = ui.accent;
                 if (glowShader == null || rx != glowRadius || color != glowColor) {

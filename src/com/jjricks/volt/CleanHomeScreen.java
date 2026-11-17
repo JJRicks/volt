@@ -87,6 +87,8 @@ final class CleanHomeScreen implements AppScreen {
      */
     private List<String> defaults;
     private int moment = -1;
+    /** PROTOTYPE (phase 1): the parked/charging transition's variants (ChargeTransition). */
+    private ChargeTransition.Clean transition;
     private boolean closed;
     private android.app.AlertDialog editSheet;
 
@@ -181,6 +183,7 @@ final class CleanHomeScreen implements AppScreen {
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
         page.addView(top, new LinearLayout.LayoutParams(-1, -2));
+        transition = new ChargeTransition.Clean(top, overview, parts.parkedPhoto(), parts.parkedPercent(), parts.hero(), parts::chargingShown);
 
         FrameLayout lock = new FrameLayout(host.activity());
         lock.setTag(TAG_LOCK);
@@ -288,6 +291,14 @@ final class CleanHomeScreen implements AppScreen {
         boolean first = moment < 0;
         int previous = moment;
         moment = next;
+        // PROTOTYPE: a change between parked and charging plays the chosen variant (it says when the view counts as shown).
+        if (!first) for (View view : moments) view.animate().cancel();
+        if (!first && transition.change(previous, next)) {
+            moments[HomeMoment.JUST_BACK].animate().cancel();
+            moments[HomeMoment.JUST_BACK].setVisibility(View.GONE);
+            moments[HomeMoment.JUST_BACK].setAlpha(1);
+            return;
+        }
         parts.chargingShown(next == HomeMoment.CHARGING);
         View in = moments[next];
         for (View view : moments) view.animate().cancel();
@@ -397,6 +408,7 @@ final class CleanHomeScreen implements AppScreen {
 
     @Override public void close() {
         closed = true;
+        transition.settle();
         for (View view : moments) view.animate().cancel();
         worker.shutdownNow();
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
