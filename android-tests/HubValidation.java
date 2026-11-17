@@ -1444,6 +1444,7 @@ public final class HubValidation extends Instrumentation {
      */
     private void edgeScrollbars() throws Exception {
         requireHome("CleanHomeScreen");
+        boolean wideClean = onMain(this::twoPanes);
         requireEdgeScrollbar("Clean Home");
         String subject = HubPages.SUBJECTS.get(0);
         tapTag("home-subject-" + subject);
@@ -1460,13 +1461,16 @@ public final class HubValidation extends Instrumentation {
         requireEdgeScrollbar("Widgets Home");
         switchStyle(CLEAN);
         requireHome("CleanHomeScreen");
-        checks.add("Page scrollbar at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on Clean Home, " + subject + ", Settings and Widgets Home");
+        checks.add("Page scrollbar at the window's edge (SCROLLBARS_OUTSIDE_OVERLAY, in the side gutter) on Clean Home, " + subject + ", Settings and Widgets Home"
+                + (wideClean ? "; on two panes the page pane's scroller spans that pane, which reaches the window's edge" : ""));
     }
 
     /**
      * MainActivity's page scroller draws its vertical bar over its padding (SCROLLBARS_OUTSIDE_OVERLAY), its edges are the
      * window's content edges (inside the system bars), and the bar fits the gutter on its side (the scroller's padding plus
-     * its content's), so it never covers the content.
+     * its content's), so it never covers the content. On the wide Clean Home's two panes the page's scroller is the page
+     * pane's: it spans that pane, whose end is the window's content end (the window's start in RTL), so the bar sits at the
+     * window's edge there too and never over the scooter pane.
      */
     private void requireEdgeScrollbar(String where) {
         main(() -> {
@@ -1479,8 +1483,20 @@ public final class HubValidation extends Instrumentation {
             View window = (View) field(activity, "root");
             Rect at = windowRect(scroll), frame = windowRect(window);
             int left = frame.left + window.getPaddingLeft(), right = frame.right - window.getPaddingRight();
-            require(at.left == left && at.right == right, where + "'s page scroller spans " + at.left + ".." + at.right + " px, the window's content " + left + ".." + right);
             boolean rtl = scroll.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            if (twoPanes()) {
+                View pane = root().findViewWithTag("hub-page-pane");
+                require(pane != null && shown(pane), where + " shows two panes but no page pane");
+                boolean inside = false;
+                for (View v = scroll; v != null && !inside; v = v.getParent() instanceof View ? (View) v.getParent() : null) inside = v == pane;
+                require(inside, where + "'s page scroller is not in the page pane");
+                Rect in = windowRect(pane);
+                require(at.left == in.left && at.right == in.right, where + "'s page scroller spans " + at.left + ".." + at.right + " px, the page pane " + in.left + ".." + in.right);
+                require(rtl ? in.left == left : in.right == right, where + "'s page pane spans " + in.left + ".." + in.right + " px, its end not at the window's content edge ("
+                        + left + ".." + right + ")");
+            } else {
+                require(at.left == left && at.right == right, where + "'s page scroller spans " + at.left + ".." + at.right + " px, the window's content " + left + ".." + right);
+            }
             View content = scroll.getChildCount() > 0 ? scroll.getChildAt(0) : null;
             int gutter = rtl ? scroll.getPaddingLeft() + (content == null ? 0 : content.getPaddingLeft())
                     : scroll.getPaddingRight() + (content == null ? 0 : content.getPaddingRight());
