@@ -984,7 +984,9 @@ public final class ModelRegistry {
      * Models whose drive-mode codes Volt names: the UT5 MAX (2538), the GT5 Max (25462) and the XT5 Pro (24162, same
      * codes) from owner reports, and the N65i (22131), assumed by the maintainer to match the GT5 Max until an owner
      * reports otherwise, the GT3 Max (24182), whose owner answered Drive 2, Sport 3, Walk 11, and, with a table of its
-     * own (23452), the ST3 Pro, whose owner answered Walk 11, Drive 2, Sport 3 in November 2026; 0 keeps raw codes.
+     * own (23452), the ST3 Pro, whose owner answered Walk 11, Drive 2, Sport 3 in November 2026; and the UT5 Ultra X
+     * (25852), assumed by the maintainer (November 2026) to use the UT5 MAX's names until an owner reports otherwise.
+     * 0 keeps raw codes.
      */
     public static int driveModeLabelProduct(DeviceDescriptor d){
         if(ut5Max(d))return 2538;if(known(d)==null)return 0;
@@ -993,6 +995,9 @@ public final class ModelRegistry {
         // The ST3 Pro (23452): its owner answered Walk 11, Drive 2, Sport 3 (November 2026; the display shows Drive as D).
         // Its own table, without the GT5 Max owner's Sport 5: on this model 5 is also its Turbo acceleration value.
         if("23452".equals(pid))return 23452;
+        // The UT5 Ultra X (25852, the UT5 MAX's OEM group): assumed to share the UT5 MAX's codes, 11 Walk, 2 Eco, 3 Sport
+        // (maintainer, 17 November 2026), until its owner reports otherwise. Names only: nothing else of the UT5 MAX applies.
+        if("25852".equals(pid))return 2538;
         return "25462".equals(pid)||"22131".equals(pid)||"24162".equals(pid)||"24182".equals(pid)?25462:0;
     }
     /**
