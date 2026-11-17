@@ -3,6 +3,7 @@ package com.jjricks.volt;
 /**
  * Experimental UT5 MAX stock-charger reference, available without personal charge recordings.
  * Relative measurements from two owner-observed finishes; no identity, date or location metadata.
+ * The 99% stage uses charging current (finishMinutes), shared by every UT5 MAX observed so far.
  * Below the observed finish, rated Ah and live current model the bulk stage, with a small
  * uncertainty allowance for full-charge planning. This is neither a
  * fixed-watt charger assumption nor a measured battery-capacity correction.
@@ -133,12 +134,48 @@ public final class Ut5MaxStockChargeReference {
             if (soc < FIRST_SOC) remaining = ratedAh*((FIRST_SOC-soc)/100d)/amps*60 + reference.remaining[0]
                     + (target==100 ? 10*bulkPlanningWeight(soc,ratedAh) : 0);
             else if (soc < 99) remaining = reference.remaining[stage];
-            else remaining = ChargeTaperMatcher.estimate(watts,volts,reference.taper,tolerance);
+            else remaining = finishMinutes(volts,amps);
             if (remaining == null) continue;
             double estimate = Math.max(0,remaining-reference.boundaryRemaining(target));
             if (Double.isFinite(estimate)) { sum += estimate; count++; }
         }
         return count == 0 ? null : sum/count;
+    }
+
+    /*
+     * ut5-stock-finish-v9: the displayed 99% stage from charging current, not from matching a stored
+     * pack voltage. Pack voltage differs between UT5 MAX packs and chargers by tenths of a volt; the
+     * old voltage match (ChargeTaperMatcher, within 0.10 V) then refused or mismatched, and the
+     * current-rate fallback read about 1 to 5 minutes for a stage that lasts 25 to 32 (as much as 27
+     * minutes short at a 0.15 V offset in replay). The owner's five finishes and another UT5 MAX on
+     * its own charger share one shape: about 4 to 8 minutes more at the charger's constant current,
+     * then current decays as FINISH_OFFSET + FINISH_TAU x ln(I / FINISH_END_AMPS) until 100% shows
+     * at about 0.68 A (tau 21-24 minutes, 17 in the oldest finish; 23.5 on the other scooter).
+     * Voltage only sizes the short constant-current part, and only while the current is still at
+     * least FADE_HIGH_AMPS (fading out by FADE_LOW_AMPS): there the minutes are the Ah between the
+     * live voltage and the charger's constant-voltage line, FINISH_CV_SET - FINISH_CV_DROP x I,
+     * capped at FINISH_MAX_HEADROOM volts. Below FADE_LOW_AMPS the current alone decides. A pack
+     * reading more than PLAUSIBLE_BELOW volts under that line or PLAUSIBLE_ABOVE over it is a
+     * contradictory 99% reading, not another pack, and gets no finish. Fitted by
+     * docs/validation/data/stock-finish-v9/fit_stock_finish.py from the committed owner finishes;
+     * see docs/validation/stock-finish-estimates.md.
+     */
+    static final double FINISH_CV_SET = 54.5118, FINISH_CV_DROP = 0.2470, FINISH_OFFSET = 0.7254,
+            FINISH_TAU = 21.9386, FINISH_AH_PER_VOLT = 0.8557;
+    static final double FINISH_END_AMPS = 0.68, FINISH_MAX_HEADROOM = 0.4, FADE_LOW_AMPS = 1.3, FADE_HIGH_AMPS = 1.7;
+    static final double PLAUSIBLE_BELOW = 1.0, PLAUSIBLE_ABOVE = 0.6;
+
+    /** Minutes from the 99% stage to displayed 100% at these readings; null outside a usable current. */
+    static Double finishMinutes(double volts, double amps) {
+        if (!Double.isFinite(volts) || !Double.isFinite(amps) || volts <= 0
+                || amps < ChargingEstimate.MINIMUM_ETA_CURRENT_A || amps > 3) return null;
+        double line = FINISH_CV_SET - FINISH_CV_DROP * amps;
+        if (volts < line - PLAUSIBLE_BELOW || volts > FINISH_CV_SET + PLAUSIBLE_ABOVE) return null;
+        double tail = FINISH_OFFSET + FINISH_TAU * Math.log(Math.max(amps, FINISH_END_AMPS) / FINISH_END_AMPS);
+        double headroom = Math.min(FINISH_MAX_HEADROOM, Math.max(0, line - volts));
+        double weight = Math.min(1, Math.max(0, (amps - FADE_LOW_AMPS) / (FADE_HIGH_AMPS - FADE_LOW_AMPS)));
+        double minutes = tail + weight * FINISH_AH_PER_VOLT * headroom / amps * 60;
+        return Double.isFinite(minutes) && minutes >= 0 ? minutes : null;
     }
 
     static boolean powerCompatible(double soc,double watts,double tolerance) {

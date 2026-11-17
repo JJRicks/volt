@@ -18,6 +18,8 @@
     <string name="compat_preview_report">Pré-visualizar relatório</string>
     <!-- src:7393e79b1d7b7004e922147bbd058fb347783333 -->
     <string name="compat_no_finished_check">Ainda sem verificação concluída</string>
+    <!-- src:780bfedd7257990a493fc6f1164fcde3df631c08 -->
+    <string name="compat_footer">A verificação só lê. As tentativas estão em «Serviço › Controlos experimentais» e o relatório inclui os resultados delas. Nunca altera o firmware.</string>
     <!-- src:465b99a776e3987ff95e10fad6eac713fc821b6e -->
     <string name="compat_connect_to_check">Conecta esta trotinete para a verificar.</string>
     <!-- src:dba08d09f91ad6e2257006954ea15fc634a57b8c -->

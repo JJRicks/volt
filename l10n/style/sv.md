@@ -63,7 +63,7 @@ Order: full → `_short` → `_compact` → icon. Never a break in the middle of
 | Batteriinställningar | **Batteriinställn.**, then **Batteri** | 112 → 85.5 → 40 | Same pattern for *Körinställn.* (66) |
 | Appinställningar | **Appinställn.**, then **Appinst.** | 96 → 69, and 46 at 12sp | **-inst.** only as a compound tail, because alone it reads as *institution* |
 | Experimentella reglage | **Experimentella**, then **Experiment** | 134 → 87.5 → 66.9 | A whole word, so no period. Never *Exp.*: it isn't an accepted cut |
-| Energiåtervinning | **Energiåterv.** | 104 → 70.5 | Never *Återvinning*: to any Swedish reader that is waste recycling. *Regen* (37) is a further rung only if a budget ever needs it, and none does today; it would need a glossary form first |
+| Energiåtervinning | **Energiåterv.** | 104 → 70.5 | Never *Återvinning*: to any Swedish reader that is waste recycling. *Regen* (37; 40.2 at 13.5sp) is the further rung, only where a budget needs it: today that is Clean Home's round button (`hub_qa_recovery_round`, 72dp at 13.5sp, where *Energiåterv.* is 76.1). Glossary form added 2026-11-17; nowhere else |
 | Sparkstartshastighet | **Sparkstart** | 122 → 61 | A short word, no period |
 | Vägmätare | **Totalt**, or **Vägm.** | 63 → 33 or 36 | English *Odo.*. Prefer *Totalt*. *Vägm.* isn't an established cut, so use it only where the label must name the odometer; the debate should compare it with *Mätarst.* (48.6) |
 | Temperatur | **Temp.** | 35 | |

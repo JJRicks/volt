@@ -316,12 +316,13 @@ final class Motion {
         cover.setImageBitmap(previous);
         cover.layout(0, 0, previous.getWidth(), previous.getHeight());
         root.getOverlay().add(cover);
+        covers.put(cover, new WeakReference<>(root));
         ArrayList<View> moving = new ArrayList<>();
         if (direction != 0) for (View view : incoming) if (view != null) moving.add(view);
         // The cover holds the old tab bar too, so it fades without travelling; the bars match.
         float shift = moving.isEmpty() ? 0 : Math.signum(direction) * travel(root, previous.getWidth());
         ValueAnimator animator = drive(cover, false, shift != 0, shift, moving.toArray(new View[0]), () -> {
-            root.getOverlay().remove(cover); cover.setImageDrawable(null); previous.recycle();
+            covers.remove(cover); root.getOverlay().remove(cover); cover.setImageDrawable(null); previous.recycle();
         });
         root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(View view) {}
@@ -331,6 +332,23 @@ final class Motion {
     }
 
     private static final WeakHashMap<View, Runnable> running = new WeakHashMap<>();
+
+    /** Each page change's snapshot still over the live content (crossfade, swap), with the view it is drawn in. */
+    private static final WeakHashMap<View, WeakReference<View>> covers = new WeakHashMap<>();
+
+    /**
+     * A page change's snapshot of what was there still fades over part of {@code view}'s window (crossfade in the
+     * root's overlay, a page's swap beside it or in the decor's overlay): the live views under it can sit at rest, fully
+     * opaque and in place, while the old page still shows over them. Main thread.
+     */
+    static boolean covered(View view) {
+        View window = view.getRootView();
+        for (WeakReference<View> host : covers.values()) {
+            View at = host == null ? null : host.get();
+            if (at != null && at.isAttachedToWindow() && at.getRootView() == window) return true;
+        }
+        return false;
+    }
 
     /**
      * A change inside one scrolling page (sub-menu, section, sub-page): the outgoing frame leaves
@@ -370,10 +388,11 @@ final class Motion {
             cover.layout(at[0] - origin[0], at[1] - origin[1], at[0] - origin[0] + snapshot.getWidth(), at[1] - origin[1] + snapshot.getHeight());
             decor.getOverlay().add(cover);
         }
+        covers.put(cover, new WeakReference<>(sibling ? parent : decor));
         float shift = Math.signum(direction) * travel(pageView, snapshot.getWidth());
         final View.OnAttachStateChangeListener[] detach = new View.OnAttachStateChangeListener[1];
         ValueAnimator animator = drive(cover, true, through, shift, new View[] {pageView}, () -> {
-            running.remove(pageView);
+            running.remove(pageView); covers.remove(cover);
             pageView.removeOnAttachStateChangeListener(detach[0]);
             if (sibling) parent.removeView(cover); else decor.getOverlay().remove(cover);
             cover.setImageDrawable(null); snapshot.recycle();

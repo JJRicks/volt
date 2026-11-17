@@ -1240,10 +1240,23 @@ public final class MoreScreen implements AppScreen {
      * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
      */
     @Override public View anchor(String id) {
+        // Battery & charging's invite sheet: its Record this charge brings this page's row on screen (ChargeInvite).
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) return chargeCaptureRow != null ? chargeCaptureRow.view : null;
         return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
     }
-    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    /**
+     * Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). For the charge
+     * invite's Record this charge (ChargeInvite.RECORD_ANCHOR), starts the row's own step (the charger question) when a
+     * recording can start now, exactly as tapping the row would; otherwise (none can start, or one is already recording)
+     * it does nothing, and the row flashes with its status line saying why.
+     */
     @Override public boolean openHeld(String id) {
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) {
+            ScooterService s = service();
+            if (closed || chargeCaptureRow == null || s == null || s.isChargeRecording() || s.chargeCaptureUnavailable() != null) return false;
+            recordChargeDialog(s);
+            return true;
+        }
         if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
         updatesSheet();
         View control = updatesBox.findViewWithTag(id);

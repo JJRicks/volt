@@ -22,6 +22,12 @@
     <string name="ble_status_checking_compatibility">Kontrollerar kompatibilitet…</string>
     <!-- src:743208d1de13b4c7f17550fc7b2f34e5fdd54d60 -->
     <string name="ble_status_setting_clock">Ställer in elsparkcykelns klocka från den här telefonen…</string>
+    <!-- src:3278a55a28be6a38784b18011183e9cb68d06b18 -->
+    <string name="ble_status_releasing">Frigör elsparkcykeln…</string>
+    <!-- src:27fd91857fecb730a6a12e559973648f3484dc17 -->
+    <string name="ble_release_held">Frigöring inte bekräftad · återansluter inte</string>
+    <!-- src:772be0b099f67e1368e9a128e8bbbc9ad5c4e85c -->
+    <string name="ble_release_held_short">Frigöring ej bekräftad</string>
     <!-- src:728cf773a5c57a15f19c5c603f34929b6502bb7f -->
     <string name="ble_reading">Läser %1$s…</string>
     <!-- src:d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c -->
@@ -58,6 +64,16 @@
     <string name="ble_failed_not_saved">Inte den sparade elsparkcykeln</string>
     <!-- src:0b4b8c62d1732ffe5ff49209dd9489c809d02aab -->
     <string name="ble_failed_other_saved">Det här är %1$s. Välj den i Mina elsparkcyklar eller sök efter din nya elsparkcykel.</string>
+    <!-- src:1c0b385e8b0ccb748d54eea3df06fca3c6441f4f -->
+    <string name="ble_failed_new_key_elsewhere">Den nya ägarnyckeln skickades först till en annan elsparkcykel. Slå på den elsparkcykeln i närheten och försök igen.</string>
+    <!-- src:1ebe16bb5235dd8b36f294f81200e98507ddb6d4 -->
+    <string name="ble_failed_new_key_unsaved">Det gick inte att spara konfigurationen, så Volt skickade inte den nya ägarnyckeln. Gör plats i lagringsutrymmet och försök igen.</string>
+    <!-- src:4549812aa55aa5ffabb66aa863995505872f0cde -->
+    <string name="ble_failed_find_mismatch">Det här är inte %1$s: serienumret är ett annat. Inget sparades.</string>
+    <!-- src:8d513c8a2ff0e7c8de2a948f2764ee04e434df6f -->
+    <string name="ble_failed_find_unchecked">Det gick inte att kontrollera %1$s på den adressen. Inget sparades. Försök igen med ”Hitta i närheten”.</string>
+    <!-- src:10d9b7a526cd313ea7f57dc5f9bbbbc143018203 -->
+    <string name="ble_found_new_address">Hittade %1$s på en ny Bluetooth-adress</string>
     <!-- src:1f23751172e9878adc6da281e6fe1b838304f246 -->
     <string name="ble_failed_signal_lost">Signalen förlorades</string>
     <!-- src:4c195e7bcd1298d452edb1bb8278469fa48ea9e3 -->

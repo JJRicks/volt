@@ -42,11 +42,31 @@
     <string name="more_scooters_save_name" volt:src="44a2f79d166043c73ea7e045017866ef15cd4103">Naam opslaan</string>
     <string name="more_scooters_forget" volt:src="7fff3d4a9e3ea5f2863d17d00361b1a14ebb964d">Deze step vergeten</string>
     <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">%1$s vergeten</string>
+    <string name="more_scooters_find_new_address" volt:src="36fa502b3d743203d54646bff813a3b8f4751d9d">Zoeken op een nieuw adres</string>
+    <string name="more_scooters_find_new_address_named" volt:src="026ffc9c7547962d6e390c876e8c5077b52e5a4f">%1$s zoeken op een nieuw adres</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Voer een stepnaam in</string>
     <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">%1$s vergeten?</string>
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Dit verwijdert de verbindingsconfiguratie van deze step van je telefoon. Opgeslagen ritten en laadopnamen blijven bewaard.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Eerst back-up maken</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Vergeten</string>
+    <string name="more_scooters_forget_owner_warning" volt:src="fa86328936297b67be02970febecd58e5128f833">De step bewaart zijn eigenaarssleutel totdat hij wordt vrijgegeven. Als je de step vergeet, verwijdert Volt zijn kopie. Zonder back-up kun je mogelijk niet opnieuw als eigenaar verbinding maken met de step.</string>
+    <string name="more_scooters_forget_backed_up" volt:src="5f769678c1022437c26e0482b1292d8c2a120eeb">Back-up met deze sleutel opgeslagen: %1$s.</string>
+    <string name="more_scooters_forget_backup_needed" volt:src="4483ec9e2f095b8e1084997f96f95049bb8eaf88">Sla eerst een back-up met deze sleutel op. Gebruik ‘Deze step vrijgeven…’ als je de step weer als nieuw wilt maken.</string>
+    <string name="more_scooters_release" volt:src="700ec9ec671bad88248d630e22ba58c07bef9d27">Deze step vrijgeven…</string>
+    <string name="more_scooters_release_named" volt:src="fb25cc3c4c3c8d6843ef30a74548b45ce18e813b">%1$s vrijgeven</string>
+    <string name="more_scooters_release_connect_first" volt:src="bc26e8a3afbba3603622b5ac75abedb115eb6396">Maak eerst verbinding met deze step om hem vrij te geven.</string>
+    <string name="more_scooters_release_title" volt:src="e1e99c773016303e1307c2d1459633788ea3efb0">%1$s vrijgeven?</string>
+    <string name="more_scooters_release_body" volt:src="940f26ba52f268ab0167b232dd13c4a7cf2258c6">Je step vergeet zijn eigenaarssleutel en Volt verwijdert de step van deze telefoon. Iedereen in de buurt kan de step daarna toevoegen met de NAVEE-app of Volt. Als je de step in de NAVEE-app hebt toegevoegd, staat hij daar nog steeds in je account.</string>
+    <string name="more_scooters_release_action" volt:src="a966e89cfabc8d4d60492392e99c99feefbc8c51">Vrijgeven</string>
+    <string name="more_scooters_released" volt:src="4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703">Step vrijgegeven</string>
+    <string name="more_scooters_release_refused" volt:src="53a5b4cbb5433229a2b95cf55b33c20319375ca2">De step heeft de vrijgave geweigerd. De step blijft opgeslagen in Volt.</string>
+    <string name="more_scooters_release_unconfirmed" volt:src="02df0809209475398031fe9a4333bda4e9f9a5fe">De step heeft de vrijgave niet bevestigd. De step blijft opgeslagen in Volt.</string>
+    <string name="more_scooters_release_not_sent" volt:src="842e08407ba34879137b5f38a3f84cc8f57d579d">De vrijgave is niet verzonden. De step blijft opgeslagen in Volt.</string>
+    <string name="more_scooters_release_held_title" volt:src="1554f7352a60182cfc7408561ab3dcb4ad64ba8b">%1$s heeft de vrijgave niet bevestigd</string>
+    <string name="more_scooters_release_held_body" volt:src="4ef32f776404358f5562056c22818041360d34a4">De step is mogelijk vrijgegeven. Als dat zo is, kent hij deze sleutel niet meer en kan hij met de NAVEE-app of een andere Volt-eigenaarssleutel worden toegevoegd. Volt maakt niet vanzelf opnieuw verbinding met de step totdat je een keuze maakt.</string>
+    <string name="more_scooters_release_held_remove" volt:src="5f029298852d5600fb27464b025d03b02eea5aeb">Uit Volt verwijderen</string>
+    <string name="more_scooters_release_held_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Opnieuw verbinding maken</string>
+    <string name="more_scooters_release_held_reconnect_note" volt:src="90bd11ba915515f4530fb3b74db021f0833eead9">Als de step is vrijgegeven, wordt Volt door opnieuw verbinding te maken weer de eigenaar.</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Weergave</string>
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Donker</string>
     <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Systeem volgen</string>
@@ -63,7 +83,7 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Automatisch verbinding maken</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Verbonden blijven op de achtergrond</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Tijdens opnamen blijft de verbinding altijd actief</string>
+    <string name="more_prefs_background_sub" volt:src="72a034c2acd35f0fa065e73cba4010accf1ba188" volt:attempt="2">Opnamen houden de verbinding actief, net als Live opladen en laadwaarschuwingen tijdens het opladen</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Scherm aanhouden</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Tijdens een opname</string>
     <string name="more_prefs_auto_stop" volt:src="f0e030df478a962cea79cdf0ec262c9db8ab9032">Ritten automatisch beëindigen</string>
@@ -191,8 +211,8 @@
         <item quantity="other">Resultaten van %1$d pogingen gewist</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Resultaten van pogingen blijven op deze telefoon staan tot je een compatibiliteitsrapport verstuurt waarin ze zijn opgenomen, of tot je ze wist."</string>
-    <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Functies die de officiële app voor je model biedt, blijven in ‘Stepinstellingen’. Snelheidslimieten, opladen, vergrendeling, PIN, ontgrendeling bij nabijheid en de klok worden hier nooit toegevoegd. Volt verandert nooit firmware.</string>
-    <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Functies die de officiële app voor je model biedt, blijven in ‘Stepinstellingen’. Volt verandert nooit firmware.</string>
+    <string name="more_lab_foot_oem" volt:src="98f20fb6388aa8e2510cf516190649be9646459c">Functies die de officiële app voor je model aanbiedt, blijven op hun eigen pagina’s staan. Snelheidslimieten, opladen, de vergrendeling, PIN, ontgrendelen bij nabijheid en de klok worden hier nooit toegevoegd. Volt verandert nooit de firmware.</string>
+    <string name="more_lab_foot_elsewhere" volt:src="d7eaa8c93aabd13af7c8d1c98feab66159f644a0">Functies die de officiële app voor je model aanbiedt, blijven op hun eigen pagina’s staan. Volt verandert nooit de firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt verandert nooit firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Verbinding maken…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Proberen op deze step</string>
@@ -203,12 +223,12 @@
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">je model</string>
     <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">De officiële app biedt deze functies niet voor %1$s. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling terug.</string>
     <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">De officiële app biedt deze functies voor %1$s, maar Volt heeft ze daarop niet getest. Probeer er één terwijl de step geparkeerd staat; Volt leest de instelling terug.</string>
-    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">Niets om te proberen op %1$s: de officiële app biedt de functies die Volt zou kunnen proberen al aan. Ze staan in ‘Stepinstellingen’.</string>
+    <string name="more_lab_empty_oem" volt:src="e3e64baef0955008d83ada821de7cc592e177373">Niets om te proberen op %1$s: de officiële app biedt de functies die Volt zou kunnen proberen al aan. Ze staan op hun eigen pagina’s.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt stuurt geen commando’s voor steps naar dit product.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Niets om te proberen op de UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">De Model-ID van deze step komt niet overeen met het serienummer. Daarom biedt Volt niets om te proberen.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">De officiële app vermeldt dit model niet, dus Volt kan niet bepalen welke functies ontbreken. Er is nog niets te proberen.</string>
-    <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Identificeer eerst je model op de pagina ‘Step’. Volt toont daarna wat je kunt proberen.</string>
+    <string name="more_lab_empty_identify" volt:src="c7404734d6e98be34382660c8ad9b3505c31e670">Identificeer eerst je model in ‘Service’ › ‘Compatibiliteitscontrole’. Volt toont daarna wat je kunt proberen.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Maak verbinding met je step om te zien wat je kunt proberen.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Start vanuit stilstand</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, niet gemeld door deze step</string>
@@ -310,7 +330,7 @@
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Meldingen</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Opnamemelding met ‘Stop’</string>
     <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Je gegevens</string>
-    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Alle gegevens blijven op deze telefoon. ‘Back-up en herstel’ staat in ‘Meer’.</string>
+    <string name="more_about_data_note" volt:src="c98d3e9202d1b276d52fccbfd99f0106616db70b">Alle gegevens blijven op deze telefoon. ‘Back-up en herstel’ staat in ‘Instellingen’.</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Online kaart</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Verbindingsactiviteit</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licenties en naamsvermelding</string>
@@ -351,6 +371,12 @@
     <string name="more_dev_compat_sub" volt:src="054fa580d38ad30a2d90471fa68958c3be7e3945">Modelcontrole en rapport</string>
     <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Een verbonden step simuleren</string>
     <string name="more_dev_simulated_model" volt:src="d1f71ab8da3622272a8550620b16eb90a8c0f5fd">Gesimuleerd model</string>
+    <string name="more_dev_simulation_scene" volt:src="06c23103136ed05e9b5571db1dc39cb0d6b294df">Scène</string>
+    <string name="more_dev_simulation_scene_parked" volt:src="1cbc72e5488ab96cea6887e887dd9b1428ca0ee4">Geparkeerd</string>
+    <string name="more_dev_simulation_scene_riding" volt:src="10021cd9dfd5543792f2617db36dfe71d358bb6e">Rijden</string>
+    <string name="more_dev_simulation_scene_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Opladen</string>
+    <string name="more_dev_simulation_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Rijmodus</string>
+    <string name="more_dev_simulation_drive_mode_code" volt:src="ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b">%1$s (code %2$s)</string>
     <string name="more_dev_simulation_active" volt:src="ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650">Simulatie actief · voorbeeldgegevens</string>
     <string name="more_dev_simulating" volt:src="7ba690e370878c8a9dd9152ce3649c1a56544346">Bezig met simuleren</string>
     <string name="more_dev_charge_recording" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Laadopname</string>

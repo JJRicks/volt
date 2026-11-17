@@ -36,7 +36,8 @@ final class ControlsPages {
     static final String CHARGE_DONE = "charge_done";
     /**
      * Battery & charging's HISTORY card: the recent charges as small bars and the last one's summary line
-     * (ChargeHistoryBars); it opens Charge history & recordings, so it stands in for that page's link.
+     * (ChargeHistoryBars); it opens Charge history & recordings. That page also has a link row of its own, last among the
+     * page's links (owner, Nov 17 2026: the bar graph's tap alone hid it), so the card is a second way in.
      */
     static final String CHARGE_HISTORY = "charge_history";
     /** A row named Usable ride energy, with the Experimental tag, that opens Estimates & charger (where its panel is). */
@@ -122,11 +123,13 @@ final class ControlsPages {
         put(HubPages.CONTROLS_ASSISTS, false, false, "parking_assist", "hill_start_assist", "hill_descent_control", "start_speed");
         put(HubPages.CONTROLS_LIMITS, false, false, "speed_limit", "drive_speed_limit", "overspeed_control");
         // The Layout Plan's order (the contributor's pick, #383): CHARGING (limit, schedule, done by, alerts, live card),
-        // HISTORY (its own card), then Range estimate and Usable ride energy with the sub-pages' links.
+        // HISTORY (its own card), then Range estimate and Usable ride energy with the sub-pages' links. Charge history &
+        // recordings has its own link there too (owner, Nov 17 2026: hidden behind the bar graph's tap, it was easy to
+        // miss); the HISTORY card still opens it.
         put(HubPages.BATTERY, false, false,
                 "charge_limit", "timed_charging", "charge_start", CHARGE_DONE, ScooterMenuLayout.CHARGE_ALERT, ScooterMenuLayout.LOW_ALERT, CHARGE_LIVE,
                 CHARGE_HISTORY,
-                "range_algorithm", USABLE_ENERGY, link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES));
+                "range_algorithm", USABLE_ENERGY, link(HubPages.BATTERY_MODES), link(HubPages.BATTERY_ESTIMATES), link(HubPages.BATTERY_HISTORY));
         put(HubPages.BATTERY_MODES, false, false, "low_power", "long_range_mode");
         put(HubPages.BATTERY_ESTIMATES, false, false, ScooterMenuLayout.CHARGER, ScooterMenuLayout.SCHEDULE_TEST);
         ArrayList<String> lights = new ArrayList<>(Arrays.asList(ScooterMenuLayout.HEADLIGHT_INFO, "headlight", "auto_sensor"));

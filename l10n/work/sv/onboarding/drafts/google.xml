@@ -6,6 +6,7 @@
     <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Anslut dator</string>
     <string name="onboarding_step_run_helper" volt:src="156f834730eeac180c962741e3f0828ee4daafb8">Kör hjälpprogrammet</string>
     <string name="onboarding_step_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importera</string>
+    <string name="onboarding_step_new_key" volt:src="1af40adc5e22b6a0a53863d492e67bd17869408d">Ägarnyckel</string>
     <string name="onboarding_step_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Enheter i närheten</string>
     <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Anslut till elsparkcykeln</string>
     <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Konfigurationssteg %1$d av 7</string>
@@ -49,6 +50,8 @@
     <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Importera en ägarkonfigurationsfil</string>
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Bara åtkomst till elsparkcykeln · inga turer eller historik</string>
     <string name="onboarding_path_identity" volt:src="d961ad5c00ad8effde507bf15d014e73b523ab29">Ange en ägarnyckel på 12 tecken</string>
+    <string name="onboarding_path_new_key" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Skapa en ny ägarnyckel</string>
+    <string name="onboarding_path_new_key_detail" volt:src="f695e6ad02bbc18ce4a1b414e86bc381381229a9">Ny eller återställd elsparkcykel · ingen dator</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Kräver Android 11 eller senare</string>
     <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Kräver Android 11 eller senare</string>
@@ -61,7 +64,7 @@
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Fortsätt</string>
     <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Slutför importen av den valda ägarfilen först.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Vill du hoppa över konfigurationen så länge?</string>
-    <string name="onboarding_skip_message" volt:src="2ebd2136ff09aba32eb39b4fc15c6ce9f462415c">Lägg till din elsparkcykel senare under Mer.</string>
+    <string name="onboarding_skip_message" volt:src="fd894d5886133bef30a7eb4a2f11be3b7569fc87">Lägg till din elsparkcykel senare i Inställningar › Mina elsparkar.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Fortsätt</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Innan du börjar</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">NAVEE-appen fungerar</string>
@@ -161,6 +164,26 @@
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Välj en annan fil</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Shizuku är inte installerad</string>
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Stoppa inspelningen först</string>
+    <string name="onboarding_new_title" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Skapa en ny ägarnyckel</string>
+    <string name="onboarding_new_body" volt:src="9b9f43625124da4a7ce73bc9f42654de01d92dfc">Volt skapar en ägarnyckel och sparar den på den här telefonen. En elsparkcykel utan ägare tar emot den första nyckeln den får.</string>
+    <string name="onboarding_new_unowned" volt:src="44c901a962ae29ccdd339e0a6798a06f29b0bbaa">Elsparkcykeln är ny eller återställd</string>
+    <string name="onboarding_new_unowned_detail" volt:src="5b3d1d715451f3597301465890a2b78cac6c06c2">Aldrig konfigurerad eller borttagen från NAVEE-appen</string>
+    <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">NAVEE-appen kan inte lägga till den här elsparkcykeln så länge den har Volts nyckel. Om du vill byta tillbaka frigör du den i Volt först.</string>
+    <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Den här elsparkcykeln har redan en ägare, så den avvisade den nya nyckeln. Ta bort den från NAVEE-appen och försök igen, eller konfigurera på ett annat sätt.</string>
+    <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Konfigurera på ett annat sätt</string>
+    <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">Det gick inte att spara den nya ägarnyckeln. Frigör lagringsutrymme och försök igen.</string>
+    <string name="onboarding_done_new_key_note" volt:src="b8fce5b72d286bfe3edbe88e557c01b28f870aa0">Volt skapade den här elsparkcykelns ägarnyckel, och den finns bara på den här telefonen. Säkerhetskopiera Volt så att du kan konfigurera den på en annan telefon.</string>
+    <string name="onboarding_key_title" volt:src="99e4b93f9bb07c68da624cdfbb46b412293b173a">Skriv ned din ägarnyckel</string>
+    <string name="onboarding_key_body" volt:src="282c5da63dbeaffc51931849c4a1789ce2060df3">Den här nyckeln finns bara på den här telefonen. Om du förlorar telefonen eller Volts data utan en kopia kan du inte komma åt din elsparkcykel igen. Skriv ned den och förvara den på ett säkert ställe, eller spara en säkerhetskopiefil. En skärmbild fungerar också.</string>
+    <string name="onboarding_key_write" volt:src="a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c">Skriv ned detta!</string>
+    <string name="onboarding_key_spoken" volt:src="357ab99111c6e4f1b113db3d144c633881f771c7">Ägarnyckel: %1$s</string>
+    <string name="onboarding_key_save" volt:src="6bef92dcca50b07d22b5b8ab7f09da79aa960432">Spara säkerhetskopiefil</string>
+    <string name="onboarding_key_saved" volt:src="c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4">Säkerhetskopia sparad</string>
+    <string name="onboarding_key_done_wait" volt:src="e8da8521c2b44b2b1b8a537e4113f74379437adb">Klar (%1$d)</string>
+    <plurals name="onboarding_key_done_wait_description" volt:src="cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419">
+        <item quantity="one">Klar, tillgänglig om %1$d sekund</item>
+        <item quantity="other">Klar, tillgänglig om %1$d sekunder</item>
+    </plurals>
     <string name="onboarding_identity_title" volt:src="56062797f9d331b9ceb3280ae89b5de65d366fcf">Ange ägarnyckel</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">Inte ett lösenord.</string>
     <string name="onboarding_identity_hint" volt:src="35dda17c04b627a1ee00aceee1a23956c878a9f1">Ägarnyckel, 12 tecken eller en privat säkerhetskopia</string>

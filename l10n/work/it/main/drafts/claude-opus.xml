@@ -98,6 +98,16 @@
         <item quantity="other">%1$d monopattini trovati</item>
     </plurals>
     <string name="main_scan_option" volt:src="6801c41ddbd8a9ef7d66c7806562c01c3d210fe4">%1$s, %2$s%3$s, indirizzo che termina con %4$s</string>
+    <string name="main_find_title" volt:src="5622737b7ee69869fa25c076ea590c965f9bc3a1">Trova %1$s nelle vicinanze</string>
+    <string name="main_find_saved_address" volt:src="95393b3e1288d46b3bb45a65b82176c4c079e4d3">Indirizzo salvato</string>
+    <string name="main_find_state_saved_address" volt:src="2f6ec6c6c339510ec4e80d653740a6eb5be60ed0">, indirizzo salvato</string>
+    <plurals name="main_find_hidden" volt:src="bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b">
+        <item quantity="one">%1$d altro monopattino nascosto (modello diverso)</item>
+        <item quantity="many">%1$d di altri monopattini nascosti (modello diverso)</item>
+        <item quantity="other">%1$d altri monopattini nascosti (modello diverso)</item>
+    </plurals>
+    <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Vuoi connettere questo monopattino come %1$s?</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Volt invierà la chiave del proprietario di %1$s a questo monopattino. Un monopattino che non ha ancora un proprietario (nuovo o reimpostato) accetterebbe quella chiave, quindi scegli solo il tuo monopattino, con il telefono proprio accanto.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Guida</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteria</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luci</string>

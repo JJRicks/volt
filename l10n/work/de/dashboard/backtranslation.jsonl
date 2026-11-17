@@ -127,3 +127,4 @@
 {"back":"Other time: %1$s","key":"dashboard_charge_time_other","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"c340e13d9afa59f30aa10dae9ecb3de951f8f0ab","target":"Andere Zeit: %1$s"}
 {"back":"Change time","key":"dashboard_charge_time_switch","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"13d494c3d3db09eb6ce058e1a82f206e6a00b846","target":"Zeit wechseln"}
 {"back":"%1$s range remaining","key":"dashboard_range_left_spoken","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"6a60e792167ca3bcb8635b26b5811eb87dac17d6","target":"Noch %1$s Reichweite"}
+{"back":"≈%1$s h %2$s min","key":"dashboard_duration_hours_narrow","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"b9fb4887ba744f3f87621e15c8d5d05bc75ce876","target":"≈%1$s h %2$s min"}

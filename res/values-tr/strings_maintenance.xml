@@ -24,6 +24,8 @@
     <string name="maintenance_switch">Bakım hatırlatıcıları</string>
     <!-- src:d1fbdd4a68e6cf0de2c872f396f24b42153d058a -->
     <string name="maintenance_switch_detail">Ayarladığınız kontrolleri zamanı geldiğinde gösterir</string>
+    <!-- src:a51240dc7ae0b3602de168ceec8c850d4c82cab9 -->
+    <string name="maintenance_off_explain">Kendi hatırlatıcılarınızı eklemek için bunu açın: örneğin 2 haftada bir lastik basıncını veya her 300 milde bir frenleri kontrol etmek. Zamanı gelen kontrolü Volt burada ve ana sayfada gösterir.</string>
     <!-- src:33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1 -->
     <string name="maintenance_disclaimer">Bunlar sizin ayarladığınız hatırlatıcılardır. Bir şeylerin ters gittiğini hissettiğinizde, hatırlatıcı ne derse desin scooter’ınızı kontrol edin.</string>
     <!-- src:5ab9cc59ff86341c67ec3f486583edb6a86bd537 -->
@@ -272,6 +274,8 @@
     <string name="maintenance_notify_detail">Zamanı geldiğinde bir kez bildirim</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Bakım hatırlatıcıları</string>
+    <!-- src:eb5c5dfeb924e5bcdb2e0bf7c079d8416326b3ef -->
+    <string name="maintenance_channel_detail">Servis › Bakım bölümünde ayarladığınız kontroller; her birinin zamanı geldiğinde bir kez</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%2$s: %1$d kontrolün zamanı geldi</item>

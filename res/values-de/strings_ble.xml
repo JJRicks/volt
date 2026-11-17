@@ -22,6 +22,12 @@
     <string name="ble_status_checking_compatibility">Kompatibilität wird geprüft…</string>
     <!-- src:743208d1de13b4c7f17550fc7b2f34e5fdd54d60 -->
     <string name="ble_status_setting_clock">Scooter-Uhr wird auf die Zeit dieses Telefons eingestellt…</string>
+    <!-- src:3278a55a28be6a38784b18011183e9cb68d06b18 -->
+    <string name="ble_status_releasing">Scooter wird freigegeben…</string>
+    <!-- src:27fd91857fecb730a6a12e559973648f3484dc17 -->
+    <string name="ble_release_held">Freigabe nicht bestätigt · verbindet sich nicht neu</string>
+    <!-- src:772be0b099f67e1368e9a128e8bbbc9ad5c4e85c -->
+    <string name="ble_release_held_short">Freigabe nicht bestätigt</string>
     <!-- src:728cf773a5c57a15f19c5c603f34929b6502bb7f -->
     <string name="ble_reading">%1$s: wird abgefragt…</string>
     <!-- src:d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c -->
@@ -58,6 +64,16 @@
     <string name="ble_failed_not_saved">Nicht der gespeicherte Scooter</string>
     <!-- src:0b4b8c62d1732ffe5ff49209dd9489c809d02aab -->
     <string name="ble_failed_other_saved">Das ist %1$s. Wähle diesen Scooter unter „Meine Scooter“ aus oder suche nach deinem neuen Scooter.</string>
+    <!-- src:1c0b385e8b0ccb748d54eea3df06fca3c6441f4f -->
+    <string name="ble_failed_new_key_elsewhere">Dieser neue Besitzerschlüssel wurde zuerst an einen anderen Scooter gesendet. Schalte den anderen Scooter in der Nähe ein und versuche es erneut.</string>
+    <!-- src:1ebe16bb5235dd8b36f294f81200e98507ddb6d4 -->
+    <string name="ble_failed_new_key_unsaved">Die Einrichtung konnte nicht gespeichert werden, daher hat Volt den neuen Besitzerschlüssel nicht gesendet. Gib etwas Speicherplatz frei und versuche es erneut.</string>
+    <!-- src:4549812aa55aa5ffabb66aa863995505872f0cde -->
+    <string name="ble_failed_find_mismatch">Das ist nicht %1$s: Die Seriennummer ist anders. Es wurde nichts gespeichert.</string>
+    <!-- src:8d513c8a2ff0e7c8de2a948f2764ee04e434df6f -->
+    <string name="ble_failed_find_unchecked">%1$s konnte an dieser Adresse nicht geprüft werden. Es wurde nichts gespeichert. Versuche, „In der Nähe suchen“ erneut auszuprobieren.</string>
+    <!-- src:10d9b7a526cd313ea7f57dc5f9bbbbc143018203 -->
+    <string name="ble_found_new_address">%1$s unter einer neuen Bluetooth-Adresse gefunden</string>
     <!-- src:1f23751172e9878adc6da281e6fe1b838304f246 -->
     <string name="ble_failed_signal_lost">Signal verloren</string>
     <!-- src:4c195e7bcd1298d452edb1bb8278469fa48ea9e3 -->
