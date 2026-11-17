@@ -355,8 +355,10 @@ outside the reachable scroll area.
 
 Your scooter's selected readings and local rename are presentation features.
 Keep the owner-observed WALK/ECO/SPORT labels restricted to PID 2538 and the
-confirmed mode codes (11/2/3). Unknown codes/models and raw diagnostics/exports
-must retain their original values. Reported charge/throughput counters are not
+confirmed mode codes (11/2/3), plus the UT5 Ultra X (Model ID 25852), which the
+maintainer assumes shares them (November 2026) until an owner reports otherwise;
+no other UT5 MAX assumption applies to it. Unknown codes/models and raw
+diagnostics/exports must retain their original values. Reported charge/throughput counters are not
 measured capacity or current-ride consumption.
 
 The battery cell should use the space remaining after its readings, preserving
