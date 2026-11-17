@@ -49,6 +49,21 @@ final class HubSplit {
         return new Split(Math.max(minLeft, Math.min(max, want)), gap);
     }
 
+    /**
+     * Where the first pane's outer edge sits, measured from the window's edge on its side: the left, or the right in RTL,
+     * where a horizontal row lays its first child at the right. rowLeft is the row's left in the window, padLeft its left
+     * padding and size the room between its paddings, so the edge is the row's padding on the first pane's side
+     * (buildPanes pads only the start: the left, or the right in RTL).
+     */
+    static int firstEdge(boolean rtl, int windowWidth, int rowLeft, int padLeft, int size) {
+        return rtl ? windowWidth - (rowLeft + padLeft + size) : rowLeft + padLeft;
+    }
+
+    /** A vertical hinge's start measured from the first pane's outer edge, toward the second pane (mirrored in RTL). */
+    static int hingeFromFirst(boolean rtl, int windowWidth, int firstEdge, int hingeLeft, int hingeRight) {
+        return rtl ? windowWidth - hingeRight - firstEdge : hingeLeft - firstEdge;
+    }
+
     /** The left width that centres the gutter on a window this wide, for a row starting leftInWindow from its edge. */
     static int centreLeft(int windowWidth, int gap, int leftInWindow) {
         return windowWidth / 2 - gap / 2 - leftInWindow;

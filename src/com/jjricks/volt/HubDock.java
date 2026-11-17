@@ -268,6 +268,7 @@ final class HubDock {
      * wraps at large text makes it taller than its parts add up to), so the page's end always scrolls clear of it.
      */
     void padScroller(android.widget.ScrollView scroll, int basePadding) {
+        barAboveDock(scroll);
         scroll.setClipToPadding(false);
         scroll.setPadding(scroll.getPaddingLeft(), scroll.getPaddingTop(), scroll.getPaddingRight(), basePadding + clearance());
         view.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
@@ -276,6 +277,58 @@ final class HubDock {
             if (scroll.getPaddingBottom() != wanted)
                 scroll.post(() -> scroll.setPadding(scroll.getPaddingLeft(), scroll.getPaddingTop(), scroll.getPaddingRight(), wanted));
         });
+    }
+
+    /**
+     * Keeps the page's scroll bar above the dock (council P3 on #508). The bar draws at the window's edge
+     * (SCROLLBARS_OUTSIDE_OVERLAY, #522), whose track ignores the scroller's bottom padding, so on a phone, where the dock
+     * runs edge to edge, the track ran on under the dock and the thumb hid there at the page's end. The thumb (and the
+     * track, where the theme has one) now draw on a track that ends at the dock's top wherever the dock covers the bar's
+     * column; beside a wide window's centred dock the bar keeps its whole length. Android 10 (API 29) and later: before
+     * it a view can't take another thumb drawable, so there the bar still runs under the dock.
+     */
+    private void barAboveDock(android.widget.ScrollView scroll) {
+        if (Build.VERSION.SDK_INT < 29) return;
+        android.graphics.drawable.Drawable thumb = scroll.getVerticalScrollbarThumbDrawable(), track = scroll.getVerticalScrollbarTrackDrawable();
+        if (thumb != null && !(thumb instanceof AboveDock)) scroll.setVerticalScrollbarThumbDrawable(new AboveDock(thumb, scroll));
+        if (track != null && !(track instanceof AboveDock)) scroll.setVerticalScrollbarTrackDrawable(new AboveDock(track, scroll));
+    }
+
+    /** How far (px) the shown dock covers the bottom of scroll's bar column, barLeft..barRight in scroll's own x; else 0. */
+    private int coverOf(View scroll, int barLeft, int barRight) {
+        if (closed || view.getVisibility() == View.GONE || !view.isAttachedToWindow() || !scroll.isAttachedToWindow()) return 0;
+        int[] dockAt = new int[2], scrollAt = new int[2];
+        view.getLocationInWindow(dockAt);
+        scroll.getLocationInWindow(scrollAt);
+        int left = scrollAt[0] + barLeft - scroll.getScrollX(), right = scrollAt[0] + barRight - scroll.getScrollX();
+        if (right <= dockAt[0] || left >= dockAt[0] + view.getWidth()) return 0;
+        return Math.max(0, Math.min(scroll.getHeight(), scrollAt[1] + scroll.getHeight() - dockAt[1]));
+    }
+
+    /**
+     * A scroll bar part (thumb or track) drawn on the track barAboveDock shortens: the platform places it on the scroller's
+     * whole height at its scroll position (OUTSIDE_OVERLAY ignores padding), and this maps that place onto the part above
+     * the dock, so the thumb's size and travel keep their proportions and it ends at the dock's top at the page's end.
+     */
+    private final class AboveDock extends android.graphics.drawable.DrawableWrapper {
+        private final View scroll;
+
+        AboveDock(android.graphics.drawable.Drawable inner, View scroll) {
+            super(inner);
+            this.scroll = scroll;
+        }
+
+        @Override public void setBounds(int left, int top, int right, int bottom) {
+            if (scroll != null) {
+                int start = scroll.getScrollY(), length = scroll.getHeight(), cover = coverOf(scroll, left, right);
+                if (cover > 0 && length > cover) {
+                    float scale = (length - cover) / (float) length;
+                    top = start + Math.round((top - start) * scale);
+                    bottom = start + Math.round((bottom - start) * scale);
+                }
+            }
+            super.setBounds(left, top, right, bottom);
+        }
     }
 
     /** Service's dot and its spoken "check due" text, and the open sheet's summaries. */

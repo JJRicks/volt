@@ -422,6 +422,10 @@ public final class DashboardScreen implements AppScreen {
         View findCard() { return findCard; }
         View overview() { return overview; }
         View chargingView() { return chargingHero; }
+        /** The parked card's photo and percentage, and the charging view's parts, for the change between them (ChargeTransition). */
+        ImageView parkedPhoto() { return overview.overview == null ? null : overview.overview.picture; }
+        TextView parkedPercent() { return overview.overview == null ? null : overview.overview.percent; }
+        ChargeTransition.Hero hero() { return chargingHero; }
 
         /** The scooter this Home was built for; another one being active means Clean rebuilds. */
         String profileId() { return profileId; }
@@ -2555,7 +2559,65 @@ public final class DashboardScreen implements AppScreen {
      * reported, with the percentage, the scooter photo over a red glow and a floor line that
      * fills to the charge and then, in grey, to the charge limit.
      */
-    private final class ChargingHero extends LinearLayout {
+    private final class ChargingHero extends LinearLayout implements ChargeTransition.Hero {
+        // ---- The change between parked and charging (ChargeTransition) ----
+        /** The pulse waits while the arrival plays (ChargeTransition); the floor glow's and track's share while it comes in. */
+        boolean holdPulse;
+        float glowShown = 1;
+        /** Widgets: the change's progress (0 closed, 1 open) while it runs (reveal); the bay's light fading after it. */
+        float revealProgress;
+        android.animation.ValueAnimator fillFade;
+        /**
+         * The percentage's and the line's offsets: where measuring puts them at rest (percentRestX, lineRestY), and the
+         * change's flight on top (fly*, rise), so a layout pass mid-change (a telemetry refresh) never resets the flight.
+         */
+        float percentRestX, lineRestY, flyX, flyY, flyScale = 1, flyPivotX, flyPivotY, rise;
+        @Override public View view() { return this; }
+        @Override public View[] lines() { return clean ? new View[] {chip, chipShort} : new View[] {chip}; }
+        @Override public TextView percent() { return percent; }
+        @Override public ViewGroup stage() { return stage; }
+        @Override public View rows() { return rows; }
+        @Override public View[] images() { return picture != null ? picture.layers() : new View[] {photo}; }
+        @Override public android.graphics.RectF imageBounds() {
+            if (picture != null) return picture.bounds();
+            return photo.getWidth() > 0 ? ChargeTransition.content(photo) : null;
+        }
+        @Override public ChargePicture picture() { return picture; }
+        @Override public double level() { return level; }
+        @Override public void holdPulse(boolean hold) { if (holdPulse != hold) { holdPulse = hold; updatePulse(); } }
+        @Override public void glowIn(float shown) { if (glowShown != shown) { glowShown = shown; stage.invalidate(); } }
+        @Override public void flyPercent(float dx, float dy, float scale, float pivotX, float pivotY) {
+            flyX = dx; flyY = dy; flyScale = scale; flyPivotX = pivotX; flyPivotY = pivotY;
+            placeNumber();
+        }
+        @Override public float percentRestX() { return percentRestX; }
+        @Override public void riseLines(float dy) { rise = dy; placeLines(); }
+        @Override public int dp(float value) { return ui.dp(value); }
+
+        /** The number's resting offset across (measuring's), with any flight on top. */
+        private void restPercentX(float x) { percentRestX = x; placeNumber(); }
+
+        private void placeNumber() {
+            if (percent.getPivotX() != flyPivotX) percent.setPivotX(flyPivotX);
+            if (percent.getPivotY() != flyPivotY) percent.setPivotY(flyPivotY);
+            if (percent.getScaleX() != flyScale) { percent.setScaleX(flyScale); percent.setScaleY(flyScale); }
+            float x = percentRestX + flyX;
+            if (percent.getTranslationX() != x) percent.setTranslationX(x);
+            if (percent.getTranslationY() != flyY) percent.setTranslationY(flyY);
+        }
+
+        private void placeLines() {
+            float y = lineRestY + rise;
+            if (chip.getTranslationY() != y) chip.setTranslationY(y);
+            if (chipShort != null && chipShort.getTranslationY() != y) chipShort.setTranslationY(y);
+        }
+
+        /** Widgets: a touch on the takeover while it closes does nothing (it is leaving); it is used up until it lifts. */
+        @Override public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+            if (!clean && reveal != null && !shown) return true;
+            return super.dispatchTouchEvent(event);
+        }
+
         final TextView chip, percent, power;
         /** Clean: the line's one-line short form ("Charging"), shown in its place where the slot is short (ChargingFit). */
         final TextView chipShort;
@@ -2733,6 +2795,8 @@ public final class DashboardScreen implements AppScreen {
             if (reveal != null) { reveal.cancel(); reveal = null; }
             // Clean's top area owns the view's size and visibility.
             if (clean) { timeTile.settle(); updatePulse(); return; }
+            ChargeTransition.restWidgets(this);
+            holdPulse = false;
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
@@ -2746,7 +2810,7 @@ public final class DashboardScreen implements AppScreen {
          */
         void updatePulse() {
             updateClip();
-            boolean run = shown && !closed && !editing && Ui.motionEnabled() && stage.onScreen
+            boolean run = shown && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
@@ -2783,37 +2847,52 @@ public final class DashboardScreen implements AppScreen {
                     photo.getVisibility() == View.VISIBLE, reveal != null, editing, closed));
         }
 
+        /**
+         * Clean's top area decides when its charging view shows (ChargeTransition.Clean). Widgets: the takeover opens or
+         * closes as one progress (ChargeTransition: it opens, then its parts arrive), so a reversal turns back from where it
+         * is; instant with animations off, closed or not laid out.
+         */
         private void showAnimated(boolean show) {
             if (clean) { shown = show; updatePulse(); return; }
             if (show == shown) return;
-            int current = getVisibility() == View.VISIBLE ? getHeight() : 0;
-            shown = show; stopReveal();
-            View parent = getParent() instanceof View ? (View)getParent() : null;
-            if (!Ui.motionEnabled() || closed || parent == null || parent.getWidth() == 0) return;
+            float from = reveal != null ? revealProgress : getVisibility() == View.VISIBLE ? 1 : 0;
+            shown = show;
+            if (fillFade != null) { fillFade.cancel(); fillFade = null; }
+            revealGeneration++;
+            if (reveal != null) { android.animation.ValueAnimator old = reveal; reveal = null; old.cancel(); }
+            View parent = getParent() instanceof View ? (View) getParent() : null;
+            if (!Ui.motionEnabled() || closed || parent == null || parent.getWidth() == 0) { stopReveal(); return; }
             setVisibility(View.VISIBLE);
             int width = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
-            measure(MeasureSpec.makeMeasureSpec(Math.max(1, width), MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            if (getLayoutParams() != null) getLayoutParams().height = -2;
+            measure(MeasureSpec.makeMeasureSpec(Math.max(1, width), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
             int full = Math.max(1, getMeasuredHeight());
-            int start = Math.max(0, Math.min(full, current)), end = show ? full : 0;
+            float to = show ? 1 : 0;
             final int generation = revealGeneration;
-            reveal = android.animation.ValueAnimator.ofInt(start, end);
-            reveal.setDuration(240);
-            reveal.setInterpolator(new android.view.animation.DecelerateInterpolator());
+            // The pulse waits for the arrival; closing from open it runs on under the fade.
+            holdPulse = show || from < 1;
+            updatePulse();
+            reveal = android.animation.ValueAnimator.ofFloat(from, to);
+            reveal.setDuration(Math.max(1, Math.round((show ? ChargeTransition.WIDGETS_IN_MS : ChargeTransition.WIDGETS_OUT_MS) * Math.abs(to - from))));
+            reveal.setInterpolator(ChargeTransition.LINEAR);
             reveal.addUpdateListener(a -> {
                 if (generation != revealGeneration) return;
                 if (!Ui.motionEnabled() || closed) { stopReveal(); return; }
-                int h = (Integer)a.getAnimatedValue();
-                getLayoutParams().height = h; requestLayout();
-                float fraction = Math.max(0, Math.min(1, h / (float)full));
-                setAlpha(fraction); setTranslationY(-ui.dp(16) * (1 - fraction));
+                revealProgress = (Float) a.getAnimatedValue();
+                getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(revealProgress)); requestLayout();
+                ChargeTransition.styleWidgets(this, revealProgress, show);
             });
             reveal.addListener(new android.animation.AnimatorListenerAdapter() {
                 @Override public void onAnimationEnd(android.animation.Animator animation) {
-                    if (generation == revealGeneration) stopReveal();
+                    if (generation != revealGeneration) return;
+                    revealProgress = to;
+                    stopReveal();
+                    if (show) fillFade = ChargeTransition.fadeFill(ChargingHero.this);
                 }
             });
-            getLayoutParams().height = start; requestLayout();
+            revealProgress = from;
+            getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(from)); requestLayout();
+            ChargeTransition.styleWidgets(this, from, show);
             reveal.start();
             updateClip();
         }
@@ -2912,14 +2991,14 @@ public final class DashboardScreen implements AppScreen {
                     fit = planned;
                     pictureFloorPx = pictureFloor(plan.stageHeight);
                     // Centred (ChargePercentShade.PERCENT_LEFT: no longer the prototype's 4/60 em left of the centre).
-                    percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
+                    restPercentX(-ChargePercentShade.percentLeft(fit.text));
                     picture.size(width, pictureFloorPx, fit.box);
                     if (trackEnd != 0) { trackEnd = 0; stage.invalidate(); }
                     super.onMeasure(widthSpec, heightSpec);
                     return;
                 }
             }
-            percent.setTranslationX(0);
+            restPercentX(0);
             lineDrop(0);
             fit = null;
             // No photo for this model: the percentage and the track centred together in the stage (whose height the
@@ -2939,8 +3018,8 @@ public final class DashboardScreen implements AppScreen {
         /** Clean: the percentage at a share of its full size. */
         /** The line over the picture moved down with its number (ChargePictureFit.attached); 0 leaves it in place. */
         private void lineDrop(int drop) {
-            if (chip.getTranslationY() != drop) chip.setTranslationY(drop);
-            if (chipShort.getTranslationY() != drop) chipShort.setTranslationY(drop);
+            lineRestY = drop;
+            placeLines();
         }
 
         private void percentScale(float scale) {
@@ -2991,7 +3070,7 @@ public final class DashboardScreen implements AppScreen {
                 stage.setMinimumHeight(0);
             } else {
                 percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, percentWidgetsPx);
-                percent.setTranslationX(0);
+                restPercentX(0);
                 int[] p = percentWidgetsPadding;
                 percent.setPadding(p[0], p[1], p[2], p[3]);
                 addView(percent, indexOfChild(stage), percentWidgetsSize);
@@ -3185,7 +3264,7 @@ public final class DashboardScreen implements AppScreen {
                     fit = ChargePictureFit.widgets(width, baselineShare(), full, full / Math.max(1, sizeGrowth()), growth,
                             getResources().getDisplayMetrics().density);
                     if (percent.getTextSize() != fit.text) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fit.text);
-                    percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
+                    restPercentX(-ChargePercentShade.percentLeft(fit.text));
                     ((FrameLayout.LayoutParams) percent.getLayoutParams()).topMargin = Math.round(fit.percentTop);
                     pictureFloorPx = Math.round(fit.floor);
                     FrameLayout.LayoutParams photoSize = (FrameLayout.LayoutParams) photo.getLayoutParams();
@@ -3216,7 +3295,11 @@ public final class DashboardScreen implements AppScreen {
                 if (clean) {
                     if (photo.getVisibility() == View.VISIBLE && photoSide > 0 && w > 0) drawCleanGlow(canvas, w);
                     // The track makes way where the percentage needs the whole stage (ChargingFit.Plan.track).
-                    if (trackShown) drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
+                    if (trackShown && glowShown > 0) {
+                        int save = glowShown < 1 ? canvas.saveLayerAlpha(0, 0, w, getHeight(), Math.round(255 * glowShown)) : -1;
+                        drawTrack(canvas, w, trackEnd > 0 ? Math.min(trackEnd, getHeight()) : getHeight());
+                        if (save >= 0) canvas.restoreToCount(save);
+                    }
                     return;
                 }
                 if (photo.getVisibility() == View.VISIBLE && w > 0) {
@@ -3237,7 +3320,7 @@ public final class DashboardScreen implements AppScreen {
                     canvas.scale(.94f + .06f * glow, ry / rx);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setShader(glowShader);
-                    paint.setAlpha(Math.round(255 * (.72f + .28f * glow)));
+                    paint.setAlpha(Math.round(255 * (.72f + .28f * glow) * glowShown));
                     canvas.drawCircle(0, 0, rx, paint);
                     paint.setShader(null);
                     paint.setAlpha(255);
@@ -3268,6 +3351,8 @@ public final class DashboardScreen implements AppScreen {
                     rx = pw * .4549f; ry = ph * .2494f;
                     alpha = pulse == null ? .85f : .81f + .07f * (2 * glow - 1);
                 }
+                alpha *= glowShown;
+                if (alpha <= 0) return;
                 if (rx <= 0) return;
                 int color = ui.accent;
                 if (glowShader == null || rx != glowRadius || color != glowColor) {

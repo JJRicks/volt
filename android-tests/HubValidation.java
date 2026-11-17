@@ -2109,7 +2109,10 @@ public final class HubValidation extends Instrumentation {
             });
             dockStays(where + " with the Lock bar scrolled clear");
         }
-        String end = HubTestPages.requireEndClearOfDock(this, activity);
+        // Pictured at its end with the scroll bar held on: the bar ends above the dock (council P3 on #508).
+        String end = HubTestPages.requireEndClearOfDock(this, activity, () -> {
+            try { screenshot("widgets-home-end"); } catch (Exception error) { throw new IllegalStateException(error); }
+        });
         dockStays(where + " scrolled to its end (" + end + ")");
         main(() -> ((ScrollView) field(activity, "scroll")).scrollTo(0, 0));
         settle();
