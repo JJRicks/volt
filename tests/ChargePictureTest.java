@@ -75,11 +75,12 @@ public final class ChargePictureTest {
 
     private static void halo() {
         float[] h = ChargePercentShade.halo(LEFT, RIGHT, BASE, SIZE, SIZE, new float[3]);
-        near(h[0], 172, .05, "the halo's centre: the prototype's box centre across");
+        near(h[0], 168, .05, "the halo's centre: the number's advance's centre across");
         near(h[1], 254, .05, "and down (its box 211 to 297)");
         near(h[2] * 2, 168, .01, "168 dp across");
-        // The number 4 dp left of the content's centre (172): its advance's centre at 168, the halo on the centre.
-        near((LEFT + RIGHT) / 2 + ChargePercentShade.percentLeft(SIZE), 172, .05, "the digits sit 4 dp left of the centre");
+        // The number centred (the owner, 17 Nov 2026: it looked off-centre): no longer the prototype's 4 dp left of
+        // the content's centre, so its advance's centre (168 here) is the centre, and the halo is on it.
+        near(ChargePercentShade.percentLeft(SIZE), 0, 1e-6, "the digits are centred, not moved left");
         near(ChargePercentShade.HALO_ALPHAS[0], .47, 1e-6, "47% at the centre");
         near(ChargePercentShade.HALO_ALPHAS[1], .24, 1e-6, "24% at 55%");
         near(ChargePercentShade.HALO_STOPS[1], .55, 1e-6, "the middle stop");

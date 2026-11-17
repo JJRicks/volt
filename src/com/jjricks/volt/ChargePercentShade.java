@@ -29,17 +29,22 @@ final class ChargePercentShade {
     static final double EM = 60;
 
     /**
-     * Over a picture on Clean the number sits this share of its size left of the content's centre: the prototype pads
-     * its box 4 left and 12 right and centres the box, so the halo is centred on the content and the digits 4 dp left.
+     * Over a picture the number sits this share of its size left of the content's centre: none since 17 Nov 2026 (the
+     * owner: Clean's percentage looked off-centre). The prototype padded its box 4 left and 12 right and centred the
+     * box, which drew the digits 4/60 em left of the halo and the content's centre; now the number's advance (its ink
+     * within a pixel) is centred, under the pill, with the halo still on the centre.
      */
-    static final double PERCENT_LEFT = 4 / EM;
+    static final double PERCENT_LEFT = 0;
 
     /** How far the percentage moves left over a picture (px) at this text size. */
     static float percentLeft(float size) { return (float) (PERCENT_LEFT * size); }
 
     // ---- the halo ----
-    /** Its radius, its centre right of the advance's centre (the prototype's box is padded 4 left, 12 right) and above the baseline. */
-    static final double HALO_RADIUS = 84 / EM, HALO_RIGHT = 4 / EM, HALO_UP = 14 / EM;
+    /**
+     * Its radius, its centre right of the advance's centre (none: the advance is centred, {@link #PERCENT_LEFT}; it was
+     * 4/60 em for the prototype's box padded 4 left, 12 right) and above the baseline.
+     */
+    static final double HALO_RADIUS = 84 / EM, HALO_RIGHT = 0, HALO_UP = 14 / EM;
     /** Its fill's opacity at the centre, at {@link #HALO_STOPS}[1] of the way out and at the edge. */
     static final float[] HALO_ALPHAS = {.47f, .24f, 0}, HALO_STOPS = {0, .55f, 1};
 

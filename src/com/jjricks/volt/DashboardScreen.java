@@ -2886,7 +2886,7 @@ public final class DashboardScreen implements AppScreen {
                     lineDrop(drop);
                     fit = planned;
                     pictureFloorPx = pictureFloor(plan.stageHeight);
-                    // And a little left of the centre, as the prototype's (its halo stays centred).
+                    // Centred (ChargePercentShade.PERCENT_LEFT: no longer the prototype's 4/60 em left of the centre).
                     percent.setTranslationX(-ChargePercentShade.percentLeft(fit.text));
                     picture.size(width, pictureFloorPx, fit.box);
                     if (trackEnd != 0) { trackEnd = 0; stage.invalidate(); }
