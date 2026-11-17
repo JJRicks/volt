@@ -323,6 +323,10 @@ STEPS += [inst(name, cls) for name, cls in (
     ('map-tiles', PKG + '.MapTilesValidation'), ('history', T + 'HistoryValidation'),
     ('route-gesture', T + 'RouteGestureValidation'), ('search-focus', T + 'SearchFocusValidation'),
     ('ui-organization', T + 'UiOrganizationValidation'), ('update-check', T + 'UpdateCheckValidation'))]
+# The automatic check's "Update available" notice tapped while Volt's activity is not running, without Nearby devices
+# permission (no service bind is coming): Settings opens and its update check runs at once (update-check taps the
+# notice with the permission, where the check outlasts the bind; #523 review, finding 1).
+STEPS += [inst('update-check-no-nearby', T + 'UpdateCheckValidation', '-e', 'mode', 'notice-no-nearby', grant=ALL[2:])]
 # Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
 for locale in ('en-XA', 'ar-XB'):
     for case in SIZES:

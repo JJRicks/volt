@@ -35,7 +35,11 @@ import com.jjricks.volt.ScooterProfiles;
  * Check for updates with GitHub's reply replaced in-process: the first tap asks before any
  * request (Cancel sends nothing), then newer, current, unreachable and unsafe replies show the
  * right result. Open release page hands the browser only Volt's release page (intercepted); when the reply lists the
- * release's own volt-<version>.apk, Download hands the browser exactly that file, and nothing else.
+ * release's own volt-<version>.apk, Download hands the browser exactly that file, and nothing else. Last, the automatic
+ * check's "Update available" notice is tapped while Volt's activity is not running (noticeColdStart): Settings opens with
+ * the Checking dialog, which outlasts the scooter service binding (#523 review, finding 1), then the result and Download.
+ * -e mode notice-no-nearby runs only that, without Nearby devices permission (the runner grants none), where no bind is
+ * coming and the check runs at once.
  */
 public final class UpdateCheckValidation extends Instrumentation {
     private static final String PAGE = "https://github.com/JJRicks/volt/releases/tag/v9.9.9";
@@ -49,12 +53,31 @@ public final class UpdateCheckValidation extends Instrumentation {
     private final List<String> requests = new CopyOnWriteArrayList<>(), agents = new CopyOnWriteArrayList<>();
     private final AtomicReference<String> reply = new AtomicReference<>(""), opened = new AtomicReference<>();
     private Field fetcher; private Object original;
+    /** While set, GitHub's stand-in holds its reply until the latch opens (the Checking dialog stays up meanwhile). */
+    private final AtomicReference<java.util.concurrent.CountDownLatch> hold = new AtomicReference<>();
+    /** -e mode notice-no-nearby: only the notice's check from a cold start, without Nearby devices permission. */
+    private static final String NOTICE_NO_NEARBY = "notice-no-nearby";
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
-            admit();
+            String mode = arguments.getString("mode", "all");
+            require(mode.equals("all") || mode.equals(NOTICE_NO_NEARBY), "Unknown -e mode " + mode + " (all or " + NOTICE_NO_NEARBY + ")");
+            boolean nearby = !mode.equals(NOTICE_NO_NEARBY);
+            admit(nearby);
+            if (!nearby) {
+                // Consent was given when the automatic check was turned on: the notice only comes after that.
+                main(() -> {
+                    prefs("app_settings").edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
+                            .putString("theme", arguments.getString("theme", "dark")).putBoolean("update_check_consented", true).commit();
+                    OnboardingScreen.markDone(getTargetContext());
+                });
+                stubGitHub(); watchBrowser();
+                noticeColdStart(false);
+                result.putString("result", "PASS");
+                return;
+            }
             main(() -> {
                 prefs("app_settings").edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                         .putString("theme", arguments.getString("theme", "dark")).putString("last_page", "more").putString("more_section", "About").commit();
@@ -66,12 +89,7 @@ public final class UpdateCheckValidation extends Instrumentation {
             stubGitHub();
             activity = (MainActivity) startActivitySync(new Intent(Intent.ACTION_MAIN).setClass(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready");
-            addMonitor(new ActivityMonitor() {
-                @Override public ActivityResult onStartActivity(Intent intent) {
-                    if (!Intent.ACTION_VIEW.equals(intent.getAction())) return null;
-                    opened.set(String.valueOf(intent.getData())); return new ActivityResult(0, null);
-                }
-            });
+            watchBrowser();
             // Check for updates sat in More's own Updates section, in the menu. Since part 11 (#392) More is Settings, reached
             // from Home by the rider's taps, and Updates is its own row there (settings-updates, with the automatic check's
             // state): the row opens the Updates sheet that holds the automatic check's switch and Check for updates. The
@@ -134,6 +152,8 @@ public final class UpdateCheckValidation extends Instrumentation {
             require(text(dialogView(), "Download") == null, "A foreign APK was offered");
             press("Open release page"); settle();
             require(PAGE.equals(opened.get()) && showingCount() == 0, "A foreign APK did not fall back to the release page");
+
+            noticeColdStart(true);
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -143,6 +163,61 @@ public final class UpdateCheckValidation extends Instrumentation {
             try { if (activity != null) main(() -> activity.finish()); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
+    }
+
+    /** The browser's views (Open release page, Download) are intercepted: what they would open is kept in opened. */
+    private void watchBrowser() {
+        addMonitor(new ActivityMonitor() {
+            @Override public ActivityResult onStartActivity(Intent intent) {
+                if (!Intent.ACTION_VIEW.equals(intent.getAction())) return null;
+                opened.set(String.valueOf(intent.getData())); return new ActivityResult(0, null);
+            }
+        });
+    }
+
+    /**
+     * The automatic check's "Update available" notice tapped while Volt's activity is not running (UpdateCheckJob's tap:
+     * MainActivity with its extra, a new activity). Settings opens with the Checking dialog, GitHub's reply held back; the
+     * dialog is still up once the scooter service has bound and the page settled (with Nearby devices; the bind rebuilds
+     * Settings, which closed it and dropped the result before, #523 review, finding 1) or at once without it (no bind is
+     * coming, the service stays unbound); then the reply: the new release, and Download opens its APK. One request.
+     */
+    private void noticeColdStart(boolean nearby) throws Exception {
+        sheet = null;
+        if (activity != null) {
+            MainActivity old = activity; activity = null;
+            main(old::finish);
+            await(old::isDestroyed, "Volt's activity did not close before the notice");
+        }
+        java.util.concurrent.CountDownLatch gate = new java.util.concurrent.CountDownLatch(1); hold.set(gate);
+        try {
+            reply.set(releaseWithApk("v9.9.9", APK)); opened.set(null);
+            int asked = requests.size();
+            Intent notice = new Intent(Intent.ACTION_MAIN).setClass(getTargetContext(), MainActivity.class)
+                    .putExtra("volt_update_found", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity = (MainActivity) startActivitySync(notice);
+            String where = nearby ? "with Nearby devices" : "without Nearby devices";
+            await(() -> onSettings() && showing("Checking for updates"), "The notice's tap " + where + " did not open Settings with the Checking dialog");
+            if (nearby) await(() -> activity.service() != null, "The scooter service did not bind after the notice's tap");
+            settle(); SystemClock.sleep(800); settle();
+            require(onSettings() && showing("Checking for updates") && text(dialogView(), "Asking GitHub for the latest release…") != null,
+                    "The Checking dialog did not outlast " + (nearby ? "the service binding" : "Settings settling") + " after the notice's tap " + where);
+            if (!nearby) require(activity.service() == null, "The scooter service bound without Nearby devices permission");
+            screenshot(nearby ? "notice-checking" : "notice-checking-no-nearby");
+            gate.countDown();
+            await(() -> showing("Volt 9.9.9 is available"), "The notice's check " + where + " never showed its result");
+            require(requests.size() == asked + 1, "The notice's check " + where + " asked GitHub " + (requests.size() - asked) + " times, not once");
+            require(text(dialogView(), "Download") != null, "The notice's result " + where + " offers no Download");
+            settle(); SystemClock.sleep(600); screenshot(nearby ? "notice-available" : "notice-available-no-nearby");
+            press("Download"); settle();
+            require(APK.equals(opened.get()) && showingCount() == 0, "Download after the notice " + where + " did not open the release's APK");
+        } finally { hold.set(null); gate.countDown(); }
+    }
+    /** Settings (MoreScreen) is the page on screen. */
+    private boolean onSettings() {
+        AtomicReference<Boolean> on = new AtomicReference<>(false);
+        main(() -> on.set(HubPages.SETTINGS.equals(field(activity, "selectedPage")) && field(activity, "screen") instanceof MoreScreen));
+        return on.get();
     }
 
     private String installed() {
@@ -169,6 +244,8 @@ public final class UpdateCheckValidation extends Instrumentation {
         fetcher.set(null, Proxy.newProxyInstance(loader, new Class<?>[]{type}, (proxy, method, args) -> {
             if (!method.getName().equals("get")) return method.getName().equals("hashCode") ? 1 : method.getName().equals("equals") ? proxy == args[0] : "stub";
             requests.add((String) args[0]); agents.add((String) args[1]);
+            java.util.concurrent.CountDownLatch gate = hold.get();
+            if (gate != null) gate.await(20, java.util.concurrent.TimeUnit.SECONDS);
             String body = reply.get(); if (body == null) throw new java.io.IOException("offline");
             return body;
         }));
@@ -222,13 +299,15 @@ public final class UpdateCheckValidation extends Instrumentation {
         return null;
     }
 
-    private void admit() {
+    private void admit(boolean nearby) {
         String hardware = Build.HARDWARE.toLowerCase(Locale.ROOT);
         require(hardware.contains("ranchu") || hardware.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Refusing a physical phone");
         for (String name : new String[]{"app_settings", "profiles", "scooter"}) require(prefs(name).getAll().isEmpty(), "Refusing existing private preferences");
         File[] files = getTargetContext().getFilesDir().listFiles();
         require(files != null && files.length == 0 && getTargetContext().databaseList().length == 0, "Refusing existing private data");
-        require(getTargetContext().checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
+        if (nearby) require(getTargetContext().checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED, "Grant Nearby permission on the emulator first");
+        else for (String permission : new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT})
+            require(getTargetContext().checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED, "-e mode " + NOTICE_NO_NEARBY + " needs Nearby permission not granted (" + permission + " is)");
     }
     private void screenshot(String label) throws Exception {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "update-check-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory unavailable");
