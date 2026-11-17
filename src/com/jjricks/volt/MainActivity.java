@@ -102,7 +102,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private Ui design;
     private FoldMonitor fold;
     private FrameLayout root,pageFrame;
-    /** The column under the window's top: the page header, then pageFrame (the page's scroll and the dock). */
+    /**
+     * The column under the window's top: the page header, then pageFrame (the page's scroll and the dock). On the wide
+     * Home's two panes, the page pane's column (rightPage): its header, then pageFrame with the page's scroll.
+     */
     private LinearLayout pageContent;
     private ScrollView scroll;
     private AppScreen screen;
@@ -201,7 +204,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View pageHeader;
     /**
      * The header's own rows (back link, connection line, title): pageHeader itself, except in tabletop posture, where
-     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them).
+     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them). On two panes, the page
+     * pane's header (null on Home there).
      */
     private View pageHeaderRows;
     /** On Search in tabletop posture, the pane above the hinge and the spacer over the hinge (fitTabletopSearch); else null. */
@@ -766,7 +770,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         built[0]=panes;
         panes.setPaddingRelative(design.dp(24),0,design.dp(24-PANE_BAR_DP),0);
         content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
-        pageFrame=right;
         fillPagePane(args);
     }
     /** The page pane's scroll bar room at its end (dp): the bar sits beside the cards, not over their edges. */
@@ -779,14 +782,18 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** View tags of the wide Home's panes. */
     static final String TAG_SCOOTER_PANE="hub-scooter-pane",TAG_PAGE_PANE="hub-page-pane";
-    /** Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller. */
+    /**
+     * Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller, in a
+     * frame of its own under the header, as on one pane (pageContent, pageHeaderRows, pageFrame), so Search steps the
+     * pane's header rows aside and a page's connection line glides with the page under it.
+     */
     private void fillPagePane(HubNav.Args args){
         rightPage.removeAllViews();
         // The old page's connection line goes with its header; Home in the page pane has none (the scooter pane shows the state).
-        pageHeader=null;liveStatsTitle=null;connectionTitle=null;
+        pageHeader=null;pageHeaderRows=null;liveStatsTitle=null;connectionTitle=null;pageContent=rightPage;
         if(HubPages.HOME.equals(selectedPage))connectionLinePage=null;
         LinearLayout header=HubPages.HOME.equals(selectedPage)?null:makePaneHeader();
-        if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;}
+        if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}
         paneHosted=true;
         try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
@@ -802,7 +809,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         // The bar draws in the scroller's end padding, beside the cards (on a phone it sits in the page margin).
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;
-        rightPage.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+        rightPage.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
     }
     /**
      * Another page in the wide Home's page pane, sliding in by depth; the scooter pane stays as it is. The page's own lock

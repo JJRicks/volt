@@ -737,6 +737,11 @@ public final class HubSearchTest {
         // keeps hidden it changes unseen, with no fade or glide of the results under it.
         check(main.contains("&&!sheetShowing()&&headerRowsShown();") && main.contains("private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}"),
                 "the connection line does not glide behind Search's hidden header");
+        // The wide Home's page pane (part 13) as one pane: its header is the rows Search steps aside, and the page's
+        // scroller sits in a frame of its own under it, so the line glides there too and behind Search it changes unseen.
+        check(main.contains("if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}")
+                && main.contains("pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));")
+                && main.contains("connectionTitle=null;pageContent=rightPage;"), "the page pane's header rows and page frame are a one-pane page's");
 
         // A result row's content on a phone page: the window less the page's 18 dp gutters, the card's 14 dp padding and
         // the value's 10 dp gap; a row with a chevron also less 23 dp. On the wide page (725 dp) the gutters are 24 dp.
