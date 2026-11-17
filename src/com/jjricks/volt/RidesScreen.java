@@ -291,9 +291,14 @@ public final class RidesScreen implements AppScreen {
         if (wide) Motion.scrollBeforeDraw(scroll, wideListScroll);
     }
     /** Shows one ride: selected in the wide panes, else its details page (a page argument, HubNav.Args.ride). */
-    void openRide(String id) {
+    void openRide(String id) { openRide(id, null); }
+    /**
+     * openRide; onClose runs when the owner closes the details page (Back or Done), not when it goes with the screen or
+     * a deleted ride (HubNav.Args.backAfterRide). The wide panes have no details page to close.
+     */
+    void openRide(String id, Runnable onClose) {
         if (closed || id == null || mode == SENSORS) return;
-        if (wide) selectRide(id); else showDetails(id);
+        if (wide) selectRide(id); else showDetails(id, onClose);
     }
     /** A shortcut into Back up & restore with only Rides selected. */
     private void rideBackups() { host.dataBackup(null, BackupRegistry.RIDES); }
@@ -987,14 +992,17 @@ public final class RidesScreen implements AppScreen {
         } catch (java.util.concurrent.RejectedExecutionException screenClosed) { comparisonLoading = false; }
         return null;
     }
-    private void showDetails(String id) {
+    private void showDetails(String id) { showDetails(id, null); }
+    private void showDetails(String id, Runnable onClose) {
         try {
             RideStore.Summary ride = service.rides.get(id); if (ride == null) { host.toast(T.ridesToastRecordingUnavailable()); return; }
             ScrollView scroller = new MapTouchScroll(); LinearLayout body = vertical();
             body.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(20)); scroller.addView(body);
             AlertDialog[] holder = new AlertDialog[1];
             buildOverview(body, ride, service.rides.trend(ride.id, RideStore.MAX_TREND_POINTS), () -> { if (holder[0] != null) holder[0].dismiss(); });
-            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).setPositiveButton(T.commonDone(), null).create();
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller)
+                    .setPositiveButton(T.commonDone(), onClose == null ? null : (d, which) -> onClose.run()).create();
+            if (onClose != null) dialog.setOnCancelListener(d -> onClose.run());
             holder[0] = dialog; show(dialog, PAGE, null);
         } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
     }
@@ -1535,16 +1543,28 @@ public final class RidesScreen implements AppScreen {
             content.addView(new HeadingTag(ui.sectionLabel(title), chip)); nextRideTag = chip;
         }
         LinearLayout sensors = ui.groupCard();
-        switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
+        switchRow(sensors, "pin", gpsRouteTitle(), T.ridesGpsRouteSub(), "phone_gps", true);
         ui.divider(sensors);
         android.hardware.SensorManager sensorManager = host.activity().getSystemService(android.hardware.SensorManager.class);
         boolean barometer = sensorManager != null && sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_PRESSURE) != null;
-        infoRow(sensors, "wave", T.ridesBarometer(), null, barometer ? T.ridesBarometerAuto() : T.ridesBarometerGps());
+        infoRow(sensors, "wave", barometerTitle(), null, barometer ? T.ridesBarometerAuto() : T.ridesBarometerGps());
         ui.divider(sensors);
-        switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
+        switchRow(sensors, "motion", motionTitle(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
         return close;
+    }
+    /** The phone sensors' row titles, shown on their rows and named by search (searchRowTitles). */
+    private static String gpsRouteTitle() { return T.ridesGpsRoute(); }
+    private static String barometerTitle() { return T.ridesBarometer(); }
+    private static String motionTitle() { return T.ridesMotionSensors(); }
+    /**
+     * The names the phone sensors' rows show, in the current language, on Recording settings (GPS route, Barometer
+     * elevation, Motion sensors), for that page's own search result (HubSearch.Gates.pageRowTitles); empty for any other
+     * page.
+     */
+    static String[] searchRowTitles(String page) {
+        return HubPages.RIDE_RECORDING.equals(page) ? new String[] {gpsRouteTitle(), barometerTitle(), motionTitle()} : new String[0];
     }
     /** The orange LAB badge More uses, placed after a row or section title. */
     private TextView labBadge() {
@@ -2108,7 +2128,8 @@ public final class RidesScreen implements AppScreen {
             show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(T.ridesCompareSheetRides(), T.ridesCompareSheetTitle())).setView(scroller).setPositiveButton(T.commonDone(), null).create(), PAGE, null);
         } catch (IOException e) { host.toast(T.ridesToastCompareFailed()); }
     }
-    private static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
+    /** A ride's name: the owner's, or the default name (also Hub search's ride results). */
+    static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
     private View compareName(RideStore.Summary s) {
         LinearLayout column = vertical(); column.setGravity(Gravity.END);
         TextView name = ui.text(nameOf(s), 14, true); name.setGravity(Gravity.END); name.setMaxLines(2); name.setEllipsize(TextUtils.TruncateAt.END);
