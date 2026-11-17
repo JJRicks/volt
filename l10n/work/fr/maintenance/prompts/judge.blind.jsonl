@@ -1,0 +1,2 @@
+{"key": "maintenance_off_explain", "verdict": "pick", "reason": "Faithful and natural; \"à faire\" matches the shipped maintenance status.", "pick": "A"}
+{"key": "maintenance_channel_detail", "verdict": "merge", "reason": "Path uses the chosen subject Atelier and the shipped Maintenance page Entretien; \"une fois\" keeps the once-only meaning.", "text": "Vérifications définies dans « Atelier › Entretien », une fois à l’échéance de chacune"}

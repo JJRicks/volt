@@ -1,0 +1,4 @@
+{"key": "main_find_title", "verdict": "pick", "reason": "Same verb as « Trouver à proximité ».", "pick": "A"}
+{"key": "main_find_hidden", "verdict": "pick", "reason": "Faithful, correct plurals.", "pick": "A"}
+{"key": "main_find_confirm_title", "verdict": "pick", "reason": "\"en tant que\" reads clearly as connecting as the saved scooter.", "pick": "B"}
+{"key": "main_find_confirm_body", "verdict": "pick", "reason": "Keeps all facts: the key saved for that scooter, a scooter with no owner (new or reset) would take it, pick only your own with the phone next to it; no article before the placeholder.", "pick": "C"}
