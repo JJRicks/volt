@@ -38,22 +38,57 @@ final class HomeQuickEditor {
     }
 
     /**
-     * An action's name in the Quick actions row ("Cruise" for cruise control, "Charge done by" whole: the row has the
-     * room Clean's circles lack, QuickAccessGrid.listName), or its id if unknown.
+     * An action's round-button ladder (QuickAccessGrid.roundNames, the names Clean's button tries in order), or its id
+     * alone if unknown.
      */
-    static String roundName(String id) {
+    static String[] roundNames(String id) {
         QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        return entry == null ? id : QuickAccessGrid.listName(entry);
+        return entry == null ? new String[] {id} : QuickAccessGrid.roundNames(entry);
     }
 
     /**
-     * The four names in order: "Ride, Record, Charge done by, Cruise", joined by the language's list separator
-     * (HubText.listSeparator).
+     * The four names in order as Clean's round buttons show them (the contributor's decision, 15 Nov, #383): "Ride,
+     * Record, Charge by, Cruise", each button's first-choice name (QuickActionLayout.firstNames), joined by the language's
+     * list separator (HubText.listSeparator).
      */
     static String summary(List<String> ids) {
+        List<String[]> ladders = new ArrayList<>();
+        for (String id : ids) ladders.add(roundNames(id));
+        return QuickActionLayout.firstNames(HubText.listSeparator().render(), ladders);
+    }
+
+    /**
+     * The four names TalkBack reads for the line: each action's full name, as its round button and the editing list
+     * speak it ("Charge done by" rather than "Charge by", "Cruise control" rather than "Cruise"), so a short name is never
+     * all a listener hears. Riding mode is read by the name the line and its round button show (spokenName). Joined by the
+     * language's list separator.
+     */
+    static String spokenSummary(List<String> ids) {
         List<String> names = new ArrayList<>();
-        for (String id : ids) names.add(roundName(id));
+        for (String id : ids) names.add(spokenName(id).toString());
         return String.join(HubText.listSeparator().render(), names);
+    }
+
+    /**
+     * An action's name in the line's spoken summary: its full name (fullName), except riding mode, read by its round
+     * button's name (HubText.quickActionRoundName: "Ride" as riding, "Condução", "Conducción"). Its entry's own label is
+     * the Widgets RIDE pill's, which some languages give as a trip ("VIAGEM", "VIAJE"), next to Rides ("Viagens").
+     */
+    private static CharSequence spokenName(String id) {
+        Msg round = HomeQuickActions.RIDING.equals(id) ? HubText.quickActionRoundName(id) : null;
+        return round != null ? round.render() : fullName(id);
+    }
+
+    /**
+     * An action's full name as the editing list shows and speaks it: the entry's own name, with the Widgets pill's
+     * capitals ("RIDE") read as the name the Home style row and Clean show ("Ride"); its id if unknown.
+     */
+    private static CharSequence fullName(String id) {
+        QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
+        CharSequence label = entry == null ? id : entry.label().render();
+        String round = entry == null ? null : QuickAccessGrid.roundName(entry);
+        if (round != null && !round.contentEquals(label) && round.equalsIgnoreCase(label.toString())) label = round;
+        return label;
     }
 
     /**
@@ -64,10 +99,8 @@ final class HomeQuickEditor {
         Ui ui = host.ui();
         String id = ids.get(index);
         QuickAccessActions.Entry entry = HomeQuickActions.entry(id);
-        CharSequence label = entry == null ? id : entry.label().render();
         // The Widgets pill's capitals ("RIDE") read as the same name the Home style row and Clean show ("Ride").
-        String round = entry == null ? null : QuickAccessGrid.roundName(entry);
-        if (round != null && !round.contentEquals(label) && round.equalsIgnoreCase(label.toString())) label = round;
+        CharSequence label = fullName(id);
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setTag(CleanHomeScreen.TAG_SLOT + (index + 1));

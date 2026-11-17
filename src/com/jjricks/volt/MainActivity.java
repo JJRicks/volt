@@ -82,6 +82,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
+    /** The navigation bar's height the dock's sheet runs on under (HubPages.dockInset: never the keyboard's), px. */
+    private int dockInset;
     /**
      * The wide Clean Home (hub layout plan 1.11, PR 13): the scooter pane (homeScreen, built once per rebuild and kept while
      * pages change beside it) and the page pane's column (rightPage: the shown page's header and screen); both null on every
@@ -586,16 +588,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);tabletopUpper=null;tabletopSpacer=null;
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
-        getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);
+        getWindow().setStatusBarColor(design.bg);HubDock.navigationBar(getWindow(),design.bg,false);
         root.setPadding(leftInset,topInset,rightInset,bottomInset);
         root.setOnApplyWindowInsetsListener((v,insets)->{
-            int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
-            else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
+            int l,t,r,b,bars;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()).bottom;}
+            else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();bars=insets.getStableInsetBottom();}
+            // The dock runs on under the navigation bar only, never the keyboard (HubPages.dockInset): with the keyboard up it sits on it, as the page frame does.
+            dockInset=HubPages.dockInset(bars,b>bars?b:0);
             boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
             // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
             // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
             boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
-            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;
+            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;if(dock!=null)dock.setInset(dockInset);
             if(keyboardOnly)fitTabletopSearch();
             else if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
@@ -678,11 +682,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
-            // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
+            // Widgets Home: the dock sits over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
-            pageFrame.addView(dock.view(),dock.layoutParams());
+            // Its sheet runs down to the screen's bottom edge, under the navigation bar (the contributor's decision, 15 Nov):
+            // it goes in the root, over the page frame, reaching past the root's bottom padding (the navigation inset), which
+            // the root draws through. While it shows, the bar is clear over it (HubDock.navigationBar, the one rule).
+            root.setClipToPadding(false);
+            root.addView(dock.view(),dock.layoutParams(dockInset));
             // Pinned to the bottom (the contributor's decision, 14 Nov): it never moves for the Lock bar, one of the rider's own
             // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
             dock.padScroller(scroll,scroll.getPaddingBottom());

@@ -104,14 +104,56 @@ public final class HubPlanTextTest {
         for (String other : new String[]{"lights", "controls", "rides", F + "headlight", F + "hill_start_assist", "cruise_control",
                 F + "charge_done_by", "feature", F})
             check(HubText.quickActionShortName(other) == null, "no round name for " + other);
-        // Clean's four default names under the circles, joined as a list (Settings › Home style's row joins the names
-        // before part 10's short ones, "Charge done by" whole: QuickAccessGrid.listName).
+        // Clean's four default names under the circles, joined as a list.
         String line = String.join(HubText.listSeparator().render(), Arrays.asList(
                 HubText.quickActionRoundName(HomeQuickActions.RIDING).render(), HubText.quickActionShortName(HomeQuickActions.RECORD).render(),
                 HubText.quickActionShortName("charge_done_by").render(), HubText.quickActionShortName(F + "cruise_control").render()));
         equal("Ride, Record, Charge by, Cruise", line, "Clean's four round names as a list");
+        homeStyleLine();
         equal("Search settings", HubText.quickAccessSearch().render(), "Quick access search tile");
         equal("Search", HubText.quickAccessSearchShort().render(), "Quick access search tile, short rung");
+    }
+
+    /**
+     * The first names of Clean's round buttons for these actions, as QuickAccessGrid.roundNames puts them first: part
+     * 10's short name, else Clean's own round name (Ride). Every action in the sets below has one or the other.
+     */
+    private static String[] buttonLadder(String id) {
+        Msg shortName = HubText.quickActionShortName(id), own = HubText.quickActionRoundName(id);
+        check(shortName != null || own != null, "a round name for " + id);
+        return new String[] {shortName != null ? shortName.render() : own.render(), null};
+    }
+
+    private static java.util.List<String[]> ladders(java.util.List<String> ids) {
+        java.util.List<String[]> out = new java.util.ArrayList<>();
+        for (String id : ids) out.add(buttonLadder(id));
+        return out;
+    }
+
+    /**
+     * Settings › Home style's Quick actions line lists the names the round buttons show (the contributor's decision, 15
+     * Nov, #383; QuickActionLayout.firstNames over each button's ladder), for both quick-action sets and for the
+     * scooter-aware defaults (HomeQuickActions.defaults: Charge done by where scheduled charging exists, else alerts).
+     */
+    private static void homeStyleLine() {
+        String separator = HubText.listSeparator().render();
+        equal("Ride, Record, Charge by, Cruise", QuickActionLayout.firstNames(separator,
+                ladders(Arrays.asList(HomeQuickActions.RIDING, HomeQuickActions.RECORD, "charge_done_by", F + "cruise_control"))),
+                "Home style's line, Clean's first set");
+        equal("Alerts, Recovery, Overspeed, Descent", QuickActionLayout.firstNames(separator,
+                ladders(Arrays.asList(HomeQuickActions.CHARGE_ALERTS, F + "energy_recovery", F + "overspeed_control", F + "hill_descent_control"))),
+                "Home style's line, the other set");
+        java.util.function.Predicate<String> cruise = "cruise_control"::equals;
+        equal("Ride, Record, Charge by, Cruise", QuickActionLayout.firstNames(separator, ladders(HomeQuickActions.defaults(true, false, cruise))),
+                "Home style's line for a scooter with scheduled charging (the UT5 MAX's defaults)");
+        equal("Ride, Record, Alerts, Cruise", QuickActionLayout.firstNames(separator, ladders(HomeQuickActions.defaults(false, true, cruise))),
+                "Home style's line for a scooter with charge alerts instead");
+        equal("Ride, Record, Cruise, Traction", QuickActionLayout.firstNames(separator,
+                ladders(HomeQuickActions.defaults(false, false, k -> k.equals("cruise_control") || k.equals("traction_control")))),
+                "Home style's line for a scooter with neither: two controls");
+        // Never the longer names the row showed before ("Charge done by", "Cruise control").
+        String first = QuickActionLayout.firstNames(separator, ladders(HomeQuickActions.defaults(true, false, cruise)));
+        check(!first.contains("Charge done by") && !first.contains("Cruise control"), "Home style's line uses the buttons' short names: " + first);
     }
 
     /** Just back: "Battery", the ride time as the mock-up writes it, and one spoken sentence. */
@@ -262,7 +304,19 @@ public final class HubPlanTextTest {
         check(justBack.contains("spoken = HubText.justBackSpoken(minutes, spokenDistance).render();"), "Just back is spoken as one sentence");
         String editor = read("src/com/jjricks/volt/HomeQuickEditor.java");
         check(editor.contains("String.join(HubText.listSeparator().render(), names)"), "Home style's line joins with the list separator");
-        check(editor.contains("QuickAccessGrid.listName(entry)"), "Home style's row keeps the names before part 10's short ones");
+        // Settings › Home style's line (15 Nov, #383): each button's own ladder (QuickAccessGrid.roundNames, which the round
+        // buttons draw from) through QuickActionLayout.firstNames, so it lists what the buttons show; TalkBack reads the
+        // full names the buttons speak.
+        check(editor.contains("QuickAccessGrid.roundNames(entry)")
+                && editor.contains("return QuickActionLayout.firstNames(HubText.listSeparator().render(), ladders);"),
+                "Home style's row lists the names the round buttons show (part 10's short ones first)");
+        check(editor.contains("names.add(spokenName(id).toString());") && editor.contains("return round != null ? round.render() : fullName(id);"),
+                "Home style's row is read by the actions' full names");
+        check(editor.contains("Msg round = HomeQuickActions.RIDING.equals(id) ? HubText.quickActionRoundName(id) : null;"),
+                "Home style's row reads riding mode by its round button's name, not the RIDE pill's (a trip in pt and es)");
+        String style = read("src/com/jjricks/volt/HomeStyleScreen.java");
+        check(style.contains("quickNames.setContentDescription(spoken)") && style.contains("HomeQuickEditor.spokenSummary(ids)"),
+                "Home style's line speaks the full names");
         String grid = read("src/com/jjricks/volt/QuickAccessGrid.java");
         // Under QuickActionLayout's ladder part 10's short name is tried first, before the names that were there before it.
         check(grid.contains("Msg shortName = HubText.quickActionShortName(entry.id);")

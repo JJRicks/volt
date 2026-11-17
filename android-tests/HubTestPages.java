@@ -363,8 +363,9 @@ public final class HubTestPages {
     }
 
     /**
-     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, still, and pinned to the bottom of the page
-     * frame (the contributor's decision, 14 Nov, #383: it never lifts over the Lock bar or steps aside for it). Waits until
+     * Widgets Home's dock as a rider finds it before a tap: on Home, shown, still, and pinned to the bottom, its sheet
+     * reaching the screen's bottom edge with its items above the navigation bar (pinnedProblem; the contributor's
+     * decisions, 14 and 15 Nov, #383: it never lifts over the Lock bar or steps aside for it). Waits until
      * its place has held for several reads (Home's cards may still be settling) and throws when it is gone (Home's editor),
      * hidden, moved off its place, or never settles. Instrumentation thread; a no-op on a Home without a dock (Clean Home).
      */
@@ -446,13 +447,33 @@ public final class HubTestPages {
         } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion.changing", error); }
     }
 
-    /** Null when the dock sits at HubPages.dockTop in its frame (its bottom margin above the frame's bottom), else why not. Main thread. */
+    /**
+     * Null when the dock sits at HubPages.dockTop in its frame (MainActivity's root, whose bottom padding is the navigation
+     * inset): its sheet running down to the frame's (the screen's) bottom edge, under the navigation bar, and its items
+     * kept above that bar by HubPages.dockBottomPadding (the contributor's decision, 15 Nov, #383); with the keyboard up,
+     * down to the keyboard's top, its items as far above it (HubPages.dockInset); else why not. Main thread.
+     */
     private static String pinnedProblem(View dock) {
         if (!(dock.getParent() instanceof View) || !(dock.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return "Widgets Home's dock has no frame";
         View frame = (View) dock.getParent();
-        int margin = ((ViewGroup.MarginLayoutParams) dock.getLayoutParams()).bottomMargin;
-        int want = HubPages.dockTop(frame.getHeight() - frame.getPaddingBottom(), dock.getHeight(), margin);
-        return dock.getTop() == want ? null : "Widgets Home's dock is not pinned to the bottom (top " + dock.getTop() + " px, pinned " + want + " px)";
+        // The navigation inset the sheet runs on under: the bar's, never the keyboard's (HubPages.dockInset); with the
+        // keyboard up the frame's padding is the keyboard's and the dock ends on it.
+        int inset = frame.getPaddingBottom();
+        android.view.WindowInsets insets = frame.getRootWindowInsets();
+        if (android.os.Build.VERSION.SDK_INT >= 30 && insets != null) {
+            int bars = insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout()).bottom;
+            int all = insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout() | android.view.WindowInsets.Type.ime()).bottom;
+            inset = HubPages.dockInset(bars, all > bars ? all : 0);
+        }
+        int edge = frame.getHeight() - frame.getPaddingBottom() + inset;
+        int want = HubPages.dockTop(edge, dock.getHeight());
+        if (dock.getTop() != want) return "Widgets Home's dock is not pinned to the bottom edge (top " + dock.getTop() + " px, pinned " + want + " px)";
+        if (dock.getBottom() != edge) return "Widgets Home's dock does not reach the screen's bottom edge (bottom " + dock.getBottom() + " px, edge " + edge + " px)";
+        float density = dock.getResources().getDisplayMetrics().density;
+        int padding = HubPages.dockBottomPadding(Math.round(HubPages.DOCK_PADDING_DP * density), Math.round(HubPages.DOCK_LIFT_DP * density), inset);
+        if (dock.getPaddingBottom() != padding) return "Widgets Home's dock does not keep its items above the navigation bar (bottom padding "
+                + dock.getPaddingBottom() + " px, want " + padding + " px over a " + inset + " px inset)";
+        return null;
     }
 
     /**
