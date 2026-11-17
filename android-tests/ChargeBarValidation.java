@@ -89,7 +89,7 @@ public final class ChargeBarValidation extends Instrumentation {
                 verifyRtl();
                 verifyReducedMotion();
                 verifyAlert();
-                verifyUntested();
+                verifyNoUntestedNote();
                 verifyKeys();
             }
             assertNoRadio();
@@ -406,22 +406,25 @@ public final class ChargeBarValidation extends Instrumentation {
         checks.add("Simulated " + chosen + ": the mark is the charge alert, spoken 'Charge alert, 80%'; in simulation a drag to 85 is held by the mark and never saved (the alert settings keep 80) and writes no limit; alert off, no mark");
     }
 
-    /** The OEM-mapped model the tests use (24431): the Charge limit row says "Untested here"; so does the bar, shown and spoken. */
-    private void verifyUntested() throws Exception {
+    /**
+     * The OEM-mapped model the tests use (24431): since the owner dropped "Untested here" (Nov 17 2026), neither the Charge
+     * limit row nor the bar carries a note there, shown or spoken, at rest, focused, pending or dragged.
+     */
+    private void verifyNoUntestedNote() throws Exception {
         main(() -> { service.ble.setSimulationModel("24431"); service.ble.setSimulationCharging(true); service.ble.tickSimulation(); });
         settle();
         redrawUntil(() -> shownAtRest() && bar().kind == ChargeBarDrag.LIMIT && bar().allowed.length > 0 && bar().gate == ChargeBarDrag.Gate.OK, "The mapped model has no draggable limit mark");
-        String untested = T.mainRowUntested();
+        String gone = T.mainRowUntested();
         int[] from = new int[1];
         main(() -> {
             ChargeBar b = bar();
-            require(untested.equals(b.note), "The bar's note on the mapped model is " + b.note + ", not the row's " + untested);
+            require(b.note == null, "The bar's note on the mapped model is " + b.note + ", not none");
             String state = Build.VERSION.SDK_INT >= 30 ? String.valueOf(b.getStateDescription()) : String.valueOf(b.getContentDescription());
-            require(state.toLowerCase(java.util.Locale.ROOT).contains(untested.toLowerCase(java.util.Locale.ROOT)), "The note is not spoken: '" + state + "'");
+            require(!state.toLowerCase(java.util.Locale.ROOT).contains(gone.toLowerCase(java.util.Locale.ROOT)), "The old note is spoken: '" + state + "'");
             from[0] = Math.round(b.drawn);
         });
         writes.clear(); toasts.clear();
-        // Keyboard focus: the value and the row's note show before any key writes.
+        // Keyboard focus: the value shows, with no note, before any key writes.
         // Leaving touch mode goes through the window manager and reaches the window later on a slow host.
         setInTouchMode(false); waitForIdleSync();
         try {
@@ -436,14 +439,14 @@ public final class ChargeBarValidation extends Instrumentation {
             settle();
             main(() -> {
                 ChargeBar b = bar();
-                require(!b.labelBox.isEmpty() && b.labelText(Math.round(b.drawn)).contains(untested), "Focused, the bar does not show its value and note: " + b.labelBox);
+                require(!b.labelBox.isEmpty() && !b.labelText(Math.round(b.drawn)).contains(gone), "Focused, the bar does not show its value alone: " + b.labelBox);
                 require(writes.isEmpty(), "Focusing the bar wrote " + writes);
             });
-            shot("untested-focused");
+            shot("mapped-focused");
             main(() -> bar().clearFocus()); settle();
             main(() -> require(bar().labelBox.isEmpty(), "The label stayed after focus left"));
         } finally { setInTouchMode(true); waitForIdleSync(); }
-        // A pending write keeps the note in the spoken state, as the label keeps it.
+        // A pending write is spoken as confirming, with no note, as the label shows it.
         trap = "hold";
         try {
             int up = from[0] >= 100 ? -1 : 1;
@@ -454,9 +457,9 @@ public final class ChargeBarValidation extends Instrumentation {
                 require(b.writePending(), "The held write is not pending");
                 String state = Build.VERSION.SDK_INT >= 30 ? String.valueOf(b.getStateDescription()) : String.valueOf(b.getContentDescription());
                 String lower = state.toLowerCase(java.util.Locale.ROOT);
-                require(lower.contains(T.mainRowConfirmingPart().toLowerCase(java.util.Locale.ROOT).trim()) && lower.contains(untested.toLowerCase(java.util.Locale.ROOT)),
-                        "Pending, the spoken state is '" + state + "', not confirming with the note");
-                require(b.labelText(Math.round(b.drawn)).contains(untested), "Pending, the label lost the note");
+                require(lower.contains(T.mainRowConfirmingPart().toLowerCase(java.util.Locale.ROOT).trim()) && !lower.contains(gone.toLowerCase(java.util.Locale.ROOT)),
+                        "Pending, the spoken state is '" + state + "', not confirming without a note");
+                require(!b.labelText(Math.round(b.drawn)).contains(gone), "Pending, the label shows the old note");
             });
             main(() -> { Consumer<Boolean> c = held; held = null; if (c != null) c.accept(false); });
             settle(); SystemClock.sleep(300);
@@ -468,11 +471,11 @@ public final class ChargeBarValidation extends Instrumentation {
         main(() -> {
             ChargeBar b = bar();
             String shown = b.labelText(Math.round(b.drawn));
-            require(shown.contains(untested), "The dragged value does not show the note: '" + shown + "'");
+            require(!shown.isEmpty() && !shown.contains(gone), "The dragged value shows the old note: '" + shown + "'");
             RectF inside = new RectF(0, 0, b.getWidth(), b.getHeight());
-            require(!b.labelBox.isEmpty() && inside.contains(b.labelBox), "The label with the note leaves the bar: " + b.labelBox);
+            require(!b.labelBox.isEmpty() && inside.contains(b.labelBox), "The label leaves the bar: " + b.labelBox);
         });
-        shot("untested-dragging");
+        shot("mapped-dragging");
         f.up();
         int wanted = from[0] + direction * 5;
         await(() -> !bar().writePending() && Objects.equals(service.ble.featureValue("charge_limit"), wanted), "The mapped model's drag did not set " + wanted);
@@ -480,7 +483,7 @@ public final class ChargeBarValidation extends Instrumentation {
         main(() -> { service.ble.setSimulationModel(""); service.ble.tickSimulation(); });
         redrawUntil(() -> shownAtRest() && bar().kind == ChargeBarDrag.LIMIT && bar().note == null, "Back on the UT5 MAX the note stayed");
         writes.clear(); toasts.clear();
-        checks.add("Simulated 24431 (OEM-mapped): the bar carries the Charge limit row's 'Untested here', spoken in its state and shown beside the dragged value; keyboard focus shows it before any key writes; a pending write keeps it spoken; the drag still writes once; none on the UT5 MAX");
+        checks.add("Simulated 24431 (OEM-mapped): no 'Untested here' (owner, Nov 17 2026): the bar has no note, none spoken at rest or while confirming, none beside the focused, pending or dragged value; the drag still writes once; none on the UT5 MAX");
     }
 
     /** Left and right step the focused bar as increase and decrease do, mirrored right to left, through the same commit. */

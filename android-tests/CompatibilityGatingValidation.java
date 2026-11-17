@@ -47,6 +47,7 @@ import com.jjricks.volt.OnboardingScreen;
 import com.jjricks.volt.ScooterCommands;
 import com.jjricks.volt.ScooterProfiles;
 import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.T;
 
 /**
  * Fresh disposable emulator only. Uses the developer simulator's model choices (UT5 MAX, a mapped
@@ -159,7 +160,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
      * the old single page, are on Line lights and Star lights now.
      */
     private void verifyScooterPage(String pid, String label) throws Exception {
-        int[] untested = {0};
+        int[] mapped = {0};
         Map<String, Integer> shownOn = new TreeMap<>(); Map<String, Boolean> offered = new TreeMap<>();
         /** Whether each page, opened directly, shows a row or an Experimental entry: what its link on the parent must follow. */
         Map<String, Boolean> pageShows = new TreeMap<>();
@@ -194,14 +195,15 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                     if (ut5) require(known != (feature.experimental || topSpeedRow || ScooterCommands.oemOnly(feature.key)), "UT5 MAX row set changed: " + feature.key);
                     offered.put(feature.key, known);
                     if (card.getVisibility() == View.VISIBLE) shownOn.merge(feature.key, 1, Integer::sum);
-                    // "Untested here": every OEM-mapped control on another model, never on the UT5 MAX.
+                    // No "Untested here" on any model since the owner dropped it (Nov 17 2026): an OEM-mapped control on another
+                    // model reads like any supported control, and a refused one still says why.
                     String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
-                    if (ut5 || feature.key.equals("range_algorithm")) require(!sub.contains("Untested here"), label + ": unexpected Untested caption on " + feature.key);
-                    else if (card.getVisibility() == View.VISIBLE) {
-                        boolean caption = sub.contains("Untested here"), refused = !decision.available() && !decision.blockedByRide();
+                    require(!sub.contains("Untested here"), label + ": unexpected Untested caption on " + feature.key);
+                    if (!ut5 && !feature.key.equals("range_algorithm") && card.getVisibility() == View.VISIBLE) {
+                        boolean refused = !decision.available() && !decision.blockedByRide();
                         require(decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED, label + ": shown row " + feature.key + " is not OEM-mapped");
-                        require(caption != refused && (!refused || sub.contains(decision.reasonText())), label + ": row " + feature.key + " caption \"" + sub + "\" for " + decision);
-                        if (caption) untested[0]++;
+                        require(!refused || sub.contains(decision.reasonText()), label + ": row " + feature.key + " caption \"" + sub + "\" for " + decision);
+                        if (!refused) mapped[0]++;
                     }
                 }
                 boolean any = false;
@@ -256,8 +258,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             ble.identifyModel();
             require(ble.message().contains("unavailable in simulation") && ble.state() == BleController.State.READY, label + ": Identify in simulation: " + ble.message());
         });
-        if (pid.equals("24431")) require(untested[0] > 0, label + ": no Untested here caption on the mapped model");
-        checks.add(label + ": every Scooter page follows decisions, each offered row on exactly one page (" + untested[0] + " Untested here captions)");
+        if (pid.equals("24431")) require(mapped[0] > 0, label + ": no offered OEM-mapped row on the mapped model");
+        checks.add(label + ": every Scooter page follows decisions, each offered row on exactly one page, no Untested here caption (" + mapped[0] + " offered OEM-mapped rows)");
         verifyRiderRoutes(label, pageShows);
     }
 
@@ -370,12 +372,13 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                     boolean lowStart = feature.key.equals("start_speed") && ModelRegistry.lowStartBesideOrdinary(ble.descriptor());
                     require(lowStart || !(usual.support == CapabilityResolver.Support.KNOWN_ENCODING && !usual.variant.lab), label + ": offered " + feature.key + " listed as experimental");
                     if (lowStart) require(usual.available() && !usual.allows(2) && usual.allows(3) && java.util.Arrays.equals(tried.values(), new int[]{0, 1, 2, 3}), label + ": kick-start 3–5 km/h in Scooter settings, 0–3 km/h tried here");
-                    require(status.equals("Untested on your model"), label + ": " + feature.key + " status " + status);
+                    // An untried row reads Not tried yet: no Untested on your model since Nov 17 2026 (owner).
+                    require(status.equals(T.moreLabStatusNotTried()), label + ": " + feature.key + " status " + status);
                 } else {
                     // Help verify: the official app offers it here and Volt hasn't verified it; its Scooter row is unchanged.
                     verifying.add(feature.key);
                     require(tried.evidence == CapabilityResolver.Evidence.OEM_MAPPED && !tried.variant.lab, label + ": Help verify " + feature.key + " evidence " + tried.evidence);
-                    require(status.equals("Unverified on your model"), label + ": " + feature.key + " status " + status);
+                    require(status.equals(T.moreLabStatusNotTried()), label + ": " + feature.key + " status " + status);
                 }
                 View action = (View)field(row, "action");
                 require(action != null && action.isEnabled() == ((tried.available() || tried.blockedByRide()) && ble.pending() == null), label + ": Try pill state for " + feature.key);
