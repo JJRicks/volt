@@ -198,6 +198,9 @@ STEPS += [
     inst('charge-time-sizes-412', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),
     inst('charge-time-sizes-344', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    # Home's change between parked and charging, frame by frame (Clean one pane and Widgets at 344; Clean's scooter pane of two at 725).
+    inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
     inst('reveal-motion-find-widgets', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'widgets', size='412x915'),
     inst('reveal-motion-find-clean', T + 'RevealMotionValidation', '-e', 'part', 'find', '-e', 'home', 'clean', size='412x915'),

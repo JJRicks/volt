@@ -5,13 +5,9 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.text.Layout;
 import android.view.View;
@@ -21,33 +17,30 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
- * PROTOTYPE (phase 1; the owner, 17 Nov 2026: "a sexy animation transition between regular parked mode and charging").
- * Two variants of Home's parked/charging change, behind {@link #variant}, for the owner to pick from recordings; phase 2
- * keeps one, folds it into its owners and adds a motion validation. Today's crossfade (CleanHomeScreen.show) and
- * takeover (ChargingHero.showAnimated) stay as variant 0.
+ * Home's change between parked and charging, "Plug in" (the owner, 17 Nov 2026: "a sexy animation transition between
+ * regular parked mode and charging"; the pick from two recorded prototypes). Clean Home's top area and Widgets Home's
+ * charging takeover each play it on a real change between the two only: never on a telemetry refresh, on Home opening,
+ * on a rebuild (recreation, a fold or rotation, another scooter) or with animations off, where the change is instant.
  *
- * <p>Both variants are one progress p, 0 (parked at rest) to 1 (charging at rest): everything on screen is a function
- * of p, so a quick unplug and replug turns the same animator back from where it is, with nothing snapping. Arrivals ease
- * out (Motion.STANDARD); leaving is shorter. The charging picture's pulse is held until the arrival ends.
+ * <p>Clean, arriving (about 560 ms): the parked card's photo glides and scales into the charging picture's place while
+ * the two crossfade (a copy of the photo drawn over the top area; the picture's layers transformed from the photo's
+ * box), the percentage travels from the card to its charging place and size, and the card fades away. Then the cable
+ * past the cut-out is drawn in from the screen's edge, a bright dash runs in along it to the bay, the bay lights up to the
+ * battery's percent, and the line and the readings rise in, about 55 ms apart. The bay's light fades as the charge pulse
+ * takes over; the pulse is held until the arrival ends. Leaving (about 360 ms) plays it back: the readings and the line
+ * go, the cable lets go, and the picture glides home into the card while the number flies back. Widgets' takeover opens
+ * (or closes) as before, its parts arriving in the same order once it is open.
  *
- * <p>A, "Plug in": the parked photo glides and scales into the charging picture's place while the two crossfade (an
- * overlay copy of the parked photo, the picture's layers transformed from the photo's box), the percentage travels from
- * the card to its charging place, the card fades away, the cable is drawn in from the screen's edge, a bright dash runs
- * in along it, the bay lights up to the battery's percent, then the line and the readings rise in, staggered. Leaving
- * plays it back, quicker: the cable lets go, the picture glides home into the card's photo.
- *
- * <p>B, "Charge sweep": the parked card crossfades to the charging view in place; an accent band sweeps up through the
- * scooter, the line pops in (0.92 to 1) and the readings rise in after it. Leaving is a plain quick fade.
+ * <p>Each change is one progress p, 0 (parked at rest) to 1 (charging at rest), running evenly in time; every part eases
+ * within its own share of p, so the stagger is in time too and everything on screen is a function of p. A quick unplug
+ * and replug turns the same progress back from where it is, so nothing snaps and nothing plays twice. At rest every view
+ * has no transform and full opacity, so the charging view's layout (ChargingFit, ChargePictureFit) is exactly its own.
  */
 final class ChargeTransition {
     private ChargeTransition() {}
 
-    static final int TODAY = 0, PLUG = 1, SWEEP = 2;
-    /** The prototype's switch (android-tests' ChargeTransitionDriver sets it). */
-    static volatile int variant = PLUG;
-
-    static final long A_IN_MS = 560, A_OUT_MS = 360, B_IN_MS = 480, B_OUT_MS = 170;
-    static final long W_A_IN_MS = 600, W_A_OUT_MS = 300, W_B_IN_MS = 500, W_B_OUT_MS = 200;
+    /** Clean's whole arrival and leaving; Widgets' opening and closing (each scaled by how far is left to go). */
+    static final long IN_MS = 560, OUT_MS = 360, WIDGETS_IN_MS = 600, WIDGETS_OUT_MS = 300;
 
     /** The charging view's parts (DashboardScreen.ChargingHero). */
     interface Hero {
@@ -68,7 +61,15 @@ final class ChargeTransition {
         void holdPulse(boolean hold);
         /** How far the floor glow and the track have come in, 0..1 (1 at rest). */
         void glowIn(float shown);
-        int accent();
+        /**
+         * The percentage's way from elsewhere: an offset, a scale round a pivot (its own pixels), on top of its own place.
+         * The hero keeps it across its own layout passes (its measuring sets the number's resting offset, never this).
+         */
+        void flyPercent(float dx, float dy, float scale, float pivotX, float pivotY);
+        /** The number's resting offset across (ChargePercentShade's nudge), without any flight. */
+        float percentRestX();
+        /** The line's rise below its resting place (0 at rest), kept across layout passes like flyPercent. */
+        void riseLines(float dy);
         int dp(float dp);
     }
 
@@ -76,6 +77,7 @@ final class ChargeTransition {
 
     static float seg(float p, float from, float to) { return Math.max(0, Math.min(1, (p - from) / (to - from))); }
     private static float ease(float t) { return Motion.STANDARD.getInterpolation(t); }
+    private static float fade(float t) { return Motion.FADE.getInterpolation(t); }
     private static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
     /** A view's (0, 0) in {@code ancestor}'s pixels, without its own or its ancestors' transforms. */
@@ -108,6 +110,41 @@ final class ChargeTransition {
         return new float[] {text.getTotalPaddingLeft() + layout.getLineLeft(0), text.getTotalPaddingTop() + layout.getLineBaseline(0)};
     }
 
+    /**
+     * The bay's light hands over to the charge pulse: lit to the percent, it fades out as the pulse starts. Null when
+     * there is nothing to fade (no wire picture, no percent, animations off).
+     */
+    static ValueAnimator fadeFill(Hero hero) {
+        ChargePicture picture = hero.picture();
+        if (picture == null || Double.isNaN(hero.level()) || !Ui.motionEnabled()) return null;
+        float from = (float) (hero.level() / 100);
+        picture.arrival(1, Float.NaN, from);
+        ValueAnimator fade = ValueAnimator.ofFloat(1, 0);
+        fade.setDuration(700);
+        fade.setInterpolator(Motion.FADE);
+        fade.addUpdateListener(a -> { ChargePicture now = hero.picture(); if (now != null) now.arrival(1, Float.NaN, from * (Float) a.getAnimatedValue()); });
+        fade.addListener(new AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) { ChargePicture now = hero.picture(); if (now != null) now.arrival(1, Float.NaN, 0); }
+        });
+        fade.start();
+        return fade;
+    }
+
+    /** The picture's cable, dash and bay at progress p (arriving: the dash runs in and the bay fills; leaving: neither). */
+    private static void picture(Hero hero, float p, boolean in, float plugFrom, float plugTo) {
+        ChargePicture picture = hero.picture();
+        if (picture == null) return;
+        float charge = in && p < 1 ? seg(p, plugFrom + .18f, plugTo + .14f) : Float.NaN;
+        float fill = in && !Double.isNaN(hero.level()) ? ease(seg(p, .76f, 1)) * (float) (hero.level() / 100) : 0;
+        picture.arrival(ease(seg(p, plugFrom, plugTo)), charge > 0 && charge < 1 ? charge : Float.NaN, fill);
+    }
+
+    /** The view leaving is skipped by accessibility services until it has gone (it takes no touches either). */
+    private static void quiet(View view, boolean quiet) {
+        int wanted = quiet ? View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS : View.IMPORTANT_FOR_ACCESSIBILITY_AUTO;
+        if (view.getImportantForAccessibility() != wanted) view.setImportantForAccessibility(wanted);
+    }
+
     // ===== Clean's top area =====
 
     /** Clean Home's top area: the parked card and the charging view, one over the other (CleanHomeScreen). */
@@ -121,16 +158,12 @@ final class ChargeTransition {
         private final java.util.function.Consumer<Boolean> chargingShown;
         private ValueAnimator animator;
         private float p;
-        private boolean active;
-        private int kind;
+        private boolean active, measured;
         private float target;
         private Geometry geometry;
         private final Flight flight = new Flight();
-        private final Sweep sweep;
         private ViewTreeObserver.OnPreDrawListener measuring;
         private ValueAnimator fillFade;
-        /** The line's and the number's own offsets at rest, read before the change touches them (null: read on layout). */
-        private Float restLineY, restPercentX;
 
         Clean(ViewGroup top, View overview, ImageView parkedPhoto, TextView parkedPercent, Hero hero,
               java.util.function.Consumer<Boolean> chargingShown) {
@@ -140,20 +173,27 @@ final class ChargeTransition {
             this.parkedPercent = parkedPercent;
             this.hero = hero;
             this.chargingShown = chargingShown;
-            sweep = new Sweep(hero, top);
         }
 
+        /** A change is under way: the top area takes no touches meanwhile (CleanHomeScreen's top area). */
+        boolean changing() { return active; }
+
+        /** The change's progress, 0 parked to 1 charging (android-tests' ChargeTransitionValidation reads it). */
+        float progress() { return p; }
+
         /**
-         * Plays the change from parked to charging or back when it is one and the prototype is on; false leaves it to the
-         * caller (any other change, the first show, animations off, detached), after settling a change under way.
+         * Plays a change between parked and charging; false leaves it to the caller (any other change, animations off,
+         * the top area detached or not laid out), after settling a change under way. The caller never asks on Home's
+         * first show, so opening Home, recreation and every rebuild stay instant.
          */
         boolean change(int previous, int next) {
-            int chosen = variant;
             boolean pair = (previous == HomeMoment.PARKED && next == HomeMoment.CHARGING) || (previous == HomeMoment.CHARGING && next == HomeMoment.PARKED);
-            if (chosen == TODAY || !pair || !Ui.motionEnabled() || !top.isAttachedToWindow() || parkedPhoto == null) { settle(); return false; }
+            if (!pair || !Ui.motionEnabled() || !top.isAttachedToWindow() || !top.isLaidOut() || parkedPhoto == null || parkedPercent == null) {
+                settle();
+                return false;
+            }
             float to = next == HomeMoment.CHARGING ? 1 : 0;
             if (!active) {
-                kind = chosen;
                 p = previous == HomeMoment.CHARGING ? 1 : 0;
                 begin();
             }
@@ -174,25 +214,22 @@ final class ChargeTransition {
 
         private void begin() {
             active = true;
-            boolean charging = p == 1;
-            View[] lines = hero.lines();
-            restLineY = charging && lines.length > 0 ? lines[0].getTranslationY() : null;
-            restPercentX = charging ? hero.percent().getTranslationX() : null;
+            measured = false;
             if (fillFade != null) { fillFade.cancel(); fillFade = null; }
             geometry = null;
             overview.setVisibility(View.VISIBLE);
             hero.view().setVisibility(View.VISIBLE);
             hero.view().setAlpha(1);
             overview.setAlpha(1);
-            if (kind == PLUG) top.getOverlay().add(flight);
-            else top.getOverlay().add(sweep);
+            top.getOverlay().add(flight);
             apply();
             // Both are laid out on the next frame: then the boxes they travel between are known.
             measuring = () -> {
                 top.getViewTreeObserver().removeOnPreDrawListener(measuring);
                 measuring = null;
                 if (active) {
-                    geometry = Geometry.of(top, parkedPhoto, parkedPercent, hero, restLineY, restPercentX);
+                    geometry = Geometry.of(top, parkedPhoto, parkedPercent, hero);
+                    measured = true;
                     apply();
                 }
                 return true;
@@ -205,19 +242,17 @@ final class ChargeTransition {
             if (animator != null) { animator.removeAllListeners(); animator.removeAllUpdateListeners(); animator.cancel(); }
             boolean in = to == 1;
             if (in) chargingShown.accept(true);
-            // The pulse waits for the arrival; leaving, it runs on under the fade (its lit cells would blink out otherwise).
-            // Leaving from rest it was running and keeps on; turned back mid-arrival it never started, and stays held.
+            quiet(overview, in);
+            quiet(hero.view(), !in);
+            // The pulse waits for the arrival. Leaving from rest it was running and runs on under the fade (its lit
+            // cells would blink out otherwise); turned back mid-arrival it never started, and stays held.
             hero.holdPulse(in || p < 1);
-            if (in) sweep.gain = 1;
-            long full = kind == PLUG ? (in ? A_IN_MS : A_OUT_MS) : (in ? B_IN_MS : B_OUT_MS);
             ValueAnimator next = ValueAnimator.ofFloat(p, to);
-            next.setDuration(Math.max(1, Math.round(full * Math.abs(to - p))));
-            // p runs evenly in time; each part eases within its own share of it (so the stagger is in time, too).
+            next.setDuration(Math.max(1, Math.round((in ? IN_MS : OUT_MS) * Math.abs(to - p))));
             next.setInterpolator(LINEAR);
             next.addUpdateListener(a -> {
                 if (!Ui.motionEnabled()) { settleAt(to); return; }
                 p = (Float) a.getAnimatedValue();
-                if (!in) sweep.gain = Math.max(0, sweep.gain - .2f);
                 apply();
             });
             next.addListener(new AnimatorListenerAdapter() {
@@ -230,10 +265,11 @@ final class ChargeTransition {
         private void settleAt(float to) {
             stop();
             rest();
+            p = to;
             if (to == 1) {
                 overview.setVisibility(View.GONE);
                 hero.holdPulse(false);
-                fadeFill();
+                fillFade = fadeFill(hero);
             } else {
                 hero.view().setVisibility(View.GONE);
                 hero.holdPulse(false);
@@ -247,24 +283,22 @@ final class ChargeTransition {
             active = false;
         }
 
-        private void fadeFill() {
-            if (kind == PLUG) fillFade = ChargeTransition.fadeFill(hero);
-        }
-
-        /** Every view back at rest, the overlays gone. */
+        /** Every view back at rest, the overlay gone. */
         private void rest() {
             top.getOverlay().remove(flight);
-            top.getOverlay().remove(sweep);
             overview.setAlpha(1);
             hide(parkedPhoto, false);
             parkedPercent.setAlpha(1);
+            quiet(overview, false);
+            quiet(hero.view(), false);
             hero.view().setAlpha(1);
             for (View image : hero.images()) identity(image);
-            TextView percent = hero.percent();
-            percent.setAlpha(1); percent.setScaleX(1); percent.setScaleY(1); percent.setTranslationY(0);
-            if (geometry != null) percent.setTranslationX(geometry.percentRestX);
-            for (View line : hero.lines()) { line.setAlpha(1); line.setScaleX(1); line.setScaleY(1); if (geometry != null) line.setTranslationY(geometry.lineRestY); }
-            hero.rows().setAlpha(1); hero.rows().setTranslationY(0);
+            hero.percent().setAlpha(1);
+            hero.flyPercent(0, 0, 1, 0, 0);
+            for (View line : hero.lines()) line.setAlpha(1);
+            hero.riseLines(0);
+            hero.rows().setAlpha(1);
+            hero.rows().setTranslationY(0);
             hero.glowIn(1);
             ChargePicture picture = hero.picture();
             if (picture != null) picture.arrival(1, Float.NaN, 0);
@@ -272,8 +306,9 @@ final class ChargeTransition {
         }
 
         /**
-         * Hides the card's photo without its alpha: an ImageView passes its view alpha on to its drawable, which did not
-         * come back at rest on the emulator (the photo stayed invisible). An empty clip draws nothing and moves nothing.
+         * Hides the card's photo without touching its alpha: an ImageView passes its view alpha on to its drawable, and
+         * on the emulator the drawable's alpha did not come back at rest (the photo stayed invisible). An empty clip
+         * draws nothing and moves nothing.
          */
         private static void hide(View v, boolean hidden) {
             android.graphics.Rect clip = v.getClipBounds();
@@ -286,39 +321,41 @@ final class ChargeTransition {
         }
 
         private void apply() {
-            if (kind == PLUG) applyPlug(); else applySweep();
-        }
-
-        private void applyPlug() {
             Geometry g = geometry;
             boolean in = target == 1;
-            overview.setAlpha(1 - Motion.FADE.getInterpolation(seg(p, 0, .3f)));
-            // Until both are measured (the first frame), each end keeps its own photo and number.
-            hide(parkedPhoto, g != null || p >= .5f);
-            parkedPercent.setAlpha(g == null ? (p < .5f ? 1 : 0) : 0);
-            float images = Motion.FADE.getInterpolation(seg(p, .15f, .5f));
+            overview.setAlpha(1 - fade(seg(p, 0, .3f)));
+            float images = fade(seg(p, .15f, .5f));
             for (View image : hero.images()) image.setAlpha(images);
-            hero.glowIn(Motion.FADE.getInterpolation(seg(p, .3f, .8f)));
+            hero.glowIn(fade(seg(p, .3f, .8f)));
             float line = ease(seg(p, .5f, .82f));
-            float restY = g != null ? g.lineRestY : restLineY != null ? restLineY : 0;
-            for (View v : hero.lines()) { v.setAlpha(line); v.setTranslationY(restY + (1 - line) * hero.dp(10)); }
+            for (View v : hero.lines()) v.setAlpha(line);
+            hero.riseLines((1 - line) * hero.dp(10));
             float rows = ease(seg(p, .6f, .92f));
             hero.rows().setAlpha(rows);
             hero.rows().setTranslationY((1 - rows) * hero.dp(14));
-            ChargePicture picture = hero.picture();
-            if (picture != null) {
-                float plug = ease(seg(p, .4f, .68f));
-                float charge = in && p < 1 ? seg(p, .58f, .82f) : Float.NaN;
-                float fill = in && !Double.isNaN(hero.level()) ? ease(seg(p, .76f, 1)) * (float) (hero.level() / 100) : 0;
-                picture.arrival(plug, charge > 0 && charge < 1 ? charge : Float.NaN, fill);
+            picture(hero, p, in, .4f, .68f);
+            if (g == null) {
+                flight.hide();
+                hide(parkedPhoto, false);
+                if (!measured) {
+                    // The first frame, before both are laid out: each end keeps its own number (one of them shows).
+                    parkedPercent.setAlpha(p < .5f ? 1 : 0);
+                    hero.percent().setAlpha(p < .5f ? 0 : 1);
+                } else {
+                    // Nothing to travel between (a card without its photo, a slot without a picture): a crossfade.
+                    parkedPercent.setAlpha(1);
+                    hero.percent().setAlpha(fade(seg(p, .25f, .6f)));
+                }
+                return;
             }
-            if (g == null) { flight.hide(); hero.percent().setAlpha(p < .5f ? 0 : 1); return; }
             // The photo and the picture share a centre and a height on the way, crossfading.
+            hide(parkedPhoto, true);
+            parkedPercent.setAlpha(0);
             float f = ease(seg(p, 0, .62f));
             float cx = lerp(g.parked.centerX(), g.image.centerX(), f), cy = lerp(g.parked.centerY(), g.image.centerY(), f);
             float h = lerp(g.parked.height(), g.image.height(), f);
             float pw = h * g.parked.width() / Math.max(1, g.parked.height());
-            flight.show(parkedPhoto.getDrawable(), cx - pw / 2, cy - h / 2, cx + pw / 2, cy + h / 2, 1 - Motion.FADE.getInterpolation(seg(p, .12f, .45f)));
+            flight.show(parkedPhoto.getDrawable(), cx - pw / 2, cy - h / 2, cx + pw / 2, cy + h / 2, 1 - fade(seg(p, .12f, .45f)));
             float k = h / Math.max(1, g.image.height());
             for (View image : hero.images()) {
                 image.setPivotX(0); image.setPivotY(0);
@@ -327,52 +364,32 @@ final class ChargeTransition {
                 image.setTranslationY(cy - g.imageOrigin[1] - k * g.imageLocal.centerY());
             }
             // The percentage travels from the card's to its own place, its size between the two.
-            TextView percent = hero.percent();
             float q = ease(seg(p, .05f, .6f));
             float ax = lerp(g.parkedAnchor[0], g.heroAnchor[0], q), ay = lerp(g.parkedAnchor[1], g.heroAnchor[1], q);
             float size = lerp(g.parkedSize, g.heroSize, q) / Math.max(1, g.heroSize);
-            percent.setPivotX(g.heroAnchorLocal[0]); percent.setPivotY(g.heroAnchorLocal[1]);
-            percent.setScaleX(size); percent.setScaleY(size);
-            percent.setTranslationX(g.percentRestX + ax - g.heroAnchor[0]);
-            percent.setTranslationY(ay - g.heroAnchor[1]);
-            percent.setAlpha(1);
-            hero.stage().invalidate();
-        }
-
-        private void applySweep() {
-            Geometry g = geometry;
-            overview.setAlpha(1 - Motion.FADE.getInterpolation(seg(p, 0, .4f)));
-            float images = Motion.FADE.getInterpolation(seg(p, 0, .4f));
-            for (View image : hero.images()) image.setAlpha(images);
-            hero.percent().setAlpha(Motion.FADE.getInterpolation(seg(p, .3f, .62f)));
-            hero.glowIn(Motion.FADE.getInterpolation(seg(p, .1f, .55f)));
-            float line = ease(seg(p, .3f, .65f));
-            for (View v : hero.lines()) {
-                v.setAlpha(line);
-                v.setPivotX(v.getWidth() / 2f); v.setPivotY(v.getHeight() / 2f);
-                v.setScaleX(.92f + .08f * line); v.setScaleY(.92f + .08f * line);
-            }
-            float rows = ease(seg(p, .45f, .85f));
-            hero.rows().setAlpha(rows);
-            hero.rows().setTranslationY((1 - rows) * hero.dp(12));
-            sweep.at(seg(p, .25f, 1f), images, g == null ? null : g.imageOrigin);
+            hero.flyPercent(ax - g.heroAnchor[0], ay - g.heroAnchor[1], size, g.heroAnchorLocal[0], g.heroAnchorLocal[1]);
+            hero.percent().setAlpha(1);
             hero.stage().invalidate();
         }
     }
 
-    /** The boxes Clean's variant A travels between, in the top area's pixels, from one layout of both moments. */
+    /** The boxes Clean's change travels between, in the top area's pixels, from one layout of both moments. */
     static final class Geometry {
         RectF parked, image, imageLocal;
         float[] imageOrigin, parkedAnchor, heroAnchor, heroAnchorLocal;
-        float parkedSize, heroSize, percentRestX, lineRestY;
+        float parkedSize, heroSize;
 
-        static Geometry of(View top, ImageView parkedPhoto, TextView parkedPercent, Hero hero, Float lineY, Float percentX) {
-            Geometry g = new Geometry();
+        /** Null when there is nothing to travel between (no photo in the card, no picture or photo in the slot). */
+        static Geometry of(View top, ImageView parkedPhoto, TextView parkedPercent, Hero hero) {
             View[] images = hero.images();
             RectF local = hero.imageBounds();
             float[] pa = anchor(parkedPercent), ha = anchor(hero.percent());
-            if (images.length == 0 || local == null || pa == null || ha == null || parkedPhoto.getWidth() == 0) return null;
+            if (images.length == 0 || local == null || local.isEmpty() || pa == null || ha == null
+                    || parkedPhoto.getVisibility() != View.VISIBLE || parkedPhoto.getWidth() == 0 || parkedPhoto.getDrawable() == null
+                    || images[0].getVisibility() != View.VISIBLE || hero.percent().getVisibility() != View.VISIBLE) return null;
+            Geometry g = new Geometry();
             g.parked = content(parkedPhoto);
+            if (g.parked.isEmpty()) return null;
             float[] po = origin(parkedPhoto, top);
             g.parked.offset(po[0], po[1]);
             g.imageLocal = local;
@@ -383,18 +400,15 @@ final class ChargeTransition {
             g.parkedAnchor = new float[] {ppo[0] + pa[0], ppo[1] + pa[1]};
             TextView percent = hero.percent();
             float[] hpo = origin(percent, top);
-            g.percentRestX = percentX != null ? percentX : percent.getTranslationX();
             g.heroAnchorLocal = ha;
-            g.heroAnchor = new float[] {hpo[0] + ha[0] + g.percentRestX, hpo[1] + ha[1]};
+            g.heroAnchor = new float[] {hpo[0] + ha[0] + hero.percentRestX(), hpo[1] + ha[1]};
             g.parkedSize = parkedPercent.getTextSize();
             g.heroSize = percent.getTextSize();
-            View[] lines = hero.lines();
-            g.lineRestY = lineY != null ? lineY : lines.length > 0 ? lines[0].getTranslationY() : 0;
             return g;
         }
     }
 
-    /** Variant A: the parked photo on its way, drawn over the top area (never clipped by the card it leaves). */
+    /** The parked photo on its way, drawn over the top area (never clipped by the card it leaves). */
     static final class Flight extends Drawable {
         private android.graphics.Bitmap bitmap;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
@@ -409,7 +423,7 @@ final class ChargeTransition {
             invalidateSelf();
         }
 
-        void hide() { alpha = 0; invalidateSelf(); }
+        void hide() { if (alpha != 0) { alpha = 0; invalidateSelf(); } }
 
         @Override public void draw(Canvas canvas) {
             if (bitmap == null || bitmap.isRecycled() || alpha <= 0) return;
@@ -421,127 +435,31 @@ final class ChargeTransition {
         @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /**
-     * Variant B: an accent band sweeping up through the scooter, masked to the picture's own pixels (the picture's
-     * resting layer, or the photo, drawn again into a layer the band then colours in place).
-     */
-    static final class Sweep extends Drawable {
-        private final Hero hero;
-        private final View host;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private float position = -1, shown;
-        private float[] origin;
-        float gain = 1;
-
-        Sweep(Hero hero, View host) {
-            this.hero = hero;
-            this.host = host;
-            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
-        }
-
-        /** The band's place, 0 (under the wheels) to 1 (past the top); shown: the picture's own opacity now. */
-        void at(float position, float shown, float[] origin) {
-            this.position = position;
-            this.shown = shown;
-            this.origin = origin;
-            invalidateSelf();
-        }
-
-        @Override public void draw(Canvas canvas) {
-            View[] images = hero.images();
-            RectF local = hero.imageBounds();
-            if (origin == null || local == null || images.length == 0 || position <= 0 || position >= 1 || gain <= 0) return;
-            float alpha = gain * shown * (float) Math.sin(Math.PI * position);
-            if (alpha <= .01f) return;
-            RectF box = new RectF(local);
-            box.offset(origin[0], origin[1]);
-            float band = box.height() * .22f;
-            float y = box.bottom + band - position * (box.height() + 2 * band);
-            int save = canvas.saveLayerAlpha(box.left - 2, box.top - 2, box.right + 2, box.bottom + 2, Math.round(255 * Math.min(1, alpha)));
-            canvas.translate(origin[0], origin[1]);
-            images[0].draw(canvas);
-            canvas.translate(-origin[0], -origin[1]);
-            int accent = hero.accent();
-            paint.setShader(new LinearGradient(0, y - band, 0, y + band,
-                    new int[] {Ui.withAlpha(accent, 0), Ui.withAlpha(accent, 150), Ui.withAlpha(0xFFFFFFFF, 120), Ui.withAlpha(accent, 150), Ui.withAlpha(accent, 0)},
-                    new float[] {0, .4f, .5f, .6f, 1}, Shader.TileMode.CLAMP));
-            canvas.drawRect(box.left - 2, box.top - 2, box.right + 2, box.bottom + 2, paint);
-            paint.setShader(null);
-            canvas.restoreToCount(save);
-        }
-        @Override public void setAlpha(int a) {}
-        @Override public void setColorFilter(ColorFilter filter) {}
-        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
-    }
-
-    /** Variant A's bay fill hands over to the pulses: lit to the percent, it fades out as they start. Null: nothing to fade. */
-    static ValueAnimator fadeFill(Hero hero) {
-        ChargePicture picture = hero.picture();
-        if (picture == null || Double.isNaN(hero.level()) || !Ui.motionEnabled()) return null;
-        float from = (float) (hero.level() / 100);
-        picture.arrival(1, Float.NaN, from);
-        ValueAnimator fade = ValueAnimator.ofFloat(1, 0);
-        fade.setDuration(700);
-        fade.setInterpolator(Motion.FADE);
-        fade.addUpdateListener(a -> { ChargePicture now = hero.picture(); if (now != null) now.arrival(1, Float.NaN, from * (Float) a.getAnimatedValue()); });
-        fade.addListener(new AnimatorListenerAdapter() {
-            @Override public void onAnimationEnd(Animator animation) { ChargePicture now = hero.picture(); if (now != null) now.arrival(1, Float.NaN, 0); }
-        });
-        fade.start();
-        return fade;
-    }
-
     // ===== Widgets' takeover =====
 
-    /** The takeover's height share at progress p (it opens first, then its parts arrive). */
-    static float widgetsHeight(int kind, float p) {
-        return new android.view.animation.DecelerateInterpolator().getInterpolation(seg(p, 0, kind == PLUG ? .45f : .5f));
+    /** The takeover's height share at progress p: it opens first, then its parts arrive. */
+    static float widgetsHeight(float p) {
+        return new android.view.animation.DecelerateInterpolator().getInterpolation(seg(p, 0, .45f));
     }
 
-    static long widgetsMs(int kind, boolean show) {
-        return kind == PLUG ? (show ? W_A_IN_MS : W_A_OUT_MS) : (show ? W_B_IN_MS : W_B_OUT_MS);
-    }
-
-    /** Widgets' takeover at progress p: the hero's own fade and rise, then its parts (the variant's). */
-    static void styleWidgets(Hero hero, int kind, float p, boolean in, Sweep sweep) {
+    /** Widgets' takeover at progress p: the hero's own fade and rise, then its parts. */
+    static void styleWidgets(Hero hero, float p, boolean in) {
         View view = hero.view();
         float whole = seg(p, 0, .35f);
         view.setAlpha(whole);
         view.setTranslationY(-hero.dp(16) * (1 - whole));
-        float line, rows;
-        if (kind == PLUG) {
-            line = ease(seg(p, .3f, .6f));
-            // The whole stage (picture, number and charge bar) arrives together, so the bar never shows alone.
-            float images = Motion.FADE.getInterpolation(seg(p, .18f, .5f));
-            hero.stage().setAlpha(images);
-            hero.percent().setAlpha(seg(p, .35f, .65f));
-            hero.glowIn(seg(p, .4f, .8f));
-            rows = ease(seg(p, .55f, .9f));
-            ChargePicture picture = hero.picture();
-            if (picture != null) {
-                float charge = in && p < 1 ? seg(p, .58f, .85f) : Float.NaN;
-                float fill = in && !Double.isNaN(hero.level()) ? ease(seg(p, .74f, 1)) * (float) (hero.level() / 100) : 0;
-                picture.arrival(seg(p, .45f, .72f), charge > 0 && charge < 1 ? charge : Float.NaN, fill);
-            }
-            for (View v : hero.lines()) { v.setAlpha(line); v.setTranslationY((1 - line) * hero.dp(8)); }
-        } else {
-            line = ease(seg(p, .35f, .7f));
-            rows = ease(seg(p, .5f, .9f));
-            float images = Motion.FADE.getInterpolation(seg(p, .15f, .5f));
-            hero.stage().setAlpha(images);
-            hero.glowIn(seg(p, .2f, .6f));
-            for (View v : hero.lines()) {
-                v.setAlpha(line);
-                v.setPivotX(v.getWidth() / 2f); v.setPivotY(v.getHeight() / 2f);
-                v.setScaleX(.92f + .08f * line); v.setScaleY(.92f + .08f * line);
-            }
-            if (sweep != null) {
-                if (!in) sweep.gain = Math.max(0, sweep.gain - .2f);
-                sweep.at(seg(p, .35f, 1f), images, origin(hero.images()[0], hero.stage()));
-            }
-        }
+        quiet(view, !in);
+        // The whole stage (picture, number and charge bar) arrives together, so the bar never shows alone.
+        hero.stage().setAlpha(fade(seg(p, .18f, .5f)));
+        hero.percent().setAlpha(seg(p, .35f, .65f));
+        hero.glowIn(seg(p, .4f, .8f));
+        float line = ease(seg(p, .3f, .6f));
+        for (View v : hero.lines()) v.setAlpha(line);
+        hero.riseLines((1 - line) * hero.dp(8));
+        float rows = ease(seg(p, .55f, .9f));
         hero.rows().setAlpha(rows);
         hero.rows().setTranslationY((1 - rows) * hero.dp(12));
+        picture(hero, p, in, .45f, .72f);
         hero.stage().invalidate();
     }
 
@@ -549,10 +467,11 @@ final class ChargeTransition {
     static void restWidgets(Hero hero) {
         View view = hero.view();
         view.setAlpha(1); view.setTranslationY(0);
-        for (View image : hero.images()) image.setAlpha(1);
+        quiet(view, false);
         hero.stage().setAlpha(1);
         hero.percent().setAlpha(1);
-        for (View v : hero.lines()) { v.setAlpha(1); v.setScaleX(1); v.setScaleY(1); v.setTranslationY(0); }
+        for (View v : hero.lines()) v.setAlpha(1);
+        hero.riseLines(0);
         hero.rows().setAlpha(1); hero.rows().setTranslationY(0);
         hero.glowIn(1);
         ChargePicture picture = hero.picture();

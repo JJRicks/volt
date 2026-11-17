@@ -89,13 +89,13 @@ abstract class ChargePicture {
      */
     void onMotionChange(Runnable check) {}
 
-    // ---- PROTOTYPE (charge transition, phase 1; ChargeTransition) ----
+    // ---- The change between parked and charging (ChargeTransition) ----
 
     /** Where the picture draws in its layers' pixels (the cut-out's box at its placement), or null before it is placed. */
     android.graphics.RectF bounds() { return null; }
 
     /**
-     * Variant A's plug-in (ChargeTransition): plug 0..1, the cable past the cut-out drawn in from the screen's edge (1: all
+     * The plug-in as charging arrives (ChargeTransition): plug 0..1, the cable past the cut-out drawn in from the screen's edge (1: all
      * of it, as at rest); charge 0..1, a bright dash running in along the cable to the bay (NaN: none); fill 0..1, the bay's
      * cells lit up to this share (0: none). The default (the still picture) has no cable or cells and ignores it.
      */

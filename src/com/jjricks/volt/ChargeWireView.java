@@ -116,7 +116,7 @@ final class ChargeWireView extends ChargePicture {
     private float bloomRatio, bloomRadius;
     private final int cableEdge, cableCore;
 
-    // ---- PROTOTYPE (charge transition, phase 1; ChargeTransition's variant A) ----
+    // ---- The plug-in as charging arrives (ChargeTransition) ----
     /** The cable past the cut-out drawn in from the edge (1 at rest), the dash running in (NaN: none), the bay's lit share. */
     private float plug = 1, charge = Float.NaN, arriveFill;
     private final int dashColor, dashGlow;

@@ -52,7 +52,7 @@ final class ChargeFoldedView extends ChargePicture {
 
     @Override int shade() { return ChargePercentShade.CUTOFF; }
 
-    /** PROTOTYPE (ChargeTransition): the cut-out's box at its placement. */
+    /** The cut-out's box at its placement (ChargeTransition travels to it). */
     @Override android.graphics.RectF bounds() {
         float s = placement.scale;
         return s <= 0 ? null : new android.graphics.RectF(placement.left, placement.top, placement.left + model.width * s, placement.top + model.height * s);
