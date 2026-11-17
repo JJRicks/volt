@@ -199,6 +199,8 @@ public final class HubValidation extends Instrumentation {
                 noBind();
                 targetWaitsForService();
             } else {
+            // Clean Home's subject rows before the simulated scooter connects: Controls and Security have no summary yet.
+            if (!widgetsFirst && !mode.equals(SEARCH_TARGETS)) rowsUnknown = evenSubjectRows(null);
             simulate();
             if (widgetsFirst) widgetsPages(true);
             else if (mode.equals(SEARCH_TARGETS)) searchTargets();
@@ -239,6 +241,7 @@ public final class HubValidation extends Instrumentation {
             main(() -> require(twoPanes() && shown(root().findViewWithTag("hub-scooter-pane")) && shown(root().findViewWithTag("hub-page-pane")),
                     "Clean Home on a wide window did not take two panes"));
         Object[] pane = scooterPane();
+        evenSubjectRows(rowsUnknown);
         screenshot("clean-home");
         for (String subject : HubPages.SUBJECTS) {
             tapTag("home-subject-" + subject);
@@ -289,8 +292,10 @@ public final class HubValidation extends Instrumentation {
     /**
      * Wide Clean Home: quick actions edited either way reach the scooter pane, and neither edit undoes the other (#394
      * council review, second round, 1). Settings › Home style › Quick actions changes the fourth slot from the page pane:
-     * the scooter pane shows it, still the same pane (never rebuilt), on Settings and back on Home. Then Home's own Edit
-     * sheet (a long-press on the quick actions) changes the third: the scooter pane shows both, and both are stored. The
+     * the scooter pane shows it, still the same pane (never rebuilt), on Settings and back on Home. With Home style still
+     * open, the scooter pane's Edit sheet (a long-press) changes the second: the scooter pane and Home style's Clean
+     * preview show it (#394 council review, third round, P3). Then Home's own Edit
+     * sheet (a long-press on the quick actions) changes the third: the scooter pane shows all three, and they are stored. The
      * four as stored before are put back at the end, and the scooter pane follows that too. Nothing taps a quick action.
      */
     private void quickActionsBothWays() throws Exception {
@@ -317,14 +322,36 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> paneQuick().equals(afterSettings)), () -> "The scooter pane shows " + onMain(this::paneQuick)
                 + " after Home style changed the fourth quick action to " + fourth + " (expected " + afterSettings + ")");
         requireSamePane(pane, "Home style's quick-action edit");
+        main(() -> require(stylePreviewQuick().equals(afterSettings), "Home style's Clean preview shows " + stylePreviewQuick() + " after its own edit, not " + afterSettings));
+        // Home style still open beside it, from the scooter pane's own Edit sheet (a long-press): the second slot. The
+        // page isn't rebuilt (the scooter pane updates in place), so its Clean preview must take the stored four on its
+        // refresh (#394 council review, third round, P3), as its Quick actions line does.
+        main(() -> {
+            ViewGroup grid = root().findViewWithTag("hub-scooter-pane").findViewWithTag("home-quick-actions");
+            require(grid != null && grid.getChildCount() > 0 && grid.getChildAt(0).performLongClick(), "A long-press on the scooter pane's quick actions did not open Edit beside Home style");
+        });
+        settle();
+        Supplier<View> besideEdit = () -> sheetRoot(field(activity, "homeScreen"), "editSheet");
+        await(() -> onMain(() -> besideEdit.get() != null), "The scooter pane's Edit sheet did not open beside Home style");
+        tapIn(besideEdit, "home-edit-slot-2", "Edit's second quick action beside Home style");
+        String second = pickOther(() -> pickerRoot(field(field(activity, "homeScreen"), "parts")), afterSettings, "Home's picker beside Home style");
+        List<String> afterBeside = new ArrayList<>(afterSettings);
+        afterBeside.set(1, second);
+        await(() -> onMain(() -> paneQuick().equals(afterBeside)), () -> "The scooter pane shows " + onMain(this::paneQuick)
+                + " after its Edit sheet changed the second quick action to " + second + " beside Home style (expected " + afterBeside + ")");
+        main(() -> require(HubPages.SETTINGS_HOME.equals(field(activity, "selectedPage")), "The page pane left Home style for " + field(activity, "selectedPage") + " after the scooter pane's edit"));
+        await(() -> onMain(() -> stylePreviewQuick().equals(afterBeside)), () -> "Home style's Clean preview shows " + onMain(this::stylePreviewQuick)
+                + " after the scooter pane's Edit sheet changed the second quick action to " + second + " (expected " + afterBeside + ")");
+        requireSamePane(pane, "the scooter pane's quick-action edit beside Home style");
+        screenshot("home-style-preview-after-pane-edit");
         HubTestPages.back(this, activity);
         arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
         HubTestPages.back(this, activity);
         requireHome("CleanHomeScreen");
-        main(() -> require(paneQuick().equals(afterSettings), "Back on Home the scooter pane shows " + paneQuick() + ", not Home style's " + afterSettings));
+        main(() -> require(paneQuick().equals(afterBeside), "Back on Home the scooter pane shows " + paneQuick() + ", not " + afterBeside));
         requireSamePane(pane, HubPages.HOME);
         screenshot("home-after-settings-quick-edit");
-        // From Home's own Edit sheet: the third slot. It starts from the four as stored, so the fourth stays.
+        // From Home's own Edit sheet: the third slot. It starts from the four as stored, so the fourth and second stay.
         main(() -> {
             ViewGroup grid = root().findViewWithTag("home-quick-actions");
             require(grid != null && grid.getChildCount() > 0 && grid.getChildAt(0).performLongClick(), "A long-press on Home's quick actions did not open Edit");
@@ -334,11 +361,11 @@ public final class HubValidation extends Instrumentation {
         await(() -> onMain(() -> edit.get() != null), "Home's Edit sheet did not open");
         tapIn(edit, "home-edit-slot-3", "Edit's third quick action");
         Supplier<View> homePicker = () -> pickerRoot(field(field(activity, "homeScreen"), "parts"));
-        String third = pickOther(homePicker, afterSettings, "Home's picker");
-        List<String> both = new ArrayList<>(afterSettings);
+        String third = pickOther(homePicker, afterBeside, "Home's picker");
+        List<String> both = new ArrayList<>(afterBeside);
         both.set(2, third);
         await(() -> onMain(() -> paneQuick().equals(both)), () -> "The scooter pane shows " + onMain(this::paneQuick)
-                + " after Home's Edit changed the third quick action to " + third + " (expected " + both + ": Home style's change kept)");
+                + " after Home's Edit changed the third quick action to " + third + " (expected " + both + ": the earlier changes kept)");
         main(() -> require(storedQuick().equals(both), "Stored quick actions are " + storedQuick() + ", expected both changes " + both));
         requireSamePane(pane, "Home's quick-action edit");
         requireHome("CleanHomeScreen");
@@ -347,7 +374,26 @@ public final class HubValidation extends Instrumentation {
         require((storedBefore == null ? restore.remove(key) : restore.putString(key, storedBefore)).commit(), "Restoring the quick actions failed");
         await(() -> onMain(() -> paneQuick().equals(before)), () -> "The scooter pane shows " + onMain(this::paneQuick) + " after the four were put back to " + before);
         requireSamePane(pane, HubPages.HOME);
-        checks.add("Wide Clean Home: a quick action changed in Settings › Home style shows in the scooter pane (not rebuilt) on Settings and back on Home; one changed then from Home's Edit sheet keeps the first change, and both are stored");
+        checks.add("Wide Clean Home: a quick action changed in Settings › Home style shows in the scooter pane (not rebuilt) on Settings and back on Home; one changed from the scooter pane's Edit sheet beside Home style shows in the scooter pane and in Home style's Clean preview at once; one changed then from Home's Edit sheet keeps the earlier changes, and all are stored");
+    }
+
+    /** The ids Home style's Clean preview draws as quick actions (HomeStylePreview's quick list), on the page shown. Main thread. */
+    private List<String> stylePreviewQuick() {
+        List<View> found = new ArrayList<>();
+        collectClass(root().findViewWithTag("hub-page-pane"), "HomeStylePreview", found);
+        List<String> ids = new ArrayList<>();
+        for (View preview : found) {
+            if (!Boolean.TRUE.equals(field(preview, "clean"))) continue;
+            for (Object action : (List<?>) field(preview, "quick")) ids.add(((String[]) action)[1]);
+            return ids;
+        }
+        require(false, "Home style shows no Clean preview in the page pane");
+        return ids;
+    }
+    private static void collectClass(View view, String simpleName, List<View> into) {
+        if (view == null) return;
+        if (view.getClass().getSimpleName().equals(simpleName)) into.add(view);
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collectClass(((ViewGroup) view).getChildAt(i), simpleName, into);
     }
 
     /** The ids of the quick actions the scooter pane shows (its grid's cells), in order. */
@@ -1841,6 +1887,77 @@ public final class HubValidation extends Instrumentation {
                     wide ? "Clean Home on a wide window did not take two panes" : "Clean Home took two panes on a window whose layout is the phone's ("
                             + widthDp() + " dp, " + textScale() + "x text)"));
         }
+    }
+    /** Each subject row's height (px) on Clean Home before the scooter connected (evenSubjectRows), in SUBJECTS' order. */
+    private int[] rowsUnknown;
+    /**
+     * Clean Home's subject rows are all one height (the owner's request on #394, 17 Nov), on one pane and on two (the
+     * page pane's list): a row whose summary isn't known keeps the height of a row with one, its name centred, and its
+     * summary stays out (GONE, so TalkBack reads no empty line). before null: Controls and Security have no summary yet
+     * (not connected); it returns the rows' heights. Otherwise, connected: it waits for Controls' summary (Security's stays
+     * unknown on the simulator, so rows with and without one are compared in the same list) and requires each
+     * row at its height from before, and every row whose name is one line at one height. Returns the heights now.
+     */
+    private int[] evenSubjectRows(int[] before) throws Exception {
+        requireHome("CleanHomeScreen");
+        boolean connected = before != null;
+        // Connected, Controls' summary comes (the simulator reports the riding mode); Security's stays unknown on the
+        // simulator, which never answers the PIN read, so the list has a row with and a row without a summary at once.
+        List<String> pending = connected ? Collections.singletonList(HubPages.CONTROLS) : Arrays.asList(HubPages.CONTROLS, HubPages.SECURITY);
+        await(() -> onMain(() -> {
+            for (String subject : pending) if (summaryShown(subject) != connected) return false;
+            return true;
+        }), () -> onMain(() -> (connected ? "Controls' summary should show once connected: " : "Controls' and Security's summaries should not show before the scooter connects: ")
+                + "Controls " + chain(subjectPart(HubPages.CONTROLS, 1)) + ", Security " + chain(subjectPart(HubPages.SECURITY, 1))));
+        settle();
+        int[] heights = new int[HubPages.SUBJECTS.size()];
+        String[] described = new String[1];
+        main(() -> {
+            StringBuilder all = new StringBuilder();
+            int oneLine = -1;
+            for (int i = 0; i < heights.length; i++) {
+                String subject = HubPages.SUBJECTS.get(i);
+                View row = root().findViewWithTag("home-subject-" + subject);
+                require(row != null && row.getHeight() > 0, "Clean Home has no laid-out row for " + subject);
+                TextView name = (TextView) subjectPart(subject, 0);
+                View summary = subjectPart(subject, 1);
+                heights[i] = row.getHeight();
+                all.append(subject).append(' ').append(heights[i]).append("px").append(summaryShown(subject) ? "" : " (no summary)")
+                        .append(name.getLineCount() > 1 ? " (two-line name)" : "").append("; ");
+                // No summary: nothing under the name for TalkBack, the name centred in the row's words.
+                if (!summaryShown(subject)) {
+                    require(summary.getVisibility() == View.GONE, subject + "'s unknown summary is not GONE: " + chain(summary));
+                    View words = (View) name.getParent();
+                    int above = name.getTop(), below = words.getHeight() - name.getBottom();
+                    require(Math.abs(above - below) <= 2, subject + "'s name is not centred in its row without a summary: " + above + " px above, " + below + " px below");
+                }
+                if (name.getLineCount() == 1) {
+                    if (oneLine < 0) oneLine = heights[i];
+                    require(Math.abs(heights[i] - oneLine) <= 1, "Clean Home's subject rows differ in height (" + (connected ? "connected" : "not connected") + "): " + all);
+                }
+                if (connected) require(Math.abs(heights[i] - before[i]) <= 1, subject + "'s row changed height when its summary came: " + before[i] + " px before, " + heights[i] + " px now");
+            }
+            described[0] = all.toString();
+        });
+        screenshot(connected ? "subjects-summaries" : "subjects-no-summaries");
+        checks.add("Clean Home's subject rows " + (panesExpected() ? "(two panes, the page pane's list)" : "(one pane)") + (connected
+                ? ", connected: Controls shows its summary (Security's stays unknown on the simulator) and every row keeps the height it had before, with or without one: "
+                : ", not connected: Controls and Security have no summary (GONE, name centred) and every one-line row is one height: ") + described[0]);
+        return heights;
+    }
+    /** A part of a subject's row on Clean Home: 0 its name, 1 its summary line (CleanSubjects.line). Main thread. */
+    private View subjectPart(String subject, int part) {
+        View row = root().findViewWithTag("home-subject-" + subject);
+        if (!(row instanceof ViewGroup)) return null;
+        View words = ((ViewGroup) row).getChildAt(1);
+        return words instanceof ViewGroup ? ((ViewGroup) words).getChildAt(part) : null;
+    }
+    /** Whether a subject's row shows a summary text. Main thread. */
+    private boolean summaryShown(String subject) {
+        View summary = subjectPart(subject, 1);
+        if (!(summary instanceof ViewGroup) || summary.getVisibility() != View.VISIBLE) return false;
+        View value = ((ViewGroup) summary).getChildAt(1);
+        return value instanceof TextView && value.getVisibility() == View.VISIBLE && ((TextView) value).length() > 0;
     }
     /**
      * Two panes are expected with -e wide true on a window that gets the wide layout at this text size (WideLayout.wide):

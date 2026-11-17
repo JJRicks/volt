@@ -5,7 +5,7 @@ Implementation details and measurement interpretation for Volt. Start with the [
 ## Security and the handlebar fallback
 
 The electronic lock and configured four-digit handlebar PIN are separate ways
-to retain access. More reads PIN state, changes/configures the owner's PIN and
+to retain access. Security reads PIN state, changes/configures the owner's PIN and
 enables a configured fallback PIN. PIN digits are excluded from ordinary
 diagnostics, event logs and ride exports. Test handlebar unlocking while parked
 before relying on it away from home. The in-app guide and official UT5 MAX FAQ
@@ -18,7 +18,7 @@ it will be unlocked. Keep the PIN fallback; do not rely on automatic unlocking
 after 24 hours.
 
 Proximity unlock requires this phone's Bluetooth bond and an enabled, configured
-handlebar PIN. More shows the prerequisites and confirms the scooter setting.
+handlebar PIN. Security shows the prerequisites and confirms the scooter setting.
 Availability and physical behavior still depend on firmware.
 
 The scooter may disconnect for a moment after proximity unlock is turned on
@@ -30,7 +30,7 @@ in the background), the change is reported as not confirmed, never as
 cancelled. Turning proximity unlock off never needs the pairing.
 
 If proximity unlock reads on and this phone is not paired (for example after
-pairing did not finish, or after the official app turned it on), More says so
+pairing did not finish, or after the official app turned it on), Security says so
 and offers to pair this phone or turn proximity unlock off. Volt never sends
 the off command by itself; the official app does.
 
@@ -72,14 +72,14 @@ estimator. Unconfirmed attempts are bounded across reconnects.
 
 The optional **Volt's estimate (learned)** uses that scooter's completed rides
 for range in Scooter overview, Your scooter and Battery overview. Other reading
-widgets, Live Stats, charts and exports retain the firmware prediction. Both
+widgets, Data, charts and exports retain the firmware prediction. Both
 sources are estimates, not measured capacity or automatic Boost detection.
 See [range learned from your rides](user-guide.md#range-learned-from-your-rides)
 for the evidence threshold, fallback and limitations.
 
 ## Recording integrity
 
-1. Connect, open Rides and start a recording with a useful label.
+1. Connect, open Ride and start a recording with a useful label.
 2. Add notes for mode, route, load or conditions.
 3. Recording runs in the visible connected-device service; it does not depend
    on the screen layout remaining visible. It is designed to continue while
@@ -194,7 +194,7 @@ gaps efficiently. Raw journals remain available for export.
 
 ### Auto-save rides
 
-**Rides → Recording settings → Ride auto-save** has one switch, **Auto-save rides** (off by
+**Ride → Recording settings → Ride auto-save** has one switch, **Auto-save rides** (off by
 default; `ride_auto_export_json`), that saves each ride you end into one folder, and a
 **Folder** row. Each ride gets one file:
 
@@ -250,7 +250,7 @@ default; `ride_auto_export_json`), that saves each ride you end into one folder,
 ## Background connections and foldable phones
 
 Settings offers dark/light/system appearance, text scale and miles/km/both units;
-Live Stats > Data & history offers comfortable/dense Stats rows. Settings > Units > Time format follows the
+Data > Data & history offers comfortable/dense Stats rows. Settings > Units > Time format follows the
 phone by default, or uses an explicit 12-hour/24-hour clock for displayed times.
 Stats omits repeated explanatory UI text while retaining interpretation details. App units affect display; Dashboard units is a
 separate scooter setting. Kick-start, maximum-speed and Lab cap selectors follow
