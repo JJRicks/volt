@@ -19,3 +19,4 @@
 {"calls":1,"chunk":0,"draft":"google","keys":40,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":40,"stage":"draft","top_up":true,"when":"2026-11-17T09:56:43Z"}
 {"chunk":1,"draft":"google","keys":11,"model":"gemini-3.8-flash","provider":"google","stage":"api-call","step":"draft","usage":{"candidatesTokenCount":307,"promptTokenCount":16537,"thoughtsTokenCount":10767,"totalTokenCount":27611},"when":"2026-11-17T09:57:58Z"}
 {"calls":1,"chunk":1,"draft":"google","keys":11,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":11,"stage":"draft","top_up":true,"when":"2026-11-17T09:57:58Z"}
+{"chunks":1,"draft":"claude-opus","keys":51,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"48836f54e7f5","stage":"import-chunks","when":"2026-11-17T10:08:20Z"}
