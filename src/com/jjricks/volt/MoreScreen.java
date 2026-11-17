@@ -1829,11 +1829,12 @@ public final class MoreScreen implements AppScreen {
     }
     private void pinGuide() {
         LinearLayout box = dialogBox(T.morePinGuideRow(), T.morePinGuideBody());
-        // The UT5 MAX handlebar as the rider sees it (owner, Nov 17 2026); its numbers match the steps below. Only the models
-        // the official app pictures with the same handlebar get it: other models' switches differ, so they get the steps
-        // without a picture rather than another scooter's switch.
-        if (service() != null && ModelRegistry.ut5Handlebar(service().ble.descriptor())) {
-            HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui);
+        // The scooter's handlebar as the rider sees it (owner, Nov 17 2026: "draw all the models that we have references
+        // for"), one drawing per set of the official app's unlock pictures; its numbers match the steps below. No drawing
+        // when the model is not certain.
+        ModelRegistry.Handlebar handlebar = service() == null ? null : ModelRegistry.unlockHandlebar(service().ble.descriptor());
+        if (handlebar != null) {
+            HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui, handlebar);
             diagram.setContentDescription(T.morePinDiagram());
             LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
             box.addView(diagram, dp);

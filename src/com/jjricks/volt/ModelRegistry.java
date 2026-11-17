@@ -971,12 +971,32 @@ public final class ModelRegistry {
 
     // Model assumptions kept out of telemetry: true only for the exact UT5 MAX layer.
     public static boolean ut5Max(DeviceDescriptor d){return d!=null&&resolve(d).layer==Layer.UT5_MAX;}
+    /** Unlock without phone's handlebar drawings: one per set of manual-unlock pictures OEM 2.1.9 shows. */
+    public enum Handlebar { UT5, ST5, NT5MS, ECROSS, NT3, STANDARD }
+    static final String[] ECROSS_BAR={"2416","2443","2529"},ST5_BAR={"2441","2517","2619","2620","2646"},NT3_BAR={"2701","2745"},
+        ST5_TIP_ONLY={"2781","2782"},NT5MS_BAR={"2799"};
     /**
-     * The UT5 handlebar (Unlock without phone's drawing): the UT5 MAX, and Q, the models OEM 2.1.9 shows the same
-     * manual-unlock pictures for. Only when the model is unambiguous: a Model ID mismatch (serial and advertisement
-     * disagree) never gets it, even on the UT5 MAX's serial.
+     * The handlebar Unlock without phone draws, picked in OEM 2.1.9's order (DeviceLockSettingActivity): eCross, ST5, the
+     * UT5 (Q), NT3, NT5 M/S, and its standard pictures for every other model. Null, so no drawing, when the model is not
+     * certain: a Model ID mismatch (serial and advertisement disagree, even on the UT5 MAX's serial), an unsupported
+     * product or transport, or no model ID yet. 2781 and 2782 get none either: the official app gives them the ST5 tip with
+     * its standard pictures, which disagree.
      */
-    public static boolean ut5Handlebar(DeviceDescriptor d){return d!=null&&!resolve(d).conflict&&(ut5Max(d)||any(d,Q));}
+    public static Handlebar unlockHandlebar(DeviceDescriptor d){
+        if(d==null)return null;
+        Resolution r=resolve(d);
+        if(r.conflict||r.layer==Layer.UNSUPPORTED_PRODUCT||r.layer==Layer.UNSUPPORTED_TRANSPORT)return null;
+        if(r.layer==Layer.UT5_MAX)return Handlebar.UT5;
+        String pid=!d.rulePid().isEmpty()?d.rulePid():d.serialPid;
+        if(pid.isEmpty())return null;
+        if(!longestPrefix(pid,ECROSS_BAR).isEmpty())return Handlebar.ECROSS;
+        if(!longestPrefix(pid,ST5_BAR).isEmpty())return Handlebar.ST5;
+        if(!longestPrefix(pid,Q).isEmpty())return Handlebar.UT5;
+        if(!longestPrefix(pid,NT3_BAR).isEmpty())return Handlebar.NT3;
+        if(!longestPrefix(pid,ST5_TIP_ONLY).isEmpty())return null;
+        if(!longestPrefix(pid,NT5MS_BAR).isEmpty())return Handlebar.NT5MS;
+        return Handlebar.STANDARD;
+    }
     public static Double ratedWh(DeviceDescriptor d){return ut5Max(d)?716.04:null;}
     public static boolean showsPhoto(DeviceDescriptor d){return !photo(d).isEmpty();}
     /** Exact advertised Model IDs Volt already has a compatibility report for; extend it each release. */

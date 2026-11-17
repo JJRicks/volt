@@ -30,15 +30,21 @@ import com.jjricks.volt.*;
  * 2026: the old drawing "is old and made by Codex and sucks"). At the emulator's current size, for each case of argument
  * cases (theme:text scale, comma separated; default light:1,dark:1,dark:1.4), with a saved UT5 MAX: reaches Security the
  * rider's way, taps the guide's row, and checks the drawing is shown whole inside the dialog with its screen-reader text,
- * beside the three steps. Then once with another saved model (a GT3 Max): the same steps, and no drawing, since the drawing
- * pictures the UT5 MAX's controls. A screenshot of each case is taken for review. Sends no scooter command.
+ * beside the three steps. Then, in light and dark, one saved model for each of the other handlebars the official app has
+ * unlock pictures for (owner, Nov 17 2026: "draw all the models that we have references for"): ST5, NT5 M/S, eCross,
+ * NT3 and its standard pictures (a GT3 Max), each with its own drawing. Then once with a 2781, which the official app gives
+ * no matching pictures: the same steps, and no drawing. A screenshot of each case is taken for review. Sends no scooter
+ * command.
  */
 public final class UnlockGuideValidation extends Instrumentation {
     private MainActivity activity;
     private Bundle args;
     private String label = "";
     private int assertions;
-    private String ut5, other;
+    private String ut5, none;
+    /** Each other handlebar with its synthetic saved model's advertised Model ID, in the official app's order. */
+    private static final String[][] FAMILIES = {{"ECROSS", "24431"}, {"ST5", "24411"}, {"NT3", "27011"}, {"NT5MS", "27991"}, {"STANDARD", "24182"}};
+    private final Map<String, String> families = new LinkedHashMap<>();
     /** The redrawn handlebar's class. Named, not referenced, outside verifyDrawing: the base app (old inner class) lacks it. */
     private static final String REDRAWN = "com.jjricks.volt.HandlebarDiagram";
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
@@ -51,8 +57,13 @@ public final class UnlockGuideValidation extends Instrumentation {
             main(() -> {
                 // Scooter pages need a saved scooter; nothing here connects to it.
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
-                ScooterProfiles.Profile p = profiles.create("Synthetic GT3 Max", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
-                p.advertisedPid = "24182"; p.advertisedPidWall = System.currentTimeMillis(); profiles.update(p); other = p.id;
+                int n = 1;
+                for (String[] family : FAMILIES) {
+                    ScooterProfiles.Profile p = profiles.create("Synthetic " + family[0], String.format(Locale.ROOT, "%012d", n++), 0);
+                    p.advertisedPid = family[1]; p.advertisedPidWall = System.currentTimeMillis(); profiles.update(p); families.put(family[0], p.id);
+                }
+                ScooterProfiles.Profile x = profiles.create("Synthetic 2781", "000000000009", 0);
+                x.advertisedPid = "27811"; x.advertisedPidWall = System.currentTimeMillis(); profiles.update(x); none = x.id;
                 ScooterProfiles.Profile u = profiles.create("Synthetic UT5 MAX", "000000000000", 0); u.serial = "X2538-SYNTHETIC"; profiles.update(u); ut5 = u.id;
                 profiles.select(ut5); OnboardingScreen.markDone(getTargetContext());
             });
@@ -60,11 +71,16 @@ public final class UnlockGuideValidation extends Instrumentation {
             for (String c : args.getString("cases", "light:1,dark:1,dark:1.4").split(",")) {
                 String[] parts = c.split(":");
                 label = size + "-" + parts[0] + "-" + parts[1];
-                verifyGuide(parts[0], Float.parseFloat(parts[1]), true);
+                verifyGuide(parts[0], Float.parseFloat(parts[1]), "UT5");
             }
-            main(() -> new ScooterProfiles(getTargetContext()).select(other));
+            for (Map.Entry<String, String> family : families.entrySet()) for (String theme : new String[]{"light", "dark"}) {
+                main(() -> new ScooterProfiles(getTargetContext()).select(family.getValue()));
+                label = size + "-" + family.getKey().toLowerCase(Locale.ROOT) + "-" + theme;
+                verifyGuide(theme, 1, family.getKey());
+            }
+            main(() -> new ScooterProfiles(getTargetContext()).select(none));
             label = size + "-other-model";
-            verifyGuide("light", 1, false);
+            verifyGuide("light", 1, null);
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", label + ": " + failure);
@@ -80,7 +96,7 @@ public final class UnlockGuideValidation extends Instrumentation {
         }
     }
 
-    private void verifyGuide(String theme, float textScale, boolean drawn) throws Exception {
+    private void verifyGuide(String theme, float textScale, String handlebar) throws Exception {
         if (activity != null) { MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle(); }
         require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                 .putString("theme", theme).putFloat("text_scale", textScale)
@@ -100,7 +116,7 @@ public final class UnlockGuideValidation extends Instrumentation {
             View drawing = find(panel, v -> v.getContentDescription() != null && v.getContentDescription().toString().startsWith(T.morePinDiagram()));
             for (String step : new String[]{T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()})
                 require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
-            if (!drawn) {
+            if (handlebar == null) {
                 View redrawn = find(panel, v -> REDRAWN.equals(v.getClass().getName()));
                 if (redrawn == null && drawing != null) {
                     // The base app (before the redraw) shows its old drawing for every model: reported, not failed, so a
@@ -108,7 +124,7 @@ public final class UnlockGuideValidation extends Instrumentation {
                     checks.add(label + ": the base app's old drawing (" + drawing.getClass().getSimpleName() + ") is shown for this model too");
                     return;
                 }
-                require(drawing == null && redrawn == null, "Another model's guide shows the UT5 MAX handlebar");
+                require(drawing == null && redrawn == null, "A model without matching pictures shows a handlebar drawing");
                 checks.add(label + ": another model's guide shows the three steps and no handlebar drawing");
                 return;
             }
@@ -118,38 +134,40 @@ public final class UnlockGuideValidation extends Instrumentation {
             require(drawing.getHeight() > 0, "The drawing has no height");
             checks.add(label + ": the guide's drawing is " + Math.round(drawing.getWidth() / density()) + "x" + Math.round(drawing.getHeight() / density())
                     + " dp in a " + Math.round(panel.getWidth() / density()) + " dp dialog, whole across, beside the three steps; it says '" + drawing.getContentDescription() + "'");
-            if (REDRAWN.equals(drawing.getClass().getName())) verifyDrawing(drawing);
+            if (REDRAWN.equals(drawing.getClass().getName())) verifyDrawing(drawing, handlebar);
             else checks.add(label + ": the base app's old drawing (" + drawing.getClass().getSimpleName() + "); the redraw's checks do not apply");
         });
         shot(label + "-guide");
         main(() -> dialog[0].dismiss()); settle();
     }
     /**
-     * The redrawn handlebar (owner, Nov 17 2026): in proportion at its width (never squashed or stretched), the switch big
-     * enough to read, the three parts the steps use drawn in the accent and the light button not, and screen-reader text that
-     * names the numbered parts. Main thread.
+     * The redrawn handlebar (owner, Nov 17 2026): this model's handlebar, in proportion at its width (never squashed or
+     * stretched), drawn big enough to read (at least 0.8 dp per design unit), the three parts the steps use drawn in the
+     * accent and a neutral part not, and screen-reader text that names the numbered parts. Main thread.
      */
-    private void verifyDrawing(View drawing) {
+    private void verifyDrawing(View drawing, String handlebar) {
         HandlebarDiagram diagram = (HandlebarDiagram) drawing;
-        float drawn = Math.min(drawing.getWidth(), 420 * density()), expected = drawn * HandlebarDiagram.HEIGHT / HandlebarDiagram.WIDTH;
+        require(diagram.handlebar().name().equals(handlebar), "The guide draws the " + diagram.handlebar() + " handlebar, not the " + handlebar);
+        float drawn = Math.min(drawing.getWidth(), 420 * density()), expected = drawn * HandlebarDiagram.HEIGHT / diagram.gridWidth();
         require(Math.abs(drawing.getHeight() - expected) <= 2, "The drawing is " + drawing.getHeight() + " px tall, not " + Math.round(expected) + " px for its width");
-        float rocker = 50 * diagram.scale() / density();
-        require(rocker >= 32, "The turn-signal rocker is only " + rocker + " dp wide");
+        float unit = diagram.scale() / density();
+        require(unit >= 0.8f, "The drawing is only " + unit + " dp per design unit");
         Bitmap picture = Bitmap.createBitmap(drawing.getWidth(), drawing.getHeight(), Bitmap.Config.ARGB_8888);
         try {
             drawing.draw(new android.graphics.Canvas(picture));
             int accent = activity.ui().accent;
-            for (float[] point : HandlebarDiagram.ACCENT_POINTS) {
+            for (float[] point : diagram.accentPoints()) {
                 float[] at = diagram.toView(point[0], point[1]); int pixel = picture.getPixel(Math.round(at[0]), Math.round(at[1]));
                 require(near(pixel, accent), "The part at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel) + ", not the accent");
             }
-            for (float[] point : HandlebarDiagram.NEUTRAL_POINTS) {
+            for (float[] point : diagram.neutralPoints()) {
                 float[] at = diagram.toView(point[0], point[1]); int pixel = picture.getPixel(Math.round(at[0]), Math.round(at[1]));
-                require(android.graphics.Color.alpha(pixel) == 255 && !near(pixel, accent), "The light button at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel));
+                require(android.graphics.Color.alpha(pixel) == 255 && !near(pixel, accent), "The neutral part at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel));
             }
         } finally { picture.recycle(); }
         require(String.valueOf(drawing.getContentDescription()).equals(T.morePinDiagram()), "The drawing says '" + drawing.getContentDescription() + "'");
-        checks.add(label + ": the drawing keeps its proportions, its rocker is " + Math.round(rocker) + " dp wide, and the rocker, brake lever and M/power button are in the accent");
+        checks.add(label + ": the " + handlebar + " drawing keeps its proportions at " + String.format(Locale.ROOT, "%.2f", unit)
+                + " dp per unit, and its turn signal, brake lever and power button are in the accent");
     }
     private static boolean near(int a, int b) {
         return Math.abs(android.graphics.Color.red(a) - android.graphics.Color.red(b)) <= 6 && Math.abs(android.graphics.Color.green(a) - android.graphics.Color.green(b)) <= 6
