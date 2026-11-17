@@ -333,6 +333,9 @@ STEPS += [inst(name, cls) for name, cls in (
 # permission (no service bind is coming): Settings opens and its update check runs at once (update-check taps the
 # notice with the permission, where the check outlasts the bind; #523 review, finding 1).
 STEPS += [inst('update-check-no-nearby', T + 'UpdateCheckValidation', '-e', 'mode', 'notice-no-nearby', grant=ALL[2:])]
+# The notice's cold start on Clean Home's two panes (725x604), the simulated scooter connected through a service that
+# outlived the closed activity, a rebuild run from inside the bind callback (#523 council review, second round).
+STEPS += [inst('update-check-725', T + 'UpdateCheckValidation', '-e', 'mode', 'notice-wide', '-e', 'theme', 'light', size='725x604')]
 # Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
 for locale in ('en-XA', 'ar-XB'):
     for case in SIZES:

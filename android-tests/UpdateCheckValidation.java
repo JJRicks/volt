@@ -39,7 +39,10 @@ import com.jjricks.volt.ScooterProfiles;
  * check's "Update available" notice is tapped while Volt's activity is not running (noticeColdStart): Settings opens with
  * the Checking dialog, which outlasts the scooter service binding (#523 review, finding 1), then the result and Download.
  * -e mode notice-no-nearby runs only that, without Nearby devices permission (the runner grants none), where no bind is
- * coming and the check runs at once.
+ * coming and the check runs at once. With the permission the closed Volt leaves its scooter service running with the
+ * simulator connected, so the new activity's bind callback runs the service's listeners at once, and one of them rebuilds
+ * the page from inside that callback (#523 council review, second round): the check must still wait for the callback's
+ * own rebuild. -e mode notice-wide runs only that cold start, on Clean Home (two panes at 725 dp wide).
  */
 public final class UpdateCheckValidation extends Instrumentation {
     private static final String PAGE = "https://github.com/JJRicks/volt/releases/tag/v9.9.9";
@@ -56,14 +59,15 @@ public final class UpdateCheckValidation extends Instrumentation {
     /** While set, GitHub's stand-in holds its reply until the latch opens (the Checking dialog stays up meanwhile). */
     private final AtomicReference<java.util.concurrent.CountDownLatch> hold = new AtomicReference<>();
     /** -e mode notice-no-nearby: only the notice's check from a cold start, without Nearby devices permission. */
-    private static final String NOTICE_NO_NEARBY = "notice-no-nearby";
+    private static final String NOTICE_NO_NEARBY = "notice-no-nearby", NOTICE_WIDE = "notice-wide";
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
             String mode = arguments.getString("mode", "all");
-            require(mode.equals("all") || mode.equals(NOTICE_NO_NEARBY), "Unknown -e mode " + mode + " (all or " + NOTICE_NO_NEARBY + ")");
+            require(mode.equals("all") || mode.equals(NOTICE_NO_NEARBY) || mode.equals(NOTICE_WIDE), "Unknown -e mode " + mode + " (all, "
+                    + NOTICE_NO_NEARBY + " or " + NOTICE_WIDE + ")");
             boolean nearby = !mode.equals(NOTICE_NO_NEARBY);
             admit(nearby);
             if (!nearby) {
@@ -75,6 +79,25 @@ public final class UpdateCheckValidation extends Instrumentation {
                 });
                 stubGitHub(); watchBrowser();
                 noticeColdStart(false);
+                result.putString("result", "PASS");
+                return;
+            }
+            if (mode.equals(NOTICE_WIDE)) {
+                // Clean Home, chosen on this installation; consent given with the automatic check; a saved scooter.
+                main(() -> {
+                    prefs("app_settings").edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
+                            .putString("theme", arguments.getString("theme", "dark")).putBoolean("update_check_consented", true)
+                            .putString("home_style", "clean").putBoolean("home_style_chosen", true).putString("home_style_origin", "install").commit();
+                    ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
+                    ScooterProfiles.Profile p = profiles.create("Synthetic update fixture", "000000000000", 0);
+                    p.mac = "C0:FF:EE:00:00:01"; p.serial = "Q2538ZZ9US7777777"; profiles.update(p); profiles.select(p.id);
+                    OnboardingScreen.markDone(getTargetContext());
+                });
+                stubGitHub(); watchBrowser();
+                activity = (MainActivity) startActivitySync(new Intent(Intent.ACTION_MAIN).setClass(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                await(() -> activity.service() != null && activity.getWindow().getDecorView().hasWindowFocus(), "Activity not ready");
+                main(() -> require(activity.getWindow().getDecorView().findViewWithTag("hub-scooter-pane") != null, "Clean Home at this size is not on two panes"));
+                noticeColdStart(true);
                 result.putString("result", "PASS");
                 return;
             }
@@ -184,11 +207,39 @@ public final class UpdateCheckValidation extends Instrumentation {
      */
     private void noticeColdStart(boolean nearby) throws Exception {
         sheet = null;
+        com.jjricks.volt.ScooterService[] kept = {null};
+        AtomicReference<MainActivity> next = new AtomicReference<>();
+        boolean[] nested = {false};
+        Runnable rebuildInside = () -> {
+            // Once, from inside the new activity's bind callback: a rebuild there, as Home's refresh does on two panes.
+            MainActivity now = next.get();
+            if (nested[0] || now == null || now.service() == null) return;
+            for (StackTraceElement at : Thread.currentThread().getStackTrace())
+                if (at.getMethodName().equals("onServiceConnected")) { nested[0] = true; now.rebuild(); return; }
+        };
+        android.app.Application.ActivityLifecycleCallbacks created = new android.app.Application.ActivityLifecycleCallbacks() {
+            @Override public void onActivityCreated(android.app.Activity a, Bundle b) { if (a instanceof MainActivity) next.set((MainActivity) a); }
+            @Override public void onActivityStarted(android.app.Activity a) { }
+            @Override public void onActivityResumed(android.app.Activity a) { }
+            @Override public void onActivityPaused(android.app.Activity a) { }
+            @Override public void onActivityStopped(android.app.Activity a) { }
+            @Override public void onActivitySaveInstanceState(android.app.Activity a, Bundle b) { }
+            @Override public void onActivityDestroyed(android.app.Activity a) { }
+        };
         if (activity != null) {
+            if (nearby) {
+                // The service outlives the activity with the simulator connected (its work stops ten seconds after Volt
+                // leaves, well after the notice's tap): the next bind finds it running and visible() runs its listeners.
+                main(() -> require(activity.service().setSimulation(true), "Simulation did not start"));
+                await(() -> activity.service().ble.ready(), "The simulated scooter did not connect");
+                kept[0] = activity.service();
+                main(() -> kept[0].listen(rebuildInside));
+            }
             MainActivity old = activity; activity = null;
             main(old::finish);
             await(old::isDestroyed, "Volt's activity did not close before the notice");
         }
+        ((android.app.Application) getTargetContext().getApplicationContext()).registerActivityLifecycleCallbacks(created);
         java.util.concurrent.CountDownLatch gate = new java.util.concurrent.CountDownLatch(1); hold.set(gate);
         try {
             reply.set(releaseWithApk("v9.9.9", APK)); opened.set(null);
@@ -199,6 +250,7 @@ public final class UpdateCheckValidation extends Instrumentation {
             String where = nearby ? "with Nearby devices" : "without Nearby devices";
             await(() -> onSettings() && showing("Checking for updates"), "The notice's tap " + where + " did not open Settings with the Checking dialog");
             if (nearby) await(() -> activity.service() != null, "The scooter service did not bind after the notice's tap");
+            if (kept[0] != null) require(nested[0] && activity.service() == kept[0], "No rebuild ran inside the bind callback of the running service");
             settle(); SystemClock.sleep(800); settle();
             require(onSettings() && showing("Checking for updates") && text(dialogView(), "Asking GitHub for the latest release…") != null,
                     "The Checking dialog did not outlast " + (nearby ? "the service binding" : "Settings settling") + " after the notice's tap " + where);
@@ -211,7 +263,11 @@ public final class UpdateCheckValidation extends Instrumentation {
             settle(); SystemClock.sleep(600); screenshot(nearby ? "notice-available" : "notice-available-no-nearby");
             press("Download"); settle();
             require(APK.equals(opened.get()) && showingCount() == 0, "Download after the notice " + where + " did not open the release's APK");
-        } finally { hold.set(null); gate.countDown(); }
+        } finally {
+            hold.set(null); gate.countDown();
+            ((android.app.Application) getTargetContext().getApplicationContext()).unregisterActivityLifecycleCallbacks(created);
+            if (kept[0] != null) { com.jjricks.volt.ScooterService service = kept[0]; main(() -> { service.unlisten(rebuildInside); service.setSimulation(false); }); }
+        }
     }
     /** Settings (MoreScreen) is the page on screen. */
     private boolean onSettings() {
