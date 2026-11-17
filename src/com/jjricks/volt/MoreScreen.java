@@ -494,7 +494,8 @@ public final class MoreScreen implements AppScreen {
      * further down the stack) the card fades while the rows below glide up into its room (Motion.reveal, as the
      * connection banners do), the page staying where it is: a card scrolled wholly out of view goes at once with the
      * scroll moved by its height, so nothing on screen moves; one partly scrolled out glides up with the scroll taken
-     * back by the part that was out of view, so the rows land where the card's visible part began.
+     * back by the part that was out of view, so the rows land where the card's visible part began (with Android's Remove
+     * animations, at once).
      */
     private void nearbyCard(boolean shown) {
         View card = nearbyCard;
@@ -511,7 +512,13 @@ public final class MoreScreen implements AppScreen {
                 page.scrollBy(0, -height);
                 return;
             }
-            if (at > top && Motion.enabled()) {
+            if (at > top && !Motion.enabled()) {
+                // Remove animations: the card goes at once and the page jumps to where the glide would have ended.
+                Motion.reveal(null, card, false);
+                page.scrollTo(page.getScrollX(), top);
+                return;
+            }
+            if (at > top) {
                 ValueAnimator back = ValueAnimator.ofInt(at, top);
                 back.setDuration(Motion.CHANGE_MS); back.setInterpolator(Motion.STANDARD);
                 int[] last = {at};
