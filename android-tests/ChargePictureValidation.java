@@ -130,6 +130,7 @@ public final class ChargePictureValidation extends Instrumentation {
             });
             settle();
             shot("widgets-" + key);
+            requirePillContrast("Widgets " + key);
             requireCableAtEdge("Widgets " + key);
             if (key.startsWith("ut5")) phases("widgets-" + key);
         }
@@ -195,6 +196,7 @@ public final class ChargePictureValidation extends Instrumentation {
                 require(clipsAll() == !(picture instanceof ChargeWireView && opens()), "Clean " + key + ": clipping at rest: " + clipsAll());
             });
             shot("clean-" + key);
+            requirePillContrast("Clean " + key);
             requireCableAtEdge("Clean " + key);
             if (key.startsWith("ut5")) phases("clean-" + key);
         }
@@ -366,6 +368,72 @@ public final class ChargePictureValidation extends Instrumentation {
             require(found, where + ": the cable does not reach the screen's edge (x " + x + ", y " + g[1] + "-" + g[2] + ")");
         } finally { screen.recycle(); }
     }
+    /**
+     * The red Charging pill as it renders (council review of #527, round 2): on the real screen, its words' strongest
+     * pixels against its own tint (the median of its padding beside the bolt and after the words, on its middle row)
+     * keep 4.5:1, Ui's bar for small text. The percentage's shade once drew over the light pill and took it to about
+     * 4.4:1; nothing drawn over the pill may lower it.
+     */
+    private void requirePillContrast(String where) throws Exception {
+        AtomicReference<int[]> place = new AtomicReference<>();
+        main(() -> {
+            View hero = hero();
+            TextView pill = null;
+            for (String name : new String[] {"chip", "chipShort"}) {
+                Object view = field(hero, name);
+                if (view instanceof TextView && ((TextView) view).isShown() && ((TextView) view).getWidth() > 0) pill = (TextView) view;
+            }
+            require(pill != null, where + ": no Charging pill shows");
+            int[] at = new int[2];
+            pill.getLocationOnScreen(at);
+            place.set(new int[] {at[0], at[1], pill.getWidth(), pill.getHeight(), pill.getPaddingLeft(), pill.getPaddingRight()});
+        });
+        int[] p = place.get();
+        Bitmap screen = getUiAutomation().takeScreenshot();
+        require(screen != null, "Screenshot unavailable");
+        try {
+            int x0 = Math.max(0, p[0]), y0 = Math.max(0, p[1]), x1 = Math.min(screen.getWidth(), p[0] + p[2]), y1 = Math.min(screen.getHeight(), p[1] + p[3]);
+            int mid = (y0 + y1) / 2, edge = Math.max(2, ui(1.5f));
+            ArrayList<Integer> tint = new ArrayList<>();
+            for (int x = x0 + edge; x < x0 + p[4] - edge; x++) tint.add(screen.getPixel(x, mid));
+            for (int x = x1 - p[5] + edge; x < x1 - edge; x++) tint.add(screen.getPixel(x, mid));
+            require(tint.size() >= 4, where + ": the pill's padding is too narrow to sample (" + tint.size() + " px)");
+            int bg = median(tint);
+            double best = 0; int strongest = bg;
+            for (int y = y0 + edge; y < y1 - edge; y++)
+                for (int x = x0 + edge; x < x1 - edge; x++) {
+                    int c = screen.getPixel(x, y);
+                    double ratio = contrast(c, bg);
+                    if (ratio > best) { best = ratio; strongest = c; }
+                }
+            String seen = String.format(Locale.US, "#%06X on #%06X, %.2f:1", strongest & 0xFFFFFF, bg & 0xFFFFFF, best);
+            require(best >= 4.5, where + ": the Charging pill's words render at " + seen + ", under 4.5:1");
+            checks.add(label + " " + where + ": the Charging pill renders at " + seen);
+        } finally { screen.recycle(); }
+    }
+    private static int median(ArrayList<Integer> colours) {
+        int out = 0xFF000000;
+        for (int shift = 16; shift >= 0; shift -= 8) {
+            int[] channel = new int[colours.size()];
+            for (int i = 0; i < channel.length; i++) channel[i] = colours.get(i) >> shift & 255;
+            Arrays.sort(channel);
+            out |= channel[channel.length / 2] << shift;
+        }
+        return out;
+    }
+    private static double contrast(int a, int b) {
+        double la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05);
+    }
+    private static double luminance(int rgb) {
+        double[] w = {.2126, .7152, .0722};
+        double sum = 0;
+        for (int i = 0; i < 3; i++) {
+            double c = (rgb >> (16 - 8 * i) & 255) / 255.0;
+            sum += w[i] * (c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4));
+        }
+        return sum;
+    }
     private static boolean near(int a, int b) {
         return Math.abs(((a >> 16) & 255) - ((b >> 16) & 255)) <= 30 && Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) <= 30 && Math.abs((a & 255) - (b & 255)) <= 30;
     }
@@ -402,11 +470,28 @@ public final class ChargePictureValidation extends Instrumentation {
             shell("settings put global animator_duration_scale " + (foundScale.equals("null") || foundScale.isEmpty() ? "1" : foundScale));
         } catch (Throwable ignored) {}
     }
+    /**
+     * Sets the animator scale and waits for the app's own ValueAnimator.getDurationScale() to take it. WindowManager sends
+     * a new scale only to processes whose windows it has registered, and only when the setting changes: a process whose
+     * first window opened its session while the setting was changing (setup puts 0 just before launch) can keep the old
+     * scale, and putting the same value again sends nothing (3 of 19 runs under load failed here within 10 s of launch;
+     * #521's review). So when the app has not taken it within 10 s, the setting is changed away and back, which makes
+     * WindowManager send it again to every registered window's process; up to three times, about 45 s in all. A scale the
+     * app still has not taken fails, naming the app's scale and the setting.
+     */
     private void scale(String value) throws Exception {
         if (foundScale == null) foundScale = shell("settings get global animator_duration_scale").trim();
         shell("settings put global animator_duration_scale " + value);
         float target = Float.parseFloat(value);
-        await(() -> ValueAnimator.getDurationScale() == target, "Animator scale did not reach " + value);
+        for (int resent = 0; ; resent++) {
+            if (within(10000, () -> ValueAnimator.getDurationScale() == target)) return;
+            if (resent == 3) break;
+            shell("settings put global animator_duration_scale " + (target == 1 ? "0.5" : "1"));
+            shell("settings put global animator_duration_scale " + value);
+        }
+        AtomicReference<Float> app = new AtomicReference<>(); main(() -> app.set(ValueAnimator.getDurationScale()));
+        throw new IllegalStateException("Animator scale did not reach " + value + " (the app's is " + app.get() + ", the setting "
+                + shell("settings get global animator_duration_scale").trim() + ", sent again 3 times)");
     }
     private String shell(String command) throws Exception {
         ParcelFileDescriptor pipe = getUiAutomation().executeShellCommand(command);
@@ -446,9 +531,13 @@ public final class ChargePictureValidation extends Instrumentation {
     private View root() { return (View) field(activity, "root"); }
     private void settle() { waitForIdleSync(); SystemClock.sleep(160); waitForIdleSync(); }
     private void await(BooleanSupplier condition, String message) {
-        long end = SystemClock.uptimeMillis() + 10000;
-        while (SystemClock.uptimeMillis() < end) { AtomicReference<Boolean> ready = new AtomicReference<>(); main(() -> ready.set(condition.getAsBoolean())); if (Boolean.TRUE.equals(ready.get())) return; SystemClock.sleep(40); }
-        throw new IllegalStateException(message);
+        if (!within(10000, condition)) throw new IllegalStateException(message);
+    }
+    /** Whether the condition (checked on the main thread) holds within {@code ms}. */
+    private boolean within(long ms, BooleanSupplier condition) {
+        long end = SystemClock.uptimeMillis() + ms;
+        while (SystemClock.uptimeMillis() < end) { AtomicReference<Boolean> ready = new AtomicReference<>(); main(() -> ready.set(condition.getAsBoolean())); if (Boolean.TRUE.equals(ready.get())) return true; SystemClock.sleep(40); }
+        return false;
     }
     private void main(Runnable action) {
         AtomicReference<Throwable> failure = new AtomicReference<>();

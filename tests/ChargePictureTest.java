@@ -26,6 +26,7 @@ public final class ChargePictureTest {
         fontScale();
         nonlinearFont();
         registryKeys();
+        pillContrast();
         System.out.println("ChargePicture: " + checks + " checks passed");
     }
 
@@ -75,11 +76,12 @@ public final class ChargePictureTest {
 
     private static void halo() {
         float[] h = ChargePercentShade.halo(LEFT, RIGHT, BASE, SIZE, SIZE, new float[3]);
-        near(h[0], 172, .05, "the halo's centre: the prototype's box centre across");
+        near(h[0], 168, .05, "the halo's centre: the number's advance's centre across");
         near(h[1], 254, .05, "and down (its box 211 to 297)");
         near(h[2] * 2, 168, .01, "168 dp across");
-        // The number 4 dp left of the content's centre (172): its advance's centre at 168, the halo on the centre.
-        near((LEFT + RIGHT) / 2 + ChargePercentShade.percentLeft(SIZE), 172, .05, "the digits sit 4 dp left of the centre");
+        // The number centred (the owner, 17 Nov 2026: it looked off-centre): no longer the prototype's 4 dp left of
+        // the content's centre, so its advance's centre (168 here) is the centre, and the halo is on it.
+        near(ChargePercentShade.percentLeft(SIZE), 0, 1e-6, "the digits are centred, not moved left");
         near(ChargePercentShade.HALO_ALPHAS[0], .47, 1e-6, "47% at the centre");
         near(ChargePercentShade.HALO_ALPHAS[1], .24, 1e-6, "24% at 55%");
         near(ChargePercentShade.HALO_STOPS[1], .55, 1e-6, "the middle stop");
@@ -225,8 +227,8 @@ public final class ChargePictureTest {
         boolean wide = WideLayout.wide(width, text);
         int inner = TopArea.heightDp(width, height, wide, text);
         int across = Math.min(width - 36, 560);
-        int oneLine = Math.round(ChargingFit.LINE_SP * text * 1.17f);
-        int line = 12.7f * ChargingFit.LINE_SP * text > across ? 2 * oneLine : oneLine;
+        int[] pill = ChargingFitTest.pill(ChargingFit.LINE_SP * text, across, 1);
+        int oneLine = pill[0], line = pill[1];
         int percent = Math.round(ChargingFit.PERCENT_SP * text * 1.17f);
         float tile = 20 + 12 * text * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP * text, ChargingFit.VALUE_SP * text * 1.33f);
         int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);
@@ -452,8 +454,8 @@ public final class ChargePictureTest {
         boolean wide = WideLayout.wide(width, fontScale);
         int inner = TopArea.heightDp(width, height, wide, fontScale);
         int across = Math.min(width - 36, 560);
-        int oneLine = Math.round(toDp(ChargingFit.LINE_SP, fontScale, table) * 1.17f);
-        int line = 12.7f * toDp(ChargingFit.LINE_SP, fontScale, table) > across ? 2 * oneLine : oneLine;
+        int[] pill = ChargingFitTest.pill(toDp(ChargingFit.LINE_SP, fontScale, table), across, 1);
+        int oneLine = pill[0], line = pill[1];
         int percent = Math.round(toDp(72, fontScale, table) * ChargingFit.PERCENT_SP / 72f * 1.17f);
         float tile = 20 + toDp(12, fontScale, table) * 1.17f + 2 + Math.max(ChargingFit.VALUE_MIN_DP, toDp(ChargingFit.VALUE_SP, fontScale, table) * 1.33f);
         int readings = Math.round(across >= ChargingFit.PAIR_DP ? tile : 2 * tile + 8);
@@ -553,6 +555,72 @@ public final class ChargePictureTest {
         for (String key : keys) if (ChargeWireModels.forKey(key) != null || ChargeFolded.forKey(key) != null) pictured++;
         near(pictured, 7, 0, "the seven bundled models each have a picture");
         near(ChargeWireModels.all().length + ChargeFolded.all().length, 7, 0, "and the tables have no other");
+    }
+
+    /**
+     * The red ⚡ Charging pill (Clean's and Widgets', DashboardScreen.ChargingHero.pill): its 12.5 sp words and bolt keep
+     * 4.5:1 (Ui's bar for small text) on its tint, the accent at the pill's alpha composited over the page, in both
+     * themes (council review of #527, P2: the accent itself was about 3.8:1 dark, 4.0:1 light). The colours are read
+     * from Ui.java and the pill's code, so a change to either is checked.
+     */
+    private static void pillContrast() {
+        String ui = source("src/com/jjricks/volt/Ui.java"), dash = source("src/com/jjricks/volt/DashboardScreen.java");
+        String[] bg = pair(ui, "\\bbg = Color\\.parseColor\\(dark \\? \"#(\\w{6})\" : \"#(\\w{6})\"\\)");
+        String[] accent = pair(ui, "\\baccent = Color\\.parseColor\\(dark \\? \"#(\\w{6})\" : \"#(\\w{6})\"\\)");
+        String accentTextDark = pair(ui, "\\baccentText = dark \\? Color\\.parseColor\\(\"#(\\w{6})\"\\) : accent;")[0];
+        String onTintLight = pair(ui, "\\baccentOnTint = dark \\? accentText : Color\\.parseColor\\(\"#(\\w{6})\"\\);")[0];
+        int start = dash.indexOf("private void pill(TextView line)");
+        require(start > 0, "the pill's code is in DashboardScreen");
+        String pill = dash.substring(start, dash.indexOf("\n        }", start));
+        String[] alpha = pair(pill, "Ui\\.withAlpha\\(ui\\.accent, ui\\.dark \\? (\\d+) : (\\d+)\\)");
+        require(pill.contains("setTextColor(ui.accentOnTint)") && pill.contains("glyphDrawable(\"bolt\", ui.accentOnTint"),
+                "the pill's words and bolt use Ui.accentOnTint");
+        String[][] themes = {{"dark", accentTextDark, accent[0], alpha[0], bg[0]}, {"light", onTintLight, accent[1], alpha[1], bg[1]}};
+        for (String[] t : themes) {
+            int tint = over(Integer.parseInt(t[2], 16), Integer.parseInt(t[3]), Integer.parseInt(t[4], 16));
+            double ratio = contrast(Integer.parseInt(t[1], 16), tint);
+            System.out.println(String.format(java.util.Locale.US, "  the pill, %s: #%s on #%06X: %.2f:1", t[0], t[1], tint, ratio));
+            require(ratio >= 4.5, "the pill's words, " + t[0] + ": #" + t[1] + " on its tint is " + ratio + ":1, under 4.5:1");
+        }
+    }
+
+    private static String source(String path) {
+        try { return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("cannot read " + path, e); }
+    }
+
+    private static String[] pair(String text, String regex) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(regex).matcher(text);
+        require(m.find(), "found " + regex);
+        String[] out = new String[m.groupCount()];
+        for (int i = 0; i < out.length; i++) out[i] = m.group(i + 1);
+        return out;
+    }
+
+    /** The colour {@code rgb} at {@code alpha} (0-255) over {@code bg}, per channel, rounded as an 8-bit canvas does. */
+    private static int over(int rgb, int alpha, int bg) {
+        int out = 0;
+        for (int shift = 16; shift >= 0; shift -= 8) {
+            int f = rgb >> shift & 255, b = bg >> shift & 255;
+            out |= Math.round(b + (f - b) * alpha / 255f) << shift;
+        }
+        return out;
+    }
+
+    /** WCAG 2 contrast ratio of two opaque colours. */
+    private static double contrast(int a, int b) {
+        double la = luminance(a), lb = luminance(b);
+        return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05);
+    }
+
+    private static double luminance(int rgb) {
+        double[] w = {.2126, .7152, .0722};
+        double sum = 0;
+        for (int i = 0; i < 3; i++) {
+            double c = (rgb >> (16 - 8 * i) & 255) / 255.0;
+            sum += w[i] * (c <= .04045 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4));
+        }
+        return sum;
     }
 
     private static void near(double actual, double expected, double tolerance, String message) {

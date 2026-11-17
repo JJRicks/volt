@@ -82,6 +82,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private View dashboardLock;
     /** The Widgets Home dock (HubDock), where the tab bar was; null on every other page. */
     private HubDock dock;
+    /** The navigation bar's height the dock's sheet runs on under (HubPages.dockInset: never the keyboard's), px. */
+    private int dockInset;
     /**
      * The wide Clean Home (hub layout plan 1.11, PR 13): the scooter pane (homeScreen, built once per rebuild and kept while
      * pages change beside it) and the page pane's column (rightPage: the shown page's header and screen); both null on every
@@ -627,16 +629,18 @@ public final class MainActivity extends Activity implements ScreenHost {
         root=new FrameLayout(this);root.setBackgroundColor(design.bg);tabletopUpper=null;tabletopSpacer=null;
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
-        getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);
+        getWindow().setStatusBarColor(design.bg);HubDock.navigationBar(getWindow(),design.bg,false);
         root.setPadding(leftInset,topInset,rightInset,bottomInset);
         root.setOnApplyWindowInsetsListener((v,insets)->{
-            int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
-            else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
+            int l,t,r,b,bars;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()).bottom;}
+            else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();bars=insets.getStableInsetBottom();}
+            // The dock runs on under the navigation bar only, never the keyboard (HubPages.dockInset): with the keyboard up it sits on it, as the page frame does.
+            dockInset=HubPages.dockInset(bars,b>bars?b:0);
             boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
             // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
             // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
             boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
-            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;
+            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;if(dock!=null)dock.setInset(dockInset);
             if(keyboardOnly)fitTabletopSearch();
             else if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
@@ -722,11 +726,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
-            // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
+            // Widgets Home: the dock sits over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
             DashboardScreen dashboard=(DashboardScreen)screen;
             // Its All sheet also holds Search and Settings: Widgets' header keeps main's layout (#392 early review).
             dock=new HubDock(this,expanded,dashboard::editing,()->{open(HubPages.SEARCH);focusPageSearch();},()->open(HubPages.SETTINGS));
-            pageFrame.addView(dock.view(),dock.layoutParams());
+            // Its sheet runs down to the screen's bottom edge, under the navigation bar (the contributor's decision, 15 Nov):
+            // it goes in the root, over the page frame, reaching past the root's bottom padding (the navigation inset), which
+            // the root draws through. While it shows, the bar is clear over it (HubDock.navigationBar, the one rule).
+            root.setClipToPadding(false);
+            root.addView(dock.view(),dock.layoutParams(dockInset));
             // Pinned to the bottom (the contributor's decision, 14 Nov): it never moves for the Lock bar, one of the rider's own
             // widgets; the scroller's bottom padding lets every widget scroll fully clear of it.
             dock.padScroller(scroll,scroll.getPaddingBottom());
@@ -800,26 +808,36 @@ public final class MainActivity extends Activity implements ScreenHost {
         FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
         rightPage=column();right.addView(rightPage,new FrameLayout.LayoutParams(-1,-1));
         // The page pane starts level with the scooter pane's status line ("Connected · Sport"), as the wide mock-ups
-        // line up the search field with it; its end keeps the scroll bar's room (PANE_BAR_DP), taken from the window's 24 dp.
+        // line up the search field with it. It reaches the window's edge: the window's 24 dp at its end is the page's end
+        // room (PANE_END_DP), so the page's scroll bar sits at the window's edge, as on one pane (#522).
         rightPage.setPaddingRelative(0,homeScreen.statusTextTop(),0,0);
         // The last rung of the subjects' narrow-label ladder: one pane at this size, text size and language from now on.
         // The key is this layout's, taken now; the posted callback is dropped once these panes are gone or the window
         // changed (a fold, a resize, a text-size change), so it never marks a size that did not fail.
         final String key=paneKey();
         final HubPanes[] built=new HubPanes[1];
-        HubPanes panes=new HubPanes(this,design,left,right,PANE_LEFT_DP,PANE_RIGHT_DP,0.5f,verticalHinge()?fold.hinge:null,
+        HubPanes panes=new HubPanes(this,design,left,right,PANE_LEFT_DP,PANE_RIGHT_DP-PANE_BAR_DP+PANE_END_DP,0.5f,verticalHinge()?fold.hinge:null,
                 ()->screen instanceof HubHomePane&&((HubHomePane)screen).wordsBreak(),
                 ()->{
                     if(destroyed||rebuilding||built[0]==null||!built[0].isAttachedToWindow()||!key.equals(paneKey()))return;
                     onePaneHomeAt=key;rebuild();
                 });
         built[0]=panes;
-        panes.setPaddingRelative(design.dp(24),0,design.dp(24-PANE_BAR_DP),0);
+        panes.setPaddingRelative(design.dp(24),0,0,0);
         content.addView(panes,new LinearLayout.LayoutParams(-1,0,1));
         fillPagePane(args);
     }
-    /** The page pane's scroll bar room at its end (dp): the bar sits beside the cards, not over their edges. */
+    /**
+     * The page pane's scroll bar room (dp) as #394 sized the pane: PANE_RIGHT_DP is the pane's minimum with this much end
+     * room, so the pane's content keeps the same minimum now that the pane holds the window's whole end margin.
+     */
     private static final int PANE_BAR_DP=8;
+    /**
+     * The page pane's end room (dp): the window's 24 dp side margin, inside the pane. The pane's scroller pads its end by it
+     * and draws its bar there (SCROLLBARS_OUTSIDE_OVERLAY), so the bar sits at the window's edge, never over the cards and
+     * never over the scooter pane; the pane's header keeps the same room, so it ends where the cards end.
+     */
+    private static final int PANE_END_DP=24;
     /** A banner's height (dp) at this window's width, before layout. */
     private int bannerHeightDp(View banner){
         int width=getResources().getDisplayMetrics().widthPixels;
@@ -858,9 +876,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // gives its column on a phone, so it lines up with the header and with every other page (#394 early review, 5).
             View column=scroll.getChildCount()>0?scroll.getChildAt(0):null;
             if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
-            scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_BAR_DP),scroll.getPaddingBottom());
-        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_BAR_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
-        // The bar draws in the scroller's end padding, beside the cards (on a phone it sits in the page margin).
+            scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_END_DP),scroll.getPaddingBottom());
+        }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_END_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The bar draws in the scroller's end padding, at the window's edge (as on one pane, #522).
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;
         pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
@@ -1696,8 +1714,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * a deeper page names its parent, as on one pane. The scooter pane's lock stays registered.
      */
     private LinearLayout makePaneHeader(){
-        // In the page pane, the header keeps the scroll bar's room at its end too, so it ends where the cards end.
-        LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_BAR_DP),design.dp(6));
+        // In the page pane, the header keeps the pane's end room too, so it ends where the cards end.
+        LinearLayout header=column();header.setPaddingRelative(0,design.dp(2),design.dp(PANE_END_DP),design.dp(6));
         String parent=nav.size()>1?nav.pages().get(nav.size()-2):HubPages.HOME;
         header.addView(HubPages.HOME.equals(parent)?backLink(HubText.all(),HubText.backTo(HubText.dockAll())):backLink(parent),new LinearLayout.LayoutParams(-2,-2));
         connectionTitle=connectionLabel();connectionTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,12.5f*design.textScale);
@@ -2766,7 +2784,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(lightsBody.getChildCount()>0){View line=new View(MainActivity.this);line.setBackgroundColor(design.raised);line.setTag(lightsBody.getChildAt(0));lightsBody.addView(line,0,new LinearLayout.LayoutParams(-1,design.dp(1)));}
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             clockLine=new SettingLine("history",M.mainRowClock(),null);
-            clockSpinner=new Spinner();clockSpinner.setVisibility(View.INVISIBLE);
+            clockSpinner=new Spinner();clockSpinner.setVisibility(idleAside());
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             // Sync beside the row's name while the name's longest word fits beside it, else under the name (a long
             // translation such as "Synchronisieren" at 1.4x would break "Scooter-Uhr" mid-word).
@@ -3093,7 +3111,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean clockReady=clockDecision!=null&&(clockDecision.available()||clockDecision.blockedByRide());clockButton.setEnabled(clockReady);
             clockLine.name.setTextColor(clockReady?design.text:design.muted);
             // Results are row state: a spinner while sending, then "Sent 14:02" (no clock readback exists) or a short failure.
-            clockSpinner.setVisibility(clockPending?View.VISIBLE:View.INVISIBLE);
+            clockSpinner.setVisibility(clockPending?View.VISIBLE:idleAside());
             String clock=ble==null?null:ble.commandResults().get("clock_sync");String chip=clockPending?null:resultChip(ble,"clock_sync");
             long sent=ble==null?0:ble.commandResultTime("clock_sync");
             boolean accepted=!clockPending&&clock!=null&&clock.startsWith("Accepted")&&sent>0;
@@ -3305,6 +3323,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The clock row's spinner with its margin (rowSpinnerSize), kept out of the Sync pill's decision (ActionBannerFit). */
     static final int CLOCK_SPINNER_ROOM_DP=30;
+    /** How the clock row's spinner hides while no sync runs: keeping its room (ActionBannerFit.ASIDE_KEEPS_ROOM), INVISIBLE. */
+    private static int idleAside(){return ActionBannerFit.ASIDE_KEEPS_ROOM?View.INVISIBLE:View.GONE;}
     private LinearLayout.LayoutParams rowSpinnerSize(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(design.dp(20),design.dp(20));p.setMarginStart(design.dp(10));return p;}
     /** A small red chip for a failed change; it sits on the row just before the value or switch. */
     private TextView failureChip(){
@@ -3392,7 +3412,8 @@ public final class MainActivity extends Activity implements ScreenHost {
          * @param reserveDp room the content always keeps beside the words (the clock row's spinner), shown or not
          * @param aside what that room is for, the last child of {@code content} (a Slot): beside the pill, it stays at the
          *              end of the words' line, next to the pill; under the words it goes after the pill on the pill's line
-         *              where both fit (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
+         *              where both fit, or where keeping its room on the words' line would break their longest word
+         *              (ActionBannerFit.asideByPill). Shown or not, it keeps its room (INVISIBLE, never GONE),
          *              so nothing in the row moves or re-wraps when it comes and goes.
          * @param besideLines the most lines the words may take beside the pill (0: any); with more, the pill goes under
          *                    them, where they take what they need (the clock row's name: two beside Sync, never cut)
@@ -3434,6 +3455,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean below=false,byPill=false;int side=pad;
             if(MeasureSpec.getMode(widthSpec)!=MeasureSpec.UNSPECIFIED&&action.getVisibility()!=GONE){
                 float room=MeasureSpec.getSize(widthSpec)-getPaddingLeft()-getPaddingRight();
+                // The room the aside takes: while it shows, or hidden but keeping its room (INVISIBLE, never GONE).
+                float reserve=aside==null?this.reserve:ActionBannerFit.reserved(this.reserve,aside.getVisibility()==VISIBLE,aside.getVisibility()!=GONE);
                 // The pill's own width: its label with its own padding (ActionBannerFit.pill), whatever padding a narrow
                 // window left it with last time, so the decision never depends on that.
                 action.measure(MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED),MeasureSpec.makeMeasureSpec(0,MeasureSpec.UNSPECIFIED));
@@ -3445,7 +3468,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // limit, count their lines there too, so a word is never cut off at the end of their last line.
                 int own=words.getMaxLines(),max=besideLines>0?besideLines:own>0&&own<Integer.MAX_VALUE?own:0,lines=0;
                 if(max>0&&words.length()>0){
-                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
+                    int beside=(int)Math.floor(ActionBannerFit.wordsRoom(room,pill,gap,reserve,false,false))-words.getCompoundPaddingLeft()-words.getCompoundPaddingRight();
                     CharSequence t=words.getText();
                     lines=beside<=0?Integer.MAX_VALUE:android.text.StaticLayout.Builder.obtain(t,0,t.length(),words.getPaint(),beside)
                             .setBreakStrategy(words.getBreakStrategy()).setHyphenationFrequency(words.getHyphenationFrequency())
@@ -3453,11 +3476,15 @@ public final class MainActivity extends Activity implements ScreenHost {
                             .build().getLineCount();
                 }
                 below=ActionBannerFit.actionBelow(room,pill,gap,word,reserve,lines,max);
-                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve);
+                // Under the words, the spinner after the pill where both fit, or where keeping its room on the words' line
+                // would break their longest word (the pill's padding then narrows): the same idle and syncing.
+                byPill=below&&aside!=null&&ActionBannerFit.asideByPill(room,pill,reserve,label,word);
                 int wanted=below&&indent?Math.round(ActionBannerFit.stackedIndent(room,byPill?pill+reserve:pill,words.getCompoundPaddingLeft())):0;
                 if(wanted!=indentPx){indentPx=wanted;if(below&&getOrientation()==VERTICAL)arrange(true,byPill);}
-                // Under the words in a window narrower than the pill itself: only the room around the label, kept whole.
-                if(below&&pill>room-wanted)side=(int)Math.floor(ActionBannerFit.stackedPad(room-wanted,label,pad));
+                // Under the words in a window narrower than the pill (and the spinner after it) itself: only the room
+                // around the label, kept whole.
+                float line=ActionBannerFit.stackedLine(room,wanted,reserve,byPill);
+                if(below&&pill>line)side=(int)Math.floor(ActionBannerFit.stackedPad(line,label,pad));
             }
             if(action.getPaddingLeft()!=side||action.getPaddingRight()!=side)action.setPadding(side,action.getPaddingTop(),side,action.getPaddingBottom());
             if(below!=(getOrientation()==VERTICAL)||aside!=null&&(aside.getParent()==actionLine)!=byPill)arrange(below,byPill);

@@ -20,6 +20,8 @@ public final class HubPagesTest {
         subjects();
         hub();
         dock();
+        dockMorph();
+        dockKeyboard();
         riding();
         connectionLine();
         withoutService();
@@ -153,27 +155,145 @@ public final class HubPagesTest {
         require(!HubPages.dockSwipe(16, 0, 8), "Not past twice the slop: no swipe");
         require(!HubPages.dockSwipe(30, 31, 8), "More across than up: no swipe");
         // The dock is pinned to the bottom (the contributor's decision, 14 Nov, #383): it neither lifts above Widgets' Lock bar
-        // nor steps aside for it. Its place depends on the frame, its own height and its margin only: wherever the bar is
+        // nor steps aside for it. Its sheet runs down to the screen's bottom edge, under the navigation bar or gesture handle
+        // (15 Nov, #383, as the Layout Plan's dock sheet), with its items lift above that bar, where the old floating bar's
+        // items sat. Its place depends on the window, its own height and the navigation inset only: wherever the Lock bar is
         // (the old cases, in dp at 3 px per dp: 344x882 at 1x and 1.4x, 412x915, 725x604 at 1x and 1.4x, scrolled or not),
-        // the dock's top is the same. In px.
-        int px = 3, margin = 10 * px, gap = 16 * px;
-        int[][] frames = {{344, 847, 70}, {344, 847, 98}, {412, 880, 70}, {412, 880, 98}, {725, 569, 73}, {725, 530, 70}};
+        // the dock's top is the same. In px. Each frame: window width, the page frame's height, the dock's own height
+        // without the lift or the inset, and the navigation inset (gesture handle 24 dp, three buttons 48 dp, none).
+        int px = 3, lift = HubPages.DOCK_LIFT_DP * px, padding = HubPages.DOCK_PADDING_DP * px, gap = 16 * px;
+        require(HubPages.DOCK_LIFT_DP == 10, "The items keep the old floating bar's 10 dp above the bottom");
+        int[][] frames = {{344, 847, 70, 24}, {344, 847, 98, 24}, {412, 880, 70, 48}, {412, 880, 98, 0}, {725, 569, 73, 24}, {725, 530, 70, 0}};
         int[][] bars = {{791, 843}, {820, 872}, {830, 882}, {860, 912}, {561, 615}, {431, 489}, {372, 422}, {-200, -10}, {150, 210}};
         for (int[] frame : frames) {
-            int bottom = (frame[1] + 10) * px, height = frame[2] * px;
-            int top = HubPages.dockTop(bottom, height, margin);
-            require(top == bottom - margin - height, "The dock sits its margin above the frame's bottom: " + java.util.Arrays.toString(frame));
-            for (int[] bar : bars) require(HubPages.dockTop(bottom, height, margin) == top, "The Lock bar at " + bar[0] + "-" + bar[1] + " dp does not move the dock");
+            String name = java.util.Arrays.toString(frame);
+            int inset = frame[3] * px, frameBottom = (frame[1] + 10) * px, window = frameBottom + inset;
+            int bottomPadding = HubPages.dockBottomPadding(padding, lift, inset);
+            int height = frame[2] * px + lift + inset;
+            int top = HubPages.dockTop(window, height);
+            // The surface reaches the screen's bottom edge: nothing shows beneath it.
+            require(top + height == window, "The dock's sheet runs to the screen's bottom edge: " + name);
+            require(bottomPadding == padding + lift + inset, "The sheet's bottom padding: its padding, the lift and the inset: " + name);
+            // Its items stay above the navigation bar, lift above it, exactly where the floating bar's items were (its bottom
+            // margin above the frame's bottom, less its padding).
+            int itemsBottom = top + height - bottomPadding;
+            require(itemsBottom == frameBottom - lift - padding, "The dock's items keep their place above the navigation bar: " + name);
+            require(itemsBottom <= window - inset, "The dock's items are never under the navigation bar: " + name);
+            // Its top is where the floating bar's top was: the page shows no less above it.
+            require(top == frameBottom - lift - frame[2] * px, "The dock's top did not move: " + name);
+            for (int[] bar : bars) require(HubPages.dockTop(window, height) == top, "The Lock bar at " + bar[0] + "-" + bar[1] + " dp does not move the dock");
             // Scrolled to its end with the clearance as its bottom padding, the page's last widget (the Lock bar when the
-            // rider puts it last) ends gap above the dock: every widget can be scrolled fully clear of it.
-            int padding = HubPages.dockClearance(height, margin, gap);
-            require(HubPages.scrolledEndBottom(bottom, padding) == top - gap, "Scrolled to its end, the last widget clears the dock by the gap: " + java.util.Arrays.toString(frame));
-            require(HubPages.scrolledEndBottom(bottom, padding - 1) > top - gap, "One pixel less and it would not");
+            // rider puts it last) ends gap above the dock: every widget can be scrolled fully clear of it. The scroller
+            // ends at the navigation bar (frameBottom).
+            int clearance = HubPages.dockClearance(height, inset, gap);
+            require(HubPages.scrolledEndBottom(frameBottom, clearance) == top - gap, "Scrolled to its end, the last widget clears the dock by the gap: " + name);
+            require(HubPages.scrolledEndBottom(frameBottom, clearance - 1) > top - gap, "One pixel less and it would not");
+            // The same dock with no navigation inset clears by the same gap: the inset the sheet covers is not page room.
+            require(HubPages.dockClearance(height - inset, 0, gap) == clearance, "The inset does not change the room the page needs: " + name);
         }
-        require(HubPages.dockClearance(-5, 30, 48) == 78, "An unmeasured dock: its margin and the gap");
+        require(HubPages.dockClearance(-5, 72, 48) == 48, "An unmeasured dock: the gap");
+        require(HubPages.dockClearance(30, 72, 48) == 48, "A dock not yet as tall as its inset: the gap");
+        require(HubPages.dockClearance(100, -4, 48) == 148, "A negative inset counts as none");
+        require(HubPages.dockBottomPadding(12, 30, -9) == 42, "A negative inset adds nothing to the padding");
         // A taller dock (larger text, or captions on two lines) needs more room, never less.
-        require(HubPages.dockClearance(98 * px, margin, gap) > HubPages.dockClearance(70 * px, margin, gap), "A taller dock: more room");
+        require(HubPages.dockClearance(98 * px + 72, 72, gap) > HubPages.dockClearance(70 * px + 72, 72, gap), "A taller dock: more room");
         require(!HubPages.dockSwipe(-30, 0, 8), "Downward: no swipe");
+    }
+
+    /**
+     * The dock as the closed state of main's morph into its All sheet (SheetMorph, DragSheet reading the live dock): the
+     * surface DragSheet reads from this dock's background (its GradientDrawable's bounds inside HubPages.dockSheetInsets,
+     * HubPages.dockSheetRadii) at 344, 412 and 725 dp, with the gesture handle (24 dp) and three-button navigation (48 dp).
+     * At rest that box is the dock exactly on screen (its bottom past the screen's edge, its bottom corners square, its
+     * outline along the top only on a phone, along the top and sides when wide); the morph starts on it and a close ends
+     * on it with no jump; on the way the surface never leaves a gap under it and its bottom corners stay square.
+     * In px at 3 px per dp; each case: window width and height, wide or not, the dock's body above its lift (dp, measured
+     * at 1x and 1.4x on the emulator), the navigation inset.
+     */
+    private static void dockMorph() {
+        int px = 3, line = px, radius = 26 * px, sheetRadius = 24 * px, cap = 18 * px, extension = cap + 6 * px;
+        int[][] cases = {{344, 882, 0, 88, 24}, {344, 882, 0, 94, 24}, {344, 882, 0, 88, 48}, {412, 915, 0, 88, 24}, {412, 915, 0, 88, 48},
+                {725, 604, 1, 88, 24}, {725, 604, 1, 88, 48}, {725, 604, 0, 94, 24}};
+        for (int[] c : cases) {
+            boolean wide = c[2] == 1;
+            String name = c[0] + "x" + c[1] + (wide ? " wide" : " phone") + ", body " + c[3] + " dp, inset " + c[4] + " dp";
+            int w = c[0] * px, h = c[1] * px, inset = c[4] * px;
+            int height = c[3] * px + HubPages.DOCK_LIFT_DP * px + inset;
+            // The dock's view: edge to edge on a phone, centred with 24 dp sides when wide (677 dp at 725), reaching the bottom.
+            int left = wide ? 24 * px : 0, right = w - left, top = HubPages.dockTop(h, height), bottom = top + height;
+            require(bottom == h, "The dock reaches the screen's bottom edge: " + name);
+            int[] in = HubPages.dockSheetInsets(wide, line);
+            float[] eight = HubPages.dockSheetRadii(radius);
+            double[] radii = {eight[0], eight[2], eight[4], eight[6]};
+            require(eight[0] == eight[1] && eight[2] == eight[3] && eight[4] == 0 && eight[5] == 0 && eight[6] == 0 && eight[7] == 0,
+                    "Round top corners, square bottom ones: " + name);
+            // InsetDrawable gives its drawable the view's box less the insets (negative: outward). DragSheet reads these bounds.
+            SheetMorph.Box dock = new SheetMorph.Box(left + in[0], top + in[1], right - in[2], bottom - in[3], radii, 0xff1f201e, 0xff35362f, line, 8 * px);
+            // On screen it is the dock exactly: clipped to the screen, the view's own box.
+            require(Math.max(0, dock.left) == left && Math.min(w, dock.right) == right && dock.top == top && Math.min(h, dock.bottom) == bottom,
+                    "The morph's closed box, on screen, is the dock's view: " + name);
+            require(dock.bottom - line >= h, "Its outline's bottom edge lies past the screen's edge: " + name);
+            if (wide) require(dock.left == left && dock.right == right, "Wide: its sides keep their outline, inside the window: " + name);
+            else require(dock.left + line <= 0 && dock.right - line >= w, "Phone: its side outlines lie past the screen's sides: " + name);
+            require(dock.radii[0] == radius && dock.radii[1] == radius && dock.radii[2] == 0 && dock.radii[3] == 0, "Top corners 26 dp, bottom square: " + name);
+            // The open sheet as DragSheet builds it: full width, 24 dp top corners, reaching extension below the screen.
+            SheetMorph.Box open = new SheetMorph.Box(0, Math.max(c[1] * px / 3, h - 600 * px), w, h + extension, new double[] {sheetRadius, sheetRadius, 0, 0}, 0xff111211, 0xff2a2b28, line, 0);
+            double travel = dock.top - open.top;
+            require(travel > 0, "The sheet opens above the dock: " + name);
+            same(SheetMorph.at(dock, open, travel, travel), dock, "The morph starts on the dock exactly: " + name);
+            same(SheetMorph.at(dock, open, 0, travel), open, "and ends on the open sheet as main draws it: " + name);
+            SheetMorph.Box last = SheetMorph.at(dock, open, travel, travel);
+            for (double offset = travel - .25; offset >= -cap; offset -= .25) {
+                SheetMorph.Box now = SheetMorph.at(dock, open, offset, travel);
+                require(now.bottom >= h, "No gap under the surface at offset " + offset + ": " + name);
+                require(now.radii[2] == 0 && now.radii[3] == 0, "Its bottom corners stay square at offset " + offset + ": " + name);
+                require(now.left <= Math.max(0, dock.left) + 1e-9 && now.right >= Math.min(w, dock.right) - 1e-9 && now.top <= dock.top,
+                        "The surface covers the dock's place at offset " + offset + ": " + name);
+                if (offset >= 0) require(Math.abs(now.left - last.left) < 3 && Math.abs(now.right - last.right) < 3 && Math.abs(now.bottom - last.bottom) < 3
+                        && Math.abs(now.radii[0] - last.radii[0]) < 3, "No jump at offset " + offset + ": " + name);
+                last = now;
+            }
+            // A close or snap-back ends on the dock with no jump: the last quarter pixel before rest is within a pixel of it.
+            SheetMorph.Box end = SheetMorph.at(dock, open, travel - .25, travel);
+            require(Math.abs(end.left - dock.left) < 1 && Math.abs(end.right - dock.right) < 1 && Math.abs(end.top - dock.top) < 1
+                    && Math.abs(end.bottom - dock.bottom) < 1 && Math.abs(end.radii[0] - dock.radii[0]) < 1, "The close's last step lands on the dock: " + name);
+        }
+    }
+
+    /**
+     * The keyboard (HubPages.dockInset): the dock runs on under the navigation bar only. With the keyboard up, MainActivity's
+     * root ends at the keyboard's top (its padding the larger inset) and the dock sits there with its items lift and
+     * padding above it, exactly where main's dock (in the page frame) leaves its items.
+     */
+    private static void dockKeyboard() {
+        int px = 3;
+        require(HubPages.dockInset(24 * px, 0) == 24 * px, "No keyboard: the gesture handle's inset");
+        require(HubPages.dockInset(48 * px, 0) == 48 * px, "No keyboard: three buttons' inset");
+        require(HubPages.dockInset(24 * px, 300 * px) == 0, "Keyboard up: none (the keyboard covers the bar)");
+        require(HubPages.dockInset(48 * px, 280 * px) == 0, "Keyboard up over three buttons: none");
+        require(HubPages.dockInset(0, 0) == 0 && HubPages.dockInset(-5, 0) == 0 && HubPages.dockInset(24, -3) == 24, "Missing or negative insets");
+        require(HubPages.dockInset(24 * px, 10 * px) == 14 * px, "A keyboard shorter than the bar: the part it leaves");
+        int padding = HubPages.DOCK_PADDING_DP * px, lift = HubPages.DOCK_LIFT_DP * px, body = 88 * px;
+        int[][] insets = {{24, 0}, {48, 0}, {24, 300}, {48, 280}, {24, 10}, {0, 0}, {0, 250}};
+        for (int h : new int[] {882 * px, 604 * px}) for (int[] i : insets) {
+            int nav = i[0] * px, ime = i[1] * px, rootBottom = h - Math.max(nav, ime);
+            int inset = HubPages.dockInset(nav, ime);
+            int height = body + lift + inset, top = HubPages.dockTop(rootBottom + inset, height);
+            int dockBottom = top + height, items = dockBottom - HubPages.dockBottomPadding(padding, lift, inset);
+            // main: the dock floated in the page frame (ending at rootBottom), lift above its bottom, its items padding inside.
+            int mainItems = rootBottom - lift - padding;
+            String name = "nav " + i[0] + " dp, keyboard " + i[1] + " dp, window " + h / px + " dp";
+            require(items == mainItems, "The items sit where main's do: " + name);
+            require(dockBottom == (ime > 0 ? h - ime : h), "The sheet reaches the keyboard's top, or the screen's bottom without one: " + name);
+            require(dockBottom <= h - Math.max(0, ime), "Never under the keyboard: " + name);
+        }
+    }
+
+    private static void same(SheetMorph.Box a, SheetMorph.Box b, String message) {
+        boolean ok = a.left == b.left && a.top == b.top && a.right == b.right && a.bottom == b.bottom && a.fill == b.fill && a.stroke == b.stroke
+                && a.strokeWidth == b.strokeWidth && a.elevation == b.elevation;
+        for (int i = 0; i < 4; i++) ok &= a.radii[i] == b.radii[i];
+        require(ok, message + " (" + a + " vs " + b + ")");
     }
 
     /**

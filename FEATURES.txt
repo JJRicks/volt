@@ -848,8 +848,8 @@ DASHBOARD AND LOCAL HISTORY
 Home is the hub for seven subjects, each with a summary (Ride, Battery &
 charging, Controls, Lights & sound, Security, Service, Data). Clean Home lists
 them on the page, every row one height (a subject whose summary isn't known
-yet shows its name alone, centred), and has no dock; Widgets Home has a dock, a floating bar at
-the bottom with the most-used subjects under short names and All (or swipe up)
+yet shows its name alone, centred), and has no dock; Widgets Home has a dock, a sheet in the tab bar's
+colours at the bottom, reaching the screen's bottom edge, with the most-used subjects under short names and All (or swipe up)
 for a sheet with Search and Settings first, then every subject with its
 summary. Each dock icon sits on a raised tile under a grab handle. The dock
 is always pinned to the bottom (it steps aside only while Home is being
@@ -1475,7 +1475,7 @@ the height. The Ride row shows a running recording
 and its time while a ride records, else the last ride, the same one Just back
 shows.
 Settings > Home style shows the two styles side by side, a Quick actions row
-naming Clean's four (opening the same picker as Edit Home) and the two moment
+naming Clean's four as their buttons do (opening the same picker as Edit Home) and the two moment
 switches, both on by default.
 Setup's last step offers the choice (Clean selected on a new install), each
 style drawn in detail with the scooter's photo and sample readings. Owners
