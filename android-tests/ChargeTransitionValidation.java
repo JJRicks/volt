@@ -318,7 +318,8 @@ public final class ChargeTransitionValidation extends Instrumentation {
                 if (seen >= 0 && a[seen] <= .05f && b[seen] <= .05f) continue;
                 float limit = Math.max(4 * density, .6f * (max[c] - min[c]));
                 if (c == IMAGE_SCALE && names == NAMES) limit = Math.max(.05f, .6f * (max[c] - min[c]));
-                require(Math.abs(b[c] - a[c]) <= limit, what + ": " + names[c] + " jumped from " + fmt(a[c]) + " to " + fmt(b[c]) + " in one frame: " + row(a, names) + " -> " + row(b, names));
+                require(Math.abs(b[c] - a[c]) <= limit, what + ": " + names[c] + " jumped from " + fmt(a[c]) + " to " + fmt(b[c]) + " in one frame (at most "
+                        + fmt(limit) + "): " + row(a, names) + " -> " + row(b, names));
             }
         }
         require(pairs >= 3, what + ": too few frames close together to judge (" + pairs + ")");

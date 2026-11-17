@@ -438,9 +438,12 @@ final class ChargeTransition {
 
     // ===== Widgets' takeover =====
 
-    /** The takeover's height share at progress p: it opens first, then its parts arrive. */
+    /**
+     * The takeover's height share at progress p: it opens first, then its parts arrive. On Motion's even curve, which
+     * starts and ends gently both ways: an arrival curve run backwards (closing) collapsed the last third in one frame.
+     */
     static float widgetsHeight(float p) {
-        return new android.view.animation.DecelerateInterpolator().getInterpolation(seg(p, 0, .45f));
+        return fade(seg(p, 0, .45f));
     }
 
     /** Widgets' takeover at progress p: the hero's own fade and rise, then its parts. */
