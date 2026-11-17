@@ -1240,10 +1240,23 @@ public final class MoreScreen implements AppScreen {
      * the Updates sheet, so the page brings its Updates row on screen and openHeld opens the sheet over it.
      */
     @Override public View anchor(String id) {
+        // Battery & charging's invite sheet: its Record this charge brings this page's row on screen (ChargeInvite).
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) return chargeCaptureRow != null ? chargeCaptureRow.view : null;
         return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
     }
-    /** Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). */
+    /**
+     * Opens the Updates sheet over its row with the searched control flashed in it (AppScreen.openHeld). For the charge
+     * invite's Record this charge (ChargeInvite.RECORD_ANCHOR), starts the row's own step (the charger question) when a
+     * recording can start now, exactly as tapping the row would; otherwise (none can start, or one is already recording)
+     * it does nothing, and the row flashes with its status line saying why.
+     */
     @Override public boolean openHeld(String id) {
+        if (ChargeInvite.RECORD_ANCHOR.equals(id)) {
+            ScooterService s = service();
+            if (closed || chargeCaptureRow == null || s == null || s.isChargeRecording() || s.chargeCaptureUnavailable() != null) return false;
+            recordChargeDialog(s);
+            return true;
+        }
         if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
         updatesSheet();
         View control = updatesBox.findViewWithTag(id);
@@ -2102,7 +2115,7 @@ public final class MoreScreen implements AppScreen {
     }
     /**
      * The running try of this control, or what its last journalled try read back, or, before any try, quiet muted "Not
-     * tried yet" words rather than a pill. No row says Untested or Unverified here any more (owner, Nov 17 2026): the
+     * tried yet" words rather than a pill (none where they don't fit). No row says Untested or Unverified here any more (owner, Nov 17 2026): the
      * card itself says what its controls are, and owners' reports say what is missing.
      */
     private void labStatus(BleController ble, String key, LadderPill pill, boolean sheet) {
@@ -2119,7 +2132,9 @@ public final class MoreScreen implements AppScreen {
         // The simulator changes only its own memory and reads nothing back: no scooter evidence either way.
         if (ble.simulating() && ble.experimentBaseline(key) != null) { pill.quiet(ui.muted, T.moreLabStatusSimulated(), T.moreLabStatusSimulatedShort()); return; }
         if (last != null && !last.resolved) { pill.show(ui.danger, true, T.moreLabStatusUnfinished(), T.moreLabStatusUnfinishedShort()); return; }
-        if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried()); return; }
+        // Untried is the default state, so where "Not tried yet" doesn't fit (pt-PT beside Try at 344 dp) the row shows no
+        // words rather than a cut-off phrase; the pill's description, which the row speaks, keeps the full words.
+        if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried(), ""); return; }
         switch (CompatibilityReport.tryResult(last)) {
             case "worked_here": pill.show(ui.ok, true, T.moreLabStatusWorked(), T.moreLabStatusWorkedShort()); return;
             case "refused": pill.show(ui.danger, true, T.moreLabStatusRefused(), T.moreLabStatusRefusedShort()); return;

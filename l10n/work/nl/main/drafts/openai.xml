@@ -97,6 +97,15 @@
         <item quantity="other">%1$d steps gevonden</item>
     </plurals>
     <string name="main_scan_option" volt:src="6801c41ddbd8a9ef7d66c7806562c01c3d210fe4">%1$s, %2$s%3$s, adres eindigt op %4$s</string>
+    <string name="main_find_title" volt:src="5622737b7ee69869fa25c076ea590c965f9bc3a1">%1$s in de buurt zoeken</string>
+    <string name="main_find_saved_address" volt:src="95393b3e1288d46b3bb45a65b82176c4c079e4d3">Opgeslagen adres</string>
+    <string name="main_find_state_saved_address" volt:src="2f6ec6c6c339510ec4e80d653740a6eb5be60ed0">, opgeslagen adres</string>
+    <plurals name="main_find_hidden" volt:src="bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b">
+        <item quantity="one">%1$d andere step verborgen (ander model)</item>
+        <item quantity="other">%1$d andere steps verborgen (ander model)</item>
+    </plurals>
+    <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Verbinding maken met deze step als %1$s?</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Volt stuurt de eigenaarssleutel van %1$s naar deze step. Een step die nog geen eigenaar heeft (nieuw of gereset) zou die sleutel overnemen. Kies daarom alleen je eigen step, met je telefoon er direct naast.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Rijden</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Accu</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Verlichting</string>
@@ -310,7 +319,7 @@
     <string name="main_report_send" volt:src="cd40bf79d86687117e894eab3f6e5691755c8a04">Versturen</string>
     <string name="main_report_email_next" volt:src="09c327dfba647d68c4c2d4593611103a5244e39b">Je e-mailapp opent hierna, zodat je het eerst kunt lezen.</string>
     <string name="main_report_choose_send" volt:src="6fc85b101df7fc3f64829f1f129e863e273d071c">Kies je step of ‘Niet zeker’ en tik daarna op ‘Versturen’.</string>
-    <string name="main_report_diagnostics_note" volt:src="de6cef2b4552f44f2a6b09081b292b1469368909">Dit voegt een diagnosebestand toe: gegevens van de app en step en recente gebeurtenissen bij verbinding en bediening. Nooit je eigenaarssleutel, PIN, serienummer, locatie of namen.</string>
+    <string name="main_report_diagnostics_note" volt:src="8d097556da17f4d4063725ba125e7dbef1eebdff" volt:attempt="2">Dit voegt een diagnosebestand toe: gegevens van de app, telefoon en step, instellingen van Volt en de laatste crash, aantallen opnamen, recente gebeurtenissen rond verbindingen en bediening, en de laadgeschiedenis en geschiedenis van het laadschema van de geselecteerde step, met tijden. Nooit je eigenaarssleutel, PIN, serienummer, locatie of namen.</string>
     <string name="main_report_email_title" volt:src="3a8d007b3321b4ff9de08825a590fb17335a0fce">E-mail aan Volt</string>
     <string name="main_report_preview" volt:src="5fec0a930995b01e29010286e708bb1559719321">Voorbeeld bekijken</string>
     <string name="main_report_preview_description" volt:src="89735a85c4cde7ec0114bf1f090f27b87cc8004d">Voorbeeld van het diagnosebestand bekijken</string>

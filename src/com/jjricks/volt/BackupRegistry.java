@@ -70,6 +70,8 @@ final class BackupRegistry {
         // Record charges automatically: the switch travels; a hand stop's hold belongs to this phone and the charge it was in.
         add(app, ChargeAutoRecordPolicy.KEY, Boolean.class, PREFERENCES);
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
+        // Battery & charging's charge recordings invite (ChargeInvite): closed, or recordings sent; travels so a restore doesn't ask again.
+        add(app, ChargeInvite.KEY, String.class, PREFERENCES);
         // An owner release that wasn't confirmed (ReleaseHolds): the scooters held from reconnecting and the questions
         // still owed belong to this phone. Never exported; a restore keeps this phone's, so it never creates or ends one.
         exclude(app, ReleaseHolds.HELD, Set.class, DEVICE);

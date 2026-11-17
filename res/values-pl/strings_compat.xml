@@ -18,6 +18,8 @@
     <string name="compat_preview_report">Podgląd raportu</string>
     <!-- src:7393e79b1d7b7004e922147bbd058fb347783333 -->
     <string name="compat_no_finished_check">Nie ma jeszcze ukończonego sprawdzania</string>
+    <!-- src:780bfedd7257990a493fc6f1164fcde3df631c08 -->
+    <string name="compat_footer">Sprawdzanie tylko odczytuje dane. Próby znajdują się w sekcji Serwis › Funkcje eksperymentalne, a raport zawiera ich wyniki. Nigdy nie zmienia oprogramowania sprzętowego.</string>
     <!-- src:465b99a776e3987ff95e10fad6eac713fc821b6e -->
     <string name="compat_connect_to_check">Aby sprawdzić tę hulajnogę, należy się z nią połączyć.</string>
     <!-- src:dba08d09f91ad6e2257006954ea15fc634a57b8c -->
