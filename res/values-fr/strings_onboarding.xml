@@ -12,6 +12,8 @@
     <string name="onboarding_step_run_helper">Exécuter le script de capture</string>
     <!-- src:a6b482de3d161b45d9c046be02d131f0bbe97ba8 -->
     <string name="onboarding_step_import">Importer</string>
+    <!-- src:1af40adc5e22b6a0a53863d492e67bd17869408d -->
+    <string name="onboarding_step_new_key">Clé de propriétaire</string>
     <!-- src:7b4b991b39abcc06a1ca302148bcf8c2f024c2e5 -->
     <string name="onboarding_step_nearby">Appareils à proximité</string>
     <!-- src:c0b161edeeceec2afc3d6edb3d932c48ce0394d1 -->
@@ -98,6 +100,10 @@
     <string name="onboarding_path_owner_file_detail">Accès à la trottinette uniquement · sans trajets ni historique</string>
     <!-- src:d961ad5c00ad8effde507bf15d014e73b523ab29 -->
     <string name="onboarding_path_identity">Saisir une clé de propriétaire de 12 caractères</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_path_new_key">Créer une nouvelle clé de propriétaire</string>
+    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
+    <string name="onboarding_path_new_key_detail">Trottinette neuve ou réinitialisée · sans ordinateur</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Nécessite Android 11 ou version ultérieure</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -122,6 +128,8 @@
     <string name="onboarding_finish_import_first">Terminez d’abord l’importation du fichier de propriétaire sélectionné.</string>
     <!-- src:a0e1b8855a5a0586cbf31d9ca0589ca93c83c695 -->
     <string name="onboarding_skip_title">Passer la configuration pour le moment ?</string>
+    <!-- src:fd894d5886133bef30a7eb4a2f11be3b7569fc87 -->
+    <string name="onboarding_skip_message">Ajoutez votre trottinette plus tard dans « Réglages › Mes trottinettes ».</string>
     <!-- src:9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9 -->
     <string name="onboarding_skip_keep_going">Continuer</string>
     <!-- src:ea9dc58d381ab136f8d8332bf41d32f90bd93983 -->
@@ -320,6 +328,44 @@
     <string name="onboarding_shizuku_missing">L’application Shizuku n’est pas installée</string>
     <!-- src:bbfd4e2ebace2075a9a264ed278320d87fbfa1fb -->
     <string name="onboarding_stop_recording">Arrêtez d’abord l’enregistrement du trajet</string>
+    <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
+    <string name="onboarding_new_title">Créer une nouvelle clé de propriétaire</string>
+    <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
+    <string name="onboarding_new_body">Volt crée une clé de propriétaire et la conserve sur ce téléphone. Une trottinette sans propriétaire accepte la première clé qu’elle reçoit.</string>
+    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
+    <string name="onboarding_new_unowned">Trottinette neuve ou réinitialisée</string>
+    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
+    <string name="onboarding_new_unowned_detail">Jamais configurée, ou retirée de l’application NAVEE</string>
+    <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
+    <string name="onboarding_new_navee_note">L’application NAVEE ne peut pas ajouter cette trottinette tant qu’elle possède la clé de Volt. Pour revenir à l’application NAVEE, libérez d’abord la trottinette dans Volt.</string>
+    <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->
+    <string name="onboarding_new_refused">Cette trottinette a déjà un propriétaire et a donc refusé la nouvelle clé. Retirez-la de l’application NAVEE et réessayez, ou configurez-la autrement.</string>
+    <!-- src:c1c5a5b0c56c6d3755c62adf36a948419bd31a8f -->
+    <string name="onboarding_new_other_way">Configurer autrement</string>
+    <!-- src:4de2502027c3ae77e8c820d10f9676531c5b73eb -->
+    <string name="onboarding_new_save_failed">La nouvelle clé de propriétaire n’a pas pu être enregistrée. Libérez de l’espace de stockage et réessayez.</string>
+    <!-- src:b8fce5b72d286bfe3edbe88e557c01b28f870aa0 -->
+    <string name="onboarding_done_new_key_note">Volt a créé la clé de propriétaire de cette trottinette, et elle se trouve uniquement sur ce téléphone. Sauvegardez Volt pour pouvoir configurer la trottinette sur un autre téléphone.</string>
+    <!-- src:99e4b93f9bb07c68da624cdfbb46b412293b173a -->
+    <string name="onboarding_key_title">Noter votre clé de propriétaire</string>
+    <!-- src:282c5da63dbeaffc51931849c4a1789ce2060df3 -->
+    <string name="onboarding_key_body">Cette clé existe uniquement sur ce téléphone. Si vous perdez le téléphone ou les données de Volt sans en avoir de copie, vous ne pourrez plus accéder à votre trottinette. Notez cette clé et conservez-la en lieu sûr, ou enregistrez un fichier de sauvegarde. Une capture d’écran convient aussi.</string>
+    <!-- src:a3a5b665cc4c6d68cf952d5e1c2d5bfdc94db29c -->
+    <string name="onboarding_key_write">Veuillez noter cette clé !</string>
+    <!-- src:357ab99111c6e4f1b113db3d144c633881f771c7 -->
+    <string name="onboarding_key_spoken">Clé de propriétaire : %1$s</string>
+    <!-- src:6bef92dcca50b07d22b5b8ab7f09da79aa960432 -->
+    <string name="onboarding_key_save">Enregistrer un fichier de sauvegarde</string>
+    <!-- src:c77fcaa03c2e1ab0476ab95fe2c3a86aadb305c4 -->
+    <string name="onboarding_key_saved">Sauvegarde enregistrée</string>
+    <!-- src:e8da8521c2b44b2b1b8a537e4113f74379437adb -->
+    <string name="onboarding_key_done_wait">Terminé (%1$d)</string>
+    <!-- src:cc9ee3c4e0bdc5f7c6abcb2fefd9df8b1ed95419 -->
+    <plurals name="onboarding_key_done_wait_description">
+        <item quantity="one">Terminé, disponible dans %1$d seconde</item>
+        <item quantity="many">Terminé, disponible dans %1$d de secondes</item>
+        <item quantity="other">Terminé, disponible dans %1$d secondes</item>
+    </plurals>
     <!-- src:56062797f9d331b9ceb3280ae89b5de65d366fcf -->
     <string name="onboarding_identity_title">Saisir la clé de propriétaire</string>
     <!-- src:93d797cd102b7651e85c5d04d50ddf7833e030af -->

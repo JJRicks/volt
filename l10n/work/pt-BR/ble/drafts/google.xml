@@ -11,6 +11,9 @@
     <string name="ble_status_paused" volt:src="1c8e31fe8678fa854df7fdfd9b602b38219a9454">Pausado em segundo plano</string>
     <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Verificando compatibilidade…</string>
     <string name="ble_status_setting_clock" volt:src="743208d1de13b4c7f17550fc7b2f34e5fdd54d60">Definindo o relógio do patinete a partir deste telefone…</string>
+    <string name="ble_status_releasing" volt:src="3278a55a28be6a38784b18011183e9cb68d06b18">Liberando o patinete…</string>
+    <string name="ble_release_held" volt:src="27fd91857fecb730a6a12e559973648f3484dc17">Liberação não confirmada · não reconectando</string>
+    <string name="ble_release_held_short" volt:src="772be0b099f67e1368e9a128e8bbbc9ad5c4e85c">Liberação não confirmada</string>
     <string name="ble_reading" volt:src="728cf773a5c57a15f19c5c603f34929b6502bb7f">Lendo %1$s…</string>
     <string name="ble_applying" volt:src="d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c">Aplicando %1$s…</string>
     <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Permissão de dispositivos por perto necessária</string>
@@ -29,6 +32,11 @@
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Patinete não reconhecido</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Não é o patinete salvo</string>
     <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Este é %1$s. Selecione-o em “Meus patinetes” ou procure seu novo patinete.</string>
+    <string name="ble_failed_new_key_elsewhere" volt:src="1c0b385e8b0ccb748d54eea3df06fca3c6441f4f">Esta nova chave foi para outro patinete primeiro. Ligue aquele patinete por perto e tente novamente.</string>
+    <string name="ble_failed_new_key_unsaved" volt:src="1ebe16bb5235dd8b36f294f81200e98507ddb6d4">Não foi possível salvar a configuração inicial, então o Volt não enviou a nova chave. Libere espaço de armazenamento e tente novamente.</string>
+    <string name="ble_failed_find_mismatch" volt:src="4549812aa55aa5ffabb66aa863995505872f0cde">Este não é %1$s: o número de série é diferente. Nada foi salvo.</string>
+    <string name="ble_failed_find_unchecked" volt:src="8d513c8a2ff0e7c8de2a948f2764ee04e434df6f" volt:attempt="2">Não foi possível verificar %1$s naquele endereço. Nada foi salvo. Faça uma nova tentativa com “Localizar por perto”.</string>
+    <string name="ble_found_new_address" volt:src="10d9b7a526cd313ea7f57dc5f9bbbbc143018203">%1$s foi encontrado em um novo endereço Bluetooth</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Sinal perdido</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Alteração não confirmada</string>
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · tentando novamente</string>

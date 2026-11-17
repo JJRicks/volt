@@ -98,6 +98,16 @@
         <item quantity="other">%1$d trottinettes trouvées</item>
     </plurals>
     <string name="main_scan_option" volt:src="6801c41ddbd8a9ef7d66c7806562c01c3d210fe4">%1$s, %2$s%3$s, adresse se terminant par %4$s</string>
+    <string name="main_find_title" volt:src="5622737b7ee69869fa25c076ea590c965f9bc3a1">Trouver %1$s à proximité</string>
+    <string name="main_find_saved_address" volt:src="95393b3e1288d46b3bb45a65b82176c4c079e4d3">Adresse enregistrée</string>
+    <string name="main_find_state_saved_address" volt:src="2f6ec6c6c339510ec4e80d653740a6eb5be60ed0">, adresse enregistrée</string>
+    <plurals name="main_find_hidden" volt:src="bb159b3b7fc23a9d19a5de3b47f1e4d75d08ca1b">
+        <item quantity="one">%1$d autre trottinette masquée (autre modèle)</item>
+        <item quantity="many">%1$d d’autres trottinettes masquées (autre modèle)</item>
+        <item quantity="other">%1$d autres trottinettes masquées (autre modèle)</item>
+    </plurals>
+    <string name="main_find_confirm_title" volt:src="5db8ba189368792f25c46b450dcc10cee9c58250">Connecter cette trottinette en tant que %1$s ?</string>
+    <string name="main_find_confirm_body" volt:src="db97083ab6bb7adc78590c6c1a6128f7bca2a8bb">Volt enverra à cette trottinette la clé de propriétaire de « %1$s ». Une trottinette qui n’a pas encore de propriétaire (neuve ou réinitialisée) accepterait cette clé : choisissez donc uniquement votre propre trottinette, avec votre téléphone juste à côté.</string>
     <string name="main_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Conduite</string>
     <string name="main_group_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batterie</string>
     <string name="main_group_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Feux</string>

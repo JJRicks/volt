@@ -28,6 +28,8 @@
     <string name="maintenance_switch">Przypomnienia o konserwacji</string>
     <!-- src:d1fbdd4a68e6cf0de2c872f396f24b42153d058a -->
     <string name="maintenance_switch_detail">Pokazuj ustawione przeglądy, gdy będą wymagane</string>
+    <!-- src:a51240dc7ae0b3602de168ceec8c850d4c82cab9 -->
+    <string name="maintenance_off_explain">Należy włączyć tę opcję, aby dodać własne przypomnienia, na przykład o sprawdzaniu ciśnienia w oponach co 2 tygodnie lub hamulców co 300 mil. Aplikacja Volt wyświetla przegląd tutaj i na pulpicie, gdy nadejdzie termin.</string>
     <!-- src:33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1 -->
     <string name="maintenance_disclaimer">To przypomnienia ustawione przez Ciebie. Należy sprawdzić hulajnogę, gdy tylko coś budzi wątpliwości, cokolwiek wskazuje przypomnienie.</string>
     <!-- src:5ab9cc59ff86341c67ec3f486583edb6a86bd537 -->
@@ -300,6 +302,8 @@
     <string name="maintenance_notify_detail">Jedno powiadomienie, gdy przegląd będzie wymagany</string>
     <!-- src:4ac0ab2da2377f93b89cf4d716433385cfec3bd8 -->
     <string name="maintenance_channel">Przypomnienia o konserwacji</string>
+    <!-- src:eb5c5dfeb924e5bcdb2e0bf7c079d8416326b3ef -->
+    <string name="maintenance_channel_detail">Przeglądy ustawione w sekcji „Serwis › Konserwacja”, jednorazowo, gdy nadejdzie termin każdego z nich</string>
     <!-- src:019e234eff3132c9cd55bac2fb8afb8733d192b4 -->
     <plurals name="maintenance_notice_title">
         <item quantity="one">%1$d przegląd wymagany · %2$s</item>

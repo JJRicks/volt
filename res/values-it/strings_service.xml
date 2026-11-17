@@ -138,6 +138,12 @@
     <string name="service_charge_saved_full">Registrazione della ricarica salvata · la batteria ha raggiunto il 100%%</string>
     <!-- src:7d1c1cc6bca567ad6f3596d2f6340628e77bfd14 -->
     <string name="service_charge_saved">Registrazione della ricarica salvata</string>
+    <!-- src:31f872ceeb975374bc8e8f1ea8331a295f49bb5a -->
+    <string name="service_charge_not_kept">Registrazione della ricarica non conservata · meno di 10 min o 5%%</string>
+    <!-- src:8c8a5ff695247603854db647ac54d85eaede73c5 -->
+    <string name="service_charge_auto_no_room">Questa ricarica non viene registrata: le 20 registrazioni della ricarica salvate, condivise tra tutti i tuoi monopattini, sono state tutte avviate da te. Elimina le registrazioni della ricarica di un monopattino per liberare spazio.</string>
+    <!-- src:50ad0009a5426ee1508e0b0681adbddceaf41638 -->
+    <string name="service_charge_charger_guessed">%1$s · caricabatterie ipotizzato</string>
     <!-- src:66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4 -->
     <string name="service_charge_storage_error">Registrazione della ricarica interrotta dopo un errore di archiviazione</string>
     <!-- src:1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5 -->

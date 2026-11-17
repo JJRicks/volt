@@ -15,7 +15,7 @@
     <string name="maintenance_tab_due" volt:src="6f3c512051b6d2f7fad34779ceb250f66eeea77b">%1$s, Wartung fällig</string>
     <string name="maintenance_switch" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Wartungserinnerungen</string>
     <string name="maintenance_switch_detail" volt:src="d1fbdd4a68e6cf0de2c872f396f24b42153d058a">Zeigt eingestellte Prüfungen an, wenn sie fällig sind</string>
-    <string name="maintenance_off_explain" volt:src="a906c19d7128632b6edd0749881f390ab3393e59">Schalte dies ein, um eigene Erinnerungen hinzuzufügen, z. B. alle 2 Wochen den Reifendruck oder alle 300 mi die Bremsen zu prüfen. Volt zeigt eine Prüfung hier und auf dem Tab „Scooter“ an, wenn sie fällig ist.</string>
+    <string name="maintenance_off_explain" volt:src="a51240dc7ae0b3602de168ceec8c850d4c82cab9">Schalte dies ein, um eigene Erinnerungen hinzuzufügen, wie das Prüfen des Reifendrucks alle 2 Wochen oder der Bremsen alle 300 mi. Volt zeigt hier und auf der Startseite eine Prüfung an, wenn sie fällig ist.</string>
     <string name="maintenance_disclaimer" volt:src="33528b2bc41080e24ed3aaaf6ca3f1c8d0d2dce1" volt:attempt="2">Dies sind von dir eingestellte Erinnerungen. Prüfe deinen Scooter, wann immer sich etwas falsch anfühlt, ganz gleich, was eine Erinnerung besagt.</string>
     <string name="maintenance_due_now" volt:src="5ab9cc59ff86341c67ec3f486583edb6a86bd537">Jetzt fällig</string>
     <string name="maintenance_coming_up" volt:src="9422d524a96ad094682252e79c897beac42c0073">Demnächst</string>
@@ -158,7 +158,7 @@
     <string name="maintenance_notify" volt:src="37cdc480a4aa94342fab06d7f6f17d9ff2efdf2a">Mich benachrichtigen</string>
     <string name="maintenance_notify_detail" volt:src="a62173aa99122e968d3a6456c2864202b8576ce0">Eine Benachrichtigung einmalig bei Fälligkeit</string>
     <string name="maintenance_channel" volt:src="4ac0ab2da2377f93b89cf4d716433385cfec3bd8">Wartungserinnerungen</string>
-    <string name="maintenance_channel_detail" volt:src="253b821ce1c206197ea1313c4e06e6f5f91387bd">Prüfungen, die du unter Scooter › Service › Wartung einstellst, jeweils einmal bei Fälligkeit</string>
+    <string name="maintenance_channel_detail" volt:src="eb5c5dfeb924e5bcdb2e0bf7c079d8416326b3ef">Prüfungen, die du unter Service › Wartung einstellst, jeweils einmal bei Fälligkeit</string>
     <plurals name="maintenance_notice_title" volt:src="019e234eff3132c9cd55bac2fb8afb8733d192b4">
         <item quantity="one">%1$d Prüfung fällig für %2$s</item>
         <item quantity="other">%1$d Prüfungen fällig für %2$s</item>

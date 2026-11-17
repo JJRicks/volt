@@ -42,11 +42,31 @@
     <string name="more_scooters_save_name" volt:src="44a2f79d166043c73ea7e045017866ef15cd4103">Adı kaydet</string>
     <string name="more_scooters_forget" volt:src="7fff3d4a9e3ea5f2863d17d00361b1a14ebb964d">Bu scooter’ı unut</string>
     <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Unut: %1$s</string>
+    <string name="more_scooters_find_new_address" volt:src="36fa502b3d743203d54646bff813a3b8f4751d9d">Yeni adreste bul</string>
+    <string name="more_scooters_find_new_address_named" volt:src="026ffc9c7547962d6e390c876e8c5077b52e5a4f">%1$s adlı scooter’ı yeni adreste bul</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Bir scooter adı girin</string>
     <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">%1$s adlı scooter unutulsun mu?</string>
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd" volt:attempt="2">Bağlantı kurulumu bu telefondan kaldırılacak. Kaydedilen sürüşler ve şarj kayıtları korunacak.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Önce yedek kaydet</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Unut</string>
+    <string name="more_scooters_forget_owner_warning" volt:src="fa86328936297b67be02970febecd58e5128f833">Scooter, sahipliği bırakılana kadar sahip anahtarını saklar. Unutma işlemi Volt’taki kopyayı siler; bu yüzden yedek olmadan yeniden sahibi olarak bağlanamayabilirsiniz.</string>
+    <string name="more_scooters_forget_backed_up" volt:src="5f769678c1022437c26e0482b1292d8c2a120eeb">Bu anahtarı içeren yedek kaydedildi: %1$s.</string>
+    <string name="more_scooters_forget_backup_needed" volt:src="4483ec9e2f095b8e1084997f96f95049bb8eaf88">Önce bu anahtarı içeren bir yedek kaydedin. Bunun yerine scooter’ı yeniden yeni hâline getirmek için “Bu scooter’ın sahipliğini bırak” seçeneğini kullanın.</string>
+    <string name="more_scooters_release" volt:src="700ec9ec671bad88248d630e22ba58c07bef9d27">Bu scooter’ın sahipliğini bırak…</string>
+    <string name="more_scooters_release_named" volt:src="fb25cc3c4c3c8d6843ef30a74548b45ce18e813b">%1$s adlı scooter’ın sahipliğini bırak</string>
+    <string name="more_scooters_release_connect_first" volt:src="bc26e8a3afbba3603622b5ac75abedb115eb6396">Sahipliğini bırakmak için önce bu scooter’a bağlanın.</string>
+    <string name="more_scooters_release_title" volt:src="e1e99c773016303e1307c2d1459633788ea3efb0">%1$s adlı scooter’ın sahipliği bırakılsın mı?</string>
+    <string name="more_scooters_release_body" volt:src="940f26ba52f268ab0167b232dd13c4a7cf2258c6">Scooter’ınız sahip anahtarını unutur ve Volt onu bu telefondan kaldırır. Ardından yakındaki herkes onu NAVEE uygulamasıyla veya Volt ile ekleyebilir. NAVEE uygulamasında eklediyseniz, oradaki hesabınızda listelenmeye devam eder.</string>
+    <string name="more_scooters_release_action" volt:src="a966e89cfabc8d4d60492392e99c99feefbc8c51">Sahipliği bırak</string>
+    <string name="more_scooters_released" volt:src="4d12a9bee0feaa4bfb89ab6e6930a5e2e500d703">Scooter’ın sahipliği bırakıldı</string>
+    <string name="more_scooters_release_refused" volt:src="53a5b4cbb5433229a2b95cf55b33c20319375ca2">Scooter, sahipliği bırakma isteğini reddetti. Volt’ta kayıtlı kalır.</string>
+    <string name="more_scooters_release_unconfirmed" volt:src="02df0809209475398031fe9a4333bda4e9f9a5fe">Scooter, sahipliğin bırakılıp bırakılmadığını onaylamadı. Volt’ta kayıtlı kalır.</string>
+    <string name="more_scooters_release_not_sent" volt:src="842e08407ba34879137b5f38a3f84cc8f57d579d">Sahipliği bırakma isteği gönderilmedi. Scooter Volt’ta kayıtlı kalır.</string>
+    <string name="more_scooters_release_held_title" volt:src="1554f7352a60182cfc7408561ab3dcb4ad64ba8b">%1$s sahipliği bırakma isteğini onaylamadı</string>
+    <string name="more_scooters_release_held_body" volt:src="4ef32f776404358f5562056c22818041360d34a4">Sahipliği bırakılmış olabilir. Öyleyse bu anahtarı artık tanımaz ve NAVEE uygulaması veya başka bir Volt sahip anahtarı onu ekleyebilir. Siz seçene kadar Volt ona kendiliğinden yeniden bağlanmaz.</string>
+    <string name="more_scooters_release_held_remove" volt:src="5f029298852d5600fb27464b025d03b02eea5aeb">Volt’tan kaldır</string>
+    <string name="more_scooters_release_held_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Yeniden bağlan</string>
+    <string name="more_scooters_release_held_reconnect_note" volt:src="90bd11ba915515f4530fb3b74db021f0833eead9">Sahipliği bırakıldıysa yeniden bağlanmak Volt’u yeniden sahibi yapar.</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Görünüm</string>
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Koyu</string>
     <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Sistem ayarını kullan</string>
@@ -191,8 +211,8 @@
         <item quantity="other">%1$d deneme temizlendi</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Deneme sonuçları, gönderdiğiniz bir uyumluluk raporu bunları içerene veya siz temizleyene kadar bu telefonda kalır."</string>
-    <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Resmî uygulamanın modeliniz için sunduğu ayarlar “Scooter ayarları” bölümünde kalır. Hız sınırları, şarj, kilit, PIN, yakınlıkla kilit açma ve saat buraya asla eklenmez. Volt aygıt yazılımını asla değiştirmez.</string>
-    <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Resmî uygulamanın modeliniz için sunduğu ayarlar “Scooter ayarları” bölümünde kalır. Volt aygıt yazılımını asla değiştirmez.</string>
+    <string name="more_lab_foot_oem" volt:src="98f20fb6388aa8e2510cf516190649be9646459c">Resmî uygulamanın modeliniz için sunduğu özellikler kendi sayfalarında kalır. Hız sınırları, şarj, kilit, PIN, yakınlıkla kilit açma ve saat buraya asla eklenmez. Volt aygıt yazılımını asla değiştirmez.</string>
+    <string name="more_lab_foot_elsewhere" volt:src="d7eaa8c93aabd13af7c8d1c98feab66159f644a0">Resmî uygulamanın modeliniz için sunduğu özellikler kendi sayfalarında kalır. Volt aygıt yazılımını asla değiştirmez.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt aygıt yazılımını asla değiştirmez.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Bağlanıyor…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Bu scooter’da dene</string>
@@ -203,12 +223,12 @@
     <string name="more_lab_model_yours" volt:src="f06bca47cfa56e04be9f348f8a584800f43aee84">modeliniz</string>
     <string name="more_lab_intro_untested" volt:src="167ca055534a19f8df5517fad8bca6efe77bef63">Resmî uygulama bunları %1$s için sunmuyor. Birini park hâlindeyken deneyin; Volt geri okumayla kontrol eder.</string>
     <string name="more_lab_intro_verify" volt:src="de34d6a5a0f8ea41273413b6f176a359af2e55f8">Resmî uygulama bunları %1$s için sunuyor ancak bu modelde Volt ile denenmedi. Birini park hâlindeyken deneyin; Volt geri okumayla kontrol eder.</string>
-    <string name="more_lab_empty_oem" volt:src="cf0c0a3ef355428f536348c2fc015fa371b3eaf8">%1$s için denenecek bir şey yok: Volt’un deneyebileceği özellikleri resmî uygulama zaten sunuyor. Bunlar “Scooter ayarları” ekranında.</string>
+    <string name="more_lab_empty_oem" volt:src="e3e64baef0955008d83ada821de7cc592e177373">%1$s için denenecek bir şey yok: resmî uygulama, Volt’un deneyebileceği özellikleri zaten sunuyor. Bunlar kendi sayfalarındadır.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt bu ürüne hiçbir scooter komutu göndermez.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">UT5 MAX modelinde denenecek bir şey yok.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">Bu scooter’ın Model ID’si seri numarasıyla eşleşmiyor, bu yüzden Volt denenecek bir şey sunmuyor.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Resmî uygulama bu modeli listelemiyor, bu yüzden Volt modelde hangi ayarların eksik olduğunu bilemiyor. Şimdilik denenecek bir şey yok.</string>
-    <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Önce “Scooter” sayfasında modelinizi belirleyin. Volt ardından neleri deneyebileceğinizi listeler.</string>
+    <string name="more_lab_empty_identify" volt:src="c7404734d6e98be34382660c8ad9b3505c31e670">Önce Servis › Uyumluluk kontrolü bölümünde modelinizi tanımlayın. Ardından Volt neleri deneyebileceğinizi listeler.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Neleri deneyebileceğinizi görmek için scooter’ınıza bağlanın.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Duruştan kalkış</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, bu scooter’dan veri yok</string>
@@ -310,7 +330,7 @@
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Bildirimler</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">“Durdur” düğmeli kayıt bildirimi</string>
     <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Verileriniz</string>
-    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Tüm veriler bu telefonda kalır. “Yedekleme ve geri yükleme” bölümü “Diğer” ekranındadır.</string>
+    <string name="more_about_data_note" volt:src="c98d3e9202d1b276d52fccbfd99f0106616db70b">Tüm veriler bu telefonda kalır. Yedekleme ve geri yükleme, Ayarlar bölümündedir.</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Çevrimiçi harita</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Bağlantı etkinliği</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Lisanslar ve atıflar</string>
@@ -351,6 +371,12 @@
     <string name="more_dev_compat_sub" volt:src="054fa580d38ad30a2d90471fa68958c3be7e3945">Model kontrolü ve rapor</string>
     <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Scooter bağlıymış gibi simüle et</string>
     <string name="more_dev_simulated_model" volt:src="d1f71ab8da3622272a8550620b16eb90a8c0f5fd">Simüle edilen model</string>
+    <string name="more_dev_simulation_scene" volt:src="06c23103136ed05e9b5571db1dc39cb0d6b294df">Sahne</string>
+    <string name="more_dev_simulation_scene_parked" volt:src="1cbc72e5488ab96cea6887e887dd9b1428ca0ee4">Park hâlinde</string>
+    <string name="more_dev_simulation_scene_riding" volt:src="10021cd9dfd5543792f2617db36dfe71d358bb6e">Sürüşte</string>
+    <string name="more_dev_simulation_scene_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Şarj oluyor</string>
+    <string name="more_dev_simulation_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Sürüş modu</string>
+    <string name="more_dev_simulation_drive_mode_code" volt:src="ee88f8cf10dcaa2d2b7100ebe4b499e1d24a893b">%1$s (kod %2$s)</string>
     <string name="more_dev_simulation_active" volt:src="ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650">Simülasyon etkin · örnek veriler</string>
     <string name="more_dev_simulating" volt:src="7ba690e370878c8a9dd9152ce3649c1a56544346">Simüle ediliyor</string>
     <string name="more_dev_charge_recording" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Şarj kaydı</string>

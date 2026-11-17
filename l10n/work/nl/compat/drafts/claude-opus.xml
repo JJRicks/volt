@@ -9,7 +9,7 @@
     <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">E-mailen naar Volt</string>
     <string name="compat_preview_report" volt:src="d10343655f76329222f53dfc96063dee8802e970">Rapport bekijken</string>
     <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Nog geen voltooide controle</string>
-    <string name="compat_footer" volt:src="86d3d6fcbcee53279410f8c97de4654f969c217a">De controle leest alleen. Pogingen staan onder Meer › Experimentele functies en het rapport bevat de resultaten ervan. De firmware wordt nooit gewijzigd.</string>
+    <string name="compat_footer" volt:src="780bfedd7257990a493fc6f1164fcde3df631c08">De controle leest alleen. Pogingen staan in Service › Experimentele functies en het rapport bevat hun resultaten. Volt wijzigt nooit de firmware.</string>
     <string name="compat_connect_to_check" volt:src="465b99a776e3987ff95e10fad6eac713fc821b6e">Maak verbinding met deze step om hem te controleren.</string>
     <string name="compat_model_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Model-ID niet vastgelegd</string>
     <string name="compat_simulated" volt:src="78fcc0abfc67eab0d7214bfe073d6a24afb2bb84">Gesimuleerde step</string>
