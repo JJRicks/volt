@@ -79,8 +79,12 @@ final class HomeStyleScreen implements AppScreen {
         ScooterProfiles.Profile current = service == null ? null : service.profiles.active();
         if (!profileId.equals(current == null ? "" : current.id)) { host.rebuild(); return; }
         if (quickNames != null) {
-            String names = HomeQuickEditor.summary(HomeQuickEditor.load(service, preferences));
+            List<String> ids = HomeQuickEditor.load(service, preferences);
+            String names = HomeQuickEditor.summary(ids);
             if (!names.contentEquals(quickNames.getText())) quickNames.setText(names);
+            // Read by the actions' full names, as the round buttons speak them ("Charge done by", not "Charge by").
+            String spoken = HomeQuickEditor.spokenSummary(ids);
+            if (!spoken.contentEquals(String.valueOf(quickNames.getContentDescription()))) quickNames.setContentDescription(spoken);
         }
         // The drawings too: on two panes an edit from Home's long-press sheet in the scooter pane doesn't rebuild this
         // page, so Clean's preview takes the stored four here (#394 council review, third round, P3).

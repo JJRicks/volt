@@ -768,15 +768,6 @@ final class QuickAccessGrid extends ViewGroup {
     }
 
     /**
-     * A round action's name in a list with room for it, Settings › Home style's Quick actions row: the first name of
-     * the ladder after part 10's short one ("Charge done by", not "Charge by"; "Ride", "Record", "Cruise" as before).
-     */
-    static String listName(QuickAccessActions.Entry entry) {
-        String[] names = roundNames(entry);
-        return HubText.quickActionShortName(entry.id) == null || names.length < 2 || names[1] == null ? names[0] : names[1];
-    }
-
-    /**
      * The glyph Clean draws for one of its quick actions, on Home and in the Edit Home sheet alike: Ride keeps the
      * speedometer, any other action drawn with it (cruise control, maximum speed) gets the speedometer with its max
      * marker, so no two of the four look the same.
