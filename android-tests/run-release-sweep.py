@@ -315,8 +315,10 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
 # from the loading page a search result opened (Record rides automatically's, Ride › Recording settings), and that result's
 # target is revealed once the service binds, with no return to Search; hub-no-nearby-still-344 grants it from Settings'
 # card scrolled partly out of view at animator scale 0 (Remove animations), and Settings lands where the card's top was.
+# hub-no-nearby-external-344 grants it from outside with Volt resumed throughout, as Android's settings beside Volt in split
+# screen do (#536 council review, finding 3): the service starts and binds from Settings' own refresh.
 STEPS += [inst(f'hub-no-nearby-{m}-344', T + 'HubValidation', '-e', 'mode', f'no-nearby-{m}', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])
-          for m in ('target', 'still')]
+          for m in ('target', 'still', 'external')]
 # Search lands on what it names (#393 council review, second round): every page, setting, hand-built row and control search
 # lists on the simulator, and every row title a page's search words name, opened from its result (HubValidation -e mode
 # search-targets), at the walk's four sizes.

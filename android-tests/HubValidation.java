@@ -128,7 +128,9 @@ import com.jjricks.volt.WideLayout;
  * review, findings 2 and 3): no-nearby-target grants it from the loading page Record rides automatically's result opened,
  * and that kept target is revealed once the service binds, without going back to Search (targetAfterBind); no-nearby-still
  * grants it from Settings' card scrolled partly out of view with Android's Remove animations (animator scale 0), and the
- * rows land where the card's visible part began, not past Settings' top (grantStill). -e mode search-targets
+ * rows land where the card's visible part began, not past Settings' top (grantStill). -e mode no-nearby-external grants
+ * it with Settings open and Volt never paused, as Android's settings beside Volt in split screen do (#536 council review,
+ * finding 3): the card leaves, the service starts and binds, and Settings is built for it (grantWhileResumed). -e mode search-targets
  * checks that every search result lands on what it names (searchTargets: every page, setting, hand-built row and control
  * search lists, and every row title a page's search words name; #393 council review, second round). -e theme dark|light
  * and -e text_scale (1 by default) as the other
@@ -169,7 +171,7 @@ public final class HubValidation extends Instrumentation {
     /** -e mode no-nearby: the page headers without Nearby devices permission (the runner grants none). */
     private static final String NO_NEARBY = "no-nearby";
     /** -e mode no-nearby-target and no-nearby-still: one grant each, after the same start (targetAfterBind, grantStill). */
-    private static final String NO_NEARBY_TARGET = "no-nearby-target", NO_NEARBY_STILL = "no-nearby-still";
+    private static final String NO_NEARBY_TARGET = "no-nearby-target", NO_NEARBY_STILL = "no-nearby-still", NO_NEARBY_EXTERNAL = "no-nearby-external";
     /** The animator scale found before grantStill set it to 0 (restored at the end), or null. */
     private String foundScale;
     /** -e mode search-targets: every search result lands on what it names (searchTargets). */
@@ -198,7 +200,7 @@ public final class HubValidation extends Instrumentation {
                     || mode.equals(NO_NEARBY_STILL) || mode.equals(SEARCH_TARGETS), "Unknown -e mode " + mode + " (all, widgets-pages, " + NO_NEARBY
                     + ", " + NO_NEARBY_TARGET + ", " + NO_NEARBY_STILL + " or " + SEARCH_TARGETS + ")");
             boolean widgetsFirst = mode.equals("widgets-pages");
-            noNearby = mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET) || mode.equals(NO_NEARBY_STILL);
+            noNearby = mode.equals(NO_NEARBY) || mode.equals(NO_NEARBY_TARGET) || mode.equals(NO_NEARBY_STILL) || mode.equals(NO_NEARBY_EXTERNAL);
             admit(); admitted = true;
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
@@ -215,6 +217,9 @@ public final class HubValidation extends Instrumentation {
             } else if (mode.equals(NO_NEARBY_STILL)) {
                 noBind();
                 grantStill();
+            } else if (mode.equals(NO_NEARBY_EXTERNAL)) {
+                noBind();
+                grantWhileResumed();
             } else if (noNearby) {
                 withoutNearby();
                 noBind();
@@ -1074,6 +1079,44 @@ public final class HubValidation extends Instrumentation {
         checks.add("Without Nearby permission Record rides automatically's result opens Recording settings as the loading page, its target owed; granted from"
                 + " that page's Allow Nearby devices, the service binds and Recording settings reveals Record rides automatically, nothing owed, the stack "
                 + stack + " unchanged (no return to Search)");
+    }
+
+    /**
+     * -e mode no-nearby-external (#536 council review, finding 3): Nearby devices granted from outside Volt while Volt stays
+     * resumed the whole time (Android's settings beside it in split screen; here the instrumentation's own grant, with no
+     * dialog). No onPause or onResume runs, and nothing is tapped in Volt: Settings sees the grant on its own refresh, its
+     * card leaves, the service starts and binds, and Settings is built for it, My scooters no longer dimmed.
+     */
+    private void grantWhileResumed() throws Exception {
+        tapTag("home-settings");
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        settle();
+        Object before = onMain(() -> field(activity, "screen"));
+        int resumes = onMain(() -> (Integer) field(activity, "resumes"));
+        main(() -> {
+            require(shown(root().findViewWithTag(NEARBY_CARD)), "Settings has no Allow Nearby devices card before the grant");
+            require(activity.service() == null && !Boolean.TRUE.equals(field(activity, "binding")), "The service is bound or binding before the grant");
+            require(activity.resumed(), "Volt is not resumed before the grant");
+        });
+        getUiAutomation().grantRuntimePermission(getTargetContext().getPackageName(), Manifest.permission.BLUETOOTH_SCAN);
+        getUiAutomation().grantRuntimePermission(getTargetContext().getPackageName(), Manifest.permission.BLUETOOTH_CONNECT);
+        await(() -> onMain(() -> { View card = root().findViewWithTag(NEARBY_CARD); return card == null || !shown(card); }),
+                "Settings' card did not go once Nearby devices was granted with Volt resumed");
+        await(() -> onMain(() -> activity.service() != null), "The service did not start and bind once Nearby devices was granted with Volt resumed");
+        await(() -> onMain(() -> field(activity, "screen") != before && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Settings was not rebuilt for the service");
+        settle();
+        arrived(HubPages.SETTINGS, HubPages.HOME, HubPages.SETTINGS);
+        int muted = onMain(() -> ((com.jjricks.volt.Ui) field(activity, "design")).muted);
+        main(() -> {
+            require(activity.resumed() && (Integer) field(activity, "resumes") == resumes, "Volt was paused or resumed through the grant: the check needs it resumed throughout");
+            require(root().findViewWithTag(NEARBY_CARD) == null || !shown(root().findViewWithTag(NEARBY_CARD)), "Settings still shows the Allow Nearby devices card once granted");
+            View scooters = root().findViewWithTag("my-scooters-menu");
+            TextView title = scooters instanceof ViewGroup ? firstText((ViewGroup) scooters) : null;
+            require(title != null && title.getCurrentTextColor() != muted, "My scooters is still dimmed once the service bound");
+        });
+        screenshot("no-nearby-external-granted");
+        checks.add("Nearby devices granted from outside with Volt resumed throughout (no pause, nothing tapped in Volt): Settings' card leaves, the service"
+                + " starts and binds, Settings is built for it with My scooters no longer dimmed");
     }
 
     /**
