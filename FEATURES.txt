@@ -847,7 +847,8 @@ DASHBOARD AND LOCAL HISTORY
 
 Home is the hub for seven subjects, each with a summary (Ride, Battery &
 charging, Controls, Lights & sound, Security, Service, Data). Clean Home lists
-them on the page and has no dock; Widgets Home has a dock, a floating bar at
+them on the page, every row one height (a subject whose summary isn't known
+yet shows its name alone, centred), and has no dock; Widgets Home has a dock, a floating bar at
 the bottom with the most-used subjects under short names and All (or swipe up)
 for a sheet with Search and Settings first, then every subject with its
 summary. Each dock icon sits on a raised tile under a grab handle. The dock
@@ -877,7 +878,8 @@ seen) and rides by their words, accents folded, in Pages, Settings, Live
 readings and Rides groups, each result showing its path ("Battery & charging ›
 Battery modes"), and opens the result's page with the row on screen; Back
 returns to the search as it was. The field sits at the top with Cancel, which
-leaves Search, and the page's back link and title step aside while you search.
+leaves Search, and the page's back link and title stay out of the way while
+you are on Search.
 On the wide Clean Home, Search opens in the page pane, from its field (tap it,
 or Tab to it and press Enter), and Cancel returns to the subjects.
 The former arrange-and-hide editor is gone, and settings hidden with it show
