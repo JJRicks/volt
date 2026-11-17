@@ -41,6 +41,8 @@ import java.util.function.BooleanSupplier;
  * leaves the stage at that height. The parents clip again whenever the picture is not at rest (editing, animating
  * open or closed), and open only where the wire picture's cable runs off the screen's edge. With animations on, the
  * Widgets takeover is held at two moments of its opening: the tiles keep their height and nothing is unclipped.
+ * With Clean Home on screen, the animator duration scale goes from 0 to 1, 0.5 and 2 and back to 0: the wire picture
+ * runs again, takes each speed without restarting and rests again, as the setting changes (review of #483, P3).
  * Screenshots of every state go to files/charge-picture-validation.
  */
 public final class ChargePictureValidation extends Instrumentation {
@@ -81,6 +83,7 @@ public final class ChargePictureValidation extends Instrumentation {
             verifyOpening();
             relaunch(theme, text, "clean");
             verifyClean();
+            verifyScaleFollowed();
             assertNoRadio();
             result.putString("result", "PASS");
         } catch (Throwable failure) {
@@ -197,6 +200,43 @@ public final class ChargePictureValidation extends Instrumentation {
         }
         checks.add(label + " Clean: each picture under the percentage with the prototype's relationship; the cable's parents open only at rest");
     }
+
+    /**
+     * The animator duration scale changed with Home on screen (Developer options in split screen; review of #483, P3):
+     * the wire picture follows it without being hidden, shown again or restarted. From 0 (resting) to 1 it runs again;
+     * at 0.5 and 2 it runs at that speed on the same start (ChargeWirePulses.Clock); back at 0 it rests. Waits by
+     * polling, never for idle (the pulses keep the main thread busy while they run); 0 again in finally, and the
+     * validation's own finally restores the scale it found.
+     */
+    private void verifyScaleFollowed() throws Exception {
+        show("ut5max");
+        main(() -> require(picture() instanceof ChargeWireView && !running() && hero().isShown(), "Scale: the UT5 MAX picture is not resting at 0"));
+        AtomicReference<Long> started = new AtomicReference<>();
+        StringBuilder seen = new StringBuilder();
+        try {
+            for (String value : new String[] {"1", "0.5", "2"}) {
+                float target = Float.parseFloat(value);
+                scale(value);
+                await(() -> running() && (float) field(picture(), "durationScale") == target && clockDivisor() == target,
+                        "Scale " + value + " with Home on screen: the picture did not follow (running " + running() + ", its scale " + field(picture(), "durationScale") + ")");
+                main(() -> {
+                    long start = clockStarted();
+                    if (started.get() == null) started.set(start);
+                    else require(start == started.get(), "Scale " + value + ": the animation restarted instead of changing speed");
+                    seen.append(seen.length() == 0 ? "" : ", ").append(value).append(": running at ").append(clockDivisor());
+                });
+                SystemClock.sleep(400);
+            }
+            scale("0");
+            await(() -> !running(), "Scale 0 with Home on screen: the pulses kept running");
+            seen.append(", 0: resting");
+            main(() -> require(hero().isShown(), "Scale: Home's charging view went away"));
+        } finally { scale("0"); }
+        checks.add(label + " Clean UT5 MAX, the animator duration scale changed with Home on screen: " + seen + " (no restart between speeds)");
+    }
+    private boolean running() { return (boolean) field(picture(), "running"); }
+    private double clockDivisor() { return (double) invoke(field(picture(), "clock"), "divisor"); }
+    private long clockStarted() { return (long) field(field(picture(), "clock"), "startedMs"); }
 
     /** The number and the picture as ChargePictureFit sized them, and the number at its fitted size. */
     private void requireFit(String key, View hero, View stage, TextView percent, boolean clean) {
@@ -357,7 +397,9 @@ public final class ChargePictureValidation extends Instrumentation {
     private String foundScale;
     private void restoreFound() {
         if (foundScale != null) try {
-            shell(foundScale.equals("null") ? "settings delete global animator_duration_scale" : "settings put global animator_duration_scale " + foundScale);
+            // An unset setting comes back as an explicit 1, Android's default, never a delete: Android keeps its
+            // in-memory scale when the setting is deleted, so animations would stay off (the release sweep's rule, #507).
+            shell("settings put global animator_duration_scale " + (foundScale.equals("null") || foundScale.isEmpty() ? "1" : foundScale));
         } catch (Throwable ignored) {}
     }
     private void scale(String value) throws Exception {

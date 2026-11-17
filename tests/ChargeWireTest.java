@@ -19,6 +19,7 @@ public final class ChargeWireTest {
         band();
         switching();
         animatorScale();
+        scaleChange();
         landing();
         glow();
         comets();
@@ -298,6 +299,54 @@ public final class ChargeWireTest {
             require(withoutComments(view).contains("Settings.Global.ANIMATOR_DURATION_SCALE"), "ChargeWireView reads the scale from Settings.Global");
             int onDraw = view.indexOf("private void drawLive(");
             require(onDraw > 0 && !withoutComments(view.substring(onDraw, view.indexOf("private void stretch(", onDraw))).contains("Settings.Global"), "not per frame: drawLive reads no setting");
+        } catch (java.io.IOException e) {
+            throw new AssertionError("reading the sources: " + e);
+        }
+    }
+
+    /**
+     * The pulses' time when the animator duration scale changes while Home stays on screen (review of #483, P3): it
+     * carries on from where it is at the new speed, never jumping or restarting; 0 runs as 1 (the view rests then).
+     * The view watches the setting only while its live layer is attached.
+     */
+    private static void scaleChange() {
+        ChargeWirePulses.Clock c = new ChargeWirePulses.Clock();
+        c.start(10_000, 1);
+        near(c.seconds(10_000), 0, 0, "starts at 0");
+        near(c.seconds(12_000), 2, 1e-9, "2 s at 1x");
+        c.rescale(12_000, .5f);
+        near(c.seconds(12_000), 2, 1e-9, "a new scale keeps the time");
+        near(c.seconds(13_000), 4, 1e-9, "then runs twice as fast at 0.5x");
+        c.rescale(13_000, 2);
+        near(c.seconds(13_000), 4, 1e-9, "no jump at 2x");
+        near(c.seconds(15_000), 5, 1e-9, "half as fast at 2x");
+        near(c.divisor(), 2, 0, "the divisor in force");
+        c.rescale(15_000, 2);
+        near(c.seconds(17_000), 6, 1e-9, "the same scale again changes nothing");
+        c.rescale(17_000, 0);
+        near(c.divisor(), 1, 0, "0 runs as 1 (timeScale)");
+        near(c.seconds(18_000), 7, 1e-9, "0: at 1x from where it was");
+        c.rescale(18_000, Float.NaN);
+        near(c.seconds(19_000), 8, 1e-9, "unknown: 1x");
+        for (float scale : new float[] {.5f, 1, 1.5f, 2, 5, 10}) {
+            ChargeWirePulses.Clock a = new ChargeWirePulses.Clock(), b = new ChargeWirePulses.Clock();
+            a.start(0, 1); b.start(0, 1);
+            a.rescale(1_000, scale);
+            // Changing speed part-way is the same as the time so far plus the rest at the new speed, at any moment.
+            for (long at = 1_000; at <= 9_000; at += 1_000)
+                near(a.seconds(at), b.seconds(1_000) + (at - 1_000) / 1000.0 / scale, 1e-9, scale + "x from 1 s, at " + at + " ms");
+            double before = a.seconds(999), after = a.seconds(1_001);
+            require(after > before && after - before < .01, scale + "x: continuous across the change");
+        }
+        c.start(20_000, 2);
+        near(c.seconds(20_000), 0, 0, "starting again starts from 0");
+        near(c.seconds(22_000), 1, 1e-9, "at its own scale");
+        try {
+            String view = withoutComments(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ChargeWireView.java")), java.nio.charset.StandardCharsets.UTF_8));
+            require(view.contains("registerContentObserver(") && view.contains("unregisterContentObserver("), "ChargeWireView watches the setting and stops watching it");
+            int attach = view.indexOf("onAttachedToWindow() {"), detach = view.indexOf("onDetachedFromWindow() { watchScale(false)");
+            require(attach > 0 && view.indexOf("watchScale(true)", attach) > attach && view.indexOf("watchScale(true)", attach) < view.indexOf('\n', attach), "registered on attach");
+            require(detach > 0, "unregistered on detach");
         } catch (java.io.IOException e) {
             throw new AssertionError("reading the sources: " + e);
         }

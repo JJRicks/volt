@@ -103,15 +103,26 @@ final class ChargePictureFit {
      */
     static SlotFit cleanSlot(int inner, int line, int shortLine, int percent, int readings, float width, float foot, float lift,
                              float padTop, float baselineShare, float textSize, float textScale, float density) {
+        return cleanSlot(inner, line, shortLine, percent, readings, width, foot, lift, padTop, baselineShare, textSize, textScale, textScale, density);
+    }
+
+    /**
+     * {@link #cleanSlot} where the number's own size grew by {@code sizeGrowth} ({@link #sizeGrowth}: measured, not
+     * {@code textScale}), which gives its 1.0x size: from Android 14 a large text size grows much less than the font
+     * size (72 sp at 130% is about 72 dp), so dividing by the font size would make that size, and the number capped at
+     * it, smaller than at 100% (review of #483, P3). {@code textScale} still grows the number from the picture's share.
+     */
+    static SlotFit cleanSlot(int inner, int line, int shortLine, int percent, int readings, float width, float foot, float lift,
+                             float padTop, float baselineShare, float textSize, float textScale, float sizeGrowth, float density) {
         ChargingFit.Plan plan = ChargingFit.plan(inner, line, shortLine, percent, readings, density);
-        Fit fit = onPlan(plan, width, foot, lift, padTop, baselineShare, textSize, textScale, density);
+        Fit fit = onPlan(plan, width, foot, lift, padTop, baselineShare, textSize, textScale, sizeGrowth, density);
         // Every stage a taller slot can have that is not already larger than this one's lies within this reach: the
         // line, its gap and the gap over the readings that closes (a slot that much taller has a taller stage).
         int reach = Math.max(0, line) + Math.round((ChargingFit.LINE_GAP_DP + ChargingFit.READINGS_GAP_DP) * density) + 1;
         float least = fit.text;
         for (int taller = inner + 1; taller <= inner + reach; taller++) {
             ChargingFit.Plan above = ChargingFit.plan(taller, line, shortLine, percent, readings, density);
-            if (above.percent) least = Math.min(least, onPlan(above, width, foot, lift, padTop, baselineShare, textSize, textScale, density).text);
+            if (above.percent) least = Math.min(least, onPlan(above, width, foot, lift, padTop, baselineShare, textSize, textScale, sizeGrowth, density).text);
         }
         if (least < fit.text) fit = new Fit(least, fit.box, fit.percentTop, fit.floor);
         return new SlotFit(plan, attached(fit, baselineShare));
@@ -140,7 +151,13 @@ final class ChargePictureFit {
     /** The fit on one plan: the picture's with a photo, else the percentage no larger than over the smallest picture. */
     static Fit onPlan(ChargingFit.Plan plan, float width, float foot, float lift, float padTop, float baselineShare,
                       float textSize, float textScale, float density) {
-        float full = textSize * plan.percentScale, oneX = full / Math.max(1, textScale);
+        return onPlan(plan, width, foot, lift, padTop, baselineShare, textSize, textScale, textScale, density);
+    }
+
+    /** {@link #onPlan} with the number's measured growth ({@link #sizeGrowth}), which gives its 1.0x size. */
+    static Fit onPlan(ChargingFit.Plan plan, float width, float foot, float lift, float padTop, float baselineShare,
+                      float textSize, float textScale, float sizeGrowth, float density) {
+        float full = textSize * plan.percentScale, oneX = full / Math.max(1, sizeGrowth);
         if (plan.photo()) return clean(width, plan.stageHeight - foot, padTop - (plan.line ? lift : 0), baselineShare, full, oneX, textScale, density);
         float least = clean(width, ChargingFit.photoStage(density) - foot, padTop, baselineShare, full, oneX, textScale, density).text;
         return new Fit(Math.min(full, least), 0, padTop, 0);
@@ -226,6 +243,19 @@ final class ChargePictureFit {
      */
     static float growth(float textScale, float fontScale) {
         return textScale * (fontScale > 0 && !Float.isInfinite(fontScale) ? fontScale : 1);
+    }
+
+    /**
+     * How much larger than at 1.0x text the number's own size really is: {@code sp} (its size at Volt's 1.0x) as Android
+     * converts it at Volt's Text size and the font size ({@code convertedPx}: TypedValue.applyDimension of
+     * {@code sp} times the Text size), over {@code sp} at 100% ({@code sp} times the density). Before Android 14 that is
+     * {@link #growth}; from Android 14 a size this large grows much less than the font size (FontScaleConverter: 72 sp
+     * at 130% is about 72 dp), so the fit divides by this, not by the font size, to find the number's 1.0x size (review
+     * of #483, P3). Anything unknown counts as 1.
+     */
+    static float sizeGrowth(float convertedPx, float sp, float density) {
+        float g = convertedPx / (sp * density);
+        return g > 0 && !Float.isInfinite(g) ? g : 1;
     }
 
     /**

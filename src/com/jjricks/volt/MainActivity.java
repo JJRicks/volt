@@ -145,6 +145,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private HubNav.Args pageArgs;
     /** Review's recovery-only Compatibility page: pageArgs is one-shot, so this keeps it through rebuilds while the page is in the stack. */
     private boolean compatibilityRecovery;
+    /** The search page's query: kept across recreation and while a result's page is open above it; a fresh search starts empty. */
+    private String searchQuery="";
+    /** The reading a search result opened Data's Readings on, kept through rebuilds while Data is in the stack (HubNav.keptReading). */
+    private String searchReading;
     private boolean bound,binding,resumed,destroyed,pendingConnect,pendingScan,expanded,rebuilding,applyingOwnerImport,importWaitNotified,bodyRefreshScheduled;
     /**
      * The waiting scan (pendingScan) is a find (FindNearby): every resume reopens it in the mode it was asked in
@@ -181,6 +185,15 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
     private View pageHeader;
+    /**
+     * The header's own rows (back link, connection line, title): pageHeader itself, except in tabletop posture, where
+     * pageHeader is the pane above the hinge that holds them (and, on Search, its field under them).
+     */
+    private View pageHeaderRows;
+    /** On Search in tabletop posture, the pane above the hinge and the spacer over the hinge (fitTabletopSearch); else null. */
+    private View tabletopUpper,tabletopSpacer;
+    /** Whether the keyboard is up, as the window's insets last said (Android 11 and later). */
+    private boolean keyboardShown;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
         if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
             handler.removeCallbacks(settingsRebuild);
@@ -245,7 +258,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -383,7 +396,11 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void onSaveInstanceState(Bundle saved){
         if(startupRedirect || enteringMaintenance){super.onSaveInstanceState(saved);return;}
-        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);
+        captureScroll();saved.putString("page",selectedPage);saved.putStringArray("page_stack",nav.toArray());saved.putBoolean("pending_connect",pendingConnect);saved.putBoolean("pending_scan",pendingScan);saved.putBoolean("maintenance_pending",maintenancePending);saved.putBoolean("compat_recovery",compatibilityRecovery);saved.putString("search_query",searchQuery);
+        // The reading Readings shows by itself now, not as of the last rebuild: once the owner typed their own search there, a
+        // recreation (text size, dark mode on Follow system, process death) restores their search (#393 council review, third
+        // round, finding 3).
+        saved.putString("search_reading",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));
         saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
@@ -446,7 +463,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean inData(){return inData(selectedPage);}
     private static boolean inData(String page){return HubPages.DATA.equals(HubPages.subjectOf(HubPages.canonical(page)));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;searchReading=null;nav.reset(page);selectedPage=nav.current();}
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -519,17 +536,21 @@ public final class MainActivity extends Activity implements ScreenHost {
         rebuild();
         if(previous!=null){if(root!=before)Motion.crossfade(root,previous,direction,pageHeader,scroll);else previous.recycle();}
     }
+    /** Readings is shown and has let a search result's reading go: the owner typed their own search there (StatsScreen.pinnedReading). */
+    private boolean readingLetGo(){return screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;}
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
+        // Readings let a search result's reading go (the owner typed their own search): a rebuild doesn't bring it back.
+        boolean readingDropped=readingLetGo();
         captureScroll();if(screen!=null)screen.close();if(dock!=null){dock.close();dock=null;}
         design=new Ui(this,darkTheme(),preferences.getFloat("text_scale",1f));
         setTheme(design.dark?R.style.VoltDark_Main:R.style.VoltLight_Main);
         expanded=design.wideLayout();
-        root=new FrameLayout(this);root.setBackgroundColor(design.bg);
+        root=new FrameLayout(this);root.setBackgroundColor(design.bg);tabletopUpper=null;tabletopSpacer=null;
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|(design.dark?0:View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR|View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR));
         getWindow().setStatusBarColor(design.bg);getWindow().setNavigationBarColor(design.bg);
@@ -537,11 +558,16 @@ public final class MainActivity extends Activity implements ScreenHost {
         root.setOnApplyWindowInsetsListener((v,insets)->{
             int l,t,r,b;if(Build.VERSION.SDK_INT>=30){android.graphics.Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());l=i.left;t=i.top;r=i.right;b=i.bottom;}
             else{l=insets.getSystemWindowInsetLeft();t=insets.getSystemWindowInsetTop();r=insets.getSystemWindowInsetRight();b=insets.getSystemWindowInsetBottom();}
-            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);
-            if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
+            boolean keyboard=Build.VERSION.SDK_INT>=30&&insets.isVisible(WindowInsets.Type.ime());
+            // Only the keyboard came, went or changed height on Search in tabletop posture: its upper pane follows in place
+            // (fitTabletopSearch), with no rebuild, which would replace the field being typed in.
+            boolean keyboardOnly=tabletopUpper!=null&&l==leftInset&&t==topInset&&r==rightInset&&(keyboard||keyboardShown);
+            boolean changed=l!=leftInset||t!=topInset||r!=rightInset||b!=bottomInset;leftInset=l;topInset=t;rightInset=r;bottomInset=b;v.setPadding(l,t,r,b);keyboardShown=keyboard;
+            if(keyboardOnly)fitTabletopSearch();
+            else if(changed&&horizontalHinge())handler.post(this::rebuild);return insets;
         });
         if(OnboardingScreen.needed(this,scooterService)){
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;pageHeaderRows=null;
             onboarding=new OnboardingScreen(this,new OnboardingScreen.Listener(){public void onFinished(){onboarding=null;showPage(HubPages.HOME);rebuild();}});
             screen=onboarding;root.addView(onboarding.view(),new FrameLayout.LayoutParams(-1,-1));
             Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();styleSystemBars();
@@ -552,7 +578,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         dropAutoEndedRiding();
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
-            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;
+            clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;pageHeaderRows=null;
             screen=new RidingScreen(this,riding,this::riderClosedRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
             setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
@@ -576,24 +602,42 @@ public final class MainActivity extends Activity implements ScreenHost {
         shell.addView(simulationNotice, new LinearLayout.LayoutParams(-1, -2));
         // The Hub has no tab bar or side rail (PR 11): the page has the window's full width; Home is the root of every stack.
         LinearLayout content=column();shell.addView(content,new LinearLayout.LayoutParams(-1,0,1));pageContent=content;
-        LinearLayout header=makeHeader();
+        LinearLayout header=makeHeader();pageHeaderRows=header;
+        LinearLayout tabletopPane=null;
         if(horizontalHinge()){
-            ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);upper.addView(header);pageHeader=upper;
+            ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);pageHeader=upper;
+            // Search's field joins the header in this pane (below), so the field stays above the hinge and its results start below it.
+            if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,new LinearLayout.LayoutParams(-1,-2));upper.addView(tabletopPane);}
+            else upper.addView(header);
             int upperHeight=Math.max(1,fold.hinge.top-topInset);
             content.addView(upper,new LinearLayout.LayoutParams(-1,upperHeight));
             View spacer=new View(this);spacer.setBackgroundColor(design.bg);content.addView(spacer,new LinearLayout.LayoutParams(-1,Math.max(design.dp(12),fold.hinge.height())));
+            if(tabletopPane!=null){tabletopUpper=upper;tabletopSpacer=spacer;fitTabletopSearch();}
         }else{content.addView(header);pageHeader=header;}
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         HubNav.Args args=pageArgs;pageArgs=null;
+        // A search result's reading stays Readings' filter through rebuilds (rotation, unfolding) while Data is in the stack.
+        searchReading=HubNav.keptReading(args,searchReading,nav.pages(),readingDropped);
         screen=createScreen(selectedPage,args);
+        // The loading page (no scooter service yet: opening, or no Nearby devices permission) can't use a result's target; the
+        // rebuild that builds the real page does (#393 council review, third round, finding 4).
+        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
             // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
             header.addView(screen instanceof CleanHomeScreen?((CleanHomeScreen)screen).takeHeader():((DashboardScreen)screen).takeHeader(),new LinearLayout.LayoutParams(-1,-2));
         }
+        if(tabletopPane!=null&&screen instanceof HubSearchScreen){
+            // Tabletop posture: Search's field and Cancel in the pane above the hinge (its header rows stay hidden there:
+            // HubSearch.hidesWholeHeader), the results below, as Clean Home keeps its header and top area above it.
+            tabletopPane.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),0);
+            tabletopPane.addView(((HubSearchScreen)screen).takeTop());
+        }
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
         else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The page's bar at the window's edge (left in RTL), in the side padding, never over the content (owner, 16 Nov).
+        scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock floats over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
@@ -608,6 +652,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();
         styleSystemBars();
         int restore=scrollPositions.containsKey(selectedPage)?scrollPositions.get(selectedPage):0;Motion.scrollBeforeDraw(scroll,restore);
+        // A search result names the row its page brings on screen (after the restored scroll) and flashes once.
+        if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);
         rebuilding=false;redraw();
         showUpdateCheck();
         // The one-time What's new sheet about Home styles: checked once per rebuild, never on a telemetry refresh.
@@ -650,13 +696,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(scooterService==null)return new LoadingScreen();
         switch(page){
-            case HubPages.DATA:return new StatsScreen(this);
+            case HubPages.DATA:return new StatsScreen(this,false,searchReading);
             case HubPages.RIDE:return new RidesScreen(this,RidesScreen.SUMMARY);
             case HubPages.RIDE_RIDES:{
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL);
                 // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
                 String ride=args==null?null:args.ride;
-                if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride);});
+                // A search result's ride: closing its details goes back past All rides, to the search.
+                Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen==rides)navigateBack(false);}):null;
+                if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride,closed);});
                 return rides;
             }
             case HubPages.RIDE_RECORDING:return new HubPageScreen(this,new MoreScreen(this,MoreScreen.RECORDING_SECTION,true),new RidesScreen(this,RidesScreen.SENSORS));
@@ -709,18 +757,140 @@ public final class MainActivity extends Activity implements ScreenHost {
         return new ControlsScreen(spec!=null?spec:ControlsPages.spec(HubPages.SEARCH));
     }
     /**
-     * The search page (header's search button; hub layout plan, PR 11): the search over every scooter row that the Scooter
-     * tab's index had, and Home's seven subjects while the field is empty. The full search (settings, readings, rides) is PR 12's.
+     * The search page (Home's search button; hub layout plan 1.12, PR 12): pages, settings and controls, live readings
+     * and rides, each labelled with its subject; Home's seven subjects while the field is empty. Controls follow the same
+     * rules as their pages (searchGates), so search never lists one the model doesn't offer.
      */
     private AppScreen searchPage(){
-        ControlsScreen search=new ControlsScreen(ControlsPages.spec(HubPages.SEARCH));
-        CleanSubjects subjects=new CleanSubjects(this);
-        search.indexList(subjects.view());
-        return new HubPageScreen(this,search,new AppScreen(){
-            @Override public View view(){return subjects.view();}
-            @Override public void refresh(){subjects.refresh();}
-            @Override public void close(){subjects.close();}
+        return new HubSearchScreen(this,searchGates(),searchQuery,query->searchQuery=query,this::openSearchResult,new HubSearchScreen.Frame(){
+            @Override public CharSequence cancel(){return cancelLabel();}
+            // As the header's back link: leaves at once (HubNav.linkSkipsPageBack), the query with it.
+            @Override public void leave(){navigateBack(true);}
+            // The field at the very top with Cancel: the header (back link, status line, title) stays hidden (HubSearch.headerHidden).
+            // In tabletop posture only the header's own rows go: the pane above the hinge stays, holding the field (#393 council
+            // review, second round, finding 7).
+            @Override public void headerHidden(boolean hidden){
+                View aside=HubSearch.hidesWholeHeader(horizontalHinge())?pageHeader:pageHeaderRows;
+                if(aside!=null)aside.setVisibility(hidden?View.GONE:View.VISIBLE);
+            }
         });
+    }
+    /**
+     * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
+     * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
+     * third round, finding 5).
+     */
+    private void fitTabletopSearch(){
+        if(tabletopUpper==null||tabletopSpacer==null||fold==null)return;
+        tabletopUpper.getLayoutParams().height=HubSearch.tabletopPaneHeight(fold.hinge.top-topInset,keyboardShown);
+        tabletopSpacer.setVisibility(keyboardShown?View.GONE:View.VISIBLE);
+        tabletopUpper.requestLayout();
+    }
+    /** The common Cancel: the rename dialog's button and the search page's Cancel beside its field. */
+    private static String cancelLabel(){return T.commonCancel();}
+    /** The scooter pages' rules for search: a row shows where its page would show it, a Lab try as Experimental. */
+    private HubSearch.Gates searchGates(){
+        return new HubSearch.Gates(){
+            @Override public boolean row(String id){return searchRowOffered(id);}
+            @Override public boolean lab(String key){return labOffered(key);}
+            @Override public boolean page(String page){return pageShown(page);}
+            // As the scooter pages' search: a hand-built row's main_search_* words, a control's short label.
+            @Override public CharSequence[] words(String id){
+                String row=rowSearchWords(id);if(row!=null)return new CharSequence[]{row};
+                if(HubSearchTables.rowWords(id)!=null)return null;
+                return new CharSequence[]{shortLabel(ScooterCommands.find(id))};
+            }
+            // Recording settings' rows whose names only MoreScreen reads (#393 council review, second round).
+            @Override public CharSequence settingTitle(String tag){return MoreScreen.searchTitle(tag);}
+            // Recording settings' other rows by the names they show: MoreScreen's and the phone sensors' (RidesScreen), the
+            // files that read them (#393 council review, third round, finding 2).
+            @Override public CharSequence[] pageRowTitles(String page){
+                String[] more=MoreScreen.searchRowTitles(page),rides=RidesScreen.searchRowTitles(page);
+                if(more.length+rides.length==0)return null;
+                CharSequence[] all=new CharSequence[more.length+rides.length];
+                System.arraycopy(more,0,all,0,more.length);System.arraycopy(rides,0,all,more.length,rides.length);
+                return all;
+            }
+        };
+    }
+    /** A feature row or a hand-built row (HubSearchTables.ROWS) shows on its page now (ControlsScreen.applyFilter's rules). */
+    private boolean searchRowOffered(String id){
+        if(id.equals(ScooterMenuLayout.CLOCK_SYNC))return offered(KEY_CLOCK_SYNC);
+        if(id.equals(ScooterMenuLayout.SCHEDULE_TEST))return scheduleTestOffered();
+        if(id.equals(ScooterMenuLayout.TOP_SPEED))return topSpeedCard();
+        if(id.equals(ScooterMenuLayout.CHARGE_ALERT)||id.equals(ScooterMenuLayout.LOW_ALERT))return chargeAlertsOffered();
+        if(id.equals(HubSearchTables.ROW_CHARGE_DONE_BY))return chargeDoneOffered();
+        if(HubSearchTables.rowWords(id)!=null)return true;
+        // The lock bar always shows; the handlebar PIN and proximity unlock where the model has them.
+        if(ControlsPages.NEVER.contains(id))return id.equals("lock")||offered(id);
+        return rowOffered(id);
+    }
+    /**
+     * A scooter sub-page has a row or an Experimental entry to show on this model: its link on the subject page shows
+     * (ControlsPages.linkShown, as ControlsScreen.rowShown decides it). Pages the scooter rows don't build always show.
+     */
+    private boolean pageShown(String page){
+        java.util.List<String> lab=modelLab();
+        return ControlsPages.linkShown(page,id->!isFeature(id)||rowOffered(id)||id.equals("maximum_speed")&&topSpeedCard()||labOffered(id,lab));
+    }
+    private static boolean isFeature(String key){
+        for(ScooterCommands.Feature f:ScooterCommands.catalog())if(f.key.equals(key))return true;
+        return ScooterCommands.oemOnly(key);
+    }
+    /**
+     * A search result's tap: a reading opens Data's Readings filtered to it, a ride opens it in All rides, a control the
+     * Lab tries where no page lists it opens its try, and everything else opens its page with the row brought on screen.
+     */
+    private void openSearchResult(HubSearch.Entry entry){
+        switch(entry.target){
+            case READING:{
+                // As Service's Diagnostics row: a deliberate route wins over Live Stats' expired return state.
+                expireStatsSection(true);markStatsActive();
+                // The reading by its key as a one-shot page argument: Readings shows that row alone on this visit, and the
+                // owner's own saved Readings search (stats_query) stays as it was (#393 review, finding 4).
+                preferences.edit().putString("stats_section","Readings").apply();
+                scrollPositions.put(HubPages.DATA,0);StatsScreen.clearSavedScroll();
+                open(HubPages.DATA,HubNav.Args.reading(entry.anchor));return;
+            }
+            // Back from the ride's details returns to the search, as from any other result (#393 emulator check).
+            case RIDE:open(entry.page,HubNav.Args.rideAndBack(entry.anchor));return;
+            case INSPECT:open(entry.page,HubNav.Args.inspect(entry.anchor));return;
+            default:open(entry.page,entry.anchor==null?null:HubNav.Args.anchor(entry.anchor));
+        }
+    }
+    /**
+     * Brings a search result's row on screen once the page is laid out: the page names it (AppScreen.anchor), or its view
+     * tag finds it; then it flashes once (not with reduced motion), or, where a sheet over the page holds what the result
+     * names (AppScreen.openHeld: Settings' Updates sheet), that sheet opens over the row with it brought on screen and
+     * flashed there (#393 council review, second round, finding 1). Nothing happens when the row isn't shown.
+     */
+    private void revealAnchor(AppScreen page,ScrollView pageScroll,String anchor){
+        Motion.beforeNextDraw(pageScroll,()->{
+            if(destroyed||screen!=page||scroll!=pageScroll)return;
+            View target=page.anchor(anchor);
+            // A page can hold the tag twice, once hidden (Service › Reports: More's index ends with the same Report an issue
+            // link, hidden on a section page): the shown one is the row.
+            if(target==null)target=shownWithTag(page.view(),anchor);
+            if(target==null||!target.isShown())return;
+            int y=0;
+            for(View at=target;at!=null&&at!=pageScroll;at=at.getParent() instanceof View?(View)at.getParent():null)y+=at.getTop();
+            int visible=pageScroll.getHeight()-pageScroll.getPaddingTop()-pageScroll.getPaddingBottom();
+            int top=Math.max(0,y-pageScroll.getPaddingTop()-Math.max(design.dp(24),(visible-target.getHeight())/3));
+            pageScroll.scrollTo(0,top);
+            if(!page.openHeld(anchor))HubSearchScreen.flash(target,design);
+        },null);
+    }
+    /** The first shown view under root with this tag, else the first with it (findViewWithTag), else null. */
+    private static View shownWithTag(View root,Object tag){
+        View first=root.findViewWithTag(tag);
+        if(first==null||first.isShown())return first;
+        java.util.ArrayDeque<View> queue=new java.util.ArrayDeque<>();queue.add(root);
+        while(!queue.isEmpty()){
+            View at=queue.poll();
+            if(tag.equals(at.getTag())&&at.isShown())return at;
+            if(at instanceof ViewGroup)for(int i=0;i<((ViewGroup)at).getChildCount();i++)queue.add(((ViewGroup)at).getChildAt(i));
+        }
+        return first;
     }
     /** Security's lock bar: Home's compact lock (Connect while offline), registered so updateHeader drives it. */
     private AppScreen securityLock(){
@@ -749,7 +919,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         return new DashboardScreen.Actions(){public View lock(boolean showDisconnect){return dashboardLock=makeDashboardLock(showDisconnect,false);}public View lock(boolean showDisconnect,boolean compact){return dashboardLock=makeDashboardLock(showDisconnect,compact);}public void clearLock(){clearDashboardLock();}public void navigate(String page){open(page);}public void quickAction(String id){MainActivity.this.quickAction(id);}public void rename(){renameScooter();}public void connectionDetails(){showConnectionDetails();}public void findNearby(){MainActivity.this.findNearby(true);}public boolean findNearbyOffered(){return homeFindOffered();}public void startRide(){RideRecordingApp.of(MainActivity.this).start();}
             public void chargeLimitDrag(int value,java.util.function.Consumer<Boolean> accepted){chargeLimitFromBar(value,accepted);}
             public ChargeBar.Words chargeBarWords(){return chargeBarWords;}
-            // The search page with its field focused (the full search arrives in PR 12).
+            // The search page (HubSearchScreen) with its field focused; Clean's search button and the Widgets dock's All sheet.
             public void openSearch(){open(HubPages.SEARCH);focusPageSearch();}
             public void openSettings(){open(HubPages.SETTINGS);}
             // A What's new notice that came due while Widgets was being edited (a restore meanwhile) shows as editing ends, not
@@ -758,10 +928,14 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Switch scooter: the My scooters page (its list has Use and Connect), as Home's other routes there do.
             public void switchScooter(){open(HubPages.SETTINGS_SCOOTERS);}};
     }
-    /** Puts the cursor in the page's first search field and shows the keyboard (Home's search button). */
+    /**
+     * Puts the cursor in the page's search field and shows the keyboard (Home's search button). Search's own field may sit
+     * outside its page's view: in tabletop posture it is in the pane above the hinge (HubSearchScreen.takeTop), so it is
+     * asked for by name, not looked for in the page (#393 council review, third round, finding 1).
+     */
     private void focusPageSearch(){
         View page=screen==null?null:screen.view();
-        EditText field=page==null?null:firstEditText(page);
+        EditText field=screen instanceof HubSearchScreen?((HubSearchScreen)screen).field():page==null?null:firstEditText(page);
         if(field==null)return;
         field.requestFocus();
         // Volt's window may not have its focus yet (a dialog going away over it); the keyboard waits for it. The dock's All
@@ -1231,7 +1405,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(scooterService==null||scooterService.profiles.active()==null){toast(T.mainRenameFirst());return;}ScooterProfiles.Profile profile=scooterService.profiles.active();EditText input=new EditText(this);input.setSingleLine(true);input.setText(profile.name);input.setSelectAllOnFocus(true);input.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(48)});
         design.styleSearch(input);input.setCompoundDrawablesRelative(null,null,null,null);input.setBackground(design.shape(design.raised,14,design.outline));input.setContentDescription(T.mainRenameTitle());
         FrameLayout field=new FrameLayout(this);field.setPadding(design.dp(24),design.dp(8),design.dp(24),design.dp(4));field.addView(input,new FrameLayout.LayoutParams(-1,-2));
-        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainRenameTitle())).setView(field).setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainRenameSave(),null).create();controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{String name=input.getText().toString().trim();if(name.isEmpty()){input.setError(T.mainRenameEmpty());return;}profile.name=name;profile.nameDefault=false;scooterService.profiles.update(profile);dialog.dismiss();rebuild();});
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setCustomTitle(dialogTitle(T.mainRenameTitle())).setView(field).setNegativeButton(cancelLabel(),null).setPositiveButton(T.mainRenameSave(),null).create();controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{String name=input.getText().toString().trim();if(name.isEmpty()){input.setError(T.mainRenameEmpty());return;}profile.name=name;profile.nameDefault=false;scooterService.profiles.update(profile);dialog.dismiss();rebuild();});
     }
     /** Every page but Home: its back link, a tappable connection line and the page's title. The lock lives on Home. */
     private LinearLayout makeCompactHeader(){
@@ -1277,8 +1451,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         // Unbound with Nearby devices granted, a bind is coming (ensureService); without it none ever does.
         int state=HubPages.pageConnectionLine(selectedPage,scooterService!=null,hasBluetoothPermission(),ready,connectionLineShown);
         boolean shown=state==HubPages.LINE_SHOWN;
-        // Only an update of the page in view moves it: the build's own call (announce false) is at rest.
-        boolean glides=announce&&resumed&&!rebuilding&&riding==null&&pageContent!=null&&connectionTitle.isAttachedToWindow()&&!sheetShowing();
+        // Only an update of the page in view moves it: the build's own call (announce false) is at rest. A header Search keeps
+        // hidden (HubSearch.headerHidden) moves nothing: the line changes there unseen, with no fade behind it and no glide.
+        boolean glides=announce&&resumed&&!rebuilding&&riding==null&&pageContent!=null&&connectionTitle.isAttachedToWindow()&&!sheetShowing()&&headerRowsShown();
         Motion.revealAbove(glides?pageContent:null,connectionTitle,shown,pageFrame,scroll);
         if(shown)connectionLineShown=true;
         if(announce&&state==HubPages.LINE_SHOWN&&Boolean.TRUE.equals(connectionLineReady)&&!ready){
@@ -1287,6 +1462,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         connectionLineReady=ready;
     }
+    /** Whether the page header's own rows are on screen: not while Search keeps them hidden (HubSearch.headerHidden). */
+    private boolean headerRowsShown(){return connectionTitle!=null&&connectionTitle.getParent() instanceof View&&((View)connectionTitle.getParent()).isShown();}
     /** A Hub page's back link: the page it returns to, with Back's arrow; TalkBack reads "Back to <page>". */
     private View backLink(String to){
         CharSequence name=HubText.title(to);
@@ -1309,6 +1486,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(target.equals(selectedPage)){pageArgs=null;if(scroll!=null)scroll.smoothScrollTo(0,0);return;}
         String from=selectedPage;
         captureScroll();leaving(from,target);
+        // Search opened afresh (Home's button) starts empty; Back to it from a result keeps the query.
+        if(HubPages.SEARCH.equals(target)){searchQuery="";scrollPositions.put(HubPages.SEARCH,0);}
         nav.open(target);pageArgs=args;
         arrived(from);
     }
@@ -2281,7 +2460,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     doneBy=new ChargeDoneRow(false,true);
                     addRow("Battery",doneBy.row.card);rowId(ControlsPages.CHARGE_DONE,doneBy.row.card);
                     extras.put(doneBy.row.card,new String[]{"Battery","charge done by finish charging deadline time"});
-                    shownExtras.put(doneBy.row.card,new String[]{T.mainSearchDoneBy(),doneByTitle()});
+                    shownExtras.put(doneBy.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGE_DONE_BY),doneByTitle()});
                 }
             }
             // Lights page: a read-only first row says the front headlight is switched on the scooter itself.
@@ -2304,16 +2483,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockWords.addView(clockLine.words,new LinearLayout.LayoutParams(0,-2,1));clockWords.addView(clockSpinner,rowSpinnerSize());
             clockLine.line.addView(new BannerBody(clockWords,clockLine.name,clockButton,10,true,CLOCK_SPINNER_ROOM_DP,clockSpinner,2),0,new LinearLayout.LayoutParams(0,-2,1));
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
-            shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
+            shownExtras.put(clockLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_CLOCK_SYNC),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
             extras.put(scheduleTest.row.card,new String[]{"Battery","test scheduled charging check scooter clock schedule resume"});
             chargerLine=new SettingLine("battery",M.mainRowCharger(),null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
             chargerLine.line.setTag("estimate-charger-setting");chargerLine.value.setTag("estimate-charger-value");
             addRow("Battery",chargerLine.card);extras.put(chargerLine.card,new String[]{"Battery","charger for estimates automatic auto stock high speed charging time remaining"});
-            shownExtras.put(chargerLine.card,new String[]{T.mainSearchCharger(),T.mainRowCharger()});
+            shownExtras.put(chargerLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGER),T.mainRowCharger()});
             chargeAlert=new ChargeAlertRow(false);lowAlert=new ChargeAlertRow(true);
             addRow("Battery",chargeAlert.row.card);extras.put(chargeAlert.row.card,new String[]{"Battery","charge alert battery alerts level reached full charged notify notification alarm sound"});
-            shownExtras.put(chargeAlert.row.card,new String[]{T.mainSearchChargeAlert(),T.mainAlertCharge()});
+            shownExtras.put(chargeAlert.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_CHARGE_ALERT),T.mainAlertCharge()});
             addRow("Battery",lowAlert.row.card);extras.put(lowAlert.row.card,new String[]{"Battery","low battery alert battery alerts notify notification alarm sound"});
             // Live charging: every model, shown under the Battery section; search finds it by its shown name.
             chargeLive=new ChargeLiveRow();
@@ -2325,11 +2504,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Rename stays in More › My scooters (and Home's edit mode); the index's search still finds it here.
             SettingLine identity=new SettingLine("pencil",T.mainRenameTitle(),null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
             addRow("Profile",identity.card);extras.put(identity.card,new String[]{"Profile","scooter name rename profile"});
-            shownExtras.put(identity.card,new String[]{T.mainSearchName(),T.mainRenameTitle()});
-            shownExtras.put(headlightRow,new String[]{T.mainSearchHeadlight(),T.mainRowHeadlight()});
-            shownExtras.put(scheduleTest.row.card,new String[]{T.mainSearchTest(),T.mainScheduleTestRow()});
-            shownExtras.put(lowAlert.row.card,new String[]{T.mainSearchLowAlert(),T.mainAlertLow()});
-            shownExtras.put(security.card,new String[]{T.mainSearchSecurity(),T.mainRowSecurity()});
+            shownExtras.put(identity.card,new String[]{rowSearchWords(HubSearchTables.ROW_SCOOTER_NAME),T.mainRenameTitle()});
+            shownExtras.put(headlightRow,new String[]{rowSearchWords(HubSearchTables.ROW_HEADLIGHT_INFO),T.mainRowHeadlight()});
+            shownExtras.put(scheduleTest.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_SCHEDULE_TEST),T.mainScheduleTestRow()});
+            shownExtras.put(lowAlert.row.card,new String[]{rowSearchWords(HubSearchTables.ROW_LOW_ALERT),T.mainAlertLow()});
+            shownExtras.put(security.card,new String[]{rowSearchWords(HubSearchTables.ROW_SECURITY_LINK),T.mainRowSecurity()});
             rowId(ScooterMenuLayout.HEADLIGHT_INFO,headlightRow);rowId(ScooterMenuLayout.CLOCK_SYNC,clockLine.card);
             rowId(ScooterMenuLayout.SCHEDULE_TEST,scheduleTest.row.card);rowId(ScooterMenuLayout.CHARGER,chargerLine.card);rowId(ScooterMenuLayout.CHARGE_ALERT,chargeAlert.row.card);
             rowId(ScooterMenuLayout.LOW_ALERT,lowAlert.row.card);rowId(ScooterMenuLayout.SECURITY_LINK,security.card);rowId(ScooterMenuLayout.SCOOTER_NAME,identity.card);
@@ -2341,13 +2520,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             SettingLine maintenanceLine=new SettingLine("gear",T.maintenanceRow(),null);maintenanceLine.chevron(()->open(HubPages.SERVICE_MAINTENANCE));maintenanceValue=maintenanceLine.value;
             maintenanceLine.line.setTag(MaintenanceScreen.ROW);
             addRow(MaintenanceScreen.SECTION,maintenanceLine.card);extras.put(maintenanceLine.card,new String[]{MaintenanceScreen.SECTION,MaintenanceScreen.NO_WORDS});
-            shownExtras.put(maintenanceLine.card,new String[]{T.maintenanceSearch(),T.maintenanceRow()});
+            shownExtras.put(maintenanceLine.card,new String[]{rowSearchWords(HubSearchTables.ROW_MAINTENANCE),T.maintenanceRow()});
             rowId(MaintenanceScreen.ROW,maintenanceLine.card);
             // Line lights and Star lights replaced the zones row: the index's search finds their links by its words.
             if(spec.search)for(String target:ControlsPages.SEARCHED_LINKS){
                 String section=groupOf(ScooterCommands.find(ControlsPages.spec(target).rows.get(0)));View card=linkCard(target);
-                addRow(section,card);extras.put(card,new String[]{section,"line star lights zones ambient pattern color boost"});
-                shownExtras.put(card,new String[]{HubText.rowTitle(target).render()});searchLinks.put(card,target);
+                // Each family's own words, its title among them (#404 review): "star" doesn't list Line lights.
+                addRow(section,card);extras.put(card,new String[]{section,HubSearchTables.pageWords(target)});
+                // And the zones row's translated words (main_search_zones) in another language, as Hub search (#404 review, P3 3); shownWords drops them for a query naming only the other family.
+                Msg zones=HubText.lightZonesSearchWords();String zonesShown=zones.render();
+                shownExtras.put(card,zonesShown.equals(zones.english())?new String[]{HubText.rowTitle(target).render()}:new String[]{HubText.rowTitle(target).render(),zonesShown});searchLinks.put(card,target);
             }
             // The Layout Plan's cards (ControlsPages.cards): the rows, then the sub-page links in a card of their own under
             // them; Battery & charging's HISTORY card stands alone between its CHARGING rows and the rest.
@@ -2391,6 +2573,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             emphasizeLimit();
             search.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void onTextChanged(CharSequence s,int start,int before,int count){query=s.toString();applyFilter();}public void afterTextChanged(Editable text){}});
             applyFilter();
+        }
+        /** A row's shown search words; a light link's shared zones words drop out when the query names only the other family (HubSearch.otherFamilyOnly, #404 review). */
+        private String[] shownWords(View card,String query){
+            String[] shown=shownExtras.get(card);String linked=searchLinks.get(card);
+            return shown!=null&&shown.length>1&&linked!=null&&HubSearch.otherFamilyOnly(linked,query)?new String[]{shown[0]}:shown;
         }
         /**
          * Battery & charging's Charge limit shows its value semibold in the text colour, as the Layout Plan draws it
@@ -2446,24 +2633,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             entry.tag(HubText.experimentalBadge().toString());entry.chevron(()->open(HubPages.SERVICE_EXPERIMENTAL,HubNav.Args.inspect(feature.key)));
             entry.line.setContentDescription(HubText.experimentalRowDescription(feature.label()));
             entry.line.setTag("hub-experimental-"+feature.key);return entry.card;
-        }
-        /**
-         * More's Experimental controls lists the control for this model (its Lab list and experimentalDecision, exactly as
-         * MoreScreen.refreshLab builds it), and it is not an ordinary row here (ControlsPages.labEntryShown).
-         */
-        private boolean labOffered(String key,java.util.List<String> lab){
-            if(scooterService==null)return false;
-            boolean ordinary=rowOffered(key)||key.equals("maximum_speed")&&topSpeedCard();
-            return ControlsPages.labEntryShown(ordinary,lab.contains(key),!ordinary&&lab.contains(key)&&scooterService.ble.experimentalDecision(key).experimental());
-        }
-        private String labModel="";private java.util.List<String> labKeys=java.util.Collections.emptyList();
-        /** The model's Lab list (ModelRegistry.experimental), rebuilt when the model changes, as MoreScreen keeps it. */
-        private java.util.List<String> modelLab(){
-            if(scooterService==null)return java.util.Collections.emptyList();
-            DeviceDescriptor d=scooterService.ble.descriptor();ModelRegistry.Resolution r=ModelRegistry.resolve(d);
-            String model=r.layer+"|"+r.matchedPrefix+"|"+r.conflict+"|"+d.rulePid()+"|"+d.pidSource();
-            if(!model.equals(labModel)){labModel=model;labKeys=ModelRegistry.experimental(d);}
-            return labKeys;
         }
         /** A row id this page would show now (a link's page counts it): an ordinary row or its Experimental entry; hand-built rows count as shown. */
         private boolean rowShown(String id,java.util.List<String> lab){
@@ -2526,12 +2695,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(ControlRow row:rows){String group=groupOf(row.feature);boolean match=rowOffered(row.feature.key)&&(searching?row.haystack.contains(needle)||row.matchesShown(query):spec.includes(row.feature.key));row.card.setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(group);}}
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
-                boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownExtras.get(e.getKey())):spec.includes(idOf(e.getKey()));
+                boolean match=e.getKey()==clockLine.card&&!offered(KEY_CLOCK_SYNC)||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle)||StatsLabels.matchesShown(query,shownWords(e.getKey(),query)):spec.includes(idOf(e.getKey()));
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
                 String linked=searchLinks.get(e.getKey());if(linked!=null&&!ControlsPages.linkShown(linked,id->rowShown(id,lab)))match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
-            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,T.mainSearchTopSpeed(),T.mainSpeedTitle()):spec.topSpeed);
+            boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle)||StatsLabels.matchesShown(query,rowSearchWords(HubSearchTables.ROW_TOP_SPEED),T.mainSpeedTitle()):spec.topSpeed);
             topSpeed.card.setVisibility(speed?View.VISIBLE:View.GONE);if(speed)count++;
             for(Map.Entry<String,View> e:labEntries.entrySet())e.getValue().setVisibility(labOffered(e.getKey(),lab)?View.VISIBLE:View.GONE);
             // A sub-page's link shows only while that page has a row or an Experimental entry to show.
@@ -2553,20 +2722,20 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(int i=0;i<body.getChildCount();i++){View child=body.getChildAt(i);if(child.getTag() instanceof View)child.setVisibility(hasVisible&&((View)child.getTag()).getVisibility()==View.VISIBLE?View.VISIBLE:View.GONE);else if(child.getVisibility()==View.VISIBLE)hasVisible=true;}
             return hasVisible;
         }
-        /**
-         * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
-         * has never connected: all, unavailable). The range
-         * estimate row is Volt's own source choice, so it always shows.
-         */
-        private boolean offered(String key){
-            BleController ble=scooterService==null?null:scooterService.ble;
-            if(!key.equals("clock_sync")&&ScooterCommands.find(key).experimental)return ordinaryOemRow(key);
-            return ble==null||key.equals("range_algorithm")||ble.controlOffered(key);
-        }
-        /** The UT5 MAX top speed card (four fixed choices); another model's maximum speed table is an ordinary row. */
-        private boolean topSpeedCard(){return offered("maximum_speed")&&oemVariant("maximum_speed")==null;}
-        private boolean rowOffered(String key){return key.equals("maximum_speed")?offered(key)&&oemVariant(key)!=null:offered(key);}
         @Override public boolean busy(){return !query.isEmpty();}
+        // The controls rules are MainActivity's (Hub search shares them); these keep the names validations call on this screen.
+        private boolean offered(String key){return MainActivity.this.offered(key);}
+        private boolean topSpeedCard(){return MainActivity.this.topSpeedCard();}
+        private boolean rowOffered(String key){return MainActivity.this.rowOffered(key);}
+        private boolean labOffered(String key,java.util.List<String> lab){return MainActivity.this.labOffered(key,lab);}
+        private java.util.List<String> modelLab(){return MainActivity.this.modelLab();}
+        /** A row by its id for search's result (Charge done by: its one row, when shown); a Lab try's Experimental entry when that shows instead. */
+        @Override public View anchor(String id){
+            if(HubSearchTables.ROW_CHARGE_DONE_BY.equals(id))return doneBy!=null&&doneBy.row.card.getVisibility()==View.VISIBLE?doneBy.row.card:null;
+            View card=rowViews.get(id),lab=labEntries.get(id);
+            if(lab!=null&&lab.getVisibility()==View.VISIBLE&&(card==null||card.getVisibility()!=View.VISIBLE))return lab;
+            return card;
+        }
         @Override public boolean back(){
             if(!query.isEmpty()){search.setText("");return true;}
             return false;
@@ -2651,6 +2820,59 @@ public final class MainActivity extends Activity implements ScreenHost {
                     :detectedFamily?T.mainRowDetected()
                     :chargerLocked?T.mainRowStopRecording():null);
             if(choiceSheet!=null)choiceSheet.refresh();
+        }
+    }
+    /**
+     * Settings rows show only controls this model has a known encoding for (UT5 MAX: all; a profile that
+     * has never connected: all, unavailable). The range
+     * estimate row is Volt's own source choice, so it always shows. (The scooter pages and search share these rules.)
+     */
+    private boolean offered(String key){
+        BleController ble=scooterService==null?null:scooterService.ble;
+        if(!key.equals("clock_sync")&&ScooterCommands.find(key).experimental)return ordinaryOemRow(key);
+        return ble==null||key.equals("range_algorithm")||ble.controlOffered(key);
+    }
+    /** The UT5 MAX top speed card (four fixed choices); another model's maximum speed table is an ordinary row. */
+    private boolean topSpeedCard(){return offered("maximum_speed")&&oemVariant("maximum_speed")==null;}
+    private boolean rowOffered(String key){return key.equals("maximum_speed")?offered(key)&&oemVariant(key)!=null:offered(key);}
+    /**
+     * More's Experimental controls lists the control for this model (its Lab list and experimentalDecision, exactly as
+     * MoreScreen.refreshLab builds it), and it is not an ordinary row on its page (ControlsPages.labEntryShown). The
+     * scooter pages' Experimental entries and Hub search share this rule.
+     */
+    private boolean labOffered(String key){return labOffered(key,modelLab());}
+    private boolean labOffered(String key,java.util.List<String> lab){
+        if(scooterService==null)return false;
+        boolean ordinary=rowOffered(key)||key.equals("maximum_speed")&&topSpeedCard();
+        return ControlsPages.labEntryShown(ordinary,lab.contains(key),!ordinary&&lab.contains(key)&&scooterService.ble.experimentalDecision(key).experimental());
+    }
+    private String labModel="";private java.util.List<String> labKeys=java.util.Collections.emptyList();
+    /** The model's Lab list (ModelRegistry.experimental), rebuilt when the model changes, as MoreScreen keeps it. */
+    private java.util.List<String> modelLab(){
+        if(scooterService==null)return java.util.Collections.emptyList();
+        DeviceDescriptor d=scooterService.ble.descriptor();ModelRegistry.Resolution r=ModelRegistry.resolve(d);
+        String model=r.layer+"|"+r.matchedPrefix+"|"+r.conflict+"|"+d.rulePid()+"|"+d.pidSource();
+        if(!model.equals(labModel)){labModel=model;labKeys=ModelRegistry.experimental(d);}
+        return labKeys;
+    }
+    /**
+     * A hand-built row's search words in the current language (main_search_*, volt:purpose "search keywords"): the
+     * scooter pages' search and Hub search both match them. Null for a row with none (Live charging: its name only).
+     */
+    private static String rowSearchWords(String row){
+        switch(row){
+            case HubSearchTables.ROW_CHARGE_DONE_BY:return T.mainSearchDoneBy();
+            case HubSearchTables.ROW_CLOCK_SYNC:return T.mainSearchClock();
+            case HubSearchTables.ROW_CHARGER:return T.mainSearchCharger();
+            case HubSearchTables.ROW_CHARGE_ALERT:return T.mainSearchChargeAlert();
+            case HubSearchTables.ROW_SCOOTER_NAME:return T.mainSearchName();
+            case HubSearchTables.ROW_HEADLIGHT_INFO:return T.mainSearchHeadlight();
+            case HubSearchTables.ROW_SCHEDULE_TEST:return T.mainSearchTest();
+            case HubSearchTables.ROW_LOW_ALERT:return T.mainSearchLowAlert();
+            case HubSearchTables.ROW_SECURITY_LINK:return T.mainSearchSecurity();
+            case HubSearchTables.ROW_MAINTENANCE:return T.maintenanceSearch();
+            case HubSearchTables.ROW_TOP_SPEED:return T.mainSearchTopSpeed();
+            default:return null;
         }
     }
     /** The scooter pages' row groups, in order. A group's English is its id (maps, stored section: actions); its render() is shown. */

@@ -15,6 +15,8 @@ public final class HubNavTest {
         restore();
         arguments();
         retention();
+        keptReading();
+        owed();
         System.out.println("HubNav: " + checks + " checks passed");
     }
 
@@ -113,6 +115,48 @@ public final class HubNavTest {
         require("cruise_control".equals(inspect.inspect) && !inspect.recovery && inspect.ride == null && inspect.anchor == null, "Inspect argument");
         require(HubNav.Args.recovery().recovery, "Recovery argument");
         require("r1".equals(HubNav.Args.ride("r1").ride) && "row".equals(HubNav.Args.anchor("row").anchor), "Ride and anchor arguments");
+        HubNav.Args reading = HubNav.Args.reading("speed_kmh");
+        require("speed_kmh".equals(reading.reading) && reading.anchor == null && reading.ride == null && reading.inspect == null && !reading.recovery, "A reading argument carries only its key (#393 review, finding 4)");
+        require(HubNav.Args.anchor("row").reading == null && HubNav.Args.ride("r1").reading == null, "Other arguments carry no reading");
+        HubNav.Args back = HubNav.Args.rideAndBack("r2");
+        require("r2".equals(back.ride) && back.backAfterRide && back.anchor == null && back.reading == null, "A search result's ride closes back to the search");
+        require(!HubNav.Args.ride("r1").backAfterRide, "Home's last ride keeps All rides under its details");
+    }
+
+    /**
+     * A search result's reading stays Readings' filter through rebuilds while Data is in the stack, and the next ordinary
+     * visit shows every reading (#393 council review, second round, finding 6; the first review's finding 4 stays fixed).
+     */
+    private static void keptReading() {
+        java.util.List<String> onData = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA);
+        java.util.List<String> above = java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH, HubPages.DATA, HubPages.DATA_STORAGE);
+        require("speed_kmh".equals(HubNav.keptReading(HubNav.Args.reading("speed_kmh"), null, onData, false)), "A result's reading filters this visit");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)), "A rebuild (rotation, unfold) keeps it while Data is shown");
+        require("speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", above, false)), "A page above Data keeps it for the return to Data");
+        require("battery_percent".equals(HubNav.keptReading(HubNav.Args.reading("battery_percent"), "speed_kmh", onData, false)), "A new result's reading replaces it");
+        require(HubNav.keptReading(null, "speed_kmh", java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH), false) == null, "Data left the stack: it is dropped");
+        require(HubNav.keptReading(null, null, java.util.Arrays.asList(HubPages.HOME, HubPages.DATA), false) == null, "The next ordinary visit shows every reading");
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null, "The owner typed their own search: a rebuild doesn't bring the reading back");
+        // MainActivity.onSaveInstanceState saves this, not the reading as of the last rebuild (#393 council review, third
+        // round, finding 3): typed on Readings since, a recreation restores the owner's search; not typed, the reading.
+        require(HubNav.keptReading(null, "speed_kmh", onData, true) == null && "speed_kmh".equals(HubNav.keptReading(null, "speed_kmh", onData, false)),
+                "What a recreation restores follows whether the owner typed since the last rebuild");
+        require(HubNav.keptReading(HubNav.Args.anchor("row"), null, onData, false) == null, "Other arguments carry no reading");
+        require(HubNav.keptReading(null, "speed_kmh", null, false) == null, "No stack, no reading");
+    }
+
+    /**
+     * A result's target waits out the loading page (#393 council review, third round, finding 4): without Nearby devices
+     * permission Settings is the loading page until the service binds, and the rebuild after that must still have the
+     * Updates sheet's anchor to reveal it.
+     */
+    private static void owed() {
+        HubNav.Args updates = HubNav.Args.anchor("preference-update-check");
+        require(HubNav.owed(updates, true) == updates, "The loading page keeps the result's target for the real page");
+        require(HubNav.owed(updates, false) == null, "The real page consumes it: a later rebuild doesn't reveal it again");
+        require(HubNav.owed(null, true) == null, "Nothing owed without arguments");
+        HubNav.Args ride = HubNav.Args.rideAndBack("r1");
+        require(HubNav.owed(ride, true) == ride && HubNav.owed(HubNav.Args.reading("speed_kmh"), true).reading.equals("speed_kmh"), "Every kind of target waits");
     }
 
     private static void retention() {
@@ -176,6 +220,16 @@ public final class HubNavTest {
         require(nav.subPagesOpen(), "A Settings page: the clock starts");
         nav.reset(HubPages.HOME); nav.open(HubPages.BATTERY); nav.open(HubPages.DATA);
         require(nav.subPagesOpen(), "A subject opened through another subject: the clock starts");
+        // Part 12's search: Search itself has nothing to close; a page opened from a result sits above it, so the clock
+        // starts, and an expired return closes back to that page's subject (Search, a page like Home's buttons, goes).
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.SERVICE_MAINTENANCE);
+        require(nav.subPagesOpen(), "A sub-page opened from a search result: the clock starts");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.SERVICE), "An expired return from a result's sub-page lands on its subject");
+        nav.reset(HubPages.SEARCH); nav.open(HubPages.BATTERY);
+        require(nav.subPagesOpen(), "A subject opened from a search result: the clock starts (Search is under it)");
+        require(nav.closeSubPages() && stack(nav, HubPages.HOME, HubPages.BATTERY), "An expired return from a result's subject keeps that subject");
+        require(HubNav.awayClockStarts(true, false, false, -1, 1_000) && !HubNav.awayClockStarts(false, false, false, -1, 1_000),
+                "Leaving over a result's page starts the clock; leaving Search itself does not");
         String[][] stacks = {
             {HubPages.HOME}, {HubPages.HOME, HubPages.BATTERY}, {HubPages.HOME, HubPages.SEARCH},
             {HubPages.HOME, HubPages.SETTINGS, HubPages.SETTINGS_ABOUT}, {HubPages.HOME, HubPages.DATA, HubPages.DATA_STORAGE},
