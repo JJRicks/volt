@@ -1833,7 +1833,7 @@ public final class MoreScreen implements AppScreen {
         // controls are not known here, so they get the steps without a picture rather than another scooter's switch.
         if (service() != null && ModelRegistry.ut5Max(service().ble.descriptor())) {
             HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui);
-            diagram.setContentDescription(T.morePinDiagramLayout(T.morePinDiagram()));
+            diagram.setContentDescription(T.morePinDiagram());
             LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
             box.addView(diagram, dp);
         }

@@ -459,8 +459,6 @@
     <string name="more_got_it" volt:screen="Unlock without phone" volt:purpose="button">Got it</string>
     <!-- Screen-reader text of the handlebar drawing; the numbers match the drawing's markers. -->
     <string name="more_pin_diagram" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">Handlebar: 1 turn-signal button, 2 brake lever, 3 power button</string>
-    <!-- Screen-reader text of the handlebar drawing in full. %1$s is the numbered parts ("Handlebar: 1 turn-signal button, 2 brake lever, 3 power button"); then where each pictured control sits. "M/power" is the button marked M and the power symbol. -->
-    <string name="more_pin_diagram_layout" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">%1$s. On the left switch, the turn signal is in the middle, the light button above it, the M/power button below it and the boost trigger underneath. The brake lever is on the right grip.</string>
 
     <!-- ===== Experimental controls ===== -->
 

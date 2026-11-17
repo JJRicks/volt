@@ -117,7 +117,7 @@ public final class UnlockGuideValidation extends Instrumentation {
     /**
      * The redrawn handlebar (owner, Nov 17 2026): in proportion at its width (never squashed or stretched), the switch big
      * enough to read, the three parts the steps use drawn in the accent and the light button not, and screen-reader text that
-     * says where each pictured control sits. Main thread.
+     * names the numbered parts. Main thread.
      */
     private void verifyDrawing(View drawing) {
         require(drawing instanceof HandlebarDiagram, "The guide's drawing is a " + drawing.getClass().getSimpleName() + ", not the handlebar drawing");
@@ -139,7 +139,7 @@ public final class UnlockGuideValidation extends Instrumentation {
                 require(android.graphics.Color.alpha(pixel) == 255 && !near(pixel, accent), "The light button at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel));
             }
         } finally { picture.recycle(); }
-        require(String.valueOf(drawing.getContentDescription()).equals(T.morePinDiagramLayout(T.morePinDiagram())), "The drawing says '" + drawing.getContentDescription() + "'");
+        require(String.valueOf(drawing.getContentDescription()).equals(T.morePinDiagram()), "The drawing says '" + drawing.getContentDescription() + "'");
         checks.add(label + ": the drawing keeps its proportions, its rocker is " + Math.round(rocker) + " dp wide, and the rocker, brake lever and M/power button are in the accent");
     }
     private static boolean near(int a, int b) {
