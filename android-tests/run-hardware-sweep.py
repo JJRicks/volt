@@ -19,6 +19,13 @@ skipped, since Volt would read either change as the plan being replaced. Lock an
 run only when named with --include. After any write step fails, or its evidence can't be collected,
 later write steps are skipped: a setting that wasn't put back stops the plan.
 
+Every step restarts Volt (am instrument replaces its process), and a restarted Volt ends a running charge
+recording as interrupted, deleting a short automatic one. So the sweep refuses to start, and runs no
+further step, while Volt's notification shows a charge recording (its "Stop charge recording" action or
+"Charge recording" title, read from dumpsys notification: English only, and a charge-alert watch shown in
+its place hides it), and stops the remaining plan when a step reports one running at its start or started
+during it. Stop or finish any charge recording in Volt before the sweep.
+
 The runner APK's manifest is checked (with the SDK's aapt2) before anything touches the phone: it
 must be the test package whose ParkedValidation instruments Volt, never Volt or another app.
 
@@ -114,6 +121,19 @@ def adb(*values, check=True, timeout=240):
     return result.stdout
 
 
+CHARGE_RUNNING = ('A charge recording is running. Each hardware sweep step ends with Volt restarting, which would end it '
+                  '(a short automatic one is deleted). Stop or finish the recording in Volt, then run the sweep again.')
+
+
+def charge_recording_shown():
+    """Whether Volt's notification shows a charge recording: its Stop charge recording action or Charge recording title."""
+    dump = adb('shell', 'dumpsys', 'notification', '--noredact', check=False, timeout=60)
+    for record in re.split(r'(?=NotificationRecord\()', dump):
+        if not record.startswith('NotificationRecord(') or f'pkg={PKG} ' not in record.split('\n', 1)[0]: continue
+        if '"Stop charge recording"' in record or re.search(r'android\.title=String \(Charge recording', record): return True
+    return False
+
+
 if adb('shell', 'getprop', 'ro.kernel.qemu').strip() == '1':
     raise SystemExit('This is an emulator; the hardware sweep needs the physical phone')
 if f'package:{PKG}' not in adb('shell', 'pm', 'list', 'packages', PKG).split():
@@ -123,6 +143,7 @@ if 'mWakefulness=Awake' not in adb('shell', 'dumpsys', 'power'):
 if re.search(r'(?:isKeyguardShowing|mKeyguardShowing|mDreamingLockscreen)=true', adb('shell', 'dumpsys', 'window')):
     raise SystemExit('Unlock the phone, open Volt, then run again')
 version = re.search(r'versionName=(\S+)', adb('shell', 'dumpsys', 'package', PKG))
+if charge_recording_shown(): raise SystemExit(CHARGE_RUNNING)
 args.out.mkdir(parents=True, exist_ok=True)
 
 
@@ -165,7 +186,7 @@ def evidence(step):
     return []
 
 
-results, charging, planned, write_failed = [], None, None, None
+results, charging, planned, write_failed, charge_stop = [], None, None, None, None
 installed = adb('install', '-r', '--no-incremental', str(args.runner.resolve()), check=False)
 if 'Success' not in installed: raise SystemExit('Could not install the runner: ' + installed.strip()[-300:])
 try:
@@ -173,7 +194,11 @@ try:
         if args.only and step['name'] not in args.only: continue
         if step.get('opt_in') and step['name'] not in args.include and step['name'] not in (args.only or []): continue
         row = dict(step=step['name'], writes=step['writes'])
-        if step['writes'] and write_failed:
+        # Each step restarts Volt, which would end a charge recording: none runs once one is seen or reported.
+        if charge_stop is None and charge_recording_shown(): charge_stop = 'a charge recording is running in Volt'
+        if charge_stop:
+            row.update(status='SKIP', detail=f'not run: {charge_stop}; stop or finish it in Volt, then run the sweep again'); results.append(row)
+        elif step['writes'] and write_failed:
             row.update(status='SKIP', detail=f'skipped after {write_failed} failed'); results.append(row)
         elif step.get('plan_free') and planned == 'true':
             row.update(status='SKIP', detail='a charging schedule is active; it was left as set'); results.append(row)
@@ -197,6 +222,11 @@ try:
             results.append(row)
             # A failed write, or any step whose evidence is missing, stops later writes: they couldn't be shown restored.
             if status == 'FAIL' and (step['writes'] or missing): write_failed = step['name']
+            # A charge recording running at the step's start, or started during it, stops the whole remaining plan.
+            if 'A charge recording is running' in output: charge_stop = f"a charge recording was running when {step['name']} started"
+            elif 'INSTRUMENTATION_RESULT: charge_recording_started=true' in output:
+                charge_stop = f"a charge recording started during {step['name']} (it ends when Volt restarts)"
+                row['detail'] = (row['detail'] + '; ' if row['detail'] else '') + charge_stop
         print(f"{row['step']}: {row['status']}" + (f" :: {row['detail']}" if row['detail'] else ''), flush=True)
 finally:
     adb('uninstall', PKG + '.tests', check=False)
@@ -215,7 +245,8 @@ if controls:
               f"{restored.get(c.get('restored'), '—')} | {c.get('outcome', '')} |" for c in controls]
 (args.out / 'report.md').write_text('\n'.join(lines) + '\n')
 failed = [r['step'] for r in results if r['status'] == 'FAIL']
+if charge_stop: print(f'Stopped: {charge_stop}. Stop or finish the charge recording in Volt, then run the sweep again.')
 print(f"{sum(r['status'] == 'PASS' for r in results)} passed, {len(failed)} failed, "
       f"{sum(r['status'] == 'SKIP' for r in results)} skipped" + (': failed ' + ', '.join(failed) if failed else ''))
 print(f"Report: {args.out / 'report.md'}")
-raise SystemExit(1 if failed or unrestored else 0)
+raise SystemExit(1 if failed or unrestored or charge_stop else 0)

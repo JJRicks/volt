@@ -36,6 +36,8 @@ public final class ParkedValidation extends Instrumentation {
         Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));launchedActivity=activity;
         runMain(()->bound=getTargetContext().bindService(new Intent(getTargetContext(),ScooterService.class),connection,Context.BIND_AUTO_CREATE));
         awaitReadOnly(()->service!=null,8000,"Local service unavailable");
+        // Before any mode's own work: a charge recording is never ended by a step (chargeRecordingAtStart).
+        runMain(()->chargeAtStart=service.isChargeRecording());if(chargeAtStart)throw new IllegalStateException(CHARGE_RUNNING);
         if(smokeMode){
             runMain(()->{if(service.isRecording())throw new IllegalStateException("Smoke test skipped: a user recording is active; it was not interrupted");if(service.ble.pending()!=null)throw new IllegalStateException("Smoke test skipped: a scooter setting is pending");});
         }else{
@@ -92,11 +94,33 @@ public final class ParkedValidation extends Instrumentation {
             int seconds=Math.min(180,Math.max(10,Integer.parseInt(args.getString("seconds","45"))));
             String id=service.rides.activeId();Thread.sleep(seconds*1000L);runMain(()->service.stopRide());if(service.isRecording())throw new IllegalStateException("Recording could not stop/save");save("stationary-recording.json",service.rides.get(id).toJson());File dir=new File(getTargetContext().getExternalFilesDir(null),"validation");dir.mkdirs();service.rides.exportCsv(id,new File(dir,"stationary-recording.csv"));output.putString("recording","Completed stationary validation");
         }else if(!mode.equals("snapshot"))throw new IllegalArgumentException("Unknown validation mode");
+        chargeStarted(output);
         save("latest-diagnostics.json",service.snapshot());JSONObject report=new JSONObject();report.put("format","navee-parked-control-validation-v1");report.put("checked_at_ms",System.currentTimeMillis());report.put("results",results);report.put("warning","Readback validation only. Propulsion, descent, cruise engagement, physical lighting and ridden energy behavior require rider checks.");save("control-validation.json",report.toString(2));
         // The hardware sweep reads this to decide whether a schedule test can run (it needs a charge in progress).
         if(!smokeMode){output.putString("charging_state",String.valueOf(service.ble.telemetry.number("charging_state")));output.putString("schedule_active",String.valueOf(planActive()));}
         output.putString("result","Saved local diagnostics and validation evidence");output.putInt("controls",smokeMode?0:results.length());if(smokeMode)output.putInt("checks",results.length());output.putString("original_background",String.valueOf(smokeMode&&smokePreferences!=null?smokePreferences.getOrDefault("background_connection",false):originalBackground));cleanup();finish(0,output);
-    }catch(Throwable e){try{save("partial-control-validation.json",results.toString(2));if(service!=null)save("failed-diagnostics.json",service.snapshot());}catch(Exception ignored){}output.putString("error",e.getClass().getSimpleName()+": "+e.getMessage());cleanup();finish(1,output);}finally{cleanup();}}
+    }catch(Throwable e){try{chargeStarted(output);}catch(Exception ignored){}try{save("partial-control-validation.json",results.toString(2));if(service!=null)save("failed-diagnostics.json",service.snapshot());}catch(Exception ignored){}output.putString("error",e.getClass().getSimpleName()+": "+e.getMessage());cleanup();finish(1,output);}finally{cleanup();}}
+    /**
+     * The step's start already restarted Volt (am instrument replaces its process), and the restarted service's
+     * ChargeSessionStore finalizes any running journal as INTERRUPTED, deleting a short automatic one; so the hardware sweep
+     * refuses to start a step while Volt's notification shows a charge recording (run-hardware-sweep.py). This is the
+     * runner's own backstop: should one still be running when the service binds, the step stops before any mode's work.
+     */
+    static final String CHARGE_RUNNING="A charge recording is running. Each hardware sweep step ends with Volt restarting, which would end it (a short automatic one is deleted). Stop or finish the recording in Volt, then run the sweep again.";
+    private boolean chargeAtStart;
+    /**
+     * At the end of every mode, passed or failed: a charge recording that started during the step (an automatic one on a
+     * charging scooter) ends when Volt restarts for the next step or closes after this one, so the output says so
+     * (charge_recording_started=true, which stops the hardware sweep's remaining plan) and the evidence records it.
+     */
+    private void chargeStarted(Bundle output)throws Exception{
+        if(service==null||chargeAtStart)return;
+        AtomicReference<Boolean> running=new AtomicReference<>(false);runMain(()->running.set(service!=null&&service.isChargeRecording()));
+        if(!running.get())return;
+        output.putString("charge_recording_started","true");
+        status("A charge recording started during this step; it ends when Volt restarts or closes after this step. Stop it in Volt (or let it finish) before running the sweep again.");
+        JSONObject row=new JSONObject();row.put("charge_recording_started",true);row.put("note","Started during this step; it ends when Volt restarts or closes after the step");results.put(row);
+    }
     private void cleanup(){if(smokeMode&&smokePreferences!=null)restoreSmokePreferences();if(service!=null&&originalBackground!=null){boolean previous=originalBackground;runMain(()->{service.settings.edit().putBoolean("background_connection",previous).commit();if(!getTargetContext().getSystemService(PowerManager.class).isInteractive())service.visible(false);});originalBackground=null;}if(bound){runMain(()->getTargetContext().unbindService(connection));bound=false;}}
     private void backupSmokePreferences(){
         smokePreferences=new LinkedHashMap<>();Map<String,?> all=getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE).getAll();
@@ -482,7 +506,7 @@ public final class ParkedValidation extends Instrumentation {
             // As ChargeCaptureValidation: postpone the service's disconnected-frame update, which would end a journal no
             // scooter is feeding, so only the walk itself could end it.
             try{java.lang.reflect.Field updating=ScooterService.class.getDeclaredField("chargeUpdating");updating.setAccessible(true);updating.setBoolean(service,true);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
-            require(service.isChargeRecording(),"The synthetic charge journal is not active");});
+            require(service.isChargeRecording(),"The synthetic charge journal is not active");call(service,"updateNotification",new Class<?>[0]);});
     }
     private static boolean hasSeekBar(View view){
         if(view instanceof android.widget.SeekBar)return true;
