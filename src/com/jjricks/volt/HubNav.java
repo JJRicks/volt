@@ -43,9 +43,10 @@ final class HubNav {
     }
 
     /**
-     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built the loading page,
-     * which can't use them (no scooter service yet: opening, or no Nearby devices permission), so the rebuild that builds
-     * the real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
+     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built a page that
+     * can't use them yet, the loading page (no scooter service yet: opening, or no Nearby devices permission) or a page
+     * built while the service binds, which the bind builds again (MainActivity.rebuild), so the rebuild that builds the
+     * real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
      * none (the page consumed them). Opening, leaving or resetting a page drops them as before.
      */
     static Args owed(Args args, boolean loading) { return loading ? args : null; }

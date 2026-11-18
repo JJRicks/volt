@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Choreographer;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.View;
@@ -202,6 +203,21 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(resumed&&!destroyed&&design!=null)refreshBodyNow();
     };
     private final Runnable settingsRebuild = () -> transitionRebuild(0);
+    /** The rebuild for the service once Settings' Nearby devices card has left (onServiceConnected). */
+    private final Runnable serviceRebuild = () -> { if(!destroyed&&scooterService!=null)rebuildForService(); };
+    /**
+     * The service's rebuild (bound, or its rebuild owed after the Nearby devices card's motion). A manual update check under
+     * way on Settings would be closed with the page and its result dropped: it is carried across the way the update notice's
+     * check is (updateCheckPending, showUpdateCheck runs it on the rebuilt Settings; #536 council review, finding 1).
+     */
+    private void rebuildForService(){
+        if(screen instanceof MoreScreen&&((MoreScreen)screen).updateCheckRunning())updateCheckPending=true;
+        rebuild();
+    }
+    /** ensureService once Settings' Nearby devices card has left (ensureService). */
+    private final Runnable serviceStart = () -> { serviceStartOwed=false; if(!destroyed)ensureService(); };
+    /** ensureService left the service's start for after the card's motion (serviceStart): a bind is still coming. */
+    private boolean serviceStartOwed;
     /** Tab order of the page being left, so the next rebuild can slide its nav dot from there. */
     private View pageHeader;
     /**
@@ -224,6 +240,13 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final ServiceConnection serviceConnection=new ServiceConnection(){
         @Override public void onServiceConnected(ComponentName name,IBinder binder){
             if(destroyed || enteringMaintenance || startupRedirect)return;
+            // Anything here may rebuild the page (visible() can run the service's listeners at once, and on two panes Home's
+            // refresh rebuilds): the update notice's check waits for the callback's own rebuild (showUpdateCheck).
+            checkHeld++;
+            try{connected(binder);}finally{checkHeld--;}
+            showUpdateCheck();
+        }
+        private void connected(IBinder binder){
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
             releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
@@ -231,7 +254,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Email to Volt's finished exports come here, whichever page or earlier activity asked (#387 review).
             ChargeSend.MAILBOX.register(chargeMail,System.currentTimeMillis());
             if(resumed){maybeApplyOwnerImport();if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}
-            rebuild();
+            // Settings' Nearby devices card still leaving (granted from it a moment ago): the rebuild waits for its motion to
+            // end, so the rows finish gliding into its room instead of jumping there.
+            if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){serviceRebuildOwed=true;handler.postDelayed(serviceRebuild,Motion.CHANGE_MS+40);return;}
+            rebuildForService();
         }
         @Override public void onServiceDisconnected(ComponentName name){
             scooterService=null;bound=false;binding=false;observeConnectionFeedback(true);rebuild();
@@ -278,7 +304,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -316,7 +342,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(riding!=null||onboarding!=null||ridingRestore){pendMaintenance(true);return;}
         captureScroll();showMaintenanceFromNotice();preferences.edit().putString(MaintenanceScreen.LAST_PAGE,selectedPage).apply();rebuild();
     }
-    /** Settings, then the manual update check's dialog once Settings is on screen (showUpdateCheck). */
+    /** Settings, then the manual update check's dialog once Settings is on screen and the service bound or not coming (showUpdateCheck). */
     private void openUpdateCheck(boolean now){
         updateCheckPending=true;clearAway();
         if(!now){showPage(HubPages.SETTINGS);return;}
@@ -324,9 +350,20 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void showUpdateCheck(){
         if(!updateCheckPending||!(screen instanceof MoreScreen))return;
+        // Settings is built before the service binds now (the contributor's decision, 15 Nov, #383), and the bind builds it
+        // again, which would close the check's dialog and drop its result: with Nearby devices granted the check waits for
+        // the bind (onResume starts it), as it did on the loading page. Without it no bind is coming and it runs at once.
+        // Nor while onResume or the bind callback runs (checkHeld), or while the service's rebuild is still to come
+        // (serviceRebuildOwed): a rebuild nested in them would start it, and theirs would close it (#523 council review,
+        // second round).
+        if(!resumed||checkHeld>0||serviceRebuildOwed||scooterService==null&&(binding||serviceStartOwed))return;
         updateCheckPending=false;((MoreScreen)screen).checkForUpdates();
     }
     private boolean updateCheckPending;
+    /** onResume or onServiceConnected is running (showUpdateCheck waits for its end). */
+    private int checkHeld;
+    /** onServiceConnected left the service's rebuild for after the Nearby devices card's motion (serviceRebuild). */
+    private boolean serviceRebuildOwed;
     /**
      * A maintenance notice was tapped while riding mode or setup was up (onNewIntent), or at a cold start: its page opens
      * as soon as they close. Kept across recreation and, in MaintenanceScreen.PENDING_PREF, across a restart.
@@ -336,7 +373,53 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
     private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
+        super.onResume();if(startupRedirect || enteringMaintenance)return;
+        // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
+        checkHeld++;
+        try{resume();}finally{checkHeld--;}
+        // Settings' Nearby devices card, granted from Android's dialog: it leaves once Volt's window is back (watchWindowBack).
+        watchWindowBack();
+        // The update notice's check, held while Volt was not resumed: now, or once the service binds (showUpdateCheck).
+        showUpdateCheck();
+    }
+    /**
+     * Volt's window is back (windowBack): resumed, focused again since, and WINDOW_BACK_FRAMES frames in a row on time.
+     * As Android's permission dialog leaves, Volt's window regains focus and is laid out again, and the main thread misses
+     * frames here and there: a glide started then loses them at its steepest, where one held-back frame steps the rows
+     * by more than half the Nearby devices card (#523 council review, third round: 230 px; then 320 px on a loaded
+     * emulator). Never later than WINDOW_BACK_MS after onResume, so a dialog of Volt's own or a busy phone can't keep it.
+     */
+    private boolean windowBack;
+    /** The watch under way (watchWindowBack); a newer one, or onPause, ends it. */
+    private int windowBackWatch;
+    private static final int WINDOW_BACK_FRAMES=4;
+    private static final long WINDOW_BACK_MS=600;
+    @Override public boolean windowBack(){return windowBack;}
+    /**
+     * Settings saw Nearby devices granted with no pause around it (Android's settings beside Volt in split screen, where
+     * both stay resumed, so onResume never runs): the service starts from there too. ensureService waits for the card's
+     * glide as ever (#536 council review, finding 3).
+     */
+    @Override public void nearbyGranted(){if(!destroyed&&hasBluetoothPermission())ensureService();}
+    private void watchWindowBack(){
+        windowBack=false;int watch=++windowBackWatch;long until=SystemClock.uptimeMillis()+WINDOW_BACK_MS;
+        float hz=getWindowManager().getDefaultDisplay().getRefreshRate();
+        // On time: within one and a half frames of the frame before.
+        long late=(long)(1.5e9/(hz>=1?hz:60));
+        Choreographer.getInstance().postFrameCallback(new Choreographer.FrameCallback(){
+            long last=-1;int onTime;
+            @Override public void doFrame(long time){
+                if(watch!=windowBackWatch||destroyed||!resumed)return;
+                onTime=hasWindowFocus()&&last>=0&&time-last<=late?onTime+1:0;last=time;
+                if(onTime<WINDOW_BACK_FRAMES&&SystemClock.uptimeMillis()<until){Choreographer.getInstance().postFrameCallback(this);return;}
+                windowBack=true;
+                // Settings' Nearby devices card, granted from Android's dialog, leaves now (MoreScreen.refreshWithoutService).
+                if(screen instanceof MoreScreen)handler.post(()->{if(windowBack&&!destroyed&&screen instanceof MoreScreen)redraw();});
+            }
+        });
+    }
+    private void resume(){
+        resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         // A long time away closes sub-pages back to their subject; Data keeps Live Stats' own shorter section reset.
         boolean expired=expireAway();
@@ -370,7 +453,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(HubNav.awayClockStarts(nav.subPagesOpen(),onboarding!=null,OwnDialogs.showing(),launchedAt,now))markAway();
         launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
-        resumed=false;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
+        resumed=false;windowBack=false;windowBackWatch++;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
         super.onPause();
     }
@@ -426,6 +509,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
         for(String page:HubPages.ALL)saved.putInt("scroll_"+page,scrollPositions.containsKey(page)?scrollPositions.get(page):0);
+        // Settings' kept scroll counts the Nearby devices card while it shows: so does its restored copy (#536 council review, finding 2).
+        saved.putInt("settings_nearby_height",settingsNearbyHeight);
         super.onSaveInstanceState(saved);
     }
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
@@ -487,6 +572,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
+        // Granted from Settings' Nearby devices card a moment ago: the card is still leaving while the rows glide up. The
+        // service is created on this (main) thread, which stalls frames, so it starts once that motion has ended.
+        if(screen instanceof MoreScreen&&((MoreScreen)screen).nearbyCardLeaving()){
+            serviceStartOwed=true;handler.removeCallbacks(serviceStart);handler.postDelayed(serviceStart,Motion.CHANGE_MS+40);return;
+        }
+        serviceStartOwed=false;handler.removeCallbacks(serviceStart);
         try{
             Intent intent=new Intent(this,ScooterService.class);
             if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);else startService(intent);
@@ -575,7 +666,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean readingLetGo(){return screen instanceof StatsScreen&&((StatsScreen)screen).pinnedReading()==null;}
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
-        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);rebuilding=true;
+        if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);handler.removeCallbacks(serviceRebuild);serviceRebuildOwed=false;rebuilding=true;
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
@@ -663,8 +754,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         pageFrame=new FrameLayout(this);content.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));
         screen=createScreen(selectedPage,args);
         // The loading page (no scooter service yet: opening, or no Nearby devices permission) can't use a result's target; the
-        // rebuild that builds the real page does (#393 council review, third round, finding 4).
-        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
+        // rebuild that builds the real page does (#393 council review, third round, finding 4). A page built while the
+        // service binds (Settings opens without it now, the contributor's decision, 15 Nov, #383) is built again once it
+        // binds, which would close a sheet the target opened: that rebuild reveals it. Without Nearby devices permission
+        // no bind is coming, and Settings reveals it at once.
+        pageArgs=HubNav.owed(args,builtBeforeService());
         if(horizontalHinge()&&(screen instanceof DashboardScreen||screen instanceof CleanHomeScreen)){
             // Tabletop posture: Home's header sits in the upper pane, the widgets (or Clean's lock, actions and subjects) below the hinge.
             header.setPadding(design.dp(expanded?24:18),design.dp(8),design.dp(expanded?24:18),design.dp(8));
@@ -801,13 +895,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         banner.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
         return (int)Math.ceil(banner.getMeasuredHeight()/getResources().getDisplayMetrics().density);
     }
+    /**
+     * The page just built can't use a result's target yet (HubNav.owed): the loading page, or a page built while the
+     * service binds, which the bind builds again. On one pane and in the wide Home's page pane alike.
+     */
+    private boolean builtBeforeService(){return screen instanceof LoadingScreen||scooterService==null&&binding;}
     /** View tags of the wide Home's panes. */
     static final String TAG_SCOOTER_PANE="hub-scooter-pane",TAG_PAGE_PANE="hub-page-pane";
     /**
      * Builds the shown page into the page pane: its header (not on Home), then its screen in the pane's scroller, in a
      * frame of its own under the header, as on one pane (pageContent, pageHeaderRows, pageFrame), so Search steps the
-     * pane's header rows aside and a page's connection line glides with the page under it. The loading page keeps a
-     * result's target for the rebuild that builds the real page (HubNav.owed), as on one pane.
+     * pane's header rows aside and a page's connection line glides with the page under it. The loading page, or a page
+     * built while the service binds, keeps a result's target for the rebuild that builds the real page (HubNav.owed), as
+     * on one pane.
      */
     private void fillPagePane(HubNav.Args args){
         rightPage.removeAllViews();
@@ -818,7 +918,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(header!=null){rightPage.addView(header,new LinearLayout.LayoutParams(-1,-2));pageHeader=header;pageHeaderRows=header;}
         paneHosted=true;
         try{screen=createScreen(selectedPage,args);}finally{paneHosted=false;}
-        pageArgs=HubNav.owed(args,screen instanceof LoadingScreen);
+        pageArgs=HubNav.owed(args,builtBeforeService());
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){
             scroll=(ScrollView)screenView;
@@ -870,6 +970,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * storage page, Settings and its sub-pages each have a screen. args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
+        // Pages that need the service show the card that grants Nearby devices (or a spinner while it binds) until it binds.
+        if(scooterService==null&&!HubPages.withoutService(page))return new LoadingScreen();
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
         // Clean Home or the widget dashboard: the owner's saved style; absent or unknown is Widgets.
         // The wide Home's page pane at Home: the search field and the subjects (the scooter pane is beside it).
@@ -880,7 +982,6 @@ public final class MainActivity extends Activity implements ScreenHost {
             case HubPages.BATTERY:case HubPages.CONTROLS:case HubPages.LIGHTS:case HubPages.SECURITY:case HubPages.SERVICE:return scooterPage(page,args);
             default:break;
         }
-        if(scooterService==null)return new LoadingScreen();
         switch(page){
             // In the wide Home's page pane, Live Stats and All rides take one pane (paneHosted).
             case HubPages.DATA:return new StatsScreen(this,paneHosted,searchReading);
@@ -896,7 +997,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             case HubPages.RIDE_RECORDING:return new HubPageScreen(this,new MoreScreen(this,MoreScreen.RECORDING_SECTION,true),new RidesScreen(this,RidesScreen.SENSORS));
             case HubPages.RIDE_RIDING:return new HubRidingSettings(this);
-            case HubPages.SETTINGS:return new MoreScreen(this);
+            case HubPages.SETTINGS:return settingsPage();
             default:break;
         }
         // Settings' sub-pages and Data & history: More's section as the page's body.
@@ -906,9 +1007,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A scooter subject's page (hub layout plan, PRs 3 and 4): Battery & charging, Controls, Lights & sound, Security, Service. */
     private AppScreen scooterPage(String page,HubNav.Args args){
         ControlsPages.Spec spec=ControlsPages.spec(page);
-        // Pages with More's sections need the service (as the More tab does); their rows read its settings.
-        boolean moreHosted=page.equals(HubPages.SECURITY)||page.equals(HubPages.BATTERY_HISTORY)||page.startsWith(HubPages.SERVICE+".")&&!page.equals(HubPages.SERVICE_MAINTENANCE);
-        if(moreHosted&&scooterService==null)return new LoadingScreen();
+        // Pages with More's scooter sections (Security, Charge history, Service's pages but Maintenance reminders) need the
+        // service: createScreen showed them the permission card without it (HubPages.withoutService).
         switch(page){
             case HubPages.BATTERY:return new HubPageScreen(this,new HubBatterySummary(this),new ControlsScreen(spec));
             // Usable ride energy (Experimental) below the page's rows: Clean Home has no widgets to hold it (part 8).
@@ -962,6 +1062,29 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
         });
     }
+    /**
+     * Settings. Without Nearby devices permission (the contributor's decision, 15 Nov, #383) its rows show and the app's
+     * own choices work; the card that grants the permission (LoadingScreen's) leads them, and the rows that need the
+     * scooter wait for it (MoreScreen). Granted with Settings open, the card leaves in place (MoreScreen.nearbyCard: it
+     * fades while the rows glide up) and the service's rebuild, which waits for that motion, builds the same page without
+     * it at the same scroll. Granted from a page above Settings (About & permissions), Settings' kept scroll loses the
+     * card's height when it is built again, so the rows stay where they were.
+     */
+    private AppScreen settingsPage(){
+        MoreScreen settings=new MoreScreen(this);
+        settingsNearbyCard=null;
+        if(scooterService==null&&!hasBluetoothPermission()){
+            View card=new LoadingScreen().view();
+            settings.lead(card);settingsNearbyCard=card;
+        }else if(settingsNearbyHeight>0){
+            Integer kept=scrollPositions.get(HubPages.SETTINGS);
+            if(kept!=null)scrollPositions.put(HubPages.SETTINGS,Math.max(0,kept-settingsNearbyHeight));
+            settingsNearbyHeight=0;
+        }
+        return settings;
+    }
+    /** Settings' Nearby devices card while Settings shows one; its height (with its margin) as Settings' scroll was last kept. */
+    private View settingsNearbyCard;private int settingsNearbyHeight;
     /**
      * Search in tabletop posture: while the keyboard is up, the pane above the hinge shrinks to the field and the results
      * rise under it; else it reaches the hinge, the results below it (HubSearch.tabletopPaneHeight; #393 council review,
@@ -1813,7 +1936,12 @@ public final class MainActivity extends Activity implements ScreenHost {
      * every other route (PR 11), so Back returns to where the shortcut was used.
      */
     private void openRoute(String page,HubNav.Args args){open(page,args);}
-    private void captureScroll(){if(scroll!=null)scrollPositions.put(scrollPage,scroll.getScrollY());}
+    private void captureScroll(){
+        if(scroll==null)return;scrollPositions.put(scrollPage,scroll.getScrollY());
+        // Settings' scroll kept with its Nearby devices card on screen counts the card (settingsPage).
+        // A card that already left in place (MoreScreen.nearbyCard) took its room with it: nothing to take off.
+        if(HubPages.SETTINGS.equals(scrollPage))settingsNearbyHeight=settingsNearbyCard!=null&&settingsNearbyCard.isAttachedToWindow()&&settingsNearbyCard.getVisibility()==View.VISIBLE?settingsNearbyCard.getHeight():0;
+    }
     private boolean horizontalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.width()>fold.hinge.height()&&fold.hinge.top>0&&fold.hinge.width()>0;}
     private boolean verticalHinge(){return fold!=null&&fold.isSeparating()&&fold.hinge.height()>fold.hinge.width()&&fold.hinge.left>0&&fold.hinge.height()>0;}
     private LinearLayout column(){LinearLayout v=new LinearLayout(this);v.setOrientation(LinearLayout.VERTICAL);return v;}
@@ -2231,6 +2359,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile active=scooterService.profiles.active();
         if(active!=null&&active.id.equals(id))connect();else redraw();
     }
+    @Override public boolean nearbyAllowed(){return hasBluetoothPermission();}
     private boolean hasBluetoothPermission(){return Build.VERSION.SDK_INT>=31?checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN)==PackageManager.PERMISSION_GRANTED&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED:checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED;}
     @Override public void requestBluetooth(){if(!resumed)return;if(hasBluetoothPermission()){ensureService();if(scooterService!=null){if(pendingScan){resumePendingScan();}else if(pendingConnect){pendingConnect=false;connect();}}return;}requestPermissions(Build.VERSION.SDK_INT>=31?new String[]{Manifest.permission.BLUETOOTH_SCAN,Manifest.permission.BLUETOOTH_CONNECT}:new String[]{Manifest.permission.ACCESS_FINE_LOCATION},BLUETOOTH_PERMISSION);}
     @Override public void requestRideLocation(Runnable ready){
@@ -2583,7 +2712,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(hasBluetoothPermission()){
                 Spinner spinner=new Spinner();card.addView(spinner,new LinearLayout.LayoutParams(design.dp(28),design.dp(28)));
             }else{
-                TextView allow=design.button(T.mainActionAllowNearby(),MainActivity.this::requestBluetooth);
+                TextView allow=design.button(T.mainActionAllowNearby(),MainActivity.this::requestBluetooth);allow.setTag("nearby-allow");
                 android.graphics.drawable.Drawable glyph=new android.graphics.drawable.Drawable(){
                     @Override public void draw(Canvas canvas){android.graphics.Rect b=getBounds();design.drawIcon(canvas,"bluetooth",design.onAccent,b.exactCenterX(),b.exactCenterY(),b.width());}
                     @Override public void setAlpha(int alpha){}
@@ -2595,6 +2724,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 LinearLayout.LayoutParams allowSize=new LinearLayout.LayoutParams(-2,-2);allowSize.bottomMargin=design.dp(6);card.addView(allow,allowSize);
                 TextView needed=design.caption(T.mainLoadingNeeded());needed.setGravity(Gravity.CENTER);card.addView(needed,new LinearLayout.LayoutParams(-1,-2));
             }
+            card.setTag("nearby-card");
             LinearLayout.LayoutParams top=new LinearLayout.LayoutParams(-1,-2);top.topMargin=design.dp(12);view.addView(card,top);
         }
         @Override public View view(){return view;}

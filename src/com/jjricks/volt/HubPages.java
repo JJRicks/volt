@@ -299,6 +299,26 @@ public final class HubPages {
     public static boolean clearForRiding(String id) { return id != null && CLEAR_FOR_RIDING.contains(id); }
 
     /**
+     * Pages MainActivity builds while ScooterService is not bound: without Nearby devices permission it never binds, and
+     * while it binds (after a recreation) a rebuild follows. Home and Search; the scooter pages whose rows read the
+     * service null-safely (their connection line says the scooter is not connected); and Settings with the app's own
+     * pages (the contributor's decision, 15 Nov, #383): Home style, Units, About & permissions and Developer options, and
+     * Settings itself, whose rows that need the scooter wait for the permission. Every other page shows the card that
+     * grants it: My scooters (its scooter cards, adding, connecting and editing go through the service's profiles and
+     * Bluetooth), the scooter pages that host More's sections (Security, Charge history & recordings, Experimental
+     * controls, Compatibility test, Issue reports), Ride and its pages (the ride stores are the service's) and Data and its
+     * storage page (live readings and the stored history are the service's). Unknown ids are not built.
+     */
+    private static final Set<String> WITHOUT_SERVICE = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            HOME, SEARCH,
+            BATTERY, BATTERY_MODES, BATTERY_ESTIMATES, CONTROLS, CONTROLS_ASSISTS, CONTROLS_LIMITS,
+            LIGHTS, LIGHTS_LINE, LIGHTS_STAR, SERVICE, SERVICE_MAINTENANCE,
+            SETTINGS, SETTINGS_HOME, SETTINGS_UNITS, SETTINGS_ABOUT, SETTINGS_DEVELOPER)));
+
+    /** Whether MainActivity builds this page while ScooterService is not bound (WITHOUT_SERVICE); else it shows the permission card. */
+    public static boolean withoutService(String id) { return id != null && WITHOUT_SERVICE.contains(id); }
+
+    /**
      * The page that holds one of More's sections (MoreScreen.SECTIONS, Units, both Compatibility ids, and the Charging,
      * Reports and Recording sections the subject pages show); Settings otherwise.
      */

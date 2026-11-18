@@ -24,6 +24,7 @@ public final class HubPagesTest {
         dockKeyboard();
         riding();
         connectionLine();
+        withoutService();
         moreSections(args.length > 0 ? args[0] : "src/com/jjricks/volt/MoreScreen.java");
         iconsDrawn(args.length > 1 ? args[1] : "src/com/jjricks/volt/Ui.java");
         System.out.println("HubPages: " + checks + " checks passed");
@@ -398,6 +399,42 @@ public final class HubPagesTest {
         for (String tab : new String[] {"home", "stats", "rides", "more"})
             require(HubPages.clearForRiding(HubPages.canonical(tab)) == !tab.equals("more"), "Tab rule: " + tab);
         require(!HubPages.clearForRiding(HubPages.SCOOTER), "scooter is not a page");
+    }
+
+    /**
+     * Which pages MainActivity builds while ScooterService is not bound (no Nearby devices permission): Settings and its app
+     * pages since the contributor's decision (15 Nov, #383), Home, Search and the scooter pages that read the service
+     * null-safely; My scooters, the pages hosting More's scooter sections, Ride and Data keep the permission card. Checked
+     * over every page, so a new page has to be placed on purpose.
+     */
+    private static void withoutService() {
+        Set<String> built = new HashSet<>(java.util.Arrays.asList(HubPages.HOME, HubPages.SEARCH,
+                HubPages.BATTERY, HubPages.BATTERY_MODES, HubPages.BATTERY_ESTIMATES,
+                HubPages.CONTROLS, HubPages.CONTROLS_ASSISTS, HubPages.CONTROLS_LIMITS,
+                HubPages.LIGHTS, HubPages.LIGHTS_LINE, HubPages.LIGHTS_STAR, HubPages.SERVICE, HubPages.SERVICE_MAINTENANCE,
+                HubPages.SETTINGS, HubPages.SETTINGS_HOME, HubPages.SETTINGS_UNITS, HubPages.SETTINGS_ABOUT, HubPages.SETTINGS_DEVELOPER));
+        for (String page : HubPages.ALL)
+            require(HubPages.withoutService(page) == built.contains(page), "Built without the service or not, as decided: " + page);
+        // Every app page but My scooters: the app's own choices need no scooter.
+        for (String page : HubPages.ALL)
+            if (HubPages.appPage(page)) require(HubPages.withoutService(page) == !page.equals(HubPages.SETTINGS_SCOOTERS), "Settings' app pages open without it: " + page);
+        // The scooter pages with More's sections need the service (they were MainActivity's "moreHosted" pages).
+        for (String page : HubPages.ALL) {
+            String subject = HubPages.subjectOf(page);
+            if (!subject.equals(HubPages.BATTERY) && !subject.equals(HubPages.CONTROLS) && !subject.equals(HubPages.LIGHTS)
+                    && !subject.equals(HubPages.SECURITY) && !subject.equals(HubPages.SERVICE)) continue;
+            boolean moreHosted = page.equals(HubPages.SECURITY) || page.equals(HubPages.BATTERY_HISTORY)
+                    || page.startsWith(HubPages.SERVICE + ".") && !page.equals(HubPages.SERVICE_MAINTENANCE);
+            require(HubPages.withoutService(page) == !moreHosted, "A scooter page needs the service only with More's sections: " + page);
+        }
+        for (String page : new String[] {HubPages.RIDE, HubPages.RIDE_RIDES, HubPages.RIDE_RECORDING, HubPages.RIDE_RIDING, HubPages.DATA, HubPages.DATA_STORAGE})
+            require(!HubPages.withoutService(page), "Ride and Data keep the permission card: " + page);
+        require(!HubPages.withoutService(null) && !HubPages.withoutService("more") && !HubPages.withoutService(HubPages.SCOOTER),
+                "Unknown and legacy ids are not built without the service (MainActivity builds canonical ids)");
+        // The quick-access shortcuts to Settings' app pages open them, not the card.
+        for (String id : new String[] {"more:App", "more:About"})
+            require(HubPages.withoutService(HubRoutes.pageFor(id)), "The shortcut " + id + " opens its page without the service");
+        require(!HubPages.withoutService(HubRoutes.pageFor("more:Scooters")), "My scooters' shortcut shows the card without the service");
     }
 
     private static void moreSections(String moreScreen) throws Exception {
