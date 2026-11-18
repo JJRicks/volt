@@ -119,8 +119,12 @@ public final class ChargeTransitionValidation extends Instrumentation {
             cleanReversal("Clean replugged mid-arrival", back);
             same("Clean parked at rest after the reversal", parkedState(), parkedRef);
             // Unplugged late in the arrival, with the bay already lighting up: the light drains with the reversal (F02).
-            List<float[]> late = record(() -> charging(true), () -> cleanChanging() && progress() >= .9f, 3000, 0);
-            late.addAll(record(() -> charging(false), () -> !cleanChanging() && moment(clean()) == 0, 4000, 600));
+            // Animations at a quarter speed for it, so the unplug lands inside the arrival's last part and the drain has
+            // frames enough to judge on a loaded emulator (the change is a function of its progress, whatever its speed).
+            slow(true);
+            List<float[]> late = record(() -> charging(true), () -> cleanChanging() && progress() >= .85f, 8000, 0);
+            late.addAll(record(() -> charging(false), () -> !cleanChanging() && moment(clean()) == 0, 8000, 600));
+            slow(false);
             bayDrains("Clean unplugged after the bay lit", late, P, ACTIVE, FILL, NAMES);
             same("Clean parked at rest after the late reversal", parkedState(), parkedRef);
             // Recreated while parked.
@@ -148,8 +152,10 @@ public final class ChargeTransitionValidation extends Instrumentation {
             List<float[]> wBack = record(() -> charging(true), () -> widgetsChanging() && revealProgress() >= .35f, 3000, 0);
             wBack.addAll(record(() -> charging(false), () -> !widgetsChanging() && !heroShown(), 4000, 600));
             widgetsReversal("Widgets replugged mid-opening", wBack);
-            List<float[]> wLate = record(() -> charging(true), () -> widgetsChanging() && revealProgress() >= .9f, 3000, 0);
-            wLate.addAll(record(() -> charging(false), () -> !widgetsChanging() && !heroShown(), 4000, 600));
+            slow(true);
+            List<float[]> wLate = record(() -> charging(true), () -> widgetsChanging() && revealProgress() >= .85f, 8000, 0);
+            wLate.addAll(record(() -> charging(false), () -> !widgetsChanging() && !heroShown(), 8000, 600));
+            slow(false);
             bayDrains("Widgets unplugged after the bay lit", wLate, W_P, W_ACTIVE, W_FILL, W_NAMES);
             tapWhileOpening();
             main(() -> { service.ble.setSimulationCharging(true); activity.redraw(); });
@@ -353,7 +359,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
             }
             previous = f;
         }
-        require(turned && top >= .85f && top < 1, what + ": it did not turn back late in the arrival (highest progress " + top + ")");
+        require(turned && top >= .8f && top < 1, what + ": it did not turn back late in the arrival (highest progress " + top + ")");
         require(lit > .05f, what + ": the bay was not lit when it turned back (" + fmt(lit) + ")");
         require(draining >= 2, what + ": the bay's light went out in " + draining + " frames");
         require(frames.get(frames.size() - 1)[fill] == 0, what + ": the bay is still lit at rest");
@@ -683,6 +689,13 @@ public final class ChargeTransitionValidation extends Instrumentation {
         require(adapter == null || !adapter.isEnabled(), "Disable emulator Bluetooth first");
     }
     private void setScale(String value) throws Exception { shell("settings put global animator_duration_scale " + value); }
+    /** Animations at a quarter speed (scale 4) or back at 1, once the app's animators follow. */
+    private void slow(boolean on) throws Exception {
+        float want = on ? 4f : 1f;
+        setScale(on ? "4" : "1");
+        await(() -> android.animation.ValueAnimator.getDurationScale() == want, "The animator duration scale did not become " + want, 8000);
+        SystemClock.sleep(300);
+    }
     private void writeNotes() throws Exception {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "charge-transition-validation"); dir.mkdirs();
         try (FileOutputStream out = new FileOutputStream(new File(dir, "notes-" + args.getString("size_label", "size") + ".txt"))) { out.write(notes.toString().getBytes(StandardCharsets.UTF_8)); }
