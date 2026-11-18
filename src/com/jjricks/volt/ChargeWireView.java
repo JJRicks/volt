@@ -100,6 +100,16 @@ final class ChargeWireView extends ChargePicture {
 
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG), strip = new Paint();
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    /**
+     * The comets' glow stamps: one soft round bitmap per comet layer (null for a layer that is not a glow), baked once with
+     * its falloff dithered in, and drawn as a plain filtered bitmap at its layer's radius. Never a gradient shader: a
+     * shader on the comet once crashed the Android emulator's GPU translation (see ChargeWireComet).
+     */
+    private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    private Bitmap[] glowStamp;
+    private final RectF glowRect = new RectF();
+    /** A glow stamp bitmap's side (px): finer than the stamp ever draws on a phone or an open Fold. */
+    private static final int STAMP_PX = 96;
     private final Path panel = new Path(), cable = new Path(), comet = new Path();
     private final RectF oval = new RectF();
     private final float[] point = new float[2], ends = new float[2];
@@ -133,6 +143,8 @@ final class ChargeWireView extends ChargePicture {
         if (cable) picture.invalidate();
         live.invalidate();
     }
+
+    @Override float arrivalFill() { return arriveFill; }
 
     /** Hides the cable between the cut-out's right edge and where its drawn-in end has reached (plug < 1). */
     private void clipPlug(Canvas canvas, float layerWidth) {
@@ -220,6 +232,14 @@ final class ChargeWireView extends ChargePicture {
                 dark ? Color.parseColor("#9BE8B2") : ChargeWireComet.mix(green, Color.WHITE, .3f),
                 dark ? Color.parseColor("#F4FFF6") : ChargeWireComet.mix(green, Color.WHITE, .85f),
                 dark ? 1 : .7f);
+        glowStamp = new Bitmap[comets.layers.length];
+        for (int j = 0; j < comets.layers.length; j++) {
+            ChargeWireComet.Layer layer = comets.layers[j];
+            if (!layer.glow) continue;
+            int[] pixels = ChargeWireComet.stampPixels(layer, layer.colors[0], STAMP_PX);
+            try { glowStamp[j] = Bitmap.createBitmap(pixels, STAMP_PX, STAMP_PX, Bitmap.Config.ARGB_8888); }
+            catch (RuntimeException | OutOfMemoryError unavailable) { glowStamp[j] = null; }
+        }
         stroke.setStyle(Paint.Style.STROKE);
         stroke.setStrokeJoin(Paint.Join.ROUND);
         stroke.setStrokeCap(Paint.Cap.BUTT);
@@ -654,6 +674,15 @@ final class ChargeWireView extends ChargePicture {
             oval.set(fx - r, fy - r, fx + r, fy + r);
             fill.setColor(argb);
             drawing.drawArc(oval, angle - 90, 180, true, fill);
+        }
+        @Override public void glow(double s, int layer, float alpha) {
+            Bitmap stamp = glowStamp[layer];
+            if (stamp == null) return;
+            wire.point(s, point);
+            float r = (float) comets.layers[layer].radius;
+            glowRect.set(point[0] - r, point[1] - r, point[0] + r, point[1] + r);
+            glowPaint.setAlpha(Math.max(0, Math.min(255, Math.round(255 * alpha))));
+            drawing.drawBitmap(stamp, null, glowRect, glowPaint);
         }
     };
 

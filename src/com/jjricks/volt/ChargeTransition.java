@@ -131,12 +131,53 @@ final class ChargeTransition {
     }
 
     /** The picture's cable, dash and bay at progress p (arriving: the dash runs in and the bay fills; leaving: neither). */
-    private static void picture(Hero hero, float p, boolean in, float plugFrom, float plugTo) {
+    private static void picture(Hero hero, float p, boolean in, float plugFrom, float plugTo, Fill fill) {
         ChargePicture picture = hero.picture();
         if (picture == null) return;
         float charge = in && p < 1 ? seg(p, plugFrom + .18f, plugTo + .14f) : Float.NaN;
-        float fill = in && !Double.isNaN(hero.level()) ? ease(seg(p, .76f, 1)) * (float) (hero.level() / 100) : 0;
-        picture.arrival(ease(seg(p, plugFrom, plugTo)), charge > 0 && charge < 1 ? charge : Float.NaN, fill);
+        picture.arrival(ease(seg(p, plugFrom, plugTo)), charge > 0 && charge < 1 ? charge : Float.NaN, fill.at(p, in, hero.level()));
+    }
+
+    /** The bay's lit share as the change's own: arriving, it fills to the percent over the arrival's last part; leaving, none. */
+    static float fillFor(float p, boolean in, double level) {
+        return in && !Double.isNaN(level) ? ease(seg(p, .76f, 1)) * (float) (Math.max(0, Math.min(100, level)) / 100) : 0;
+    }
+
+    /**
+     * The bay's light across a turn (council review of #534, F02): a change that starts or turns back while the bay is
+     * lit (late in the arrival, or during the light's hand-over to the pulse, fadeFill) carries that light on and eases it
+     * to the new direction's own share within DRAIN of progress, so it drains with the reversal instead of going out in
+     * one frame; a re-arrival likewise eases from what is lit. Before any turn it is the change's own share (fillFor).
+     */
+    static final class Fill {
+        /** How much progress the carried light takes to reach the new direction's own share. */
+        static final float DRAIN = .3f;
+        private float turnedAt = Float.NaN, lit;
+        private boolean turnedIn;
+        private double turnedLevel = Double.NaN;
+
+        /** The change starts or turns at progress p toward in, with the bay lit to lit (ChargePicture.arrivalFill). */
+        void turn(float p, boolean in, float lit, double level) {
+            turnedAt = p; turnedIn = in; this.lit = Math.max(0, Math.min(1, lit)); turnedLevel = level;
+        }
+
+        /** The bay's share at progress p. */
+        float at(float p, boolean in, double level) {
+            float own = fillFor(p, in, level);
+            if (Float.isNaN(turnedAt) || in != turnedIn) return own;
+            float start = fillFor(turnedAt, in, Double.isNaN(turnedLevel) ? level : turnedLevel);
+            float carry = 1 - fade(Math.min(1, Math.abs(p - turnedAt) / DRAIN));
+            // Gone by the change's end, whatever the turn's place, so the rest (and fadeFill) takes over from its own share.
+            float left = in ? (turnedAt < 1 ? (1 - p) / (1 - turnedAt) : 0) : (turnedAt > 0 ? p / turnedAt : 0);
+            carry = Math.min(carry, Math.max(0, Math.min(1, left)));
+            return Math.max(0, Math.min(1, own + (lit - start) * carry));
+        }
+    }
+
+    /** What the hero's picture has lit in its bay now (0 without a picture). */
+    static float litNow(Hero hero) {
+        ChargePicture picture = hero.picture();
+        return picture == null ? 0 : picture.arrivalFill();
     }
 
     /** The view leaving is skipped by accessibility services until it has gone (it takes no touches either). */
@@ -164,6 +205,7 @@ final class ChargeTransition {
         private final Flight flight = new Flight();
         private ViewTreeObserver.OnPreDrawListener measuring;
         private ValueAnimator fillFade;
+        private final Fill fill = new Fill();
 
         Clean(ViewGroup top, View overview, ImageView parkedPhoto, TextView parkedPercent, Hero hero,
               java.util.function.Consumer<Boolean> chargingShown) {
@@ -193,10 +235,13 @@ final class ChargeTransition {
                 return false;
             }
             float to = next == HomeMoment.CHARGING ? 1 : 0;
+            // The bay's light as it is now, read before begin() cancels its hand-over to the pulse (fadeFill).
+            float lit = litNow(hero);
             if (!active) {
                 p = previous == HomeMoment.CHARGING ? 1 : 0;
                 begin();
             }
+            fill.turn(p, to == 1, lit, hero.level());
             run(to);
             return true;
         }
@@ -323,7 +368,7 @@ final class ChargeTransition {
         private void apply() {
             Geometry g = geometry;
             boolean in = target == 1;
-            overview.setAlpha(1 - fade(seg(p, 0, .3f)));
+            overview.setAlpha(1 - numberCrossfade(p));
             float images = fade(seg(p, .15f, .5f));
             for (View image : hero.images()) image.setAlpha(images);
             hero.glowIn(fade(seg(p, .3f, .8f)));
@@ -334,7 +379,7 @@ final class ChargeTransition {
             hero.riseLines((1 - line) * hero.dp(10));
             hero.rows().setAlpha(rows);
             hero.rows().setTranslationY((1 - rows) * hero.dp(14));
-            picture(hero, p, in, .4f, .68f);
+            picture(hero, p, in, .4f, .68f, fill);
             if (g == null) {
                 flight.hide();
                 hide(parkedPhoto, false);
@@ -343,9 +388,11 @@ final class ChargeTransition {
                     parkedPercent.setAlpha(p < .5f ? 1 : 0);
                     hero.percent().setAlpha(p < .5f ? 0 : 1);
                 } else {
-                    // Nothing to travel between (a card without its photo, a slot without a picture): a crossfade.
+                    // Nothing to travel between (a card without its photo, a slot without a picture): the two numbers
+                    // crossfade on the card's own fade (council review of #534, F03), so their opacities always add up
+                    // to one and one of them is always at least half there; the card's number fades with the card.
                     parkedPercent.setAlpha(1);
-                    hero.percent().setAlpha(fade(seg(p, .25f, .6f)));
+                    hero.percent().setAlpha(numberCrossfade(p));
                 }
                 return;
             }
@@ -373,6 +420,13 @@ final class ChargeTransition {
             hero.stage().invalidate();
         }
     }
+
+    /**
+     * The card's fade at progress p (0 shown, 1 gone), and the charging view's number's opacity where the two numbers
+     * crossfade (no photo to travel from, as on the XT5 Pro): the card's number shows at one less this, so the two add up
+     * to one and one is always readable.
+     */
+    static float numberCrossfade(float p) { return fade(seg(p, 0, .3f)); }
 
     /** The boxes Clean's change travels between, in the top area's pixels, from one layout of both moments. */
     static final class Geometry {
@@ -447,7 +501,7 @@ final class ChargeTransition {
     }
 
     /** Widgets' takeover at progress p: the hero's own fade and rise, then its parts. */
-    static void styleWidgets(Hero hero, float p, boolean in) {
+    static void styleWidgets(Hero hero, float p, boolean in, Fill fill) {
         View view = hero.view();
         float whole = fade(seg(p, 0, .35f));
         view.setAlpha(whole);
@@ -462,7 +516,7 @@ final class ChargeTransition {
         hero.riseLines((1 - line) * hero.dp(8));
         hero.rows().setAlpha(rows);
         hero.rows().setTranslationY((1 - rows) * hero.dp(12));
-        picture(hero, p, in, .45f, .72f);
+        picture(hero, p, in, .45f, .72f, fill);
         hero.stage().invalidate();
     }
 

@@ -20,6 +20,16 @@ final class ChargeFoldedView extends ChargePicture {
             case "gt3max": return R.drawable.gt3max_folded;
             case "gt5max": return R.drawable.gt5max_folded;
             case "xt5ultra": return R.drawable.xt5ultra_folded;
+            case "g5pro": return R.drawable.g5pro_folded;
+            case "gt3": return R.drawable.gt3_folded;
+            case "gt3pro": return R.drawable.gt3pro_folded;
+            case "gt5pro": return R.drawable.gt5pro_folded;
+            case "k100max": return R.drawable.k100max_folded;
+            case "n65iii": return R.drawable.n65iii_folded;
+            case "v25series": return R.drawable.v25series_folded;
+            case "v40series": return R.drawable.v40series_folded;
+            case "xt5max": return R.drawable.xt5max_folded;
+            case "xt5pro": return R.drawable.xt5pro_folded;
             default: return 0;
         }
     }

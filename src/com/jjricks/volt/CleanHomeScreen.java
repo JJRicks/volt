@@ -114,9 +114,9 @@ final class CleanHomeScreen implements AppScreen {
         view.addView(page, new LinearLayout.LayoutParams(-1, pane ? -1 : -2));
 
         // The plan's header: the status line, then the scooter's name with search and Settings beside it, level
-        // with the name (CleanHeaderFit). Both are 48 dp targets that nothing covers: the status line's band runs from
-        // the header's top down to the name row, its text at the band's foot so it reads with the name as the mock-up
-        // draws it; the name row is a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
+        // with the name (CleanHeaderFit). Both are targets that nothing covers: the status line's band runs from the
+        // header's top (right under the status bar) down to the name row, its text TOP_DP under that top; the name row is
+        // a 48 dp band. Each button keeps its 48 dp target around a 40 dp disc (the
         // mock-up's ~39 dp). The name gets smaller before it wraps, so a usual name stays on one line beside the two
         // buttons. There is no Edit button (the contributor's decisions, round 3): a long-press on the quick actions
         // opens Edit.
@@ -125,8 +125,9 @@ final class CleanHomeScreen implements AppScreen {
         TextView status = parts.status();
         status.setGravity(Gravity.BOTTOM | Gravity.START);
         status.setPadding(0, ui.dp(CleanHeaderFit.TOP_DP), 0, 0);
-        status.setMinHeight(ui.dp(CleanHeaderFit.TARGET_DP));
-        statusTextTop = Math.max(0, Math.max(ui.dp(CleanHeaderFit.TARGET_DP), ui.dp(CleanHeaderFit.TOP_DP) + status.getLineHeight()) - status.getLineHeight());
+        // The band is the text and its top room (CleanHeaderFit.statusTargetDp): the text sits TOP_DP under the status bar,
+        // as the widget dashboard's does (owner, 17 Nov 2026: close the gap at the top of Home).
+        statusTextTop = ui.dp(CleanHeaderFit.TOP_DP);
         header.addView(status, new LinearLayout.LayoutParams(-1, -2));
         TextView name = parts.name();
         float nameFull = name.getTextSize();
@@ -232,8 +233,8 @@ final class CleanHomeScreen implements AppScreen {
     @Override public View view() { return view; }
 
     /**
-     * How far below the header's top its status line's text starts (px): the status band keeps its 48 dp target with the
-     * text at its foot. The wide Home's page pane starts this much lower, so the search field (or a page's back link)
+     * How far below the header's top its status line's text starts (px): the band's top room, CleanHeaderFit.TOP_DP
+     * (owner, 17 Nov 2026: the header starts right under the status bar). The wide Home's page pane starts this much lower, so the search field (or a page's back link)
      * lines up with "Connected" as in the Layout Plan's wide mock-ups.
      */
     int statusTextTop() { return statusTextTop; }

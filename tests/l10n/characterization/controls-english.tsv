@@ -7222,9 +7222,9 @@ modelLine simulated other	Model 24431
 modelLine simulated none	UT5 MAX
 modelLine exo	Model 24431
 series UT about	High performance
-series UT models	UT3 Max|UT5 Max|UT5 Ultra X
+series UT models	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X
 series NT about	All-terrain
-series NT models	NT5 Max|NT5 Ultra X
+series NT models	NT3 Max|NT5 Max|NT5 Max+|NT5 Ultra|NT5 Ultra X
 series XT about	Off-road
 series XT models	XT5 Max|XT5 Pro|XT5 Ultra
 series N about	SUV-style and older
@@ -7236,20 +7236,20 @@ series GT models	GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max
 series G about	Lightweight commuting
 series G models	G5|G5 Pro|G5 Max
 series S about	Suspension-focused
-series S models	S40|S60|S65|S65C
+series S models	S2|S40|S60|S65|S65C
 series V about	City and budget
-series V models	V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II
+series V models	V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II|V60i Pro
 series EasyRide about	Entry-level
-series EasyRide models	E20 (EasyRide 20)|E25 Pro (EasyRide 25 Pro)
+series EasyRide models	E20 (EasyRide 20)|E20 Lite|E25 Go|E25 Pro (EasyRide 25 Pro)|E45 Pro|E60 Pro
 series K about	Kids
 series K models	K100|K100 Pro|K100 Max|K100 Plus
-search 	UT3 Max|UT5 Max|UT5 Ultra X|NT5 Max|NT5 Ultra X|XT5 Max|XT5 Pro|XT5 Ultra|N40|N65|N65i|N65i II|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max|S40|S60|S65|S65C|V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II|E20 (EasyRide 20)|E25 Pro (EasyRide 25 Pro)|K100|K100 Pro|K100 Max|K100 Plus
-search high	UT3 Max|UT5 Max|UT5 Ultra X
-search PERFORMANCE	UT3 Max|UT5 Max|UT5 Ultra X
+search 	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X|NT3 Max|NT5 Max|NT5 Max+|NT5 Ultra|NT5 Ultra X|XT5 Max|XT5 Pro|XT5 Ultra|N40|N65|N65i|N65i II|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max|S2|S40|S60|S65|S65C|V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II|V60i Pro|E20 (EasyRide 20)|E20 Lite|E25 Go|E25 Pro (EasyRide 25 Pro)|E45 Pro|E60 Pro|K100|K100 Pro|K100 Max|K100 Plus
+search high	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X
+search PERFORMANCE	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X
 search commut	ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max
 search Commuting	ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max
-search ut	UT3 Max|UT5 Max|UT5 Ultra X|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max
-search UT series	UT3 Max|UT5 Max|UT5 Ultra X
+search ut	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max
+search UT series	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X
 search xt series	XT5 Max|XT5 Pro|XT5 Ultra
 search kids	K100|K100 Pro|K100 Max|K100 Plus
 search zzz	
@@ -7257,15 +7257,15 @@ search off-road	XT5 Max|XT5 Pro|XT5 Ultra
 search offroad	XT5 Max|XT5 Pro|XT5 Ultra
 search suv	N40|N65|N65i|N65i II
 search SUV-style	N40|N65|N65i|N65i II
-search budget	V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II
-search entry	E20 (EasyRide 20)|E25 Pro (EasyRide 25 Pro)
+search budget	V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II|V60i Pro
+search entry	E20 (EasyRide 20)|E20 Lite|E25 Go|E25 Pro (EasyRide 25 Pro)|E45 Pro|E60 Pro
 search premium	ST3|ST3 Pro|ST5 Pro|ST5 Max
 search lightweight	G5|G5 Pro|G5 Max
-search suspension	S40|S60|S65|S65C
-search all terrain	NT5 Max|NT5 Ultra X
-search g	UT3 Max|UT5 Max|UT5 Ultra X|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max|V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II
+search suspension	S2|S40|S60|S65|S65C
+search all terrain	NT3 Max|NT5 Max|NT5 Max+|NT5 Ultra|NT5 Ultra X
+search g	UT3 Pro|UT3 Max|UT5 Max|UT5 Ultra|UT5 Ultra X|ST3|ST3 Pro|ST5 Pro|ST5 Max|GT3|GT3 Pro|GT3 Max|GT5 Pro|GT5 Max|G5|G5 Pro|G5 Max|V3 Pro|V25|V25 Pro|V25i Pro|V25i Pro II|V40|V40 Pro|V40i|V40i Pro|V40i Pro II|V40N|V45i|V50|V50i Pro|V50i Pro II|V60i Pro|E25 Go
 search n65i	N65i|N65i II
-search easyride	E20 (EasyRide 20)|E25 Pro (EasyRide 25 Pro)
+search easyride	E20 (EasyRide 20)|E20 Lite|E25 Go|E25 Pro (EasyRide 25 Pro)|E45 Pro|E60 Pro
 drive mode WALK	Walk
 drive mode ECO	Eco
 drive mode DRIVE	Drive

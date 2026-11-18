@@ -8,7 +8,7 @@ Volt 2.0.0 is the Hub release: a new Home that leads to everything, a Clean Home
 - **Two Home styles.** **Clean** is a new fixed Home: the scooter's status, a top area that changes by itself (battery, charging, or **Just back** after a ride), the Lock bar, four quick actions and the subjects. **Widgets** is the dashboard you arrange yourself, now with a dock at the bottom. New installations start on Clean, and owners who update keep Widgets.
 - **Motion.** Things that used to jump now move. When you plug in, Home's photo glides into the charging picture (**Plug in**), and unplugging plays it back. Pages, banners, cards and the dock's sheet fade, glide and spring, and with Android's animations off everything is instant.
 - **Clean Home's charging view** has Widgets' red **⚡ Charging** pill and a centred percentage. The UT5 MAX and UT5 Ultra X show power pulsing down the charging cable.
-- **Every NAVEE scooter is recognised and pictured by its Model ID.** That covers every scooter in NAVEE's model catalog, each with its own photo. Controls follow the official app's list for each model. Only the models listed in FEATURES.txt have been tried by owners.
+- **Every NAVEE scooter is recognised by its Model ID, and pictured where a photo exists.** That covers all 62 Model IDs in NAVEE's model catalog, and every photo is now a front three-quarter view framed like the UT5 MAX's. Controls follow the official app's list for each model. Only the models listed in FEATURES.txt have been tried by owners.
 - **Unlock without phone** draws your own scooter's handlebar, for each family of handlebar switches.
 - **Help improve your charge time estimate.** Battery & charging invites you to record a few charges and send them to Volt, and it has its own **Charge history & recordings** row.
 - **Better UT5 MAX charging estimates on the standard charger**, on every UT5 MAX, not just the one they were tuned on.
@@ -31,7 +31,8 @@ Volt 2.0.0 is the Hub release: a new Home that leads to everything, a Clean Home
 - **Search** finds pages, settings, scooter controls, live readings (with their current value) and rides by name. Accents don't matter and several words match one by one. A result opens its page and flashes the row it found.
 - **Setup** ends with a choice of Home style, and each style is drawn with your scooter and your units.
 - **Settings works before you allow Nearby devices.** Language, Text size, Appearance, Units, Home style, Back up & restore and the rest open without the permission. Rows that need the scooter ask for it.
-- Page scroll bars sit at the screen's edge, and on Widgets they end at the dock.
+- **Home has no page scroll bar** in either style. Other pages keep theirs at the screen's edge, ending above Widgets' dock.
+- **Home starts closer to the top.** The connection line sits just under the status bar, at the same height in both styles. On Clean, the line's tap area is smaller as a result; a tap just below it opens My scooters.
 - If you leave Volt for a minute or more, a sub-page you left open closes back to its subject.
 
 ### Motion
@@ -42,7 +43,7 @@ Volt 2.0.0 is the Hub release: a new Home that leads to everything, a Clean Home
 ### Charging
 
 - **Clean's charging view** has the red **⚡ Charging** pill, as on Widgets, and the percentage is centred on the charging picture, on both Homes.
-- **Charging pictures.** The UT5 MAX and UT5 Ultra X show an animated picture with green power pulses running down the cable into the battery. Many other models show a still folded picture. The pulses follow Android's animation speed, and on Android 14 and later the percentage grows with your font size.
+- **Charging pictures.** The UT5 MAX and UT5 Ultra X show an animated picture with green power pulses running down the cable into the battery. Other models with a folded photo show it still, under the percentage; this release adds ten (G5 Pro, GT3, GT3 Pro, GT5 Pro, K100 Max, N65i II, V25 Series, V40 Series, XT5 Max and XT5 Pro). The glow around each pulse fades smoothly, without visible rings. The pulses follow Android's animation speed, and on Android 14 and later the percentage grows with your font size.
 - **The time to full** is drawn at the same size as Charging power, with a narrower form before smaller text.
 - **Charge recordings invite.** A card at the top of Battery & charging asks you to record a few charges and send them to Volt, for a better charge time estimate on your model. Tap it for how. Its ✕ hides it for good, and so does sending your recordings. **Charge history & recordings** now has its own row on Battery & charging, and **Record charges automatically** is there instead of in Developer options.
 - **Email to Volt** for charge recordings attaches them as `volt-charge-recordings.json`, gzipped when over 25 MB, and says which recordings started by themselves. A failed email is still reported after the screen is rebuilt.
@@ -50,7 +51,7 @@ Volt 2.0.0 is the Hub release: a new Home that leads to everything, a Clean Home
 
 ### Models and controls
 
-- **Every NAVEE scooter recognised and pictured by Model ID:** every scooter in NAVEE's catalog is named, with its own photo where the catalog has one, and **Which scooter is this?** lists the newer models. Being recognised changes no control: controls still follow the official app's per-model list, and every newly named model is still offered the compatibility report.
+- **Every NAVEE scooter recognised by Model ID, and pictured where a photo exists:** all 62 Model IDs in NAVEE's catalog are named, from the V25 Series to the NT3 Max and the K100 kids' scooters, with a photo on Home, Clean Home, the charging view, My scooters and setup. Every photo is a front three-quarter view framed like the UT5 MAX's (same height, baseline and position), replacing the older GT5 Max, GT3 Max, N65i, ST3 Pro and XT5 Ultra pictures; the XT5 Pro gets its first. The P50 is named only, because the catalog has no picture of it, and the UT5 Ultra shows the UT5 Ultra X's photo until there is one of its own. **Which scooter is this?** lists the newer models, and a V25, V40 or EasyRide answer shows the series photo. Compatibility screens and issue reports keep the numeric Model ID beside the name. Being recognised changes no control: controls still follow the official app's per-model list, and every newly named model is still offered the compatibility report.
 - **Unlock without phone** draws the handlebar of your scooter's family: UT5, ST5, NT5 M/S, eCross, NT3 and the standard switch. The three steps are numbered on the drawing.
 - **No "Untested here".** A GT3 Max owner found controls marked **Untested here** that work, so no scooter shows the label any more. Controls known from the official app read like any other control, and change confirmations no longer say "Volt has not tested it on this model". **Release this scooter** asks the same on every model, and the compatibility check's rules line reads **OEM-mapped**. An Experimental controls row you haven't tried says **Not tried yet**. Safety checks (lock, moving, the scooter's own limits) are unchanged, and Experimental controls stay an opt-in. If a control doesn't work on your scooter, send an issue report.
 - The UT5 Ultra X (Model ID 25852) names its drive modes as the UT5 MAX does (Walk, Eco, Sport). This is an assumption until an owner confirms it.

@@ -45,10 +45,13 @@ import java.util.Set;
  * every model whose official app offers only 3–5 km/h there (group M and a UT5 MAX with a serial region outside the
  * USA bucket included), Experimental controls tries Standing start, 1, 2 or 3 km/h (KickStartTry); Scooter
  * settings keep 3–5 km/h. Nothing that can raise speed changes.
+ * Version 20 names and pictures every scooter in NAVEE's model catalog (the maintainer's copy, 17 November 2026) by its
+ * exact advertised Model ID (KNOWN). Naming changes no rule: each model keeps its OEM group's map, or Volt's shared
+ * default where OEM 2.1.9 doesn't list its ID, and only owner-checked controls are verified.
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=19;
+    public static final int VERSION=20;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -136,16 +139,83 @@ public final class ModelRegistry {
         KNOWN.put("25462",new Known("GT5 Max","gt5max","cruise_control"));
         KNOWN.put("24182",new Known("GT3 Max","gt3max"));
         KNOWN.put("25852",new Known("UT5 Ultra X","ut5ultrax"));
-        // No photo yet: Volt names it and keeps its owners from being asked again.
-        KNOWN.put("24162",new Known("XT5 Pro",""));
+        KNOWN.put("24162",new Known("XT5 Pro","xt5pro"));
+        // NAVEE's model catalog (the maintainer's copy, 17 November 2026): every other scooter by its exact advertised
+        // Model ID, named and pictured only. The UT5 MAX (25382) is its own layer; Birdie golf carts (24352, 25152) are
+        // an unsupported product. The catalog spells the UT5 Ultra "UT5 UItra" and labels some models "NAVEE ...".
+        KNOWN.put("26202",new Known("UT3 Max","ut3max"));
+        KNOWN.put("26192",new Known("UT3 Pro","ut3pro"));
+        KNOWN.put("25472",new Known("UT5 Ultra","ut5ultra"));
+        KNOWN.put("27452",new Known("NT3 Max","nt3max"));
+        KNOWN.put("25431",new Known("NT5 Max","nt5max"));
+        KNOWN.put("25432",new Known("NT5 Max","nt5max"));
+        KNOWN.put("26572",new Known("NT5 Max+","nt5maxplus"));
+        KNOWN.put("26582",new Known("NT5 Ultra","nt5ultra"));
+        KNOWN.put("24492",new Known("NT5 Ultra X","nt5ultrax"));
+        KNOWN.put("25292",new Known("XT5 Max","xt5max"));
+        KNOWN.put("24432",new Known("XT5 Ultra","xt5ultra"));
+        KNOWN.put("25092",new Known("N65i II","n65iii"));
+        KNOWN.put("25093",new Known("N65i II","n65iii"));
+        KNOWN.put("24012",new Known("ST3","st3"));
+        KNOWN.put("24412",new Known("ST5 Pro","st5pro"));
+        KNOWN.put("25172",new Known("ST5 Max","st5max"));
+        KNOWN.put("24022",new Known("GT3","gt3"));
+        KNOWN.put("24032",new Known("GT3 Pro","gt3pro"));
+        KNOWN.put("25452",new Known("GT5 Pro","gt5pro"));
+        KNOWN.put("25463",new Known("GT5 Max","gt5max"));
+        KNOWN.put("24422",new Known("G5","g5"));
+        KNOWN.put("25182",new Known("G5 Pro","g5pro"));
+        KNOWN.put("25192",new Known("G5 Max","g5max"));
+        KNOWN.put("25362",new Known("S2","s2"));
+        KNOWN.put("26142",new Known("S2","s2_26142"));
+        KNOWN.put("23221",new Known("S40","s40"));
+        KNOWN.put("23222",new Known("S40","s40"));
+        KNOWN.put("23341",new Known("S60","s60"));
+        KNOWN.put("23342",new Known("S60","s60"));
+        KNOWN.put("23263",new Known("V3 Pro","v3pro"));
+        KNOWN.put("23141",new Known("V25 Series","v25series"));
+        KNOWN.put("23142",new Known("V25 Series","v25series"));
+        KNOWN.put("23271",new Known("V25 Pro Series","v25proseries"));
+        KNOWN.put("23272",new Known("V25 Pro Series","v25proseries"));
+        KNOWN.put("24362",new Known("V25i Pro II","v25iproii"));
+        KNOWN.put("23281",new Known("V40 Series","v40series"));
+        KNOWN.put("23282",new Known("V40 Series","v40series"));
+        KNOWN.put("24372",new Known("V40i Pro II","v40iproii"));
+        KNOWN.put("26232",new Known("V45i","v45i"));
+        KNOWN.put("23291",new Known("V50i Pro","v50ipro"));
+        KNOWN.put("23292",new Known("V50i Pro","v50ipro"));
+        KNOWN.put("24382",new Known("V50i Pro II","v50iproii"));
+        KNOWN.put("23261",new Known("V60i Pro","v60ipro"));
+        KNOWN.put("23262",new Known("V60i Pro","v60ipro"));
+        KNOWN.put("24172",new Known("EasyRide 20","easyride20"));
+        KNOWN.put("24222",new Known("EasyRide 25 Pro","easyride25pro"));
+        KNOWN.put("26342",new Known("E20 Lite","e20lite"));
+        KNOWN.put("25732",new Known("E25 Go","e25go"));
+        KNOWN.put("26112",new Known("E45 Pro","e45pro"));
+        KNOWN.put("26122",new Known("E60 Pro","e60pro"));
+        KNOWN.put("26432",new Known("E60 Pro","e60pro"));
+        // The catalog has no picture of the P50: named only.
+        KNOWN.put("23531",new Known("P50",""));
+        KNOWN.put("25042",new Known("K100","k100"));
+        KNOWN.put("25052",new Known("K100 Pro","k100pro"));
+        KNOWN.put("25062",new Known("K100 Max","k100max"));
     }
     /**
      * Photos bundled before Volt knows their model's advertised Model ID, by NaveeModels name; nothing shows them yet.
      * When a report brings the ID, one KNOWN line (Model ID, name, photo) puts the name and photo to work, and the
      * model leaves this table.
      */
-    static final Map<String,String> WAITING_PHOTOS;
-    static{Map<String,String> w=new LinkedHashMap<>();w.put("XT5 Ultra","xt5ultra");WAITING_PHOTOS=java.util.Collections.unmodifiableMap(w);}
+    static final Map<String,String> WAITING_PHOTOS=Collections.emptyMap();
+    /**
+     * Listed models (NaveeModels) the catalog pictures under another name: a series photo (its "V40 Series" is the V40i
+     * and V40i Pro) or the EasyRide names. An owner's answer shows that photo; nothing else follows from it.
+     */
+    static final Map<String,String> SERIES_PHOTOS;
+    static{Map<String,String> m=new LinkedHashMap<>();
+        m.put("V25","v25series");m.put("V25 Pro","v25proseries");m.put("V25i Pro","v25proseries");
+        m.put("V40i","v40series");m.put("V40i Pro","v40series");
+        m.put("E20 (EasyRide 20)","easyride20");m.put("E25 Pro (EasyRide 25 Pro)","easyride25pro");
+        SERIES_PHOTOS=Collections.unmodifiableMap(m);}
     /** The name and photo of each model known by Model ID, for ModelRegistryTest. */
     static Map<String,String[]> knownModels(){Map<String,String[]> out=new LinkedHashMap<>();for(Map.Entry<String,Known> e:KNOWN.entrySet())out.put(e.getKey(),new String[]{e.getValue().name,e.getValue().photo});return out;}
     /** A known model; the advertised Model ID must agree with the serial and resolve to a standard layer. */
@@ -1052,6 +1122,7 @@ public final class ModelRegistry {
     static String ownerPhoto(String model){
         if(model.isEmpty())return "";if(model.equals("UT5 Max"))return "ut5max";
         for(Known k:KNOWN.values())if(k.name.equals(model))return k.photo;
+        String series=SERIES_PHOTOS.get(model);if(series!=null)return series;
         String waiting=WAITING_PHOTOS.get(model);return waiting==null?"":waiting;
     }
     /**
@@ -1063,6 +1134,17 @@ public final class ModelRegistry {
         Known t=known(d);if(t!=null)return t.name;
         if(!d.rulePid().isEmpty())return Msg.of(T.CONTROLS_MODEL_LINE,d.rulePid());
         return d.serialPid.isEmpty()?"":Msg.of(T.CONTROLS_MODEL_LINE_UNCONFIRMED,d.serialPid);
+    }
+    /**
+     * The exact Model ID Volt names this scooter by from its KNOWN table, or "" (the UT5 MAX layer, an unnamed or unconfirmed
+     * ID). Models that share a name differ by ID (the catalog's NT5 Max is 25431 and 25432, with different controls), so the
+     * compatibility screen and report drafts show it beside the name; Home and My scooters show the name alone.
+     */
+    static String namedPid(DeviceDescriptor d){return known(d)!=null?d.rulePid():"";}
+    /** modelLine with the named Model ID beside the name ("NT5 Max · 25431"), for report drafts: the number tells same-named models apart. */
+    public static String modelLineWithId(DeviceDescriptor d){
+        String line=modelLine(d),pid=namedPid(d);
+        return pid.isEmpty()?line:line+" \u00b7 "+pid;
     }
     /** modelLineText in English, whatever language is shown: IssueReport and the compatibility reports keep it. */
     public static String modelLine(DeviceDescriptor d){

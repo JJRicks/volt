@@ -8,10 +8,16 @@ package com.jjricks.volt;
  *
  * <p>Both lines are tap targets (the status line opens the connection details, the name switches scooter), and the
  * two buttons keep 48 dp targets around a {@link #DISC_DP} dp disc. The name row is a full {@link #TARGET_DP} dp
- * band, and so is the status line: a band of its own from the header's top to the name row, its text at the band's
- * foot (at least {@link #TOP_DP} dp under the header's top), so no other view covers any of it. (Margins taken back
- * from padding, as the widget dashboard's header does, would put half of it under the name row, which takes every
- * touch there: Clean's name fills its row.) The header is two 48 dp bands, about 100 dp at 1x.
+ * band. The status line is a band of its own from the header's top to the name row, its text {@link #TOP_DP} dp under
+ * the header's top, so no other view covers any of it. (Margins taken back from padding, as the widget dashboard's header
+ * does, would put half of it under the name row, which takes every touch there: Clean's name fills its row.)
+ *
+ * <p>The header starts right under the status bar (the owner, 17 Nov 2026: "let's close the gap between the top of the
+ * app on the home screen and the android status bar"), with the status line's text {@link #TOP_DP} dp under it, as the
+ * widget dashboard's header has it. Its band was a full 48 dp with the text at its foot, which put about 34 dp of empty
+ * page between the status bar and the text, twice the widget dashboard's; the band is now the text and the room above it
+ * (about 28 dp at 1x, the whole width), the one target in the header under 48 dp tall, as the widget dashboard's
+ * status line also is. The header is about 80 dp at 1x.
  *
  * <p>The name shares its row with the two buttons, so it takes, in this order, the first that fits: one line at full
  * size, one line smaller (down to {@link #MIN_NAME_SP} sp of {@link #NAME_SP}), two lines of whole words at full size,
@@ -80,10 +86,10 @@ final class CleanHeaderFit {
 
     /**
      * The status line's touch target (dp) for a line {@code statusLineDp} tall: its whole band, the line and the space
-     * above it, at least {@link #TARGET_DP}. Nothing overlaps it, so all of it takes touches.
+     * above it (the header's top room, owner 17 Nov 2026). Nothing overlaps it, so all of it takes touches.
      */
     static float statusTargetDp(float statusLineDp) {
-        return Math.max(TARGET_DP, TOP_DP + statusLineDp);
+        return TOP_DP + Math.max(0, statusLineDp);
     }
 
     /** The name row's height (dp) for a name {@code nameDp} tall (all its lines): a full target or the name. */

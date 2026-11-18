@@ -14,17 +14,17 @@ public final class NaveeModelsTest {
     }
 
     private static void list() {
-        check(NaveeModels.SERIES.size() == 11 && NaveeModels.all().size() == 49, "Eleven series, 49 models");
-        check(new java.util.HashSet<>(NaveeModels.all()).size() == 49, "No model is listed twice");
+        check(NaveeModels.SERIES.size() == 11 && NaveeModels.all().size() == 60, "Eleven series, 60 models");
+        check(new java.util.HashSet<>(NaveeModels.all()).size() == 60, "No model is listed twice");
         check(NaveeModels.seriesOf("N65i").name.equals("N") && NaveeModels.seriesOf("ST3 Pro").about.equals("Premium commuting") && NaveeModels.seriesOf("Nope") == null, "Series lookup");
     }
 
     private static void search() {
-        check(NaveeModels.search("").size() == 49, "Empty search lists everything");
+        check(NaveeModels.search("").size() == 60, "Empty search lists everything");
         check(NaveeModels.search("gt3").equals(Arrays.asList("GT3", "GT3 Pro", "GT3 Max")), "Name search: " + NaveeModels.search("gt3"));
         check(NaveeModels.search("UT5 MAX").equals(Collections.singletonList("UT5 Max")) && NaveeModels.search("ut-5max").equals(Collections.singletonList("UT5 Max")), "Case and spacing are ignored");
         check(NaveeModels.search("kids").size() == 4 && NaveeModels.search("off-road").size() == 3, "Series descriptions match");
-        check(NaveeModels.search("easyride").size() == 2 && NaveeModels.search("v40i pro").containsAll(Arrays.asList("V40i Pro", "V40i Pro II")), "Bracketed and numbered variants match");
+        check(NaveeModels.search("easyride").size() == 6 && NaveeModels.search("v40i pro").containsAll(Arrays.asList("V40i Pro", "V40i Pro II")), "Bracketed and numbered variants match");
         check(NaveeModels.search("zzz").isEmpty(), "No match");
     }
 

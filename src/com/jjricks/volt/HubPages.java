@@ -122,6 +122,38 @@ public final class HubPages {
     public static int dockTop(int windowBottom, int dockHeight) { return windowBottom - dockHeight; }
 
     /**
+     * Whether a page's scroller shows its vertical bar (the owner, 17 Nov 2026: "Let's kill the scrollbar on the home screen
+     * in Widgets and Clean but we can keep it in submenus"): every page but Home keeps #522's bar at the window's edge;
+     * Home, in either style and in the wide Home's page pane, has none.
+     */
+    public static boolean pageScrollBar(String page) { return !HOME.equals(page); }
+
+    /** The room (dp) MainActivity's own page scroller leaves above a page it wraps; Home's header keeps its own top room. */
+    public static final int PAGE_TOP_DP = 6;
+
+    /**
+     * The top padding (dp) of the scroller MainActivity wraps a page in. Home's header starts right under the status bar
+     * (or the Simulation banner) and keeps its own small top room (CleanHeaderFit.TOP_DP, the same in both styles: the
+     * owner, 17 Nov 2026, "let's close the gap between the top of the app on the home screen and the android status
+     * bar"); every other page keeps PAGE_TOP_DP over its back link. In tabletop posture Home's header sits in the pane above
+     * the hinge, and the scroller below it keeps PAGE_TOP_DP.
+     */
+    public static int pageTopDp(String page, boolean tabletop) { return HOME.equals(page) && !tabletop ? 0 : PAGE_TOP_DP; }
+
+    /**
+     * A scroll bar part's edge (top or bottom, scroller pixels) mapped onto the part of the bar's track above the dock
+     * (HubDock.barAboveDock, council P3 on #508): the platform places it on the scroller's whole height, length, at its
+     * scroll position start; where the dock covers the bottom cover pixels of the bar's column the track ends at the
+     * dock's top instead, keeping the thumb's size and travel in proportion. No cover (or a cover as tall as the scroller)
+     * leaves it where it is.
+     */
+    public static int barAboveDock(int edge, int start, int length, int cover) {
+        if (cover <= 0 || length <= cover) return edge;
+        float scale = (length - cover) / (float) length;
+        return start + Math.round((edge - start) * scale);
+    }
+
+    /**
      * The dock sheet's bottom padding: its inner padding, the lift and the navigation inset (window pixels), so its items
      * sit lift above the navigation bar, where the old floating bar's items sat, while its surface runs on under the bar.
      */

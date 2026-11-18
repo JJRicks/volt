@@ -11,8 +11,17 @@ export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description:
 // leaving room for the longest description and contact (UTF-8, escaped).
 export const ROW_BUDGET = LIMITS.body - 34 * 1024;
 export const FORMAT = 'volt-navee-capture-v1';
-// ModelRegistry.KNOWN names, after the UT5 MAX layer Volt's controls are built on.
-export const MODELS = ['UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro'];
+// ModelRegistry.KNOWN names in its order (one per Model ID, so a name two IDs share is listed twice), after the UT5 MAX
+// layer Volt's controls are built on. The debugger's model choice lists each name once.
+export const MODELS = [
+  'UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro', 'UT3 Max', 'UT3 Pro', 'UT5 Ultra',
+  'NT3 Max', 'NT5 Max', 'NT5 Max', 'NT5 Max+', 'NT5 Ultra', 'NT5 Ultra X', 'XT5 Max', 'XT5 Ultra', 'N65i II',
+  'N65i II', 'ST3', 'ST5 Pro', 'ST5 Max', 'GT3', 'GT3 Pro', 'GT5 Pro', 'GT5 Max', 'G5', 'G5 Pro', 'G5 Max', 'S2',
+  'S2', 'S40', 'S40', 'S60', 'S60', 'V3 Pro', 'V25 Series', 'V25 Series', 'V25 Pro Series', 'V25 Pro Series',
+  'V25i Pro II', 'V40 Series', 'V40 Series', 'V40i Pro II', 'V45i', 'V50i Pro', 'V50i Pro', 'V50i Pro II',
+  'V60i Pro', 'V60i Pro', 'EasyRide 20', 'EasyRide 25 Pro', 'E20 Lite', 'E25 Go', 'E45 Pro', 'E60 Pro', 'E60 Pro',
+  'P50', 'K100', 'K100 Pro', 'K100 Max'
+];
 export const OTHER_MODEL = 'Other / not sure';
 
 // ByteUtil.g: "[55 aa 00 52 01 01 a9 fe fd]", lowercase pairs, single spaces.

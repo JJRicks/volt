@@ -18,17 +18,17 @@ final class NaveeModels {
         Series(String name, Msg about, String... models) { this.name = name; this.aboutLabel = about; this.about = about.english(); this.models = Collections.unmodifiableList(Arrays.asList(models)); }
     }
     static final List<Series> SERIES = Collections.unmodifiableList(Arrays.asList(
-            new Series("UT", M.controlsSeriesUt(), "UT3 Max", "UT5 Max", "UT5 Ultra X"),
-            new Series("NT", M.controlsSeriesNt(), "NT5 Max", "NT5 Ultra X"),
+            new Series("UT", M.controlsSeriesUt(), "UT3 Pro", "UT3 Max", "UT5 Max", "UT5 Ultra", "UT5 Ultra X"),
+            new Series("NT", M.controlsSeriesNt(), "NT3 Max", "NT5 Max", "NT5 Max+", "NT5 Ultra", "NT5 Ultra X"),
             new Series("XT", M.controlsSeriesXt(), "XT5 Max", "XT5 Pro", "XT5 Ultra"),
             new Series("N", M.controlsSeriesN(), "N40", "N65", "N65i", "N65i II"),
             new Series("ST", M.controlsSeriesSt(), "ST3", "ST3 Pro", "ST5 Pro", "ST5 Max"),
             new Series("GT", M.controlsSeriesGt(), "GT3", "GT3 Pro", "GT3 Max", "GT5 Pro", "GT5 Max"),
             new Series("G", M.controlsSeriesG(), "G5", "G5 Pro", "G5 Max"),
-            new Series("S", M.controlsSeriesS(), "S40", "S60", "S65", "S65C"),
+            new Series("S", M.controlsSeriesS(), "S2", "S40", "S60", "S65", "S65C"),
             new Series("V", M.controlsSeriesV(), "V3 Pro", "V25", "V25 Pro", "V25i Pro", "V25i Pro II", "V40", "V40 Pro", "V40i", "V40i Pro",
-                    "V40i Pro II", "V40N", "V45i", "V50", "V50i Pro", "V50i Pro II"),
-            new Series("EasyRide", M.controlsSeriesEasyRide(), "E20 (EasyRide 20)", "E25 Pro (EasyRide 25 Pro)"),
+                    "V40i Pro II", "V40N", "V45i", "V50", "V50i Pro", "V50i Pro II", "V60i Pro"),
+            new Series("EasyRide", M.controlsSeriesEasyRide(), "E20 (EasyRide 20)", "E20 Lite", "E25 Go", "E25 Pro (EasyRide 25 Pro)", "E45 Pro", "E60 Pro"),
             new Series("K", M.controlsSeriesK(), "K100", "K100 Pro", "K100 Max", "K100 Plus")));
     static final int MAX_TYPED = 40;
     private NaveeModels() {}

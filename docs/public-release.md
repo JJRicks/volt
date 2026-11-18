@@ -67,20 +67,22 @@ private, and neither a 1.0 release nor a website deployment is part of this prep
 | AndroidX annotations 1.3.0 | Apache 2.0; [full text](../licenses/AndroidX-Apache-2.0.txt) |
 | Browser ADB packages | MIT, Simon Chan; exact versions below; build emits full license texts |
 | UT5 MAX photo | Temporary image obtained from the manufacturer's website; redistribution permission is not established; separate from the MIT source license |
-| N65i photo | NAVEE product render supplied through a tester; redistribution permission is not established; separate from the MIT source license |
-| ST3 Pro photo | NAVEE product image supplied by the maintainer; redistribution permission is not established; separate from the MIT source license |
-| GT5 Max and GT3 Max photos | NAVEE product images supplied by the maintainer; redistribution permission is not established; separate from the MIT source license |
+| UT5 Ultra X photo | NAVEE product image supplied by the maintainer; redistribution permission is not established; separate from the MIT source license |
+| Model catalog photos (38 files, every other scooter in NAVEE's model catalog, including the N65i, ST3 Pro, GT5 Max, GT3 Max, XT5 Pro and XT5 Ultra) | NAVEE front three-quarter product images supplied by the maintainer on 17 November 2026 from the manufacturer's model catalog; placeholders; redistribution permission is not established; separate from the MIT source license |
+| Charging pictures (UT5 MAX, UT5 Ultra X) and folded charging photos | Made from NAVEE marketing renders and contributor-supplied NAVEE product photos; redistribution permission is not established; separate from the MIT source license |
+| Model catalog folded pictures (10 files: G5 Pro, GT3, GT3 Pro, GT5 Pro, K100 Max, N65i II, V25 Series, V40 Series, XT5 Max, XT5 Pro) | NAVEE folded side-view product images supplied by the maintainer on 17 November 2026 from the manufacturer's model catalog; placeholders; redistribution permission is not established; separate from the MIT source license |
 | Map tiles and data | Provider terms apply; no map data is bundled or relicensed as source |
 
 **Release blocker:** the current `res/drawable-nodpi/ut5max.webp` was obtained
 from the manufacturer's website. On 14 October 2026 the maintainer clarified
 that permission was not established and chose to keep it as a temporary
-placeholder while preparing an original photo. The N65i render added on 23
-October 2026 (`res/drawable-nodpi/n65i.webp`), the ST3 Pro image
-(`res/drawable-nodpi/st3pro.webp`), the GT5 Max and GT3 Max images
-(`res/drawable-nodpi/gt5max.webp`, `gt3max.webp`) the UT5 Ultra X image
-(`res/drawable-nodpi/ut5ultrax.webp`) and the XT5 Ultra image (`res/drawable-nodpi/xt5ultra.webp`) are in the
-same position. Before
+placeholder while preparing an original photo. The UT5 Ultra X image
+(`res/drawable-nodpi/ut5ultrax.webp`), the 38 model catalog images the maintainer
+supplied on 17 November 2026 (every other `res/drawable-nodpi/*.webp` model photo,
+listed in NOTICE; they replaced the October N65i, ST3 Pro, GT5 Max, GT3 Max and
+XT5 Ultra images) and the charging pictures (`*_charge.webp`, `*_folded.webp`)
+are in the same position. Older Git history also holds the replaced October
+images. Before
 public distribution, replace each with an appropriately licensed original or
 obtain verified permission.
 Update the source asset, APK, screenshots and notices together. Older Git tags,

@@ -776,9 +776,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         View screenView=screen.view();if(screenView.getParent() instanceof ViewGroup)((ViewGroup)screenView.getParent()).removeView(screenView);
         if(screenView instanceof ScrollView){scroll=(ScrollView)screenView;}
-        else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(6),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
-        // The page's bar at the window's edge (left in RTL), in the side padding, never over the content (owner, 16 Nov).
+        // Home's header starts right under the status bar with its own small top room (HubPages.pageTopDp, owner 17 Nov).
+        else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPadding(design.dp(expanded?24:18),design.dp(HubPages.pageTopDp(selectedPage,horizontalHinge())),design.dp(expanded?24:18),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
+        // The page's bar at the window's edge (left in RTL), in the side padding, never over the content (owner, 16 Nov);
+        // Home shows none, in either style (owner, 17 Nov: HubPages.pageScrollBar). Set before quietScrollbars and
+        // scrollBeforeDraw below, which put back the value they find.
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+        scroll.setVerticalScrollBarEnabled(HubPages.pageScrollBar(selectedPage));
         scrollPage=selectedPage;pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         if(screen instanceof DashboardScreen){
             // Widgets Home: the dock sits over the page's bottom where the tab bar was; pad the scroller so every card scrolls clear of it.
@@ -857,7 +861,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScrollView left=new ScrollView(this);left.setTag(TAG_SCOOTER_PANE);left.setFillViewport(true);left.setClipToPadding(false);
         // No scroll bar over the cards' edges: the pane scrolls only with large text, and the mock-up draws none.
         left.setVerticalScrollBarEnabled(false);
-        left.setPadding(0,design.dp(6),0,design.dp(16));
+        // Home's header right under the status bar, as on one pane (HubPages.pageTopDp).
+        left.setPadding(0,design.dp(HubPages.pageTopDp(HubPages.HOME,false)),0,design.dp(16));
         View home=homeScreen.view();if(home.getParent() instanceof ViewGroup)((ViewGroup)home.getParent()).removeView(home);
         left.addView(home,new ScrollView.LayoutParams(-1,-2));
         FrameLayout right=new FrameLayout(this);right.setTag(TAG_PAGE_PANE);
@@ -933,8 +938,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(column!=null)column.setPaddingRelative(0,column.getPaddingTop(),0,column.getPaddingBottom());
             scroll.setPaddingRelative(0,scroll.getPaddingTop(),design.dp(PANE_END_DP),scroll.getPaddingBottom());
         }else{scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setPaddingRelative(0,design.dp(6),design.dp(PANE_END_DP),design.dp(16));scroll.addView(screenView,new ScrollView.LayoutParams(-1,-2));}
-        // The bar draws in the scroller's end padding, at the window's edge (as on one pane, #522).
+        // The bar draws in the scroller's end padding, at the window's edge (as on one pane, #522); Home in the page pane
+        // (the search field and the subjects) shows none (HubPages.pageScrollBar), and every other page there keeps it.
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
+        scroll.setVerticalScrollBarEnabled(HubPages.pageScrollBar(selectedPage));
         scrollPage=selectedPage;
         pageFrame=new FrameLayout(this);pageFrame.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
         rightPage.addView(pageFrame,new LinearLayout.LayoutParams(-1,0,1));

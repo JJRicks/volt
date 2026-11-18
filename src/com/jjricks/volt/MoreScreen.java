@@ -2745,7 +2745,7 @@ public final class MoreScreen implements AppScreen {
         ScooterService s = service(); DeviceDescriptor d = s == null ? null : s.ble.descriptor();
         String version = AppVersion.name(host.activity());
         String body = IssueReport.body(version, Build.VERSION.RELEASE, Build.VERSION.SDK_INT, Build.MANUFACTURER + " " + Build.MODEL,
-                ModelRegistry.modelLine(d), d != null && d.simulated);
+                ModelRegistry.modelLineWithId(d), d != null && d.simulated);
         if (!host.emailVolt(IssueReport.subject(version), body)) host.toast(T.moreReportNoEmail());
     }
 
@@ -2864,7 +2864,7 @@ public final class MoreScreen implements AppScreen {
         // The model line is taken now, with the scooter whose recordings the export takes (ChargeSend.Export). A simulated
         // scooter's model is left out: the recordings are the real profile's.
         DeviceDescriptor d = s.ble.descriptor();
-        String model = ModelRegistry.modelLine(d != null && d.simulated ? null : d);
+        String model = ModelRegistry.modelLineWithId(d != null && d.simulated ? null : d);
         // A failure goes through the same hand-over as the file, so the activity showing Volt when the export ends (a
         // recreated one too) says so, once (#412 round-2 review, P3 1).
         if (s.exportChargeRecordings(true, file -> ChargeSend.MAILBOX.deliver(file != null ? new ChargeSend.Export(file, model)
