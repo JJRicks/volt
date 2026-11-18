@@ -1,8 +1,13 @@
 VOLT 2.0.0 — THE HUB: NEW HOME AND NAVIGATION, CLEAN HOME, MOTION, EVERY MODEL PICTURED (versionCode 60)
 Built and swept at commit 4a050efe on claude/release-2-0-0 (#550),
-November 17, 2026. The tag goes on #550's merge into main, or on a later
-docs-only merge. Commits on #550 after 4a050efe change only test code
+November 17, 2026. Commits on #550 after 4a050efe change only test code
 (android-tests/) and this file, neither of which is in the APK.
+The release commit is #550's merge into main (RELEASING.md step 2). The
+tests, ship_check and the VOLT_RELEASE=1 build run again on that commit,
+and its APK must be identical to the swept one outside META-INF, which is
+what carries the sweep over. That build is the one uploaded, and the tag
+goes on that same commit, so the checked, built and tagged commit is one
+SHA (step 7). Its hash is recorded here after publishing, as for 1.13.1.
 
 - Cut from main. 1.13.2 was cut from release/1.13 and carried only the
   main pull requests that didn't depend on the Hub, so this is the first
