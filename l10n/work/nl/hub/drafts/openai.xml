@@ -60,6 +60,15 @@
     <string name="hub_charge_send_note" volt:src="f4c00ec1875a46ac65b4ca7d1e7fd2918216f4b6">Door je laadopnamen naar Volt te sturen, help je de schattingen van de laadtijd voor het model van je step te verbeteren.</string>
     <string name="hub_charge_send_no_email" volt:src="271244f864b921e5ab995ea5b0fa4c7b767af012">De laadopnamen konden niet met een e-mailapp worden geopend.</string>
     <string name="hub_charge_send_busy" volt:src="e0a560854d3973ed85eb2968bccbcd6c7ecd982f">Stop de laadopname voordat je de opnamen verstuurt</string>
+    <string name="hub_charge_invite_title" volt:src="60949f63068396c7546678e2dd1f895e4bfdc50a">Help de schatting van je laadtijd verbeteren</string>
+    <string name="hub_charge_invite_body" volt:src="4e191eb62409157c259b7954b8b30c752b0574c6">Neem enkele laadsessies op en stuur ze naar Volt.</string>
+    <string name="hub_charge_invite_hide" volt:src="b05a69d3404b5635017a49e4cd3b07579232dd8c">Deze suggestie verbergen</string>
+    <string name="hub_charge_invite_intro" volt:src="49b53606e14200b0dd5ed22b40586bc73a84ebe2">Volt leert van echte laadsessies hoe je step wordt opgeladen. Opnamen maken de schatting van de laadtijd nauwkeuriger.</string>
+    <string name="hub_charge_invite_step_record" volt:src="f798ab2db7cc794a1851e4e71206c951ffdbd307">Neem je laadsessies op: tik op ‘%1$s’ terwijl de step wordt opgeladen, of zet ‘%2$s’ aan.</string>
+    <string name="hub_charge_invite_step_any" volt:src="4add4fab7a9faa69e8c68f41992dcbd4e6120bdf">Het hoeft niet perfect te zijn. Ook een gedeeltelijke laadsessie helpt.</string>
+    <string name="hub_charge_invite_step_full" volt:src="5991c14dbd07948bdf3aa351bfd5f013b4a5f97d">Opladen tot 100%% helpt het meest.</string>
+    <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Houd je telefoon bij de step terwijl die wordt opgeladen, zodat Volt verbonden blijft.</string>
+    <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Open daarna ‘%1$s’ en tik op ‘%2$s’. We gebruiken je opnamen om de schatting voor het model van je step te verbeteren.</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Opname op de achtergrond starten</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Een rit die begint terwijl Volt op de achtergrond staat of het scherm vergrendeld is, heeft geen GPS-route.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · ongeveer %2$s over</string>

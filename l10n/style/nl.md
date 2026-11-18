@@ -69,6 +69,7 @@ Every ladder runs full, `_short`, `_compact`, then icon. Measure in Saira (`tool
 | Installeren | **Install.** | 43.3 at 14sp, `owner_shizuku_install` only | Inst. |
 | ongeveer | **ca.**, before a number | ca. 25 km | ong., +/- |
 | Firmware, on `*_version_compact` rungs only | **FW** | FW meter, FW accu; the English has FW too | Firmw. |
+| Snelheidsrem | **Snelh.rem**, on Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.) | 63.4dp at 13.5sp (Snelheidsrem is 85.8) | Afremhulp (no speed in it) |
 
 Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate a safety word (section 6). *Vergr.*, *Ontgr.*, *Ontgrend.* and *Niet geverif.* are forbidden: they hide the state.
 

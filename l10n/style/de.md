@@ -113,6 +113,9 @@ In the labels measured here German is 40-65% wider than English (Odometer 57.7dp
 | ungefähr, geschätzt | ca., before a number only | ca. 25 km. One exception: `stats_health_chip`, a separate 40dp tag after the figure, is "ca." ("Geschätzt" is 41.5dp at 9sp) | gesch., Kapazität ca., Reichweite ca. |
 | Installieren | Install. | `owner_shizuku_install` | Inst. |
 | Firmware | -FW, on a `_compact` rung only | Motor-FW, Akku-FW | Firmw. |
+| Akkuwarnungen | **Akkuwarn.**, on Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.) and `home_qa_charge_alerts_short` | 66.8dp at 13.5sp (Warnungen is 73.2) | Warn., Warnung for the plural |
+| Rekuperation (energy recovery) | **Rekup.**, on Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.) | 43.4dp at 13.5sp (Rückgewinnung is 100.4) | Rekup. anywhere else |
+| Tempobremse | **Tempobr.**, on Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.) | 58.2dp at 13.5sp (Tempobremse is 88.4) | Übertempo |
 
 Avoid an abbreviation in a sentence, except the common z. B., ca., d. h., with spaces inside. Never abbreviate
 safety words (section 6), except "Exp. Funkt.". "Funkt." can read as the verb funkt, so the debate should weigh "Exp. Funkt."

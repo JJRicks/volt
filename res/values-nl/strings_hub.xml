@@ -120,6 +120,24 @@
     <string name="hub_charge_send_no_email">Er is geen e-mailapp gevonden om de laadopnamen te openen.</string>
     <!-- src:e0a560854d3973ed85eb2968bccbcd6c7ecd982f -->
     <string name="hub_charge_send_busy">Stop de laadopname voordat je de opnamen verstuurt</string>
+    <!-- src:60949f63068396c7546678e2dd1f895e4bfdc50a -->
+    <string name="hub_charge_invite_title">Help je laadtijdschatting te verbeteren</string>
+    <!-- src:4e191eb62409157c259b7954b8b30c752b0574c6 -->
+    <string name="hub_charge_invite_body">Neem een paar laadsessies op en stuur ze naar Volt.</string>
+    <!-- src:b05a69d3404b5635017a49e4cd3b07579232dd8c -->
+    <string name="hub_charge_invite_hide">Deze suggestie verbergen</string>
+    <!-- src:49b53606e14200b0dd5ed22b40586bc73a84ebe2 -->
+    <string name="hub_charge_invite_intro">Volt leert van echte laadsessies hoe je step oplaadt. Opnamen maken de laadtijdschatting van Volt nauwkeuriger.</string>
+    <!-- src:f798ab2db7cc794a1851e4e71206c951ffdbd307 -->
+    <string name="hub_charge_invite_step_record">Neem je laadsessies op: tik op ‘%1$s’ terwijl de step wordt opgeladen, of zet ‘%2$s’ aan.</string>
+    <!-- src:4add4fab7a9faa69e8c68f41992dcbd4e6120bdf -->
+    <string name="hub_charge_invite_step_any">Het hoeft niet perfect te zijn. Ook een gedeeltelijke laadsessie helpt.</string>
+    <!-- src:5991c14dbd07948bdf3aa351bfd5f013b4a5f97d -->
+    <string name="hub_charge_invite_step_full">Helemaal opladen tot 100%% helpt het meest.</string>
+    <!-- src:a83860cb7088b2d10e03b96dc4cc6e48954cc43b -->
+    <string name="hub_charge_invite_step_nearby">Houd de telefoon bij de step terwijl die oplaadt, zodat Volt verbonden blijft.</string>
+    <!-- src:d157c439746955fe6c175f41b2e27c20cb39dca6 -->
+    <string name="hub_charge_invite_step_send">Open daarna ‘%1$s’ en tik op ‘%2$s’. We gebruiken je opnamen om de schatting af te stemmen op het model van je step.</string>
     <!-- src:04bc34a391adb8a7ad639531d7934a68631293fd -->
     <string name="hub_recording_auto_background">Opname op de achtergrond starten</string>
     <!-- src:4dd6fd0eb9c533661ffd71462e8456c76a8fb01b -->
@@ -177,6 +195,8 @@
     <string name="hub_qa_traction_round">Tractie</string>
     <!-- src:98733b2dbd677ee389f2e1a99bdea5c640b6fcea -->
     <string name="hub_qa_recovery_round">Terugw.</string>
+    <!-- src:ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330 -->
+    <string name="hub_qa_overspeed_round">Snelh.rem</string>
     <!-- src:83aabaef6fccc26a2b05bdf6965a81609fbd1dd3 -->
     <string name="hub_qa_descent_round">Afdaalhulp</string>
     <!-- src:17fa93aa43e4818263fea1e38df93c71bc52ecfa -->
