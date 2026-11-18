@@ -125,10 +125,38 @@ SHA (step 7). Its hash is recorded here after publishing, as for 1.13.1.
   so nearly every view's tree path moved, and the census can't pick out
   wording changes this time. It was not relied on; the language gate and
   the locale reports above check the text.
-- Parked hardware sweep with the owner present: not run yet. It needs the
-  owner's phone and scooter. The candidate is to be installed and the
-  sweep run before publishing; its result is recorded here then, in a
-  docs-only change.
+- Parked hardware sweep with the owner present (run-hardware-sweep.py
+  --parked, default plan, no lock or PIN step), November 17 and 18, 2026,
+  on the owner's phone and parked UT5 MAX. The release APK was installed
+  over a development build of 1.13.2 with its data kept, launched, and
+  stayed in front with no crash. Volt had no ride or charge recording
+  running.
+  - With a runner built from the release commit with the release key:
+    snapshot, background, clock, settings and charge-time passed. The
+    settings step changed, read back and restored 23 controls, among them
+    the charge limit (100 to 80 and back), the three assists and both
+    light zones. The 5 the plan never writes (speed limit, maximum speed,
+    dual drive, drive speed limit and timed charging) were excluded.
+  - navigation failed in the runner, not the app: its walk still followed
+    the tabs from before the Hub and expected every control on one page
+    (hill start assist is on Controls › Assists now). It only runs on real
+    hardware, so the Hub's pull requests never exercised it. #552 rewrote
+    it to walk the Hub's pages (test code and docs only). It merged after
+    the release commit, as 580a611f, so the tagged commit still has the old
+    walk. A runner built from 580a611f with the release key then passed
+    navigation on the same phone with the release APK: 29 pages, 33
+    controls and Experimental entries on 10 Scooter pages, Data's 4
+    sections, search, a favourite, Settings' 5 pages, and no scooter
+    writes. Rides opened its 89 saved rides with the first frame in 40 ms.
+  - Test scheduled charging was not run: the scooter couldn't be charged
+    that night, and the owner chose to publish without it. Scheduled
+    charging's code changed after 1.13.2 (the November 12 diagnostics
+    work); the emulator sweep's charge-schedule steps passed, but this
+    release has not run the test on a real charge.
+  - #552 also keeps the hardware sweep from ending a charge recording.
+    Every step restarts Volt, so the sweep now refuses to start or go on
+    while a charge recording or a scheduled-charging test is running, in
+    any language, and while Record charges automatically is on.
 - Real-scooter checks already made on development builds of main (UT5 MAX,
   November 14, 2026; docs/validation/owner-release.md and
   docs/validation/new-scooter-setup.md): Make a new owner key (the scooter
@@ -144,7 +172,26 @@ SHA (step 7). Its hash is recorded here after publishing, as for 1.13.1.
 - Still owed on real hardware: a scooter whose Bluetooth address really
   changed (Find it nearby's confirm and serial-match save), an odometer
   that really dropped, the Plug in transition and the charge invite on a
-  real charge, and any control on the newly recognised models.
+  real charge, Test scheduled charging (above), and any control on the
+  newly recognised models.
+- Published November 18, 2026 at 3:24 AM MST (10:24 UTC) from main: tag
+  v2.0.0 points at 7f371554da1a569c8190a2ecd6706d1e2173ee3e, #550's
+  merge, the commit whose tests (210 suites), ship_check and VOLT_RELEASE=1
+  build ran again before the draft. The release APK (SHA-256
+  f8dfbc5497e0fb5dc84edd1ece842790a4d08af3a5d54682ada3f06905bda143) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 1.13.2's certificate, zipaligned, and reads 2.0.0
+  (60). The source ZIP's SHA-256 is
+  6efa39db87701de2fed9189521f0acfdfa514c0cb7adaeb49c15d52d227691ff. The
+  published assets were downloaded again and matched.
+  By then main was at 580a611f (#552). That merge changes only test code
+  and docs (android-tests/, tests/hardware-sweep-test.py, RELEASING.md and
+  docs/development-notes.md), none of which is in the APK, so the tag stays
+  on the commit that was built and checked instead of main's newest commit
+  as RELEASING.md step 7 asks; the publish script refused any other change
+  after the release commit. The homepage was deployed from the tag at
+  3:24 AM MST with site/server/deploy-release.sh; the live variant stayed
+  as chosen, and every file was checked where it is served (98 of 98).
 
 --- Previous verification ---
 
