@@ -311,11 +311,11 @@
 
     <!-- Cautions before a change on another NAVEE model (ModelRegistry.caution). Each %1$s is a following whole sentence (controls_caution_asks, _shows or _untested). -->
     <!-- Second part of a caution: the official NAVEE app asks before this change too. -->
-    <string name="controls_caution_asks" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app asks before this change. Volt has not tested it on this model.</string>
-    <!-- Second part of a caution. -->
-    <string name="controls_caution_untested" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">Volt has not tested it on this model.</string>
+    <string name="controls_caution_asks" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">The official app asks before this change.</string>
+    <!-- Second part of a caution where Volt knows of no prompt in the official NAVEE app: Volt itself asks first. It makes no claim about the official app. -->
+    <string name="controls_caution_untested" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">Volt asks before this change.</string>
     <!-- Second part of a caution: the official NAVEE app warns about this change too. -->
-    <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app shows a caution for this change. Volt has not tested it on this model.</string>
+    <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">The official app shows a caution for this change.</string>
     <!-- Asked before turning traction control off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_traction_control" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off traction control? %1$s</string>
     <!-- Asked before turning Low Battery Mode off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->

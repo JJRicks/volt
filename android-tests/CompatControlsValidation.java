@@ -115,11 +115,11 @@ public final class CompatControlsValidation extends Instrumentation {
         screenshotRow("q-noregion-start", "start_speed");
         // Traction control off asks first; Cancel keeps it on.
         toggleRow("traction_control");
-        confirmSheet("Turn off traction control? The official app asks before this change. Volt has not tested it on this model.", "q-tcs-confirm", "Cancel");
+        confirmSheet("Turn off traction control? The official app asks before this change.", "q-tcs-confirm", "Cancel");
         main(() -> require(activity.service().ble.featureValue("traction_control") == 1, "Cancel changed traction control"));
         // Single motor asks first; Continue sends it to the simulator, and turning it back on asks nothing.
         toggleRow("dual_drive");
-        confirmSheet("Switch to single motor? The official app asks before this change. Volt has not tested it on this model.", "q-dual-confirm", "Continue");
+        confirmSheet("Switch to single motor? The official app asks before this change.", "q-dual-confirm", "Continue");
         await(() -> Integer.valueOf(0).equals(activity.service().ble.featureValue("dual_drive")), "Continue did not switch to single motor");
         toggleRow("dual_drive");
         await(() -> Integer.valueOf(1).equals(activity.service().ble.featureValue("dual_drive")), "Dual motor did not return without a prompt");
@@ -183,12 +183,12 @@ public final class CompatControlsValidation extends Instrumentation {
         choiceSheet("maximum_speed", null, "q-us-speed-choices");
         int before = activity.service().ble.featureValue("maximum_speed");
         chooseInSheet(70);
-        confirmSheet("Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.", "q-us-speed-confirm", "Cancel");
+        confirmSheet("Above 32 km/h: check the rules where you ride. The official app asks before this change.", "q-us-speed-confirm", "Cancel");
         main(() -> require(activity.service().ble.featureValue("maximum_speed") == before, "Cancel changed maximum speed"));
         closeSheet();
         choiceSheet("start_speed", null, "q-us-start-choices");
         chooseInSheet(1);
-        confirmSheet("Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.", "q-us-start-confirm", "Cancel");
+        confirmSheet("Kick-start speed below 3 km/h. The official app shows a caution for this change.", "q-us-start-confirm", "Cancel");
         closeSheet();
         // A DE serial: the official app's Top speed and kick-start rules (no Top speed, 3-5 km/h); other controls keep the union.
         model("25851", "DE"); scooterPage("q-de");
@@ -262,7 +262,7 @@ public final class CompatControlsValidation extends Instrumentation {
         main(() -> require(activity.service().ble.set("energy_recovery", 1), "Simulator refused energy recovery On: " + activity.service().ble.message())); settle();
         choiceSheet("energy_recovery", new String[]{"Off", "On"}, "m-energy-choices");
         chooseInSheet(0);
-        confirmSheet("Turn off energy recovery? The official app shows a caution for this change. Volt has not tested it on this model.", "m-energy-confirm", "Cancel");
+        confirmSheet("Turn off energy recovery? The official app shows a caution for this change.", "m-energy-confirm", "Cancel");
         closeSheet();
         choiceSheet("speed_limit", null, "m-cap-choices");
         closeSheet();
@@ -477,7 +477,7 @@ public final class CompatControlsValidation extends Instrumentation {
             }
             // A dual motor tile toggles here (Lab on the UT5 MAX) and asks before single motor.
             main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:dual_drive")); settle();
-            confirmSheet("Switch to single motor? The official app asks before this change. Volt has not tested it on this model.", label + "-tile-dual-confirm", "Cancel");
+            confirmSheet("Switch to single motor? The official app asks before this change.", label + "-tile-dual-confirm", "Cancel");
             // A prompt tone tile opens its choices, not the Lab.
             main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:prompt_tone")); settle();
             main(() -> require(field(activity, "choiceSheet") != null && field(activity, "quickMenuDialog") == null, label + ": prompt tone tile did not open its choices"));
@@ -602,7 +602,8 @@ public final class CompatControlsValidation extends Instrumentation {
         settle(); SystemClock.sleep(300);
         require(find(message) == null, "Confirm sheet stayed open");
     }
-    private void noDialog(String what) { settle(); SystemClock.sleep(300); require(find("Volt has not tested it on this model") == null, what + ": unexpected confirm sheet"); }
+    private void noDialog(String what) { settle(); SystemClock.sleep(300); require(find("The official app asks before this change") == null && find("The official app shows a caution for this change") == null
+            && find("check the rules where you ride") == null, what + ": unexpected confirm sheet"); }
     private AccessibilityNodeInfo find(String text) {
         AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow(); if (root == null) return null;
         for (AccessibilityNodeInfo n : root.findAccessibilityNodeInfosByText(text)) {

@@ -5963,14 +5963,14 @@ caution ModelRegistry.OEM_ENERGY_NO_OFF ut5 0	null
 caution ModelRegistry.OEM_ENERGY_NO_OFF lab 0	null
 caution ModelRegistry.SHARED_UNITS ut5 0	null
 caution ModelRegistry.SHARED_UNITS lab 0	null
-caution ModelRegistry.OEM_TCS note0 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_TCS note1 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_TCS note2 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
+caution ModelRegistry.OEM_TCS note0 0	Turn off traction control? The official app asks before this change.
+caution ModelRegistry.OEM_TCS note1 0	Turn off traction control? The official app asks before this change.
+caution ModelRegistry.OEM_TCS note2 0	Turn off traction control? The official app asks before this change.
 caution ModelRegistry.OEM_TCS ut5 0	null
 caution ModelRegistry.OEM_TCS lab 0	null
-caution ModelRegistry.OEM_LOW_POWER note0 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_LOW_POWER note1 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_LOW_POWER note2 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
+caution ModelRegistry.OEM_LOW_POWER note0 0	Turn off Low Battery Mode? The official app asks before this change.
+caution ModelRegistry.OEM_LOW_POWER note1 0	Turn off Low Battery Mode? The official app asks before this change.
+caution ModelRegistry.OEM_LOW_POWER note2 0	Turn off Low Battery Mode? The official app asks before this change.
 caution ModelRegistry.OEM_LOW_POWER ut5 0	null
 caution ModelRegistry.OEM_LOW_POWER lab 0	null
 caution ModelRegistry.OEM_LONG_RANGE ut5 0	null
@@ -5993,9 +5993,9 @@ caution ModelRegistry.OEM_OVERSPEED ut5 0	null
 caution ModelRegistry.OEM_OVERSPEED lab 0	null
 caution ModelRegistry.OEM_PROMPT_TONE ut5 0	null
 caution ModelRegistry.OEM_PROMPT_TONE lab 0	null
-caution ModelRegistry.OEM_DUAL_DRIVE note0 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_DUAL_DRIVE note1 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_DUAL_DRIVE note2 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
+caution ModelRegistry.OEM_DUAL_DRIVE note0 0	Switch to single motor? The official app asks before this change.
+caution ModelRegistry.OEM_DUAL_DRIVE note1 0	Switch to single motor? The official app asks before this change.
+caution ModelRegistry.OEM_DUAL_DRIVE note2 0	Switch to single motor? The official app asks before this change.
 caution ModelRegistry.OEM_DUAL_DRIVE ut5 0	null
 caution ModelRegistry.OEM_DUAL_DRIVE lab 0	null
 caution ModelRegistry.OEM_ACCELERATION ut5 0	null
@@ -6012,33 +6012,33 @@ caution ModelRegistry.SPEED_25_50_45 ut5 0	null
 caution ModelRegistry.SPEED_25_50_45 lab 0	null
 caution ModelRegistry.SPEED_25_60 ut5 0	null
 caution ModelRegistry.SPEED_25_60 lab 0	null
-caution ModelRegistry.SPEED_25_70 note0 33	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 40	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 50	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 70	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 80	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 81	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 100	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 101	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note0 255	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 33	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 40	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 50	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 70	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 80	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 81	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 100	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 101	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note1 255	Above 32 km/h: check the rules where you ride. The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 33	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 40	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 50	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 70	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 80	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 81	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 100	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 101	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
-caution ModelRegistry.SPEED_25_70 note2 255	Above 32 km/h: check the rules where you ride. Volt has not tested it on this model.
+caution ModelRegistry.SPEED_25_70 note0 33	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 40	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 50	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 70	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 80	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 81	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 100	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 101	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note0 255	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 33	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 40	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 50	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 70	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 80	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 81	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 100	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 101	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note1 255	Above 32 km/h: check the rules where you ride. The official app asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 33	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 40	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 50	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 70	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 80	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 81	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 100	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 101	Above 32 km/h: check the rules where you ride. Volt asks before this change.
+caution ModelRegistry.SPEED_25_70 note2 255	Above 32 km/h: check the rules where you ride. Volt asks before this change.
 caution ModelRegistry.SPEED_25_70 ut5 0	null
 caution ModelRegistry.SPEED_25_70 lab 0	null
 caution ModelRegistry.SPEED_25_40_STEP5 ut5 0	null
@@ -6057,37 +6057,37 @@ caution ModelRegistry.LIMIT_8_20 ut5 0	null
 caution ModelRegistry.LIMIT_8_20 lab 0	null
 caution ModelRegistry.LIMIT_8_32 ut5 0	null
 caution ModelRegistry.LIMIT_8_32 lab 0	null
-caution ModelRegistry.START_0_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_0_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_0_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_0_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution ModelRegistry.START_0_5 ut5 0	null
 caution ModelRegistry.START_0_5 lab 0	null
-caution ModelRegistry.START_3_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_3_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution ModelRegistry.START_3_5 ut5 0	null
 caution ModelRegistry.START_3_5 lab 0	null
-caution ModelRegistry.OEM_ENERGY_BINARY note0 0	Turn off energy recovery? The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_ENERGY_BINARY note1 0	Turn off energy recovery? The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.OEM_ENERGY_BINARY note2 0	Turn off energy recovery? The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.OEM_ENERGY_BINARY note0 0	Turn off energy recovery? The official app shows a caution for this change.
+caution ModelRegistry.OEM_ENERGY_BINARY note1 0	Turn off energy recovery? The official app shows a caution for this change.
+caution ModelRegistry.OEM_ENERGY_BINARY note2 0	Turn off energy recovery? The official app shows a caution for this change.
 caution ModelRegistry.OEM_ENERGY_BINARY ut5 0	null
 caution ModelRegistry.OEM_ENERGY_BINARY lab 0	null
 caution ModelRegistry.LINE_LIGHT ut5 0	null
@@ -6122,23 +6122,23 @@ caution ModelRegistry.S_DAYTIME ut5 0	null
 caution ModelRegistry.S_DAYTIME lab 0	null
 caution ModelRegistry.TRY[cruise_control] ut5 0	null
 caution ModelRegistry.TRY[cruise_control] lab 0	null
-caution ModelRegistry.TRY[traction_control] note0 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[traction_control] note1 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[traction_control] note2 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
+caution ModelRegistry.TRY[traction_control] note0 0	Turn off traction control? The official app asks before this change.
+caution ModelRegistry.TRY[traction_control] note1 0	Turn off traction control? The official app asks before this change.
+caution ModelRegistry.TRY[traction_control] note2 0	Turn off traction control? The official app asks before this change.
 caution ModelRegistry.TRY[traction_control] ut5 0	null
 caution ModelRegistry.TRY[traction_control] lab 0	null
-caution ModelRegistry.TRY[start_speed] note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.TRY[start_speed] note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.TRY[start_speed] note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.TRY[start_speed] note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution ModelRegistry.TRY[start_speed] ut5 0	null
 caution ModelRegistry.TRY[start_speed] lab 0	null
 caution ModelRegistry.TRY[hill_start_assist] ut5 0	null
@@ -6157,18 +6157,18 @@ caution ModelRegistry.TRY[prompt_tone] ut5 0	null
 caution ModelRegistry.TRY[prompt_tone] lab 0	null
 caution ModelRegistry.TRY[speed_limit] ut5 0	null
 caution ModelRegistry.TRY[speed_limit] lab 0	null
-caution ModelRegistry.START_3_5_TRY note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ModelRegistry.START_3_5_TRY note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ModelRegistry.START_3_5_TRY note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ModelRegistry.START_3_5_TRY note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution ModelRegistry.START_3_5_TRY ut5 0	null
 caution ModelRegistry.START_3_5_TRY lab 0	null
 caution Ut5.VARIANTS[lock] ut5 0	null
@@ -6183,9 +6183,9 @@ caution Ut5.VARIANTS[headlight] ut5 0	null
 caution Ut5.VARIANTS[headlight] lab 0	null
 caution Ut5.VARIANTS[auto_sensor] ut5 0	null
 caution Ut5.VARIANTS[auto_sensor] lab 0	null
-caution Ut5.VARIANTS[traction_control] note0 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[traction_control] note1 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[traction_control] note2 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
+caution Ut5.VARIANTS[traction_control] note0 0	Turn off traction control? The official app asks before this change.
+caution Ut5.VARIANTS[traction_control] note1 0	Turn off traction control? The official app asks before this change.
+caution Ut5.VARIANTS[traction_control] note2 0	Turn off traction control? The official app asks before this change.
 caution Ut5.VARIANTS[traction_control] ut5 0	null
 caution Ut5.VARIANTS[traction_control] lab 0	null
 caution Ut5.VARIANTS[turn_sound] ut5 0	null
@@ -6194,27 +6194,27 @@ caution Ut5.VARIANTS[display_units] ut5 0	null
 caution Ut5.VARIANTS[display_units] lab 0	null
 caution Ut5.VARIANTS[range_algorithm] ut5 0	null
 caution Ut5.VARIANTS[range_algorithm] lab 0	null
-caution Ut5.VARIANTS[start_speed] note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[start_speed] note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.VARIANTS[start_speed] note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.VARIANTS[start_speed] note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution Ut5.VARIANTS[start_speed] ut5 0	null
 caution Ut5.VARIANTS[start_speed] lab 0	null
 caution Ut5.VARIANTS[speed_limit] ut5 0	null
 caution Ut5.VARIANTS[speed_limit] lab 0	null
 caution Ut5.VARIANTS[maximum_speed] ut5 0	null
 caution Ut5.VARIANTS[maximum_speed] lab 0	null
-caution Ut5.VARIANTS[dual_drive] note0 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[dual_drive] note1 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[dual_drive] note2 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
+caution Ut5.VARIANTS[dual_drive] note0 0	Switch to single motor? The official app asks before this change.
+caution Ut5.VARIANTS[dual_drive] note1 0	Switch to single motor? The official app asks before this change.
+caution Ut5.VARIANTS[dual_drive] note2 0	Switch to single motor? The official app asks before this change.
 caution Ut5.VARIANTS[dual_drive] ut5 0	null
 caution Ut5.VARIANTS[dual_drive] lab 0	null
 caution Ut5.VARIANTS[drive_speed_limit] ut5 0	null
@@ -6227,9 +6227,9 @@ caution Ut5.VARIANTS[charge_start] ut5 0	null
 caution Ut5.VARIANTS[charge_start] lab 0	null
 caution Ut5.VARIANTS[lock_expiry] ut5 0	null
 caution Ut5.VARIANTS[lock_expiry] lab 0	null
-caution Ut5.VARIANTS[low_power] note0 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[low_power] note1 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution Ut5.VARIANTS[low_power] note2 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
+caution Ut5.VARIANTS[low_power] note0 0	Turn off Low Battery Mode? The official app asks before this change.
+caution Ut5.VARIANTS[low_power] note1 0	Turn off Low Battery Mode? The official app asks before this change.
+caution Ut5.VARIANTS[low_power] note2 0	Turn off Low Battery Mode? The official app asks before this change.
 caution Ut5.VARIANTS[low_power] ut5 0	null
 caution Ut5.VARIANTS[low_power] lab 0	null
 caution Ut5.VARIANTS[long_range_mode] ut5 0	null
@@ -6266,18 +6266,18 @@ caution Ut5.VARIANTS[pin] ut5 0	null
 caution Ut5.VARIANTS[pin] lab 0	null
 caution Ut5.VARIANTS[clock_sync] ut5 0	null
 caution Ut5.VARIANTS[clock_sync] lab 0	null
-caution Ut5.START_3_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution Ut5.START_3_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution Ut5.START_3_5 note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution Ut5.START_3_5 note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution Ut5.START_3_5 ut5 0	null
 caution Ut5.START_3_5 lab 0	null
 caution ut5(lock) ut5 0	null
@@ -6292,9 +6292,9 @@ caution ut5(headlight) ut5 0	null
 caution ut5(headlight) lab 0	null
 caution ut5(auto_sensor) ut5 0	null
 caution ut5(auto_sensor) lab 0	null
-caution ut5(traction_control) note0 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(traction_control) note1 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(traction_control) note2 0	Turn off traction control? The official app asks before this change. Volt has not tested it on this model.
+caution ut5(traction_control) note0 0	Turn off traction control? The official app asks before this change.
+caution ut5(traction_control) note1 0	Turn off traction control? The official app asks before this change.
+caution ut5(traction_control) note2 0	Turn off traction control? The official app asks before this change.
 caution ut5(traction_control) ut5 0	null
 caution ut5(traction_control) lab 0	null
 caution ut5(turn_sound) ut5 0	null
@@ -6303,27 +6303,27 @@ caution ut5(display_units) ut5 0	null
 caution ut5(display_units) lab 0	null
 caution ut5(range_algorithm) ut5 0	null
 caution ut5(range_algorithm) lab 0	null
-caution ut5(start_speed) note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
-caution ut5(start_speed) note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change. Volt has not tested it on this model.
+caution ut5(start_speed) note0 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note0 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note0 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note0 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note1 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note1 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note1 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note1 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note2 -1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note2 0	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note2 1	Kick-start speed below 3 km/h. The official app shows a caution for this change.
+caution ut5(start_speed) note2 2	Kick-start speed below 3 km/h. The official app shows a caution for this change.
 caution ut5(start_speed) ut5 0	null
 caution ut5(start_speed) lab 0	null
 caution ut5(speed_limit) ut5 0	null
 caution ut5(speed_limit) lab 0	null
 caution ut5(maximum_speed) ut5 0	null
 caution ut5(maximum_speed) lab 0	null
-caution ut5(dual_drive) note0 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(dual_drive) note1 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(dual_drive) note2 0	Switch to single motor? The official app asks before this change. Volt has not tested it on this model.
+caution ut5(dual_drive) note0 0	Switch to single motor? The official app asks before this change.
+caution ut5(dual_drive) note1 0	Switch to single motor? The official app asks before this change.
+caution ut5(dual_drive) note2 0	Switch to single motor? The official app asks before this change.
 caution ut5(dual_drive) ut5 0	null
 caution ut5(dual_drive) lab 0	null
 caution ut5(drive_speed_limit) ut5 0	null
@@ -6336,9 +6336,9 @@ caution ut5(charge_start) ut5 0	null
 caution ut5(charge_start) lab 0	null
 caution ut5(lock_expiry) ut5 0	null
 caution ut5(lock_expiry) lab 0	null
-caution ut5(low_power) note0 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(low_power) note1 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
-caution ut5(low_power) note2 0	Turn off Low Battery Mode? The official app asks before this change. Volt has not tested it on this model.
+caution ut5(low_power) note0 0	Turn off Low Battery Mode? The official app asks before this change.
+caution ut5(low_power) note1 0	Turn off Low Battery Mode? The official app asks before this change.
+caution ut5(low_power) note2 0	Turn off Low Battery Mode? The official app asks before this change.
 caution ut5(low_power) ut5 0	null
 caution ut5(low_power) lab 0	null
 caution ut5(long_range_mode) ut5 0	null
