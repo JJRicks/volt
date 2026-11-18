@@ -12,7 +12,11 @@ SWEEP = pathlib.Path(__file__).resolve().parents[1] / 'android-tests' / 'run-har
 # Prints canned device answers and logs every call. FAKE_PLAN maps a ParkedValidation mode to pass,
 # fail, notime or unrestored; FAKE_CHARGING is the snapshot's charging_state; FAKE_QEMU, FAKE_LOCKED and
 # FAKE_SIGNATURE simulate an emulator, a locked phone and a runner signed with another key; FAKE_ACTIVE reports a held
-# charging plan; FAKE_PULL=fail and FAKE_RM=fail make evidence collection fail.
+# charging plan; FAKE_PULL=fail and FAKE_RM=fail make evidence collection fail. Volt's notification (dumpsys notification,
+# as an API 36 emulator printed it) reads connected; FAKE_NOTICE=charge, charge-pt (Brazilian Portuguese) or test (a
+# scheduled-charging test) shows that from the start, and FAKE_NOTICE_AFTER=<mode> a charge recording once that mode has
+# run. Volt's APK is "pulled" from pm path and its strings come from the fake aapt2's dump resources. FAKE_PLAN's charging and started outcomes report a charge recording
+# running at a step's start or started during it.
 FAKE = r'''#!/usr/bin/env python3
 import json, os, pathlib, sys
 state = pathlib.Path(os.environ['FAKE_STATE'])
@@ -23,13 +27,32 @@ plan = json.loads(os.environ.get('FAKE_PLAN', '{}'))
 if argv[:1] == ['shell'] and len(argv) == 2 and argv[1].startswith('rm -rf '): sys.exit(1 if os.environ.get('FAKE_RM') == 'fail' else 0)
 elif argv[:3] == ['shell', 'getprop', 'ro.kernel.qemu']: print(os.environ.get('FAKE_QEMU', ''))
 elif argv[:3] == ['shell', 'pm', 'list']: print('package:com.jjricks.volt')
+elif argv[:3] == ['shell', 'pm', 'path']: print('package:/data/app/~~a1/com.jjricks.volt-b2/base.apk')
+elif argv[:1] == ['pull'] and argv[1].endswith('/base.apk'): pathlib.Path(argv[2]).write_bytes(b'apk')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'power': print('mWakefulness=Awake')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'window': print('isKeyguardShowing=' + os.environ.get('FAKE_LOCKED', 'false'))
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'package': print('versionName=1.10.0')
+elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'notification':
+    ran = state.joinpath('ran').read_text().split() if state.joinpath('ran').exists() else []
+    kind = 'charge' if os.environ.get('FAKE_NOTICE_AFTER', '-') in ran else os.environ.get('FAKE_NOTICE', 'connected')
+    action, title = dict(charge=('Stop charge recording', 'Charging to full'), connected=('Disconnect', 'Connected to UT5 MAX'),
+                         test=('Cancel test', 'Testing scheduled charging'),
+                         **{'charge-pt': ('Parar grava\u00e7\u00e3o de carregamento', 'Grava\u00e7\u00e3o de carregamento ativa')})[kind]
+    print('  Notification List:')
+    print('    NotificationRecord(0x0a1f6bab: pkg=com.jjricks.volt user=UserHandle{0} id=71 tag=null importance=2 key=0|com.jjricks.volt|71|null|10216: '
+          'Notification(channel=scooter flags=ONGOING_EVENT|ONLY_ALERT_ONCE|NO_CLEAR|FOREGROUND_SERVICE category=service actions=1 vis=PRIVATE))')
+    print('      uid=10216 userId=0')
+    print('            actions={')
+    print('                [0] "' + action + '" -> PendingIntent{9ba1da1: PendingIntentRecord{d38460f com.jjricks.volt startService}}')
+    print('            }')
+    print('                android.title=String (' + title + ')')
+    print('    NotificationRecord(0x0b2: pkg=com.example.other user=UserHandle{0} id=1 tag=null: Notification(channel=x))')
+    print('                [0] "Stop charge recording" -> PendingIntent{1}')
 elif argv[:1] == ['install']: print('Success')
 elif argv[:3] == ['shell', 'am', 'instrument']:
     mode = argv[argv.index('mode') + 1]
     state.joinpath('mode').write_text(mode)
+    with state.joinpath('ran').open('a') as ran: ran.write(mode + '\n')
     if os.environ.get('FAKE_SIGNATURE') == 'other':
         print('java.lang.SecurityException: Permission Denial: starting instrumentation ComponentInfo{com.jjricks.volt.tests} not signed')
         sys.exit(1)
@@ -37,7 +60,10 @@ elif argv[:3] == ['shell', 'am', 'instrument']:
     if mode == 'snapshot':
         print('INSTRUMENTATION_RESULT: charging_state=' + os.environ.get('FAKE_CHARGING', '1.0'))
         print('INSTRUMENTATION_RESULT: schedule_active=' + os.environ.get('FAKE_ACTIVE', 'false'))
+    if outcome == 'started': print('INSTRUMENTATION_RESULT: charge_recording_started=true')
     if outcome == 'fail': print('INSTRUMENTATION_RESULT: error=IllegalStateException: Change declined'); print('INSTRUMENTATION_CODE: 1')
+    elif outcome == 'autorecord': print('INSTRUMENTATION_RESULT: refused=charge_auto_record'); print('INSTRUMENTATION_RESULT: error=IllegalStateException: Record charges automatically is on. Each hardware sweep step restarts Volt'); print('INSTRUMENTATION_CODE: 1')
+    elif outcome == 'charging': print('INSTRUMENTATION_RESULT: error=IllegalStateException: A charge recording is running. Each hardware sweep step ends with Volt restarting, which would end it'); print('INSTRUMENTATION_CODE: 1')
     elif outcome == 'notime': print('INSTRUMENTATION_RESULT: error=IllegalStateException: No restorable stored charging timestamp'); print('INSTRUMENTATION_CODE: 1')
     else: print('INSTRUMENTATION_RESULT: result=Saved'); print('INSTRUMENTATION_CODE: 0')
 elif argv[:1] == ['pull']:
@@ -55,7 +81,20 @@ elif argv[:1] == ['pull']:
 # A runner or production APK's manifest as aapt2 dumps it; FAKE_APK picks which.
 AAPT2 = r'''#!/usr/bin/env python3
 import os
+import sys
 kind = os.environ.get('FAKE_APK', 'runner')
+if 'resources' in sys.argv:
+    for name, values in [('service_action_stop_charge', ['Stop charge recording', 'Parar grava\u00e7\u00e3o de carregamento']),
+                         ('service_notice_charge_active', ['Charge recording is active', 'Grava\u00e7\u00e3o de carregamento ativa']),
+                         ('service_notice_charge_reconnecting', ['Charge recording \u00b7 reconnecting']),
+                         ('service_action_cancel_test', ['Cancel test', 'Cancelar teste']),
+                         ('service_notice_testing', ['Testing scheduled charging']),
+                         ('service_action_disconnect', ['Disconnect', 'Desconectar'])]:
+        print(f'    resource 0x7f0b0eae string/{name}')
+        for config, value in zip(['', 'pt-rBR'], values): print(f'      ({config}) "{value}"')
+    print('    resource 0x7f0c0001 plurals/some_count')
+    print('      () <plurals>')
+    sys.exit(0)
 android = 'http://schemas.android.com/apk/res/android'
 if kind == 'volt': print('  E: manifest (line=2)\n    A: package="com.jjricks.volt" (Raw: "com.jjricks.volt")\n      E: application (line=4)')
 else:
@@ -214,6 +253,60 @@ class HardwareSweep(unittest.TestCase):
     def test_a_runner_signed_with_another_key_is_explained(self):
         result = self.run_sweep('--only', 'snapshot', FAKE_SIGNATURE='other')
         self.assertNotEqual(result.returncode, 0); self.assertIn('not signed with the installed Volt key', result.stdout)
+
+
+    def test_refuses_to_start_over_a_charge_recording(self):
+        result = self.run_sweep(FAKE_NOTICE='charge')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('A charge recording is running', result.stdout)
+        self.assertFalse(any(c[:1] == ['install'] for c in self.calls()), 'nothing installed')
+        self.assertEqual(self.modes(), [], 'no step restarted Volt')
+
+    def test_a_portuguese_charge_recording_or_a_schedule_test_is_refused(self):
+        result = self.run_sweep(FAKE_NOTICE='charge-pt')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('A charge recording is running', result.stdout)
+        self.assertEqual(self.modes(), []); self.assertFalse(any(c[:1] == ['install'] for c in self.calls()))
+        self.setUp()
+        result = self.run_sweep(FAKE_NOTICE='test')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('A scheduled-charging test is running', result.stdout)
+        self.assertEqual(self.modes(), []); self.assertFalse(any(c[:1] == ['install'] for c in self.calls()))
+        pulls = [c for c in self.calls() if c[:1] == ['pull'] and c[1].endswith('/base.apk')]
+        self.assertEqual(len(pulls), 1, "Volt's texts come from its own APK on the phone")
+
+    def test_record_charges_automatically_on_stops_the_plan_with_its_instruction(self):
+        result = self.run_sweep(FAKE_PLAN=json.dumps(dict(snapshot='autorecord')))
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(self.modes(), ['snapshot'], 'no further step restarts Volt')
+        steps = {s['step']: s for s in json.loads((self.out / 'summary.json').read_text())['steps']}
+        self.assertEqual(steps['snapshot']['status'], 'FAIL')
+        self.assertTrue(all(steps[s]['status'] == 'SKIP' and 'Turn off Record charges automatically' in steps[s]['detail']
+                            for s in ('navigation', 'background', 'clock', 'settings', 'charge-time', 'schedule-test')), steps)
+        self.assertIn('Stopped: Record charges automatically is on', result.stdout)
+        self.assertIn('turn the switch back on afterwards', result.stdout)
+
+    def test_another_apps_notice_or_volts_connected_notice_does_not_stop_the_sweep(self):
+        result = self.run_sweep()
+        self.assertEqual(result.returncode, 0, result.stdout); self.assertNotIn('charge recording', result.stdout)
+        notices = [c for c in self.calls() if c[:3] == ['shell', 'dumpsys', 'notification']]
+        self.assertEqual(len(notices), 1 + len(self.modes()), 'read before installing and before every step')
+
+    def test_a_charge_recording_seen_between_steps_stops_the_plan(self):
+        result = self.run_sweep(FAKE_NOTICE_AFTER='snapshot')
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(self.modes(), ['snapshot'])
+        summary = self.summary(); self.assertEqual(summary['snapshot'], 'PASS')
+        self.assertTrue(all(summary[s] == 'SKIP' for s in ('navigation', 'background', 'clock', 'settings', 'charge-time', 'schedule-test')), summary)
+        self.assertIn('Stopped: a charge recording is running in Volt', result.stdout)
+
+    def test_a_step_reporting_a_charge_recording_stops_the_plan(self):
+        result = self.run_sweep(FAKE_PLAN=json.dumps(dict(navigation='charging')))
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(self.modes(), ['snapshot', 'navigation'])
+        summary = self.summary(); self.assertEqual(summary['navigation'], 'FAIL')
+        self.assertTrue(all(summary[s] == 'SKIP' for s in ('background', 'clock', 'settings', 'charge-time', 'schedule-test')), summary)
+        self.assertIn('Stopped: a charge recording was running when navigation started', result.stdout)
+        self.setUp()
+        result = self.run_sweep(FAKE_PLAN=json.dumps(dict(snapshot='started')))
+        self.assertNotEqual(result.returncode, 0, 'a recording the sweep will end is never a clean run'); self.assertEqual(self.modes(), ['snapshot'])
+        steps = {s['step']: s for s in json.loads((self.out / 'summary.json').read_text())['steps']}
+        self.assertEqual(steps['snapshot']['status'], 'PASS'); self.assertIn('a charge recording started during snapshot', steps['snapshot']['detail'])
+        self.assertTrue(all(steps[s]['status'] == 'SKIP' for s in ('navigation', 'background', 'clock', 'settings', 'charge-time', 'schedule-test')))
 
 
 if __name__ == '__main__':
