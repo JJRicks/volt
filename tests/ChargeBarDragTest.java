@@ -219,9 +219,9 @@ public final class ChargeBarDragTest {
         require(ChargeBarDrag.labelShown(.4f, false, false) == .4f, "a lifting bar shows the label as far as it is lifted");
         require(ChargeBarDrag.labelShown(.4f, false, true) == 1, "focused while lifting: whole");
         require(ChargeBarDrag.spokenState(false, ", confirming", null).isEmpty(), "nothing to add at rest without a note");
-        require(ChargeBarDrag.spokenState(false, ", confirming", ", untested here").equals(", untested here"), "the note is spoken at rest");
+        require(ChargeBarDrag.spokenState(false, ", confirming", ", unconfirmed here").equals(", unconfirmed here"), "the note is spoken at rest");
         require(ChargeBarDrag.spokenState(true, ", confirming", null).equals(", confirming"), "pending without a note: confirming");
-        require(ChargeBarDrag.spokenState(true, ", confirming", ", untested here").equals(", confirming, untested here"),
+        require(ChargeBarDrag.spokenState(true, ", confirming", ", unconfirmed here").equals(", confirming, unconfirmed here"),
                 "pending keeps the note the label still shows");
     }
 

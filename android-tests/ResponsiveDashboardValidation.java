@@ -948,6 +948,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
 
     /** View-only checks: never fake a GATT, tap an action, or submit a lock command. */
     private void verifyLockMotionAndDisconnect() {
+        // The card, its showDisconnect, the activity's resumed flag and the slider, kept across the two blocks below.
+        Object[] kept = new Object[4];
         main(() -> {
             // updateConnectionAction reloads each card's stored views and preference, so the
             // fixture flips the first card's own flag rather than the activity's working copy.
@@ -957,6 +959,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             boolean showDisconnect = (Boolean)field(card, "showDisconnect");
             boolean resumed = (Boolean)field(activity, "resumed");
             View slider = (View)field(activity, "lockControl");
+            kept[0] = card; kept[1] = showDisconnect; kept[2] = resumed; kept[3] = slider;
+            boolean[] toggled = {false};
             try {
                 TextView action = (TextView)field(activity, "connectionAction");
                 require(action == field(card, "connectionAction"), "The activity's lock views are not the first card's");
@@ -970,6 +974,26 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                     invoke(activity, "updateConnectionAction", new Class<?>[] {boolean.class, boolean.class}, false, true);
                     require(action.getVisibility() == View.VISIBLE && action.getText().toString().equals("Cancel"), "Hiding Disconnect also hid Cancel");
                 }
+                toggled[0] = true;
+            } finally {
+                if (!toggled[0]) { setField(card, "showDisconnect", showDisconnect); invoke(slider, "stopMotion"); invoke(activity, "updateHeader"); }
+            }
+        });
+        Object card = kept[0]; boolean showDisconnect = (Boolean)kept[1], resumed = (Boolean)kept[2]; View slider = (View)kept[3];
+        Runnable restore = () -> {
+            setField(activity, "resumed", resumed);
+            setField(card, "showDisconnect", showDisconnect);
+            invoke(slider, "stopMotion"); invoke(activity, "updateHeader");
+        };
+        // The Disconnect toggles above move Connect/Disconnect in the lock card's own motion (updateConnectionAction reveals it
+        // on lockMotionRoot since Motion C2, #519), and the slider ignores a touch that starts while that motion still moves
+        // it (Motion.changing; Lock slider, 9b9d9a13). The drag below is the rider's at rest: it waits for the motion to end.
+        try {
+            // await reads its condition on the main thread.
+            await(() -> !motionChanging(slider), "The lock card's motion after the Disconnect toggles did not end", 4000);
+        } catch (RuntimeException | Error error) { main(restore); throw error; }
+        main(() -> {
+            try {
                 setVisibilityIfPresent("lockOffline", View.GONE);
                 setVisibilityIfPresent("lockReady", View.VISIBLE);
                 invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null);
@@ -992,6 +1016,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
 
                 invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, false, true, null);
                 invoke(slider, "stopMotion");
+                require(!motionChanging(slider), "The slider is still in a motion before the drag: it would ignore the touch");
                 long when = SystemClock.uptimeMillis();
                 com.jjricks.volt.LockSliderGeometry geometry =
                         (com.jjricks.volt.LockSliderGeometry)invoke(slider, "sliderGeometry");
@@ -1011,12 +1036,18 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                 invoke(slider, "update", new Class<?>[] {Boolean.class, boolean.class, String.class}, null, false, null);
                 require(field(slider, "motion") == null && !slider.isEnabled() && ((Number)field(slider, "position")).floatValue() == 0, "Unavailable state retained a moving/interactive control");
             } finally {
-                setField(activity, "resumed", resumed);
-                setField(card, "showDisconnect", showDisconnect);
-                invoke(slider, "stopMotion"); invoke(activity, "updateHeader");
+                restore.run();
             }
         });
         settle();
+    }
+    /** Motion.changing: the view is arriving or sits in a reveal's motion that has not ended (a touch starting then is ignored). */
+    private static boolean motionChanging(View view) {
+        try {
+            Method changing = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("changing", View.class);
+            changing.setAccessible(true);
+            return (Boolean)changing.invoke(null, view);
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Motion.changing", error); }
     }
     private void verifyMinimumLockAndCharging() throws Exception {
         int columns = ((Number)field(grid(), "columns")).intValue();
@@ -1870,9 +1901,21 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         for (Object item : tiles()) if (((DashboardConfig.Widget)field(item, "widget")).type.equals(type)) return item;
         return null;
     }
+    /**
+     * The connected fixture's lock rows (lockReady, lockOffline) go through Motion.reveal with no root (an instant change),
+     * the only way the app shows and hides them since Motion C2 (#519): reveal skips a call that matches what it last asked,
+     * so a visibility set directly stayed on screen through the next updateHeader, and the next pass's Disconnected Lock bar
+     * kept the fixture's slider ("Unavailable") instead of Lock state unknown and Connect.
+     */
     private void setVisibilityIfPresent(String name, int visibility) {
         Object view = optionalField(activity, name);
-        if (view instanceof View) ((View)view).setVisibility(visibility);
+        if (!(view instanceof View)) return;
+        try {
+            Method reveal = Class.forName("com.jjricks.volt.Motion").getDeclaredMethod("reveal", ViewGroup.class, View.class, boolean.class, View[].class);
+            reveal.setAccessible(true);
+            reveal.invoke(null, null, view, visibility == View.VISIBLE, new View[0]);
+        } catch (Exception error) { throw new IllegalStateException("Motion.reveal for " + name, error); }
+        require(((View)view).getVisibility() == visibility, name + " did not take the fixture's visibility");
     }
     private static Object optionalField(Object target, String name) {
         try { Field f = target.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(target); }

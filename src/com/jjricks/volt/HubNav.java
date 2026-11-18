@@ -40,12 +40,26 @@ final class HubNav {
         static Args anchor(String tag) { return new Args(null, false, null, tag); }
         static Args reading(String key) { return new Args(null, false, null, null, key, false); }
         static Args rideAndBack(String id) { return new Args(null, false, id, null, null, true); }
+        /**
+         * These arguments as strings for the activity's saved state, so a recreation while the loading page waits for the
+         * service keeps a search result's target owed (#393 council review, fourth round, finding 3); null for none.
+         */
+        static String[] save(Args args) {
+            if (args == null) return null;
+            return new String[]{args.inspect, args.ride, args.anchor, args.reading, Boolean.toString(args.recovery), Boolean.toString(args.backAfterRide)};
+        }
+        /** The arguments save wrote, or null for none or for anything else. */
+        static Args restore(String[] saved) {
+            if (saved == null || saved.length != 6) return null;
+            return new Args(saved[0], Boolean.parseBoolean(saved[4]), saved[1], saved[2], saved[3], Boolean.parseBoolean(saved[5]));
+        }
     }
 
     /**
-     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built the loading page,
-     * which can't use them (no scooter service yet: opening, or no Nearby devices permission), so the rebuild that builds
-     * the real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
+     * The one-shot arguments a rebuild still owes the page after building it: all of them when it built a page that
+     * can't use them yet, the loading page (no scooter service yet: opening, or no Nearby devices permission) or a page
+     * built while the service binds, which the bind builds again (MainActivity.rebuild), so the rebuild that builds the
+     * real page reveals the result's row, opens its sheet or ride (#393 council review, third round, finding 4); else
      * none (the page consumed them). Opening, leaving or resetting a page drops them as before.
      */
     static Args owed(Args args, boolean loading) { return loading ? args : null; }

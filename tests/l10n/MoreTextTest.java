@@ -89,7 +89,7 @@ public final class MoreTextTest {
         for (String text : new String[]{"", "Now On"}) {
             String reason = "Connect first";
             equal(MoreScreenTextTest.Base.labReason(text, reason), text.isEmpty() ? T.morePlain(reason) : T.moreLabValueReason(text, reason), "reason " + text);
-            String label = "Tail light", status = "Untested on your model";
+            String label = "Tail light", status = "Not tried yet";
             equal(MoreScreenTextTest.Base.labLine(label, status, text),
                     text.isEmpty() ? T.moreLabRow(label, status) : T.moreLabRowValue(label, status, text), "lab line " + text);
         }

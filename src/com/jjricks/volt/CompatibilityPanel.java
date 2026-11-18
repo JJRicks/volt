@@ -117,7 +117,8 @@ final class CompatibilityPanel {
     static String layer(ModelRegistry.Layer layer){
         switch(layer){
             case UT5_MAX: return T.compatLayerUt5Max();
-            case OEM_GROUP: return T.compatLayerOem();
+            // The same "OEM-mapped" as a control's evidence: no "(untested)" (owner, Nov 17 2026).
+            case OEM_GROUP: return evidence(CapabilityResolver.Evidence.OEM_MAPPED);
             case SHARED: return T.compatLayerShared();
             default: return T.compatLayerNone();
         }

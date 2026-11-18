@@ -6,6 +6,13 @@ public interface ScreenHost {
     Activity activity(); Ui ui(); ScooterService service();
     /** The activity is resumed right now. False by default, so a host that doesn't say keeps riding mode's display paused. */
     default boolean resumed() { return false; }
+    /**
+     * Volt's window is back from what covered it (Android's permission dialog): resumed, focused again, and its frames on
+     * time (MainActivity.watchWindowBack). Settings' granted Nearby devices card leaves only then. Resumed by default.
+     */
+    default boolean windowBack() { return resumed(); }
+    /** Settings saw Nearby devices permission granted: the service starts if it isn't bound or starting. Nothing by default. */
+    default void nearbyGranted() {}
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */
     void open(String page);
@@ -19,6 +26,19 @@ public interface ScreenHost {
     /** A catalog message as a toast, rendered now in the current language. */
     default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();
+    /**
+     * Whether Nearby devices permission (Bluetooth) is granted: without it the service never binds and service() stays
+     * null. True by default, for a host that doesn't say.
+     */
+    default boolean nearbyAllowed() { return true; }
+    /**
+     * Volt's settings ("app_settings"): the service's own copy while it is bound, and the same preferences read here while
+     * it is not (Settings' app rows work without Nearby devices permission, the contributor's decision, 15 Nov, #383).
+     */
+    default android.content.SharedPreferences appSettings() {
+        ScooterService service = service();
+        return service != null ? service.settings : activity().getSharedPreferences("app_settings", android.content.Context.MODE_PRIVATE);
+    }
     void requestRideLocation(Runnable ready);
     /** The same request, made for auto-record: it also keeps the note of a decline. */
     void requestAutoRecordLocation(Runnable ready);
