@@ -116,6 +116,8 @@ public final class ChargeInviteValidation extends Instrumentation {
             View card = HubTestPages.shownTag(activity, CARD);
             require(top(banner) < top(card), "The banner is not above the HISTORY card");
         });
+        // The page keeps its scroll from the visits before: back to its top, where the banner is, for the screenshot.
+        main(() -> scroll(HubTestPages.shownTag(activity, BANNER)).scrollTo(0, 0));
         shot("battery-banner-" + label);
         checks.add("Battery & charging: the invite banner at the top of the page, its words whole, its X named and 48 dp");
     }

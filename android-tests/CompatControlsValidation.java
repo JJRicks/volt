@@ -50,6 +50,8 @@ public final class CompatControlsValidation extends Instrumentation {
     private boolean admitted;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
+    /** Every page this run opened (its scroll, built afresh for each page), held weakly: see pagesLetGo. */
+    private final ArrayList<java.lang.ref.WeakReference<View>> opened = new ArrayList<>();
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
@@ -70,6 +72,7 @@ public final class CompatControlsValidation extends Instrumentation {
             regionalLongRange();
             main(() -> { activity.service().ble.setSimulationRegion(null); activity.service().ble.setSimulationModel(""); }); settle();
             ut5Unchanged();
+            pagesLetGo();
             main(() -> require(activity.service().setSimulation(false), "Simulation did not stop")); settle();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -337,6 +340,30 @@ public final class CompatControlsValidation extends Instrumentation {
         checks.add("UT5 MAX simulator: no Untested/region captions, top speed card kept, no OEM-only rows, traction control toggles without a sheet");
     }
 
+    /**
+     * Pages a rider has left are let go: after a garbage collection no page this run opened and moved on from (its
+     * scroll, which holds the page) is still in memory. A page motion that never played used to keep its page (Motion's
+     * glides, values of a weak map that held the page's scroll), and the pages opened here piled up until the app ran
+     * out of memory part way through.
+     */
+    private void pagesLetGo() {
+        View[] current = {null}; main(() -> current[0] = (View)field(activity, "scroll"));
+        int held = 0, left = 0;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            Runtime.getRuntime().gc(); System.runFinalization(); SystemClock.sleep(200);
+            held = 0; left = 0;
+            for (java.lang.ref.WeakReference<View> page : opened) {
+                View view = page.get(); if (view == current[0]) continue;
+                left++; if (view != null) held++;
+            }
+            if (held == 0) break;
+        }
+        current[0] = null;
+        require(left > 20, "Only " + left + " pages were left during the run");  // about 150 page opens
+        require(held == 0, held + " of the " + left + " pages left during the run are still in memory after a garbage collection");
+        checks.add("pages let go: all " + left + " pages left during the run are collected (none held by a motion that never played)");
+    }
+
     // ---- steps ----
     private void model(String pid, String region) {
         main(() -> { activity.service().ble.setSimulationRegion(region); activity.service().ble.setSimulationModel(pid); }); settle();
@@ -388,6 +415,7 @@ public final class CompatControlsValidation extends Instrumentation {
         main(() -> { activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().putString("scooter_section", "").commit(); invoke(activity, "select", new Class<?>[]{String.class}, "home"); }); settle();
         HubTestPages.reach(this, activity, page); settle();
         main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
+        main(() -> opened.add(new java.lang.ref.WeakReference<>((View)field(activity, "scroll"))));
     }
     /** The Scooter page that holds a control's row (ControlsPages.pageOf), unless it is already shown. */
     private void showPageOf(String key) {

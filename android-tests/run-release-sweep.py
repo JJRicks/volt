@@ -207,6 +207,11 @@ STEPS += [
     inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
     inst('model-photos-412-dark', T + 'ModelPhotosValidation', '-e', 'theme', 'dark', '-e', 'size_label', '412', size='412x915'),
     inst('model-photos-fold', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', 'fold', size='790x820'),
+    # Security's Unlock without phone guide and its handlebar drawing (owner, Nov 17 2026): light, dark and large text
+    # at 412 dp, at 344 dp and on the unfolded Fold.
+    inst('unlock-guide-412', T + 'UnlockGuideValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('unlock-guide-344', T + 'UnlockGuideValidation', '-e', 'size_label', '344', size='344x882'),
+    inst('unlock-guide-fold', T + 'UnlockGuideValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Battery & charging's Charge history & recordings row and its invite to record charges (owner, Nov 17 2026): the row and
     # the bar graph open the page; the banner's sheet, its actions, and the X's lasting answer. 412 dp both themes, the Fold open.
     inst('charge-invite-412', T + 'ChargeInviteValidation', '-e', 'size_label', '412', '-e', 'theme', 'light', size='412x915'),
@@ -312,7 +317,9 @@ STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden
 # walks the phone again at large text, where the dock holds fewer items. hub-725-large walks the wide window at large text,
 # where Volt takes the phone layout (725 / 1.4 < 650 dp), its dock holds all seven, and Widgets' Lock bar opens under the
 # pinned dock (-e lock_bar_arrival under). hub-no-nearby grants every permission but Nearby devices (the service never binds): every scooter
-# page and sub-page shows the not-connected line, which opens the connection details with Allow Nearby devices. In every step the dock stays pinned to the bottom (it never lifts or steps
+# page and sub-page shows the not-connected line, which opens the connection details with Allow Nearby devices, and Settings shows the
+# Allow Nearby devices card above its rows, its app rows working (Language changed and back); last, the permission is granted from
+# that card and Settings changes in place (the card fades, the rows glide up, nothing jumps as the service binds). In every step the dock stays pinned to the bottom (it never lifts or steps
 # aside for the Lock bar; the contributor's decision of 14 Nov), and Home scrolls the Lock bar and its last card clear of it.
 STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-344-large', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', size='344x882'),
@@ -320,6 +327,14 @@ STEPS += [inst('hub-344', T + 'HubValidation', '-e', 'wide', 'false', '-e', 'the
           inst('hub-725-large', T + 'HubValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', '-e', 'text_scale', '1.4', '-e', 'lock_bar_arrival', 'under', size='725x604'),
           inst('hub-widgets-pages-344', T + 'HubValidation', '-e', 'mode', 'widgets-pages', '-e', 'theme', 'dark', size='344x882'),
           inst('hub-no-nearby-344', T + 'HubValidation', '-e', 'mode', 'no-nearby', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])]
+# The same start, one grant each (#523 council review, findings 2 and 3): hub-no-nearby-target-344 grants Nearby devices
+# from the loading page a search result opened (Record rides automatically's, Ride › Recording settings), and that result's
+# target is revealed once the service binds, with no return to Search; hub-no-nearby-still-344 grants it from Settings'
+# card scrolled partly out of view at animator scale 0 (Remove animations), and Settings lands where the card's top was.
+# hub-no-nearby-external-344 grants it from outside with Volt resumed throughout, as Android's settings beside Volt in split
+# screen do (#536 council review, finding 3): the service starts and binds from Settings' own refresh.
+STEPS += [inst(f'hub-no-nearby-{m}-344', T + 'HubValidation', '-e', 'mode', f'no-nearby-{m}', '-e', 'theme', 'dark', size='344x882', grant=ALL[2:])
+          for m in ('target', 'still', 'external')]
 # Search lands on what it names (#393 council review, second round): every page, setting, hand-built row and control search
 # lists on the simulator, and every row title a page's search words name, opened from its result (HubValidation -e mode
 # search-targets), at the walk's four sizes.
@@ -341,6 +356,13 @@ STEPS += [inst(name, cls) for name, cls in (
     ('map-tiles', PKG + '.MapTilesValidation'), ('history', T + 'HistoryValidation'),
     ('route-gesture', T + 'RouteGestureValidation'), ('search-focus', T + 'SearchFocusValidation'),
     ('ui-organization', T + 'UiOrganizationValidation'), ('update-check', T + 'UpdateCheckValidation'))]
+# The automatic check's "Update available" notice tapped while Volt's activity is not running, without Nearby devices
+# permission (no service bind is coming): Settings opens and its update check runs at once (update-check taps the
+# notice with the permission, where the check outlasts the bind; #523 review, finding 1).
+STEPS += [inst('update-check-no-nearby', T + 'UpdateCheckValidation', '-e', 'mode', 'notice-no-nearby', grant=ALL[2:])]
+# The notice's cold start on Clean Home's two panes (725x604), the simulated scooter connected through a service that
+# outlived the closed activity, a rebuild run from inside the bind callback (#523 council review, second round).
+STEPS += [inst('update-check-725', T + 'UpdateCheckValidation', '-e', 'mode', 'notice-wide', '-e', 'theme', 'light', size='725x604')]
 # Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
 for locale in ('en-XA', 'ar-XB'):
     for case in SIZES:

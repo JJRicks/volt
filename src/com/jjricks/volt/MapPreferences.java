@@ -41,7 +41,7 @@ public final class MapPreferences {
 
         BasemapControl(ScreenHost host, Consumer<Boolean> changed) {
             super(host.activity());
-            this.host = host; this.settings = host.service().settings; this.changed = changed;
+            this.host = host; this.settings = host.appSettings(); this.changed = changed;
             Ui ui = host.ui();
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
@@ -102,7 +102,7 @@ public final class MapPreferences {
      * Volt's default never moves an approved basemap to a provider that was not named (MapDefault).
      */
     private static AlertDialog consent(ScreenHost host, Runnable approved, Consumer<AlertDialog> closed) {
-        Ui ui = host.ui(); SharedPreferences settings = host.service().settings;
+        Ui ui = host.ui(); SharedPreferences settings = host.appSettings();
         MapSource named = MapSource.load(settings);
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
@@ -152,7 +152,7 @@ public final class MapPreferences {
 
         ProviderControl(ScreenHost host) {
             super(host.activity());
-            this.host = host; this.settings = host.service().settings;
+            this.host = host; this.settings = host.appSettings();
             Ui ui = host.ui();
             // The option labels by choice index, rendered for this control in the current language (R5: a
             // static array cannot hold catalog text). It shadows the unused English field of the same name: G1
@@ -255,7 +255,7 @@ public final class MapPreferences {
      * the provider is no longer USGS by the old default; writing the old-default pin down (keepPin) does not.
      */
     static void offerOsmSwitch(ScreenHost host, View map, List<PhoneRideStore.Point> points) {
-        SharedPreferences settings = host.service().settings;
+        SharedPreferences settings = host.appSettings();
         double[] latitudes = new double[points.size()], longitudes = new double[points.size()];
         for (int i = 0; i < points.size(); i++) { latitudes[i] = points.get(i).latitude; longitudes[i] = points.get(i).longitude; }
         // A view's post waits until it is in a window, and never runs if it never gets there.
@@ -351,7 +351,7 @@ public final class MapPreferences {
         return dialog;
     }
     private static void custom(ScreenHost host, Runnable saved) {
-        Ui ui = host.ui(); SharedPreferences settings = host.service().settings; MapSource source = MapSource.load(settings);
+        Ui ui = host.ui(); SharedPreferences settings = host.appSettings(); MapSource source = MapSource.load(settings);
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(1); body.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(16));
         body.addView(ui.text(T.mapsCustomTitle(), 20, true));
         EditText url = field(host, body, T.mapsCustomTileUrl(), source.url); url.setHint(T.mapsCustomTileUrlHint());

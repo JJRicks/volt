@@ -355,7 +355,8 @@ public final class OnboardingScreen implements AppScreen {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    private static boolean hasConfiguredProfile(Context context, ScooterService service) {
+    /** A configured scooter is saved: the service's list while it is bound, else a read-only look at the stored one. */
+    static boolean hasConfiguredProfile(Context context, ScooterService service) {
         if (service != null) {
             for (ScooterProfiles.Profile p : service.profiles.all()) if (p.configured()) return true;
             return false;
