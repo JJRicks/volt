@@ -22,6 +22,7 @@ public final class ChargeWireTest {
         scaleChange();
         landing();
         glow();
+        glowStamps();
         comets();
         System.out.println("ChargeWire: " + checks + " checks passed");
     }
@@ -442,6 +443,63 @@ public final class ChargeWireTest {
     }
 
     /**
+     * The glow's soft stamps (the owner, 17 Nov 2026: banding on the balls of energy): along a straight stretch of cable
+     * their blend is one smooth band (no step between neighbouring pixels across it or along it bigger than a few 8-bit
+     * levels), as bright along its centre as the blurred stroke it replaces, falling off from the centre, inside the
+     * widest glow's reach, and with no visible ripple between stamps.
+     */
+    private static void glowStamps() {
+        ChargeWireComet c = new ChargeWireComet(7.6f, 0xFF5FCB7E, 0xFF79DB95, 0xFFD6FBE0, 0xFF9BE8B2, 0xFFF4FFF6, 1f);
+        int glows = 0;
+        for (ChargeWireComet.Layer layer : c.layers) {
+            if (!layer.glow) continue;
+            glows++;
+            require(layer.radius > 0 && layer.radius <= ChargeWireComet.REACH + 1e-9, "a stamp inside the glow's reach: " + layer.radius);
+            near(layer.stamp(0), 1, 1e-12, "a stamp is solid at its centre");
+            require(layer.stamp(layer.radius) == 0 && layer.stamp(layer.radius * .999) < .02, "a stamp fades to nothing at its edge");
+            for (double r = 0; r < layer.radius; r += .25) require(layer.stamp(r + .25) <= layer.stamp(r), "a stamp falls off outwards");
+            for (double target : new double[] {.46 * layer.centre, .2, .05}) {
+                double a = layer.stampAlpha(target);
+                // A straight cable along x with stamps every spacing: the band's opacity at (x, d), stamps composited over.
+                double centre = band(layer, a, 0, 0), between = band(layer, a, layer.spacing / 2, 0);
+                near(centre, target, .01, "the band's centre as bright as the blurred stroke's (" + target + ")");
+                require(Math.abs(centre - between) * 255 < .5, "no ripple between stamps along the band: " + centre + " vs " + between);
+                double last = centre;
+                for (double d = .5; d < layer.radius + 2; d += .5) {
+                    double now = band(layer, a, 0, d);
+                    require(now <= last + 1e-9, "the band falls off from its centre");
+                    // A cut-out pixel is at most about one screen pixel (the picture is drawn at or below its size).
+                    require((last - now) * 255 <= 4, "no step across the band bigger than four 8-bit levels at " + d + ": " + (last - now) * 255);
+                    last = now;
+                }
+                require(last * 255 < .5, "nothing past the band's reach");
+            }
+        }
+        require(glows == 2, "two glow layers");
+        // The baked stamp (ChargeWireView draws it as a plain bitmap): solid green at its centre, nothing at its corners, its
+        // opacity following the falloff within a dither step, and dithered (neighbours differ by at most one level).
+        for (ChargeWireComet.Layer layer : c.layers) {
+            if (!layer.glow) continue;
+            int side = 96;
+            int[] px = ChargeWireComet.stampPixels(layer, 0xFF5FCB7E, side);
+            require((px[0] >>> 24) == 0 && (px[side * side - 1] >>> 24) == 0, "the stamp's corners are clear");
+            require((px[(side / 2) * side + side / 2] & 0xFFFFFF) == 0x5FCB7E, "the stamp keeps the layer's colour");
+            for (int y = 0; y < side; y++) for (int x = 0; x < side; x++) {
+                double r = Math.hypot(x + .5 - side / 2.0, y + .5 - side / 2.0) / (side / 2.0) * layer.radius;
+                require(Math.abs((px[y * side + x] >>> 24) - layer.stamp(r) * 255) <= 1, "the stamp follows its falloff at " + x + "," + y);
+            }
+        }
+    }
+
+    /** The opacity of a straight band of stamps (every spacing along x, each at opacity a) at (x, d), composited over. */
+    private static double band(ChargeWireComet.Layer layer, double a, double x, double d) {
+        double clear = 1;
+        int reach = (int) Math.ceil(layer.radius / layer.spacing) + 2;
+        for (int k = -reach; k <= reach; k++) clear *= 1 - a * layer.stamp(Math.hypot(x - k * layer.spacing, d));
+        return 1 - clear;
+    }
+
+    /**
      * The comets' strokes per frame (review of #483, C3): averaged and at most over many frames at 60 fps, under a
      * budget for each mode; nothing past the cable's fade; every stroke inside the drawn layer's stretch.
      */
@@ -458,6 +516,11 @@ public final class ChargeWireTest {
                     if (s0 < -1e-9 || s1 > w.length + 1e-9 || s1 <= s0) throw new AssertionError("a stroke outside the cable: " + s0 + ".." + s1);
                 }
                 @Override public void cap(double s, int argb, float r) {}
+                @Override public void glow(double s, int layer, float alpha) {
+                    if (s < -1e-9 || s > w.length + 1e-9) throw new AssertionError("a glow stamp off the cable: " + s);
+                    if (!(alpha > 0 && alpha <= 1)) throw new AssertionError("a glow stamp's opacity: " + alpha);
+                    if (!c.layers[layer].glow) throw new AssertionError("a stamp for a layer that is not a glow: " + layer);
+                }
             };
             for (double t = 10; t < 10 + m.period * (m == ChargeWirePulses.STOCK ? 4 : 12); t += 1 / 60.0, frames++) {
                 ChargeWirePulses.state(t, m, st);
@@ -472,6 +535,7 @@ public final class ChargeWireTest {
             ChargeWireComet.Sink faded = new ChargeWireComet.Sink() {
                 @Override public void piece(double s0, double s1, int argb, float width) { if (w.xAt((s0 + s1) / 2) >= 1600) beyond[0]++; }
                 @Override public void cap(double s, int argb, float r) { if (w.xAt(s) >= 1600) beyond[0]++; }
+                @Override public void glow(double s, int layer, float alpha) { if (w.xAt(s) >= 1600) beyond[0]++; }
             };
             for (double t = 10; t < 10 + m.period * 4; t += 1 / 60.0) { ChargeWirePulses.state(t, m, st); c.draw(w, st, m, 1500, 1600, faded); }
         }

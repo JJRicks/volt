@@ -2567,6 +2567,13 @@ public final class DashboardScreen implements AppScreen {
         /** Widgets: the change's progress (0 closed, 1 open) while it runs (reveal); the bay's light fading after it. */
         float revealProgress;
         android.animation.ValueAnimator fillFade;
+        /** Widgets: the bay's light across a turn of the change (ChargeTransition.Fill). */
+        final ChargeTransition.Fill revealFill = new ChargeTransition.Fill();
+        /**
+         * Widgets: the takeover is closing (its fade-out runs): the charge pulse and the lit cells run on under it, as on
+         * Clean, rather than stopping at its first frame (council review of #534, F05).
+         */
+        boolean leaving;
         /**
          * The percentage's and the line's offsets: where measuring puts them at rest (percentRestX, lineRestY), and the
          * change's flight on top (fly*, rise), so a layout pass mid-change (a telemetry refresh) never resets the flight.
@@ -2612,9 +2619,13 @@ public final class DashboardScreen implements AppScreen {
             if (chipShort != null && chipShort.getTranslationY() != y) chipShort.setTranslationY(y);
         }
 
-        /** Widgets: a touch on the takeover while it closes does nothing (it is leaving); it is used up until it lifts. */
+        /**
+         * Widgets: a touch on the takeover while it opens or closes does nothing: closing, it is leaving; opening, its parts
+         * are not all visible yet, and the invisible charging-time tile once took a tap and saved a selection (council
+         * review of #534, F04). It is used up until it lifts; a drag still scrolls the page (the scroller intercepts it).
+         */
         @Override public boolean dispatchTouchEvent(android.view.MotionEvent event) {
-            if (!clean && reveal != null && !shown) return true;
+            if (!clean && reveal != null) return true;
             return super.dispatchTouchEvent(event);
         }
 
@@ -2797,6 +2808,7 @@ public final class DashboardScreen implements AppScreen {
             if (clean) { timeTile.settle(); updatePulse(); return; }
             ChargeTransition.restWidgets(this);
             holdPulse = false;
+            leaving = false;
             if (getLayoutParams() != null) { getLayoutParams().height = -2; requestLayout(); }
             setAlpha(1); setTranslationY(0);
             setVisibility(shown ? View.VISIBLE : View.GONE);
@@ -2810,7 +2822,7 @@ public final class DashboardScreen implements AppScreen {
          */
         void updatePulse() {
             updateClip();
-            boolean run = shown && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
+            boolean run = (shown || leaving) && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
@@ -2857,6 +2869,8 @@ public final class DashboardScreen implements AppScreen {
             if (show == shown) return;
             float from = reveal != null ? revealProgress : getVisibility() == View.VISIBLE ? 1 : 0;
             shown = show;
+            // The bay's light as it is now, read before its hand-over to the pulse (fadeFill) is cancelled (F02).
+            float lit = ChargeTransition.litNow(this);
             if (fillFade != null) { fillFade.cancel(); fillFade = null; }
             revealGeneration++;
             if (reveal != null) { android.animation.ValueAnimator old = reveal; reveal = null; old.cancel(); }
@@ -2869,8 +2883,10 @@ public final class DashboardScreen implements AppScreen {
             int full = Math.max(1, getMeasuredHeight());
             float to = show ? 1 : 0;
             final int generation = revealGeneration;
-            // The pulse waits for the arrival; closing from open it runs on under the fade.
+            // The pulse waits for the arrival; closing from open it runs on under the fade (leaving, F05).
             holdPulse = show || from < 1;
+            leaving = !show;
+            revealFill.turn(from, show, lit, level);
             updatePulse();
             reveal = android.animation.ValueAnimator.ofFloat(from, to);
             reveal.setDuration(Math.max(1, Math.round((show ? ChargeTransition.WIDGETS_IN_MS : ChargeTransition.WIDGETS_OUT_MS) * Math.abs(to - from))));
@@ -2880,7 +2896,7 @@ public final class DashboardScreen implements AppScreen {
                 if (!Ui.motionEnabled() || closed) { stopReveal(); return; }
                 revealProgress = (Float) a.getAnimatedValue();
                 getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(revealProgress)); requestLayout();
-                ChargeTransition.styleWidgets(this, revealProgress, show);
+                ChargeTransition.styleWidgets(this, revealProgress, show, revealFill);
             });
             reveal.addListener(new android.animation.AnimatorListenerAdapter() {
                 @Override public void onAnimationEnd(android.animation.Animator animation) {
@@ -2892,7 +2908,7 @@ public final class DashboardScreen implements AppScreen {
             });
             revealProgress = from;
             getLayoutParams().height = Math.round(full * ChargeTransition.widgetsHeight(from)); requestLayout();
-            ChargeTransition.styleWidgets(this, from, show);
+            ChargeTransition.styleWidgets(this, from, show, revealFill);
             reveal.start();
             updateClip();
         }

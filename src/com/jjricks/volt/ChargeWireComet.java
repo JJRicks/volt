@@ -11,9 +11,12 @@ package com.jjricks.volt;
  * its front end round. Each layer is a few solid strokes, one per stretch in that stretch's colour, never one stroke
  * with a gradient shader (a long thin stroke with a shader crashed the Android emulator's GPU translation); the
  * stretches meet end to end, and the front's round cap is a half disc ahead of the head. The glow layers are the
- * prototype's blurred strokes, drawn as nested solid strokes that step through the blur's profile
- * (ChargeWirePulses.glowRings). Where the cable fades out short of the screen's edge (a wide window), every stretch
- * fades with it.
+ * prototype's blurred strokes, drawn as soft round stamps along the cable (each a pre-baked, dithered soft disc whose
+ * opacity falls off as a Gaussian, {@link Sink#glow}, {@link #stampPixels}), close enough that they blend into one smooth band whose brightness follows the
+ * layer's fade along its length. They were nested solid strokes stepping through the blur's profile
+ * (ChargeWirePulses.glowRings), whose steps showed as bands round the comet's head and along its tail (the owner,
+ * 17 Nov 2026: "there seems to be color banding on the balls of energy"). Where the cable fades out short of the
+ * screen's edge (a wide window), every stretch and stamp fades with it.
  */
 final class ChargeWireComet {
     /** What the view draws. */
@@ -22,11 +25,56 @@ final class ChargeWireComet {
         void piece(double s0, double s1, int argb, float width);
         /** The comet's round front at arc length s: a half disc of this radius, ahead of it. */
         void cap(double s, int argb, float radius);
+        /**
+         * A glow layer's soft stamp centred on the cable at arc length s: the layer's soft disc (its colour, opacity falling
+         * off as {@link Layer#stamp}, to nothing at {@link Layer#radius}; {@link #stampPixels}) at this overall opacity (0..1).
+         */
+        void glow(double s, int layer, float alpha);
     }
 
     /** The pulse's sizes as the prototype draws them on the phone, in cut-out pixels. */
     static final float HALO = 44, BLUR = 11, HEAD = 30;
     static final int GRADIENT_STOPS = 24;
+    /**
+     * The widest a glow reaches from the cable's centre line (cut-out pixels): the wide glow's outermost ring, as
+     * ChargeWireView.liveArea strokes it; a stamp never draws past it.
+     */
+    static final double REACH = HALO / 2.0 + BLUR * ChargeWirePulses.GLOW_Z[0];
+    /**
+     * The glow stamps' spacing along the cable, in sigmas: stamps this close blend into a band whose ripple along it stays
+     * under one 8-bit level (0.8 left about 0.7 of one; tests/ChargeWireTest.glowStamps).
+     */
+    static final double STAMP_SPACING = .7;
+    static final int STAMP_TABLE = 64;
+
+    /** A 4x4 ordered-dither threshold (0..15), so the stamp's soft falloff has no 8-bit steps of its own. */
+    private static final int[] BAYER = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+
+    /**
+     * A glow layer's stamp as a side x side image (ARGB, unpremultiplied): the layer's colour (argb's), its opacity the
+     * stamp's falloff from the centre to nothing at the image's inscribed circle, dithered so it has no 8-bit steps.
+     */
+    static int[] stampPixels(Layer layer, int argb, int side) {
+        int[] out = new int[side * side];
+        int rgb = argb & 0xFFFFFF;
+        double c = side / 2.0;
+        for (int y = 0; y < side; y++) {
+            for (int x = 0; x < side; x++) {
+                double r = Math.hypot(x + .5 - c, y + .5 - c) / c * layer.radius;
+                double v = layer.stamp(r) * 255;
+                int a = (int) Math.floor(v + (BAYER[(y & 3) * 4 + (x & 3)] + .5) / 16.0);
+                out[y * side + x] = withAlpha(rgb, Math.max(0, Math.min(255, a)));
+            }
+        }
+        return out;
+    }
+
+    /** The blurred stroke's half-maximum test, apart so the Layer's constructor reads plainly. */
+    private static final class ChargePulsesHalf {
+        static boolean above(double d, double width) {
+            return ChargeWirePulses.blurred(d, width, BLUR) > ChargeWirePulses.blurred(0, width, BLUR) / 2;
+        }
+    }
 
     /** One layer of a pulse: a stroke along the cable, brightest at the head and fading out down its tail. */
     static final class Layer {
@@ -42,9 +90,54 @@ final class ChargeWireComet {
         final int rings;
         final double[] half = new double[ChargeWirePulses.GLOW_Z.length], profile = new double[ChargeWirePulses.GLOW_Z.length];
 
+        /**
+         * A glow's stamps: their Gaussian's sigma (matched to the blurred stroke's half-maximum width), their radius (where
+         * the gradient reaches nothing: three sigmas, never past the widest glow's reach, ChargeWireView.liveArea), their
+         * spacing along the cable, and the blurred stroke's opacity along its centre line (as solid as the stroke gets).
+         */
+        final double sigma, radius, spacing, centre;
+        /** The opacity each stamp needs at its centre for the band's centre to reach a target, at 1/64 steps. */
+        private final float[] stampAlpha = new float[STAMP_TABLE + 1];
+
         Layer(boolean glow, boolean head, float width, double length, int pieces) {
             this.glow = glow; this.head = head; this.width = width; this.length = length; this.pieces = pieces;
             rings = glow ? ChargeWirePulses.glowRings(width, BLUR, half, profile) : 0;
+            if (!glow) { sigma = radius = spacing = centre = 0; return; }
+            centre = ChargeWirePulses.blurred(0, width, BLUR);
+            // The blurred stroke's half-maximum distance, by bisection; a Gaussian of the same half-maximum.
+            double lo = 0, hi = width / 2 + 6 * BLUR;
+            for (int i = 0; i < 50; i++) { double mid = (lo + hi) / 2; if (ChargePulsesHalf.above(mid, width)) lo = mid; else hi = mid; }
+            sigma = lo / Math.sqrt(2 * Math.log(2));
+            radius = Math.min(3 * sigma, REACH);
+            spacing = sigma * STAMP_SPACING;
+            // The stamps' opacities at the band's centre, from one sitting on the point outwards both ways.
+            int reach = (int) Math.ceil(radius / spacing);
+            double[] g = new double[2 * reach + 1];
+            for (int k = -reach; k <= reach; k++) g[k + reach] = stamp(Math.abs(k) * spacing);
+            for (int i = 0; i <= STAMP_TABLE; i++) {
+                double target = Math.min(.999, i / (double) STAMP_TABLE);
+                double a0 = 0, a1 = 1;
+                for (int it = 0; it < 40; it++) {
+                    double a = (a0 + a1) / 2, clear = 1;
+                    for (double v : g) clear *= 1 - a * v;
+                    if (1 - clear < target) a0 = a; else a1 = a;
+                }
+                stampAlpha[i] = (float) a1;
+            }
+        }
+
+        /** A stamp's opacity at distance r from its centre (1 at the centre, 0 from its radius out): a Gaussian, lowered to end at 0. */
+        double stamp(double r) {
+            if (!glow || r >= radius) return 0;
+            double edge = Math.exp(-radius * radius / (2 * sigma * sigma));
+            return Math.max(0, (Math.exp(-r * r / (2 * sigma * sigma)) - edge) / (1 - edge));
+        }
+
+        /** The opacity a stamp gets for the band's centre to show at opacity target (0..1). */
+        float stampAlpha(double target) {
+            double f = Math.max(0, Math.min(1, target)) * STAMP_TABLE;
+            int i = Math.min(STAMP_TABLE - 1, (int) f);
+            return (float) (stampAlpha[i] + (stampAlpha[i + 1] - stampAlpha[i]) * (f - i));
         }
 
         /** The colour at u (0 head to 1 tail), between the table's stops. */
@@ -56,7 +149,6 @@ final class ChargeWireComet {
     }
 
     final Layer[] layers;
-    private final double[] ringAlpha = new double[ChargeWirePulses.GLOW_Z.length], capAlpha = new double[ChargeWirePulses.GLOW_Z.length];
 
     /**
      * The layers for a cable this wide, coloured for the page: the glow's green, the lit cable's, the head's body from
@@ -94,12 +186,31 @@ final class ChargeWireComet {
             // Each pulse's trail in its own mode (pulses on the cable keep theirs across a switch).
             double trail = ChargeWirePulses.trail(length, state.mode[p] != null ? state.mode[p] : mode);
             double head = ChargeWirePulses.head(length, progress), visible = ChargeWirePulses.headVisible(progress);
-            for (Layer layer : layers) {
+            for (int j = 0; j < layers.length; j++) {
+                Layer layer = layers[j];
                 double len = layer.head ? HEAD * layer.length : trail * layer.length;
                 double a = Math.max(0, head), b = Math.min(length, head + len);
                 if (b - a <= 0.01 || (layer.head && visible <= 0)) continue;
                 float x1 = w.xAt(head), span = Math.max(.01f, w.xAt(head + len) - x1);
                 double fade = layer.head ? visible : 1;
+                if (layer.glow) {
+                    // Soft stamps from the head down the layer's length, each at the layer's colour there: their opacity
+                    // the one that gives the blurred stroke's centre opacity, so the band is as bright as the rings were.
+                    int first = head < 0 ? (int) Math.ceil(-head / layer.spacing) : 0;
+                    for (int k = first; ; k++) {
+                        double at = head + k * layer.spacing;
+                        if (at > b + 1e-9) break;
+                        if (at < a - 1e-9) continue;
+                        float x = w.xAt(at);
+                        int color = layer.colorAt((x - x1) / span);
+                        double peak = (color >>> 24) / 255.0 * fade * fadeAt(x, fadeStart, fadeEnd);
+                        if (peak <= .002) continue;
+                        float alpha = layer.stampAlpha(peak * layer.centre);
+                        if (alpha * 255 < .5f) continue;
+                        sink.glow(at, j, alpha); drawn++;
+                    }
+                    continue;
+                }
                 for (int k = 0; k < layer.pieces; k++) {
                     double s0 = Math.max(a, head + len * k / layer.pieces), s1 = Math.min(b, head + len * (k + 1) / layer.pieces);
                     if (s1 - s0 <= 0.01) continue;
@@ -109,20 +220,9 @@ final class ChargeWireComet {
                     if (peak <= .002) continue;
                     // The front end (the head's, where the comet starts) is round: a half disc ahead of it.
                     boolean front = s0 <= a + 0.01 && a > 0;
-                    if (layer.glow) {
-                        ChargeWirePulses.glowAlphas(peak, layer.profile, layer.rings, ringAlpha);
-                        // A blurred stroke's end is half as bright as along it: the glow's round front at half.
-                        if (front) ChargeWirePulses.glowAlphas(peak / 2, layer.profile, layer.rings, capAlpha);
-                        for (int g = 0; g < layer.rings; g++) {
-                            int alpha = (int) Math.round(255 * ringAlpha[g]);
-                            if (alpha > 0) { sink.piece(s0, s1, withAlpha(color, alpha), (float) (2 * layer.half[g])); drawn++; }
-                            if (front && (alpha = (int) Math.round(255 * capAlpha[g])) > 0) { sink.cap(a, withAlpha(color, alpha), (float) layer.half[g]); drawn++; }
-                        }
-                    } else {
-                        int alpha = (int) Math.round(255 * peak);
-                        sink.piece(s0, s1, withAlpha(color, alpha), layer.width); drawn++;
-                        if (front) { sink.cap(a, withAlpha(color, alpha), layer.width / 2); drawn++; }
-                    }
+                    int alpha = (int) Math.round(255 * peak);
+                    sink.piece(s0, s1, withAlpha(color, alpha), layer.width); drawn++;
+                    if (front) { sink.cap(a, withAlpha(color, alpha), layer.width / 2); drawn++; }
                 }
             }
         }
