@@ -217,7 +217,7 @@ public final class ParkedValidation extends Instrumentation {
      * row the page lists shows behind its own rule (the clock sync, the schedule test, Charge done by and the battery
      * alerts by model, the rest always); the UT5 MAX top speed card only where the page leads with it (topSpeedCard); a
      * link to a sub-page only while that page has something to show (pageShown). Retried while a connection settles the
-     * rows. Returns the keys of the controls shown, "top_speed_card" for the card.
+     * rows. Returns the keys of the controls shown, "lab:" and the key for an Experimental entry, "top_speed_card" for the card.
      */
     @SuppressWarnings("unchecked") private Set<String> assertControlsPage(MainActivity activity,String page)throws Exception{
         Set<String> shown=new LinkedHashSet<>();
@@ -233,6 +233,7 @@ public final class ParkedValidation extends Instrumentation {
             for(Map.Entry<String,View> e:((Map<String,View>)field(controls,"labEntries")).entrySet()){
                 boolean lab=rule(activity,"labOffered",e.getKey());
                 require(e.getValue().isShown()==lab,"The Experimental entry for "+e.getKey()+" on "+page+(lab?" is hidden, but the Lab tries it on this scooter":" shows, but the Lab does not try it here"));
+                if(lab)shown.add("lab:"+e.getKey());
             }
             View clock=(View)field(field(controls,"clockLine"),"card"),test=(View)field(field(field(controls,"scheduleTest"),"row"),"card");
             for(View card:((Map<View,String[]>)field(controls,"extras")).keySet()){
@@ -322,10 +323,10 @@ public final class ParkedValidation extends Instrumentation {
         render(activity,"navigation-home.png");status("Read-only navigation: Home ("+style.get()+")");
         JSONObject rides=timeRidesOpen(activity);output.putString("rides_first_open",rides.toString());status("Read-only navigation: rides "+rides);
         runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
-        List<String> visited=new ArrayList<>(),hidden=new ArrayList<>();Map<String,Integer> controlsShown=new LinkedHashMap<>();Object[] data=null;
+        List<String> visited=new ArrayList<>(),hidden=new ArrayList<>();Map<String,Integer> controlsShown=new LinkedHashMap<>();Map<String,JSONArray> controlKeys=new LinkedHashMap<>();Object[] data=null;
         for(String subject:HubPages.SUBJECTS){
             HubTestPages.reach(this,activity,subject);arrive(activity,subject);visited.add(subject);
-            if(scooterRowPage(subject))controlsShown.put(subject,assertControlsPage(activity,subject).size());
+            if(scooterRowPage(subject))record(subject,assertControlsPage(activity,subject),controlsShown,controlKeys);
             if(HubPages.CONTROLS.equals(subject))render(activity,"navigation-controls.png");
             if(HubPages.LIGHTS.equals(subject))render(activity,"navigation-lights.png");
             if(HubPages.DATA.equals(subject))data=dataWalk(activity);
@@ -337,7 +338,7 @@ public final class ParkedValidation extends Instrumentation {
                     require(row==expected.get(),subject+(row?" shows a row to "+child+", which has nothing for this scooter":" shows no row to "+child));});
                 if(!expected.get()){hidden.add(child);continue;}
                 HubTestPages.tapRow(this,activity,child);arrive(activity,child);visited.add(child);
-                if(scooterRowPage(child))controlsShown.put(child,assertControlsPage(activity,child).size());
+                if(scooterRowPage(child))record(child,assertControlsPage(activity,child),controlsShown,controlKeys);
                 status("Read-only navigation: "+child);
                 HubTestPages.back(this,activity);arrive(activity,subject);
             }
@@ -346,7 +347,7 @@ public final class ParkedValidation extends Instrumentation {
         // Every Scooter page with rows was checked, or its link was hidden because it has nothing for this scooter.
         for(String page:HubTestPages.scooterRowPages())require(controlsShown.containsKey(page)||hidden.contains(page),"The walk never checked the Scooter page "+page);
         String kickstart=searchWalk(activity);visited.add(HubPages.SEARCH);status("Read-only navigation: search (kickstart opened "+kickstart+")");
-        HubTestPages.reach(this,activity,HubPages.SETTINGS);arrive(activity,HubPages.SETTINGS);visited.add(HubPages.SETTINGS);render(activity,"navigation-settings.png");
+        openSettings(activity);visited.add(HubPages.SETTINGS);render(activity,"navigation-settings.png");
         for(String child:children(HubPages.SETTINGS)){
             String tag=SETTINGS_ROWS.get(child);require(tag!=null,"ParkedValidation names no Settings row for "+child+" (SETTINGS_ROWS)");
             View[] row={null};eventually(()->row[0]=HubTestPages.shownTag(activity,tag));
@@ -361,13 +362,31 @@ public final class ParkedValidation extends Instrumentation {
         int controls=0;for(int count:controlsShown.values())controls+=count;
         JSONObject evidence=new JSONObject();evidence.put("mode","navigation");evidence.put("layout","hub");evidence.put("home",style.get());evidence.put("connection_at_start",connection.get());
         evidence.put("pages_visited",visited.size());evidence.put("page_ids",new JSONArray(visited));evidence.put("pages_hidden_for_this_scooter",new JSONArray(hidden));
-        evidence.put("scooter_pages_checked",controlsShown.size());evidence.put("controls_shown_by_page",new JSONObject((Map<?,?>)controlsShown));
+        evidence.put("scooter_pages_checked",controlsShown.size());evidence.put("controls_shown_by_page",new JSONObject((Map<?,?>)controlsShown));evidence.put("controls_shown",new JSONObject((Map<?,?>)controlKeys));
         evidence.put("data_wide",data[0]);evidence.put("data_tabs",data[1]);evidence.put("data_sections",data[2]);evidence.put("search_kickstart_opened",kickstart);evidence.put("search_no_match",true);
         evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row on "+sliderPage+", slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);
         if(args.containsKey("fixture"))evidence.put("fixture",args.getString("fixture"));
         results.put(evidence);
-        return "Hub walk: Home ("+style.get()+"), "+visited.size()+" pages ("+hidden.size()+" sub-pages hidden for this scooter), "+controls+" controls on their "+controlsShown.size()+" Scooter pages, "
+        return "Hub walk: Home ("+style.get()+"), "+visited.size()+" pages ("+hidden.size()+" sub-pages hidden for this scooter), "+controls+" controls and Experimental entries on their "+controlsShown.size()+" Scooter pages, "
                 +data[2]+" Data sections ("+data[1]+" tabs), kickstart search ("+kickstart+") and no-match, optional favourite, Settings' "+children(HubPages.SETTINGS).size()+" pages; no scooter mutations";
+    }
+    private static void record(String page,Set<String> shown,Map<String,Integer> counts,Map<String,JSONArray> keys){counts.put(page,shown.size());keys.put(page,new JSONArray(shown));}
+    /**
+     * Settings from Home, by touch: HubTestPages' way in (Clean Home's gear, Widgets' dock and its All sheet), or, on the
+     * wide Clean Home (two panes, HubHomePane in the page pane), the gear in the scooter pane's header, which is outside
+     * the page pane HubTestPages looks in: tapped where it rests, with a real touch at its centre, as HubValidation's tapTag does.
+     */
+    private void openSettings(MainActivity activity)throws Exception{
+        runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
+        AtomicReference<Boolean> panes=new AtomicReference<>();runMain(()->panes.set(currentScreen(activity).getClass().getSimpleName().equals("HubHomePane")));
+        if(!panes.get()){HubTestPages.reach(this,activity,HubPages.SETTINGS);arrive(activity,HubPages.SETTINGS);return;}
+        View[] gear={null};runMain(()->{View root=(View)field(activity,"root");gear[0]=root==null?null:root.findViewWithTag("home-settings");require(gear[0]!=null&&gear[0].isShown()&&gear[0].isEnabled(),"The wide Home's scooter pane shows no Settings gear");});
+        require(HubTestPages.awaitAtRest(this,()->Collections.singletonList(gear[0])),"The wide Home's Settings gear did not come to rest");
+        int[] centre=new int[2];runMain(()->{requireHomeFree(activity);int[] at=new int[2];gear[0].getLocationOnScreen(at);centre[0]=at[0]+gear[0].getWidth()/2;centre[1]=at[1]+gear[0].getHeight()/2;
+            android.graphics.Rect visible=new android.graphics.Rect();require(gear[0].getGlobalVisibleRect(visible)&&visible.width()>=gear[0].getWidth()-1&&visible.height()>=gear[0].getHeight()-1,"The wide Home's Settings gear is not fully on screen");});
+        long when=SystemClock.uptimeMillis();android.view.MotionEvent down=android.view.MotionEvent.obtain(when,when,android.view.MotionEvent.ACTION_DOWN,centre[0],centre[1],0),up=android.view.MotionEvent.obtain(when,when+80,android.view.MotionEvent.ACTION_UP,centre[0],centre[1],0);
+        try{sendPointerSync(down);sendPointerSync(up);}finally{down.recycle();up.recycle();}
+        waitForIdleSync();arrive(activity,HubPages.SETTINGS);
     }
     /** Whether ControlsPages gives page rows of its own (a Scooter page with rows, not the search page). */
     private static boolean scooterRowPage(String page){return HubTestPages.scooterRowPages().contains(page);}
