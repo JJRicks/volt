@@ -325,6 +325,7 @@ public final class ParkedValidation extends Instrumentation {
         MainActivity activity=(MainActivity)launched;
         if("simulator".equals(args.getString("fixture",""))){runMain(()->require(service.setSimulation(true),"Simulation did not start"));awaitReadOnly(()->service.ble.ready(),15000,"The simulated scooter did not connect");
             String model=args.getString("sim_model","");if(!model.isEmpty()){runMain(()->service.ble.setSimulationModel(model));awaitReadOnly(()->service.ble.ready()&&model.equals(service.ble.simulationModel()),15000,"The simulated "+model+" did not connect");}}
+        if("true".equals(args.getString("charge_journal",""))){require(args.containsKey("fixture")&&!"simulator".equals(args.getString("fixture","")),"-e charge_journal is for -e fixture saved only");seedChargeJournal();}
         AtomicReference<Long> initial=new AtomicReference<>();AtomicReference<String> connection=new AtomicReference<>(),style=new AtomicReference<>();
         runMain(()->{assertNoUserRecording();initial.set(mutations());connection.set(service.ble.state().name());service.settings.edit().putString("scooter_section","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
         runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
@@ -366,6 +367,7 @@ public final class ParkedValidation extends Instrumentation {
         HubTestPages.back(this,activity);arrive(activity,HubPages.HOME);
         runMain(()->require(mutations()==initial.get(),"Navigation/search/favourite actions submitted a scooter mutation"));
         String sliderPage=offlineSliderCancel(activity);
+        AtomicReference<Boolean> chargeKept=new AtomicReference<>();runMain(()->chargeKept.set(service.isChargeRecording()));
         runMain(()->require(mutations()==initial.get(),"Slider cancellation submitted a scooter mutation"));
         runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
         int controls=0;for(int count:controlsShown.values())controls+=count;
@@ -373,7 +375,7 @@ public final class ParkedValidation extends Instrumentation {
         evidence.put("pages_visited",visited.size());evidence.put("page_ids",new JSONArray(visited));evidence.put("pages_hidden_for_this_scooter",new JSONArray(hidden));
         evidence.put("scooter_pages_checked",controlsShown.size());evidence.put("controls_shown_by_page",new JSONObject((Map<?,?>)controlsShown));evidence.put("controls_shown",new JSONObject((Map<?,?>)controlKeys));
         evidence.put("data_wide",data[0]);evidence.put("data_tabs",data[1]);evidence.put("data_sections",data[2]);evidence.put("search_kickstart_opened",kickstart);evidence.put("search_no_match",true);
-        evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: "+sliderPage+"; slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);
+        evidence.put("scooter_mutations",0);evidence.put("slider_cancel",sliderPage);evidence.put("charge_recording_active_at_end",chargeKept.get());evidence.put("rides_first_open",rides);
         if(args.containsKey("fixture"))evidence.put("fixture",args.getString("fixture"));
         results.put(evidence);
         return "Hub walk: Home ("+style.get()+"), "+visited.size()+" pages ("+hidden.size()+" sub-pages hidden for this scooter), "+controls+" controls and Experimental entries on their "+controlsShown.size()+" Scooter pages, "
@@ -440,15 +442,22 @@ public final class ParkedValidation extends Instrumentation {
     /**
      * Disconnected, the page ControlsPages puts start_speed on (Controls › Assists) still has its kick-start row, shown
      * where this scooter offers it, with no slider of its own: the SeekBar lives in an edit sheet that opens only while
-     * connected. Returns that page.
+     * connected. Never while a charge recording is running: an intentional disconnect ends it (ChargeRecoveryPolicy
+     * stops a capture when the intentional-disconnect count changes) and ChargeSessionStore.stop deletes an automatic
+     * capture too short to keep, and the sweep runs with the scooter charging. The recording is read on the main thread
+     * in the same pass as the disconnect, so it cannot start in between; with one running the check is skipped, not
+     * failed. Returns the evidence line.
      */
     private String offlineSliderCancel(MainActivity activity)throws Exception{
-        runMain(()->{assertNoUserRecording();reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("scooter_section","").commit();});
+        AtomicReference<Boolean> charging=new AtomicReference<>(false);
+        runMain(()->{assertNoUserRecording();if(service.isChargeRecording()){charging.set(true);return;}reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("scooter_section","").commit();});
+        if(charging.get()){status("Slider row check skipped: a charge recording is running; the disconnected check was skipped so it isn't ended (no disconnect, no control sent)");
+            return "Skipped: a charge recording is running, so Volt was not disconnected and the recording was left alone; no mutation";}
         String page=HubTestPages.pageOf("start_speed");require(page!=null,"ControlsPages puts start_speed on no page");
         awaitReadOnly(()->service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),8000,"Slider cancel regression requires no live GATT");
         // A page with nothing for this scooter has its link hidden (ControlsPages.linkShown), as the walk recorded it: no row to check.
         AtomicReference<Boolean> shown=new AtomicReference<>();runMain(()->shown.set(rule(activity,"pageShown",page)));
-        if(!shown.get()){status("Slider row check skipped: "+page+" has nothing for this scooter (its link is hidden); disconnected, no control was sent");return page+" hidden for this scooter; row check skipped";}
+        if(!shown.get()){status("Slider row check skipped: "+page+" has nothing for this scooter (its link is hidden); disconnected, no control was sent");return "Disconnected: "+page+" hidden for this scooter, row check skipped; no mutation";}
         HubTestPages.reach(this,activity,page);arrive(activity,page);
         eventually(8000,()->{
             require(service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),"Slider cancel regression requires no live GATT");
@@ -457,7 +466,23 @@ public final class ParkedValidation extends Instrumentation {
             // Rows have no inline slider; the SeekBar lives in an edit sheet that opens only while connected.
             require(!hasSeekBar(card),"The kick-start row has an inline slider");
         });status("Read-only slider row check passed while disconnected on "+page+"; no control was sent");
-        return "kick-start row on "+page;
+        return "Disconnected: kick-start row on "+page+"; slider only in the connected edit sheet; no mutation";
+    }
+    /**
+     * -e charge_journal true with -e fixture saved (emulator only): an active charge recording journal, as
+     * ChargeCaptureValidation.seedActive makes it (the developer simulator refuses to record a charge), with the service's
+     * own charge update held off as that validation does, so the walk shows it skips its disconnect while one runs and
+     * the recording is still active at the end.
+     */
+    private void seedChargeJournal()throws Exception{
+        runMain(()->{try{ChargeSessionStore store=(ChargeSessionStore)field(service,"chargeStore");String id=service.profiles.active().id;long wall=System.currentTimeMillis(),mono=SystemClock.elapsedRealtime();
+                store.start(id,ChargeSessionStore.Charger.HIGH_SPEED,wall,mono);
+                store.sample(new ChargeSessionStore.Frame(wall,mono,new ChargeSessionStore.Value(1d,mono,0x72),new ChargeSessionStore.Value(50d,mono,0x72),new ChargeSessionStore.Value(52d,mono,0x72),new ChargeSessionStore.Value(-2d,mono,0x72),null));}
+            catch(IOException e){throw new IllegalStateException(e);}
+            // As ChargeCaptureValidation: postpone the service's disconnected-frame update, which would end a journal no
+            // scooter is feeding, so only the walk itself could end it.
+            try{java.lang.reflect.Field updating=ScooterService.class.getDeclaredField("chargeUpdating");updating.setAccessible(true);updating.setBoolean(service,true);}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}
+            require(service.isChargeRecording(),"The synthetic charge journal is not active");});
     }
     private static boolean hasSeekBar(View view){
         if(view instanceof android.widget.SeekBar)return true;
