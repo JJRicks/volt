@@ -1135,6 +1135,17 @@ public final class ModelRegistry {
         if(!d.rulePid().isEmpty())return Msg.of(T.CONTROLS_MODEL_LINE,d.rulePid());
         return d.serialPid.isEmpty()?"":Msg.of(T.CONTROLS_MODEL_LINE_UNCONFIRMED,d.serialPid);
     }
+    /**
+     * The exact Model ID Volt names this scooter by from its KNOWN table, or "" (the UT5 MAX layer, an unnamed or unconfirmed
+     * ID). Models that share a name differ by ID (the catalog's NT5 Max is 25431 and 25432, with different controls), so the
+     * compatibility screen and report drafts show it beside the name; Home and My scooters show the name alone.
+     */
+    static String namedPid(DeviceDescriptor d){return known(d)!=null?d.rulePid():"";}
+    /** modelLine with the named Model ID beside the name ("NT5 Max · 25431"), for report drafts: the number tells same-named models apart. */
+    public static String modelLineWithId(DeviceDescriptor d){
+        String line=modelLine(d),pid=namedPid(d);
+        return pid.isEmpty()?line:line+" \u00b7 "+pid;
+    }
     /** modelLineText in English, whatever language is shown: IssueReport and the compatibility reports keep it. */
     public static String modelLine(DeviceDescriptor d){
         CharSequence line=modelLineText(d);

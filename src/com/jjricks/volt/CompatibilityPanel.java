@@ -100,8 +100,10 @@ final class CompatibilityPanel {
             return;
         }
         DeviceDescriptor d=ble.descriptor();ModelRegistry.Resolution r=ble.resolution();
-        String model=ModelRegistry.modelLineText(d).toString();
-        TextView title=ui.text(model.isEmpty()?T.compatModelNotCaptured():model,17,true);card.addView(title);
+        String model=ModelRegistry.modelLineText(d).toString(),pid=ModelRegistry.namedPid(d);
+        // A named model with its Model ID beside the name: same-named models (NT5 Max 25431 and 25432) differ in controls.
+        CharSequence shown=model.isEmpty()?T.compatModelNotCaptured():pid.isEmpty()?model:joined(model,pid);
+        TextView title=ui.text(shown,17,true);card.addView(title);
         if(d.simulated)card.addView(muted(T.compatSimulated()));
         line(card,T.compatModelId(),d.pidSource()==DeviceDescriptor.PidSource.ADVERTISED?T.compatModelIdAdvertised():d.pidSource()==DeviceDescriptor.PidSource.SERIAL?T.compatModelIdSerial():T.compatModelIdNotCaptured());
         if(r.conflict)line(card,T.compatCheck(),T.compatModelIdMismatch());
@@ -405,8 +407,11 @@ final class CompatibilityPanel {
         group.addView(line,new LinearLayout.LayoutParams(-1,-2));
     }
     private void line(LinearLayout card,String title,String value){
-        TextView t=ui.text(T.compatIdentityLine(title,value),13,false);t.setTextColor(ui.muted);t.setPadding(0,ui.dp(6),0,0);card.addView(t);
+        TextView t=ui.text(joined(title,value),13,false);t.setTextColor(ui.muted);t.setPadding(0,ui.dp(6),0,0);card.addView(t);
     }
     private TextView muted(CharSequence text){TextView t=ui.text(text,12.5f,false);t.setTextColor(ui.muted);t.setPadding(0,ui.dp(6),0,ui.dp(4));return t;}
     private TextView note(String text){TextView t=ui.caption(text);t.setPadding(ui.dp(4),ui.dp(6),ui.dp(4),ui.dp(6));return t;}
+    /** Two parts of the identity card joined as the catalog's identity line does ("label · value", "NT5 Max · 25431"). */
+    private static CharSequence joined(CharSequence a,CharSequence b){return T.compatIdentityLine(a,b);}
+
 }

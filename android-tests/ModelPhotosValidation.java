@@ -39,7 +39,9 @@ import com.jjricks.volt.*;
  *       theme given (light or dark);</li>
  *   <li>folded: every folded charging picture (ChargeFolded), two across, each at the same share of its card's width
  *       with its tyres on one line, as the charging view places them;</li>
- *   <li>home: Home in Widgets and Clean on the developer simulator, parked, as the UT5 MAX, GT3 Max, GT5 Max and N65i.</li>
+ *   <li>home: Home in Widgets and Clean on the developer simulator, parked, as the UT5 MAX, GT3 Max, GT5 Max and N65i;</li>
+ *   <li>identity: Service › Compatibility as the NT5 Max 25431 (its name shared with 25432): the identity card's title
+ *       carries the Model ID beside the name, while Home's header shows the name alone (council review of #547, F02).</li>
  * </ul>
  * Without {@code -e mode look} it also requires every scooter in NAVEE's model catalog (the maintainer's copy, 17 November
  * 2026) to be named and pictured, the P50 named only (the catalog has no picture of it). {@code look} only takes the
@@ -87,6 +89,7 @@ public final class ModelPhotosValidation extends Instrumentation {
                             "Home's model is " + model[1] + ": " + photoKey(service.modelDescriptor(service.profiles.active()))));
                     screenshot("home-" + size + "-" + theme + "-" + style + "-" + model[1]);
                 }
+                if (!look() && style.equals(args.getString("styles", "widgets,clean").split(",")[0])) identity(size + "-" + theme);
                 main(() -> { service.ble.setSimulationModel(""); require(service.setSimulation(false), "Simulation did not stop"); });
                 settle();
             }
@@ -180,6 +183,26 @@ public final class ModelPhotosValidation extends Instrumentation {
         File file = new File(dir(), "sheet-" + label + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { drawn.get().compress(Bitmap.CompressFormat.PNG, 100, out); } finally { drawn.get().recycle(); }
         screenshots.add(file.getAbsolutePath()); TextCensus.writeView(this, file, rendered.get());
+    }
+
+    /** Compatibility's identity card names a model with its Model ID; Home's header keeps the name alone. */
+    private void identity(String label) throws Exception {
+        main(() -> { service.ble.setSimulationModel("25431"); service.ble.tickSimulation(); });
+        await(() -> service.ble.ready(), "The simulated NT5 Max is not ready");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
+        main(() -> { activity.redraw(); }); settle(); SystemClock.sleep(600); settle();
+        main(() -> { List<String> shown = texts(root()); require(shown.contains("NT5 Max") && !shown.contains("NT5 Max \u00b7 25431"), "Home names the NT5 Max alone: " + shown); });
+        HubTestPages.reach(this, activity, HubPages.SERVICE_COMPATIBILITY); settle(); SystemClock.sleep(600); settle();
+        main(() -> require(texts(root()).contains("NT5 Max \u00b7 25431"), "The compatibility card does not show NT5 Max · 25431: " + texts(root())));
+        screenshot("identity-" + label + "-nt5max-25431");
+        checks.add(label + ": Compatibility shows NT5 Max · 25431; Home shows NT5 Max");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
+    }
+    private static List<String> texts(View view) {
+        List<String> out = new ArrayList<>();
+        if (view instanceof TextView && view.isShown()) out.add(String.valueOf(((TextView) view).getText()));
+        if (view instanceof android.view.ViewGroup) for (int i = 0; i < ((android.view.ViewGroup) view).getChildCount(); i++) out.addAll(texts(((android.view.ViewGroup) view).getChildAt(i)));
+        return out;
     }
 
     /** The folded charging pictures: each cut-out at 80% of its card's width, tyres on the card's floor (ChargeFolded.place). */

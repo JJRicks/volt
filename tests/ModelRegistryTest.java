@@ -359,6 +359,16 @@ public final class ModelRegistryTest {
         try{shown=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java")),java.nio.charset.StandardCharsets.UTF_8);}
         catch(java.io.IOException e){throw new AssertionError(e);}
         check(shown.contains("case \"ut5ultrax\": case \"ut5ultra\": return R.drawable.ut5ultrax;"),"The UT5 Ultra shows the UT5 Ultra X photo");
+        // Same-named models differ by ID (NT5 Max 25431 and 25432 have different controls): report drafts and the compatibility
+        // screen show the named ID beside the name; Home and My scooters (modelName, modelLine) keep the name alone.
+        check(ModelRegistry.modelLineWithId(advertised("25431")).equals("NT5 Max \u00b7 25431")&&ModelRegistry.modelLineWithId(advertised("25432")).equals("NT5 Max \u00b7 25432")
+            &&ModelRegistry.modelName(advertised("25431")).equals("NT5 Max")&&ModelRegistry.modelLine(advertised("25432")).equals("NT5 Max"),"A named model's report line carries its ID");
+        check(ModelRegistry.namedPid(advertised("22131")).equals("22131")&&ModelRegistry.modelLineWithId(advertised("22131")).equals("N65i \u00b7 22131"),"Known by an owner report: the ID too");
+        check(ModelRegistry.modelLineWithId(serial("Q2538ZZ9US7777777")).equals("UT5 MAX")&&ModelRegistry.modelLineWithId(advertised("25381")).equals("UT5 MAX")
+            &&ModelRegistry.modelLineWithId(advertised("24431")).equals("Model 24431")&&ModelRegistry.modelLineWithId(serial("Q2443ZZ9US7777777")).equals("Model 2443 (unconfirmed)")
+            &&ModelRegistry.modelLineWithId(null).isEmpty()&&ModelRegistry.modelLineWithId(advertised("23451").withOwnerModel("GT5 Max")).equals("Model 23451")
+            &&ModelRegistry.modelLineWithId(both("Q2213ZZ9US7777777","25431")).equals(ModelRegistry.modelLine(both("Q2213ZZ9US7777777","25431"))),
+            "Lines that already name the ID, the UT5 MAX layer, an owner's answer and a conflicting serial are unchanged");
         // Golf carts stay an unsupported product, unnamed.
         for(String golf:new String[]{"24352","25152"})
             check(layer(advertised(golf))==ModelRegistry.Layer.UNSUPPORTED_PRODUCT&&ModelRegistry.modelName(advertised(golf)).isEmpty(),"A Birdie golf cart is not named: "+golf);
