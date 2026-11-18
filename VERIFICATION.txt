@@ -1,31 +1,129 @@
 VOLT 2.0.0 — THE HUB: NEW HOME AND NAVIGATION, CLEAN HOME, MOTION, EVERY MODEL PICTURED (versionCode 60)
-Draft, November 17, 2026. The release checks below are still to run.
+Built and swept at commit 4a050efe on claude/release-2-0-0 (#550),
+November 17, 2026. The tag goes on #550's merge into main, or on a later
+docs-only merge. Commits on #550 after 4a050efe change only test code
+(android-tests/) and this file, neither of which is in the APK.
 
 - Cut from main. 1.13.2 was cut from release/1.13 and carried only the
   main pull requests that didn't depend on the Hub, so this is the first
   release since 1.13.1 to carry main's Hub layout series (#381 to #394,
   #403, #410 and #411, with its follow-ups), the developer simulator's
   scenes and emailing charge recordings. Every pull request merged into
-  main since v1.13.1 is in it, through the language top-ups #533 and #549.
-  [PHASE 2: the last PR number merged before the release commit; for each
-  PR since 1.13.2's branch point, CI on its merged head and the independent
-  review on the head that merged.]
-- The Hub's own walk (HubValidation) and the new steps from this run of
-  work (among them the charging transition, the charge recordings invite,
-  the unlock guide, Settings without Nearby devices, the dock sheet and the
-  model photos) are registered in run-release-sweep.py.
-  [PHASE 2: confirm the step list and counts on the release commit.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 1.13.2's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed, each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.]
-- Parked hardware sweep with the owner present: [PHASE 2: run-hardware-sweep
-  report.md outcomes on the candidate the owner installed, or say plainly
-  that it was not run.]
+  main since v1.13.1 is in it: 142 of them, #379 to #551, through the
+  language top-ups #533 and #549, the model photos and catalog (#547) and
+  Home's finishing touches (#551). This release's own version, changelog
+  and docs are #550.
+- Every one of the 142 merged with CI passing on its merged head (2 to 8
+  checks each). The independent review's last pass was on the merged head
+  for 139 of them. For the other 3, what came after that pass was the
+  fixes for its three P3 findings, 7 lines of docs (#480); a merge of main
+  resolved by hand in two strings files, described on the pull request
+  (#481); and a merge of the updated base branch without conflicts
+  (#482). None of those 3 reviews requested changes.
+- #550 was reviewed four times up to 4a050efe. The first three passes
+  asked for nine wording fixes in the What's new notes and docs (the main
+  one: the two S2 Model IDs get the lock and readings only, not the
+  official app's per-model controls); the fourth requested no changes. Its
+  later commits (the three test fixes below and this record) went back to
+  the review before the merge.
+- run-release-sweep.py lists 264 steps on the release commit, 67 more than
+  1.13.2's 197. 73 are new: the Hub at 344 dp and 725 dp, with and without
+  large text, its search targets, Widgets' pages and Settings without
+  Nearby devices (13); reveal motion (27); the charging transition,
+  pictures, time sizes and recordings invite (14); the dock sheet, the
+  model photos, Make a new owner key and the unlock guide (3 each); the
+  simulator's scenes (4); responsive tiles and two update-check steps (3).
+  6 are gone: compat-menu-edit, retired with the owner's agreement on
+  November 12 because the Hub removed the Scooter menu editor it tested,
+  and the five background-recording steps of 1.13.2's release-branch port
+  (on main, the auto-start steps cover that setting).
+- Languages: ship_check --release --aapt required on commit 4a050efe:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4102 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly.
+- Release candidate checks on commit 4a050efe:
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (210
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.0 (no -dev), versionCode 60, signed with 1.13.2's
+    certificate. APK SHA-256
+    ae3947181b426bad3c03244a05679fddd686f1d6f15a66481461ff88c9fd0f39.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.0 (60). The validation runner was
+    built with the same key.
+  - verify-all was not run for this release; RELEASING.md doesn't require
+    it.
+- run-release-sweep.py on that build (Medium Phone API 36.1 emulators,
+  synthetic data, Bluetooth off except in the automatic charge recording
+  step, which turns the emulator's adapter on for its run and off again),
+  split over four emulators at once on one Mac, one step per --only run.
+  All 264 listed steps were invoked exactly once. 9 pseudo-locale steps
+  returned skipped, because no pseudo-locale APK was supplied. The sweep
+  took 101 minutes, including rides-timing and the ride auto-save check.
+  Closing numbers, as printed:
+  - Gating steps: 187 passed, 2 failed (battery-widgets and
+    charge-time-tile).
+  - Report-only steps (never counted as passes): 65 ran, 1 did not
+    finish, 9 skipped.
+  - The ride auto-save check failed.
+  All three failures were in the tests, not the app. battery-widgets and
+  charge-time-tile failed the same way again when rerun alone on idle
+  emulators with the same runner:
+  - battery-widgets checked Widgets' charging view 400 ms after charging
+    began. The Plug in transition (#534) made that view's reveal 600 ms
+    (it was 240 ms), and #534's own emulator run didn't include this
+    step. It had failed the same way in two later pull requests' emulator
+    runs (#537 and #538), where it was put down to load.
+  - charge-time-tile hid the charging view in the middle of the time
+    tile's switch and checked at once. Since #534 the view closes over
+    300 ms (1.8 s at this test's slowed animations), and the tile settles
+    when it has closed.
+  - The ride auto-save check looked for Auto-save rides in More's Data &
+    history. The Hub moved it to Ride › Recording settings (#393).
+  The fixes are test code only (commit e454b893): the first two wait for
+  the reveal to end, then make the same checks; the third goes to
+  Recording settings the rider's way and checks that page's layout. A
+  runner built from that commit with the same key ran them on the same
+  candidate APK: battery-widgets passed, charge-time-tile passed (423
+  assertions) and the ride auto-save check passed (585 checks). Numbers
+  after reruns: gating steps 189 passed, 0 failed; the ride auto-save
+  check passed.
+  - The one report-only step that did not finish, gps-accuracy-riding-de,
+    stopped at the same check as in 1.13.2: in German, Halo's GPS
+    accuracy chip shows the no-reading dash instead of "Keine
+    Aufzeichnung" while nothing records, the designed fallback for a
+    state too long for its spot. A shorter German text is still a
+    follow-up.
+  - rides-timing passed. It ran last, alone on the one emulator of ours
+    still up. Best of two cold starts per case, slowest case: first frame
+    179 ms and service start command 190 ms (budgets 1.5 s). Rides first
+    row 39 ms, and the longest main-thread message on Rides was 35 ms cold
+    and 38 ms warm (budget 1 s). The longest main-thread message at launch
+    was 117 ms in any single run.
+  - Locale reports (report only), 60 steps: ten languages at 344 dp,
+    725 dp and 725 dp with large font, app and scooter screens. Compared
+    with 1.13.2's sweep finding by finding, none is new. 7 text-fit
+    findings (1.13.2 had 34): five are 1.13.2's own words breaking (German
+    "Besitzer-Einrichtungsdatei", French "enregistrement" in About, Dutch
+    "PIN-ontgrendeling", the Swedish "Tvåmotorsdrift" and Turkish
+    "Zamanlanmadı" tiles), and two are "no text layout" lines for the
+    scooter name, as 1.13.2 had once. 38 cut-off Setting tile findings
+    (1.13.2 had 47). At 344 dp the scooter walk's cut-off tiles are
+    French, Portuguese (Brazil) and Portuguese (Portugal) 7, German,
+    Spanish and Polish 4, Swedish 3 and Italian 1; Spanish has 6 fewer
+    and Italian 3 fewer than in 1.13.2, and the rest are unchanged.
+- Screen text census against 1.13.2 (report only): census_diff.py
+  compared this sweep's screens with 1.13.2's kept release sweep, file by
+  file: 4772 screens, 384702 text differences, 1053 screens only in 2.0.0
+  and 128 only in 1.13.2. The Hub replaced almost every screen's layout,
+  so nearly every view's tree path moved, and the census can't pick out
+  wording changes this time. It was not relied on; the language gate and
+  the locale reports above check the text.
+- Parked hardware sweep with the owner present: not run yet. It needs the
+  owner's phone and scooter. The candidate is to be installed and the
+  sweep run before publishing; its result is recorded here then, in a
+  docs-only change.
 - Real-scooter checks already made on development builds of main (UT5 MAX,
   November 14, 2026; docs/validation/owner-release.md and
   docs/validation/new-scooter-setup.md): Make a new owner key (the scooter
