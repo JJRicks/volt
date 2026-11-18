@@ -96,19 +96,20 @@ public final class CompatControlsValidation extends Instrumentation {
         expectHidden("maximum_speed");
         main(() -> require(HubTestPages.requireOnPage(activity, (View)field(field(controls(), "topSpeed"), "card"), "the top speed card").getVisibility() != View.VISIBLE, "UT5 MAX top speed card shown for another model"));
         for (String key : new String[]{"traction_control", "low_power", "charge_limit", "timed_charging", "hill_start_assist", "parking_assist",
-                "hill_descent_control", "prompt_tone", "dual_drive", "start_speed"}) expectCaption(key, "Untested here");
+                "hill_descent_control", "prompt_tone", "dual_drive", "start_speed"}) expectNoNote(key);
         expectHidden("long_range_mode"); expectHidden("speed_limit"); expectHidden("overspeed_control");
         // Model-specific domains remain exact even without region metadata; kick-start follows the official app's range there.
         expectChoices("start_speed", new int[]{3, 4, 5});
         main(() -> require(activity.service().ble.decision("maximum_speed").reason == CapabilityResolver.Reason.REGION_RULE, "No-region 2585 Top speed: " + activity.service().ble.decision("maximum_speed")));
         screenshotRow("q-noregion-rows", "traction_control");
-        // A long charge-start value moves under the label beside its caption instead of squeezing both. Checked on the
-        // displayed row: Battery & charging, its page (#414 review: this read the row the Controls page builds but never places).
+        // With no caption since the owner dropped Untested here (Nov 17 2026), a charge-start time stays in the value slot, as
+        // on the UT5 MAX (only a captioned time moves under the label). Checked on the displayed row: Battery & charging, its
+        // page (#414 review: this read the row the Controls page builds but never places).
         showPageOf("charge_start");
         main(() -> {
             Object row = shownRow("charge_start");
             String value = String.valueOf(((TextView)field(row, "value")).getText()), sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
-            require(value.isEmpty() && sub.startsWith("Not scheduled") && sub.contains("Untested here"), "Charge start row value \"" + value + "\" caption \"" + sub + "\"");
+            require(value.startsWith("Not scheduled") && !sub.contains("Not scheduled") && !sub.contains("Untested"), "Charge start row value \"" + value + "\" caption \"" + sub + "\"");
         });
         screenshotRow("q-noregion-charge-start", "charge_start");
         screenshotRow("q-noregion-start", "start_speed");
@@ -164,14 +165,14 @@ public final class CompatControlsValidation extends Instrumentation {
         });
         screenshot("q-lab");
         home("q-noregion");
-        checks.add("25851 without region: no Top speed (Not offered for this region), Untested here rows, TCS/single-motor confirm sheets (Cancel keeps, Continue sends to the simulator), 3-5 km/h kick-start, six-colour zones, Experimental controls tries kick-start 0-3 km/h and the speed cap (never Top speed, drive speed limit or overspeed control), the rest Help verify");
+        checks.add("25851 without region: no Top speed (Not offered for this region), mapped rows with no Untested here caption, TCS/single-motor confirm sheets (Cancel keeps, Continue sends to the simulator), 3-5 km/h kick-start, six-colour zones, Experimental controls tries kick-start 0-3 km/h and the speed cap (never Top speed, drive speed limit or overspeed control), the rest Help verify");
     }
 
     /** 2585: US offers its model-specific tables with high-speed and low-start cautions; DE follows the official app (no Top speed, 3-5 km/h kick-start). */
     private void qGroupUs() throws Exception {
         model("25851", "US");
         scooterPage("q-us");
-        expectCaption("maximum_speed", "Untested here");
+        expectNoNote("maximum_speed");
         main(() -> {
             BleController ble = activity.service().ble;
             require(Arrays.equals(ble.featureChoices("maximum_speed"), new int[]{25, 32, 40, 50, 70}), "2585 US table " + Arrays.toString(ble.featureChoices("maximum_speed")));
@@ -192,8 +193,8 @@ public final class CompatControlsValidation extends Instrumentation {
         // A DE serial: the official app's Top speed and kick-start rules (no Top speed, 3-5 km/h); other controls keep the union.
         model("25851", "DE"); scooterPage("q-de");
         expectHidden("maximum_speed");
-        expectCaption("start_speed", "Untested here");
-        expectCaption("traction_control", "Untested here");
+        expectNoNote("start_speed");
+        expectNoNote("traction_control");
         expectChoices("start_speed", new int[]{3, 4, 5});
         choiceSheet("start_speed", null, "q-de-start-choices");
         main(() -> require(Arrays.equals((int[])field(field(activity, "choiceSheet"), "choices"), new int[]{3, 4, 5}), "DE kick-start sheet offers values below 3 km/h"));
@@ -227,7 +228,7 @@ public final class CompatControlsValidation extends Instrumentation {
         expectCaption("lock_expiry", "Firmware not read yet");
         expectCaption("maximum_speed", "Firmware not read yet");
         expectCaption("start_speed", "Firmware not read yet");
-        expectCaption("acceleration", "Untested here");
+        expectNoNote("acceleration");
         screenshotRow("k-firmware-rows", "maximum_speed");
         screenshotRow("k-firmware-lock", "lock_expiry");
         // More's Security section is the Scooter › Security page since #387.
@@ -246,8 +247,8 @@ public final class CompatControlsValidation extends Instrumentation {
     private void groupM() throws Exception {
         model("25041", null);
         scooterPage("m");
-        expectCaption("energy_recovery", "Untested here");
-        expectCaption("speed_limit", "Untested here");
+        expectNoNote("energy_recovery");
+        expectNoNote("speed_limit");
         expectChoices("start_speed", new int[]{3, 4, 5});
         main(() -> {
             BleController ble = activity.service().ble;
@@ -273,7 +274,7 @@ public final class CompatControlsValidation extends Instrumentation {
         model("24431", "US");
         main(() -> require(activity.service().ble.set("energy_recovery", 30), "Simulator refused energy recovery Low: " + activity.service().ble.message())); settle();
         lightsPage("s-lights");
-        for (String key : new String[]{"ambient_light_mode", "logo_light", "daytime_light"}) expectCaption(key, "Untested here");
+        for (String key : new String[]{"ambient_light_mode", "logo_light", "daytime_light"}) expectNoNote(key);
         // Line and star zone rows would be on Line lights and Star lights (#385): hidden on their own pages.
         for (String key : new String[]{"line_light", "star_light"}) {
             showPageOf(key);
@@ -293,8 +294,8 @@ public final class CompatControlsValidation extends Instrumentation {
             model("27451", region);
             String label = "g-" + (region == null ? "noregion" : region.toLowerCase(Locale.ROOT));
             scooterPage(label);
-            expectCaption("long_range_mode", "Untested here");
-            expectCaption("start_speed", "Untested here");
+            expectNoNote("long_range_mode");
+            expectNoNote("start_speed");
             expectChoices("long_range_mode", new int[]{0, 1});
             expectChoices("start_speed", "US".equals(region) ? new int[]{0, 1, 2, 3, 4, 5} : new int[]{3, 4, 5});
             screenshotRow(label + "-rows", "long_range_mode");
@@ -371,7 +372,8 @@ public final class CompatControlsValidation extends Instrumentation {
     }
     /**
      * Every Scooter page with rows (the Hub layout, #385, gives each control one page: ControlsPages): every shown row has
-     * a known encoding, OEM_MAPPED evidence and Untested here or its refusal reason. Ends on Controls.
+     * a known encoding, OEM_MAPPED evidence and its refusal reason or no note: no Untested here since the owner dropped it
+     * (Nov 17 2026). Ends on Controls.
      */
     private void scooterPage(String label) throws Exception {
         for (String page : HubTestPages.scooterRowPages()) {
@@ -392,14 +394,15 @@ public final class CompatControlsValidation extends Instrumentation {
                     if (!ble.descriptor().rulePid().isEmpty() && ModelRegistry.resolve(ble.descriptor()).layer != ModelRegistry.Layer.UT5_MAX) {
                         require(d.evidence == CapabilityResolver.Evidence.OEM_MAPPED, label + ": " + feature.key + " evidence " + d.evidence);
                         boolean refused = !d.available() && !d.blockedByRide();
-                        require(refused ? sub.contains(d.reasonText()) : sub.contains("Untested here"), label + ": " + feature.key + " caption \"" + sub + "\" for " + d);
+                        require(refused ? sub.contains(d.reasonText()) : rowNote(ble, d, feature.key) == null, label + ": " + feature.key + " caption \"" + sub + "\" for " + d);
+                        require(!sub.contains("Untested here"), label + ": " + feature.key + " still says Untested here: \"" + sub + "\"");
                     }
                 }
             });
         }
         openPage("controls");
         screenshot(label + "-scooter");
-        checks.add(label + ": on every Scooter page, every shown row has a known encoding, OEM_MAPPED evidence and Untested here or its refusal reason");
+        checks.add(label + ": on every Scooter page, every shown row has a known encoding, OEM_MAPPED evidence and its refusal reason or no note (never Untested here)");
     }
     /** Lights & sound (a page of its own since #385, no longer the Scooter page's Lights mode), top and end. */
     private void lightsPage(String label) throws Exception {
@@ -490,6 +493,29 @@ public final class CompatControlsValidation extends Instrumentation {
         }
         main(() -> { View scroll = (View)field(activity, "scroll"); if (scroll != null) scroll.scrollTo(0, 0); }); settle();
         checks.add(label + ": " + counts[0] + " toggle and " + counts[1] + " open tiles follow the decided variant");
+    }
+    /**
+     * An offered OEM-mapped row on another model reads like any supported control (owner, Nov 17 2026): no Untested here,
+     * and no note at all from MainActivity.controlNote, the source that wrote it.
+     */
+    private void expectNoNote(String key) {
+        showPageOf(key);
+        main(() -> {
+            Object row = row(key);
+            require(((View)field(row, "card")).getVisibility() == View.VISIBLE, "Row " + key + " hidden for " + activity.service().ble.descriptor());
+            shownRow(key);
+            BleController ble = activity.service().ble; CapabilityResolver.Decision d = ble.decision(key);
+            String sub = String.valueOf(((TextView)field(field(row, "row"), "sub")).getText());
+            require(!sub.contains("Untested here"), "Row " + key + " caption \"" + sub + "\" still says Untested here");
+            require(rowNote(ble, d, key) == null, "Row " + key + " has a note \"" + sub + "\" for " + d);
+        });
+    }
+    /** MainActivity.controlNote (package-private), the one source of a row's note, as a shown row asks it. */
+    private static String rowNote(BleController ble, CapabilityResolver.Decision d, String key) {
+        try {
+            Method m = MainActivity.class.getDeclaredMethod("controlNote", BleController.class, CapabilityResolver.Decision.class, boolean.class, String.class);
+            m.setAccessible(true); return (String)m.invoke(null, ble, d, d.blockedByRide(), key);
+        } catch (Exception e) { throw new IllegalStateException("controlNote", e); }
     }
     private void expectCaption(String key, String text) {
         showPageOf(key);

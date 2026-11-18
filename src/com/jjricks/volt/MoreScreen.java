@@ -1156,11 +1156,8 @@ public final class MoreScreen implements AppScreen {
     private void releaseScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null || !releaseReady(id)) return;
         LinearLayout box = dialogBox(T.moreScootersReleaseTitle(p.displayName()), T.moreScootersReleaseBody());
-        // Off the UT5 MAX, Release is known only from the NAVEE app's mapping, so it reads Untested here like every such
-        // control (MainActivity.controlNote); the owner's hardware check covers the UT5 MAX alone.
-        CapabilityResolver.Decision decision = service().ble.releaseDecision();
-        if (decision.layer != ModelRegistry.Layer.UT5_MAX && decision.evidence == CapabilityResolver.Evidence.OEM_MAPPED)
-            note(box, T.mainRowUntested());
+        // The same confirmation on every model: off the UT5 MAX, Release is known from the NAVEE app's mapping, and like
+        // every such control it no longer says Untested here (owner, Nov 17 2026). releaseReady's gates are unchanged.
         // Scrolls like Forget's, so a short window (landscape, split screen) with large text still reaches the buttons.
         ScrollView inner = new ScrollView(host.activity()); inner.addView(box);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(inner).create();
@@ -2190,13 +2187,13 @@ public final class MoreScreen implements AppScreen {
         return before != null && current != null && !before.equals(current) && d.variant != null && d.variant.allows(before);
     }
     /**
-     * The running try of this control, or what its last journalled try read back, or that it is untested (experimental)
-     * or unverified (Help verify) here, as quiet orange words rather than a pill.
+     * The running try of this control, or what its last journalled try read back, or, before any try, quiet muted "Not
+     * tried yet" words rather than a pill (none where they don't fit). No row says Untested or Unverified here any more (owner, Nov 17 2026): the
+     * card itself says what its controls are, and owners' reports say what is missing.
      */
     private void labStatus(BleController ble, String key, LadderPill pill, boolean sheet) {
         GuidedTest live = labLive(ble, key);
         TestJournal.Entry last = ble.simulating() ? null : ble.latestTry(key);
-        boolean verify = !ble.experimentalDecision(key).experimental();
         if (live != null) {
             switch (live.phase()) {
                 // The sheet asks the question itself; its fact line just says what the try waits for.
@@ -2208,12 +2205,9 @@ public final class MoreScreen implements AppScreen {
         // The simulator changes only its own memory and reads nothing back: no scooter evidence either way.
         if (ble.simulating() && ble.experimentBaseline(key) != null) { pill.quiet(ui.muted, T.moreLabStatusSimulated(), T.moreLabStatusSimulatedShort()); return; }
         if (last != null && !last.resolved) { pill.show(ui.danger, true, T.moreLabStatusUnfinished(), T.moreLabStatusUnfinishedShort()); return; }
-        if (last == null) {
-            if (sheet) pill.quiet(ui.muted, T.moreLabStatusNotTried());
-            else if (verify) pill.quiet(ui.orange, T.moreLabStatusUnverified(), T.moreLabStatusUnverifiedShort(), T.moreLabStatusUnverifiedCompact());
-            else pill.quiet(ui.orange, T.moreLabStatusUntested(), T.moreLabStatusUntestedShort(), T.moreLabStatusUntestedCompact());
-            return;
-        }
+        // Untried is the default state, so where "Not tried yet" doesn't fit (pt-PT beside Try at 344 dp) the row shows no
+        // words rather than a cut-off phrase; the pill's description, which the row speaks, keeps the full words.
+        if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried(), ""); return; }
         switch (CompatibilityReport.tryResult(last)) {
             case "worked_here": pill.show(ui.ok, true, T.moreLabStatusWorked(), T.moreLabStatusWorkedShort()); return;
             case "refused": pill.show(ui.danger, true, T.moreLabStatusRefused(), T.moreLabStatusRefusedShort()); return;
@@ -2298,6 +2292,8 @@ public final class MoreScreen implements AppScreen {
                 String pick = ladder[ladder.length - 1];
                 for (String word : ladder) if (getPaint().measureText(word) <= room) { pick = word; break; }
                 if (!pick.contentEquals(getText())) setText(pick);
+                // An empty last rung (an untried row's status) takes no room at all, not a blank line under the name.
+                if (pick.isEmpty()) { setMeasuredDimension(0, 0); return; }
             }
             super.onMeasure(widthSpec, heightSpec);
         }

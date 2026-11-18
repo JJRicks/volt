@@ -113,7 +113,7 @@ final class ChargeBarDrag {
     /**
      * How much of the value label shows: as much as the bar is lifted under a finger, and wholly while a write is
      * pending or while the bar has keyboard focus (so an arrow key's user sees the value and the row's note, such as
-     * "Untested here", before a key writes anything).
+     * "Unconfirmed here", before a key writes anything).
      */
     static float labelShown(float lift, boolean pending, boolean focused) {
         return Math.max(lift, pending || focused ? 1 : 0);
