@@ -10,7 +10,7 @@
     <string name="riding_alert_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">Caricato a %1$s%%</string>
     <string name="riding_alert_charged_short" volt:src="366956c11da1d218267c66f6035b9fcf80fae8e7">Caricato</string>
     <string name="riding_alert_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Carica completa</string>
-    <string name="riding_alert_full_short" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Completa</string>
+    <string name="riding_alert_full_short" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Piena</string>
     <string name="riding_alert_stop" volt:src="74b74e872b211ea42c2b50f641e0431f2398a2fb">Interrompi il suono</string>
     <string name="riding_alert_stop_short" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Interrompi</string>
     <string name="riding_alert_close" volt:src="3be2d4ca7a9873f99f23fda19ad4e59388d53175">Chiudi l\'avviso</string>

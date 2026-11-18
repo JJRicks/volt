@@ -80,6 +80,9 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Impostazioni | **Impost.** | 75 → 43 | See below |
 | Sperimentale | **Sperim.** | 77 → 44 | Only under 64dp |
 | Limite di velocità | **Limite vel.** | 97 → 59 | |
+| Sovravelocità | **Sovravel.** | 84.0 → 57.3 at 13.5sp | Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.) |
+| Ricarica entro | **Ricar. entro** | 85.9 → 71.8 at 13.5sp | Clean Home's 72dp round button only (owner's ladder exception, 2026-11-18, as fr Récup. and es Exceso vel.); Ric. is not allowed |
+| prossimità, after Sblocco | **prox.** | Sblocco prox. 76.4 | The 90dp Setting tile only (`controls_feature_proximity_key_short`); Sblocco stays whole |
 | Numero | **N.** | | |
 | informazioni | **info** | | *Info e autorizzazioni* (118) on full-width rows. *autorizzazioni* (78.7 at 12sp) doesn't fit a 64dp Quick access line, so those two rungs alone say *Info e permessi* (89) |
 | massimo, minimo | **max**, **min** | | |

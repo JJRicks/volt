@@ -283,6 +283,12 @@
     <string name="controls_refusal_proximity_bond">Koppel deze telefoon voordat je ontgrendelen bij nabijheid aanzet</string>
     <!-- src:98af0415be393c700e663c6ff4eaeb536b7d9b57 -->
     <string name="controls_refusal_proximity_pin">Stel de stuur-PIN in en zet die aan voordat je ontgrendelen bij nabijheid aanzet</string>
+    <!-- src:45da6512e6addec2db48cf8781e285fbb248d5d5 -->
+    <string name="controls_caution_asks">De officiële app vraagt om bevestiging vóór deze wijziging.</string>
+    <!-- src:4442b2318eac640ae6039d6bb270ae7dd75d0da1 -->
+    <string name="controls_caution_untested">Volt vraagt om bevestiging vóór deze wijziging.</string>
+    <!-- src:1f7cca9d70c2992d9c9f54d2604685a34b2b8f4c -->
+    <string name="controls_caution_shows">De officiële app toont een waarschuwing voor deze wijziging.</string>
     <!-- src:23b20de27ff343f6cf6f03506bf17dd3fe637e36 -->
     <string name="controls_caution_traction_control">Tractiecontrole uitzetten? %1$s</string>
     <!-- src:5fc0d9cd0dcae1e2195b91a04a4374dedff1834f -->
