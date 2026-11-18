@@ -210,43 +210,62 @@ public final class ModelPhotosValidation extends Instrumentation {
         String[] keys = {"st3pro", "n65i", "gt3max", "gt5max", "xt5ultra", "g5pro", "gt3", "gt3pro", "gt5pro", "k100max", "n65iii", "v25series",
                 "v40series", "xt5max", "xt5pro"};
         AtomicReference<Bitmap> drawn = new AtomicReference<>();
+        AtomicReference<View> rendered = new AtomicReference<>();
         main(() -> {
             Ui ui = activity.ui();
             float dp = activity.getResources().getDisplayMetrics().density;
             int width = root().getWidth(), pad = Math.round(16 * dp), gap = Math.round(8 * dp), columns = 2;
-            int cellW = (width - 2 * pad - (columns - 1) * gap) / columns, cellH = Math.round(cellW * .62f), labelH = Math.round(22 * dp);
-            int rows = (keys.length + columns - 1) / columns, height = 2 * pad + Math.round(30 * dp) + rows * (cellH + labelH + gap);
-            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(bitmap); canvas.drawColor(ui.bg);
-            android.graphics.Paint text = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG); text.setColor(ui.text); text.setTextSize(18 * dp * activity.getResources().getConfiguration().fontScale);
-            canvas.drawText("Folded charging pictures (" + (ui.dark ? "dark" : "light") + ")", pad, pad + 18 * dp, text);
-            android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG);
-            android.graphics.Paint floor = new android.graphics.Paint(); floor.setColor(ui.muted); floor.setStrokeWidth(dp);
-            int shown = 0;
+            int cellW = (width - 2 * pad - (columns - 1) * gap) / columns, cellH = Math.round(cellW * .62f);
+            LinearLayout page = new LinearLayout(activity); page.setOrientation(LinearLayout.VERTICAL); page.setBackgroundColor(ui.bg);
+            page.setPadding(pad, pad, pad, pad);
+            TextView title = new TextView(activity); title.setTextColor(ui.text); title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+            title.setText("Folded charging pictures (" + (ui.dark ? "dark" : "light") + ")"); page.addView(title);
+            LinearLayout row = null; int shown = 0; List<Bitmap> cuts = new ArrayList<>();
             for (int i = 0; i < keys.length; i++) {
-                int left = pad + (i % columns) * (cellW + gap), top = pad + Math.round(30 * dp) + (i / columns) * (cellH + labelH + gap);
-                GradientDrawable surface = new GradientDrawable(); surface.setColor(ui.surface); surface.setCornerRadius(14 * dp);
-                surface.setBounds(left, top, left + cellW, top + cellH); surface.draw(canvas);
+                if (i % columns == 0) {
+                    row = new LinearLayout(activity); row.setOrientation(LinearLayout.HORIZONTAL);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                    lp.topMargin = gap; page.addView(row, lp);
+                }
                 int id = activity.getResources().getIdentifier(keys[i] + "_folded", "drawable", activity.getPackageName());
                 if (!look()) require(id != 0, "No folded picture for " + keys[i]);
-                if (id == 0) continue;
-                Bitmap cut = android.graphics.BitmapFactory.decodeResource(activity.getResources(), id);
+                Bitmap cut = id == 0 ? null : android.graphics.BitmapFactory.decodeResource(activity.getResources(), id);
                 Object model = callStatic("com.jjricks.volt.ChargeFolded", "forKey", new Class<?>[]{String.class}, keys[i]);
-                int tyreY = model == null ? cut.getHeight() : (Integer) field(model, "tyreY");
-                float scale = .8f * cellW / cut.getWidth(), floorY = top + cellH - 14 * dp;
-                float l = left + (cellW - cut.getWidth() * scale) / 2, t = floorY - tyreY * scale;
-                canvas.drawLine(left + 8 * dp, floorY, left + cellW - 8 * dp, floorY, floor);
-                canvas.drawBitmap(cut, null, new android.graphics.RectF(l, t, l + cut.getWidth() * scale, t + cut.getHeight() * scale), paint);
-                text.setTextSize(13 * dp); canvas.drawText(keys[i] + "_folded", left + 4 * dp, top + cellH + 16 * dp, text);
-                cut.recycle(); shown++;
+                int tyreY = cut == null ? 0 : model == null ? cut.getHeight() : (Integer) field(model, "tyreY");
+                if (cut != null) { shown++; cuts.add(cut); }
+                LinearLayout card = new LinearLayout(activity); card.setOrientation(LinearLayout.VERTICAL);
+                // The cut-out at 80% of the card's width, centred, its tyres on the card's floor line (ChargeFolded.place).
+                View picture = new View(activity) {
+                    final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG);
+                    final android.graphics.Paint floor = new android.graphics.Paint();
+                    @Override protected void onDraw(Canvas canvas) {
+                        float w = getWidth(), floorY = getHeight() - 14 * dp;
+                        floor.setColor(ui.muted); floor.setStrokeWidth(dp);
+                        canvas.drawLine(8 * dp, floorY, w - 8 * dp, floorY, floor);
+                        if (cut == null) return;
+                        float scale = .8f * w / cut.getWidth(), l = (w - cut.getWidth() * scale) / 2, t = floorY - tyreY * scale;
+                        canvas.drawBitmap(cut, null, new android.graphics.RectF(l, t, l + cut.getWidth() * scale, t + cut.getHeight() * scale), paint);
+                    }
+                };
+                GradientDrawable surface = new GradientDrawable(); surface.setColor(ui.surface); surface.setCornerRadius(14 * dp); picture.setBackground(surface);
+                card.addView(picture, new LinearLayout.LayoutParams(cellW, cellH));
+                TextView name = new TextView(activity); name.setTextColor(ui.text); name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+                name.setText(keys[i] + "_folded"); name.setMaxLines(1);
+                card.addView(name, new LinearLayout.LayoutParams(cellW, LinearLayout.LayoutParams.WRAP_CONTENT));
+                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(cellW, LinearLayout.LayoutParams.WRAP_CONTENT);
+                if (i % columns != 0) cp.leftMargin = gap;
+                row.addView(card, cp);
             }
-            drawn.set(bitmap);
+            page.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            page.layout(0, 0, page.getMeasuredWidth(), page.getMeasuredHeight());
+            Bitmap bitmap = Bitmap.createBitmap(page.getMeasuredWidth(), page.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+            page.draw(new Canvas(bitmap)); drawn.set(bitmap); rendered.set(page);
+            for (Bitmap cut : cuts) cut.recycle(); // drawn; the census below reads only the view tree's text
             checks.add(label + ": " + shown + " folded pictures");
         });
         File file = new File(dir(), "folded-" + label + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { drawn.get().compress(Bitmap.CompressFormat.PNG, 100, out); } finally { drawn.get().recycle(); }
-        screenshots.add(file.getAbsolutePath());
-        TextCensus.skip(file, "a review sheet drawn on a canvas: its only words are its title and the bundled files' names, not app text");
+        screenshots.add(file.getAbsolutePath()); TextCensus.writeView(this, file, rendered.get());
     }
 
     private String photoKey(DeviceDescriptor d) { return (String) callStatic("com.jjricks.volt.ModelRegistry", "photo", new Class<?>[]{DeviceDescriptor.class}, d); }

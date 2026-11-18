@@ -9,7 +9,7 @@ import { runInNewContext } from 'node:vm';
 import { webcrypto } from 'node:crypto';
 import { build } from 'esbuild';
 import { frame, line, START } from './navee-fixtures.mjs';
-import { HEALTH } from '../src/navee-log.js';
+import { HEALTH, MODELS } from '../src/navee-log.js';
 
 const entry = fileURLToPath(new URL('../src/debugger.js', import.meta.url));
 const html = await readFile(new URL('../debugger.html', import.meta.url), 'utf8');
@@ -107,7 +107,11 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
 
 test('the problem step needs a model and description; the model list is Volt’s', () => {
   const f = fixture();
-  assert.deepEqual(f.$('model').children.map(o => o.value), ['', 'UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro', 'Other / not sure']);
+  // Every model Volt names (ModelRegistry KNOWN, checked in navee-log.test.mjs), each name once, in the registry's order.
+  const names = f.$('model').children.map(o => o.value);
+  assert.deepEqual(names, ['', ...new Set(MODELS), 'Other / not sure']);
+  assert.deepEqual(names.slice(1, 8), ['UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro']);
+  assert.equal(names.filter(n => n === 'NT5 Max').length, 1); assert(names.includes('K100 Max') && names.includes('P50'));
   assert.deepEqual(f.visible(), ['problem-panel']);
   assert.equal(f.$('problem-next').disabled, true);
   f.type('description', 'Lights'); assert.equal(f.$('problem-next').disabled, true);
