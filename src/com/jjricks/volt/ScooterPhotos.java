@@ -39,7 +39,8 @@ final class ScooterPhotos {
     private static int resource(String key) {
         switch (key) {
             case "ut5max": return R.drawable.ut5max;
-            case "ut5ultrax": return R.drawable.ut5ultrax;
+            // The catalog pictures the UT5 Ultra with the NT3 Max's image; it shows its own family's UT5 Ultra X photo instead.
+            case "ut5ultrax": case "ut5ultra": return R.drawable.ut5ultrax;
             case "e20lite": return R.drawable.e20lite;
             case "e25go": return R.drawable.e25go;
             case "e60pro": case "e45pro": return R.drawable.e60pro;
@@ -54,7 +55,7 @@ final class ScooterPhotos {
             case "k100pro": return R.drawable.k100pro;
             case "n65i": case "v60ipro": return R.drawable.n65i;
             case "n65iii": return R.drawable.n65iii;
-            case "nt3max": case "s2_26142": case "s60": case "ut5ultra": return R.drawable.nt3max;
+            case "nt3max": case "s2_26142": case "s60": return R.drawable.nt3max;
             case "nt5max": return R.drawable.nt5max;
             case "nt5maxplus": return R.drawable.nt5maxplus;
             case "nt5ultra": return R.drawable.nt5ultra;

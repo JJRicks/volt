@@ -353,6 +353,12 @@ public final class ModelRegistryTest {
         check(ModelRegistry.photo(advertised("25462")).equals(ModelRegistry.photo(advertised("25463")))&&ModelRegistry.photo(advertised("23141")).equals(ModelRegistry.photo(advertised("23142"))),
             "IDs of one model share a photo");
         check(!ModelRegistry.photo(advertised("25362")).equals(ModelRegistry.photo(advertised("26142"))),"The two S2 IDs keep their own pictures");
+        // The UT5 Ultra (25472) keeps its own key but shows the UT5 Ultra X's photo file, not the catalog's NT3 Max image; no wire picture follows it.
+        check(ModelRegistry.photo(advertised("25472")).equals("ut5ultra")&&ChargeWireModels.forKey("ut5ultra")==null&&ChargeFolded.forKey("ut5ultra")==null,"UT5 Ultra key");
+        String shown;
+        try{shown=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java")),java.nio.charset.StandardCharsets.UTF_8);}
+        catch(java.io.IOException e){throw new AssertionError(e);}
+        check(shown.contains("case \"ut5ultrax\": case \"ut5ultra\": return R.drawable.ut5ultrax;"),"The UT5 Ultra shows the UT5 Ultra X photo");
         // Golf carts stay an unsupported product, unnamed.
         for(String golf:new String[]{"24352","25152"})
             check(layer(advertised(golf))==ModelRegistry.Layer.UNSUPPORTED_PRODUCT&&ModelRegistry.modelName(advertised(golf)).isEmpty(),"A Birdie golf cart is not named: "+golf);
