@@ -149,7 +149,7 @@ The app must be reopened after any transfer, including cancel. Derived models ar
 
 Copy is short. The screen keeps FLAG_SECURE, follows the user's theme and text size (as RideBackupActivity does), uses 48 dp rows with checkbox semantics and spoken counts, and a polite live region for status. It has no decorative animation, and any expand honours `Ui.motionEnabled()`.
 
-**Entry.** More → **Back up & restore** opens a dialog with **Back up** and **Restore**. Then a confirm: "Volt pauses until you reopen it." / Continue. Onboarding’s prominent **Restore Volt backup** button and setup-path option go straight to Restore, before pairing or Bluetooth permission. The former owner-only export now uses this same full-default flow.
+**Entry.** Settings → **Back up & restore** opens a dialog with **Back up** and **Restore**. Then a confirm: "Volt pauses until you reopen it." / Continue. Onboarding’s prominent **Restore Volt backup** button and setup-path option go straight to Restore, before pairing or Bluetooth permission. The former owner-only export now uses this same full-default flow.
 
 **Back up** (BackupActivity):
 

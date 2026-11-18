@@ -96,6 +96,10 @@ public final class BatteryWidgetValidation extends Instrumentation {
     private void checkCharging() throws Exception {
         main(() -> { activity.service().ble.setSimulationCharging(true); screen().refresh(); });
         settle();
+        // Widgets' charging view opens over ChargeTransition.WIDGETS_IN_MS: 600 ms since the Plug in transition (#534), up
+        // from 240 ms and longer than settle(). Wait for its reveal to end, then check where it came to rest.
+        await(() -> field(field(screen(), "chargingHero"), "reveal") == null, "Charging transition did not end");
+        settle();
         main(() -> {
             View hero = (View)field(screen(), "chargingHero");
             require(hero.getVisibility() == View.VISIBLE && hero.getHeight() > 0, "Charging hero did not expand");

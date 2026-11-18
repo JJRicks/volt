@@ -1,5 +1,9 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.13.2 (versionCode 59)
+Current version: 2.0.0 (versionCode 60)
+Recognised: every scooter in NAVEE's model catalog, by the Model ID it
+advertises, and pictured where a photo exists. Controls follow the official
+app's per-model list (the two S2 Model IDs, newer than that list, get the
+lock and readings); owner-tested only where reports exist, as below.
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,7 +29,37 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.13.2
+NEW IN 2.0.0
+------------
+- The Hub: Home leads to seven subjects (Ride, Battery & charging, Controls,
+  Lights & sound, Security, Service, Data), each a short page; the tabs are
+  gone. Settings (Clean's gear, or All on the Widgets dock) holds the app's
+  settings, My scooters and Back up & restore. Search finds pages, settings,
+  controls, live readings and rides. The subject pages keep a fixed order, so
+  a setting hidden on the old Scooter tab shows again.
+- Two Home styles: Clean (new; the default for new installations) with a top
+  area for the battery, charging and Just back after a ride, the Lock bar,
+  four quick actions and the subjects, in two panes on a wide screen; and
+  Widgets, the dashboard, now with a dock that grows into an All sheet.
+  Updating owners keep Widgets and see a one-time What's new sheet.
+- Motion: Plug in between parked and charging, and fades and glides where
+  pages, banners and cards used to jump. Clean's charging view has the red
+  Charging pill and a centred percentage; charging pictures for many models.
+- Every NAVEE scooter in NAVEE's catalog is recognised by its Model ID, and
+  pictured where a photo exists. Controls follow the official app's per-model
+  list (the two S2 Model IDs, newer than that list, get the lock and readings);
+  owner-tested models are listed at the top of this file. No control shows
+  "Untested here" any more. Unlock without phone draws each handlebar family.
+- Battery & charging invites you to record charges and send them to Volt,
+  with its own Charge history & recordings row. The UT5 MAX standard charger's
+  99% stage follows the charging current, on every UT5 MAX.
+- Setup can make a new owner key for a new or reset scooter; Release this
+  scooter; Find it nearby; the odometer survives a reset; riding mode's
+  battery alerts are a slim banner and its chips are steadier, with more
+  slots. A memory leak that kept left pages alive is fixed. All new text is
+  translated in all ten beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 1.13.2
 ------------
 - While charging, drag the mark on the Widgets Home's charging bar to change
   the charge limit, or the charge alert's level on models without one once
@@ -46,10 +80,8 @@ NEW IN 1.13.2
   their formatting. GPS accuracy in the ride graph and riding mode.
 - Fixes: steadier background connection, OpenStreetMap as the default
   basemap, ST3 Pro drive mode names, no wrong drive mode right after
-  connecting, and a notification tap no longer opens a second Volt. In this
-  source, part of this release's new text still shows in English in the
-  beta languages until the next translation update; the published 1.13.2
-  has it all translated. Full list: CHANGELOG.md.
+  connecting, and a notification tap no longer opens a second Volt. Full
+  list: CHANGELOG.md.
 
 PREVIOUSLY IN 1.13.1
 ------------
@@ -371,7 +403,7 @@ identifying the helper used; successful real-scooter capture is not yet confirme
 separately for each new path. The computer ADB helper is the established route.
 Existing parked write/readback checks below do not establish helper capture.
 
-NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (UNRELEASED)
+NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (NEW IN 2.0.0)
 
 For a scooter with no owner (never set up, or removed from the NAVEE app),
 setup can make an owner key instead of capturing one: 88 and five random
@@ -384,15 +416,17 @@ Until that scooter is saved, the key goes to it only (Try again shows the
 scooter list; another scooter is refused before it hears the key), unless it
 refuses the key. Once saved, it reconnects like any scooter.
 Backups carry the key with this record. A scooter already saved in Volt is refused before
-it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps; not yet
-tried on a real scooter. See docs/validation/new-scooter-setup.md.
+it is offered the key: release it from its saved profile first. Inferred from the official app's bind and removal steps, and
+tried on a UT5 MAX (Nov 14, 2026: it took the key, connected, locked and
+unlocked, and reconnected after a restart). Not yet tried on other models. See
+docs/validation/new-scooter-setup.md.
 When the scooter first accepts the key, setup shows it once, big and a byte
 at a time ("88 6B 33 AF 01 C2"), with Save backup file (Back up with Scooters
 & setup keys) and a Done button that waits 10 seconds, or none once that backup
 is saved. It comes back until Done is tapped, then never again. The typed-key
 field and owner files accept the key written with spaces, colons or dashes.
 
-ODOMETER CARRY-OVER AFTER A RESET (UNRELEASED)
+ODOMETER CARRY-OVER AFTER A RESET (NEW IN 2.0.0)
 
 Volt keeps each scooter's last odometer reading on this phone, always on and
 read only (no command is sent). When the scooter's odometer drops by more than
@@ -414,7 +448,7 @@ wins; a forgotten or released scooter's record waits on this phone by serial
 for the same scooter's next setup, where the record showing the higher total
 wins. Never in simulation. Untested on hardware.
 
-FIND IT NEARBY: A SAVED SCOOTER AT A NEW BLUETOOTH ADDRESS (UNRELEASED)
+FIND IT NEARBY: A SAVED SCOOTER AT A NEW BLUETOOTH ADDRESS (NEW IN 2.0.0)
 
 Volt connects only to a scooter's saved Bluetooth address, so after a repair
 that changes it, Volt timed out forever. After two timeouts in a row at the
@@ -428,37 +462,38 @@ saves the new address; any other is refused with nothing saved and no retry.
 Rules in FindNearby (tests/l10n/FindNearbyTest.java); not yet tried on a real
 scooter whose address changed.
 
-EVERY NAVEE SCOOTER RECOGNISED AND PICTURED (UNRELEASED)
+EVERY NAVEE SCOOTER RECOGNISED, PICTURED WHERE A PHOTO EXISTS (NEW IN 2.0.0)
 
-Volt names and pictures every scooter in NAVEE's model catalog (the
-maintainer's copy, 17 November 2026) by the exact Model ID it advertises: 62
-IDs, the UT5 MAX (25382, its own layer) included and the Birdie golf carts
-left out. Recognised and pictured; controls follow the official app's
-per-model list (OEM 2.1.9's prefix groups); owner-tested on: the UT5 MAX, plus
-a few controls on the N65i, ST3 Pro, GT5 Max and GT3 Max (see the top of this
-file). Naming verifies nothing: no control, region rule, speed choice or
-safety gate changes, drive-mode codes stay raw except where an owner named
-them, and every newly named model is still asked for a compatibility report.
-The two S2 IDs (25362, 26142) are newer than OEM 2.1.9's model list and keep
-Volt's shared default (the lock and readings); every other catalog ID is in
+Volt names every scooter in NAVEE's model catalog (the maintainer's copy, 17
+November 2026) by the exact Model ID it advertises: 62 IDs, the UT5 MAX (25382,
+its own layer) included and the Birdie golf carts left out, and pictures each
+one the catalog has a photo of. Recognised and pictured; controls follow the
+official app's per-model list (OEM 2.1.9's prefix groups); owner-tested on: the
+UT5 MAX, plus a few controls on the N65i, ST3 Pro, GT5 Max and GT3 Max (see the
+top of this file). Naming verifies nothing: no control, region rule, speed
+choice or safety gate changes, drive-mode codes stay raw except where an owner
+named them, and every newly named model is still asked for a compatibility
+report. The two S2 IDs (25362, 26142) are newer than OEM 2.1.9's model list and
+keep Volt's shared default (the lock and readings); every other catalog ID is in
 its list. The K100 kids' scooters (25042, 25052, 25062) are the official app's
 group M. All catalog scooters use the same Bluetooth service as the UT5 MAX in
-the official app; only e-bikes and the exoskeleton use another.
-Photos: front three-quarter views, each trimmed and scaled to the UT5 MAX
-photo's height, baseline and centre on a transparent square, so every place a
-photo shows (Home, Clean Home, the charging view, My scooters, setup's
-connected picture) frames them alike. Models whose catalog image is the same
-share a file; the P50 has none and is named only. The UT5 MAX and UT5 Ultra X
-photos and charging pictures are unchanged (the UT5 MAX's is the reference),
-and the folded charging photos of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5
-Ultra stay those models' own. The catalog's folded side views fill in ten more:
-G5 Pro, GT3, GT3 Pro, GT5 Pro, K100 Max, N65i II, V25 Series, V40 Series, XT5
-Max and XT5 Pro show their folded picture under the charging percentage, placed
-as the other folded pictures are (80% of the width, tyres on the shared floor,
-no cable). Other models keep their photo while charging. Which scooter is this? lists the catalog's newer models; a V25, V25 Pro,
-V25i Pro, V40i, V40i Pro or EasyRide answer shows the catalog's series photo.
-ModelRegistryTest checks every catalog ID's name and photo and that REPORTED
-is unchanged; ModelPhotosValidation renders the whole set at 412 dp.
+the official app; only e-bikes and the exoskeleton use another. Photos: front
+three-quarter views, each trimmed and scaled to the UT5 MAX photo's height,
+baseline and centre on a transparent square, so every place a photo shows (Home,
+Clean Home, the charging view, My scooters, setup's connected picture) frames
+them alike. Models whose catalog image is the same share a file; the P50 has
+none and is named only. The UT5 MAX and UT5 Ultra X photos and charging pictures
+are unchanged (the UT5 MAX's is the reference), and the folded charging photos
+of the ST3 Pro, N65i, GT3 Max, GT5 Max and XT5 Ultra stay those models' own. The
+catalog's folded side views fill in ten more: G5 Pro, GT3, GT3 Pro, GT5 Pro,
+K100 Max, N65i II, V25 Series, V40 Series, XT5 Max and XT5 Pro show their folded
+picture under the charging percentage, placed as the other folded pictures are
+(80% of the width, tyres on the shared floor, no cable). Other models keep their
+photo while charging. Which scooter is this? lists the catalog's newer models; a
+V25, V25 Pro, V25i Pro, V40i, V40i Pro or EasyRide answer shows the catalog's
+series photo. ModelRegistryTest checks every catalog ID's name and photo and
+that REPORTED is unchanged; ModelPhotosValidation renders the whole set at 412
+dp.
 
 EARLIER CONFIRMED WRITES AND FRESH READBACK
 
@@ -812,8 +847,8 @@ Separate Drive cap     Status field absent on this observed firmware.
 Missing or unexplained values keep a control unavailable. The app has no
 arbitrary command console or firmware-write feature.
 
-Release this scooter (Settings > My scooters > Edit scooter; not yet in a release;
-tried on a UT5 MAX, other models untested) is the one ownership command. For an
+Release this scooter (Settings > My scooters > Edit scooter; new in 2.0.0;
+tried on a UT5 MAX, not yet on other models) is the one ownership command. For an
 owner profile only, connected and authenticated, parked, with fresh status, a
 real scooter (never simulation) and nothing recording, testing or changing, it
 sends the official app's owner release: command 0x50 with data byte 1, through
@@ -880,8 +915,7 @@ DASHBOARD AND LOCAL HISTORY
 Home is the hub for seven subjects, each with a summary (Ride, Battery &
 charging, Controls, Lights & sound, Security, Service, Data). Clean Home lists
 them on the page, every row one height (a subject whose summary isn't known
-yet shows its name alone, centred), and has no dock; Widgets Home has a dock, a sheet in the tab bar's
-colours at the bottom, reaching the screen's bottom edge, with the most-used subjects under short names and All (or swipe up)
+yet shows its name alone, centred), and has no dock; Widgets Home has a dock, a sheet at the bottom, reaching the screen's bottom edge, with the most-used subjects under short names and All (or swipe up)
 for a sheet with Search and Settings first, then every subject with its
 summary. Each dock icon sits on a raised tile under a grab handle. The dock
 is always pinned to the bottom (it steps aside only while Home is being
@@ -1415,11 +1449,12 @@ whole route. Center, zoom, overlay and inspected point survive opening/closing
 the expanded view. Pinch, pan, zoom buttons and inspection work in either view.
 Phone raw, linear and earth-frame
 acceleration are retained in CSV when the relevant sensors are available.
-Auto-save rides (Ride > Recording settings > Ride auto-save, off by default): Auto-save
-Route CSV and Auto-save ride JSON copy each ride you end into one folder chosen once through
-Android's folder picker, byte for byte the Route CSV and All (JSON) exports (Export
-JSON for a ride with no phone recording). Names come from the ride id; a hidden
-file is renamed into place, unchanged files are left alone and no "(1)" copies
+Auto-save rides (Ride > Recording settings > Ride auto-save, off by default): one
+switch, Auto-save rides, copies each ride you end into one folder chosen once through
+Android's folder picker, as one file, byte for byte the Export ride data > Everything
+in one JSON export (ride-<date>_<time>-<id>-everything.json; a ride with no phone
+recording gets "phone":null). Earlier test builds' two switches (Route CSV and ride
+JSON) map onto it. A hidden file is renamed into place, unchanged files are left alone and no "(1)" copies
 are made. Failed copies wait and retry after the next ride, at app start and when
 the folder is chosen again; the Folder row shows the folder or the failure, and one notification per
 kind is posted while Volt is hidden. Emulator-validated; not yet on a phone with

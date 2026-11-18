@@ -562,21 +562,22 @@ public final class RideAutoExportValidation extends Instrumentation {
 
     private void uiRowsOff() {
         String title = T.moreAutoSaveJson();
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(!switchOf(title).isChecked(), "The auto-save switch is off");
         check(T.moreAutoSaveJsonSub().contentEquals(subOf(title).getText()), "The switch says what it saves: " + subOf(title).getText());
         check(text(activity.getWindow().getDecorView(), "Auto-save Route CSV") == null, "The old Route CSV switch is gone");
         String folder = T.moreAutoSaveFolder();
-        View history = rowTitled(T.moreHistorySave());
-        ViewGroup recording = (ViewGroup) history.getParent();
+        AtomicReference<View> options = new AtomicReference<>();
+        main(() -> options.set(HubTestPages.shownTag(activity, "preference-recording-options")));
+        ViewGroup recording = (ViewGroup) options.get();
         ViewGroup group = (ViewGroup) rowTitled(title).getParent();
         check(group != recording && rowTitled(folder).getParent() == group, "Its own group: the switch and the folder row");
         check(group.indexOfChild(rowTitled(folder)) > group.indexOfChild(rowTitled(title)), "The switch, then the folder");
         ViewGroup page = (ViewGroup) recording.getParent();
+        check(group.getParent() == page, "On the same page as the recording switches");
         TextView heading = text(page, T.moreAutoSaveHeading());
-        check(heading != null && heading.getParent() == page && page.indexOfChild(recording) < page.indexOfChild(heading) && page.indexOfChild(heading) == page.indexOfChild(group) - 1, "Ride auto-save heading right above the group, below Save readings history");
-        TextView storage = text(page, T.moreHistoryLocalStorage());
-        check(storage != null && page.indexOfChild(group) < page.indexOfChild((View) storage.getParent().getParent()), "The group sits above the Local storage card");
+        check(heading != null && heading.getParent() == page && page.indexOfChild(recording) < page.indexOfChild(heading) && page.indexOfChild(heading) == page.indexOfChild(group) - 1, "Ride auto-save heading right above the group, below the recording switches");
+        check(text(page, T.moreHistorySave()) == null, "Readings history stays in Data & history, not on this page");
         TextView note = text(page, T.moreAutoSaveFolderNote());
         check(note != null && page.indexOfChild(note) == page.indexOfChild(group) + 1, "The folder note right below the group");
         check(!rowTitled(folder).isEnabled() && T.moreAutoSaveNoFolder().contentEquals(subOf(folder).getText()), "Off: the folder row stays, greyed out, no folder chosen yet");
@@ -588,7 +589,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(switchOf(title).getHeight() >= dp(48), "48dp switch target");
         check(title.contentEquals(switchOf(title).getContentDescription()), "The switch speaks its row title");
         screenshot("01-rows-off-dark");
-        theme("light"); openDataHistory(title); screenshot("01-rows-off-light"); theme("dark");
+        theme("light"); openRecordingSettings(title); screenshot("01-rows-off-light"); theme("dark");
     }
 
     /** In the open folder picker, go to Download/VoltRides (it may already be open there). */
@@ -610,16 +611,16 @@ public final class RideAutoExportValidation extends Instrumentation {
     /** The switch turned on opens the picker; a cancel leaves it off; the folder row then changes the folder only. */
     private void uiPickerFromRow() {
         String title = T.moreAutoSaveJson();
-        openDataHistory(title);
+        openRecordingSettings(title);
         click(switchOf(title));
         node("USE THIS FOLDER", 15000); SystemClock.sleep(800);
         for (int i = 0; i < 4 && pickerShown(); i++) { shell("input keyevent 4"); SystemClock.sleep(1200); }
-        awaitApp(); openDataHistory(title);
+        awaitApp(); openRecordingSettings(title);
         check(!settings.getBoolean(ON, false) && !settings.contains(FOLDER) && !switchOf(title).isChecked(), "Cancelled picker from the row: still off");
         check(T.moreAutoSaveJsonSub().contentEquals(subOf(title).getText()) && T.moreAutoSaveNoFolder().contentEquals(subOf(T.moreAutoSaveFolder()).getText()), "Still no folder");
         click(switchOf(title));
         uiPickVoltRides("02-picker-from-row");
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(settings.getBoolean(ON, false) && !settings.getBoolean(LEGACY, true) && settings.contains(FOLDER), "On once the folder is kept");
         String saving = T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME);
         String folder = T.moreAutoSaveFolder();
@@ -627,13 +628,13 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(T.moreAutoSaveJsonSub().contentEquals(subOf(title).getText()), "The switch keeps saying what it saves");
         awaitFullyShown(() -> subOf(folder), "Folder line"); fullyShown(titleOf(title), "Switch title while on");
         screenshot("03-on-dark");
-        theme("light"); openDataHistory(title); screenshot("03-on-light"); theme("dark");
+        theme("light"); openRecordingSettings(title); screenshot("03-on-light"); theme("dark");
         // The folder row changes the folder only: it opens at the current folder and leaves the switch on.
         String kept = settings.getString(FOLDER, "");
-        openDataHistory(folder); click(rowTitled(folder));
+        openRecordingSettings(folder); click(rowTitled(folder));
         node("Files in " + FOLDER_NAME, 15000);
         uiPickVoltRides("04-picker-from-folder-row");
-        openDataHistory(folder);
+        openRecordingSettings(folder);
         check(kept.equals(settings.getString(FOLDER, "")) && settings.getBoolean(ON, false) && !settings.contains(PROBLEM), "Folder row: same folder kept, switch as it was");
         check(switchOf(title).isChecked() && saving.contentEquals(subOf(folder).getText()), "Folder row: still on, still saving to the folder");
     }
@@ -694,19 +695,19 @@ public final class RideAutoExportValidation extends Instrumentation {
         SystemClock.sleep(1500);
         check(notice(78) == null, "At most one notification per failure kind");
         screenOnAndShow();
-        openDataHistory(csv);
+        openRecordingSettings(csv);
         String folder = T.moreAutoSaveFolder();
         check(T.moreAutoSaveFolderProblem().contentEquals(subOf(folder).getText()), "Failure line on the folder row: " + subOf(folder).getText());
         check(T.moreAutoSaveJsonSub().contentEquals(subOf(csv).getText()), "The switch keeps its own caption");
         check(switchOf(csv).isChecked(), "The setting never turns itself off");
         awaitFullyShown(() -> subOf(folder), "Failure line");
         screenshot("05-failure-line-dark");
-        theme("light"); openDataHistory(csv); screenshot("05-failure-line-light"); theme("dark");
+        theme("light"); openRecordingSettings(csv); screenshot("05-failure-line-light"); theme("dark");
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
         String h = recordRide("Folder back", true); stopOnly(null); awaitPassDone();
         check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Retried at the next ride end: " + exportState());
         check(listing().contains(everythingName(f)) && listing().contains(everythingName(g)) && listing().contains(everythingName(h)), "All three rides copied");
-        openDataHistory(csv);
+        openRecordingSettings(csv);
         check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()), "Folder line back");
         shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
         String v = recordRide("Failure while visible", true); stopOnly(null); awaitPassDone();
@@ -746,21 +747,21 @@ public final class RideAutoExportValidation extends Instrumentation {
         Uri tree = Uri.parse(settings.getString(FOLDER, ""));
         getTargetContext().getContentResolver().releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         settings.edit().remove(FOLDER).remove(PROBLEM).putBoolean(LEGACY, true).putBoolean(ON, false).commit();
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(switchOf(title).isChecked(), "An older backup with only Route CSV on shows auto-save on");
         String folder = T.moreAutoSaveFolder();
         check(T.moreAutoSaveChooseFolder().contentEquals(subOf(folder).getText()) && rowTitled(folder).isEnabled(), "Choose a folder to start saving: " + subOf(folder).getText());
         screenshot("07-restored-no-folder-dark");
-        theme("light"); openDataHistory(title); screenshot("07-restored-no-folder-light"); theme("dark");
+        theme("light"); openRecordingSettings(title); screenshot("07-restored-no-folder-light"); theme("dark");
         String r = recordRide("Restored, waiting", true); stopOnly(null); awaitPassDone();
         check(settings.getString(PENDING, "").equals(r), "The ride waits for a folder");
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(T.moreAutoSaveChooseFolder().contentEquals(subOf(folder).getText()), "Still asks for a folder after a waiting ride");
         click(rowTitled(folder));
         uiPickVoltRides(null);
         await(() -> settings.getString(PENDING, "").isEmpty() && listing().contains(everythingName(r)), 25000, "Choosing a folder from the row copied the waiting ride");
         check(folderFile(everythingName(r)).equals(expectedEverything(r)), "Saved as Everything");
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()) && switchOf(title).isChecked(), "Saving again, still on");
         folderClean();
     }
@@ -769,7 +770,7 @@ public final class RideAutoExportValidation extends Instrumentation {
     private void uiNarrowAndLargeText() {
         String title = T.moreAutoSaveJson();
         shell("wm size 900x2340"); SystemClock.sleep(1500); textScale(1.3f);
-        openDataHistory(title);
+        openRecordingSettings(title);
         fullyShown(titleOf(title), "Narrow switch title");
         String folder = T.moreAutoSaveFolder();
         awaitFullyShown(() -> subOf(title), "Narrow switch caption");
@@ -781,20 +782,20 @@ public final class RideAutoExportValidation extends Instrumentation {
         Rect caption = new Rect(); subOf(title).getGlobalVisibleRect(caption);
         check(titleRect.right <= toggle.left && caption.right <= toggle.left, "Title and caption never run under the switch");
         screenshot("08-narrow-large-text-dark");
-        theme("light"); openDataHistory(title); screenshot("08-narrow-large-text-light"); theme("dark");
+        theme("light"); openRecordingSettings(title); screenshot("08-narrow-large-text-light"); theme("dark");
         textScale(1f); shell("wm size reset"); SystemClock.sleep(1500); settle();
     }
 
     private void uiOffFromRow() {
         String title = T.moreAutoSaveJson();
-        openDataHistory(title);
+        openRecordingSettings(title);
         String folder = T.moreAutoSaveFolder();
         check(switchOf(title).isChecked() && T.moreAutoSaveSavingTo("Download/" + FOLDER_NAME).contentEquals(subOf(folder).getText()) && rowTitled(folder).isEnabled(), "On: the folder row shows the folder");
         Rect before = new Rect();
         rowTitled(folder).getGlobalVisibleRect(before);
         int beforeHeight = rowTitled(folder).getHeight();
         click(switchOf(title));
-        openDataHistory(title);
+        openRecordingSettings(title);
         check(!settings.getBoolean(ON, true) && !settings.contains(FOLDER) && !settings.contains(PENDING) && getTargetContext().getContentResolver().getPersistedUriPermissions().isEmpty(), "Off from the row: grant released, list cleared");
         check(!switchOf(title).isChecked(), "The switch is off");
         check(!rowTitled(folder).isEnabled() && T.moreAutoSaveNoFolder().contentEquals(subOf(folder).getText()), "Folder row greyed out again, no folder chosen yet");
@@ -913,11 +914,14 @@ public final class RideAutoExportValidation extends Instrumentation {
         catch (Exception e) { throw new IllegalStateException(e); }
     }
 
-    // ---- The settings row (MoreScreen, Data & history) ------------------------------------------
+    // ---- The settings row (MoreScreen, Ride › Recording settings) -------------------------------
 
-    /** More, Data & history, scrolled so the named row is centred. */
-    private void openDataHistory(String rowTitle) {
-        main(() -> { method(activity, "select", new Class<?>[]{String.class}, "more"); method(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "Data"); }); settle();
+    /**
+     * Ride › Recording settings, scrolled so the named row is centred. The Hub moved ride auto-save there from More's Data &
+     * history (#393); HubTestPages.reach goes the rider's way the first time, as RideAutoStopValidation does.
+     */
+    private void openRecordingSettings(String rowTitle) {
+        HubTestPages.reach(this, activity, HubPages.RIDE_RECORDING); settle();
         TextView title = text(activity.getWindow().getDecorView(), rowTitle); check(title != null, "Row present: " + rowTitle);
         centre((View) title.getParent().getParent());
     }

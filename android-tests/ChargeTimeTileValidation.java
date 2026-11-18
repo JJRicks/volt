@@ -511,6 +511,9 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         tapQuick(); SystemClock.sleep(200);
         main(() -> require(!atRest(), "The slowed switch was not running"));
         hero(50, null, 0);
+        // The charging view closes over ChargeTransition.WIDGETS_OUT_MS (300 ms since the Plug in transition, #534, up from
+        // 240 ms), six times slower here, and the tile settles once it has closed (stopReveal). Wait for that, then check.
+        await(() -> field(hero(), "reveal") == null, "The charging view did not finish closing");
         main(() -> require(cleanRest() && state("target") == other(before), "Hiding mid-switch left a half state"));
         scale("1");
         hero(50, null, 2);

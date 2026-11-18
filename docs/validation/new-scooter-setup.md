@@ -21,7 +21,7 @@ Volt's new key keeps the `0x88` top byte and fills the other five bytes from And
 
 ## What isn't proven
 
-- **No real scooter has taken a key Volt made.** All of the above is inferred from the official app. The first hardware check is the plan below.
+- **One scooter has taken a key Volt made: the owner's UT5 MAX (Nov 14, 2026).** Steps 5, 6, 7 and 9 of the plan below passed: it connected with the new key and showed **You're connected**, locked and unlocked, the key's backup saved, Volt reconnected by itself with it after a restart, and the NAVEE app then linked the released scooter and the account's identity connected again. Step 8 (Release) found that the UT5 MAX ends the link instead of answering, which Volt now counts as released ([owner-release.md](owner-release.md)). The rest of the evidence above is still inferred from the official app.
 - **How the NAVEE app treats a scooter that has Volt's key.** Its bind should reach the owner check and fail. Whether its server keeps a half-made record after that failure is unknown. Volt's copy tells people to release the scooter in Volt before adding it in the NAVEE app, which avoids the question.
 - **Models other than the UT5 MAX.** The owner check is the same across the models Volt supports, but the release and the first-owner behavior have not been seen on any of them.
 
