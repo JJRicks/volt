@@ -1,8 +1,9 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
 Current version: 2.0.0 (versionCode 60)
-Recognised and pictured: every scooter in NAVEE's model catalog, by the Model ID
-it advertises. Controls follow the official app's per-model list; owner-tested
-only where reports exist, as below.
+Recognised: every scooter in NAVEE's model catalog, by the Model ID it
+advertises, and pictured where a photo exists. Controls follow the official
+app's per-model list (the two S2 Model IDs, newer than that list, get the
+lock and readings); owner-tested only where reports exist, as below.
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -45,9 +46,10 @@ NEW IN 2.0.0
   pages, banners and cards used to jump. Clean's charging view has the red
   Charging pill and a centred percentage; charging pictures for many models.
 - Every NAVEE scooter in NAVEE's catalog is recognised by its Model ID, and
-  pictured where a photo exists. Controls follow the official app's per-model list; owner-tested
-  models are listed at the top of this file. No control shows "Untested here"
-  any more. Unlock without phone draws each handlebar family.
+  pictured where a photo exists. Controls follow the official app's per-model
+  list (the two S2 Model IDs, newer than that list, get the lock and readings);
+  owner-tested models are listed at the top of this file. No control shows
+  "Untested here" any more. Unlock without phone draws each handlebar family.
 - Battery & charging invites you to record charges and send them to Volt,
   with its own Charge history & recordings row. The UT5 MAX standard charger's
   99% stage follows the charging current, on every UT5 MAX.
