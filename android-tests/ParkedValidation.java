@@ -28,9 +28,11 @@ public final class ParkedValidation extends Instrumentation {
     @Override public void onCreate(Bundle args){this.args=args==null?new Bundle():args;start();}
     private final ServiceConnection connection=new ServiceConnection(){public void onServiceConnected(ComponentName n,IBinder b){service=((ScooterService.LocalBinder)b).service();}public void onServiceDisconnected(ComponentName n){service=null;}};
     @Override public void onStart(){Bundle output=new Bundle();try{
-        String mode=args.getString("mode","snapshot");smokeMode=mode.equals("navigation")||mode.equals("background");
+        String mode=args.getString("mode","snapshot");
+        if(args.containsKey("fixture")&&!mode.equals("navigation"))throw new IllegalArgumentException("-e fixture is for navigation mode only");
+        smokeMode=mode.equals("navigation")||mode.equals("background");
         if(smokeMode)backupSmokePreferences();
-        if(mode.equals("navigation")&&args.containsKey("fixture"))emulatorFixture();
+        if(args.containsKey("fixture"))emulatorFixture();
         Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));launchedActivity=activity;
         runMain(()->bound=getTargetContext().bindService(new Intent(getTargetContext(),ScooterService.class),connection,Context.BIND_AUTO_CREATE));
         awaitReadOnly(()->service!=null,8000,"Local service unavailable");
@@ -276,23 +278,29 @@ public final class ParkedValidation extends Instrumentation {
         return new Object[]{wide.get(),tabs.get(),seen.size()};
     }
     /**
-     * Search, from Home's way in: "kickstart" lists start_speed's control where this scooter offers it (and not
-     * otherwise); its tap opens the page ControlsPages puts it on, over Search, with the row shown, and that page's back
-     * link returns to Search with the query kept; "no-match" shows only the no-match line; Cancel returns to Home.
-     * Returns the page the kickstart result opened, or "not offered".
+     * Search, from Home's way in: "kickstart" lists start_speed's control where this scooter offers it as a row or the Lab
+     * tries it (HubSearch.controls: gates.row or gates.lab), and not otherwise; its tap opens the page ControlsPages puts
+     * it on, over Search (MainActivity.openSearchResult: Target.PAGE with the control as its anchor, an Experimental entry
+     * included, since start_speed has a page), with the row shown there, or its Experimental entry where the Lab tries it
+     * instead; that page's back link returns to Search with the query kept; "no-match" shows only the no-match line;
+     * Cancel returns to Home. Returns the page the kickstart result opened (with " (Experimental)" for the Lab's entry),
+     * or "not offered".
      */
     private String searchWalk(MainActivity activity)throws Exception{
         HubTestPages.reach(this,activity,HubPages.SEARCH);arrive(activity,HubPages.SEARCH);
         String holder=HubTestPages.pageOf("start_speed");require(holder!=null,"ControlsPages puts start_speed on no page");
-        AtomicReference<Boolean> offered=new AtomicReference<>();
+        AtomicReference<Boolean> offered=new AtomicReference<>(),lab=new AtomicReference<>();
         runMain(()->((EditText)HubTestPages.shownTag(activity,"hub-search-field")).setText("kickstart"));
-        eventually(8000,()->{offered.set(rule(activity,"rowOffered","start_speed"));View result=screenView(activity).findViewWithTag(KICKSTART_RESULT);
-            require(offered.get()?result!=null&&HubTestPages.shownOnPage(activity,result):result==null||!result.isShown(),"Search for \"kickstart\" "+(offered.get()?"does not list":"lists")+" start_speed's control, which this scooter "+(offered.get()?"offers":"does not offer"));});
+        eventually(8000,()->{lab.set(!rule(activity,"rowOffered","start_speed")&&rule(activity,"labOffered","start_speed"));offered.set(rule(activity,"rowOffered","start_speed")||lab.get());View result=screenView(activity).findViewWithTag(KICKSTART_RESULT);
+            require(offered.get()?result!=null&&HubTestPages.shownOnPage(activity,result):result==null||!result.isShown(),"Search for \"kickstart\" "+(offered.get()?"does not list":"lists")+" start_speed's control, which this scooter "+(offered.get()?lab.get()?"tries in the Lab":"offers":"neither offers nor tries"));});
         hideKeyboard(activity);render(activity,"navigation-search.png");
         if(offered.get()){
             View[] result={null};runMain(()->result[0]=HubTestPages.shownTag(activity,KICKSTART_RESULT));
             HubTestPages.tapView(this,activity,result[0],"the kickstart result");arrive(activity,holder);
-            eventually(8000,()->{HubTestPages.shownControlRow(activity,"start_speed");List<?> stack=(List<?>)call(field(activity,"nav"),"pages",new Class<?>[0]);
+            eventually(8000,()->{
+                if(lab.get())HubTestPages.requireShown(activity,(View)((Map<?,?>)field(HubTestPages.part(activity,"ControlsScreen"),"labEntries")).get("start_speed"),"start_speed's Experimental entry");
+                else HubTestPages.shownControlRow(activity,"start_speed");
+                List<?> stack=(List<?>)call(field(activity,"nav"),"pages",new Class<?>[0]);
                 require(Arrays.asList(HubPages.HOME,HubPages.SEARCH,holder).equals(stack),"The kickstart result opened the stack "+stack+", not "+holder+" over Search");});
             HubTestPages.back(this,activity);arrive(activity,HubPages.SEARCH);
             eventually(()->require("kickstart".contentEquals(((EditText)HubTestPages.shownTag(activity,"hub-search-field")).getText())&&HubTestPages.shownOnPage(activity,screenView(activity).findViewWithTag(KICKSTART_RESULT)),"Back from the kickstart result lost Search's query or its results"));
@@ -303,7 +311,7 @@ public final class ParkedValidation extends Instrumentation {
         runMain(()->((EditText)HubTestPages.shownTag(activity,"hub-search-field")).setText(""));hideKeyboard(activity);
         View[] cancel={null};runMain(()->cancel[0]=HubTestPages.shownTag(activity,"hub-search-cancel"));
         HubTestPages.tapView(this,activity,cancel[0],"Search's Cancel");arrive(activity,HubPages.HOME);
-        return offered.get()?holder:"not offered";
+        return offered.get()?holder+(lab.get()?" (Experimental)":""):"not offered";
     }
     /**
      * Every page of the Hub, read only, the way a rider reaches it (HubTestPages: by touch from Home, its subject rows or
@@ -315,7 +323,8 @@ public final class ParkedValidation extends Instrumentation {
      */
     private String navigationSmoke(Activity launched,Bundle output)throws Exception{
         MainActivity activity=(MainActivity)launched;
-        if("simulator".equals(args.getString("fixture",""))){runMain(()->require(service.setSimulation(true),"Simulation did not start"));awaitReadOnly(()->service.ble.ready(),15000,"The simulated scooter did not connect");}
+        if("simulator".equals(args.getString("fixture",""))){runMain(()->require(service.setSimulation(true),"Simulation did not start"));awaitReadOnly(()->service.ble.ready(),15000,"The simulated scooter did not connect");
+            String model=args.getString("sim_model","");if(!model.isEmpty()){runMain(()->service.ble.setSimulationModel(model));awaitReadOnly(()->service.ble.ready()&&model.equals(service.ble.simulationModel()),15000,"The simulated "+model+" did not connect");}}
         AtomicReference<Long> initial=new AtomicReference<>();AtomicReference<String> connection=new AtomicReference<>(),style=new AtomicReference<>();
         runMain(()->{assertNoUserRecording();initial.set(mutations());connection.set(service.ble.state().name());service.settings.edit().putString("scooter_section","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
         runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
@@ -364,7 +373,7 @@ public final class ParkedValidation extends Instrumentation {
         evidence.put("pages_visited",visited.size());evidence.put("page_ids",new JSONArray(visited));evidence.put("pages_hidden_for_this_scooter",new JSONArray(hidden));
         evidence.put("scooter_pages_checked",controlsShown.size());evidence.put("controls_shown_by_page",new JSONObject((Map<?,?>)controlsShown));evidence.put("controls_shown",new JSONObject((Map<?,?>)controlKeys));
         evidence.put("data_wide",data[0]);evidence.put("data_tabs",data[1]);evidence.put("data_sections",data[2]);evidence.put("search_kickstart_opened",kickstart);evidence.put("search_no_match",true);
-        evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row on "+sliderPage+", slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);
+        evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: "+sliderPage+"; slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);
         if(args.containsKey("fixture"))evidence.put("fixture",args.getString("fixture"));
         results.put(evidence);
         return "Hub walk: Home ("+style.get()+"), "+visited.size()+" pages ("+hidden.size()+" sub-pages hidden for this scooter), "+controls+" controls and Experimental entries on their "+controlsShown.size()+" Scooter pages, "
@@ -436,6 +445,10 @@ public final class ParkedValidation extends Instrumentation {
     private String offlineSliderCancel(MainActivity activity)throws Exception{
         runMain(()->{assertNoUserRecording();reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("scooter_section","").commit();});
         String page=HubTestPages.pageOf("start_speed");require(page!=null,"ControlsPages puts start_speed on no page");
+        awaitReadOnly(()->service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),8000,"Slider cancel regression requires no live GATT");
+        // A page with nothing for this scooter has its link hidden (ControlsPages.linkShown), as the walk recorded it: no row to check.
+        AtomicReference<Boolean> shown=new AtomicReference<>();runMain(()->shown.set(rule(activity,"pageShown",page)));
+        if(!shown.get()){status("Slider row check skipped: "+page+" has nothing for this scooter (its link is hidden); disconnected, no control was sent");return page+" hidden for this scooter; row check skipped";}
         HubTestPages.reach(this,activity,page);arrive(activity,page);
         eventually(8000,()->{
             require(service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),"Slider cancel regression requires no live GATT");
@@ -444,7 +457,7 @@ public final class ParkedValidation extends Instrumentation {
             // Rows have no inline slider; the SeekBar lives in an edit sheet that opens only while connected.
             require(!hasSeekBar(card),"The kick-start row has an inline slider");
         });status("Read-only slider row check passed while disconnected on "+page+"; no control was sent");
-        return page;
+        return "kick-start row on "+page;
     }
     private static boolean hasSeekBar(View view){
         if(view instanceof android.widget.SeekBar)return true;
@@ -456,14 +469,17 @@ public final class ParkedValidation extends Instrumentation {
      * a disposable emulator. Refuses a physical phone and any existing Volt data, then saves a synthetic UT5 MAX owner
      * profile (never connected, so it offers the UT5 MAX rows unavailable, as a saved scooter not yet read) with onboarding
      * done and -e home_style clean|widgets (default clean) chosen; simulator also connects the developer simulator's UT5 MAX
-     * (no radio) before the walk. Grant Nearby devices permission first, or the service never binds.
+     * (no radio) before the walk, or with -e sim_model PID that model (BleController.setSimulationModel; 22131 is the N65i). Grant Nearby devices permission first, or the service never binds.
      */
     private void emulatorFixture(){
         String hardware=Build.HARDWARE.toLowerCase(Locale.ROOT),fixture=args.getString("fixture","");
         require(hardware.contains("ranchu")||hardware.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"-e fixture refuses a physical phone");
         require(fixture.equals("saved")||fixture.equals("simulator"),"Unknown -e fixture "+fixture+" (saved or simulator)");
         Context context=getTargetContext();
-        for(String name:new String[]{"app_settings","profiles","scooter","onboarding"})require(context.getSharedPreferences(name,Context.MODE_PRIVATE).getAll().isEmpty(),"-e fixture refuses existing Volt data (clear it first)");
+        for(String name:new String[]{"app_settings","profiles","scooter","pending_documents","control_evidence","onboarding"})require(context.getSharedPreferences(name,Context.MODE_PRIVATE).getAll().isEmpty(),"-e fixture refuses existing Volt preferences (clear Volt's data first)");
+        // As HubValidation.admit: no private files or databases either.
+        File[] files=context.getFilesDir().listFiles();
+        require(files!=null&&files.length==0&&context.databaseList().length==0,"-e fixture refuses existing Volt files or databases (clear Volt's data first)");
         String style=args.getString("home_style","clean");require(style.equals("clean")||style.equals("widgets"),"Unknown -e home_style "+style);
         runMain(()->{ScooterProfiles profiles=new ScooterProfiles(context);ScooterProfiles.Profile profile=profiles.create("Synthetic navigation fixture","A1B2C3D4E5F6",0);
             profile.serial="X2538-SYNTHETIC";profile.mac="C0:FF:EE:12:34:56";profile.lastConnected=System.currentTimeMillis()-60000;profiles.update(profile);});
