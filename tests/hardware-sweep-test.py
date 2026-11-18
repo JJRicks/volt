@@ -13,8 +13,9 @@ SWEEP = pathlib.Path(__file__).resolve().parents[1] / 'android-tests' / 'run-har
 # fail, notime or unrestored; FAKE_CHARGING is the snapshot's charging_state; FAKE_QEMU, FAKE_LOCKED and
 # FAKE_SIGNATURE simulate an emulator, a locked phone and a runner signed with another key; FAKE_ACTIVE reports a held
 # charging plan; FAKE_PULL=fail and FAKE_RM=fail make evidence collection fail. Volt's notification (dumpsys notification,
-# as an API 36 emulator printed it) reads connected; FAKE_NOTICE=charge shows a charge recording from the start, and
-# FAKE_NOTICE_AFTER=<mode> once that mode has run. FAKE_PLAN's charging and started outcomes report a charge recording
+# as an API 36 emulator printed it) reads connected; FAKE_NOTICE=charge, charge-pt (Brazilian Portuguese) or test (a
+# scheduled-charging test) shows that from the start, and FAKE_NOTICE_AFTER=<mode> a charge recording once that mode has
+# run. Volt's APK is "pulled" from pm path and its strings come from the fake aapt2's dump resources. FAKE_PLAN's charging and started outcomes report a charge recording
 # running at a step's start or started during it.
 FAKE = r'''#!/usr/bin/env python3
 import json, os, pathlib, sys
@@ -26,20 +27,25 @@ plan = json.loads(os.environ.get('FAKE_PLAN', '{}'))
 if argv[:1] == ['shell'] and len(argv) == 2 and argv[1].startswith('rm -rf '): sys.exit(1 if os.environ.get('FAKE_RM') == 'fail' else 0)
 elif argv[:3] == ['shell', 'getprop', 'ro.kernel.qemu']: print(os.environ.get('FAKE_QEMU', ''))
 elif argv[:3] == ['shell', 'pm', 'list']: print('package:com.jjricks.volt')
+elif argv[:3] == ['shell', 'pm', 'path']: print('package:/data/app/~~a1/com.jjricks.volt-b2/base.apk')
+elif argv[:1] == ['pull'] and argv[1].endswith('/base.apk'): pathlib.Path(argv[2]).write_bytes(b'apk')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'power': print('mWakefulness=Awake')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'window': print('isKeyguardShowing=' + os.environ.get('FAKE_LOCKED', 'false'))
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'package': print('versionName=1.10.0')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'notification':
     ran = state.joinpath('ran').read_text().split() if state.joinpath('ran').exists() else []
-    charge = os.environ.get('FAKE_NOTICE') == 'charge' or os.environ.get('FAKE_NOTICE_AFTER', '-') in ran
+    kind = 'charge' if os.environ.get('FAKE_NOTICE_AFTER', '-') in ran else os.environ.get('FAKE_NOTICE', 'connected')
+    action, title = dict(charge=('Stop charge recording', 'Charging to full'), connected=('Disconnect', 'Connected to UT5 MAX'),
+                         test=('Cancel test', 'Testing scheduled charging'),
+                         **{'charge-pt': ('Parar grava\u00e7\u00e3o de carregamento', 'Grava\u00e7\u00e3o de carregamento ativa')})[kind]
     print('  Notification List:')
     print('    NotificationRecord(0x0a1f6bab: pkg=com.jjricks.volt user=UserHandle{0} id=71 tag=null importance=2 key=0|com.jjricks.volt|71|null|10216: '
           'Notification(channel=scooter flags=ONGOING_EVENT|ONLY_ALERT_ONCE|NO_CLEAR|FOREGROUND_SERVICE category=service actions=1 vis=PRIVATE))')
     print('      uid=10216 userId=0')
     print('            actions={')
-    print('                [0] "' + ('Stop charge recording' if charge else 'Disconnect') + '" -> PendingIntent{9ba1da1: PendingIntentRecord{d38460f com.jjricks.volt startService}}')
+    print('                [0] "' + action + '" -> PendingIntent{9ba1da1: PendingIntentRecord{d38460f com.jjricks.volt startService}}')
     print('            }')
-    print('                android.title=String (' + ('Charging to full' if charge else 'Connected') + ')')
+    print('                android.title=String (' + title + ')')
     print('    NotificationRecord(0x0b2: pkg=com.example.other user=UserHandle{0} id=1 tag=null: Notification(channel=x))')
     print('                [0] "Stop charge recording" -> PendingIntent{1}')
 elif argv[:1] == ['install']: print('Success')
@@ -74,7 +80,20 @@ elif argv[:1] == ['pull']:
 # A runner or production APK's manifest as aapt2 dumps it; FAKE_APK picks which.
 AAPT2 = r'''#!/usr/bin/env python3
 import os
+import sys
 kind = os.environ.get('FAKE_APK', 'runner')
+if 'resources' in sys.argv:
+    for name, values in [('service_action_stop_charge', ['Stop charge recording', 'Parar grava\u00e7\u00e3o de carregamento']),
+                         ('service_notice_charge_active', ['Charge recording is active', 'Grava\u00e7\u00e3o de carregamento ativa']),
+                         ('service_notice_charge_reconnecting', ['Charge recording \u00b7 reconnecting']),
+                         ('service_action_cancel_test', ['Cancel test', 'Cancelar teste']),
+                         ('service_notice_testing', ['Testing scheduled charging']),
+                         ('service_action_disconnect', ['Disconnect', 'Desconectar'])]:
+        print(f'    resource 0x7f0b0eae string/{name}')
+        for config, value in zip(['', 'pt-rBR'], values): print(f'      ({config}) "{value}"')
+    print('    resource 0x7f0c0001 plurals/some_count')
+    print('      () <plurals>')
+    sys.exit(0)
 android = 'http://schemas.android.com/apk/res/android'
 if kind == 'volt': print('  E: manifest (line=2)\n    A: package="com.jjricks.volt" (Raw: "com.jjricks.volt")\n      E: application (line=4)')
 else:
@@ -240,6 +259,17 @@ class HardwareSweep(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0); self.assertIn('A charge recording is running', result.stdout)
         self.assertFalse(any(c[:1] == ['install'] for c in self.calls()), 'nothing installed')
         self.assertEqual(self.modes(), [], 'no step restarted Volt')
+
+    def test_a_portuguese_charge_recording_or_a_schedule_test_is_refused(self):
+        result = self.run_sweep(FAKE_NOTICE='charge-pt')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('A charge recording is running', result.stdout)
+        self.assertEqual(self.modes(), []); self.assertFalse(any(c[:1] == ['install'] for c in self.calls()))
+        self.setUp()
+        result = self.run_sweep(FAKE_NOTICE='test')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('A scheduled-charging test is running', result.stdout)
+        self.assertEqual(self.modes(), []); self.assertFalse(any(c[:1] == ['install'] for c in self.calls()))
+        pulls = [c for c in self.calls() if c[:1] == ['pull'] and c[1].endswith('/base.apk')]
+        self.assertEqual(len(pulls), 1, "Volt's texts come from its own APK on the phone")
 
     def test_another_apps_notice_or_volts_connected_notice_does_not_stop_the_sweep(self):
         result = self.run_sweep()

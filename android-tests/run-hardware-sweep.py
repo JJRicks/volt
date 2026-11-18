@@ -20,11 +20,13 @@ run only when named with --include. After any write step fails, or its evidence 
 later write steps are skipped: a setting that wasn't put back stops the plan.
 
 Every step restarts Volt (am instrument replaces its process), and a restarted Volt ends a running charge
-recording as interrupted, deleting a short automatic one. So the sweep refuses to start, and runs no
-further step, while Volt's notification shows a charge recording (its "Stop charge recording" action or
-"Charge recording" title, read from dumpsys notification: English only, and a charge-alert watch shown in
-its place hides it), and stops the remaining plan when a step reports one running at its start or started
-during it. Stop or finish any charge recording in Volt before the sweep.
+recording as interrupted, deleting a short automatic one, and cuts short a scheduled-charging test. So the
+sweep refuses to start, and runs no further step, while Volt's notification shows either (read from dumpsys
+notification and matched against every translation of its titles and actions in the installed Volt's own
+resources, pulled from the phone and read with aapt2; a charge-alert watch shown in their place hides
+them), and stops the remaining plan when a step reports a charge recording running at its start or started
+during it. Each step also holds Record charges automatically off while it runs (ParkedValidation), so its
+own connection never starts one. Stop or finish any charge recording or schedule test before the sweep.
 
 The runner APK's manifest is checked (with the SDK's aapt2) before anything touches the phone: it
 must be the test package whose ParkedValidation instruments Volt, never Volt or another app.
@@ -92,13 +94,16 @@ if args.out.exists() and any(args.out.iterdir()):
 prefix = [args.adb, '-s', args.serial]
 
 
+def aapt2_path():
+    if args.aapt2 is not None: return args.aapt2
+    tools = sorted((Path(args.adb).resolve().parent.parent / 'build-tools').glob('*/aapt2'))
+    if not tools: raise SystemExit('aapt2 not found; pass --aapt2 from the Android SDK build-tools')
+    return str(tools[-1])
+
+
 def runner_manifest():
     """The runner must be the test package instrumenting Volt with ParkedValidation; checked before any device call."""
-    aapt2 = args.aapt2
-    if aapt2 is None:
-        tools = sorted((Path(args.adb).resolve().parent.parent / 'build-tools').glob('*/aapt2'))
-        if not tools: raise SystemExit('aapt2 not found; pass --aapt2 from the Android SDK build-tools')
-        aapt2 = str(tools[-1])
+    aapt2 = aapt2_path()
     dump = subprocess.run([aapt2, 'dump', 'xmltree', str(args.runner), '--file', 'AndroidManifest.xml'],
                           text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=60)
     package = re.search(r'A: package="([^"]+)"', dump.stdout)
@@ -123,15 +128,50 @@ def adb(*values, check=True, timeout=240):
 
 CHARGE_RUNNING = ('A charge recording is running. Each hardware sweep step ends with Volt restarting, which would end it '
                   '(a short automatic one is deleted). Stop or finish the recording in Volt, then run the sweep again.')
+TEST_RUNNING = ('A scheduled-charging test is running in Volt. Each hardware sweep step restarts Volt, which would cut it '
+                'short. Let it finish or cancel it in Volt, then run the sweep again.')
+# Volt's notification while it records a charge (its Stop action; its title, unless the live charging card or an alert
+# takes the title) or runs a schedule test (which takes the notification over a recording): resource names in Volt.
+NOTICE_TEXTS = dict(charge=('service_action_stop_charge', 'service_notice_charge_active', 'service_notice_charge_reconnecting'),
+                    test=('service_action_cancel_test', 'service_notice_testing'))
 
 
-def charge_recording_shown():
-    """Whether Volt's notification shows a charge recording: its Stop charge recording action or Charge recording title."""
+def volt_texts():
+    """Every translation of NOTICE_TEXTS in the installed Volt, read from its own APK (pulled, then aapt2 dump resources)."""
+    import tempfile
+    paths = [line[len('package:'):].strip() for line in adb('shell', 'pm', 'path', PKG).splitlines() if line.startswith('package:')]
+    base = next((path for path in paths if path.endswith('/base.apk')), paths[0] if paths else None)
+    if base is None: raise SystemExit("Could not find Volt's APK on the phone to read its notification texts; nothing was installed")
+    with tempfile.TemporaryDirectory() as folder:
+        local = Path(folder) / 'volt.apk'
+        adb('pull', base, str(local), timeout=300)
+        dump = subprocess.run([aapt2_path(), 'dump', 'resources', str(local)], text=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, timeout=120)
+    texts, name = {kind: set() for kind in NOTICE_TEXTS}, None
+    for line in dump.stdout.splitlines():
+        found = re.match(r'\s*resource 0x[0-9a-f]+ (\S+)', line)
+        if found: name = found.group(1)[len('string/'):] if found.group(1).startswith('string/') else None; continue
+        value = re.match(r'\s*\(([^)]*)\) "(.*)"\s*$', line)
+        if value and name:
+            for kind, names in NOTICE_TEXTS.items():
+                if name in names: texts[kind].add(value.group(2).replace('\\"', '"').replace("\\'", "'"))
+    if dump.returncode or not all(texts.values()):
+        raise SystemExit("Could not read Volt's notification texts from its APK; nothing was installed")
+    return texts
+
+
+def notice_shown():
+    """'charge' or 'test' when Volt's notification shows a charge recording or a schedule test (any language), else None."""
     dump = adb('shell', 'dumpsys', 'notification', '--noredact', check=False, timeout=60)
     for record in re.split(r'(?=NotificationRecord\()', dump):
         if not record.startswith('NotificationRecord(') or f'pkg={PKG} ' not in record.split('\n', 1)[0]: continue
-        if '"Stop charge recording"' in record or re.search(r'android\.title=String \(Charge recording', record): return True
-    return False
+        shown = set(re.findall(r'\[\d+\] "(.*)" -> ', record)) | {t.strip() for t in re.findall(r'android\.title=String \((.*)\)\s*$', record, re.M)}
+        for kind in ('test', 'charge'):
+            if shown & TEXTS[kind]: return kind
+    return None
+
+
+def refusal(kind): return TEST_RUNNING if kind == 'test' else CHARGE_RUNNING
 
 
 if adb('shell', 'getprop', 'ro.kernel.qemu').strip() == '1':
@@ -143,7 +183,9 @@ if 'mWakefulness=Awake' not in adb('shell', 'dumpsys', 'power'):
 if re.search(r'(?:isKeyguardShowing|mKeyguardShowing|mDreamingLockscreen)=true', adb('shell', 'dumpsys', 'window')):
     raise SystemExit('Unlock the phone, open Volt, then run again')
 version = re.search(r'versionName=(\S+)', adb('shell', 'dumpsys', 'package', PKG))
-if charge_recording_shown(): raise SystemExit(CHARGE_RUNNING)
+TEXTS = volt_texts()
+shown_at_start = notice_shown()
+if shown_at_start: raise SystemExit(refusal(shown_at_start))
 args.out.mkdir(parents=True, exist_ok=True)
 
 
@@ -195,7 +237,8 @@ try:
         if step.get('opt_in') and step['name'] not in args.include and step['name'] not in (args.only or []): continue
         row = dict(step=step['name'], writes=step['writes'])
         # Each step restarts Volt, which would end a charge recording: none runs once one is seen or reported.
-        if charge_stop is None and charge_recording_shown(): charge_stop = 'a charge recording is running in Volt'
+        shown = notice_shown() if charge_stop is None else None
+        if shown: charge_stop = 'a scheduled-charging test is running in Volt' if shown == 'test' else 'a charge recording is running in Volt'
         if charge_stop:
             row.update(status='SKIP', detail=f'not run: {charge_stop}; stop or finish it in Volt, then run the sweep again'); results.append(row)
         elif step['writes'] and write_failed:
@@ -245,7 +288,7 @@ if controls:
               f"{restored.get(c.get('restored'), '—')} | {c.get('outcome', '')} |" for c in controls]
 (args.out / 'report.md').write_text('\n'.join(lines) + '\n')
 failed = [r['step'] for r in results if r['status'] == 'FAIL']
-if charge_stop: print(f'Stopped: {charge_stop}. Stop or finish the charge recording in Volt, then run the sweep again.')
+if charge_stop: print(f'Stopped: {charge_stop}. Let it finish or stop it in Volt, then run the sweep again.')
 print(f"{sum(r['status'] == 'PASS' for r in results)} passed, {len(failed)} failed, "
       f"{sum(r['status'] == 'SKIP' for r in results)} skipped" + (': failed ' + ', '.join(failed) if failed else ''))
 print(f"Report: {args.out / 'report.md'}")
