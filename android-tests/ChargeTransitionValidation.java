@@ -273,10 +273,16 @@ public final class ChargeTransitionValidation extends Instrumentation {
         require(between >= (in ? 6 : 4), what + ": only " + between + " frames in between");
         smooth(what, frames, new int[] {W_ALPHA, W_STAGE, W_ROWS, W_LINE}, new int[] {W_HEIGHT}, W_NAMES);
         for (float[] f : frames) if (in && f[W_ACTIVE] > 0) require(f[W_PULSE] == 0, what + ": the charge pulse ran before the takeover had arrived");
-        // Closing from open, the pulse and the lit cells run on under the fade-out until it ends (council review of #534, F05).
+        // Closing from open, the pulse and the lit cells run on under the fade-out while the picture still shows (council
+        // review of #534, F05). Its last frames, with the takeover all but gone and its height collapsing out of the
+        // viewport, may rest it as at rest (updatePulse's on-screen rule): nothing visible stops there.
         if (!in) {
             int under = 0;
-            for (float[] f : frames) if (f[W_ACTIVE] > 0 && f[W_SHOWN] > 0) { require(f[W_PULSE] > 0, what + ": the charge pulse stopped under the fade-out (p " + fmt(f[W_P]) + ")"); under++; }
+            for (float[] f : frames) if (f[W_ACTIVE] > 0 && f[W_SHOWN] > 0 && f[W_ALPHA] * f[W_STAGE] >= .2f) {
+                require(f[W_PULSE] > 0, what + ": the charge pulse stopped under the fade-out while the picture showed (p " + fmt(f[W_P]) + ", "
+                        + fmt(f[W_ALPHA] * f[W_STAGE]) + " shown)");
+                under++;
+            }
             require(under >= 3, what + ": only " + under + " frames of the fade-out seen");
         }
         if (in) require(frames.get(frames.size() - 1)[W_PULSE] > 0, what + ": the charge pulse did not start after the arrival");
