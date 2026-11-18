@@ -1060,10 +1060,24 @@ public final class HubValidation extends Instrumentation {
                     + (owed == null ? "nothing" : field(owed, "anchor")) + ")");
         });
         screenshot("no-nearby-target-waits");
+        // A recreation while it waits (a theme change, a fold, process death) keeps the target owed (#393 council review,
+        // fourth round, finding 3): the new activity builds the loading page again with Record rides automatically's target.
+        recreateActivity();
+        Object rebuilt = onMain(() -> field(activity, "screen"));
+        main(() -> {
+            require(HubPages.RIDE_RECORDING.equals(field(activity, "selectedPage")), "After a recreation " + field(activity, "selectedPage") + " shows, not Recording settings");
+            require(rebuilt.getClass().getSimpleName().equals("LoadingScreen"), "After a recreation Recording settings was built as "
+                    + rebuilt.getClass().getSimpleName() + ", not the loading page");
+            Object owed = field(activity, "pageArgs");
+            require(owed != null && anchor.equals(field(owed, "anchor")), "A recreation dropped Record rides automatically's target (owed: "
+                    + (owed == null ? "nothing" : field(owed, "anchor")) + ")");
+            List<String> now = (List<String>) invoke(field(activity, "nav"), "pages", new Class<?>[0]);
+            require(stack.equals(now), "The page stack changed from " + stack + " to " + now + " through the recreation");
+        });
         tapTag(NEARBY_ALLOW);
         allowInAndroid("Recording settings' loading page");
         await(() -> onMain(() -> activity.service() != null), "The service did not bind once Nearby devices was granted from Recording settings");
-        await(() -> onMain(() -> field(activity, "screen") != waiting && !field(activity, "screen").getClass().getSimpleName().equals("LoadingScreen")
+        await(() -> onMain(() -> field(activity, "screen") != rebuilt && !field(activity, "screen").getClass().getSimpleName().equals("LoadingScreen")
                 && !Boolean.TRUE.equals(field(activity, "rebuilding"))), "Recording settings was not built for the service");
         settle();
         main(() -> {
@@ -1076,7 +1090,8 @@ public final class HubValidation extends Instrumentation {
         await(() -> { settle(); String[] at = onMain(() -> placeOf(anchor)); place[0] = at[0]; place[1] = at[1]; return at[0] == null; },
                 () -> "Once the service bound, Recording settings did not reveal Record rides automatically (" + place[0] + ")");
         screenshot("no-nearby-target-revealed");
-        checks.add("Without Nearby permission Record rides automatically's result opens Recording settings as the loading page, its target owed; granted from"
+        checks.add("Without Nearby permission Record rides automatically's result opens Recording settings as the loading page, its target owed, still owed"
+                + " after a recreation; granted from"
                 + " that page's Allow Nearby devices, the service binds and Recording settings reveals Record rides automatically, nothing owed, the stack "
                 + stack + " unchanged (no return to Search)");
     }
