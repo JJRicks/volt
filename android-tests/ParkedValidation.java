@@ -24,14 +24,13 @@ import com.jjricks.volt.*;
 public final class ParkedValidation extends Instrumentation {
     private Bundle args;private volatile ScooterService service;private final JSONArray results=new JSONArray();private boolean bound;private Boolean originalBackground;
     private Activity launchedActivity;private Map<String,Object> smokePreferences;private boolean smokeMode,reconnectAfterSmoke;
-    private static final String[] SMOKE_PREFS={"background_connection","auto_connect","charge_live_enabled","scooter_section","stats_section","stats_query","stats_favourites","stats_favourites_only","more_section"};
-    private static final Set<String> LINE_KEYS=new HashSet<>(Arrays.asList("line_light","line_pattern","line_color","line_boost_color"));
-    private static final Set<String> STAR_KEYS=new HashSet<>(Arrays.asList("star_light","star_pattern","star_color","star_boost_color"));
+    private static final String[] SMOKE_PREFS={"background_connection","auto_connect","charge_live_enabled","scooter_section","stats_section","stats_query","stats_favourites","stats_favourite_order","stats_favourites_only","more_section"};
     @Override public void onCreate(Bundle args){this.args=args==null?new Bundle():args;start();}
     private final ServiceConnection connection=new ServiceConnection(){public void onServiceConnected(ComponentName n,IBinder b){service=((ScooterService.LocalBinder)b).service();}public void onServiceDisconnected(ComponentName n){service=null;}};
     @Override public void onStart(){Bundle output=new Bundle();try{
         String mode=args.getString("mode","snapshot");smokeMode=mode.equals("navigation")||mode.equals("background");
         if(smokeMode)backupSmokePreferences();
+        if(mode.equals("navigation")&&args.containsKey("fixture"))emulatorFixture();
         Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));launchedActivity=activity;
         runMain(()->bound=getTargetContext().bindService(new Intent(getTargetContext(),ScooterService.class),connection,Context.BIND_AUTO_CREATE));
         awaitReadOnly(()->service!=null,8000,"Local service unavailable");
@@ -121,11 +120,6 @@ public final class ParkedValidation extends Instrumentation {
     }
     private Object currentScreen(Activity activity){return field(activity,"screen");}
     private View screenView(Activity activity){return ((AppScreen)currentScreen(activity)).view();}
-    private void navigate(Activity activity,String page)throws Exception{
-        runMain(()->{assertNoUserRecording();selectOnMain(activity,page);});waitForIdleSync();
-        runMain(()->{ScrollView view=(ScrollView)field(activity,"scroll");view.scrollTo(0,0);require(HubPages.canonical(page).equals(field(activity,"selectedPage")),"Navigation did not select "+page);});
-        waitForIdleSync();
-    }
     private View findText(View view,String text){
         if(!view.isShown())return null;
         if(view instanceof TextView&&text.equals(((TextView)view).getText().toString()))return view;
@@ -147,127 +141,236 @@ public final class ParkedValidation extends Instrumentation {
         long deadline=SystemClock.elapsedRealtime()+3000;
         for(;;){try{runMain(check);return;}catch(RuntimeException e){if(SystemClock.elapsedRealtime()>deadline)throw e;}Thread.sleep(50);}
     }
-    /** Stats › a section, through its section selector (tag live-stats-sections) as a tap would, never by matching tab text. */
+    /** As {@link #eventually(Runnable)}, for up to timeoutMs: a page whose rows follow a connection that is still settling. */
+    private void eventually(long timeoutMs,Runnable check)throws Exception{
+        long deadline=SystemClock.elapsedRealtime()+timeoutMs;
+        for(;;){try{runMain(check);return;}catch(RuntimeException e){if(SystemClock.elapsedRealtime()>deadline)throw e;}Thread.sleep(50);}
+    }
+    /** Data › a section, through its section selector (tag live-stats-sections) as a tap would, never by matching tab text. */
     @SuppressWarnings("unchecked") private void clickStatsSection(Activity activity,String section)throws Exception{
-        runMain(()->{Object stats=currentScreen(activity);View selector=(View)field(stats,"sectionTabs");require("live-stats-sections".equals(selector.getTag())&&selector.isShown(),"Stats section selector missing");
+        runMain(()->{Object stats=currentScreen(activity);View selector=(View)field(stats,"sectionTabs");require("live-stats-sections".equals(selector.getTag())&&selector.isShown(),"Data section selector missing");
             List<String> order=Arrays.asList((String[])field(stats,statsWide(stats)?"WIDE_SECTIONS":"SECTIONS"));List<TextView> choices=(List<TextView>)field(field(selector,"track"),"choices");
-            int index=order.indexOf(section);require(index>=0&&choices.size()==order.size(),"Stats selector does not offer "+section);View choice=choices.get(index);require(choice.isShown()&&choice.isClickable(),"Stats selector choice not reachable: "+section);choice.performClick();});
+            int index=order.indexOf(section);require(index>=0&&choices.size()==order.size(),"Data selector does not offer "+section);View choice=choices.get(index);require(choice.isShown()&&choice.isClickable(),"Data selector choice not reachable: "+section);choice.performClick();});
         waitForIdleSync();
-        eventually(()->{Object stats=currentScreen(activity);require(section.equals(field(stats,"selectedSection")),"Stats selector did not select "+section);assertStatsSections(stats,section);});
-    }
-    /** Back to the More menu (Units and Compatibility first return to their parent), then opens a submenu from its menu row; the wide layout keeps the menu beside the submenu. */
-    private void clickMoreSection(Activity activity,String label)throws Exception{
-        runMain(()->{Object more=currentScreen(activity);
-            for(int i=0;i<3&&Boolean.TRUE.equals(call(more,"back",new Class<?>[0]));i++){}
-            View row=findText(screenView(activity),label);require(row!=null,"Visible More menu row missing: "+label);
-            while(!row.isClickable()&&row.getParent() instanceof View)row=(View)row.getParent();
-            require(row.isClickable(),"More menu row is not clickable: "+label);row.performClick();});
-        waitForIdleSync();
-    }
-    /** A row inside the open More submenu, by its tag. */
-    private void clickMoreTagged(Activity activity,String tag)throws Exception{
-        runMain(()->{View row=screenView(activity).findViewWithTag(tag);require(row!=null&&row.isShown()&&row.isClickable(),"More row missing: "+tag);row.performClick();});
-        waitForIdleSync();
+        eventually(()->{Object stats=currentScreen(activity);require(section.equals(field(stats,"selectedSection")),"Data selector did not select "+section);assertStatsSections(stats,section);});
     }
     private void require(boolean condition,String failure){if(!condition)throw new IllegalStateException(failure);}
     private void assertNoUserRecording(){require(service!=null&&!service.isRecording(),"Smoke test stopped: a user recording is active; no stop/disconnect was requested");require(service.ble.pending()==null,"Smoke test stopped: a scooter change is pending");}
-    @SuppressWarnings("unchecked") private void assertSectionMap(Object screen,String selected,Set<String> expected){
-        Map<String,View> sections=(Map<String,View>)field(screen,"sections");require(sections.keySet().equals(expected),"More sections "+sections.keySet()+" do not match the screen's own rules "+expected);
-        require(selected.equals(field(screen,"selectedSection")),"More did not open "+selected);
-        for(Map.Entry<String,View> section:sections.entrySet())require(section.getValue().getVisibility()==(section.getKey().equals(selected)?View.VISIBLE:View.GONE),"Wrong section visibility: "+section.getKey()+" while "+selected+" selected");
-    }
-    /** The screen's own rule for whether this scooter offers a row (an Experimental controls row such as the UT5 MAX's acceleration is not). */
-    private boolean rowOffered(Object screen,String key){return Boolean.TRUE.equals(call(screen,"rowOffered",new Class<?>[]{String.class},key));}
-    /** Scooter tab: null is the main page, "lights" the Lights page, otherwise a search query. */
-    @SuppressWarnings("unchecked") private void assertControls(Activity activity,String mode){
-        Object screen=currentScreen(activity);List<Object> rows=(List<Object>)field(screen,"rows");int shown=0,offeredLights=0;boolean zones=false;
-        // The UT5 MAX keeps a maximum_speed row (not offered) behind the top speed card; another model's speed table is an ordinary row.
-        boolean topSpeedCard=Boolean.TRUE.equals(call(screen,"topSpeedCard",new Class<?>[0]));
-        for(Object row:rows){
-            ScooterCommands.Feature feature=(ScooterCommands.Feature)field(row,"feature");View card=(View)field(row,"card");
-            if(topSpeedCard&&feature.key.equals("maximum_speed"))require(!card.isShown(),"Maximum speed belongs to the top speed card, not a settings row");
-            boolean zone=LINE_KEYS.contains(feature.key)||STAR_KEYS.contains(feature.key),light=zone||feature.key.equals("headlight")||feature.key.equals("auto_sensor");
-            boolean offered=rowOffered(screen,feature.key);if(offered&&light)offeredLights++;if(zone&&offered)zones=true;
-            boolean expected=offered&&(mode==null?!zone:mode.equals("lights")?light:mode.equals("kickstart")&&feature.key.equals("start_speed"));
-            require(card.isShown()==expected,"Unexpected control row visibility: "+feature.key+(offered?"":" (not offered here)"));if(card.isShown())shown++;
-        }
-        View topSpeed=(View)field(field(screen,"topSpeed"),"card");require(topSpeed.isShown()==(mode==null&&topSpeedCard),"Unexpected top speed card visibility");
-        if(mode==null)require(shown>0,"Scooter page has no settings rows");
-        else if(mode.equals("lights"))require(shown==offeredLights,"Lights page must show every offered headlight and zone control");
-        else if(mode.equals("kickstart"))require(shown==1,"Kickstart search must show exactly the start-speed control");
-        else require(shown==0,"No-match query left a control visible");
-        Map<View,String[]> extras=(Map<View,String[]>)field(screen,"extras");View headlightRow=(View)field(screen,"headlightRow");
-        // The read-only headlight row (switched by the power button) belongs to the Lights page only. The other extra rows
-        // are main-page rows, each behind the screen's own rule for this scooter: the zones link only with line or star
-        // lights, clock sync and the schedule test where offered, Charge done by and the battery alerts by model.
-        View zonesRow=(View)field(screen,"zonesRow"),clockRow=(View)field(field(screen,"clockLine"),"card"),testRow=(View)field(field(field(screen,"scheduleTest"),"row"),"card");
-        boolean clock=Boolean.TRUE.equals(call(screen,"offered",new Class<?>[]{String.class},"clock_sync")),test=Boolean.TRUE.equals(call(activity,"scheduleTestOffered",new Class<?>[0]));
-        boolean doneBy=Boolean.TRUE.equals(call(activity,"chargeDoneOffered",new Class<?>[0])),alerts=Boolean.TRUE.equals(call(activity,"chargeAlertsOffered",new Class<?>[0]));
-        for(Map.Entry<View,String[]> e:extras.entrySet()){View row=e.getKey();Object tag=row.getTag();
-            boolean expected=row==headlightRow?"lights".equals(mode):mode!=null?false:row==zonesRow?zones:row==clockRow?clock:row==testRow?test
-                    :"charge-done-by".equals(tag)?doneBy:"charge-alert".equals(tag)?alerts:true;
-            require(row.isShown()==expected,"Unexpected extra settings row visibility: "+e.getValue()[1]+(mode==null?" on the main page":" in "+mode));}
-        if("lights".equals(mode))require(findText(headlightRow,T.mainRowHeadlightValue())!=null,"Lights page headlight row lost its Power button value");
-    }
-    /** Setting groups the Scooter main page shows (Ride, Battery, ...): only the ones with a row for this scooter. */
-    @SuppressWarnings("unchecked") private int shownControlGroups(Object screen){int shown=0;for(View group:((Map<String,View>)field(screen,"sections")).values())if(group.isShown())shown++;return shown;}
-    /** Wide Stats keeps Readings in its own right-hand pane, so it has no Readings tab and that section is always shown. */
+    /** Wide Data keeps Readings in its own right-hand pane, so it has no Readings tab and that section is always shown. */
     private boolean statsWide(Object screen){return Boolean.TRUE.equals(field(screen,"wide"));}
     private void assertStatsSections(Object screen,String selected){
         String[] names={"Overview","Readings","Charts","Diagnostics"};String[] fields={"overviewSection","readingsSection","chartsSection","diagnosticsSection"};boolean wide=statsWide(screen);
-        for(int i=0;i<names.length;i++){boolean shown=names[i].equals(selected)||wide&&names[i].equals("Readings");require(((View)field(screen,fields[i])).getVisibility()==(shown?View.VISIBLE:View.GONE),"Unexpected Stats section visibility: "+names[i]+" while "+selected+" selected");}
+        for(int i=0;i<names.length;i++){boolean shown=names[i].equals(selected)||wide&&names[i].equals("Readings");require(((View)field(screen,fields[i])).getVisibility()==(shown?View.VISIBLE:View.GONE),"Unexpected Data section visibility: "+names[i]+" while "+selected+" selected");}
     }
     private long mutations(){return ((Number)field(service.ble,"mutationSequence")).longValue();}
-    /** Every tab and section, read only; returns the summary line and records the counts actually seen. */
-    @SuppressWarnings("unchecked") private String navigationSmoke(Activity activity,Bundle output)throws Exception{
-        AtomicReference<Long> initial=new AtomicReference<>();runMain(()->{assertNoUserRecording();initial.set(mutations());service.settings.edit().putString("scooter_section","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
-        JSONObject rides=null;
-        for(String page:new String[]{"home","controls","stats","rides","more"}){
-            if(page.equals("rides")){rides=timeRidesOpen(activity);output.putString("rides_first_open",rides.toString());status("Read-only navigation: rides "+rides);continue;}
-            navigate(activity,page);status("Read-only navigation: "+page);
-        }
-        navigate(activity,"controls");
-        AtomicReference<Integer> groups=new AtomicReference<>();
-        runMain(()->{assertControls(activity,null);groups.set(shownControlGroups(currentScreen(activity)));});
-        runMain(()->{EditText input=findInput(screenView(activity),T.mainControlsSearchDescription());require(input!=null,"Controls search missing");input.setText("kickstart");assertControls(activity,"kickstart");input.setText("no-match");assertControls(activity,"no-match");require(findText(screenView(activity),T.mainSearchNone())!=null,"No-match explanation missing");input.setText("");});
-        runMain(()->selectOnMain(activity,"lights"));waitForIdleSync();runMain(()->assertControls(activity,"lights"));
-        runMain(()->require(Boolean.TRUE.equals(call(currentScreen(activity),"back",new Class<?>[0])),"Lights page Back was not handled"));
-        waitForIdleSync();runMain(()->assertControls(activity,null));render(activity,"navigation-controls.png");
-        navigate(activity,"stats");
-        AtomicReference<Boolean> wideStats=new AtomicReference<>();AtomicReference<Integer> statsTabs=new AtomicReference<>();
-        runMain(()->{Object stats=currentScreen(activity);wideStats.set(statsWide(stats));List<TextView> choices=(List<TextView>)field(field(field(stats,"sectionTabs"),"track"),"choices");statsTabs.set(choices.size());
-            if(wideStats.get())for(TextView choice:choices)require(!T.statsTabReadings().contentEquals(choice.getText()),"Wide Stats must not offer a Readings tab beside the Readings pane");});
-        Set<String> statsSeen=new LinkedHashSet<>();
-        for(String section:new String[]{"Overview","Readings","Charts","Diagnostics"}){if(wideStats.get()&&section.equals("Readings"))continue;clickStatsSection(activity,section);statsSeen.add(section);if(wideStats.get())statsSeen.add("Readings");}
-        if(!wideStats.get())clickStatsSection(activity,"Readings");
-        runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());require(input!=null,"Stats search missing");input.setText("voltage");
-            Map<?,?> rows=(Map<?,?>)field(currentScreen(activity),"rows");Object voltage=rows.get("voltage_v");require(voltage!=null,"Voltage favourite row missing");require(((View)field(voltage,"layout")).isShown(),"Voltage search result missing");View star=(View)field(voltage,"star");require(star.isShown(),"Voltage favourite is not reachable");star.performClick();star.performClick();});
-        render(activity,"navigation-stats-readings.png");runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());input.setText("");require(input.getText().length()==0&&"".equals(field(currentScreen(activity),"query")),"Clearing Stats search did not clear its input/query");});clickStatsSection(activity,"Overview");render(activity,"navigation-stats-overview.png");
-        navigate(activity,"more");
-        // The expected sections come from the screen's own rules: every menu section, plus Units and Compatibility.
-        List<String[]> menu=new ArrayList<>();Set<String> expected=new LinkedHashSet<>();AtomicReference<Boolean> compatibility=new AtomicReference<>();
-        runMain(()->{Object more=currentScreen(activity);String[] ids=(String[])field(more,"SECTIONS");int[] labels=(int[])field(more,"SECTION_LABEL_IDS");require(ids.length==labels.length,"More menu labels out of step with its sections");
-            for(int i=0;i<ids.length;i++)if(Boolean.TRUE.equals(call(more,"knownSection",new Class<?>[]{String.class},ids[i]))){menu.add(new String[]{ids[i],T.render(labels[i])});expected.add(ids[i]);}
-            expected.add("Units");compatibility.set(Boolean.TRUE.equals(call(more,"knownSection",new Class<?>[]{String.class},"Compatibility")));if(compatibility.get())expected.add("Compatibility");});
-        String appLabel=null,developerLabel=null;Set<String> moreSeen=new LinkedHashSet<>();
-        for(String[] section:menu){
-            if(section[0].equals("App"))appLabel=section[1];if(section[0].equals("Developer"))developerLabel=section[1];
-            clickMoreSection(activity,section[1]);eventually(()->assertSectionMap(currentScreen(activity),section[0],expected));moreSeen.add(section[0]);
-        }
-        require(appLabel!=null,"More menu has no App preferences row");
-        clickMoreSection(activity,appLabel);clickMoreTagged(activity,"preference-units-menu");eventually(()->assertSectionMap(currentScreen(activity),"Units",expected));moreSeen.add("Units");
-        if(compatibility.get()){
-            clickMoreSection(activity,developerLabel);clickMoreTagged(activity,"developer-compatibility-check");
-            waitForIdleSync();eventually(()->assertSectionMap(currentScreen(activity),"Compatibility",expected));moreSeen.add("Compatibility");
-        }
-        require(moreSeen.equals(expected),"More sections visited "+moreSeen+" but the screen has "+expected);
-        clickMoreSection(activity,appLabel);render(activity,"navigation-more-app.png");
-        runMain(()->require(mutations()==initial.get(),"Navigation/search/favourite actions submitted a scooter mutation"));
-        offlineSliderCancel(activity);
-        runMain(()->require(mutations()==initial.get(),"Slider cancellation submitted a scooter mutation"));
-        navigate(activity,"home");JSONObject evidence=new JSONObject();evidence.put("mode","navigation");evidence.put("tabs",5);evidence.put("controls_groups",groups.get());evidence.put("stats_wide",wideStats.get());evidence.put("stats_tabs",statsTabs.get());evidence.put("stats_sections",statsSeen.size());evidence.put("more_sections",moreSeen.size());evidence.put("more_section_ids",new JSONArray(moreSeen));evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row present, slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);results.put(evidence);
-        return "All five tabs, "+groups.get()+" Scooter groups / "+statsSeen.size()+" Stats sections ("+statsTabs.get()+" tabs) / "+moreSeen.size()+" More sections, search and optional favourite passed without scooter mutations";
+
+    // ===== The navigation step: the Hub's pages, read only =====
+
+    /** Settings' rows that open its pages, by their tags (MoreScreen), as HubValidation taps them. */
+    private static final Map<String,String> SETTINGS_ROWS=new LinkedHashMap<>();
+    static{
+        SETTINGS_ROWS.put(HubPages.SETTINGS_HOME,"home-style-menu");SETTINGS_ROWS.put(HubPages.SETTINGS_UNITS,"preference-units-menu");
+        SETTINGS_ROWS.put(HubPages.SETTINGS_SCOOTERS,"my-scooters-menu");SETTINGS_ROWS.put(HubPages.SETTINGS_ABOUT,"about-menu");
+        SETTINGS_ROWS.put(HubPages.SETTINGS_DEVELOPER,"developer-options-menu");
     }
+    /** The search result the walk opens: start_speed's control result (HubSearchScreen.tag: "hub-search-" kind "-" anchor). */
+    private static final String KICKSTART_RESULT="hub-search-setting-start_speed";
+    /** The pages below page in the Hub's tree (HubPages), in HubPages' order. */
+    private static List<String> children(String page){List<String> found=new ArrayList<>();for(String id:HubPages.ALL)if(page.equals(HubPages.parent(id)))found.add(id);return found;}
+    /**
+     * MainActivity's own rule, by name, as its scooter pages and Hub search apply it: rowOffered, offered, labOffered and
+     * pageShown take a control key or a page id; topSpeedCard, scheduleTestOffered, chargeDoneOffered and chargeAlertsOffered
+     * take none. Main thread.
+     */
+    private boolean rule(Activity activity,String name,String... argument){
+        return Boolean.TRUE.equals(argument.length==0?call(activity,name,new Class<?>[0]):call(activity,name,new Class<?>[]{String.class},argument[0]));
+    }
+    /**
+     * Waits for page to be on top with no rebuild pending and its arrival motion over (a page slides in as it fades in:
+     * HubTestPages.awaitAtRest on its back link, as HubValidation's arrived does), then requires no recording or pending
+     * change. Instrumentation thread.
+     */
+    private void arrive(MainActivity activity,String page)throws Exception{
+        long deadline=SystemClock.elapsedRealtime()+8000;AtomicReference<String> shown=new AtomicReference<>();
+        for(;;){AtomicReference<Boolean> there=new AtomicReference<>();runMain(()->{shown.set(HubTestPages.current(activity));there.set(page.equals(shown.get())&&!Boolean.TRUE.equals(field(activity,"rebuilding")));});
+            if(Boolean.TRUE.equals(there.get()))break;if(SystemClock.elapsedRealtime()>deadline)throw new IllegalStateException("Expected page "+page+", "+shown.get()+" is on top");Thread.sleep(50);}
+        waitForIdleSync();
+        if(!HubPages.HOME.equals(page))HubTestPages.awaitAtRest(this,()->{View root=(View)field(activity,"root");return Collections.singletonList(root==null?null:root.findViewWithTag("hub-back"));});
+        runMain(this::assertNoUserRecording);
+    }
+    /** Home must be free for a rider's taps: no What's new sheet over it (the walk never closes the owner's one-time sheet). */
+    private void requireHomeFree(MainActivity activity){
+        Object sheet=field(activity,"whatsNewSheet");
+        require(!(sheet instanceof android.app.Dialog&&((android.app.Dialog)sheet).isShowing()),"What's new is open over Home: close it in Volt, then run the navigation step again");
+        require(activity.hasWindowFocus(),"Volt's window has no focus (a dialog or the keyboard guard is over it); keep the phone unlocked with Volt in front");
+    }
+    private void hideKeyboard(MainActivity activity)throws Exception{
+        runMain(()->{View focus=activity.getCurrentFocus();android.view.inputmethod.InputMethodManager input=(android.view.inputmethod.InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if(focus!=null&&input!=null){input.hideSoftInputFromWindow(focus.getWindowToken(),0);focus.clearFocus();}});
+        if(Build.VERSION.SDK_INT>=30)awaitReadOnly(()->{android.view.WindowInsets insets=activity.getWindow().getDecorView().getRootWindowInsets();return insets==null||!insets.isVisible(android.view.WindowInsets.Type.ime());},5000,"The keyboard stayed shown after hiding it");
+        waitForIdleSync();
+    }
+    /**
+     * A Scooter page with rows (ControlsPages): each control the page lists is placed on it and shown exactly when the
+     * screen's own rule offers it on this scooter (MainActivity.rowOffered), and its Experimental entry exactly when the
+     * Lab tries it instead (labOffered); no control or hand-built row another page lists is placed here; each hand-built
+     * row the page lists shows behind its own rule (the clock sync, the schedule test, Charge done by and the battery
+     * alerts by model, the rest always); the UT5 MAX top speed card only where the page leads with it (topSpeedCard); a
+     * link to a sub-page only while that page has something to show (pageShown). Retried while a connection settles the
+     * rows. Returns the keys of the controls shown, "top_speed_card" for the card.
+     */
+    @SuppressWarnings("unchecked") private Set<String> assertControlsPage(MainActivity activity,String page)throws Exception{
+        Set<String> shown=new LinkedHashSet<>();
+        eventually(8000,()->{shown.clear();
+            Object controls=HubTestPages.part(activity,"ControlsScreen");
+            for(Object row:(List<Object>)field(controls,"rows")){
+                String key=((ScooterCommands.Feature)field(row,"feature")).key;View card=(View)field(row,"card");
+                if(!HubTestPages.pageLists(page,key)){require(!HubTestPages.shownOnPage(activity,card),"Control row "+key+" shows on "+page+", but ControlsPages puts it on "+HubTestPages.pageOf(key));continue;}
+                boolean offered=rule(activity,"rowOffered",key);HubTestPages.requireOnPage(activity,card,"the "+key+" row");
+                require(card.isShown()==offered,"Control row "+key+" on "+page+(offered?" is hidden, but this scooter offers it":" shows, but this scooter does not offer it"));
+                if(offered)shown.add(key);
+            }
+            for(Map.Entry<String,View> e:((Map<String,View>)field(controls,"labEntries")).entrySet()){
+                boolean lab=rule(activity,"labOffered",e.getKey());
+                require(e.getValue().isShown()==lab,"The Experimental entry for "+e.getKey()+" on "+page+(lab?" is hidden, but the Lab tries it on this scooter":" shows, but the Lab does not try it here"));
+            }
+            View clock=(View)field(field(controls,"clockLine"),"card"),test=(View)field(field(field(controls,"scheduleTest"),"row"),"card");
+            for(View card:((Map<View,String[]>)field(controls,"extras")).keySet()){
+                String id=(String)call(controls,"idOf",new Class<?>[]{View.class},card);
+                if(!HubTestPages.pageLists(page,id)){require(!HubTestPages.shownOnPage(activity,card),"Row "+id+" shows on "+page+", but ControlsPages puts it on "+HubTestPages.pageOf(id));continue;}
+                Object tag=card.getTag();
+                boolean expected=card==clock?rule(activity,"offered","clock_sync"):card==test?rule(activity,"scheduleTestOffered")
+                        :"charge-done-by".equals(tag)?rule(activity,"chargeDoneOffered"):"charge-alert".equals(tag)?rule(activity,"chargeAlertsOffered"):true;
+                HubTestPages.requireOnPage(activity,card,"the "+id+" row");
+                require(card.isShown()==expected,"Row "+id+" on "+page+(expected?" is hidden, but this scooter offers it":" shows, but this scooter does not offer it"));
+            }
+            View top=(View)field(field(controls,"topSpeed"),"card");boolean card=HubTestPages.pageHasTopSpeed(page)&&rule(activity,"topSpeedCard");
+            require(HubTestPages.shownOnPage(activity,top)==card,card?"The top speed card is missing from "+page:"The top speed card shows on "+page);
+            if(card)shown.add("top_speed_card");
+            for(Map.Entry<View,String> e:((Map<View,String>)field(controls,"links")).entrySet()){
+                boolean link=rule(activity,"pageShown",e.getValue());
+                require(e.getKey().isShown()==link,"The link to "+e.getValue()+" on "+page+(link?" is hidden, but that page has rows for this scooter":" shows, but that page has nothing for this scooter"));
+            }
+            // The read-only headlight row (switched by the power button) leads Lights & sound with its Power button value.
+            if(HubPages.LIGHTS.equals(page))require(findText((View)field(controls,"headlightRow"),T.mainRowHeadlightValue())!=null,"Lights & sound's headlight row lost its Power button value");
+        });
+        return shown;
+    }
+    /**
+     * Data (Live Stats before the Hub): every section through its selector (wide Data keeps Readings in its own pane), a
+     * Readings search for voltage with its favourite star tapped twice (back as it was; the favourites and their order
+     * are in SMOKE_PREFS), the search cleared, back on Overview. Returns {wide, tabs, sections seen}.
+     */
+    @SuppressWarnings("unchecked") private Object[] dataWalk(MainActivity activity)throws Exception{
+        AtomicReference<Boolean> wide=new AtomicReference<>();AtomicReference<Integer> tabs=new AtomicReference<>();
+        runMain(()->{Object stats=currentScreen(activity);require(stats.getClass().getSimpleName().equals("StatsScreen"),"Data is not a StatsScreen ("+stats.getClass().getSimpleName()+")");
+            wide.set(statsWide(stats));List<TextView> choices=(List<TextView>)field(field(field(stats,"sectionTabs"),"track"),"choices");tabs.set(choices.size());
+            if(wide.get())for(TextView choice:choices)require(!T.statsTabReadings().contentEquals(choice.getText()),"Wide Data must not offer a Readings tab beside the Readings pane");});
+        Set<String> seen=new LinkedHashSet<>();
+        for(String section:new String[]{"Overview","Readings","Charts","Diagnostics"}){if(wide.get()&&section.equals("Readings"))continue;clickStatsSection(activity,section);seen.add(section);if(wide.get())seen.add("Readings");}
+        if(!wide.get())clickStatsSection(activity,"Readings");
+        runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());require(input!=null,"Data search missing");input.setText("voltage");
+            Map<?,?> rows=(Map<?,?>)field(currentScreen(activity),"rows");Object voltage=rows.get("voltage_v");require(voltage!=null,"Voltage favourite row missing");require(((View)field(voltage,"layout")).isShown(),"Voltage search result missing");View star=(View)field(voltage,"star");require(star.isShown(),"Voltage favourite is not reachable");star.performClick();star.performClick();});
+        render(activity,"navigation-data-readings.png");runMain(()->{EditText input=findInput(screenView(activity),T.statsReadingsSearchDescription());input.setText("");require(input.getText().length()==0&&"".equals(field(currentScreen(activity),"query")),"Clearing Data search did not clear its input/query");});clickStatsSection(activity,"Overview");render(activity,"navigation-data-overview.png");
+        return new Object[]{wide.get(),tabs.get(),seen.size()};
+    }
+    /**
+     * Search, from Home's way in: "kickstart" lists start_speed's control where this scooter offers it (and not
+     * otherwise); its tap opens the page ControlsPages puts it on, over Search, with the row shown, and that page's back
+     * link returns to Search with the query kept; "no-match" shows only the no-match line; Cancel returns to Home.
+     * Returns the page the kickstart result opened, or "not offered".
+     */
+    private String searchWalk(MainActivity activity)throws Exception{
+        HubTestPages.reach(this,activity,HubPages.SEARCH);arrive(activity,HubPages.SEARCH);
+        String holder=HubTestPages.pageOf("start_speed");require(holder!=null,"ControlsPages puts start_speed on no page");
+        AtomicReference<Boolean> offered=new AtomicReference<>();
+        runMain(()->((EditText)HubTestPages.shownTag(activity,"hub-search-field")).setText("kickstart"));
+        eventually(8000,()->{offered.set(rule(activity,"rowOffered","start_speed"));View result=screenView(activity).findViewWithTag(KICKSTART_RESULT);
+            require(offered.get()?result!=null&&HubTestPages.shownOnPage(activity,result):result==null||!result.isShown(),"Search for \"kickstart\" "+(offered.get()?"does not list":"lists")+" start_speed's control, which this scooter "+(offered.get()?"offers":"does not offer"));});
+        hideKeyboard(activity);render(activity,"navigation-search.png");
+        if(offered.get()){
+            View[] result={null};runMain(()->result[0]=HubTestPages.shownTag(activity,KICKSTART_RESULT));
+            HubTestPages.tapView(this,activity,result[0],"the kickstart result");arrive(activity,holder);
+            eventually(8000,()->{HubTestPages.shownControlRow(activity,"start_speed");List<?> stack=(List<?>)call(field(activity,"nav"),"pages",new Class<?>[0]);
+                require(Arrays.asList(HubPages.HOME,HubPages.SEARCH,holder).equals(stack),"The kickstart result opened the stack "+stack+", not "+holder+" over Search");});
+            HubTestPages.back(this,activity);arrive(activity,HubPages.SEARCH);
+            eventually(()->require("kickstart".contentEquals(((EditText)HubTestPages.shownTag(activity,"hub-search-field")).getText())&&HubTestPages.shownOnPage(activity,screenView(activity).findViewWithTag(KICKSTART_RESULT)),"Back from the kickstart result lost Search's query or its results"));
+        }
+        runMain(()->((EditText)HubTestPages.shownTag(activity,"hub-search-field")).setText("no-match"));
+        eventually(()->{TextView count=(TextView)HubTestPages.shownTag(activity,"hub-search-count");require(HubText.searchNone().render().contentEquals(count.getText()),"No-match explanation missing (\""+count.getText()+"\")");
+            require(((ViewGroup)screenView(activity).findViewWithTag("hub-search-results")).getChildCount()==0,"No-match query left a result listed");});
+        runMain(()->((EditText)HubTestPages.shownTag(activity,"hub-search-field")).setText(""));hideKeyboard(activity);
+        View[] cancel={null};runMain(()->cancel[0]=HubTestPages.shownTag(activity,"hub-search-cancel"));
+        HubTestPages.tapView(this,activity,cancel[0],"Search's Cancel");arrive(activity,HubPages.HOME);
+        return offered.get()?holder:"not offered";
+    }
+    /**
+     * Every page of the Hub, read only, the way a rider reaches it (HubTestPages: by touch from Home, its subject rows or
+     * Widgets' dock, each sub-page from its parent's row, back by the page's back link): Home; Rides' first open, timed;
+     * each of the seven subjects and every sub-page whose row this scooter shows (a Scooter sub-page's link shows only
+     * while it has rows here, and must be hidden otherwise; every other sub-page's row must show); on each Scooter page with
+     * rows its controls (assertControlsPage); Data's sections, search and a favourite; Search; Settings and its pages.
+     * Returns the summary line and records what it saw.
+     */
+    private String navigationSmoke(Activity launched,Bundle output)throws Exception{
+        MainActivity activity=(MainActivity)launched;
+        if("simulator".equals(args.getString("fixture",""))){runMain(()->require(service.setSimulation(true),"Simulation did not start"));awaitReadOnly(()->service.ble.ready(),15000,"The simulated scooter did not connect");}
+        AtomicReference<Long> initial=new AtomicReference<>();AtomicReference<String> connection=new AtomicReference<>(),style=new AtomicReference<>();
+        runMain(()->{assertNoUserRecording();initial.set(mutations());connection.set(service.ble.state().name());service.settings.edit().putString("scooter_section","").putString("stats_query","").putBoolean("stats_favourites_only",false).commit();});
+        runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
+        runMain(()->{requireHomeFree(activity);style.set(currentScreen(activity).getClass().getSimpleName());});
+        render(activity,"navigation-home.png");status("Read-only navigation: Home ("+style.get()+")");
+        JSONObject rides=timeRidesOpen(activity);output.putString("rides_first_open",rides.toString());status("Read-only navigation: rides "+rides);
+        runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
+        List<String> visited=new ArrayList<>(),hidden=new ArrayList<>();Map<String,Integer> controlsShown=new LinkedHashMap<>();Object[] data=null;
+        for(String subject:HubPages.SUBJECTS){
+            HubTestPages.reach(this,activity,subject);arrive(activity,subject);visited.add(subject);
+            if(scooterRowPage(subject))controlsShown.put(subject,assertControlsPage(activity,subject).size());
+            if(HubPages.CONTROLS.equals(subject))render(activity,"navigation-controls.png");
+            if(HubPages.LIGHTS.equals(subject))render(activity,"navigation-lights.png");
+            if(HubPages.DATA.equals(subject))data=dataWalk(activity);
+            status("Read-only navigation: "+subject);
+            for(String child:children(subject)){
+                AtomicReference<Boolean> expected=new AtomicReference<>();
+                // A Scooter sub-page's link shows only while that page has rows for this scooter; every other row always shows.
+                eventually(8000,()->{expected.set(rule(activity,"pageShown",child));boolean row=HubTestPages.rowShown(activity,child);
+                    require(row==expected.get(),subject+(row?" shows a row to "+child+", which has nothing for this scooter":" shows no row to "+child));});
+                if(!expected.get()){hidden.add(child);continue;}
+                HubTestPages.tapRow(this,activity,child);arrive(activity,child);visited.add(child);
+                if(scooterRowPage(child))controlsShown.put(child,assertControlsPage(activity,child).size());
+                status("Read-only navigation: "+child);
+                HubTestPages.back(this,activity);arrive(activity,subject);
+            }
+            HubTestPages.back(this,activity);arrive(activity,HubPages.HOME);
+        }
+        // Every Scooter page with rows was checked, or its link was hidden because it has nothing for this scooter.
+        for(String page:HubTestPages.scooterRowPages())require(controlsShown.containsKey(page)||hidden.contains(page),"The walk never checked the Scooter page "+page);
+        String kickstart=searchWalk(activity);visited.add(HubPages.SEARCH);status("Read-only navigation: search (kickstart opened "+kickstart+")");
+        HubTestPages.reach(this,activity,HubPages.SETTINGS);arrive(activity,HubPages.SETTINGS);visited.add(HubPages.SETTINGS);render(activity,"navigation-settings.png");
+        for(String child:children(HubPages.SETTINGS)){
+            String tag=SETTINGS_ROWS.get(child);require(tag!=null,"ParkedValidation names no Settings row for "+child+" (SETTINGS_ROWS)");
+            View[] row={null};eventually(()->row[0]=HubTestPages.shownTag(activity,tag));
+            HubTestPages.tapView(this,activity,row[0],"Settings' row "+tag);arrive(activity,child);visited.add(child);status("Read-only navigation: "+child);
+            HubTestPages.back(this,activity);arrive(activity,HubPages.SETTINGS);
+        }
+        HubTestPages.back(this,activity);arrive(activity,HubPages.HOME);
+        runMain(()->require(mutations()==initial.get(),"Navigation/search/favourite actions submitted a scooter mutation"));
+        String sliderPage=offlineSliderCancel(activity);
+        runMain(()->require(mutations()==initial.get(),"Slider cancellation submitted a scooter mutation"));
+        runMain(()->HubTestPages.open(activity,HubPages.HOME));arrive(activity,HubPages.HOME);
+        int controls=0;for(int count:controlsShown.values())controls+=count;
+        JSONObject evidence=new JSONObject();evidence.put("mode","navigation");evidence.put("layout","hub");evidence.put("home",style.get());evidence.put("connection_at_start",connection.get());
+        evidence.put("pages_visited",visited.size());evidence.put("page_ids",new JSONArray(visited));evidence.put("pages_hidden_for_this_scooter",new JSONArray(hidden));
+        evidence.put("scooter_pages_checked",controlsShown.size());evidence.put("controls_shown_by_page",new JSONObject((Map<?,?>)controlsShown));
+        evidence.put("data_wide",data[0]);evidence.put("data_tabs",data[1]);evidence.put("data_sections",data[2]);evidence.put("search_kickstart_opened",kickstart);evidence.put("search_no_match",true);
+        evidence.put("scooter_mutations",0);evidence.put("slider_cancel","Disconnected: kick-start row on "+sliderPage+", slider only in the connected edit sheet; no mutation");evidence.put("rides_first_open",rides);
+        if(args.containsKey("fixture"))evidence.put("fixture",args.getString("fixture"));
+        results.put(evidence);
+        return "Hub walk: Home ("+style.get()+"), "+visited.size()+" pages ("+hidden.size()+" sub-pages hidden for this scooter), "+controls+" controls on their "+controlsShown.size()+" Scooter pages, "
+                +data[2]+" Data sections ("+data[1]+" tabs), kickstart search ("+kickstart+") and no-match, optional favourite, Settings' "+children(HubPages.SETTINGS).size()+" pages; no scooter mutations";
+    }
+    /** Whether ControlsPages gives page rows of its own (a Scooter page with rows, not the search page). */
+    private static boolean scooterRowPage(String page){return HubTestPages.scooterRowPages().contains(page);}
     /**
      * Rides' first open, timed read-only from the tab tap (MainActivity.select, as the tab bar calls it) to the first frame,
      * and to the first frame drawn once the history rows are built, with the longest main-thread message in that time.
@@ -306,15 +409,49 @@ public final class ParkedValidation extends Instrumentation {
         runMain(()->require(HubPages.RIDE.equals(field(activity,"selectedPage")),"Navigation did not select rides"));waitForIdleSync();
         return timing;
     }
-    @SuppressWarnings("unchecked") private void offlineSliderCancel(Activity activity)throws Exception{
+    /**
+     * Disconnected, the page ControlsPages puts start_speed on (Controls › Assists) still has its kick-start row, shown
+     * where this scooter offers it, with no slider of its own: the SeekBar lives in an edit sheet that opens only while
+     * connected. Returns that page.
+     */
+    private String offlineSliderCancel(MainActivity activity)throws Exception{
         runMain(()->{assertNoUserRecording();reconnectAfterSmoke=service.ble.connected()||service.ble.state()==BleController.State.CONNECTING||service.ble.state()==BleController.State.AUTHENTICATING;service.ble.disconnect();service.settings.edit().putString("scooter_section","").commit();});
-        navigate(activity,"controls");
-        runMain(()->{
+        String page=HubTestPages.pageOf("start_speed");require(page!=null,"ControlsPages puts start_speed on no page");
+        HubTestPages.reach(this,activity,page);arrive(activity,page);
+        eventually(8000,()->{
             require(service.ble.state()==BleController.State.DISCONNECTED&&!service.ble.connected(),"Slider cancel regression requires no live GATT");
-            Object target=null;for(Object row:(List<Object>)field(currentScreen(activity),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals("start_speed")){target=row;break;}
-            require(target!=null,"Kick-start slider row unavailable");
+            View card=(View)field(HubTestPages.controlRow(activity,"start_speed"),"card");boolean offered=rule(activity,"rowOffered","start_speed");
+            require(card.isShown()==offered,"Kick-start row on "+page+(offered?" is hidden while disconnected":" shows, but this scooter does not offer it"));
             // Rows have no inline slider; the SeekBar lives in an edit sheet that opens only while connected.
-        });status("Read-only slider row check passed while disconnected; no control was sent");
+            require(!hasSeekBar(card),"The kick-start row has an inline slider");
+        });status("Read-only slider row check passed while disconnected on "+page+"; no control was sent");
+        return page;
+    }
+    private static boolean hasSeekBar(View view){
+        if(view instanceof android.widget.SeekBar)return true;
+        if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)if(hasSeekBar(((ViewGroup)view).getChildAt(i)))return true;
+        return false;
+    }
+    /**
+     * -e fixture saved|simulator (navigation mode only; the hardware sweep never passes it): lets the navigation step run on
+     * a disposable emulator. Refuses a physical phone and any existing Volt data, then saves a synthetic UT5 MAX owner
+     * profile (never connected, so it offers the UT5 MAX rows unavailable, as a saved scooter not yet read) with onboarding
+     * done and -e home_style clean|widgets (default clean) chosen; simulator also connects the developer simulator's UT5 MAX
+     * (no radio) before the walk. Grant Nearby devices permission first, or the service never binds.
+     */
+    private void emulatorFixture(){
+        String hardware=Build.HARDWARE.toLowerCase(Locale.ROOT),fixture=args.getString("fixture","");
+        require(hardware.contains("ranchu")||hardware.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"-e fixture refuses a physical phone");
+        require(fixture.equals("saved")||fixture.equals("simulator"),"Unknown -e fixture "+fixture+" (saved or simulator)");
+        Context context=getTargetContext();
+        for(String name:new String[]{"app_settings","profiles","scooter","onboarding"})require(context.getSharedPreferences(name,Context.MODE_PRIVATE).getAll().isEmpty(),"-e fixture refuses existing Volt data (clear it first)");
+        String style=args.getString("home_style","clean");require(style.equals("clean")||style.equals("widgets"),"Unknown -e home_style "+style);
+        runMain(()->{ScooterProfiles profiles=new ScooterProfiles(context);ScooterProfiles.Profile profile=profiles.create("Synthetic navigation fixture","A1B2C3D4E5F6",0);
+            profile.serial="X2538-SYNTHETIC";profile.mac="C0:FF:EE:12:34:56";profile.lastConnected=System.currentTimeMillis()-60000;profiles.update(profile);});
+        require(context.getSharedPreferences("onboarding",Context.MODE_PRIVATE).edit().putBoolean("onboarding_done",true).commit()
+                &&context.getSharedPreferences("app_settings",Context.MODE_PRIVATE).edit().putBoolean("auto_connect",false).putBoolean("background_connection",false)
+                        .putBoolean("developer_options",true).putBoolean("auto_record_rides",false).putBoolean("riding_auto_open",false)
+                        .putString("home_style",style).putBoolean("home_style_chosen",true).putString("home_style_origin","install").commit(),"Fixture settings failed");
     }
     private void dispatch(View view,long down,long stamp,int action,float x,float y){android.view.MotionEvent event=android.view.MotionEvent.obtain(down,stamp,action,x,y,0);try{view.dispatchTouchEvent(event);}finally{event.recycle();}}
     private void render(Activity activity,String filename)throws Exception{
