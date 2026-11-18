@@ -25,8 +25,10 @@ sweep refuses to start, and runs no further step, while Volt's notification show
 notification and matched against every translation of its titles and actions in the installed Volt's own
 resources, pulled from the phone and read with aapt2; a charge-alert watch shown in their place hides
 them), and stops the remaining plan when a step reports a charge recording running at its start or started
-during it. Each step also latches its scooter in Volt's memory (ParkedValidation; the Record charges
-automatically switch is never touched), so its own connection never starts one. Stop or finish any charge recording or schedule test before the sweep.
+during it. A step also refuses, before Volt's screen or service starts, while Record charges automatically
+is on (its own connection would start an automatic recording that the next restart cuts short), and that
+stops the plan too. Before the sweep: turn off Record charges automatically, stop or finish any charge
+recording or schedule test, and turn the switch back on afterwards.
 
 The runner APK's manifest is checked (with the SDK's aapt2) before anything touches the phone: it
 must be the test package whose ParkedValidation instruments Volt, never Volt or another app.
@@ -229,6 +231,9 @@ def evidence(step):
 
 
 results, charging, planned, write_failed, charge_stop = [], None, None, None, None
+STOP_ADVICE = 'Let it finish or stop it in Volt, then run the sweep again.'
+AUTO_ADVICE = 'Turn off Record charges automatically in Volt for the sweep, run it again, and turn the switch back on afterwards.'
+advice = STOP_ADVICE
 installed = adb('install', '-r', '--no-incremental', str(args.runner.resolve()), check=False)
 if 'Success' not in installed: raise SystemExit('Could not install the runner: ' + installed.strip()[-300:])
 try:
@@ -240,7 +245,7 @@ try:
         shown = notice_shown() if charge_stop is None else None
         if shown: charge_stop = 'a scheduled-charging test is running in Volt' if shown == 'test' else 'a charge recording is running in Volt'
         if charge_stop:
-            row.update(status='SKIP', detail=f'not run: {charge_stop}; stop or finish it in Volt, then run the sweep again'); results.append(row)
+            row.update(status='SKIP', detail=f'not run: {charge_stop}. {advice}'); results.append(row)
         elif step['writes'] and write_failed:
             row.update(status='SKIP', detail=f'skipped after {write_failed} failed'); results.append(row)
         elif step.get('plan_free') and planned == 'true':
@@ -266,7 +271,9 @@ try:
             # A failed write, or any step whose evidence is missing, stops later writes: they couldn't be shown restored.
             if status == 'FAIL' and (step['writes'] or missing): write_failed = step['name']
             # A charge recording running at the step's start, or started during it, stops the whole remaining plan.
-            if 'A charge recording is running' in output: charge_stop = f"a charge recording was running when {step['name']} started"
+            if 'INSTRUMENTATION_RESULT: refused=charge_auto_record' in output:
+                charge_stop, advice = 'Record charges automatically is on (each step restarts Volt, which would end an automatic recording)', AUTO_ADVICE
+            elif 'A charge recording is running' in output: charge_stop = f"a charge recording was running when {step['name']} started"
             elif 'INSTRUMENTATION_RESULT: charge_recording_started=true' in output:
                 charge_stop = f"a charge recording started during {step['name']} (it ends when Volt restarts)"
                 row['detail'] = (row['detail'] + '; ' if row['detail'] else '') + charge_stop
@@ -288,7 +295,7 @@ if controls:
               f"{restored.get(c.get('restored'), '—')} | {c.get('outcome', '')} |" for c in controls]
 (args.out / 'report.md').write_text('\n'.join(lines) + '\n')
 failed = [r['step'] for r in results if r['status'] == 'FAIL']
-if charge_stop: print(f'Stopped: {charge_stop}. Let it finish or stop it in Volt, then run the sweep again.')
+if charge_stop: print(f'Stopped: {charge_stop}. {advice}')
 print(f"{sum(r['status'] == 'PASS' for r in results)} passed, {len(failed)} failed, "
       f"{sum(r['status'] == 'SKIP' for r in results)} skipped" + (': failed ' + ', '.join(failed) if failed else ''))
 print(f"Report: {args.out / 'report.md'}")

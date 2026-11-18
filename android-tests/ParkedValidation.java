@@ -26,17 +26,19 @@ public final class ParkedValidation extends Instrumentation {
     private Activity launchedActivity;private Map<String,Object> smokePreferences;private boolean smokeMode,reconnectAfterSmoke;
     private static final String[] SMOKE_PREFS={"background_connection","auto_connect","charge_live_enabled","scooter_section","stats_section","stats_query","stats_favourites","stats_favourite_order","stats_favourites_only","more_section"};
     @Override public void onCreate(Bundle args){this.args=args==null?new Bundle():args;start();}
-    private final ServiceConnection connection=new ServiceConnection(){public void onServiceConnected(ComponentName n,IBinder b){service=((ScooterService.LocalBinder)b).service();latching=true;relatch.run();}public void onServiceDisconnected(ComponentName n){service=null;}};
+    private final ServiceConnection connection=new ServiceConnection(){public void onServiceConnected(ComponentName n,IBinder b){service=((ScooterService.LocalBinder)b).service();}public void onServiceDisconnected(ComponentName n){service=null;}};
     @Override public void onStart(){Bundle output=new Bundle();try{
         String mode=args.getString("mode","snapshot");
         if(args.containsKey("fixture")&&!mode.equals("navigation"))throw new IllegalArgumentException("-e fixture is for navigation mode only");
+        if(args.containsKey("fixture"))emulatorFixture();
+        // Before Volt's screen or service starts, and before anything is written: refused while automatic recording is on.
+        if(getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE).getBoolean(ChargeAutoRecordPolicy.KEY,false)){
+            output.putString("refused","charge_auto_record");throw new IllegalStateException(AUTO_RECORD_ON);}
         smokeMode=mode.equals("navigation")||mode.equals("background");
         if(smokeMode)backupSmokePreferences();
-        if(args.containsKey("fixture"))emulatorFixture();
         Activity activity=startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));launchedActivity=activity;
         runMain(()->bound=getTargetContext().bindService(new Intent(getTargetContext(),ScooterService.class),connection,Context.BIND_AUTO_CREATE));
         awaitReadOnly(()->service!=null,8000,"Local service unavailable");
-        if(Boolean.TRUE.equals(autoChargeOn))output.putString("charge_auto_record_latched","true");
         // Before any mode's own work: a charge recording is never ended by a step (chargeRecordingAtStart).
         runMain(()->chargeAtStart=service.isChargeRecording());if(chargeAtStart)throw new IllegalStateException(CHARGE_RUNNING);
         if(smokeMode){
@@ -115,8 +117,6 @@ public final class ParkedValidation extends Instrumentation {
      * (charge_recording_started=true, which stops the hardware sweep's remaining plan) and the evidence records it.
      */
     private void chargeStarted(Bundle output)throws Exception{
-        // The owner's switch, read again at the end: the latch never changes it.
-        if(Boolean.TRUE.equals(autoChargeOn))output.putString("charge_auto_record_on_at_end",String.valueOf(getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE).getBoolean(ChargeAutoRecordPolicy.KEY,false)));
         if(service==null||chargeAtStart)return;
         AtomicReference<Boolean> running=new AtomicReference<>(false);runMain(()->running.set(service!=null&&service.isChargeRecording()));
         if(!running.get())return;
@@ -125,26 +125,13 @@ public final class ParkedValidation extends Instrumentation {
         JSONObject row=new JSONObject();row.put("charge_recording_started",true);row.put("note","Started during this step; it ends when Volt restarts or closes after the step");results.put(row);
     }
     /**
-     * The step never starts an automatic charge recording (its own connection would, on a charging scooter, and the step's
-     * end, when Android closes Volt's process, would cut it short; a short automatic one is deleted). The owner's Record
-     * charges automatically switch is never touched: the active scooter goes into the service's in-memory latch
-     * (ScooterService.autoChargeLatched, which a refused start sets; observeAutoCharge never starts a held scooter, and
-     * turning the switch on releases only room-shortage latches) as the service binds, before any mode's work, and dies
-     * with the step's process. Volt clears it on a fresh not-charging reading (clearAutoChargeHold), so it is set again
-     * every LATCH_MS until cleanup: a start needs a later charging reading, and status readings come about a second apart.
+     * A step never runs while Record charges automatically (ChargeAutoRecordPolicy.KEY) is on: the step's own connection
+     * would start an automatic recording on a charging scooter, and the step's end (Android closing Volt's process) or the
+     * next step's start would cut it short, deleting a short one. Checked before Volt's screen or service starts and before
+     * any write; the owner turns it off for the sweep and back on afterwards (run-hardware-sweep.py stops the plan).
      */
-    @SuppressWarnings("unchecked") private void latchAutoCharge(){
-        ScooterService bound=service;if(bound==null)return;
-        if(autoChargeOn==null)autoChargeOn=bound.settings.getBoolean(ChargeAutoRecordPolicy.KEY,false);
-        ScooterProfiles.Profile profile=bound.profiles==null?null:bound.profiles.active();
-        if(profile!=null)((Set<String>)field(bound,"autoChargeLatched")).add(profile.id);
-    }
-    private static final long LATCH_MS=250;
-    private final Handler latchHandler=new Handler(Looper.getMainLooper());private volatile boolean latching;
-    /** Whether Record charges automatically was on as the service bound (null before): reported as charge_auto_record_latched. */
-    private volatile Boolean autoChargeOn;
-    private final Runnable relatch=new Runnable(){public void run(){if(!latching)return;latchAutoCharge();latchHandler.postDelayed(this,LATCH_MS);}};
-    private void cleanup(){if(smokeMode&&smokePreferences!=null)restoreSmokePreferences();if(service!=null&&originalBackground!=null){boolean previous=originalBackground;runMain(()->{service.settings.edit().putBoolean("background_connection",previous).commit();if(!getTargetContext().getSystemService(PowerManager.class).isInteractive())service.visible(false);});originalBackground=null;}if(bound){runMain(()->getTargetContext().unbindService(connection));bound=false;}latching=false;latchHandler.removeCallbacks(relatch);}
+    static final String AUTO_RECORD_ON="Record charges automatically is on. Each hardware sweep step restarts Volt, which would end an automatic charge recording (a short one is deleted). Turn it off in Volt for the sweep and back on afterwards.";
+    private void cleanup(){if(smokeMode&&smokePreferences!=null)restoreSmokePreferences();if(service!=null&&originalBackground!=null){boolean previous=originalBackground;runMain(()->{service.settings.edit().putBoolean("background_connection",previous).commit();if(!getTargetContext().getSystemService(PowerManager.class).isInteractive())service.visible(false);});originalBackground=null;}if(bound){runMain(()->getTargetContext().unbindService(connection));bound=false;}}
     private void backupSmokePreferences(){
         smokePreferences=new LinkedHashMap<>();Map<String,?> all=getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE).getAll();
         for(String key:SMOKE_PREFS)if(all.containsKey(key)){Object value=all.get(key);smokePreferences.put(key,value instanceof Set?new LinkedHashSet<>((Set<?>)value):value);}

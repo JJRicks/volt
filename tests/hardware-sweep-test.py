@@ -62,6 +62,7 @@ elif argv[:3] == ['shell', 'am', 'instrument']:
         print('INSTRUMENTATION_RESULT: schedule_active=' + os.environ.get('FAKE_ACTIVE', 'false'))
     if outcome == 'started': print('INSTRUMENTATION_RESULT: charge_recording_started=true')
     if outcome == 'fail': print('INSTRUMENTATION_RESULT: error=IllegalStateException: Change declined'); print('INSTRUMENTATION_CODE: 1')
+    elif outcome == 'autorecord': print('INSTRUMENTATION_RESULT: refused=charge_auto_record'); print('INSTRUMENTATION_RESULT: error=IllegalStateException: Record charges automatically is on. Each hardware sweep step restarts Volt'); print('INSTRUMENTATION_CODE: 1')
     elif outcome == 'charging': print('INSTRUMENTATION_RESULT: error=IllegalStateException: A charge recording is running. Each hardware sweep step ends with Volt restarting, which would end it'); print('INSTRUMENTATION_CODE: 1')
     elif outcome == 'notime': print('INSTRUMENTATION_RESULT: error=IllegalStateException: No restorable stored charging timestamp'); print('INSTRUMENTATION_CODE: 1')
     else: print('INSTRUMENTATION_RESULT: result=Saved'); print('INSTRUMENTATION_CODE: 0')
@@ -270,6 +271,16 @@ class HardwareSweep(unittest.TestCase):
         self.assertEqual(self.modes(), []); self.assertFalse(any(c[:1] == ['install'] for c in self.calls()))
         pulls = [c for c in self.calls() if c[:1] == ['pull'] and c[1].endswith('/base.apk')]
         self.assertEqual(len(pulls), 1, "Volt's texts come from its own APK on the phone")
+
+    def test_record_charges_automatically_on_stops_the_plan_with_its_instruction(self):
+        result = self.run_sweep(FAKE_PLAN=json.dumps(dict(snapshot='autorecord')))
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(self.modes(), ['snapshot'], 'no further step restarts Volt')
+        steps = {s['step']: s for s in json.loads((self.out / 'summary.json').read_text())['steps']}
+        self.assertEqual(steps['snapshot']['status'], 'FAIL')
+        self.assertTrue(all(steps[s]['status'] == 'SKIP' and 'Turn off Record charges automatically' in steps[s]['detail']
+                            for s in ('navigation', 'background', 'clock', 'settings', 'charge-time', 'schedule-test')), steps)
+        self.assertIn('Stopped: Record charges automatically is on', result.stdout)
+        self.assertIn('turn the switch back on afterwards', result.stdout)
 
     def test_another_apps_notice_or_volts_connected_notice_does_not_stop_the_sweep(self):
         result = self.run_sweep()
