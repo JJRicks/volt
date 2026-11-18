@@ -143,9 +143,9 @@
     <string name="controls_refusal_proximity_owner" volt:src="7a3d9993ad79d48f59e7a95a0a4f7a17e5e561ce">Ändringar av närhetsupplåsning kräver att du ansluter som ägare</string>
     <string name="controls_refusal_proximity_bond" volt:src="5202b710f3512aed31d470de96e7adb657b33565">Parkoppla den här telefonen innan du slår på närhetsupplåsningen</string>
     <string name="controls_refusal_proximity_pin" volt:src="98af0415be393c700e663c6ff4eaeb536b7d9b57">Ställ in och slå på PIN-koden på styret innan du slår på närhetsupplåsningen</string>
-    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Den officiella appen frågar före den här ändringen. Volt har inte testat den på den här modellen.</string>
-    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt har inte testat den på den här modellen.</string>
-    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Den officiella appen visar en varning för den här ändringen. Volt har inte testat den på den här modellen.</string>
+    <string name="controls_caution_asks" volt:src="45da6512e6addec2db48cf8781e285fbb248d5d5">Den officiella appen frågar innan den här ändringen görs.</string>
+    <string name="controls_caution_untested" volt:src="4442b2318eac640ae6039d6bb270ae7dd75d0da1">Volt frågar innan den här ändringen görs.</string>
+    <string name="controls_caution_shows" volt:src="1f7cca9d70c2992d9c9f54d2604685a34b2b8f4c">Den officiella appen visar en varning för den här ändringen.</string>
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Vill du stänga av antispinn? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Vill du stänga av batterisparläget? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Vill du byta till enmotorsdrift? %1$s</string>

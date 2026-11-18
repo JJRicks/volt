@@ -144,9 +144,9 @@
     <string name="controls_refusal_proximity_owner" volt:src="7a3d9993ad79d48f59e7a95a0a4f7a17e5e561ce">La modification du déverrouillage par proximité nécessite une connexion en tant que propriétaire</string>
     <string name="controls_refusal_proximity_bond" volt:src="5202b710f3512aed31d470de96e7adb657b33565">Associez ce téléphone avant d’activer le déverrouillage par proximité</string>
     <string name="controls_refusal_proximity_pin" volt:src="98af0415be393c700e663c6ff4eaeb536b7d9b57">Définissez et activez le code PIN du guidon avant d’activer le déverrouillage par proximité</string>
-    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">L’application officielle demande confirmation avant ce changement. Volt ne l’a pas testé sur ce modèle.</string>
-    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt ne l’a pas testé sur ce modèle.</string>
-    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">L’application officielle affiche un avertissement pour ce changement. Volt ne l’a pas testé sur ce modèle.</string>
+    <string name="controls_caution_asks" volt:src="45da6512e6addec2db48cf8781e285fbb248d5d5">L’application officielle demande confirmation avant ce changement.</string>
+    <string name="controls_caution_untested" volt:src="4442b2318eac640ae6039d6bb270ae7dd75d0da1">Volt demande confirmation avant ce changement.</string>
+    <string name="controls_caution_shows" volt:src="1f7cca9d70c2992d9c9f54d2604685a34b2b8f4c">L’application officielle affiche un avertissement pour ce changement.</string>
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Désactiver le contrôle de traction ? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Désactiver le mode batterie faible ? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Passer à un seul moteur ? %1$s</string>

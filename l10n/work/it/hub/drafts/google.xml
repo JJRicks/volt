@@ -60,6 +60,15 @@
     <string name="hub_charge_send_note" volt:src="f4c00ec1875a46ac65b4ca7d1e7fd2918216f4b6">Inviare le tue registrazioni della ricarica a Volt aiuta a migliorare le stime del tempo di ricarica per il modello del tuo monopattino.</string>
     <string name="hub_charge_send_no_email" volt:src="271244f864b921e5ab995ea5b0fa4c7b767af012">Nessuna app email è riuscita ad aprire le registrazioni della ricarica.</string>
     <string name="hub_charge_send_busy" volt:src="e0a560854d3973ed85eb2968bccbcd6c7ecd982f">Interrompi la registrazione della ricarica prima di inviare le registrazioni</string>
+    <string name="hub_charge_invite_title" volt:src="60949f63068396c7546678e2dd1f895e4bfdc50a">Aiuta a migliorare la stima del tempo di ricarica</string>
+    <string name="hub_charge_invite_body" volt:src="4e191eb62409157c259b7954b8b30c752b0574c6">Registra alcune ricariche e inviale a Volt.</string>
+    <string name="hub_charge_invite_hide" volt:src="b05a69d3404b5635017a49e4cd3b07579232dd8c">Nascondi questo suggerimento</string>
+    <string name="hub_charge_invite_intro" volt:src="49b53606e14200b0dd5ed22b40586bc73a84ebe2">Volt impara come si ricarica il tuo monopattino dalle ricariche reali. Le registrazioni rendono più precisa la stima del tempo di ricarica.</string>
+    <string name="hub_charge_invite_step_record" volt:src="f798ab2db7cc794a1851e4e71206c951ffdbd307">Registra le tue ricariche: tocca %1$s mentre il monopattino è in carica, oppure attiva %2$s.</string>
+    <string name="hub_charge_invite_step_any" volt:src="4add4fab7a9faa69e8c68f41992dcbd4e6120bdf">Non deve essere perfetta. Anche una ricarica parziale aiuta.</string>
+    <string name="hub_charge_invite_step_full" volt:src="5991c14dbd07948bdf3aa351bfd5f013b4a5f97d">Ricaricare fino al 100%% è ciò che aiuta di più.</string>
+    <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Tieni il telefono vicino al monopattino durante la ricarica, così Volt rimane connessa.</string>
+    <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Poi apri %1$s e tocca %2$s. Usiamo le tue registrazioni per affinare la stima per il modello del tuo monopattino.</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Avvia la registrazione in background</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Una corsa che si avvia mentre Volt è in background o con lo schermo bloccato non ha un percorso GPS.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · ca. %2$s rimanenti</string>
@@ -86,12 +95,12 @@
     <string name="hub_whats_new_cut" volt:src="9bf205d7894e61f6643060ec3c6b7c801d1ff8fa">Queste sono solo le prime novità. La pagina della versione le mostra tutte.</string>
     <string name="hub_qa_ride_round" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Guida</string>
     <string name="hub_qa_record_round" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Registra</string>
-    <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a" volt:attempt="2">Ric. entro</string>
+    <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a" volt:attempt="2">Ricarica entro</string>
     <string name="hub_qa_alerts_round" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Avvisi</string>
     <string name="hub_qa_cruise_round" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Cruise</string>
     <string name="hub_qa_traction_round" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Trazione</string>
     <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Recupero</string>
-    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330" volt:attempt="2">Sovravel.</string>
+    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330" volt:attempt="2">Eccesso vel.</string>
     <string name="hub_qa_descent_round" volt:src="83aabaef6fccc26a2b05bdf6965a81609fbd1dd3">Discesa</string>
     <string name="hub_list_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="hub_qa_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Cerca impostazioni</string>
