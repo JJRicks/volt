@@ -338,32 +338,36 @@ public final class ChargeTransitionValidation extends Instrumentation {
 
     /**
      * A reversal after the arrival's fill phase (council review of #534, F02): the bay was lit when the change turned back,
-     * and from then its light only goes down, by at most half of what was lit in one frame, to none at rest; it never
-     * goes out in one frame. Frames are compared as the pop rule does (close together, progress moving a frame's worth).
+     * and from then its light only goes down, in step with the change's progress (it drains over ChargeTransition.Fill's
+     * 0.3 of progress, so between two frames it falls by at most twice its share of the progress they moved, and a little
+     * more), shows part-lit on at least two frames, and is out at rest; it never goes out in one frame. Judged by
+     * progress, not by time, so a slow emulator's long frames don't hide it.
      */
     private void bayDrains(String what, List<float[]> frames, int p, int active, int fill, String[] names) {
         float top = -1, lit = 0, last = -1;
         boolean turned = false;
-        int draining = 0;
+        int partway = 0;
         float[] previous = null;
         for (float[] f : frames) {
             if (f[active] > 0) {
                 if (last >= 0 && f[p] < last - 1e-4f && !turned) { turned = true; lit = previous == null ? f[fill] : previous[fill]; }
                 top = Math.max(top, f[p]); last = f[p];
             }
-            if (turned && previous != null && f[0] - previous[0] <= 25 && Math.abs(f[p] - previous[p]) <= Math.max(.06f, .15f * (f[0] - previous[0]) / 25f)) {
+            if (turned && previous != null) {
                 require(f[fill] <= previous[fill] + 1e-3f, what + ": the bay's light rose on the way back: " + row(previous, names) + " -> " + row(f, names));
-                require(previous[fill] - f[fill] <= Math.max(.02f, lit / 2), what + ": the bay's light dropped " + fmt(previous[fill] - f[fill]) + " of "
-                        + fmt(lit) + " in one frame: " + row(previous, names) + " -> " + row(f, names));
-                if (f[fill] > 0) draining++;
+                float moved = Math.abs(f[p] - previous[p]);
+                float allowed = lit * 2 * moved / .3f + .03f;
+                require(previous[fill] - f[fill] <= allowed, what + ": the bay's light dropped " + fmt(previous[fill] - f[fill]) + " of " + fmt(lit)
+                        + " while the change moved " + fmt(moved) + ": " + row(previous, names) + " -> " + row(f, names));
+                if (f[fill] > .01f && f[fill] < lit - .01f) partway++;
             }
             previous = f;
         }
         require(turned && top >= .8f && top < 1, what + ": it did not turn back late in the arrival (highest progress " + top + ")");
         require(lit > .05f, what + ": the bay was not lit when it turned back (" + fmt(lit) + ")");
-        require(draining >= 2, what + ": the bay's light went out in " + draining + " frames");
+        require(partway >= 2, what + ": the bay's light showed part-lit on only " + partway + " frames on its way out");
         require(frames.get(frames.size() - 1)[fill] == 0, what + ": the bay is still lit at rest");
-        note(what + ": turned back at p " + fmt(top) + " with the bay lit to " + fmt(lit) + ", drained over " + draining + " frames");
+        note(what + ": turned back at p " + fmt(top) + " with the bay lit to " + fmt(lit) + ", part-lit on " + partway + " frames on its way out");
         assertions++; checks.add(what);
     }
 
