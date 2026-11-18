@@ -13,7 +13,7 @@ import java.util.TreeSet;
 
 /**
  * The English of registry version 19's kick-start tries (KickStartTry), pinned line for line in
- * kickstart-try-english.tsv. It lists the same things the B4 controls characterization
+ * characterization/kickstart-try-english.tsv. It lists the same things the B4 controls characterization
  * (tests/l10n/characterization/ControlsEnglishTest) lists for every variant ModelRegistry holds: the id, the label
  * over the domain and around it, an OEM-group Decision's label (where it differs) and oemLabel (where it is not
  * null), ModelRegistry.caution with each kind of OEM note and on the UT5 MAX and Lab layers, and each encode
@@ -22,7 +22,9 @@ import java.util.TreeSet;
  * Run with "--write" from the repository root to print the listing.
  */
 public final class KickStartTryEnglishTest {
-    static final String LISTING = "tests/l10n/kickstart-try-english.tsv";
+    // Beside the B4 listing in characterization/ (Nov 17 2026), so an owner-approved English change can update its
+    // caution lines in its first commit (G5), as it updates controls-english.tsv; at tests/l10n/ it was proof tooling.
+    static final String LISTING = "tests/l10n/characterization/kickstart-try-english.tsv";
     private static final int[] VALUES = {-1, 0, 1, 2, 3, 4, 5, 8, 20, 25, 32, 33, 40, 50, 70, 80, 81, 100, 101, 255};
 
     public static void main(String[] args) throws Exception {

@@ -283,12 +283,6 @@
     <string name="controls_refusal_proximity_bond">Parkoppla den här telefonen innan du slår på närhetsupplåsning</string>
     <!-- src:98af0415be393c700e663c6ff4eaeb536b7d9b57 -->
     <string name="controls_refusal_proximity_pin">Ställ in och slå på PIN-koden på styret innan du slår på närhetsupplåsning</string>
-    <!-- src:a302a37076cb98db4ccc65243fa92f597736d25f -->
-    <string name="controls_caution_asks">Den officiella appen frågar innan den här ändringen görs. Volt har inte testat den på den här modellen.</string>
-    <!-- src:bc725850d341ca0a7beca147cf4cc154219e83be -->
-    <string name="controls_caution_untested">Volt har inte testat den på den här modellen.</string>
-    <!-- src:a2bfe3bf6cf134d338cc088a8f76863d2ba8225f -->
-    <string name="controls_caution_shows">Den officiella appen uppmanar till försiktighet inför den här ändringen. Volt har inte testat den på den här modellen.</string>
     <!-- src:23b20de27ff343f6cf6f03506bf17dd3fe637e36 -->
     <string name="controls_caution_traction_control">Vill du stänga av antispinn? %1$s</string>
     <!-- src:5fc0d9cd0dcae1e2195b91a04a4374dedff1834f -->

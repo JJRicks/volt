@@ -304,7 +304,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");pageArgs=HubNav.Args.restore(saved.getStringArray("page_args"));settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -504,6 +504,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         // recreation (text size, dark mode on Follow system, process death) restores their search (#393 council review, third
         // round, finding 3).
         saved.putString("search_reading",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));
+        // A search result's target still owed (the loading page waits for the service: no Nearby devices permission, or the
+        // bind still coming) goes with the page: a recreation then (a theme change, a fold, process death) would otherwise
+        // drop it, and the page the service builds would not reveal it (#393 council review, fourth round, finding 3).
+        saved.putStringArray("page_args",HubNav.Args.save(pageArgs));
         saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
@@ -2636,17 +2640,16 @@ public final class MainActivity extends Activity implements ScreenHost {
     /**
      * A setting row's note (SettingRow.rowNote) and Home's charging bar's, from this one place so they cannot drift:
      * the resolver's reason when the control is unavailable for a reason the row doesn't already show, else "Unconfirmed
-     * here" where an owner saw this model keep its old value, else "Untested here" for an OEM-mapped control on another
-     * model. None on the UT5 MAX.
+     * here" where an owner saw this model keep its old value. An OEM-mapped control on another model shows like any
+     * supported control: no "Untested here" (owner, Nov 17 2026: owners' issue reports say what is missing).
      */
     static String controlNote(BleController ble,CapabilityResolver.Decision d,boolean parked,String key){
         if(ble==null||d==null||!ble.ready())return null;
         if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
                 &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
-        if(ModelRegistry.unconfirmed(ble.descriptor(),key))return rowUnconfirmed();
-        return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?T.mainRowUntested():null;
+        return ModelRegistry.unconfirmed(ble.descriptor(),key)?rowUnconfirmed():null;
     }
-    /** A row's detail and note joined ("85% · Untested here"); either alone when the other is missing. */
+    /** A row's detail and note joined ("85% · Unconfirmed here"); either alone when the other is missing. */
     private static String joinNote(String text,String note){return note==null?text:text==null||text.isEmpty()?note:T.mainJoinNote(text,note);}
     /** The charging bar's words: its controls' own (Quick access, the Charge limit row, its choice sheet, the alert row). */
     private final ChargeBar.Words chargeBarWords=new ChargeBar.Words(){
@@ -4396,8 +4399,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * Short caption for a connected row: why the control is refused (not the transient states the row
-         * already shows), else "Unconfirmed here" where an owner saw this model keep its old value, else
-         * "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
+         * already shows), else "Unconfirmed here" where an owner saw this model keep its old value (controlNote).
          */
         private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){return controlNote(ble,d,parked,feature.key);}
         /** UT5 MAX swatches never change; colours beyond them (another model's table) show only while that model offers them. */

@@ -61,10 +61,10 @@ final class ChargeBar extends View {
         String name(boolean alert);
         /**
          * The Charge limit row's own note for this scooter (MainActivity.controlNote, the one source both use): its
-         * reason, "Unconfirmed here" or "Untested here"; null when the row shows none.
+         * reason or "Unconfirmed here"; null when the row shows none.
          */
         String note(ScooterService service);
-        /** A value with a note, as the row joins them ("85% · Untested here"). */
+        /** A value with a note, as the row joins them ("85% · Unconfirmed here"). */
         String withNote(String value, String note);
         /** The row's spoken notes: a write in flight, and a note as the row speaks it. */
         String confirming();

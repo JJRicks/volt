@@ -543,7 +543,7 @@ scooter gets the lock under a shared contract (lock needs fresh status, a
 recent stopped motion report and no warning; unlock needs only a fresh
 authenticated status) plus readings. A scooter whose advertised model ID is in
 the official app's lists also gets the controls below. They come from the
-official NAVEE 2.1.9 app's mapping and are marked "Untested here".
+official NAVEE 2.1.9 app's mapping and show like any other control.
 
 Control            Evidence     Conditions on non-UT5 models
 -----------------  -----------  -----------------------------------------------
