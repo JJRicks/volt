@@ -120,6 +120,24 @@
     <string name="hub_charge_send_no_email">Ingen e-postapp kunde öppna laddningsinspelningarna.</string>
     <!-- src:e0a560854d3973ed85eb2968bccbcd6c7ecd982f -->
     <string name="hub_charge_send_busy">Stoppa laddningsinspelningen innan du skickar inspelningarna</string>
+    <!-- src:60949f63068396c7546678e2dd1f895e4bfdc50a -->
+    <string name="hub_charge_invite_title">Hjälp till att förbättra uppskattningen av laddtiden</string>
+    <!-- src:4e191eb62409157c259b7954b8b30c752b0574c6 -->
+    <string name="hub_charge_invite_body">Spela in några laddningar och skicka dem till Volt.</string>
+    <!-- src:b05a69d3404b5635017a49e4cd3b07579232dd8c -->
+    <string name="hub_charge_invite_hide">Dölj det här förslaget</string>
+    <!-- src:49b53606e14200b0dd5ed22b40586bc73a84ebe2 -->
+    <string name="hub_charge_invite_intro">Volt lär sig hur din elsparkcykel laddar av riktiga laddningar. Inspelningar gör uppskattningen av laddtiden mer exakt.</string>
+    <!-- src:f798ab2db7cc794a1851e4e71206c951ffdbd307 -->
+    <string name="hub_charge_invite_step_record">Spela in dina laddningar: tryck på %1$s medan elsparkcykeln laddar, eller slå på %2$s.</string>
+    <!-- src:4add4fab7a9faa69e8c68f41992dcbd4e6120bdf -->
+    <string name="hub_charge_invite_step_any">Det behöver inte vara perfekt. Även en delvis laddning hjälper.</string>
+    <!-- src:5991c14dbd07948bdf3aa351bfd5f013b4a5f97d -->
+    <string name="hub_charge_invite_step_full">Att ladda hela vägen till 100 %% hjälper mest.</string>
+    <!-- src:a83860cb7088b2d10e03b96dc4cc6e48954cc43b -->
+    <string name="hub_charge_invite_step_nearby">Håll telefonen nära elsparkcykeln medan den laddar, så att Volt förblir ansluten.</string>
+    <!-- src:d157c439746955fe6c175f41b2e27c20cb39dca6 -->
+    <string name="hub_charge_invite_step_send">Öppna sedan %1$s och tryck på %2$s. Vi använder dina inspelningar för att finjustera uppskattningen för din elsparkcykels modell.</string>
     <!-- src:04bc34a391adb8a7ad639531d7934a68631293fd -->
     <string name="hub_recording_auto_background">Starta inspelning i bakgrunden</string>
     <!-- src:4dd6fd0eb9c533661ffd71462e8456c76a8fb01b -->

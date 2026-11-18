@@ -49,6 +49,10 @@
     <string name="home_qa_record">Fahrt aufzeichnen</string>
     <!-- src:73efc7c413b95081edaff9094760e244ceb41319 -->
     <string name="home_qa_record_short">Starten</string>
+    <!-- src:a3e5ebbd7d27387561d5b73e97446892da8aee4e -->
+    <string name="home_qa_charge_alerts">Akkuwarnungen</string>
+    <!-- src:7463b09504a12e15a09561e3e0add16f6cbf5c02 -->
+    <string name="home_qa_charge_alerts_short">Akkuwarn.</string>
     <!-- src:23ec282b4756bd14f9a9c5fb6a5dd0f72de9fe28 -->
     <string name="home_qa_recording">Aufzeichnung läuft</string>
     <!-- src:3cd0bd11faa9499cce304127482e557fe0df78ed -->

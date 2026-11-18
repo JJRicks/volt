@@ -57,7 +57,7 @@
     <!-- src:fe834ab52a00109da8d8f3077a7229f92735c9a2 -->
     <string name="dashboard_model_qa_experimental">Controles experimentales</string>
     <!-- src:fe834ab52a00109da8d8f3077a7229f92735c9a2 -->
-    <string name="dashboard_model_qa_experimental_short">Controles experimentales</string>
+    <string name="dashboard_model_qa_experimental_short">Experimental</string>
     <!-- src:93f57e741f48415190a8c8fcfe6d71efab3c8ae0 -->
     <string name="dashboard_model_qa_data_history">Datos e historial</string>
     <!-- src:93f57e741f48415190a8c8fcfe6d71efab3c8ae0 -->
@@ -73,7 +73,7 @@
     <!-- src:5e8ef4566f297b6db0e662bca61dc57c4f3c167b -->
     <string name="dashboard_model_qa_charge_done_time">Hora de fin de carga</string>
     <!-- src:5e8ef4566f297b6db0e662bca61dc57c4f3c167b -->
-    <string name="dashboard_model_qa_charge_done_time_short">Hora de fin de carga</string>
+    <string name="dashboard_model_qa_charge_done_time_short">Hora fin carga</string>
     <!-- src:a3e5ebbd7d27387561d5b73e97446892da8aee4e -->
     <string name="dashboard_model_qa_charge_alerts">Alertas de batería</string>
     <!-- src:7463b09504a12e15a09561e3e0add16f6cbf5c02 -->

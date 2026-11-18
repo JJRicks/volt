@@ -13,7 +13,7 @@
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
     <string name="controls_feature_energy_recovery">Recuperación de energía</string>
     <!-- src:ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b -->
-    <string name="controls_feature_energy_recovery_short">Recuperación de energía</string>
+    <string name="controls_feature_energy_recovery_short">Recuperación</string>
     <!-- src:e85a5d0f3a6fd80c598896dc4d227e68c6fc0cb3 -->
     <string name="controls_feature_acceleration">Perfil de aceleración</string>
     <!-- src:698e6ba4cfef83cc36e197154706cb78257f84b6 -->
@@ -27,7 +27,7 @@
     <!-- src:e59328d84c8efacbfaf74c80c1ab64c2e07c5c79 -->
     <string name="controls_feature_traction_control">Control de tracción</string>
     <!-- src:e59328d84c8efacbfaf74c80c1ab64c2e07c5c79 -->
-    <string name="controls_feature_traction_control_short">Control de tracción</string>
+    <string name="controls_feature_traction_control_short">Tracción</string>
     <!-- src:19860ddd145bce9bd14f3e4eb17684670f0d812e -->
     <string name="controls_feature_turn_sound">Sonido del indicador de giro</string>
     <!-- src:cb472220793ecbbd5ab3c9e044deb8a692a60bb6 -->
@@ -43,7 +43,7 @@
     <!-- src:9405735ed4961b5517452a22e672488228e9a705 -->
     <string name="controls_feature_start_speed">Velocidad de arranque por impulso</string>
     <!-- src:9405735ed4961b5517452a22e672488228e9a705 -->
-    <string name="controls_feature_start_speed_short">Velocidad de arranque por impulso</string>
+    <string name="controls_feature_start_speed_short">Vel. arranque</string>
     <!-- src:4790622900ea5816a4b27925c7cad468f98740a6 -->
     <string name="controls_feature_speed_limit">Límite de velocidad personalizado</string>
     <!-- src:d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0 -->
@@ -53,7 +53,7 @@
     <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
     <string name="controls_feature_dual_drive">Tracción con dos motores</string>
     <!-- src:d9d506ad125267838efebe6e98165aa3290c37e6 -->
-    <string name="controls_feature_dual_drive_short">Tracción con dos motores</string>
+    <string name="controls_feature_dual_drive_short">Dos motores</string>
     <!-- src:3fe5f3c90e71a367347eea8875268efd19912d90 -->
     <string name="controls_feature_drive_speed_limit">Límite de velocidad del modo de conducción Drive</string>
     <!-- src:9a3dc2d0fcc48f27c237a0829af4cfbb9bc5809c -->
@@ -284,6 +284,12 @@
     <string name="controls_refusal_proximity_bond">Empareja este teléfono antes de activar el desbloqueo por proximidad</string>
     <!-- src:98af0415be393c700e663c6ff4eaeb536b7d9b57 -->
     <string name="controls_refusal_proximity_pin">Configura y activa el PIN del patinete antes de activar el desbloqueo por proximidad</string>
+    <!-- src:45da6512e6addec2db48cf8781e285fbb248d5d5 -->
+    <string name="controls_caution_asks">La app oficial pide confirmación antes de este cambio.</string>
+    <!-- src:4442b2318eac640ae6039d6bb270ae7dd75d0da1 -->
+    <string name="controls_caution_untested">Volt pide confirmación antes de este cambio.</string>
+    <!-- src:1f7cca9d70c2992d9c9f54d2604685a34b2b8f4c -->
+    <string name="controls_caution_shows">La app oficial muestra una advertencia para este cambio.</string>
     <!-- src:23b20de27ff343f6cf6f03506bf17dd3fe637e36 -->
     <string name="controls_caution_traction_control">¿Desactivar el control de tracción? %1$s</string>
     <!-- src:5fc0d9cd0dcae1e2195b91a04a4374dedff1834f -->
