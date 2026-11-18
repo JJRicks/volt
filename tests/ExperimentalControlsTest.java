@@ -166,7 +166,7 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         // The never-added list is unchanged.
         Set<String> never=set(ModelRegistry.NEVER_EXPERIMENTAL);
         for(String key:new String[]{"maximum_speed","drive_speed_limit","overspeed_control"})check(never.contains(key),"Still never experimental: "+key);
-        check(ModelRegistry.VERSION==19,"Registry version 19");
+        check(ModelRegistry.VERSION==20,"Registry version 20");
         // The hint is catalog text, and only outside the low-start region.
         check(T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",1,OemControlsTest.model("22131","ES")))
             &&T.controlsExperimentalStartSpeedRegion().equals(ModelRegistry.experimentalCaution("start_speed",0,null))

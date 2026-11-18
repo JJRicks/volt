@@ -44,6 +44,12 @@ public final class SimulatorScenesTest {
         return out;
     }
 
+    private static List<String> knownNames() {
+        List<String> out = new ArrayList<>();
+        for (String[] known : ModelRegistry.knownModels().values()) out.add(known[0]);
+        return out;
+    }
+
     private static void pickerListsEveryNamedModel() {
         List<SimulatorModels.Entry> entries = SimulatorModels.entries();
         check(entries.get(0).pid.isEmpty() && entries.get(0).label().equals("UT5 MAX (US)") && "US".equals(entries.get(0).region)
@@ -65,7 +71,13 @@ public final class SimulatorScenesTest {
         }
         for (String[] known : ModelRegistry.knownModels().values())
             check(names.contains(known[0]), "every model the registry names is offered: " + known[0]);
-        check(names.size() == ModelRegistry.knownModels().size(), "and nothing the registry doesn't name");
+        check(names.equals(new HashSet<>(knownNames())), "and nothing the registry doesn't name");
+        Set<String> pids = new HashSet<>();
+        for (SimulatorModels.Entry e : entries.subList(2, entries.size() - 2)) pids.add(e.pid);
+        check(pids.equals(ModelRegistry.knownModels().keySet()), "every Model ID the registry names is offered, once per region group");
+        // Two IDs of one model (the catalog's NT5 Max, 25431 and 25432) are told apart by the ID.
+        check(SimulatorModels.find("25431", null).label().startsWith("NT5 Max 25431") && SimulatorModels.find("25432", null).label().startsWith("NT5 Max 25432"),
+                "a name two IDs share shows the ID: " + SimulatorModels.find("25431", null).label());
         check(SimulatorModels.find("", null) == entries.get(0) && SimulatorModels.find(null, "US") == entries.get(0)
                 && SimulatorModels.find("", "EU") == entries.get(1) && SimulatorModels.find("", "DE") == entries.get(1),
                 "the default UT5 MAX simulator (no region) shows as UT5 MAX (US); other regions as the entry with their rules");

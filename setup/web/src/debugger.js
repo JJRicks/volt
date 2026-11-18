@@ -495,7 +495,7 @@ window.addEventListener('pagehide', () => {
   // The armed phone watchdog is the fallback; the next visit verifies cleanup.
   if (!session?.busy) phone?.close(true).catch(() => {});
 });
-$('model').replaceChildren(...[['', 'Choose your scooter'], ...[...MODELS, OTHER_MODEL].map(name => [name, name])].map(([value, label]) => {
+$('model').replaceChildren(...[['', 'Choose your scooter'], ...[...new Set(MODELS), OTHER_MODEL].map(name => [name, name])].map(([value, label]) => {
   const option = document.createElement('option'); option.value = value; option.textContent = label; return option;
 }));
 buildKnows('knows-live'); buildKnows('knows-review');

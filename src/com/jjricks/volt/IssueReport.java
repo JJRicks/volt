@@ -24,7 +24,7 @@ final class IssueReport {
         return "Volt charge recordings · Volt " + appVersion + (scooterModel == null || scooterModel.isEmpty() ? "" : " · " + scooterModel);
     }
 
-    /** scooterModel is ModelRegistry.modelLine for the selected scooter ("" when none is known). */
+    /** scooterModel is ModelRegistry.modelLineWithId for the selected scooter ("NT5 Max · 25431"; "" when none is known). */
     static String body(String appVersion, String androidRelease, int sdk, String phone, String scooterModel, boolean simulated) {
         StringBuilder out = new StringBuilder("What happened, and what did you expect instead?\n\n\n\n");
         out.append("Volt ").append(appVersion).append(" · Android ").append(androidRelease).append(" (API ").append(sdk).append(") · ").append(phone.trim());
