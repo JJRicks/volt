@@ -304,7 +304,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toast(T.mainExportCleared());
         }
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
-        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
+        if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");pageArgs=HubNav.Args.restore(saved.getStringArray("page_args"));settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
@@ -504,6 +504,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         // recreation (text size, dark mode on Follow system, process death) restores their search (#393 council review, third
         // round, finding 3).
         saved.putString("search_reading",HubNav.keptReading(null,searchReading,nav.pages(),readingLetGo()));
+        // A search result's target still owed (the loading page waits for the service: no Nearby devices permission, or the
+        // bind still coming) goes with the page: a recreation then (a theme change, a fold, process death) would otherwise
+        // drop it, and the page the service builds would not reveal it (#393 council review, fourth round, finding 3).
+        saved.putStringArray("page_args",HubNav.Args.save(pageArgs));
         saved.putBoolean("pending_find",pendingFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;

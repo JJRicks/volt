@@ -779,6 +779,22 @@ public final class HubSearchTest {
                 && main.contains("private boolean builtBeforeService(){return screen instanceof LoadingScreen||scooterService==null&&binding;}")
                 && main.contains("if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);\n        redraw();\n        showUpdateCheck();\n        // Back on Home"),
                 "the page pane keeps a search's reading and a target the loading page can't use");
+        // A target still owed survives a recreation while the loading page waits (a theme change, a fold, process death): the
+        // activity saves pageArgs with its state and restores it before its first rebuild (#393 council review, fourth round,
+        // finding 3). Every field comes back; none saves as null.
+        HubNav.Args owed = new HubNav.Args("feature", true, "ride-7", "preference_riding_auto_record", "speed_kmh", true);
+        HubNav.Args back = HubNav.Args.restore(HubNav.Args.save(owed));
+        check(back != null && "feature".equals(back.inspect) && back.recovery && "ride-7".equals(back.ride)
+                && "preference_riding_auto_record".equals(back.anchor) && "speed_kmh".equals(back.reading) && back.backAfterRide,
+                "a saved target comes back whole");
+        HubNav.Args anchorOnly = HubNav.Args.restore(HubNav.Args.save(HubNav.Args.anchor("update_check")));
+        check(anchorOnly != null && "update_check".equals(anchorOnly.anchor) && anchorOnly.inspect == null && anchorOnly.ride == null
+                && anchorOnly.reading == null && !anchorOnly.recovery && !anchorOnly.backAfterRide, "a saved anchor alone comes back alone");
+        check(HubNav.Args.save(null) == null && HubNav.Args.restore(null) == null && HubNav.Args.restore(new String[]{"x"}) == null,
+                "nothing owed saves nothing, and anything else restores nothing");
+        check(main.contains("saved.putStringArray(\"page_args\",HubNav.Args.save(pageArgs));")
+                && main.contains("pageArgs=HubNav.Args.restore(saved.getStringArray(\"page_args\"));"),
+                "MainActivity saves the owed target with its state and restores it");
         // The validations' rest wait also waits out a page change's snapshot fading over the window: between pages at the same
         // depth the new page sits still under the old one's cover in the root's overlay (#393 council review, fourth round,
         // finding 1).
