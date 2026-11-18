@@ -95,12 +95,12 @@
     <string name="hub_whats_new_cut" volt:src="9bf205d7894e61f6643060ec3c6b7c801d1ff8fa">Queste sono le prime note. La pagina delle versioni le contiene tutte.</string>
     <string name="hub_qa_ride_round" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Guida</string>
     <string name="hub_qa_record_round" volt:src="73efc7c413b95081edaff9094760e244ceb41319">Registra</string>
-    <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a">Ricarica entro</string>
+    <string name="hub_qa_charge_done_by_round" volt:src="a7c2266a0fd74c9e8df226458362dfcadd06bd4a" volt:attempt="2">Ricar. entro</string>
     <string name="hub_qa_alerts_round" volt:src="7463b09504a12e15a09561e3e0add16f6cbf5c02">Avvisi</string>
     <string name="hub_qa_cruise_round" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Cruise</string>
     <string name="hub_qa_traction_round" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Trazione</string>
     <string name="hub_qa_recovery_round" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Recupero</string>
-    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330">Sovravelocità</string>
+    <string name="hub_qa_overspeed_round" volt:src="ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330" volt:attempt="2">Sovravel.</string>
     <string name="hub_qa_descent_round" volt:src="83aabaef6fccc26a2b05bdf6965a81609fbd1dd3">Discesa</string>
     <string name="hub_list_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="hub_qa_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Cerca impostazioni</string>
