@@ -1,3 +1,50 @@
+VOLT 2.0.0 — THE HUB: NEW HOME AND NAVIGATION, CLEAN HOME, MOTION, EVERY MODEL PICTURED (versionCode 60)
+Draft, November 17, 2026. The release checks below are still to run.
+
+- Cut from main. 1.13.2 was cut from release/1.13 and carried only the
+  main pull requests that didn't depend on the Hub, so this is the first
+  release since 1.13.1 to carry main's Hub layout series (#381 to #394,
+  #403, #410 and #411, with its follow-ups), the developer simulator's
+  scenes and emailing charge recordings. Every pull request merged into
+  main since v1.13.1 is in it, through the language top-ups #533 and #549.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR since 1.13.2's branch point, CI on its merged head and the independent
+  review on the head that merged.]
+- The Hub's own walk (HubValidation) and the new steps from this run of
+  work (among them the charging transition, the charge recordings invite,
+  the unlock guide, Settings without Nearby devices, the dock sheet and the
+  model photos) are registered in run-release-sweep.py.
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 1.13.2's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- Parked hardware sweep with the owner present: [PHASE 2: run-hardware-sweep
+  report.md outcomes on the candidate the owner installed, or say plainly
+  that it was not run.]
+- Real-scooter checks already made on development builds of main (UT5 MAX,
+  November 14, 2026; docs/validation/owner-release.md and
+  docs/validation/new-scooter-setup.md): Make a new owner key (the scooter
+  took the key, locked and unlocked, and Volt reconnected with it after a
+  restart), Release this scooter (the quick drop counted as released, no
+  reclaim, and refused while the wheel turned), and Find it nearby at the
+  same address. Riding mode's Focus chips were checked on the owner's phone
+  the same day. None of these used the release build.
+- ModelRegistry.REPORTED is unchanged from 1.13.2 (22131, 23452, 24162,
+  24182, 25462, 25852): no compatibility report for a new Model ID is
+  recorded since then. Adding any that reached volt-reports@jjricks.com is
+  the owner's step. Every newly named model is still offered the report.
+- Still owed on real hardware: a scooter whose Bluetooth address really
+  changed (Find it nearby's confirm and serial-match save), an odometer
+  that really dropped, the Plug in transition and the charge invite on a
+  real charge, and any control on the newly recognised models.
+
+--- Previous verification ---
+
 VOLT 1.13.2 — DRAGGABLE CHARGE MARK, BACKGROUND RECORDING OPT-IN, FULLER DIAGNOSTICS, BATTERY ALERTS SHORTCUT, FIXES (versionCode 59)
 Built and swept at commit 517e8e46 on release/1.13, November 13, 2026.
 The tag is on a later docs-only merge.

@@ -26,24 +26,24 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 
 | Feature | What you get |
 | :--- | :--- |
-| 🔒 **Local controls** | Lock/unlock and supported riding, lighting and charging settings, on the short subject pages Home opens. |
-| 🧩 **Your dashboard** | Movable, resizable widgets, quick controls and saved layouts for folded and unfolded screens. |
+| 🔒 **Local controls** | Lock/unlock and supported riding, lighting and charging settings, on the short subject pages Home leads to. |
+| 🏠 **Home your way** | **Clean**, a fixed Home with four quick actions and charging and last-ride views that come up by themselves, or **Widgets**, a dashboard of movable, resizable widgets with saved layouts for folded and unfolded screens. Search finds any page, setting, reading or ride. |
 | 📊 **Live insights** | Searchable readings, charts, favourites and last-seen values. |
 | 🗺️ **Ride recordings** | Optional GPS routes, phone sensors, energy readings and complete ride backups. |
 | 🛴 **Riding mode** | A full-screen ride view with big speed, range at this pace and power, in three layouts you can edit, with night vision after sunset. |
 | 🔋 **Battery insights** | Optional range learned from your rides, charging estimates, a live charging card on the lock screen and experimental usable ride energy. |
 | 🔧 **Maintenance** | Distance and time reminders, with a quiet notification when a check is due. |
-| 🌐 **Languages** | English, plus Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish (all beta), with more in progress. |
+| 🌐 **Languages** | English, plus Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish (all beta, fully translated), with more in progress. |
 
 ## Install & connect
 
-**You'll need:** Android **8.0+** with Bluetooth LE and an already activated, owner-bound **NAVEE scooter**. Available controls depend on the model; the US UT5 MAX is physically verified, while other models use mappings from the official app. [Compatibility details →](docs/user-guide.md#other-navee-models)
+**You'll need:** Android **8.0+** with Bluetooth LE and a **NAVEE scooter**: one already bound to your NAVEE account, or a new or reset one. Volt recognises and pictures every NAVEE scooter by its Model ID. Its controls follow the official app's list for each model. The US UT5 MAX is physically verified, and a few other models are owner-tested ([which](FEATURES.txt)). [Compatibility details →](docs/user-guide.md#other-navee-models)
 
 1. **Install Volt.** Download the `.apk` from [Releases](https://github.com/JJRicks/volt/releases/latest), open it on your phone and allow installation when Android asks.
-2. **Pair once.** Keep your powered-on scooter nearby and safely parked, and confirm it connects in NAVEE. Follow Volt's recommended [Chrome + USB setup](https://pairscooter.jjricks.com/), or choose another route in the [setup guide](docs/getting-started.md). You can also import an existing setup or full backup.
+2. **Pair once.** Keep your powered-on scooter nearby and safely parked, and confirm it connects in NAVEE. Follow Volt's recommended [Chrome + USB setup](https://pairscooter.jjricks.com/), or choose another route in the [setup guide](docs/getting-started.md). You can also import an existing setup or full backup. A scooter that's new or was removed from the NAVEE app can skip this: setup's **Make a new owner key** connects it with a key Volt makes and keeps on your phone.
 3. **Connect.** Grant the requested Bluetooth permissions (Location on Android 8–11), close NAVEE to release its connection, and connect in Volt.
 
-First-time capture needs your working NAVEE account and Android debugging access, with your explicit approval. You never enter your NAVEE or Google password into Volt. **After setup, everyday use needs no computer, ADB or Shizuku.**
+Capturing an existing owner identity needs your working NAVEE account and Android debugging access, with your explicit approval. You never enter your NAVEE or Google password into Volt. **After setup, everyday use needs no computer, ADB or Shizuku.**
 
 ## Good to know
 
