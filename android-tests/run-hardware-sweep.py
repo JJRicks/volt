@@ -25,8 +25,8 @@ sweep refuses to start, and runs no further step, while Volt's notification show
 notification and matched against every translation of its titles and actions in the installed Volt's own
 resources, pulled from the phone and read with aapt2; a charge-alert watch shown in their place hides
 them), and stops the remaining plan when a step reports a charge recording running at its start or started
-during it. Each step also holds Record charges automatically off while it runs (ParkedValidation), so its
-own connection never starts one. Stop or finish any charge recording or schedule test before the sweep.
+during it. Each step also latches its scooter in Volt's memory (ParkedValidation; the Record charges
+automatically switch is never touched), so its own connection never starts one. Stop or finish any charge recording or schedule test before the sweep.
 
 The runner APK's manifest is checked (with the SDK's aapt2) before anything touches the phone: it
 must be the test package whose ParkedValidation instruments Volt, never Volt or another app.
