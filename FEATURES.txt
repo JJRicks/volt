@@ -999,8 +999,9 @@ in the muted colour with "power (direction unknown)", never as confirmed regen;
 saved rides plot it the same way on the power graph, keep "Direction ?" and
 leave Battery draw and Battery input Not measured. Range and energy estimates
 ignore it. Emulator- and JVM-tested; not yet checked on a GT3 Max.
-The tune disc (shown while stopped or disconnected, hidden while the connected
-scooter moves, sliding in and out over 220 ms) opens the tune menu. At the top
+The tune disc (shown under 1 mph or disconnected, hidden once the connected
+scooter has kept 1 mph or more for 2 s, sliding in and out over 220 ms) opens
+the tune menu. At the top
 is the layout editor: drawn previews of the three frames, what each spot shows,
 (Halo's and Trace's chips can show any reading but speed, named beside the
 value unless it names itself, with names shortening to their short form and
@@ -1018,9 +1019,15 @@ automatically (also in Ride > Riding mode). Every change saves at once. The menu
 button, Back, a tap outside, or a live speed of 4 mph (6.437 km/h) or more;
 a stale reading or a disconnected scooter never closes it. Riding mode never
 writes Android's brightness setting. The only scooter command it can send is
-Lock or Unlock, from the Lock button that shows with Record while the scooter
-is stopped under 1 km/h and goes away as soon as it moves; both fade and grow
-like the tune disc and stop taking taps once they start to hide. While the
+Lock or Unlock, from the Lock button that shows with Record (and the tune
+disc) while the live speed is under 1 mph (1.6 km/h) or missing, whether or
+not the scooter says it's stationary, and goes away once the speed has stayed
+at 1 mph or more for 2 s; all three fade and grow like the tune disc and stop
+taking taps once they start to hide. A Lock tap while the scooter isn't
+completely stopped (stationary with a fresh speed of 0) waits, the switch on
+the side asked for, and goes out at the stop; with no stop within 5 s it goes
+back with "Bring the scooter to a stop first", and it goes back at once if the
+buttons hide or the connection drops. Record starts and stops at once. While the
 scooter is disconnected, Lock and Record show too: Lock shows its last known
 state and takes no tap, and Record can stop a running recording but never
 starts one. Volt's range in riding mode is the learned estimate from past

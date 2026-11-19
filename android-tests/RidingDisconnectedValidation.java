@@ -41,10 +41,10 @@ import java.util.function.Predicate;
 
 /**
  * The controls while the scooter is disconnected (owner, Nov 9). On Home, a recording stops from the disc with the link gone.
- * In riding mode Lock, Record and the tune button share one gate: shown when not connected or stopped, hidden connected and
- * moving, and together on the frame the gate flips. Record stops a recording while disconnected and otherwise does nothing;
+ * In riding mode Lock, Record and the tune button share one gate: shown when not connected, or under 1 mph or with no speed,
+ * hidden after 2 s connected at 1 mph or more, and together on the frame the gate flips. Record stops a recording while disconnected and otherwise does nothing;
  * Lock keeps its last known state and queues nothing. Taps are real touches. The simulator covers the states; a synthetic
- * authenticated link covers what the simulator can't: connected with no motion report yet, and a real end of the link.
+ * authenticated link covers what the simulator can't: connected with no motion report or speed yet (shown), and a real end of the link.
  * Disposable emulator only.
  */
 public final class RidingDisconnectedValidation extends Instrumentation {
@@ -196,7 +196,8 @@ public final class RidingDisconnectedValidation extends Instrumentation {
                 if (run[0]) Choreographer.getInstance().postFrameCallback(this);
             }
         }));
-        SystemClock.sleep(600);
+        // A hide starts only after 2 s at 1 mph or more (RidingFrames.HIDE_AFTER_MS, owner Nov 19): sample through it.
+        SystemClock.sleep(600 + 2000);
         run[0] = false;
         waitForIdleSync();
         return samples;
@@ -339,11 +340,12 @@ public final class RidingDisconnectedValidation extends Instrumentation {
         await(() -> field(activity, "riding") != null && "RidingScreen".equals(field(activity, "screen").getClass().getSimpleName()), "riding mode opened");
         settle();
         require(service.ble.connected() && !service.ble.stationary(), "connected with no motion report");
-        await(() -> !controlsVisible() && !tuneTakes(), "connected, no motion report: all three hidden together");
-        require(picker().getVisibility() != View.VISIBLE || !tuneTakes(), "the tune button goes with them");
+        // No speed yet shows them (owner, Nov 19: the stationary flag isn't needed to show them); a lock tap would wait for a stop.
+        await(() -> controlsVisible() && tuneTakes(), "connected, no motion report and no speed: all three shown together");
+        require(picker().getVisibility() == View.VISIBLE, "the tune button goes with them");
         shot("riding-8-connected-no-motion-report");
         report(0, 0);
-        await(() -> controlsVisible() && tuneTakes(), "the first stopped report brings all three back");
+        await(() -> controlsVisible() && tuneTakes(), "the first stopped report keeps all three");
         settle();
         // A recording, the real link ending: the hold's rule.
         int rides = rideCount();
