@@ -1941,13 +1941,18 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout line = new LinearLayout(host.activity()) {
                 @Override protected void onMeasure(int widthSpec, int heightSpec) {
                     int width = MeasureSpec.getSize(widthSpec);
-                    // "—" with Low current always fits; a time keeps ~96 dp before its tag wraps.
-                    boolean beside = chip.getVisibility() == GONE || value.length() <= 2;
+                    // A short value ("—" with Low current) stays beside its tag where it fits whole; a time keeps ~96 dp
+                    // before its tag wraps. Clean's narrow charging tiles at large text in some languages (a German Low
+                    // current pill at 344 dp and 1.4x) left "—" no room at all, clipped.
+                    boolean beside = chip.getVisibility() == GONE;
                     if (!beside) {
                         chip.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
                                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                         float scale = Math.max(1, ui.textScale * getResources().getConfiguration().fontScale);
-                        beside = width - chip.getMeasuredWidth() - ui.dp(6) >= ui.dp(96 * scale);
+                        int room = width - chip.getMeasuredWidth() - ui.dp(6);
+                        beside = value.length() <= 2
+                                ? room >= Math.ceil(value.getPaint().measureText(value.getText().toString())) + value.getTotalPaddingLeft() + value.getTotalPaddingRight()
+                                : room >= ui.dp(96 * scale);
                     }
                     if (beside != (getOrientation() == HORIZONTAL)) {
                         setOrientation(beside ? HORIZONTAL : VERTICAL);
