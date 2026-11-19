@@ -195,8 +195,11 @@ STEPS += [
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     # The same tile on Clean Home's charging view (the owner's request, 19 Nov 2026), the simulator charging first.
     inst('charge-time-tile-clean', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', size=PHONE[0]),
-    inst('charge-time-tile-layout-clean-344', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
-    inst('charge-time-tile-layout-clean-725', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # Clean's matrix relaunches through a simulated plug-in each time: two languages a step, to finish inside a step's time.
+    inst('charge-time-tile-layout-clean-344', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', '-e', 'locales', 'en,de', size=PHONE[0]),
+    inst('charge-time-tile-layout-clean-344-pt', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', '-e', 'locales', 'pt-PT,pt-BR', size=PHONE[0]),
+    inst('charge-time-tile-layout-clean-725', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', '-e', 'locales', 'en,de', size=WIDE[0]),
+    inst('charge-time-tile-layout-clean-725-pt', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', '-e', 'locales', 'pt-PT,pt-BR', size=WIDE[0]),
     # The time's value at Charging power's size (owner, Nov 15 2026): phones at 412, 360 and 344 dp and the Fold unfolded.
     inst('charge-time-sizes-412', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),

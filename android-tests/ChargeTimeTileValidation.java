@@ -727,7 +727,11 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     /** Every theme, text size and language at this size: labels whole, dots clear, one height for both readings. */
     private void verifyLayoutMatrix() throws Exception {
         String size = args.getString("size_label", "size");
+        // Argument locales (comma list, "en" for English) runs only those languages: Clean's matrix relaunches through a
+        // simulated plug-in each time, so the sweep runs it in two halves to stay inside a step's time.
+        String only = args.getString("locales", "");
         for (String locale : new String[] {"", "de", "pt-PT", "pt-BR"}) {
+            if (!only.isEmpty() && !Arrays.asList(only.split(",")).contains(locale.isEmpty() ? "en" : locale)) continue;
             for (String theme : new String[] {"dark", "light"}) for (String text : new String[] {"1", "1.4"}) {
                 label = size + "-" + (locale.isEmpty() ? "en" : locale) + "-" + theme + "-" + text;
                 MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle();
