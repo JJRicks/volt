@@ -54,8 +54,16 @@ Charging recordings retain their separate five-second capture freshness rule.
 This is a charger-family inference, not a decoded hardware ID. The defaults also
 check their own SOC/power/voltage compatibility after selection, with the same
 bounded grace for one or two out-of-envelope frames in either family. Unknown means
-live-rate fallback; null no longer silently selects the stock curve. No inference
-is persisted or fed back as a verified training label.
+live-rate fallback; null no longer silently selects the stock curve. Detection itself
+persists nothing. Under Auto it never labels a recording the owner starts by hand
+(that label is always confirmed); it does label automatic recordings (Record charges
+automatically), where from 2.0.1 its settled family outranks the charger setting.
+That is a training label because both evidence rules sit outside what the other
+charger can deliver: fast evidence (over 150 W and 2.8 A) is above the stock
+charger's recorded maximum of about 121 W / 2.25 A, and stock evidence (65–135 W,
+1.4–2.5 A, at most 85%) is far below the recorded fast charge there (about 210 W
+at 85%, 420–540 W in bulk), each sustained for three frames over four seconds. Where
+it cannot tell, it stays unsettled and the recording keeps the setting's label.
 
 ## High-speed evidence and model
 
@@ -107,8 +115,10 @@ sources, including the additive `FAST_REFERENCE` value. The journal remains v2
 and export remains `navee-charge-recordings-v1`; historical predictions are never
 recomputed. Older readers that do not know the new source can discard the optional
 prediction metadata while preserving original electrical samples. The export's
-manual charger-selection label remains accurate because recording labels are
-still explicitly confirmed by the owner.
+top-level `charger_selection: manual` stays for older readers and describes
+recordings started by hand, whose labels the owner confirms; each automatic
+recording's `label_source` (and from 2.0.1 `label_audit`) says how its label was
+reached.
 
 ## Validation
 
