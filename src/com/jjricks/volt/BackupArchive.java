@@ -216,10 +216,11 @@ final class BackupArchive {
                 for (Entry entry : files) {
                     if (entry.file.length() != entry.disk) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     zip.putNextEntry(new ZipEntry(entry.name));
+                    long copied;
                     try (InputStream in = entry.inflate ? ChargeSessionStore.open(entry.file) : new FileInputStream(entry.file)) {
-                        long copied = AppDataArchive.copy(in, zip, buffer, AppDataArchive.fileLimit(entry.name));
-                        if (copied != entry.length || entry.file.length() != entry.disk) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
-                    } catch (ZipException | EOFException changed) { throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain(), changed); }
+                        copied = AppDataArchive.copy(in, zip, buffer, AppDataArchive.fileLimit(entry.name));
+                    } catch (ZipException | EOFException changed) { copied = -1; } // A compressed charge rewritten mid-read.
+                    if (copied != entry.length || entry.file.length() != entry.disk) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     zip.closeEntry();
                 }
                 zip.finish(); encrypted.finish(); output.flush();

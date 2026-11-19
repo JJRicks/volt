@@ -342,8 +342,8 @@ public final class ChargeEstimateValidation extends Instrumentation {
         for(ChargeSessionStore.HistorySession session:found.get())require(profile.equals(session.profile),"History leaked profile");
     }
     /**
-     * A long history (owner, Nov 19 2026: a rotating buffer of hundreds): the list shows fifty rows, Show older adds the
-     * rest, and an older recording, a summary in the list, opens once its samples are read. Sixty synthetic plain
+     * A long history (owner, Nov 19 2026: a rotating buffer of hundreds): the list shows fifty rows, scrolling to its end adds
+     * the rest, and an older recording, a summary in the list, opens once its samples are read. Sixty synthetic plain
      * recordings, older than the five above, are written for it and removed after.
      */
     private void verifyLongHistory()throws Exception{
@@ -360,12 +360,13 @@ public final class ChargeEstimateValidation extends Instrumentation {
         }
         main(()->invoke(viewer(),"close",new Class<?>[]{}));settle();
         main(()->root().findViewWithTag("charge-history-action").performClick());
-        await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-older")!=null,"Long history did not load");
+        await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-list")!=null,"Long history did not load");
         main(()->require(rows(dialogRoot())==50,"The list does not show fifty rows at once: "+rows(dialogRoot())));
         main(()->{View list=dialogRoot().findViewWithTag("charge-history-list");((View)list.getParent()).scrollTo(0,list.getHeight());});settle();
-        screenshot("history-show-older");
-        main(()->dialogRoot().findViewWithTag("charge-history-older").performClick());settle();
-        main(()->require(rows(dialogRoot())==65&&dialogRoot().findViewWithTag("charge-history-older")==null,"Show older did not add the rest: "+rows(dialogRoot())));
+        await(()->rows(dialogRoot())==65,"Scrolling to the end did not add the older rows");
+        main(()->{View list=dialogRoot().findViewWithTag("charge-history-list");((View)list.getParent()).scrollTo(0,list.getHeight());});settle();
+        main(()->require(rows(dialogRoot())==65,"The list did not stop at the 65 saved: "+rows(dialogRoot())));
+        screenshot("history-scrolled-older");
         String oldest=seeded.get(59).getName().substring(0,36);
         open(oldest);
         await(()->dialog()!=null&&dialogRoot().findViewWithTag("charge-history-panel")!=null,"An older recording did not open after its read");

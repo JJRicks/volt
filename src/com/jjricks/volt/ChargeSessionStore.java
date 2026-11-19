@@ -257,6 +257,9 @@ public final class ChargeSessionStore {
     /** A flagged step longer than this was an outage: charging may have stopped unseen. Shorter
      *  flags mark rejected frames between normal samples (at most 0.2% of a full stock charge). */
     static final long GAUGE_CHARGE_GAP_MS = 30000L;
+    /** A saved or running journal's name, and what an interrupted relabel or compression leaves (compiled once: app start lists them all). */
+    private static final java.util.regex.Pattern JOURNAL=java.util.regex.Pattern.compile("[a-f0-9-]{36}\\.(csv|active)"),
+            LEFTOVER=java.util.regex.Pattern.compile("[a-f0-9-]{36}\\.(active\\.mapping|csv\\.repair)");
     private final File directory;
     private final AutomaticRules rules;
     private final int maxRecordings;
@@ -293,9 +296,9 @@ public final class ChargeSessionStore {
         int saved=0;
         for(String name:names){
             // A relabel or a compression that a process death interrupted before its rename: the journal itself is untouched.
-            if(name.matches("[a-f0-9-]{36}\\.active\\.mapping")||name.matches("[a-f0-9-]{36}\\.csv\\.repair")){new File(directory,name).delete();continue;}
-            if(name.matches("[a-f0-9-]{36}\\.csv"))saved++;
-            if(!name.matches("[a-f0-9-]{36}\\.active"))continue;
+            if(LEFTOVER.matcher(name).matches()){new File(directory,name).delete();continue;}
+            if(!JOURNAL.matcher(name).matches())continue;
+            if(name.endsWith(".csv")){saved++;continue;}
             // A process restart never silently resumes a capture. Interrupted journals remain inspectable,
             // but do not enter learned curves because their stop/continuity was not observed.
             File file=new File(directory,name);
@@ -767,7 +770,7 @@ public final class ChargeSessionStore {
     }
     /** Saved and running journals, oldest first (modification time, then name), each file's time read once. */
     private List<File> files() throws IOException {
-        File[] items=directory.listFiles((dir,name)->name.matches("[a-f0-9-]{36}\\.(csv|active)"));
+        File[] items=directory.listFiles((dir,name)->JOURNAL.matcher(name).matches());
         if(items==null)throw new IOException("Charge recordings unavailable");
         Map<File,Long> times=new HashMap<>();for(File item:items)times.put(item,item.lastModified());
         List<File> result=new ArrayList<>(Arrays.asList(items));
@@ -793,7 +796,7 @@ public final class ChargeSessionStore {
         if(maxBytes==Long.MAX_VALUE){
             // By count alone (a stop, on the main thread): names suffice until it is over.
             String[] names=directory.list();int saved=0;
-            if(names!=null)for(String name:names)if(name.matches("[a-f0-9-]{36}\\.(csv|active)")&&(active==null||!name.equals(active.getName())))saved++;
+            if(names!=null)for(String name:names)if(JOURNAL.matcher(name).matches()&&(active==null||!name.equals(active.getName())))saved++;
             if(names!=null&&saved<=maxCount)return 0;
         }
         List<File> entries=files();int count=0;long bytes=0;
