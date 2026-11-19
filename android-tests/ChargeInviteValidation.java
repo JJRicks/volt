@@ -50,7 +50,7 @@ import com.jjricks.volt.ScooterProfiles;
  * row and the bar graph are checked on every app; an app without the invite (no hub_charge_invite_title string: built
  * before its strings, or a release sweep's base app) gets the invite's screenshot names of the Battery page and passes.
  */
-public final class ChargeInviteValidation extends Instrumentation {
+public final class ChargeInviteValidation extends ValidationInstrumentation {
     private static final String KEY = "charge_invite", BANNER = "battery-charge-invite", HIDE = "battery-charge-invite-hide",
             SHEET = "charge-invite-sheet", RECORD = "charge-invite-record", AUTO = "charge-invite-auto", OPEN = "charge-invite-open",
             NOT_NOW = "charge-invite-not-now", CARD = "battery-history-card", LINK = "hub-link-" + HubPages.BATTERY_HISTORY;

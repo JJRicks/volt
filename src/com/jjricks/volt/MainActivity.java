@@ -1723,8 +1723,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             @Override public void draw(Canvas canvas){
                 paint.setColor(design.muted);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(design.dp(2));paint.setStrokeCap(Paint.Cap.ROUND);
                 RectF arc=new RectF(getBounds());arc.inset(design.dp(2),design.dp(2));
-                canvas.drawArc(arc,Ui.motionEnabled()?(SystemClock.uptimeMillis()%900)*.4f:0,250,false,paint);
-                if(resumed&&owner.isShown()&&Ui.motionEnabled())owner.postInvalidateDelayed(32);
+                boolean motion=Ui.endlessMotionEnabled();
+                canvas.drawArc(arc,motion?(SystemClock.uptimeMillis()%900)*.4f:0,250,false,paint);
+                if(resumed&&owner.isShown()&&motion)owner.postInvalidateDelayed(32);
             }
             @Override public void setAlpha(int alpha){paint.setAlpha(alpha);}
             @Override public void setColorFilter(android.graphics.ColorFilter filter){paint.setColorFilter(filter);}
@@ -4502,8 +4503,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             float stroke=design.dp(2);RectF arc=new RectF(stroke,stroke,getWidth()-stroke,getHeight()-stroke);
             paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(stroke);paint.setStrokeCap(Paint.Cap.ROUND);
             paint.setColor(design.raised);canvas.drawOval(arc,paint);
-            paint.setColor(design.accent);canvas.drawArc(arc,Ui.motionEnabled()?(SystemClock.uptimeMillis()%1000)*.36f:0,100,false,paint);
-            if(resumed&&isShown()&&Ui.motionEnabled())postInvalidateDelayed(32);
+            boolean motion=Ui.endlessMotionEnabled();
+            paint.setColor(design.accent);canvas.drawArc(arc,motion?(SystemClock.uptimeMillis()%1000)*.36f:0,100,false,paint);
+            if(resumed&&isShown()&&motion)postInvalidateDelayed(32);
         }
     }
     /** Volt top speed card (ph/24): the current maximum in the rider's units and four raised choices. Commands stay in km/h. */

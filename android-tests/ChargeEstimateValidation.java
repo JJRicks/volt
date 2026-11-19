@@ -25,7 +25,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable emulator only. Saved prediction UI and background calculation; no real Bluetooth. */
-public final class ChargeEstimateValidation extends Instrumentation {
+public final class ChargeEstimateValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

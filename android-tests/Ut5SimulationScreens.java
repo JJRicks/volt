@@ -39,7 +39,7 @@ import com.jjricks.volt.ScooterService;
  * (the same file builds against the 1.3.1 baseline), the simulator builds no frames, and Bluetooth
  * must be off.
  */
-public final class Ut5SimulationScreens extends Instrumentation {
+public final class Ut5SimulationScreens extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;

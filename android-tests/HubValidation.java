@@ -138,7 +138,7 @@ import com.jjricks.volt.WideLayout;
  * Home opens at its top. Every
  * word it types or reads is English: run it with the emulator in en-US.
  */
-public final class HubValidation extends Instrumentation {
+public final class HubValidation extends ValidationInstrumentation {
     private static final String FIXTURE_NAME = "Synthetic hub fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
             FIXTURE_SERIAL = "X2538-SYNTHETIC", FIXTURE_MAC = "C0:FF:EE:12:34:56";
     /** home_style values and keys (HomeStyle, package-private in the app). */

@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Instrumentation;
 import android.app.Notification;
@@ -53,7 +54,7 @@ import com.jjricks.volt.tests.TextCensus;
  * all (no more_charge_auto_record string: a release sweep's base app) gets the same page and screenshot names at the
  * recording controls and passes; an app that has the string must show the switch.
  */
-public final class ChargeAutoRecordValidation extends Instrumentation {
+public final class ChargeAutoRecordValidation extends ValidationInstrumentation {
     private static final long S = 1000L;
     private static final byte OFF = 0, ON = 1;
     private static final String KEY = ChargeAutoRecordPolicy.KEY, HOLD = ChargeAutoRecordPolicy.HOLD_KEY;

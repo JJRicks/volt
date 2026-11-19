@@ -15,7 +15,7 @@ import java.util.concurrent.*;
 import com.jjricks.volt.*;
 
 /** Empty-emulator-only visual/data fixture. Never uses owner profiles or connects Bluetooth. */
-public final class RidesAnalysisValidation extends Instrumentation {
+public final class RidesAnalysisValidation extends ValidationInstrumentation {
     MainActivity activity; RidesScreen screen; String id; Bundle args; int checks; final List<String> screenshots = new ArrayList<>();
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
     @Override public void onStart() {

@@ -16,7 +16,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable empty emulator only. No real scooter, owner credentials, routes, or recordings. */
-public final class LearnedRangeValidation extends Instrumentation {
+public final class LearnedRangeValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle arguments;

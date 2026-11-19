@@ -30,7 +30,7 @@ import com.jjricks.volt.*;
  *                  merges refuse it, and a genuinely wrong password still reports bad file.
  * -e mode render-scooters  checks Scooters-only destination choices and Don't restore.
  */
-public final class BackupScenarioValidation extends Instrumentation {
+public final class BackupScenarioValidation extends ValidationInstrumentation {
     static final char[] PASSWORD = "synthetic scenario password".toCharArray();
     private String mode, theme = "dark"; private int assertions; private Context app; private android.app.Activity current;
     @Override public void onCreate(Bundle args) { mode = args == null ? null : args.getString("mode"); if (args != null) theme = args.getString("theme", "dark"); start(); }

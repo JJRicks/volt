@@ -40,7 +40,7 @@ import com.jjricks.volt.ScooterService;
  * the service command that starts a connection) and opening Rides twice, with the longest main-thread
  * message in each window. Results are printed as instrumentation result keys, in milliseconds.
  */
-public final class RidesTimingValidation extends Instrumentation {
+public final class RidesTimingValidation extends ValidationInstrumentation {
     private Bundle args;
     private final List<long[]> draws = new ArrayList<>();
     /** Main-thread messages: {start, end}, with labels in the same order. */

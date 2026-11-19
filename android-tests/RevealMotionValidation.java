@@ -135,7 +135,7 @@ import com.jjricks.volt.ScooterProfiles;
  * -e mode demo toggles the site every -e hold_ms (1500) for -e
  * cycles (4) and checks nothing, for recordings driven from adb. The animator duration scale is put back as it was.
  */
-public final class RevealMotionValidation extends Instrumentation {
+public final class RevealMotionValidation extends ValidationInstrumentation {
     private static final String FIXTURE_NAME = "Synthetic reveal fixture", FIXTURE_IDENTITY = "C1D2E3F4A5B6",
             FIXTURE_SERIAL = "X2538-SYNTHETIC", FIXTURE_MAC = "C0:FF:EE:12:34:58";
     /** At rest within this long after the first frame that moved (the motion is 220 ms; the emulator drops frames). */
@@ -149,7 +149,8 @@ public final class RevealMotionValidation extends Instrumentation {
     private ScooterProfiles.Profile fixture;
     private Site site;
 
-    @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
+    // Motion checks see the page as on a phone, endless animations running.
+    @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; runEndlessMotion(); start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
