@@ -332,7 +332,7 @@ public final class ChargingEstimate {
                 +"with the battery's step down at 80% when the limit comes later, then its observed taper. ";
         if(personalLimit)status+="Time to the limit uses personal history, up to the time to 100%. ";
         status+="Time to displayed 100%; balancing may continue."+cutoffNote(target);
-        return new Result(r.charging,r.inputWatts,r.inputAmps,limit,cv.full,target,personalLimit?r.labelMsg:M.chargingEstimateHighSpeedReference(),status,
+        return new Result(r.charging,r.inputWatts,r.inputAmps,limit,cv.full,target,personalLimit?r.labelMsg:highSpeedReferenceLabel(),status,
                 personalLimit,false,personalLimit?r.learnedSessions:0,target!=null&&!personalLimit,true,ChargeSessionStore.Charger.HIGH_SPEED,null,
                 limit,cv.full,false,personalLimit&&same(limit,r.remainingMinutesToLimit)?r.limitRate:null);
     }
@@ -404,6 +404,9 @@ public final class ChargingEstimate {
                 shown.learnedToLimit,shown.learnedToFull,shown.learnedSessions,shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,
                 shown.stockVoltageMatch,limitPlan,fullPlan,shown.stockPackModel,null);
     }
+
+    /** The label of every bundled high-speed estimate (the reference, the voltage model and cvPoint). */
+    private static Msg highSpeedReferenceLabel(){return M.chargingEstimateHighSpeedReference();}
 
     /** Below this level and from this current, withVoltagePlanning checks a bundled reference's bulk time against the voltage model. */
     private static final double VOLTAGE_PLAN_SOC=72,VOLTAGE_PLAN_AMPS=9;
@@ -657,7 +660,7 @@ public final class ChargingEstimate {
         status+="Time to displayed 100%; balancing may continue."+cutoffNote(baseline.targetPercent);
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                 limit==null?baseline.remainingMinutesToLimit:limit,full==null?baseline.remainingMinutesToFull:full,
-                baseline.targetPercent,M.chargingEstimateHighSpeedReference(),status,false,false,0,limit!=null,full!=null,ChargeSessionStore.Charger.HIGH_SPEED);
+                baseline.targetPercent,highSpeedReferenceLabel(),status,false,false,0,limit!=null,full!=null,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
     /**
@@ -679,7 +682,7 @@ public final class ChargingEstimate {
         String status="Experimental UT5 MAX high-speed estimate from pack voltage and charging current: constant current until the charger's voltage limit, then its observed taper. ";
         if(target!=null&&target<100&&!prior.referenceToLimit)status+="Time to the limit uses the current rate, up to the time to 100%. ";
         status+="Time to displayed 100%; balancing may continue."+cutoffNote(target);
-        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,target,M.chargingEstimateHighSpeedReference(),status,
+        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,target,highSpeedReferenceLabel(),status,
                 false,false,0,referenceLimit,true,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
