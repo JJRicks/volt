@@ -135,12 +135,13 @@ public final class ChargeBarValidation extends Instrumentation {
             if (!clean) require(stage.getHeight() == stage.getMinimumHeight(), "The bar made the stage taller: " + stage.getHeight() + " vs " + stage.getMinimumHeight());
             else {
                 // Clean: the bar is the track along the stage's foot, whole inside the stage, fully shown at rest.
-                require(b.getParent() == stage && b.getBottom() == stage.getHeight() && b.getTop() >= 0, "Clean's bar is not along the stage's foot: " + b.getTop() + ".." + b.getBottom() + " in " + stage.getHeight());
+                int below = activity.ui().dp(ChargingFit.BAR_BELOW_DP);
+                require(b.getParent() == stage && b.getBottom() == stage.getHeight() + below && b.getTop() >= 0, "Clean's bar is not along the stage's foot: " + b.getTop() + ".." + b.getBottom() + " in " + stage.getHeight());
                 require(b.getAlpha() == 1f && b.getVisibility() == View.VISIBLE, "Clean's bar is not fully shown at rest: alpha " + b.getAlpha());
                 require(b.xAt(0) >= 0 && b.xAt(100) <= b.getWidth(), "Clean's track runs past the bar");
                 // Taller than its least 48 dp only as far as the room under the percentage allows.
                 TextView percent = (TextView) field(hero(), "percent");
-                require(onScreen(b).top >= onScreen(percent).bottom - 1 || b.getHeight() == activity.ui().dp(48),
+                require(onScreen(b).top >= onScreen(percent).bottom - 1 || b.getHeight() == activity.ui().dp(48) + below,
                         "Clean's bar reaches up over the percentage: bar " + onScreen(b) + ", percentage " + onScreen(percent));
             }
             require(b.getHeight() >= activity.ui().dp(48), "The bar is under 48 dp: " + b.getHeight());

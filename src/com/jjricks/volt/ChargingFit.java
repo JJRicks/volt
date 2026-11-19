@@ -44,6 +44,11 @@ final class ChargingFit {
      */
     static final int TRACK_END_DP = 3;
     /**
+     * How far the charge bar's view reaches below the stage's foot (the stage does not clip it): the held mark, 26 dp
+     * tall round the track, stays inside the view, while the track keeps its place at the stage's foot.
+     */
+    static final int BAR_BELOW_DP = 6;
+    /**
      * The space between the line and the stage (the top of the percentage and of the photo): 4 dp under the pill, whose
      * own 4 dp padding below its words keeps the mock-up's 8 dp between the words and the stage (it was 8 dp under the
      * plain line).

@@ -2750,8 +2750,9 @@ public final class DashboardScreen implements AppScreen {
             // Clean: the number in front of the photo (its fade is drawn just before it, Stage.drawChild).
             if (clean) stage.addView(percent, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
             // Clean: the bar is its track (ChargingFit.TRACK_DP thick, its foot the tick's reach above the stage's), 3 dp in
-            // from each end so the mark stays whole at 0 and 100%; its height and place come from measuring (placeBar).
-            bar = clean ? new ChargeBar(host.activity(), ui, barHost(), 0, ChargingFit.TRACK_DP, ChargingFit.TICK_DP + ChargingFit.TRACK_DP / 2f)
+            // from each end so the mark stays whole at 0 and 100%, the view reaching BAR_BELOW_DP under the stage so the held
+            // mark stays whole below the track too; its height and place come from measuring (placeBar).
+            bar = clean ? new ChargeBar(host.activity(), ui, barHost(), 0, ChargingFit.TRACK_DP, ChargingFit.BAR_BELOW_DP + ChargingFit.TICK_DP + ChargingFit.TRACK_DP / 2f)
                     .asTrack(ChargingFit.TRACK_END_DP, ChargingFit.TICK_DP, Ui.withAlpha(Color.WHITE, ui.dark ? 220 : 255))
                     : new ChargeBar(host.activity(), ui, barHost(), .06f, 3, 18);
             stage.addView(bar, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
@@ -3050,10 +3051,12 @@ public final class DashboardScreen implements AppScreen {
             shown(bar, plan.track && stageHeight > 0);
             int foot = end > 0 ? Math.min(end, stageHeight) : stageHeight;
             int height = Math.max(0, Math.min(foot, Math.max(ui.dp(48), Math.min(ui.dp(96), foot - percentBottom - ui.dp(4)))));
+            // The view reaches BAR_BELOW_DP under the zone's foot (the stage does not clip), so the held mark stays inside it.
+            int below = ui.dp(ChargingFit.BAR_BELOW_DP);
             FrameLayout.LayoutParams size = (FrameLayout.LayoutParams) bar.getLayoutParams();
             size.gravity = Gravity.BOTTOM;
-            size.height = height;
-            size.bottomMargin = stageHeight - foot;
+            size.height = height + below;
+            size.bottomMargin = stageHeight - foot - below;
         }
 
         /** Clean: the percentage at a share of its full size. */
