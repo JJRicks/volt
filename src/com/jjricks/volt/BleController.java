@@ -541,8 +541,13 @@ public final class BleController {
      */
     public boolean findNearbyOffered(){
         ScooterProfiles.Profile p=profiles.active();if(p!=null)timeouts.active(p.id);
-        return p!=null&&p.configured()&&FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);
+        return p!=null&&p.configured()&&FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuckOnHome(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);
     }
+    /**
+     * Home is (or is no longer) the page shown with Volt in front (MainActivity.watchHome): Find it nearby counts only the
+     * failed attempts begun and ended in one such stay (FindNearby.Timeouts.home, the owner's rule). Main thread.
+     */
+    public void homeShown(boolean shown){timeouts.home(shown);}
     /** The scan's manufacturer-data model ID for this address (FindNearby.modelId), or null when none was heard. */
     public AdvertisedIdentity.Result advertisedAt(String mac){return advertisedModels.get(mac);}
     /** A scanned scooter's latest signal (discoveries() keeps each address's first result). */
