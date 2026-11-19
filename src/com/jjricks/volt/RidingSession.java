@@ -49,6 +49,8 @@ final class RidingSession {
     private boolean linkSeen;
     /** What the connection looked like when Volt went off screen, or null while it's on screen. */
     private RidingLink.Leave leave;
+    /** The stopped controls' gate (tune, Lock and Record), kept across rebuilds so a rotation doesn't restart its 2 s hide. */
+    final RidingFrames.StoppedGate stoppedGate = new RidingFrames.StoppedGate();
 
     /**
      * The distance spot: how far since riding mode opened. km is null before the first usable reading.

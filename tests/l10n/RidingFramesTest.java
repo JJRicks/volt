@@ -261,17 +261,17 @@ public final class RidingFramesTest {
     }
 
     private static void picker() {
-        check(RidingFrames.pickerShown(true, null), "stopped with no speed: the picker shows");
-        check(RidingFrames.pickerShown(true, 0.4), "a crawl under 1 km/h counts as stopped");
-        check(!RidingFrames.pickerShown(true, 5.0), "moving: no picker");
-        check(!RidingFrames.pickerShown(false, 0.0), "the scooter isn't stationary: no picker");
-        // The tune button: hidden while moving, and shown with no scooter connected (owner, Nov 9).
-        check(RidingFrames.tuneShown(false, false, null) && RidingFrames.tuneShown(false, false, 22.0), "disconnected: the tune button shows");
-        check(RidingFrames.tuneShown(true, true, 0.0), "connected and stopped: it shows");
-        check(!RidingFrames.tuneShown(true, true, 5.0) && !RidingFrames.tuneShown(true, false, 0.0), "connected and moving: it hides");
-        check(!RidingFrames.pickerShown(false, 0.0), "Lock and Record keep the stopped-only gate while disconnected");
+        // The tune button, Lock and Record's gate: under 1 mph (or no speed), stationary flag or not (owner, Nov 19).
+        check(RidingFrames.STOPPED_KMH == 1.609344, "1 mph");
+        RidingFrames.StoppedGate gate = new RidingFrames.StoppedGate();
+        check(gate.update(0, true, null), "stopped with no speed: the picker shows");
+        check(gate.update(10, true, 1.5), "a crawl under 1 mph counts as stopped");
+        check(!new RidingFrames.StoppedGate().update(0, true, 5.0), "opened while moving: no picker");
+        // The tune button: shown with no scooter connected (owner, Nov 9), whatever the old readings say.
+        check(new RidingFrames.StoppedGate().update(0, false, null) && new RidingFrames.StoppedGate().update(0, false, 22.0), "disconnected: the tune button shows");
+        check(new RidingFrames.StoppedGate().update(0, true, 0.0), "connected and stopped: it shows");
         // Connected with an 8-second-old settings reply and a fresh 12 km/h speed: still "moving", never "disconnected".
-        check(!RidingFrames.tuneShown(true, false, 12.0), "fresh speed on a connected scooter with stale settings: the button hides");
+        check(!new RidingFrames.StoppedGate().update(0, true, 12.0), "fresh speed on a connected scooter with stale settings: the button hides");
         check(RidingFrames.menuKmh(true, 12.0) == 12.0, "a connected scooter's peak reaches the close rule");
         check(RidingFrames.menuKmh(false, 12.0) == null && RidingFrames.menuKmh(true, null) == null, "no scooter connected, or no new reading: no speed");
         menuSpeedAcrossConnections();
@@ -325,8 +325,8 @@ public final class RidingFramesTest {
     private static void source() throws IOException {
         String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidingScreen.java")), StandardCharsets.UTF_8);
         check(!screen.contains("lock_status") && !screen.contains("lock_push_warning") && !screen.contains("\"unlock\"") && !screen.contains("\"lock\""), "no lock state or control in riding mode");
-        check(screen.contains("RidingFrames.pickerShown(ble != null && ble.stationary()"), "Lock and Record follow the stopped state");
-        check(screen.contains("RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary()"), "the tune button follows its own gate");
+        check(screen.contains("session.stoppedGate.update(now, ble != null && ble.connected(), session.values.speed(now).kmh)"), "the tune button, Lock and Record follow the live speed's gate");
+        check(!screen.contains("ble.stationary(), session.values"), "the stationary flag no longer gates showing them");
         check(screen.contains("if (sheetState.update(liveKmh())) dismissSheet();"), "live speed alone closes the menu");
         check(screen.contains("RidingFrames.menuKmh(ble.connected(), ble.telemetry.takeSpeedPeak(SystemClock.elapsedRealtime()))"), "only this connection's fresh readings count, peak included, on the clock they arrive on, and stale settings don't matter");
         check(screen.contains("if (!menuChangeAllowed()) return;"), "a menu change looks at the newest speed, not the last screen refresh");

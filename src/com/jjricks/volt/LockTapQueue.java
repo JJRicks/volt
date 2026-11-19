@@ -5,9 +5,15 @@ package com.jjricks.volt;
  * state is reliable); the command waits for the scooter to accept writes, such as its first motion report or an
  * automatic write already in flight after connecting, then goes out once. The scooter's readback still decides: a
  * refusal, an unconfirmed change, a lost connection or a gate that stays shut puts the switch back.
+ *
+ * Riding mode's taps are stopped-only (owner, Nov 19): the switch shows while the scooter is under 1 mph
+ * (RidingFrames.StoppedGate), so a tap can land while the wheel still turns. It waits (untilStill) until the scooter is
+ * completely stopped (RidingFrames.still), then meets the usual gates; within HOLD_MS of the tap, or it goes back with
+ * the reason. It also goes back at once when the controls hide (stoppedGateClosed) or the connection drops (step).
  */
 final class LockTapQueue {
-    enum Action { NONE, SEND, REVERT }
+    /** HOLD: a riding-mode tap still waiting for a complete stop; nothing else is looked at until the next look. */
+    enum Action { NONE, SEND, REVERT, HOLD }
     /** OPEN sends now; WAIT is a short post-connect hold (busy, stale status, no motion report yet); REFUSE lets the gate say why. */
     enum Gate { OPEN, WAIT, REFUSE }
     static final long HOLD_MS = 5000;
@@ -16,7 +22,7 @@ final class LockTapQueue {
     private boolean sent;
     /** Inside BleController.set: its refusal notice redraws the header, which must not read the unanswered send as unconfirmed. */
     private boolean sending;
-    /** A riding-mode tap: it goes out only while the scooter is still stopped (Home's unlock keeps its recovery path). */
+    /** A riding-mode tap: it goes out only from a complete stop, while the controls show (Home's unlock keeps its recovery path). */
     private boolean stoppedOnly;
     private CharSequence failure;
 
@@ -54,8 +60,20 @@ final class LockTapQueue {
     }
     /** A hard refusal while another write is in flight: put the switch back now, with the gate's reason. */
     Action reject(CharSequence why) { return target == null || sent ? Action.NONE : revert(why); }
-    /** Riding mode's stopped gate, looked at before any send: a waiting stopped-only tap is put back the moment it closes. */
+    /**
+     * Riding mode's stopped gate (its controls showing), looked at before any send: a waiting stopped-only tap is put back
+     * the moment it closes.
+     */
     Action stoppedGateClosed(boolean stopped, CharSequence why) { return !stoppedOnly || stopped ? Action.NONE : reject(why); }
+    /**
+     * Riding mode's complete stop, looked at after the stopped gate and before the lock's own gate: a waiting stopped-only
+     * tap HOLDs while the scooter isn't completely stopped, and goes back with why once HOLD_MS has passed since the tap.
+     * NONE once still (the usual gates and step follow), for Home's taps and for a tap already sent.
+     */
+    Action untilStill(long now, boolean still, CharSequence why) {
+        if (target == null || !stoppedOnly || sent || sending || still) return Action.NONE;
+        return now - requestedAt > HOLD_MS ? revert(why) : Action.HOLD;
+    }
     /** One look at the connection: what to do with a waiting or sent tap. lockPending is this lock change in flight. */
     Action step(long now, boolean ready, Boolean confirmed, boolean lockPending, Gate gate) {
         if (target == null || sending) return Action.NONE;
