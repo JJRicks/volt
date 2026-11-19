@@ -30,8 +30,9 @@ import java.util.Set;
  * setting test (running, or with a write-back outstanding) or a compatibility check ({@link #waits}). It starts by itself
  * once that is over, if the charge is still on.
  *
- * What a label stands for: only a chosen or detected label is the charger in effect while recording, and only those
- * teach a charger's curve ({@link #countsAsCharger}). A guess labels the file and nothing else.
+ * What a label stands for: a chosen, detected or setting label is the charger in effect while recording, and only those
+ * teach a charger's curve ({@link #countsAsCharger}); the curve is the label the recording ends with. A guess labels the
+ * file and nothing else.
  *
  * Hold: stopping a recording by hand (Stop on the page or in the notification, or starting a ride by hand) holds that
  * scooter until a fresh "not charging" reading is seen while Volt is not holding the current off itself (a
@@ -64,7 +65,11 @@ public final class ChargeAutoRecordPolicy {
 
     public static final class Label {
         final ChargeSessionStore.Charger charger; final ChargeSessionStore.LabelSource source;
-        Label(ChargeSessionStore.Charger charger, ChargeSessionStore.LabelSource source) { this.charger = charger; this.source = source; }
+        /** The charger setting at the start (null: Automatic), kept in the recording's id for audit. */
+        final ChargeSessionStore.Charger setting;
+        Label(ChargeSessionStore.Charger charger, ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger setting) {
+            this.charger = charger; this.source = source; this.setting = setting;
+        }
     }
 
     private ChargeAutoRecordPolicy() {}
@@ -82,26 +87,31 @@ public final class ChargeAutoRecordPolicy {
     }
 
     /**
-     * The charger an automatic recording is labelled with: the charger chosen in Estimates & charger; otherwise Volt's
-     * detection for this charge; otherwise a best guess. The guess is the family with more qualified saved recordings
-     * for this scooter (the charger the owner actually uses), and on a tie or none, the stock charger every scooter
-     * ships with.
+     * The charger an automatic recording starts labelled with: Volt's detection for this charge when it has settled
+     * (DETECTED), since it reads the charger actually plugged in; otherwise the charger chosen in Estimates & charger
+     * (SETTING), provisional until detection settles ({@link #relabel}); otherwise a best guess (GUESS). The guess is the
+     * family with more qualified saved recordings for this scooter (the charger the owner actually uses), and on a tie or
+     * none, the stock charger every scooter ships with. setting is the charger setting (null: Automatic), detected
+     * ChargerDetection's settled family (null: not settled, or a model it does not know).
      */
-    public static Label label(ChargeSessionStore.Charger chosen, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
-        if (chosen != null) return new Label(chosen, ChargeSessionStore.LabelSource.CHOSEN);
-        if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED);
-        return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK, ChargeSessionStore.LabelSource.GUESS);
+    public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
+        if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED, setting);
+        if (setting != null) return new Label(setting, ChargeSessionStore.LabelSource.SETTING, setting);
+        return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK,
+                ChargeSessionStore.LabelSource.GUESS, null);
     }
 
     /**
      * The charger a running automatic recording is relabelled to, as DETECTED, or null to keep its label. The source
-     * follows what is known: a chosen label never changes on detection; a detected one follows detection when it settles
-     * on the other family; a guess becomes DETECTED as soon as detection settles, whether or not the family changes (the
-     * store renames only, then). A recording stays a guess only when detection never settled.
+     * follows what is known: a label the owner chose during the recording (CHOSEN) never changes on detection; a detected
+     * one follows detection when it settles on the other family; the charger setting's label and a guess become DETECTED
+     * as soon as detection settles, whichever family it is (the store renames only when the family is the same). A
+     * recording keeps the setting's label or a guess only when detection never settled (another model, a charge first
+     * seen near full, too short).
      */
     public static ChargeSessionStore.Charger relabel(ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger current, ChargeSessionStore.Charger detected) {
         if (source == null || source == ChargeSessionStore.LabelSource.CHOSEN || detected == null) return null;
-        if (detected == current && source != ChargeSessionStore.LabelSource.GUESS) return null;
+        if (detected == current && source == ChargeSessionStore.LabelSource.DETECTED) return null;
         return detected;
     }
 
@@ -186,14 +196,15 @@ public final class ChargeAutoRecordPolicy {
 
     /**
      * Whether a recording's label is a charger Volt may act on (estimates, Charge done by, learned curves): a manual
-     * recording's (null source) and a chosen or detected one. A guess is not.
+     * recording's (null source) and a chosen, detected or setting one. A guess is not.
      */
     public static boolean countsAsCharger(ChargeSessionStore.LabelSource source) { return source != ChargeSessionStore.LabelSource.GUESS; }
 
     /**
      * Whether the owner may choose the charger now. The lock during a recording is for a label the owner chose: a manual
-     * recording's (null source) or an automatic CHOSEN one. An automatic recording labelled by a guess or by detection
-     * takes the owner's choice, which relabels it CHOSEN; from then on detection never changes it (relabel).
+     * recording's (null source), an automatic CHOSEN one, or one that has the charger setting's label (SETTING: the
+     * setting is the owner's choice, and detection may still replace it). An automatic recording labelled by a guess or by
+     * detection takes the owner's choice, which relabels it CHOSEN; from then on detection never changes it (relabel).
      */
     public static boolean choiceAllowed(boolean recording, ChargeSessionStore.LabelSource source) {
         return !recording || source == ChargeSessionStore.LabelSource.GUESS || source == ChargeSessionStore.LabelSource.DETECTED;

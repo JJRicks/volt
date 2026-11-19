@@ -1367,11 +1367,14 @@ connected to the selected scooter, on screen or in the background, and it report
 charging, if a manual start would be allowed then; never in simulation. It never
 connects or turns on another setting, so a charge that starts while Volt isn't
 connected, or with notifications off, is missed; connecting mid-charge records the
-rest. The label is the chosen charger, else Volt's detection, else a best guess (the
-charger with more qualified recordings, stock on a tie); a detected or guessed label
-follows detection to the other charger. Only a chosen or detected label is the
-charger in effect (estimates, Charge done by); a recording that ends with a guess
-is listed but teaches no curve. It waits while a guided setting test runs or has
+rest. The label is Volt's detection once it settles (it outranks the charger setting,
+so a recording teaches the curve of the charger actually plugged in), until then the
+charger setting, else a best guess (the charger with more qualified recordings, stock
+on a tie); the setting's label, a guess and a detected label follow detection to
+whichever charger it settles on; a charger chosen during the recording is kept.
+Where detection never settles the setting's label stays, marked as the setting's.
+Only a chosen, detected or setting label is the charger in effect (estimates, Charge
+done by); a recording that ends with a guess is listed but teaches no curve. It waits while a guided setting test runs or has
 a write-back outstanding, or a compatibility check runs, and starts after. It ends at once above about 3 mph (4.8 km/h,
 so Record rides automatically can start the ride in the same moment), two minutes
 after charging stops unless Volt's schedule holds the current off, or when a ride is
@@ -1386,8 +1389,8 @@ across reconnects: an automatic recording's, and a manual one's while the switch
 is on. Once running it records out of sight whatever Stay connected in background
 says, as any charge recording; it never opens or keeps a connection itself. It
 decides only on live readings (charging state at most 5 s old, speed at most 3 s),
-never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically and
-label_source. Manual recordings are unchanged.
+never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically,
+label_source and label_audit (the setting at the start and detection's family). Manual recordings are unchanged.
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate

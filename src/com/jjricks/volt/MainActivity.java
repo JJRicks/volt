@@ -3284,7 +3284,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
             boolean chargerLocked=scooterService!=null&&!scooterService.chargerChoosable();
             boolean detectedFamily=basis==ScooterService.ChargerBasis.DETECTED||basis==ScooterService.ChargerBasis.RECORDING&&!chargerLocked;
-            chargerLine.value.setText(effective==null?T.mainRowAutomatic():detectedFamily?T.mainRowAutoFamily(family):family);
+            // "Auto ·" only under a saved Auto (HubText.chargerAutoFamily): detection can relabel an automatic recording over
+            // an explicit setting, and then the row names the family in use and says it was detected, never "Auto".
+            boolean autoFamily=HubText.chargerAutoFamily(detectedFamily,scooterService!=null&&scooterService.chargeCharger()==null);
+            chargerLine.value.setText(effective==null?T.mainRowAutomatic():autoFamily?T.mainRowAutoFamily(family):family);
             chargerLine.setSub(basis==ScooterService.ChargerBasis.RECORDING&&chargerLocked?T.mainRowRecordingLabel()
                     :detectedFamily?T.mainRowDetected()
                     :chargerLocked?T.mainRowStopRecording():null);

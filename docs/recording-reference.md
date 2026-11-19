@@ -390,8 +390,16 @@ An automatic recording's file name records that Volt started it and how its labe
 was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
 reads it as an ordinary recording. **Export charge recordings** and **Email to
 Volt** add `started_automatically` (true or false) and `label_source`
-(`chosen`, `detected`, `guess`, or null for a manual recording) to each charge;
-`qualified_for_learning` is false for a guess.
+(`setting`, `detected`, `chosen`, `guess`, or null for a manual recording) to each
+charge; `qualified_for_learning` is false for a guess. `setting` is the charger
+setting's label, kept because detection never settled; `detected` means charger
+detection settled on it (it outranks the setting, 2.0.1 and later); `chosen` means
+you chose the charger during the recording (on recordings from before 2.0.1, also
+the setting at its start). From 2.0.1 an automatic recording also has
+`label_audit`: `charger_setting_at_start` (`automatic`, `STOCK` or `HIGH_SPEED`)
+and `detected_charger` (the family detection last settled on, or null); it is
+null for manual and older recordings. `charger` is always the final label, the
+one learning uses.
 
 The interface adapts to compact/expanded windows. Folding a foldable halfway
 (book or tabletop posture) leaves the screen exactly as it is: a crease never
