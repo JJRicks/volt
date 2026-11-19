@@ -24,10 +24,11 @@ import java.util.function.Consumer;
  * own gates, confirmation and write (Host.chargeLimit), an alert level in the alert settings store. While a limit write is in flight the mark is dimmed and takes no drag; a refusal or a
  * value the scooter doesn't keep puts it back. No layout pass runs during a drag: only this view's drawing changes.
  *
- * <p>Built to be placed by its parent as a full-width child at the bottom of the charging stage (Clean can adopt it
- * with its own inset, thickness and floor). The view is as tall as the stage's minimum height (from 48 to 96 dp) so
- * the touch band and the label above the mark have room without making the stage taller; where it is short the label
- * goes beside the mark.
+ * <p>Built to be placed by its parent as a full-width child at the bottom of the charging stage. Widgets' view is as
+ * tall as the stage's minimum height (from 48 to 96 dp) so the touch band and the label above the mark have room
+ * without making the stage taller; where it is short the label goes beside the mark. Clean's charging view adopts it
+ * with its own inset, thickness and floor and draws it as its charge track ({@link #asTrack}: the owner's request, 19
+ * Nov 2026, to port Widgets' draggable bar to Clean); its parent sets the view's height.
  *
  * <p>For TalkBack it is one adjustable control ("Charge limit, 85%", with the Charge limit row's note when it has one),
  * whose increase and decrease move one step and commit as a lift does; a held drag is heard step by step. The arrow keys
@@ -85,6 +86,14 @@ final class ChargeBar extends View {
     private final ChargeBarDrag.Gesture gesture = new ChargeBarDrag.Gesture();
     private final ChargeBarDrag.Commit commit = new ChargeBarDrag.Commit();
     private Words words;
+    /**
+     * Clean's look (asTrack): the bar is Clean's charge track, drawn by ChargeTrack.draw (the whole track in the raised
+     * colour, the charge in red, and its light tick at the limit while no limit mark stands there), inset by trackInset
+     * pixels at each end so the mark stays inside the view at 0 and 100%. Widgets' (false): the floor line it always drew.
+     */
+    private boolean track;
+    private float trackInset, tickReach;
+    private int tickColor;
 
     int kind = ChargeBarDrag.NONE;
     int[] allowed = ChargeBarDrag.NO_VALUES;
@@ -126,7 +135,18 @@ final class ChargeBar extends View {
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
     }
 
-    /** The stage's minimum height decides this view's (48 to 96 dp), so the stage itself never grows for it. */
+    /**
+     * Clean's charging view: the bar drawn as its charge track (ChargeTrack.draw), insetDp from each end, the limit's
+     * tick (where no limit mark stands) reaching tickReachDp above and below the track in tick. Everything else (the
+     * mark, the drag, the gates, the commit, the words and TalkBack) is the same bar's.
+     */
+    ChargeBar asTrack(float insetDp, float tickReachDp, int tick) {
+        track = true; trackInset = ui.dp(insetDp); tickReach = ui.dp(tickReachDp); tickColor = tick;
+        invalidate();
+        return this;
+    }
+
+    /** The stage's minimum height decides this view's (48 to 96 dp), so the stage itself never grows for it; an exact height from the parent (Clean's) wins. */
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = MeasureSpec.getSize(widthSpec);
         int wanted = Math.max(ui.dp(48), Math.min(ui.dp(96), getParent() instanceof View ? ((View) getParent()).getMinimumHeight() : 0));
@@ -231,10 +251,13 @@ final class ChargeBar extends View {
     // ---- Drawing --------------------------------------------------------------------------------------------------
 
     private boolean rtl() { return getLayoutDirection() == LAYOUT_DIRECTION_RTL; }
-    private float start() { return getWidth() * inset; }
-    private float end() { return getWidth() * (1 - inset); }
+    private float start() { return track ? Math.min(trackInset, getWidth() / 2f) : getWidth() * inset; }
+    private float end() { return track ? Math.max(getWidth() - trackInset, getWidth() / 2f) : getWidth() * (1 - inset); }
     private float floor() { return getHeight() - floorFromBottom; }
     private float xOf(double percent) { return ChargeBarDrag.x(percent, start(), end(), rtl()); }
+    /** Where a percentage sits on the bar and the bar's centre line, in this view's pixels (the emulator validations aim with them). */
+    float xAt(double percent) { return xOf(percent); }
+    float floorY() { return floor(); }
     private boolean hasMark() { return kind != ChargeBarDrag.NONE && !Float.isNaN(drawn) && allowed.length > 0; }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -243,22 +266,15 @@ final class ChargeBar extends View {
         if (w <= 0) return;
         float floor = floor(), thick = restThick + (dragThick - restThick) * lift;
         boolean limitMark = kind == ChargeBarDrag.LIMIT && hasMark();
-        double greyTo = limitMark ? drawn : trackEnd;
-        paint.setShader(null);
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeCap(Paint.Cap.ROUND);
-        paint.setStrokeWidth(thick);
-        if (lift > 0 && hasMark()) {
-            // While the mark is held, the rest of the track shows faintly, so there is somewhere to drag to.
-            paint.setColor(Ui.withAlpha(ui.muted, Math.round(70 * lift)));
-            canvas.drawLine(xOf(0), floor, xOf(100), floor, paint);
-        }
-        paint.setColor(ui.raised);
-        canvas.drawLine(xOf(0), floor, xOf(greyTo), floor, paint);
-        if (!Double.isNaN(level) && level > 0) {
-            paint.setColor(ui.accent);
-            canvas.drawLine(xOf(0), floor, xOf(level), floor, paint);
-        }
+        if (track) {
+            // Clean: its charge track, mirrored right to left with the mark; the limit's tick only where no limit mark stands.
+            canvas.save();
+            if (rtl()) canvas.scale(-1, 1, w / 2f, 0);
+            canvas.translate(start(), 0);
+            ChargeTrack.draw(canvas, paint, ui, end() - start(), floor + thick / 2, level, limitMark ? Double.NaN : trackEnd,
+                    ui.accent, tickColor, thick, tickReach, tickReach);
+            canvas.restore();
+        } else drawLine(canvas, floor, thick, limitMark);
         if (!hasMark()) return;
         if (lift > 0) {
             // The steps a drag can land on.
@@ -281,6 +297,26 @@ final class ChargeBar extends View {
         canvas.drawRoundRect(box, mw / 2, mw / 2, paint);
         float shown = ChargeBarDrag.labelShown(lift, pending, isFocused());
         if (shown > 0) drawLabel(canvas, x, floor, mh, shown);
+    }
+
+    /** Widgets: the floor line it always drew, the charge in red and grey up to the limit (the dragged mark while it is the limit's). */
+    private void drawLine(Canvas canvas, float floor, float thick, boolean limitMark) {
+        double greyTo = limitMark ? drawn : trackEnd;
+        paint.setShader(null);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeWidth(thick);
+        if (lift > 0 && hasMark()) {
+            // While the mark is held, the rest of the track shows faintly, so there is somewhere to drag to.
+            paint.setColor(Ui.withAlpha(ui.muted, Math.round(70 * lift)));
+            canvas.drawLine(xOf(0), floor, xOf(100), floor, paint);
+        }
+        paint.setColor(ui.raised);
+        canvas.drawLine(xOf(0), floor, xOf(greyTo), floor, paint);
+        if (!Double.isNaN(level) && level > 0) {
+            paint.setColor(ui.accent);
+            canvas.drawLine(xOf(0), floor, xOf(level), floor, paint);
+        }
     }
 
     /** The value being chosen, in a small pill above the mark (beside it where the view is short), kept inside the view. */

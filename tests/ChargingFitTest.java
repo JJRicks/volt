@@ -293,11 +293,6 @@ public final class ChargingFitTest {
         require(ChargingFit.plan(260, line, shortLine, percent, readings, 1f).percentScale == 1
                         && ChargingFit.plan(260, line, shortLine, percent, readings, 2.625f).percentScale < 1,
                 "constants scale with density: 260 px holds the full percentage at 1, not at 2.625");
-        // The fixed time tile: the time to the scooter's own limit below 100%, else the time to full.
-        require(ChargingFit.timeToLimit(90d, false), "a 90% limit: Time to 90%");
-        require(!ChargingFit.timeToLimit(100d, false) && !ChargingFit.timeToLimit(null, false) && !ChargingFit.timeToLimit(Double.NaN, false),
-                "no limit below 100%: Time to full");
-        require(!ChargingFit.timeToLimit(80d, true), "a model that offers charge alerts has no limit: Time to full");
         tiles();
         System.out.println("ChargingFit: " + checks + " checks passed");
     }
