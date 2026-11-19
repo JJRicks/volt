@@ -250,8 +250,6 @@ public final class HubText {
     }
     /** Screen-reader text of the round X that closes the last ride. */
     public static Msg justBackClose() { return M.homeJustBackClose(); }
-    /** The name of the round switch in the corner of the last ride's route that puts a map behind it: the ride maps' "Basemap". */
-    public static Msg justBackBasemap() { return M.mapsBasemap(); }
     /** Screen-reader text of the last ride's card; distance with its unit. */
     public static Msg justBackDescription(CharSequence distance) { return M.homeJustBackDescription(distance); }
     /** The last ride's three tiles: ride time, average speed and the battery change. */

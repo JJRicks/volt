@@ -22,6 +22,9 @@ public final class MapPreferences {
     private MapPreferences() { }
     static boolean enabled(SharedPreferences settings) { return settings.getBoolean("map_basemap_enabled", false); }
 
+    /** The basemap switch's name, "Basemap": the ride maps' switch, and the Just back card's round one (JustBackView). */
+    static String basemapName() { return T.mapsBasemap(); }
+
     /** Clean Home's Just back card's own basemap (JustBackBasemap.KEY), off unless turned on there. */
     static boolean justBackEnabled(SharedPreferences settings) { return settings.getBoolean(JustBackBasemap.KEY, false); }
 
@@ -64,9 +67,9 @@ public final class MapPreferences {
             Ui ui = host.ui();
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(T.mapsBasemap());
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(basemapName());
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
-            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(T.mapsBasemap());
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(basemapName());
             ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
             // The old-default USGS pin is written down before anything here can turn the basemap off (MapSource.keepPin).
             MapSource.keepPin(settings);

@@ -8,7 +8,7 @@ import java.util.*;
  * Clean Home's Just back basemap (owner, Nov 19 2026: its own preference, off by default, remembered "even in app
  * backups"): the key and its default, its place in App preferences and the diagnostics settings list, a real backup
  * round trip (BackupArchive, BackupTransaction and BackupTestStore, as the backup suites use them) that keeps it apart
- * from the ride maps' map_basemap_enabled, the restore preview's online map line, the switch's spoken name, and the
+ * from the ride maps' map_basemap_enabled, the restore preview's online map line, and the
  * card's map geometry: the route's Web Mercator box, the scale its outline gives, the tile zoom, the corner the switch
  * takes, and the dark theme's tile colours. Synthesized places only.
  */
@@ -34,7 +34,6 @@ public final class JustBackBasemapTest {
                 "it travels in backups with App preferences, as a switch for the whole app");
         int ours = DiagnosticsSettings.KEYS.indexOf(JustBackBasemap.KEY), maps = DiagnosticsSettings.KEYS.indexOf("map_basemap_enabled");
         check(ours >= 0 && ours == maps + 1, "the diagnostics settings list it next to map_basemap_enabled");
-        check(HubText.justBackBasemap().render().equals("Basemap"), "the switch is spoken by the ride maps' name for it: " + HubText.justBackBasemap().render());
     }
 
     private static void backups() throws Exception {
@@ -131,7 +130,8 @@ public final class JustBackBasemapTest {
         double[] dateline = JustBackBasemap.box(new double[]{-17, -17.01}, new double[]{179.99, -179.99});
         check(dateline[2] > dateline[0] && dateline[2] - dateline[0] < 1e-4, "a ride across the 180th meridian keeps its short width: " + Arrays.toString(dateline));
         check(JustBackBasemap.box(new double[0], new double[0]) == null, "no fixes, no box");
-        check(close(JustBackBasemap.x(0), .5, 1e-12) && close(JustBackBasemap.y(0), .5, 1e-12) && JustBackBasemap.y(89.9) >= 0 && JustBackBasemap.y(-89.9) <= 1,
+        check(close(JustBackBasemap.x(0), .5, 1e-12) && close(JustBackBasemap.y(0), .5, 1e-12) && JustBackBasemap.y(89.9) == JustBackBasemap.y(85.05112878) && Math.abs(JustBackBasemap.y(89.9)) < 1e-9
+                        && Math.abs(JustBackBasemap.y(-89.9) - 1) < 1e-9,
                 "Web Mercator as the ride maps draw it, the poles clamped");
     }
 

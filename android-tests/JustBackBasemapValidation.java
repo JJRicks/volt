@@ -164,6 +164,11 @@ public final class JustBackBasemapValidation extends Instrumentation {
 
     /** A provider that refuses connections stands in for no network: plain panel, no message, still on. */
     private void unreachable() throws Exception {
+        // The provider the explanation's approval saved (OpenStreetMap), put back afterwards: removing it would leave an
+        // approved basemap with no provider saved, which MapDefault reads as the old USGS default.
+        Map<String, Object> saved = new HashMap<>();
+        for (String key : new String[]{"map_tile_url", "map_tile_attribution", "map_tile_attribution_url"}) saved.put(key, settings().getString(key, null));
+        require(MapSource.OSM_URL.equals(saved.get("map_tile_url")), "Approving the explanation did not save the provider it named: " + saved.get("map_tile_url"));
         require(settings().edit().putString("theme", "dark").putString("map_tile_url", "https://127.0.0.1:9/{z}/{x}/{y}.png")
                 .putString("map_tile_attribution", "Unreachable test provider").putString("map_tile_attribution_url", "https://127.0.0.1:9/").commit(),
                 "Could not set the unreachable provider");
@@ -178,7 +183,9 @@ public final class JustBackBasemapValidation extends Instrumentation {
         require(wordsBefore.equals(wordsAfter), "The card's words changed without a network: " + wordsBefore + " -> " + wordsAfter);
         checks.add(size + " no network (a provider that refuses connections): tiles asked for, none drawn, the panel plain, no words added");
         shot("dark-no-network");
-        require(settings().edit().remove("map_tile_url").remove("map_tile_attribution").remove("map_tile_attribution_url").commit(), "Could not restore the provider");
+        SharedPreferences.Editor back = settings().edit();
+        for (Map.Entry<String, Object> e : saved.entrySet()) back.putString(e.getKey(), (String) e.getValue());
+        require(back.commit(), "Could not restore the provider");
     }
 
     /** A newer ride running north-west to south-east, so its end lies in the switch's corner under the usual fit. */

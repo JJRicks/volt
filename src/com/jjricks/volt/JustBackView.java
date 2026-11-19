@@ -924,7 +924,7 @@ final class JustBackView extends LinearLayout {
             disc.setShape(GradientDrawable.OVAL);
             setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)),
                     new InsetDrawable(disc, ui.dp((48 - CLOSE_DISC_DP) / 2)), null));
-            String name = HubText.justBackBasemap().render();
+            String name = MapPreferences.basemapName();
             setContentDescription(name);
             setTooltipText(name);
             setTag(TAG_BASEMAP);
