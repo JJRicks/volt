@@ -364,11 +364,13 @@ public final class DashboardScreen implements AppScreen {
 
         /**
          * Opens the picker titled title for slot (0 or 1) of current; picked gets the reading tapped (the picker closes
-         * first). other names the other slot, shown beside the reading it holds (picking that one swaps the two).
+         * first). other names the other slot, shown beside the reading it holds (picking that one swaps the two);
+         * notReported stands for the value of a reading this scooter hasn't reported; close names the close button.
          */
-        void choose(String title, List<String> current, int slot, String other, java.util.function.Consumer<String> picked) {
+        void choose(String title, List<String> current, int slot, String other, String notReported, String close,
+                java.util.function.Consumer<String> picked) {
             if (closed) return;
-            chooseOverviewReading(title, current, slot, other, key -> {
+            chooseOverviewReading(title, current, slot, other, notReported, close, key -> {
                 dismiss();
                 picked.accept(key);
             });
@@ -386,8 +388,8 @@ public final class DashboardScreen implements AppScreen {
      * the card names it and, under it, its latest value in the owner's units ("Not reported" where this scooter has none
      * yet) or, for the reading the other slot holds, that slot's name. The slot's own reading is checked. A tap picks.
      */
-    private void chooseOverviewReading(String title, List<String> current, int slot, String other,
-            java.util.function.Consumer<String> picked) {
+    private void chooseOverviewReading(String title, List<String> current, int slot, String other, String notReported,
+            String close, java.util.function.Consumer<String> picked) {
         Map<String, TelemetryHistory.Reading> values = service == null ? readings() : service.dashboardReadings();
         String mine = current.get(slot), theirs = current.get(1 - slot);
         LinearLayout choices = column();
@@ -402,7 +404,7 @@ public final class DashboardScreen implements AppScreen {
             TelemetryHistory.Reading r = values.get(key);
             String name = label(key);
             String below = key.equals(theirs) ? other
-                    : r == null || r.value == null ? T.commonNotReported() : shown(r).toString();
+                    : r == null || r.value == null ? notReported : shown(r).toString();
             boolean selected = key.equals(mine);
             LinearLayout item = row();
             item.setGravity(Gravity.CENTER_VERTICAL);
@@ -425,7 +427,7 @@ public final class DashboardScreen implements AppScreen {
             }
             item.setClickable(true);
             item.setFocusable(true);
-            item.setContentDescription(T.dashboardReadingGroup(name, below));
+            item.setContentDescription(readingWithGroup(name, below));
             item.setAccessibilityDelegate(new View.AccessibilityDelegate() {
                 @Override public void onInitializeAccessibilityNodeInfo(View view,
                         android.view.accessibility.AccessibilityNodeInfo info) {
@@ -439,7 +441,7 @@ public final class DashboardScreen implements AppScreen {
             item.setOnClickListener(v -> picked.accept(key));
             choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
         }
-        showSheet(title, choices, null, M.commonClose().render(), null);
+        showSheet(title, choices, null, close, null);
     }
 
     /**
@@ -5523,10 +5525,7 @@ public final class DashboardScreen implements AppScreen {
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
                         amount.setTextColor(r.number < 0 ? ui.ok : r.number > 0 ? ui.danger : ui.text);
                     amount.setContentDescription(
-                            overview != null && (r == null || r.value == null)
-                                    // The overview's "—": a reading this scooter hasn't reported is read as such.
-                                    ? T.dashboardReading(label(key), T.commonNotReported())
-                                    : r != null && !live
+                            r != null && !live
                                     ? T.dashboardReadingSeen(label(key), text, when(r.capturedWallMs))
                                     : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
@@ -8612,6 +8611,9 @@ public final class DashboardScreen implements AppScreen {
         SearchFocus.bind(search, dialog.getWindow());
     }
 
+    /** A reading picker's row as TalkBack reads it: the reading's name, then the line under it (its group, or its value). */
+    private static String readingWithGroup(String name, String below) { return T.dashboardReadingGroup(name, below); }
+
     private void chooseReadings(DashboardConfig.Widget widget) {
         List<Telemetry.Metric> metrics = new Telemetry().metrics();
         // Keep the draft independent of the filtered views. Closing discards it;
@@ -8655,7 +8657,7 @@ public final class DashboardScreen implements AppScreen {
             item.setClickable(true);
             item.setFocusable(true);
             item.setTag("reading-choice:" + metric.key);
-            item.setContentDescription(T.dashboardReadingGroup(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)));
+            item.setContentDescription(readingWithGroup(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)));
             GlyphView icon = new GlyphView(readingIcon(metric.key), ui.accent);
             icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             item.addView(icon, new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));

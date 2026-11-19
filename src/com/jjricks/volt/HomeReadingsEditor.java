@@ -33,6 +33,10 @@ final class HomeReadingsEditor {
         String slot(int slot);
         /** A slot's row read aloud: the slot's name, then the reading in it. */
         String slotSpoken(String slot, String reading);
+        /** The picker's line under a reading this scooter hasn't reported. */
+        String notReported();
+        /** The picker's close button. */
+        String close();
     }
 
     /** The active scooter's two: the owner's, or Odometer and Drive mode while none are stored. The defaults with no scooter. */
@@ -190,7 +194,7 @@ final class HomeReadingsEditor {
         private void choose(List<String> keys, int slot) {
             if (closed) return;
             if (chooser == null) chooser = DashboardScreen.readingChooser(host, actions);
-            chooser.choose(words.slot(slot), keys, slot, words.slot(1 - slot), picked -> {
+            chooser.choose(words.slot(slot), keys, slot, words.slot(1 - slot), words.notReported(), words.close(), picked -> {
                 save(host.service(), preferences, HomeReadings.choose(keys, slot, picked));
                 if (sheet != null && sheet.isShowing()) sheet.dismiss();
                 host.redraw();
