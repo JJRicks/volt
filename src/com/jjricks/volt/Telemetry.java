@@ -426,6 +426,20 @@ public final class Telemetry {
         return peak == null ? null : peak.kmh;
     }
 
+    /**
+     * The newest speed reading, km/h, while it's fresh: received at most {@link AutoStartPolicy#SPEED_FRESH_MS} before
+     * nowMs (and not after it). Null with no speed, or an old one. Riding mode's waiting lock tap reads it for a
+     * complete stop (RidingFrames.still).
+     *
+     * @param nowMs the time on the clock {@link #accept} is given (elapsedRealtime)
+     */
+    synchronized Double liveSpeedKmh(long nowMs) {
+        Metric speed = readings.get("speed_kmh");
+        if (speed == null || speed.numericValue == null || speed.updatedMs < 0) return null;
+        long age = nowMs - speed.updatedMs;
+        return age >= 0 && age <= AutoStartPolicy.SPEED_FRESH_MS ? speed.numericValue : null;
+    }
+
     private void noteSpeedPeak(double kmh, long time) {
         // A faster or equal reading that's also newer outlasts every slower one before it.
         while (!speedPeaks.isEmpty() && speedPeaks.peekLast().kmh <= kmh) speedPeaks.pollLast();

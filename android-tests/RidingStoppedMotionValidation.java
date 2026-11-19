@@ -34,9 +34,17 @@ import java.util.function.BooleanSupplier;
  * during a hide press nothing, and a press or slide already down when the hide starts is over: its release after they return does
  * nothing, and a fresh one works. Rotation and a change of mind mid-way end in the right state, and the long-ride dimming holds.
  * Follows the system's animator scale: at 0 they jump, at 5 or more the frames are also screenshotted and in-between frames are required.
+ *
+ * The 1 mph gate (owner, Nov 19): a hide starts only after 2 s at 1 mph or more, so every hide here waits for its start. A roll
+ * under 1 mph and a short blip over it keep them up on every frame; a lock tap while rolling waits, shows its side and goes out
+ * at the stop; one that never sees a stop goes back after 5 s; one waiting when the controls hide goes back then.
  */
 public final class RidingStoppedMotionValidation extends Instrumentation {
     private static final long CHANGE_MS = 220;
+    /** RidingFrames.HIDE_AFTER_MS: a hide starts this long after the speed reaches 1 mph or more. */
+    private static final long HIDE_MS = 2000;
+    /** LockTapQueue.HOLD_MS: a riding-mode lock tap waits this long for a complete stop. */
+    private static final long HOLD_MS = 5000;
     private MainActivity activity;
     private File evidence;
     private String profileId;
@@ -107,6 +115,8 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         rotation();
         dimming();
         heldGestures();
+        boundary();
+        rollingLock();
     }
 
     private void open(String frame) throws Exception {
@@ -124,17 +134,20 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         open(frame);
         shot(frame + "-0-rest-shown");
         int top = sample().readoutTop;
-        List<Sample> hide = during(() -> script("riding"), frame + "-1-hide");
+        List<Sample> hide = during(() -> script("riding"), frame + "-1-hide", true);
         judge(hide, false, frame + " hide", top);
         awaitRest(false, frame + " hide");
         shot(frame + "-2-rest-hidden");
-        List<Sample> show = during(() -> script("stopped"), frame + "-3-show");
+        List<Sample> show = during(() -> script("stopped"), frame + "-3-show", false);
         judge(show, true, frame + " show", top);
         awaitRest(true, frame + " show");
     }
 
-    /** Starts the change on the main thread, samples each drawn frame until it should be over, and shoots in-between frames when slowed. */
-    private List<Sample> during(Runnable change, String shots) throws Exception {
+    /**
+     * Starts the change on the main thread, samples each drawn frame until it should be over, and shoots in-between frames when slowed.
+     * A hide samples from the change on, through the 2 s at speed before it starts (shown, every frame), to its end.
+     */
+    private List<Sample> during(Runnable change, String shots, boolean hide) throws Exception {
         List<Sample> samples = new ArrayList<>();
         boolean[] run = {true};
         long window = (long) (CHANGE_MS * scale) + 500;
@@ -144,6 +157,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             change.run();
             Choreographer.getInstance().postFrameCallback(tick[0]);
         });
+        if (hide) awaitHideStart(shots);
         if (scale >= 5) {
             int i = 0;
             long end = SystemClock.uptimeMillis() + (long) (CHANGE_MS * scale) - 200;
@@ -191,7 +205,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             settle();
         }
         main(() -> script("riding"));
-        await(() -> { boolean[] off = new boolean[1]; main(() -> off[0] = !takes()); return off[0]; }, "the hide did not start");
+        awaitHideStart("the taps' hide");
         for (View target : targets) {
             long down = down(target);
             main(() -> require(!target.isPressed(), "a touch during the hide pressed a button"));
@@ -211,9 +225,13 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         awaitRest(true, "after taps");
     }
 
-    /** Reverses the motion part-way, both ways. */
+    /**
+     * Reverses a hide part-way. A show can't be reversed by speed any more: speed under 2 s old hides nothing, so the show
+     * finishes and they stay up until the 2 s have passed (owner, Nov 19).
+     */
     private void changeOfMind() throws Exception {
         main(() -> script("riding"));
+        awaitHideStart("the reversed hide");
         SystemClock.sleep((long) (70 * scale));
         main(() -> { script("stopped"); require(takes(), "taps return as soon as it starts to show"); });
         awaitRest(true, "hide reversed");
@@ -221,9 +239,14 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         awaitRest(false, "hide");
         main(() -> script("stopped"));
         SystemClock.sleep((long) (70 * scale));
-        main(() -> { script("riding"); require(!takes(), "taps stop as soon as it starts to hide"); });
-        awaitRest(false, "show reversed");
-        note("a change of mind mid-way ends at rest, both ways");
+        long sped = SystemClock.uptimeMillis();
+        main(() -> { script("riding"); require(takes(), "speed mid-show doesn't take the taps away"); });
+        awaitRest(true, "the show finishes at speed");
+        awaitHideStart("the hide after the show");
+        long waited = SystemClock.uptimeMillis() - sped;
+        require(waited >= HIDE_MS - 100, "the hide started " + waited + " ms after the speed, before the 2 s");
+        awaitRest(false, "show then speed");
+        note("a hide reversed mid-way ends shown; speed mid-show lets the show finish and hides " + waited + " ms later");
     }
 
     private void rotation() throws Exception {
@@ -231,6 +254,7 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         awaitRest(true, "before rotation");
         // Moving off mid-hide into landscape: hidden there.
         main(() -> script("riding"));
+        awaitHideStart("the rotated hide");
         SystemClock.sleep((long) (40 * scale));
         main(() -> activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
         settle();
@@ -264,10 +288,10 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
             main(() -> activity.redraw());
             settle();
             await(() -> nearly(sample2().controlsAlpha, .8f), "the buttons should rest at the dimmed alpha");
-            List<Sample> hide = during(() -> script("riding"), "dim-hide");
+            List<Sample> hide = during(() -> script("riding"), "dim-hide", true);
             for (Sample f : hide) require(f.controlsAlpha <= .81f, "brighter than the dim during the hide: " + f.controlsAlpha);
             awaitRest(false, "dim hide");
-            List<Sample> show = during(() -> script("stopped"), "dim-show");
+            List<Sample> show = during(() -> script("stopped"), "dim-show", false);
             for (Sample f : show) require(f.controlsAlpha <= .81f, "brighter than the dim during the show: " + f.controlsAlpha);
             await(() -> nearly(sample2().controlsAlpha, .8f), "back at the dimmed alpha");
             note("long-ride dim holds at " + sample2().controlsAlpha);
@@ -360,12 +384,183 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
      */
     private boolean awayAndBack(View target, String flag, boolean reversed) {
         boolean[] live = new boolean[1];
-        main(() -> { script("riding"); live[0] = target.isPressed() || (flag != null && Boolean.TRUE.equals(field(target, flag))); });
+        main(() -> script("riding"));
+        // The first frame of the hide: the gesture must be over by then (the 2 s at speed before it keep it live).
+        await(() -> { boolean[] off = new boolean[1]; main(() -> { off[0] = !takes(); if (off[0]) live[0] = target.isPressed() || (flag != null && Boolean.TRUE.equals(field(target, flag))); }); return off[0]; }, "the held hide did not start");
         if (reversed) SystemClock.sleep((long) (70 * scale));
         else awaitRest(false, "held hide");
         main(() -> script("stopped"));
         awaitRest(true, "held show");
         return live[0];
+    }
+
+    /**
+     * The owner's boundary (Nov 19), on the stopped script with held speeds: a roll under 1 mph (1.609 km/h) and blips over it
+     * shorter than 2 s keep them up and taking taps on every drawn frame; 2 s at 1 mph or more hides them, and back under
+     * 1 mph shows them at once.
+     */
+    private void boundary() throws Exception {
+        main(() -> script("stopped"));
+        awaitRest(true, "before the boundary");
+        List<Sample> frames = new ArrayList<>();
+        frames.addAll(watch(() -> speed(1.5), 1500));
+        frames.addAll(watch(() -> speed(5), 1000));
+        frames.addAll(watch(() -> speed(1.2), 1200));
+        frames.addAll(watch(() -> speed(3), 1500));
+        frames.addAll(watch(() -> speed(0), 600));
+        int dips = 0;
+        for (Sample f : frames) if (f.controls != View.VISIBLE || !f.takes || !near(f.recordScale, 1)) dips++;
+        require(!frames.isEmpty() && dips == 0, "a roll under 1 mph or a blip under 2 s dipped the controls on " + dips + " of " + frames.size() + " frames");
+        note("rolling at 1.5 and 1.2 km/h with blips to 5 km/h for 1 s and 3 km/h for 1.5 s: up on all " + frames.size() + " frames");
+        shot("boundary-0-rolling-shown");
+        long sped = SystemClock.uptimeMillis();
+        main(() -> speed(2));
+        awaitHideStart("2 s at 2 km/h");
+        long waited = SystemClock.uptimeMillis() - sped;
+        require(waited >= HIDE_MS - 100 && waited < HIDE_MS + 1500, "2 km/h hid them after " + waited + " ms, not about 2 s");
+        awaitRest(false, "sustained 2 km/h");
+        long slowed = SystemClock.uptimeMillis();
+        main(() -> speed(1.4));
+        awaitRest(true, "back under 1 mph");
+        long back = SystemClock.uptimeMillis() - slowed;
+        require(back < 1500, "under 1 mph again took " + back + " ms to show them");
+        note("sustained 2 km/h hid them after " + waited + " ms; 1.4 km/h showed them " + back + " ms later");
+        main(() -> speed(0));
+    }
+
+    /**
+     * A lock tap while rolling under 1 mph (owner, Nov 19): it waits with the switch on the requested side and goes out at the
+     * stop; one that sees no stop goes back after 5 s with nothing sent; one waiting when the controls hide or the link drops
+     * goes back then; a tap back cancels it. The simulator's stationary flag is always on, so its live speed decides here.
+     */
+    private void rollingLock() throws Exception {
+        View lock = view("stoppedLock");
+        require(lock != null, "the simulator's UT5 MAX has Lock");
+        Object queue = field(activity, "lockQueue");
+        main(() -> { script("stopped"); speed(0); });
+        awaitRest(true, "before the rolling lock");
+        settle();
+        Boolean was = locked();
+        require(was != null, "the simulator reports a lock state");
+
+        // Rolling: waits, shown on the requested side, nothing sent; the stop sends it.
+        main(() -> speed(1.2));
+        settle();
+        tapLock(lock);
+        require(waiting(queue), "a tap at 1.2 km/h waits");
+        require(!was.equals(shownSide(lock)), "the switch shows the requested side at once");
+        shot("lock-0-rolling-waiting");
+        SystemClock.sleep(1500);
+        require(waiting(queue) && was.equals(locked()), "still rolling 1.5 s later: nothing sent");
+        long stopped = SystemClock.uptimeMillis();
+        main(() -> speed(0));
+        await(() -> !waiting(queue) && !was.equals(locked()), "the stop sends the waiting tap");
+        long sent = SystemClock.uptimeMillis() - stopped;
+        require(sent < 1500, "the tap went out " + sent + " ms after the stop");
+        note("a lock tap at 1.2 km/h waited 1.5 s and went out " + sent + " ms after the stop");
+        Boolean now = locked();
+
+        // Never stopped: back after 5 s, nothing sent.
+        main(() -> speed(1.2));
+        settle();
+        long tapped = SystemClock.uptimeMillis();
+        tapLock(lock);
+        require(waiting(queue) && !now.equals(shownSide(lock)), "the second tap waits on its side");
+        await(() -> !waiting(queue), "the waiting tap goes back");
+        long held = SystemClock.uptimeMillis() - tapped;
+        require(held >= HOLD_MS - 200 && held < HOLD_MS + 1500, "the waiting tap went back after " + held + " ms, not about 5 s");
+        require(now.equals(locked()) && now.equals(shownSide(lock)), "after the 5 s nothing was sent and the switch is back");
+        settle();
+        shot("lock-1-put-back");
+        note("a tap that saw no stop went back after " + held + " ms, nothing sent");
+
+        // Waiting when the controls hide (2 s at 5 km/h): back then, before the 5 s.
+        tapped = SystemClock.uptimeMillis();
+        tapLock(lock);
+        require(waiting(queue), "the third tap waits");
+        main(() -> speed(5));
+        awaitHideStart("the hide with a tap waiting");
+        await(() -> !waiting(queue), "the hide puts the tap back");
+        held = SystemClock.uptimeMillis() - tapped;
+        require(held < HOLD_MS && now.equals(locked()), "the hide put it back after " + held + " ms with nothing sent");
+        note("a waiting tap went back when the controls hid, " + held + " ms after it");
+        main(() -> speed(1.2));
+        awaitRest(true, "shown again");
+        settle();
+
+        // The link drops while it waits: back, and the reconnect sends nothing.
+        tapLock(lock);
+        require(waiting(queue), "the fourth tap waits");
+        main(() -> script("dropout"));
+        await(() -> !waiting(queue), "a dropped link puts the tap back");
+        main(() -> { script("stopped"); speed(0); });
+        await(() -> activity.service().ble.ready(), "reconnected");
+        awaitRest(true, "after the reconnect");
+        SystemClock.sleep(1500);
+        require(now.equals(locked()) && !waiting(queue), "the reconnect sent nothing");
+
+        // A tap back cancels a waiting one.
+        main(() -> speed(1.2));
+        settle();
+        tapLock(lock);
+        require(waiting(queue), "the fifth tap waits");
+        tapLock(lock);
+        require(!waiting(queue), "a tap back cancels it");
+        main(() -> speed(0));
+        SystemClock.sleep(1500);
+        require(now.equals(locked()), "nothing went out at the stop after the tap back");
+        note("a drop and a tap back each cancelled a waiting tap with nothing sent");
+        main(() -> { unhold(); script("stopped"); });
+    }
+
+    /** Samples each drawn frame for ms after the change. */
+    private List<Sample> watch(Runnable change, long ms) {
+        List<Sample> samples = new ArrayList<>();
+        boolean[] run = {true};
+        Choreographer.FrameCallback[] tick = new Choreographer.FrameCallback[1];
+        main(() -> {
+            tick[0] = t -> { if (!run[0]) return; samples.add(sample()); Choreographer.getInstance().postFrameCallback(tick[0]); };
+            change.run();
+            Choreographer.getInstance().postFrameCallback(tick[0]);
+        });
+        SystemClock.sleep(ms);
+        main(() -> run[0] = false);
+        return new ArrayList<>(samples);
+    }
+
+    /** Waits for the hide's first frame: taps off. */
+    private void awaitHideStart(String what) {
+        await(() -> { boolean[] off = new boolean[1]; main(() -> off[0] = !takes()); return off[0]; }, what + ": the hide did not start");
+    }
+
+    /** A held simulated speed (km/h) that wins over the script's, applied at once; on the main thread. */
+    private void speed(double kmh) {
+        try {
+            Object sim = field(activity.service().ble, "simulation");
+            Method hold = sim.getClass().getDeclaredMethod("hold", String.class, String.class, double.class);
+            hold.setAccessible(true);
+            hold.invoke(sim, "speed_kmh", kmh + " km/h", kmh);
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+        activity.service().ble.tickSimulation();
+        activity.redraw();
+    }
+
+    /** The script's own speed again. */
+    private void unhold() { ((java.util.Map<?, ?>) field(field(activity.service().ble, "simulation"), "held")).remove("speed_kmh"); }
+
+    /** A real tap: down, then up a moment later. */
+    private void tapLock(View lock) {
+        long down = down(lock);
+        SystemClock.sleep(40);
+        sendPointerSync(event(down, MotionEvent.ACTION_UP, lock));
+        waitForIdleSync();
+    }
+
+    /** The side the switch draws: a waiting tap's until the scooter settles it. */
+    private Boolean shownSide(View lock) {
+        Boolean[] v = new Boolean[1];
+        main(() -> { try { Method m = lock.getClass().getDeclaredMethod("shown"); m.setAccessible(true); v[0] = (Boolean) m.invoke(lock); } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); } });
+        return v[0];
     }
 
     private void slide(long down, View lock, float from, float to) {

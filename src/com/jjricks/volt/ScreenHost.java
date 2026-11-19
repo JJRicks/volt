@@ -91,6 +91,10 @@ public interface ScreenHost {
     default void chooseScooterModel(String profileId) { }
     /** Opens riding mode (Home's RIDE button). */
     default void openRiding() { }
-    /** Home's lock switch for riding mode's stopped controls (owner, Nov 8), through the same tap queue, only while stopped says so; null when the host has none. */
-    default android.view.View ridingLock(java.util.function.BooleanSupplier stopped) { return null; }
+    /**
+     * Home's lock switch for riding mode's stopped controls (owner, Nov 8), through the same tap queue: it takes a tap
+     * only while shown says so, and a tap goes out only once still says the scooter is completely stopped (owner, Nov 19);
+     * null when the host has none.
+     */
+    default android.view.View ridingLock(java.util.function.BooleanSupplier shown, java.util.function.BooleanSupplier still) { return null; }
 }

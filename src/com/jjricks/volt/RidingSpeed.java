@@ -12,6 +12,13 @@ package com.jjricks.volt;
  * the time across a new connection, however short.
  */
 final class RidingSpeed {
+    /**
+     * Max and Avg's moving line, km/h: a reading at or above it can be Max, and an interval with both ends under it isn't
+     * moving time. Its own 1 km/h, as riding mode has always counted (it used to borrow RidingFrames.STOPPED_KMH, which is
+     * now 1 mph for the stopped controls only). A recording's moving average (RideStore) counts an interval whose mean
+     * speed is over 0.5 km/h instead; this line is unchanged by the controls' gate.
+     */
+    static final double MOVING_KMH = 1;
     /** Length of state(): seen, top, moving time, moving km/h-ms, last reading's time and speed, and its interval. */
     private static final int STATE_LENGTH = 7;
     private final long openedMs;
@@ -58,7 +65,7 @@ final class RidingSpeed {
         seen = true;
         lastMs = atMs;
         lastKmh = kmh;
-        if (kmh >= RidingFrames.STOPPED_KMH) topKmh = Math.max(topKmh, kmh);
+        if (kmh >= MOVING_KMH) topKmh = Math.max(topKmh, kmh);
         if (first) return;
         long stepMs = atMs - previousMs;
         boolean joined = stepMs <= Math.max(RidingValues.MIN_GAP_MS, RidingValues.GAP_INTERVALS * intervalMs);
@@ -69,7 +76,7 @@ final class RidingSpeed {
         long startMs = Math.max(previousMs, openedMs);
         if (!joined || atMs <= startMs) return;
         double startKmh = previousKmh + (kmh - previousKmh) * (startMs - previousMs) / stepMs;
-        if (startKmh < RidingFrames.STOPPED_KMH && kmh < RidingFrames.STOPPED_KMH) return;
+        if (startKmh < MOVING_KMH && kmh < MOVING_KMH) return;
         movingMs += atMs - startMs;
         movingKmhMs += (startKmh + kmh) / 2 * (atMs - startMs);
     }

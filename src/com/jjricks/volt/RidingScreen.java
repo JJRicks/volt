@@ -44,8 +44,13 @@ import java.util.Locale;
  * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped riding
  * mode also shows two 56 dp controls, Lock and Record, which are Home's own: MainActivity's LockControl
  * through its LockTapQueue, and RideRecordingControl. They share the tune button's gate
- * (RidingFrames.tuneShown): shown when stopped or with no scooter connected (owner, Nov 9), gone the
- * moment a connected scooter moves, and a lock tap still waiting in the queue goes back then too.
+ * (RidingFrames.StoppedGate, kept in the session): shown while the live speed is under 1 mph,
+ * stationary flag or not (with no live speed, only while the scooter says it's stationary), or
+ * with no scooter connected (owner, Nov 9), and hidden once a
+ * connected scooter's speed has stayed at 1 mph or more for 2 s (owner, Nov 19), so a wheel turning
+ * slightly never pulls Lock from under a finger. A lock tap made while the scooter isn't completely
+ * stopped waits for the stop (RidingFrames.still) for up to 5 s, then goes back with a notice; it
+ * goes back at once when the controls hide or the connection drops. Record acts at once.
  * Disconnected, Lock shows the last known state and takes no tap, and Record only stops a recording.
  * Nothing else here sends a scooter
  * command, changes a setting or starts a recording, and there is still no lock state in the readings
@@ -134,6 +139,8 @@ final class RidingScreen implements AppScreen {
     /** Redraws the Clock readings each second while seconds show (RidingClockSeconds); idle otherwise. */
     private final RidingClockSeconds.Tick clockTick;
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    /** The stopped controls' pending hide, due (lookAgainAt): the host's redraw refreshes this screen and the lock queue. */
+    private final Runnable hideCheck = this::hideDue;
     private final Runnable clockRun = this::tickClock;
     /** Pauses and resumes the tick with the activity; registered only while seconds show. */
     private final android.app.Application.ActivityLifecycleCallbacks clockLifecycle;
@@ -271,7 +278,7 @@ final class RidingScreen implements AppScreen {
         power.addView(watts, new LinearLayout.LayoutParams(-1, 0, 1));
         power.addView(wattsCaption, new LinearLayout.LayoutParams(-1, -2));
         bar = new PowerBar();
-        stoppedLock = host.ridingLock(() -> stopped(SystemClock.elapsedRealtime()));
+        stoppedLock = host.ridingLock(() -> controlsShown(SystemClock.elapsedRealtime()), this::still);
         recordDisc = new FrameLayout(context);
         recordDisc.setFocusable(true);
         recordDisc.setOnClickListener(v -> { if (stoppedMotion.takesTaps()) recordTap(); });
@@ -791,10 +798,20 @@ final class RidingScreen implements AppScreen {
         }
     }
 
-    /** Stopped for the picker: the scooter says stationary and the latest speed is under 1 km/h. */
-    private boolean stopped(long now) {
+    /**
+     * The tune button, Lock and Record show (RidingFrames.StoppedGate): one look at this connection's live speed, and the
+     * stationary flag when there's none. A connected scooter whose settings reply has gone stale (ready() false) still
+     * counts as connected.
+     */
+    private boolean controlsShown(long now) {
         BleController ble = service == null ? null : service.ble;
-        return RidingFrames.pickerShown(ble != null && ble.stationary(), session.values.speed(now).kmh);
+        return session.stoppedGate.update(now, ble != null && ble.connected(), ble != null && ble.stationary(), ble == null ? null : ble.telemetry.liveSpeedKmh(now));
+    }
+
+    /** Completely stopped, for a waiting lock tap: the scooter says stationary and its newest fresh speed is 0. */
+    private boolean still() {
+        BleController ble = service == null ? null : service.ble;
+        return ble != null && RidingFrames.still(ble.stationary(), ble.telemetry.liveSpeedKmh(SystemClock.elapsedRealtime()));
     }
 
     @Override public View view() { return view; }
@@ -807,19 +824,11 @@ final class RidingScreen implements AppScreen {
         stoppedMotion.stop();
         stopPulse();
         clockTick.close();
+        clockHandler.removeCallbacks(hideCheck);
         if (clockLifecycle != null) host.activity().getApplication().unregisterActivityLifecycleCallbacks(clockLifecycle);
         display.detach();
         night.detach();
         alertBanner.close();
-    }
-
-    /**
-     * The tune button: hidden while moving, shown with no scooter connected (owner, Nov 9). A connected
-     * scooter whose settings reply has gone stale (ready() false) still counts as connected.
-     */
-    private boolean tuneShown(long now) {
-        BleController ble = service == null ? null : service.ble;
-        return RidingFrames.tuneShown(ble != null && ble.connected(), ble != null && ble.stationary(), session.values.speed(now).kmh);
     }
 
     /** The speed the menu's close rule looks at: the fastest reading from this connection since the last look, or null. */
@@ -847,7 +856,7 @@ final class RidingScreen implements AppScreen {
      */
     private void edit() {
         if (closed || host.activity() == null || sheet != null) return;
-        if (!sheetState.open(tuneShown(SystemClock.elapsedRealtime()))) return;
+        if (!sheetState.open(controlsShown(SystemClock.elapsedRealtime()))) return;
         liveKmh(); // Speeds from before the menu opened don't count against it.
         LinearLayout body = host.sheetContent(T.ridingLayoutTitle(), null, this::dismissSheet);
         body.setTag("riding_layout_editor");
@@ -931,10 +940,11 @@ final class RidingScreen implements AppScreen {
         showPower(now);
         if (ring != null) ring.show(now, units);
         if (trace != null) trace.show(now, units);
-        // The tune disc, Lock and Record show while stopped (Q17 A; owner, Nov 8) or disconnected (owner, Nov 9), from one
-        // reading of the gate, so they change on the same frame: a moving rider sees none.
-        boolean shownNow = tuneShown(now);
+        // The tune disc, Lock and Record show under 1 mph (Q17 A; owner, Nov 8 and 19) or disconnected (owner, Nov 9), from one
+        // reading of the gate, so they change on the same frame: a rider who has kept 1 mph or more for 2 s sees none.
+        boolean shownNow = controlsShown(now);
         disc.show(shownNow);
+        lookAgainAt(session.stoppedGate.hideAtMs(), now);
         showStopped(shownNow, RidingBurnIn.chromeAlpha(now - session.openedMs));
         // Only real speed closes the tune menu, at 4 mph or more; losing the readings doesn't.
         if (sheetState.update(liveKmh())) dismissSheet();
@@ -946,6 +956,14 @@ final class RidingScreen implements AppScreen {
         for (View v : chrome) v.setAlpha(alpha);
         clockTick.sync(wallNow);
         alertBanner.refresh();
+    }
+
+    private void hideDue() { if (!closed) host.redraw(); }
+
+    /** A refresh when a pending hide is due, so it lands on time without waiting for the next reading. */
+    private void lookAgainAt(long atMs, long now) {
+        clockHandler.removeCallbacks(hideCheck);
+        if (atMs >= 0 && !closed) clockHandler.postDelayed(hideCheck, Math.max(0, atMs - now) + 20);
     }
 
     /**
@@ -1014,10 +1032,10 @@ final class RidingScreen implements AppScreen {
         }
     }
 
-    /** The Record disc: Home's start and stop, asked once more whether the scooter is still stopped. */
+    /** The Record disc: Home's start and stop, asked once more whether the disc still shows; no stop is needed. */
     private void recordTap() {
         if (closed || service == null) return;
-        int action = RidingFrames.recordAction(service.ble.connected(), stopped(SystemClock.elapsedRealtime()), service.isRecording(),
+        int action = RidingFrames.recordAction(service.ble.connected(), controlsShown(SystemClock.elapsedRealtime()), service.isRecording(),
                 service.ble.ready(), recordGlyph.stop);
         RideRecordingControl recorder = RideRecordingApp.of(host);
         if (action == RecorderTap.STOP) recorder.stop();
