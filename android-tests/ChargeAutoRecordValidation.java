@@ -32,7 +32,8 @@ import com.jjricks.volt.tests.TextCensus;
  * back off at the end, as the sweep keeps it.
  *
  * Default mode: off by default and nothing starts; on, a charge starts a recording on screen and out of sight (the
- * background read only: no pushed report); the label comes from the chosen charger, else a guess; a short charge is
+ * background read only: no pushed report); the label comes from the charger setting until detection settles and then
+ * from detection (2.0.1: settled detection outranks the setting), else a guess; a short charge is
  * not kept and the recording ends two minutes after charging stops; moving above 4.8 km/h ends it at once and
  * Record rides automatically starts a ride in that moment, while jostling below it doesn't; a hand stop (on the page
  * or from the notification) holds until the scooter stops charging; an automatic recording never deletes a manual one.
@@ -96,7 +97,7 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                 else if ("rideaway".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); rideAwayOutOfSight(); }
                 else {
                     offByDefault();
-                    onScreenChosenLabelAndShortChargeNotKept();
+                    onScreenSettingThenDetectedAndShortChargeNotKept();
                     motionEndsAndRideStarts();
                     handStopHolds();
                     manualLeftAlone();
@@ -153,19 +154,38 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         unplugAndSettle();
     }
 
-    /** On screen, the chosen charger labels it; unplugged, it ends after two minutes (not 30), and under 10 minutes it isn't kept. */
-    private void onScreenChosenLabelAndShortChargeNotKept() {
-        main(() -> { require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED), "Could not choose the charger"); settings().edit().putBoolean(KEY, true).commit(); });
+    /**
+     * On screen, the charger setting labels it (SETTING) while detection has not settled, and detection replaces it once
+     * it settles, here on the other family; unplugged, it ends after two minutes (not 30), and under 10 minutes it isn't kept.
+     */
+    private void onScreenSettingThenDetectedAndShortChargeNotKept() {
+        // 52 W (1 A): no charger family's power, so detection cannot settle until the current rises.
+        main(() -> { require(service.setChargeCharger(ChargeSessionStore.Charger.HIGH_SPEED), "Could not choose the charger"); settings().edit().putBoolean(KEY, true).commit(); link.milliamps = 1000; });
         plugIn();
         long started = awaitRecording(10 * S, "on screen");
-        require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN
-                && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED), "Expected the chosen high-speed label");
+        require(onMain(() -> chargeStore().automatic() && chargeStore().labelSource() == ChargeSessionStore.LabelSource.SETTING
+                && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED), "Expected the charger setting's high-speed label: " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger()));
+        require(onMain(() -> chargeStore().labelAudit() != null && chargeStore().labelAudit().setting == ChargeSessionStore.Charger.HIGH_SPEED && chargeStore().labelAudit().detected == null),
+                "The recording's id does not record the setting at its start");
         String chosenStatus = onMainText(() -> service.chargeCaptureStatus());
-        require(!chosenStatus.endsWith(T.serviceChargeChargerGuessed("")), "A chosen charger was marked as guessed: " + chosenStatus);
+        require(!chosenStatus.endsWith(T.serviceChargeChargerGuessed("")), "The setting's charger was marked as guessed: " + chosenStatus);
+        SystemClock.sleep(12 * S);
         require(onMain(() -> !service.chargerChoosable() && !service.setChargeCharger(ChargeSessionStore.Charger.STOCK)
-                && chargeStore().labelSource() == ChargeSessionStore.LabelSource.CHOSEN && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED
-                && service.chargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED), "The charger changed during an automatic recording with the chosen charger");
-        log("on screen: started " + (started) + " ms after plugging in, label chosen high-speed; notice: " + notice());
+                && chargeStore().labelSource() == ChargeSessionStore.LabelSource.SETTING && chargeStore().charger() == ChargeSessionStore.Charger.HIGH_SPEED
+                && service.chargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED && service.chargerBasis() == ScooterService.ChargerBasis.RECORDING
+                && service.effectiveChargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED),
+                "Without detection the setting's label did not hold, or the choice opened: " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger() + " " + service.chargerBasis()));
+        log("on screen: started " + (started) + " ms after plugging in, label the setting's high-speed, held 12 s at 52 W; notice: " + notice());
+        // 104 W (2 A) at 62%: the stock charger's bulk power. Detection settles on stock and replaces the setting's label.
+        long raised = SystemClock.elapsedRealtime();
+        main(() -> link.milliamps = 2000);
+        await(() -> onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.DETECTED && chargeStore().charger() == ChargeSessionStore.Charger.STOCK), 40 * S,
+                "Settled detection did not replace the setting's label: " + onMainText(() -> chargeStore().labelSource() + " " + chargeStore().charger()));
+        require(onMain(() -> service.chargeCharger() == ChargeSessionStore.Charger.HIGH_SPEED && service.chargerBasis() == ScooterService.ChargerBasis.RECORDING
+                && service.effectiveChargeCharger() == ChargeSessionStore.Charger.STOCK && service.chargerChoosable()
+                && chargeStore().labelAudit().setting == ChargeSessionStore.Charger.HIGH_SPEED && chargeStore().labelAudit().detected == ChargeSessionStore.Charger.STOCK),
+                "After detection: the setting changed, detection is not the charger in effect, or the audit is wrong: " + onMainText(() -> service.chargeCharger() + " " + service.chargerBasis() + " " + service.effectiveChargeCharger()));
+        log("detection settled on stock " + (SystemClock.elapsedRealtime() - raised) + " ms after the current rose: label detected stock, setting still high-speed, audited");
         require(notice().contains("Synthetic") || notice().length() > 0, "No connection notice while recording");
         SystemClock.sleep(15 * S);
         long unplugged = SystemClock.elapsedRealtime();
@@ -630,6 +650,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
 
     private final class FakeLink {
         byte charging = OFF;
+        /** Charging current; 2 A (104 W at 52 V) is the stock charger's bulk power. */
+        int milliamps = 2000;
         final Handler handler = new Handler(Looper.getMainLooper());
         BluetoothGatt gatt; BluetoothGattCharacteristic writer, notifier; BluetoothGattCallback callbacks;
         void charging(byte value) { charging = value; }
@@ -667,10 +689,10 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         }
         void status() { byte[] state = new byte[44]; state[1] = 3; state[3] = 1; state[6] = 2; state[7] = 1; state[19] = 3; state[25] = 50; state[31] = 100; state[34] = 3; packet(0x70, state); }
         void home() { byte[] data = new byte[12]; data[1] = 1; data[2] = 62; data[4] = charging; packet(0x90, data); }
-        /** 62%, 52.000 V and 2.000 A charging (sign bit set) or 0 A, little-endian, as Telemetry.electrical reads them. */
+        /** 62%, 52.000 V and milliamps (2.000 A unless a step changes it) charging (sign bit set) or 0 A, little-endian, as Telemetry.electrical reads them. */
         void battery() {
             byte[] data = new byte[24]; data[1] = 62; data[12] = charging;
-            int volts = 52000, amps = charging == ON ? 2000 : 0;
+            int volts = 52000, amps = charging == ON ? milliamps : 0;
             for (int i = 0; i < 4; i++) { data[2 + i] = (byte) (volts >>> (8 * i)); data[6 + i] = (byte) (amps >>> (8 * i)); }
             if (charging == ON) data[9] |= (byte) 0x80;
             packet(0x72, data);
