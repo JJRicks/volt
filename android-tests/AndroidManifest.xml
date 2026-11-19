@@ -40,6 +40,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.RevealMotionValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated motion of things that come and go on a live page (Find it nearby card)" />
   <instrumentation android:name="com.jjricks.volt.tests.UnlockGuideValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Unlock without phone guide and handlebar drawing validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeInviteValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Battery and charging charge recordings row, invite banner and sheet validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.OverviewReadingsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Home style overview readings validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeSizeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time size beside power validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ModelPhotosValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated model photo set and Home photo validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />
