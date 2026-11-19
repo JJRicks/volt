@@ -1001,7 +1001,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL,paneHosted);
                 // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
                 String ride=args==null?null:args.ride;
-                // A search result's ride: closing its details goes back past All rides, to the search.
+                // A search result's ride or Home's (Just back): closing its details goes back past All rides, to the page
+                // that opened it (HubNav.Args.backAfterRide).
                 Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen==rides)navigateBack(false);}):null;
                 if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride,closed);});
                 return rides;

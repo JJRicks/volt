@@ -1549,7 +1549,8 @@ first, then the distance gets smaller; the three values share one size and
 one baseline. The names get a little smaller before one wraps and are never
 broken inside a word: where a name doesn't fit a third in two lines, the
 tiles stand two to a row (Battery across the second), the route giving up
-the height. The Ride row shows a running recording
+the height. Tapping the card opens the ride; Back (or Done) from it returns
+to Home, while a ride opened from All rides goes back to that list. The Ride row shows a running recording
 and its time while a ride records, else the last ride, the same one Just back
 shows.
 Settings > Home style shows the two styles side by side, a Quick actions row
