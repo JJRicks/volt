@@ -113,15 +113,16 @@ public final class BackupPlanLinesTest {
                     "App preferences: replaces 1 setting");
 
             BackupTestStore full = BackupArchiveTest.phone(new File(root, "charge-limit"));
-            for (int i = 0; i < 14; i++) full.charge(C, 1761000000000L + i * 1000000L, false);
+            // Five places left under the store's count (this phone holds one charge already).
+            for (int i = 0; i < ChargeSessionStore.MAX_RECORDINGS - 6; i++) full.charge(C, 1761000000000L + i * 1000000L, false);
             BackupTestStore charges = new BackupTestStore(new File(root, "charge-limit-source"));
             for (int i = 0; i < 15; i++) charges.charge(A, 1760000000000L + i * 1000000L, false);
             lines("Charge limit", full.plan(full.stage(charges.export(set(BackupRegistry.CHARGES))), set(BackupRegistry.CHARGES), false, C),
-                    "“Saved scooter” → Phone UT5", "Charges: 5 new · 0 already here · 0 kept here", "10 charges skipped · 20-charge limit");
+                    "“Saved scooter” → Phone UT5", "Charges: 5 new · 0 already here · 0 kept here", "10 charges skipped · " + ChargeSessionStore.MAX_RECORDINGS + "-charge limit");
             BackupTestStore oneOver = new BackupTestStore(new File(root, "charge-one-over-source"));
             for (int i = 0; i < 6; i++) oneOver.charge(A, 1760000000000L + i * 1000000L, false);
             lines("One charge over the limit", full.plan(full.stage(oneOver.export(set(BackupRegistry.CHARGES))), set(BackupRegistry.CHARGES), false, C),
-                    "“Saved scooter” → Phone UT5", "Charges: 5 new · 0 already here · 0 kept here", "1 charge skipped · 20-charge limit");
+                    "“Saved scooter” → Phone UT5", "Charges: 5 new · 0 already here · 0 kept here", "1 charge skipped · " + ChargeSessionStore.MAX_RECORDINGS + "-charge limit");
 
             BackupTestStore orphanSource = new BackupTestStore(new File(root, "orphan-source"));
             orphanSource.ride(A, 1760000000000L, false, "With an orphan");
