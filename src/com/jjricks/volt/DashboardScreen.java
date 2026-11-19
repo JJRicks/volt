@@ -5525,7 +5525,10 @@ public final class DashboardScreen implements AppScreen {
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
                         amount.setTextColor(r.number < 0 ? ui.ok : r.number > 0 ? ui.danger : ui.text);
                     amount.setContentDescription(
-                            r != null && !live
+                            overview != null && (r == null || r.value == null)
+                                    // The overview's dash: a reading this scooter hasn't reported is read as such.
+                                    ? T.dashboardReading(label(key), T.commonNotReported())
+                                    : r != null && !live
                                     ? T.dashboardReadingSeen(label(key), text, when(r.capturedWallMs))
                                     : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
