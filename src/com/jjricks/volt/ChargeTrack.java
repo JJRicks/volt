@@ -6,9 +6,10 @@ import android.graphics.Paint;
 import android.view.View;
 
 /**
- * The charge track Clean's charging view draws under the scooter (DashboardScreen.ChargingHero): a full rounded track,
- * filled to the charge, with a tick at the charge limit. Battery & charging's summary card shows it as a view of its
- * own; {@link #draw} is the one drawing both use, so they cannot drift apart.
+ * The charge track Clean's charging view draws under the scooter (its charge bar, ChargeBar.asTrack, with the bar's
+ * draggable mark over it): a full rounded track, filled to the charge, with a tick at the charge limit. Battery &
+ * charging's summary card shows it as a view of its own; {@link #draw} is the one drawing both use, so they cannot
+ * drift apart.
  */
 final class ChargeTrack extends View {
     private final Ui ui;

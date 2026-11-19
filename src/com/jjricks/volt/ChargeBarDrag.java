@@ -6,8 +6,8 @@ import java.util.Arrays;
  * The charging bar's draggable mark (an active user's request, Nov 2026): what the mark is, where it sits on the bar,
  * which values a drag may choose, how a touch becomes a drag, the charge limit's gates, and what happens to a released
  * value. Pure Java with no Android imports, so the rules are checked by tests/ChargeBarDragTest.java; ChargeBar draws
- * the bar and feeds it touches. Home's Widgets charging view uses it first; Clean's charging view can adopt the same
- * class once its own layout settles.
+ * the bar and feeds it touches. Home's Widgets charging view and Clean's charging view (as its charge track, the
+ * owner's request of 19 Nov 2026) use the same class, so both follow every rule here.
  *
  * <p>Rules, each tested:
  * <ul>

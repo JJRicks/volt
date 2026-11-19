@@ -44,6 +44,7 @@ import com.jjricks.volt.ScooterService;
  *     takeover's fade-out has ended;</li>
  * <li>the bay's light going out in one frame (or rising) when an unplug turns the change back after the bay lit up;</li>
  * <li>a tap on Widgets' charging-time tile reaching it while the takeover still opens;</li>
+ * <li>Clean's charge bar (its track with the draggable mark) not coming and going with the floor glow, frame by frame;</li>
  * <li>a quick unplug mid-arrival that does not turn back from where it is (its progress rises again: a double play);</li>
  * <li>any motion with Android's animations off (scale 0), or on recreation (Home rebuilt while charging or parked);</li>
  * <li>a resting view that is not exactly as Home shows it without the change (positions, offsets, opacity, the card's
@@ -185,11 +186,13 @@ public final class ChargeTransitionValidation extends Instrumentation {
 
     /** Sample columns (Clean). */
     private static final int T = 0, ACTIVE = 1, P = 2, CARD = 3, PHOTO = 4, IMAGE = 5, IMAGE_SCALE = 6, IMAGE_X = 7, IMAGE_Y = 8,
-            NUM_X = 9, NUM_Y = 10, NUM_SIZE = 11, LINE = 12, ROWS = 13, ROWS_Y = 14, PULSE = 15, GLOW = 16, HERO_SHOWN = 17, CARD_SHOWN = 18, FILL = 19;
-    private static final int[] OPACITIES = {CARD, PHOTO, IMAGE, LINE, ROWS, GLOW};
+            NUM_X = 9, NUM_Y = 10, NUM_SIZE = 11, LINE = 12, ROWS = 13, ROWS_Y = 14, PULSE = 15, GLOW = 16, HERO_SHOWN = 17, CARD_SHOWN = 18, FILL = 19,
+            BAR = 20, BAR_SHOWN = 21;
+    private static final int[] OPACITIES = {CARD, PHOTO, IMAGE, LINE, ROWS, GLOW, BAR};
     private static final int[] PLACES = {IMAGE_SCALE, IMAGE_X, IMAGE_Y, NUM_X, NUM_Y, NUM_SIZE, ROWS_Y};
     private static final String[] NAMES = {"t", "active", "p", "card", "photo", "image", "image scale", "image x", "image y",
-            "number x", "number y", "number size", "line", "readings", "readings y", "pulse", "glow", "hero shown", "card shown", "bay fill"};
+            "number x", "number y", "number size", "line", "readings", "readings y", "pulse", "glow", "hero shown", "card shown", "bay fill",
+            "charge bar", "charge bar shown"};
 
     private void cleanChange(String what, List<float[]> frames, boolean in) {
         int between = 0;
@@ -197,6 +200,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
         require(between >= (in ? 6 : 4), what + ": only " + between + " frames in between (a cut, not a change)");
         smooth(what, frames, OPACITIES, PLACES, NAMES);
         number(what, frames);
+        bar(what, frames);
         float last = -1;
         for (float[] f : frames) {
             if (f[ACTIVE] > 0) {
@@ -215,6 +219,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
     private void cleanReversal(String what, List<float[]> frames) {
         smooth(what, frames, OPACITIES, PLACES, NAMES);
         number(what, frames);
+        bar(what, frames);
         float top = -1, last = -1;
         boolean turned = false;
         int after = 0;
@@ -240,13 +245,27 @@ public final class ChargeTransitionValidation extends Instrumentation {
         require(!frames.isEmpty(), what + ": no frames seen");
         for (float[] f : frames) {
             require(f[ACTIVE] == 0, what + ": a change ran (p " + f[P] + ")");
-            if (f[HERO_SHOWN] > 0) require(f[IMAGE] == 1 && f[LINE] == 1 && f[ROWS] == 1, what + ": the charging view was part-way in: " + row(f, NAMES));
+            if (f[HERO_SHOWN] > 0) require(f[IMAGE] == 1 && f[LINE] == 1 && f[ROWS] == 1 && (f[BAR_SHOWN] == 0 || f[BAR] == 1), what + ": the charging view was part-way in: " + row(f, NAMES));
             if (f[CARD_SHOWN] > 0) require(f[CARD] == 1, what + ": the card was part-way in: " + row(f, NAMES));
         }
         float[] end = frames.get(frames.size() - 1);
         require(charging ? end[HERO_SHOWN] > 0 && end[CARD_SHOWN] == 0 : end[CARD_SHOWN] > 0 && end[HERO_SHOWN] == 0, what + ": wrong moment at the end");
         note(what + ": " + frames.size() + " frames, all at rest");
         assertions++; checks.add(what);
+    }
+
+    /**
+     * Clean's charge bar (its track and draggable mark, ChargeBar) comes and goes with the floor glow, as the track it
+     * replaced did: at every frame its opacity is the glow's share, and it is in the view whenever the stage has its track.
+     */
+    private void bar(String what, List<float[]> frames) {
+        int seen = 0;
+        for (float[] f : frames) {
+            if (f[HERO_SHOWN] == 0 || f[BAR_SHOWN] == 0) continue;
+            seen++;
+            require(Math.abs(f[BAR] - f[GLOW]) <= .01f, what + ": the charge bar's opacity is not the glow's: " + row(f, NAMES));
+        }
+        require(seen > 0, what + ": the charge bar never showed");
     }
 
     /** The number the eye follows (the card's or the charging view's, whichever shows) never jumps, at the handover too. */
@@ -578,6 +597,10 @@ public final class ChargeTransitionValidation extends Instrumentation {
         f[HERO_SHOWN] = heroShown ? 1 : 0;
         f[CARD_SHOWN] = cardShown ? 1 : 0;
         f[FILL] = heroShown ? bayFill(hero) : 0;
+        View bar = (View) field(hero, "bar");
+        boolean barShown = heroShown && bar != null && bar.getVisibility() == View.VISIBLE;
+        f[BAR] = barShown ? bar.getAlpha() : 0;
+        f[BAR_SHOWN] = barShown ? 1 : 0;
         return f;
     }
 
@@ -620,7 +643,7 @@ public final class ChargeTransitionValidation extends Instrumentation {
             Object home = clean();
             View overview = (View) field(home, "overview"), hero = (View) field(home, "charging");
             s.append("card visibility ").append(overview.getVisibility()).append(" hero ").append(view(hero));
-            for (String name : new String[] {"chip", "chipShort", "percent", "stage", "rows", "photo"}) {
+            for (String name : new String[] {"chip", "chipShort", "percent", "stage", "rows", "photo", "bar", "timeTile"}) {
                 View v = (View) field(hero, name);
                 if (v != null) s.append(' ').append(name).append(' ').append(view(v));
             }

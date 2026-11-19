@@ -9,8 +9,9 @@ package com.jjricks.volt;
  * limit" pill (the owner and a contributor, 17 Nov 2026; it was a plain muted line), centred; a stage holding the
  * big percentage at its top, centred, with the scooter's photo large under it and
  * reaching up behind the number (a soft dark fade behind the number keeps it readable), the red glow under the wheels
- * and the track along the stage's bottom; then the two readings (charging power and the time to the limit or to
- * full). The photo takes whatever height the stage has, so it is as large as the slot allows.
+ * and the track along the stage's bottom (Widgets' charge bar in Clean's look, its limit or alert mark draggable);
+ * then the two readings (charging power and Widgets' time tile, which switches between the time to the limit or the
+ * alert's level and the time to 100%: the owner's request of 19 Nov 2026). The photo takes whatever height the stage has, so it is as large as the slot allows.
  *
  * <p>When the slot is short (a short window, large text), nothing is dropped while the readings fit: the percentage,
  * the photo behind it, the track and the readings all stay. Things give way in this order:
@@ -37,6 +38,16 @@ package com.jjricks.volt;
 final class ChargingFit {
     /** The track's thickness (the mock-up's 7 dp) and how far the limit's tick reaches above and below it. */
     static final int TRACK_DP = 7, TICK_DP = 4;
+    /**
+     * How far the track stops short of the stage's sides: the track is the charge bar with its draggable mark (ChargeBar,
+     * the owner's request of 19 Nov 2026), and this keeps the mark, 6 dp wide while it is held, whole at 0 and 100%.
+     */
+    static final int TRACK_END_DP = 3;
+    /**
+     * How far the charge bar's view reaches below the stage's foot (the stage does not clip it): the held mark, 26 dp
+     * tall round the track, stays inside the view, while the track keeps its place at the stage's foot.
+     */
+    static final int BAR_BELOW_DP = 6;
     /**
      * The space between the line and the stage (the top of the percentage and of the photo): 4 dp under the pill, whose
      * own 4 dp padding below its words keeps the mock-up's 8 dp between the words and the stage (it was 8 dp under the
@@ -196,15 +207,6 @@ final class ChargingFit {
                              boolean readings, int gap) {
         int photo = stage - under;
         return new Plan(line, shortLine, true, scale, stage, photo >= photoMin ? photo : 0, true, readings, gap);
-    }
-
-    /**
-     * Clean's second tile is fixed, as the mock-up draws it (no switching): "Time to N%" while the scooter's own charge
-     * limit is below 100% (the line says "Charging to your N% limit"), otherwise "Time to full (est.)". A charge alert's
-     * level is not a limit (ChargeTimeReadings.limitSource), so a model that offers alerts shows the time to full.
-     */
-    static boolean timeToLimit(Double scooterTarget, boolean alertsOffered) {
-        return ChargeTimeReadings.limitSource(scooterTarget, alertsOffered, false) == ChargeTimeReadings.SCOOTER_LIMIT;
     }
 
     /** A reading tile's inner space at its sides (dp): the Layout Plan's 12 dp, and Widgets' 6 dp in a narrow tile. */
