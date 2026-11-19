@@ -521,6 +521,41 @@ creeps far slower than any past charge, the taper that slows by 0.8 minutes per 
 the 4 A past charges don't match (up to about 13 minutes past on single readings near 1.9 A after a
 step down).
 
+## v11: where the voltage limit comes (`ut5-fast-cvpoint-v11`)
+
+The bundled bulk timing above was fitted on one deep charge, which met the charger's voltage limit at
+full current. Most charges are top-ups: they reach a displayed 80% first, where the BMS steps from about
+10 A to 8 A. The lower current lowers the pack voltage, so about 0.38 Ah more goes in before the limit,
+and the taper then starts from 8 A instead of 10. Without a charge history, a fresh install's estimate
+from the 72%-anchored percentage table ran 6–7 minutes short on another scooter's first top-ups.
+
+`FastChargeTaper.cvPoint` places the voltage limit from pack voltage before it is reached (V + 0.107 × I
+below CV_SET − 0.08 V), at a normal current level (9.5–11.6 A below 81%, or 7.7–8.4 A from 79%):
+
+- **Ah to the limit** at this current: A = BULK_AH(CV_SET − CV_DROP × I − V), unchanged. It places the
+  limit at s_cv = SoC + 100 × A ÷ rated Ah.
+- **Deep charge** (s_cv at most 80%) and the **8 A stage**: bulk A ÷ I, then the taper from I — the same
+  as the voltage model above without a watched decay.
+- **Top-up** (s_cv above 80%): full current to 80%, then the rest of A plus EXTRA_AH (0.38 Ah) at
+  8.03 A, then the taper from 8.03 A.
+- **A lower limit:** at or below the limit's level, the bulk time to it; above it, the bulk plus a
+  straight share of the taper by level (this errs long). Never more than the time to 100%. Past
+  charges' own time to a lower limit is kept.
+- **Priority:** past charges and a charge's own established taper come first, as before.
+
+EXTRA_AH is the one fitted constant: leaving out any one of the seven top-ups (two scooters) moves it
+only 0.36–0.39 Ah, and the pack resistance predicts about 0.36. TAU, END_AMPS, CV_SET, CV_DROP and
+BULK_AH are unchanged, and so is everything after the limit is reached.
+
+On the maintainer's local replay set scored as fresh installs (kept private), fresh-install estimates on
+top-ups moved from about 6–7 minutes short to a few minutes long, deep charges stayed about where they
+were, no Charge done by plan got later, and no standard-charger row changed. Only two scooters and one
+charger model are behind it, with only two deep charges: it is a better first guess for a fresh install,
+not a validated one, and Charge done by's 20-minute buffer still carries the safety.
+
+The temperature-aware layer ([fast-charge-slowdown.md](fast-charge-slowdown.md)) uses the same model for
+its estimate at the expected current.
+
 ## Limits
 
 This is a small corpus: one scooter, four completed high-speed charges, and the constants come from

@@ -303,7 +303,9 @@ public final class ChargeSlowdownTest {
         for (int i = first; i < sim.samples.size(); i++) {
             Sample s = sim.samples.get(i);
             ChargingEstimate.Result r = e.v10.get(i);
-            Double nominal = FastChargeTaper.minutes(s.volts + .1 * (10.05 - s.amps), 10.05, RATED, null);
+            double nominalVolts = s.volts + .1 * (10.05 - s.amps);
+            FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(s.soc, nominalVolts, 10.05, RATED);
+            Double nominal = cv != null ? Double.valueOf(cv.full) : FastChargeTaper.minutes(nominalVolts, 10.05, RATED, null);
             check(nominal != null, "The voltage model covers the hot charge");
             double ah = RATED * (80 - s.soc) / 100, expected = nominal + ah / s.amps * 60 - ah / 10.05 * 60;
             near(expected, r.remainingMinutesToFull, 1e-9, "Hot: the bulk lasts at the live current, sample " + i);
@@ -420,7 +422,6 @@ public final class ChargeSlowdownTest {
         for (Object[] c : new Object[][]{{STOCK, UT5}, {FAST, 1234}, {null, UT5}}) {
             ChargeSessionStore.Charger charger = (ChargeSessionStore.Charger) c[0];
             int product = (Integer) c[1];
-            List<ChargeSlowdown.State> states = new ArrayList<>();
             Watch w = new Watch(sim.samples, product, charger, 100d);
             for (int i = 0; i < w.states.size(); i++) w.states.set(i, forced);
             Estimates e = new Estimates(sim.samples, w, 95d, charger, product);
@@ -533,23 +534,28 @@ public final class ChargeSlowdownTest {
         return t - atExpected;
     }
 
-    /** Below 72% at full current without past charges, Charge done by takes the longer of the reference and the voltage model. */
+    /**
+     * Below 72% at 9 A or more without past charges, Charge done by takes the longer of the time to 100% and the
+     * bundled voltage model (cvPoint's where it applies, which at 9.5 A or more already sets the time shown).
+     */
     private static void voltagePlanning() {
         int longer = 0, total = 0;
         for (double soc = 20; soc < 72; soc += 1) {
-            for (double offset : new double[]{-.4, 0, .4}) {
+            for (double[] c : new double[][]{{10.05, -.4}, {10.05, 0}, {10.05, .4}, {9.2, -.4}, {9.2, 0}, {9.2, .4}}) {
+                double amps = c[0], offset = c[1];
                 long t = T0 + (long) soc * MIN;
-                double volts = Sim.bulkVolts(soc, 10.05) + offset;
+                double volts = Sim.bulkVolts(soc, amps) + offset;
                 ChargingEstimate.Value s = live(soc, t), rated = live(RATED, t);
-                ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(volts, t), live(-10.05, t), s, rated, live(100, t));
+                ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(volts, t), live(-amps, t), s, rated, live(100, t));
                 ChargingEstimate.Result a = ChargingEstimate.forScooter(base, s, rated, UT5, FAST, null, null, null, t, t, null, null);
                 ChargingEstimate.Result b = ChargingEstimate.forScooter(base, s, rated, UT5, FAST, null, null, null, t, t, null, null, ChargeSlowdown.State.NONE);
                 check(sameShown(a, b), "Voltage planning never changes the time shown");
                 if (!a.referenceToFull || a.planningMinutesToFull == null) continue;
                 total++;
-                Double voltage = FastChargeTaper.minutes(volts, 10.05, RATED, null);
+                FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(soc, volts, amps, RATED);
+                Double voltage = cv != null ? Double.valueOf(cv.full) : FastChargeTaper.minutes(volts, amps, RATED, null);
                 double want = voltage == null ? a.planningMinutesToFull : Math.max(a.planningMinutesToFull, voltage);
-                near(want, b.planningMinutesToFull, 1e-9, "Planning at " + soc + "% " + offset + " V is the longer of the reference and the voltage model");
+                near(want, b.planningMinutesToFull, 1e-9, "Planning at " + soc + "% " + amps + " A " + offset + " V is the longer of the reference and the voltage model");
                 near(want, b.planningMinutesToLimit, 1e-9, "A 100% limit plans the same");
                 if (want > a.planningMinutesToFull) longer++;
             }

@@ -52,7 +52,8 @@ ones); healthy stretches stay at 0.997 × or more of the expected current.
 
 `ChargingEstimate.forScooter` takes the state as its last argument (`null` keeps v9 exactly).
 
-- **Time shown:** the estimate at the expected current (FastChargeTaper's voltage model with the pack
+- **Time shown:** the estimate at the expected current (FastChargeTaper's voltage model, depth-aware since
+  [v11](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11), with the pack
   voltage moved 0.1 Ω × the change in current; the v9 estimate re-run at that current where the model has
   no answer), plus the extra minutes the rest of the bulk stage (to 80%, to 85% inside the 8 A stage, or
   to a lower limit) takes at the current predicted for it:
