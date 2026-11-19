@@ -47,6 +47,7 @@ public final class RidingValuesTest {
         speedResume();
         autoEnd();
         speedBoundaries();
+        speedBetweenOneKmhAndOneMph();
         speedFollowsTelemetry();
         quickReconnect();
         linkLost();
@@ -947,6 +948,31 @@ public final class RidingValuesTest {
     }
 
     /** The moving interval at a stop, the opening boundary, and no misleading zero. */
+    /**
+     * Max and Avg's moving line stays 1 km/h (RidingSpeed.MOVING_KMH), not the stopped controls' 1 mph: readings from 1 to
+     * 1.6 km/h count for Max, and an interval with an end in that band is moving time, as before the 1 mph gate (#554).
+     */
+    private static void speedBetweenOneKmhAndOneMph() {
+        check(RidingSpeed.MOVING_KMH == 1 && RidingFrames.STOPPED_KMH > 1.6, "Max and Avg keep 1 km/h; the controls use 1 mph");
+        RidingSpeed walk = new RidingSpeed(0);
+        walk.accept(0, 0);
+        walk.accept(1.0, 1000);
+        check(walk.maxKmh() == 1.0 && near(walk.averageKmh(), .5, 1e-9), "1.0 km/h is Max, and 0 to 1.0 is a moving interval: " + walk.maxKmh() + ", " + walk.averageKmh());
+        RidingSpeed s = new RidingSpeed(0);
+        s.accept(0, 0);
+        s.accept(1.3, 1000);
+        s.accept(1.6, 2000);
+        s.accept(.9, 3000);
+        s.accept(.5, 4000);
+        check(s.maxKmh() == 1.6, "1.6 km/h is Max: " + s.maxKmh());
+        // Moving: 0-1.3, 1.3-1.6 and 1.6-0.9 (an end at 1 km/h or more); 0.9-0.5 isn't.
+        check(near(s.averageKmh(), (650 + 1450 + 1250) / 3000d, 1e-9), "Avg over the three moving seconds: " + s.averageKmh());
+        RidingSpeed crawl = new RidingSpeed(0);
+        crawl.accept(0, 0);
+        crawl.accept(.9, 1000);
+        check(crawl.maxKmh() == 0 && near(crawl.averageKmh(), 0, 1e-9), "under 1 km/h nothing has moved");
+    }
+
     private static void speedBoundaries() {
         long t = 12_000_000;
         RidingSession moving = open(t);
