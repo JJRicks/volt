@@ -67,6 +67,10 @@ public final class ScooterService extends Service {
     private ChargeSessionStore.Snapshot chargeSnapshot;
     private final ChargeReferenceGate chargeReferenceGate = new ChargeReferenceGate();
     private final ChargerDetection chargerDetection = new ChargerDetection();
+    /** Automatic's family from this scooter's learned curves, where ChargerDetection has none (detectedCharger). */
+    private final LearnedChargerMatch learnedCharger = new LearnedChargerMatch();
+    /** "Different charger? Record it": a sustained far-off run against the only recorded family (recordChargerHint). */
+    private final RecordChargerHint chargerHint = new RecordChargerHint();
     private final ChargeProgressTracker chargeProgress = new ChargeProgressTracker();
     private final FastChargeTaper chargeTaper = new FastChargeTaper();
     /** Charge done by's bounded measuring step; at most one, for the selected scooter. */
@@ -470,8 +474,49 @@ public final class ScooterService extends Service {
     private ChargeSessionStore.Charger detectedCharger(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
         if(destroyed||profile==null)return null;
-        return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
+        if(simulating())return ble.simulationDetectedCharger();
+        long now=SystemClock.elapsedRealtime();
+        // ChargerDetection first (the UT5 MAX's two chargers, by what each can physically deliver); else, on any model,
+        // the family whose learned curve this charge's power matches (LearnedChargerMatch). Used under Automatic only:
+        // a recording's label and the charger setting come first (chargerBasis).
+        ChargeSessionStore.Charger detected=chargerDetection.selected(profile.id,now);
+        return detected!=null?detected:learnedCharger.selected(profile.id,now);
     }
+    /**
+     * The family automatic recordings follow as DETECTED (ChargeAutoRecordPolicy.detectedLabel): ChargerDetection's, and
+     * under Automatic only, the learned match or a sustained far-off run's other family.
+     */
+    private ChargeSessionStore.Charger labelDetectedCharger(){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        if(destroyed||profile==null)return null;
+        if(simulating())return ble.simulationDetectedCharger();
+        long now=SystemClock.elapsedRealtime();
+        return ChargeAutoRecordPolicy.detectedLabel(chargeCharger(),chargerDetection.selected(profile.id,now),
+                learnedCharger.selected(profile.id,now),chargerHint.otherFamily(profile.id,now));
+    }
+    /** This profile's learned curve for a family, or null (none saved, still loading, or simulating). */
+    private ChargeSessionStore.Curve learnedCurve(String profileId,ChargeSessionStore.Charger charger){
+        return simulating()||chargeSnapshot==null||profileId==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(profileId,charger));
+    }
+    /**
+     * Whether the charging view offers "Different charger? Record it" (RecordChargerHint.show): this charge's power has
+     * been far off the only recorded family's curve for a minute, below 90%, while charging, with no recording running and
+     * no charging slowdown reported. Under Automatic or a manual setting alike.
+     */
+    public boolean recordChargerHint(){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        if(destroyed||simulating()||profile==null||ble==null)return false;
+        long now=SystemClock.elapsedRealtime();
+        ChargeSessionStore.Value state=chargeFrame(now,System.currentTimeMillis()).state;
+        boolean charging=liveCharge(state,"charging_state",now)&&state.value==1d;
+        return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),isChargeRecording(),chargeSlowedForHint());
+    }
+    /**
+     * HOOK (builder I's ChargeSlowdown, branch claude/charge-slowdown-eta, not on main yet): return whether the
+     * charging-slowed detector reports a slowdown for the active scooter's charge, so a throttled charge never reads as a
+     * different charger. Until it lands, nothing reports one.
+     */
+    private boolean chargeSlowedForHint(){return false;}
     private int qualifiedSessions(ChargeSessionStore.Charger charger){
         ChargeSessionStore.Curve curve=chargeSnapshot==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         return curve==null?0:curve.qualifiedSessions;
@@ -604,7 +649,7 @@ public final class ScooterService extends Service {
                 // Ended by itself: no hold, and auto-record rides may start a ride in this same change. The work policy waits
                 // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
                 if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
-                ChargeSessionStore.Charger detected=detectedCharger();
+                ChargeSessionStore.Charger detected=labelDetectedCharger();
                 // The audit in the recording's id notes detection's family whatever the label (under the owner's choice too).
                 chargeStore.noteDetected(detected);
                 ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detected);
@@ -623,7 +668,7 @@ public final class ScooterService extends Service {
             // Never in the middle of a guided test (or its write-back) or a compatibility check; no latch, so it starts after.
             if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
-            ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
+            ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),labelDetectedCharger(),
                     qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
             if(!startChargeRecording(label.charger,label.source,label.setting)&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
@@ -2055,6 +2100,8 @@ public final class ScooterService extends Service {
     private void resetChargeEstimateContext(){
         chargeReferenceGate.reset();
         chargerDetection.reset();
+        learnedCharger.reset();
+        chargerHint.reset();
         chargeProgress.reset();
         chargeTaper.reset();
     }
@@ -2066,8 +2113,8 @@ public final class ScooterService extends Service {
      */
     private void updateChargerDetection(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null){chargerDetection.reset();chargeProgress.reset();chargeTaper.reset();return;}
-        if(ble!=null&&ble.currentTransportSerial().isEmpty())chargerDetection.disconnected();
+        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeTaper.reset();return;}
+        if(ble!=null&&ble.currentTransportSerial().isEmpty()){chargerDetection.disconnected();learnedCharger.disconnected();chargerHint.disconnected();}
         if(ble==null||!ble.ready()||ble.profile()==null||!profile.id.equals(ble.profile().id))return;
         long now=SystemClock.elapsedRealtime();
         ChargeSessionStore.Frame frame=chargeFrame(now,System.currentTimeMillis());
@@ -2077,6 +2124,12 @@ public final class ScooterService extends Service {
         // Never reached while simulating (above); the same model reader as the estimate all the same.
         chargerDetection.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,paired?frame.soc.value:null,
                 paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
+        // The same frames against this scooter's learned curves, on every model (a UT5 MAX too: detection comes first).
+        ChargeSessionStore.Curve stock=learnedCurve(profile.id,ChargeSessionStore.Charger.STOCK),fast=learnedCurve(profile.id,ChargeSessionStore.Charger.HIGH_SPEED);
+        learnedCharger.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.voltage.value:null,
+                paired?frame.current.value:null,paired?frame.current.mono:0,now,stock,fast);
+        chargerHint.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.voltage.value:null,
+                paired?frame.current.value:null,paired?frame.current.mono:0,now,stock,fast);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
     }

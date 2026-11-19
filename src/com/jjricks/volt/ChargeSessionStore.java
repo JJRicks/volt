@@ -162,6 +162,39 @@ public final class ChargeSessionStore {
                     if(compatible.size()>=2)watts[bin]=median(compatible);
                 }
             }
+            familyWatts=familyPowers(sessions);
+        }
+        /**
+         * The family's power per 1% bin for telling chargers apart (LearnedChargerMatch, ChargeAutoRecordPolicy's labels and
+         * RecordChargerHint), never for timing: it is built from every qualified session's own bin power, one session
+         * included, so a first recording is already a baseline. Two or more sessions give the median of those within 25%
+         * of their median, and need two of them to agree; a lone disagreeing pair gives nothing, as in watts.
+         */
+        private final double[] familyWatts;
+        private static double[] familyPowers(List<Evidence> sessions){
+            double[] result=new double[100];Arrays.fill(result,Double.NaN);
+            for(int bin=0;bin<100;bin++){
+                List<Double> powers=new ArrayList<>();
+                for(Evidence session:sessions)if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1)powers.add(session.watts[bin]);
+                if(powers.isEmpty())continue;
+                if(powers.size()==1){result[bin]=powers.get(0);continue;}
+                double center=median(powers);List<Double> compatible=new ArrayList<>();
+                for(double power:powers)if(power>=center*.75&&power<=center*1.25)compatible.add(power);
+                if(compatible.size()>=2)result[bin]=median(compatible);
+            }
+            return result;
+        }
+        /** The family's saved power at this battery level (familyWatts), or null where no session saved one. */
+        public Double familyWatts(double soc){
+            if(!between(soc,0,100))return null;
+            double value=familyWatts[Math.min(99,(int)Math.floor(soc))];
+            return Double.isFinite(value)?value:null;
+        }
+        /** powerMatch's band against familyWatts: one recording is enough. For telling chargers apart only. */
+        public PowerMatch familyPowerMatch(double soc,Double liveWatts){
+            Double expected=familyWatts(soc);
+            if(expected==null||liveWatts==null||!Double.isFinite(liveWatts)||liveWatts<1)return PowerMatch.UNKNOWN;
+            return liveWatts>=expected*.65&&liveWatts<=expected*1.35?PowerMatch.MATCH:PowerMatch.DIFFERENT;
         }
         /** A plausibility check, not charger identification; missing local power fails closed. */
         public PowerMatch powerMatch(double soc,Double liveWatts) {

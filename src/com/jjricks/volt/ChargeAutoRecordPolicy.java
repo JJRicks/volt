@@ -14,7 +14,8 @@ import java.util.Set;
  * hold or latch stands for that scooter. Connecting to a scooter that is already charging starts then: a partial
  * recording is fine. Never a prompt.
  *
- * Label: see {@link #label}. The recording keeps how its label was chosen.
+ * Label: see {@link #label}, with {@link #detectedLabel} as its detected family. The recording keeps how its label was
+ * chosen.
  *
  * End, for automatic recordings only, on top of every rule that ends a recording today:
  * - at once when a live speed reading is above {@link #END_SPEED_KMH} ({@link #movedAway});
@@ -92,13 +93,30 @@ public final class ChargeAutoRecordPolicy {
      * (SETTING), provisional until detection settles ({@link #relabel}); otherwise a best guess (GUESS). The guess is the
      * family with more qualified saved recordings for this scooter (the charger the owner actually uses), and on a tie or
      * none, the stock charger every scooter ships with. setting is the charger setting (null: Automatic), detected
-     * ChargerDetection's settled family (null: not settled, or a model it does not know).
+     * {@link #detectedLabel}'s family (null: neither detection nor, under Automatic, the learned curves have settled).
      */
     public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
         if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED, setting);
         if (setting != null) return new Label(setting, ChargeSessionStore.LabelSource.SETTING, setting);
         return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK,
                 ChargeSessionStore.LabelSource.GUESS, null);
+    }
+
+    /**
+     * The family automatic recordings take as DETECTED ({@link #label} and {@link #relabel}'s detected), or null.
+     * ChargerDetection's settled family first (detection: it rests on what each charger can physically deliver, and
+     * outranks the setting, as since #555). Then, only under Automatic (setting null), this scooter's own learned
+     * curves: the family LearnedChargerMatch settled on (learned), or else the family a sustained far-off run points to
+     * when only one family has recordings (farOff, RecordChargerHint.otherFamily: far above a stock curve is the
+     * high-speed charger, far below a high-speed curve the stock one), so that charge teaches the other family's curve.
+     * A likeness never replaces the charger setting; a label the owner chose is never replaced (relabel). With both
+     * families recorded and neither matching, nothing: the recording keeps its guess.
+     */
+    public static ChargeSessionStore.Charger detectedLabel(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detection,
+            ChargeSessionStore.Charger learned, ChargeSessionStore.Charger farOff) {
+        if (detection != null) return detection;
+        if (setting != null) return null;
+        return learned != null ? learned : farOff;
     }
 
     /**
