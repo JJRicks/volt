@@ -139,7 +139,7 @@ final class RidingScreen implements AppScreen {
     private final RidingClockSeconds.Tick clockTick;
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     /** The stopped controls' pending hide, due (lookAgainAt): the host's redraw refreshes this screen and the lock queue. */
-    private final Runnable hideCheck = () -> { if (!closed) host.redraw(); };
+    private final Runnable hideCheck = this::hideDue;
     private final Runnable clockRun = this::tickClock;
     /** Pauses and resumes the tick with the activity; registered only while seconds show. */
     private final android.app.Application.ActivityLifecycleCallbacks clockLifecycle;
@@ -955,6 +955,8 @@ final class RidingScreen implements AppScreen {
         clockTick.sync(wallNow);
         alertBanner.refresh();
     }
+
+    private void hideDue() { if (!closed) host.redraw(); }
 
     /** A refresh when a pending hide is due, so it lands on time without waiting for the next reading. */
     private void lookAgainAt(long atMs, long now) {
