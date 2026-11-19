@@ -69,6 +69,8 @@ public final class ScooterService extends Service {
     private final ChargerDetection chargerDetection = new ChargerDetection();
     private final ChargeProgressTracker chargeProgress = new ChargeProgressTracker();
     private final FastChargeTaper chargeTaper = new FastChargeTaper();
+    /** The UT5 MAX fast charger's "Charging slowed" observer; the estimate and the charging status share its state. */
+    private final ChargeSlowdown chargeSlowdown = new ChargeSlowdown();
     /** Charge done by's bounded measuring step; at most one, for the selected scooter. */
     private final ChargeMeasureWindow chargeMeasure = new ChargeMeasureWindow();
     private boolean chargeModelLoading, chargeUpdating, chargeExporting;
@@ -903,7 +905,18 @@ public final class ScooterService extends Service {
         long now=SystemClock.elapsedRealtime();
         return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
                 profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
-                chargeTaper.tracking(profile.id)?chargeTaper:null);
+                chargeTaper.tracking(profile.id)?chargeTaper:null,chargeSlowdown.state(profile.id,now));
+    }
+
+    /**
+     * Whether the active scooter's UT5 MAX fast charge is slowed now, why, and its battery temperature (ChargeSlowdown):
+     * the state the charging status shows and the time left already uses. NONE while simulating, without a watched fast
+     * charge, or once its readings are stale.
+     */
+    public ChargeSlowdown.State chargeSlowdown(){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        if(destroyed||simulating()||profile==null)return ChargeSlowdown.State.NONE;
+        return chargeSlowdown.state(profile.id,SystemClock.elapsedRealtime());
     }
 
     private ChargeScheduleController schedules(){
@@ -2057,6 +2070,7 @@ public final class ScooterService extends Service {
         chargerDetection.reset();
         chargeProgress.reset();
         chargeTaper.reset();
+        chargeSlowdown.reset();
     }
 
     /**
@@ -2066,7 +2080,7 @@ public final class ScooterService extends Service {
      */
     private void updateChargerDetection(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null){chargerDetection.reset();chargeProgress.reset();chargeTaper.reset();return;}
+        if(destroyed||simulating()||profile==null){chargerDetection.reset();chargeProgress.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
         if(ble!=null&&ble.currentTransportSerial().isEmpty())chargerDetection.disconnected();
         if(ble==null||!ble.ready()||ble.profile()==null||!profile.id.equals(ble.profile().id))return;
         long now=SystemClock.elapsedRealtime();
@@ -2079,6 +2093,10 @@ public final class ScooterService extends Service {
                 paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
+        // After detection, so the charger in effect is this frame's. The limit is the scooter's own (unknown counts as 100).
+        chargeSlowdown.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),effectiveChargeCharger(),frame.state.value==1d,
+                paired?frame.soc.value:null,paired?frame.voltage.value:null,paired?frame.current.value:null,
+                liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null,ble.liveNumber("charge_limit_percent"),paired?frame.current.mono:0);
     }
     private static boolean liveCharge(ChargeSessionStore.Value value,String key,long now){
         return value!=null&&value.value!=null&&Double.isFinite(value.value)&&value.mono>0&&now>=value.mono
