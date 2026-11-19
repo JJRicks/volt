@@ -40,6 +40,7 @@ final class RidingFrames {
     /**
      * 1 mph in km/h: under this live speed, in any display unit, the stopped controls (tune, Lock and Record) show, with
      * or without the scooter's stationary flag (owner, Nov 19: a wheel turning slightly hid Lock under the rider's finger).
+     * The stopped controls' line only: riding mode's Max and Avg keep their own 1 km/h (RidingSpeed.MOVING_KMH).
      */
     static final double STOPPED_KMH = 1.609344;
     /** Once shown, the stopped controls hide only after the live speed has stayed at 1 mph or more this long (owner, Nov 19). */
@@ -124,8 +125,11 @@ final class RidingFrames {
         return largeText ? Collections.<String>emptyList() : HALO_STRIP;
     }
 
-    /** Slow enough for the stopped controls: the live speed is missing or under 1 mph ({@link #STOPPED_KMH}). */
-    static boolean slow(Double speedKmh) { return speedKmh == null || !(speedKmh >= STOPPED_KMH); }
+    /**
+     * Slow enough for the stopped controls: a live speed under 1 mph ({@link #STOPPED_KMH}); with no live speed, the
+     * scooter's own stationary flag (a model with no ride report, or a reconnect before its first reading, isn't stopped).
+     */
+    static boolean slow(boolean stationary, Double speedKmh) { return speedKmh != null ? !(speedKmh >= STOPPED_KMH) : stationary; }
 
     /**
      * Completely stopped, the only state a riding-mode lock tap goes out in (LockTapQueue.untilStill): the scooter says
@@ -137,20 +141,31 @@ final class RidingFrames {
 
     /**
      * The tune button, Lock and Record's one gate, owned by the riding session so a rebuild keeps it. Shown with no
-     * scooter connected (owner, Nov 9), or while the live speed is missing or under 1 mph; the scooter's stationary
-     * flag isn't needed. Once shown they hide only after the speed has stayed at 1 mph or more for {@link #HIDE_AFTER_MS}
-     * (no flicker at the boundary), and show again on the first look under 1 mph. The first look at a speed of 1 mph or
-     * more (riding mode opened while moving) hides them at once. Clock-free: every look takes the monotonic time.
+     * scooter connected (owner, Nov 9), or while the live speed is under 1 mph, stationary flag or not. Once shown they
+     * hide only after the speed has stayed at 1 mph or more for {@link #HIDE_AFTER_MS} (no flicker at the boundary), and
+     * show again on the first look under 1 mph. The first look at a speed of 1 mph or more (riding mode opened while
+     * moving) hides them at once. With no live speed (a model with no ride report, or a reconnect before its first
+     * reading) the stationary flag decides at once, as before: shown only while the scooter says it's stationary. A
+     * reconnect's first look is like opening: at 1 mph or more they hide at once (riding on after a dropout).
+     * Clock-free: every look takes the monotonic time.
      */
     static final class StoppedGate {
-        private boolean looked, shown;
+        private boolean looked, shown, disconnected;
         /** When the speed reached 1 mph or more while shown, or -1. */
         private long fastSince = -1;
 
-        /** One look: true while the controls show. */
-        boolean update(long nowMs, boolean connected, Double speedKmh) {
-            if (!connected || slow(speedKmh)) { looked = shown = true; fastSince = -1; return true; }
-            if (!looked || !shown) { looked = true; shown = false; fastSince = -1; return false; }
+        /**
+         * One look: true while the controls show.
+         *
+         * @param stationary the scooter's stationary flag (BleController.stationary), read only when there's no live speed
+         * @param speedKmh the newest live speed (Telemetry.liveSpeedKmh), or null
+         */
+        boolean update(long nowMs, boolean connected, boolean stationary, Double speedKmh) {
+            if (!connected) { looked = shown = disconnected = true; fastSince = -1; return true; }
+            // A new connection's first look is like opening: fast at once hides them, with no 2 s from the disconnected show.
+            if (disconnected) { disconnected = false; looked = false; }
+            if (slow(stationary, speedKmh)) { looked = shown = true; fastSince = -1; return true; }
+            if (!looked || !shown || speedKmh == null) { looked = true; shown = false; fastSince = -1; return false; }
             if (fastSince < 0 || nowMs < fastSince) fastSince = nowMs;
             if (nowMs - fastSince >= HIDE_AFTER_MS) { shown = false; fastSince = -1; }
             return shown;

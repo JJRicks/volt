@@ -44,8 +44,9 @@ import java.util.Locale;
  * Riding it only reads. The owner reversed Q12 A and Q16 on Nov 8: while the scooter is stopped riding
  * mode also shows two 56 dp controls, Lock and Record, which are Home's own: MainActivity's LockControl
  * through its LockTapQueue, and RideRecordingControl. They share the tune button's gate
- * (RidingFrames.StoppedGate, kept in the session): shown while the live speed is missing or under
- * 1 mph, stationary flag or not, or with no scooter connected (owner, Nov 9), and hidden once a
+ * (RidingFrames.StoppedGate, kept in the session): shown while the live speed is under 1 mph,
+ * stationary flag or not (with no live speed, only while the scooter says it's stationary), or
+ * with no scooter connected (owner, Nov 9), and hidden once a
  * connected scooter's speed has stayed at 1 mph or more for 2 s (owner, Nov 19), so a wheel turning
  * slightly never pulls Lock from under a finger. A lock tap made while the scooter isn't completely
  * stopped waits for the stop (RidingFrames.still) for up to 5 s, then goes back with a notice; it
@@ -798,12 +799,13 @@ final class RidingScreen implements AppScreen {
     }
 
     /**
-     * The tune button, Lock and Record show (RidingFrames.StoppedGate): one look at the live speed. A connected scooter
-     * whose settings reply has gone stale (ready() false) still counts as connected.
+     * The tune button, Lock and Record show (RidingFrames.StoppedGate): one look at this connection's live speed, and the
+     * stationary flag when there's none. A connected scooter whose settings reply has gone stale (ready() false) still
+     * counts as connected.
      */
     private boolean controlsShown(long now) {
         BleController ble = service == null ? null : service.ble;
-        return session.stoppedGate.update(now, ble != null && ble.connected(), session.values.speed(now).kmh);
+        return session.stoppedGate.update(now, ble != null && ble.connected(), ble != null && ble.stationary(), ble == null ? null : ble.telemetry.liveSpeedKmh(now));
     }
 
     /** Completely stopped, for a waiting lock tap: the scooter says stationary and its newest fresh speed is 0. */

@@ -28,40 +28,63 @@ public final class RidingStoppedControlsTest {
     private static void gate() {
         long hide = RidingFrames.HIDE_AFTER_MS;
         check(hide == 2000 && Math.abs(RidingFrames.STOPPED_KMH - 1.609344) < 1e-9, "1 mph, and 2 s before a hide");
-        check(RidingFrames.slow(0.0) && RidingFrames.slow(null) && RidingFrames.slow(.9) && RidingFrames.slow(1.6), "under 1 mph, or no speed, is slow");
-        check(!RidingFrames.slow(1.609344) && !RidingFrames.slow(20.0), "1 mph or more isn't");
+        check(RidingFrames.slow(false, 0.0) && RidingFrames.slow(false, .9) && RidingFrames.slow(false, 1.6), "under 1 mph is slow, stationary flag or not");
+        check(!RidingFrames.slow(true, 1.609344) && !RidingFrames.slow(false, 20.0), "1 mph or more isn't, even with a stationary flag");
+        check(RidingFrames.slow(true, null) && !RidingFrames.slow(false, null), "no live speed: the stationary flag decides");
 
         // The owner's case (Nov 19): stopped, the wheel turns a little (not stationary, under 1 mph): they stay.
         RidingFrames.StoppedGate g = new RidingFrames.StoppedGate();
-        check(g.update(0, true, 0.0) && g.update(100, true, 1.2) && g.update(200, true, .3), "a roll under 1 mph keeps them, stationary flag or not");
-        check(g.update(300, true, null), "a missing speed shows them");
+        check(g.update(0, true, false, 0.0) && g.update(100, true, false, 1.2) && g.update(200, true, false, .3), "a roll under 1 mph keeps them, stationary flag or not");
+        check(g.update(300, true, true, null), "no speed, stationary: shown");
+        check(!g.update(400, true, false, null) && g.hideAtMs() == -1, "no speed and not stationary: hidden at once, as before");
 
         // In km/h units: 1.5 km/h is under 1 mph; 1.7 km/h is over it, but only 2 s of it hides them.
         g = new RidingFrames.StoppedGate();
-        check(g.update(0, true, 0.0), "stopped: shown");
-        check(g.update(1000, true, 1.7) && g.hideAtMs() == 1000 + hide, "1 mph or more: still shown, a hide pending");
-        check(g.update(1000 + hide - 1, true, 5.0), "just under 2 s at speed: still shown");
-        check(!g.update(1000 + hide, true, 6.0) && g.hideAtMs() == -1, "2 s at 1 mph or more: hidden");
-        check(!g.update(1000 + hide + 500, true, 30.0), "riding on: hidden");
-        check(g.update(1000 + hide + 600, true, 1.5), "back under 1 mph: shown at once");
+        check(g.update(0, true, false, 0.0), "stopped: shown");
+        check(g.update(1000, true, false, 1.7) && g.hideAtMs() == 1000 + hide, "1 mph or more: still shown, a hide pending");
+        check(g.update(1000 + hide - 1, true, false, 5.0), "just under 2 s at speed: still shown");
+        check(!g.update(1000 + hide, true, false, 6.0) && g.hideAtMs() == -1, "2 s at 1 mph or more: hidden");
+        check(!g.update(1000 + hide + 500, true, false, 30.0), "riding on: hidden");
+        check(g.update(1000 + hide + 600, true, false, 1.5), "back under 1 mph: shown at once");
 
         // A blip: 1 mph or more for under 2 s, then under it, restarts the count.
         g = new RidingFrames.StoppedGate();
-        g.update(0, true, 0.0);
-        check(g.update(500, true, 2.0) && g.update(2000, true, 2.4), "1.5 s at walking pace: shown");
-        check(g.update(2100, true, 1.0) && g.hideAtMs() == -1, "a reading under 1 mph ends the pending hide");
-        check(g.update(2200, true, 2.0) && g.update(4199, true, 2.0) && !g.update(4200, true, 2.0), "the 2 s start again from the next fast reading");
+        g.update(0, true, false, 0.0);
+        check(g.update(500, true, false, 2.0) && g.update(2000, true, false, 2.4), "1.5 s at walking pace: shown");
+        check(g.update(2100, true, false, 1.0) && g.hideAtMs() == -1, "a reading under 1 mph ends the pending hide");
+        check(g.update(2200, true, false, 2.0) && g.update(4199, true, false, 2.0) && !g.update(4200, true, false, 2.0), "the 2 s start again from the next fast reading");
 
         // In mph units the gate is the same km/h: 0.9 mph (1.45 km/h) shows, 1.1 mph (1.77 km/h) counts toward the hide.
         g = new RidingFrames.StoppedGate();
-        check(g.update(0, true, .9 * 1.609344) && g.update(10, true, 1.1 * 1.609344) && !g.update(10 + hide, true, 1.1 * 1.609344), "mph: under 1 shows, 2 s over 1 hides");
+        check(g.update(0, true, false, .9 * 1.609344) && g.update(10, true, false, 1.1 * 1.609344) && !g.update(10 + hide, true, false, 1.1 * 1.609344), "mph: under 1 shows, 2 s over 1 hides");
 
-        // A speed that goes missing while hidden shows them (no reading to say it moves); disconnected shows them too.
+        // A speed that goes missing while hidden: the stationary flag decides.
         g = new RidingFrames.StoppedGate();
-        check(!g.update(0, true, 20.0) && g.update(100, true, null), "no speed: shown");
+        check(!g.update(0, true, false, 20.0) && !g.update(100, true, false, null), "no speed, not stationary: still hidden");
+        check(g.update(200, true, true, null), "no speed, stationary: shown");
+
+        // A model with no ride report (CapabilityResolver NO_MOTION_REPORT): never a speed, never stationary. Hidden while connected.
         g = new RidingFrames.StoppedGate();
-        check(!g.update(0, true, 20.0) && g.update(100, false, 20.0), "disconnected: shown");
-        check(g.update(200, true, 20.0) && !g.update(200 + hide, true, 20.0), "reconnected at speed: hidden after the 2 s");
+        for (long t = 0; t <= 60_000; t += 500) check(!g.update(t, true, false, null), "no ride report: hidden at " + t + " ms");
+        check(g.update(60_500, false, false, null), "disconnected: shown");
+        check(!g.update(61_000, true, false, null), "connected again, still no report: hidden at once");
+
+        // A mid-ride reconnect: disconnected shows them; the new connection has no speed yet (Telemetry.clear) and isn't
+        // stationary, so they hide at once, and stay hidden at speed, until a slow reading or a stationary report.
+        g = new RidingFrames.StoppedGate();
+        check(!g.update(0, true, false, 20.0) && g.update(100, false, false, null), "dropped mid-ride: shown");
+        check(!g.update(200, true, false, null), "reconnected, no reading yet: hidden at once");
+        check(!g.update(300, true, false, 20.0) && !g.update(300 + hide, true, false, 20.0), "the first readings at speed: still hidden");
+        check(g.update(5000, true, false, 1.2), "a slow reading: shown");
+        g = new RidingFrames.StoppedGate();
+        g.update(0, true, false, 0.0);
+        check(g.update(100, false, false, null) && !g.update(200, true, false, 20.0), "reconnected straight into a 20 km/h reading: hidden at once");
+        g = new RidingFrames.StoppedGate();
+        g.update(0, true, false, 0.0);
+        check(g.update(100, false, false, null) && g.update(200, true, false, 1.0), "reconnected rolling under 1 mph: shown");
+        g = new RidingFrames.StoppedGate();
+        g.update(0, false, false, null);
+        check(!g.update(100, true, false, null) && g.update(200, true, true, null), "reconnected parked: hidden until the first stationary report");
 
         // Complete stop, for a waiting lock tap: stationary and a fresh 0.
         check(RidingFrames.still(true, 0.0), "stationary at 0: still");
@@ -92,9 +115,10 @@ public final class RidingStoppedControlsTest {
         check(RidingFrames.recordAction(true, true, true, true, false) == RecorderTap.NONE, "started automatically before the redraw: the record mark stops nothing");
 
         // Lock, Record and the tune button share one gate (RidingFrames.StoppedGate).
-        check(new RidingFrames.StoppedGate().update(0, false, null) && new RidingFrames.StoppedGate().update(0, false, 30.0), "disconnected: shown, whatever the old readings say");
-        check(new RidingFrames.StoppedGate().update(0, true, 0.0) && new RidingFrames.StoppedGate().update(0, true, null), "connected and stopped: shown");
-        check(!new RidingFrames.StoppedGate().update(0, true, 1.7), "connected and moving at the first look: hidden");
+        check(new RidingFrames.StoppedGate().update(0, false, false, null) && new RidingFrames.StoppedGate().update(0, false, false, 30.0), "disconnected: shown, whatever the old readings say");
+        check(new RidingFrames.StoppedGate().update(0, true, false, 0.0) && new RidingFrames.StoppedGate().update(0, true, true, null), "connected and stopped: shown");
+        check(!new RidingFrames.StoppedGate().update(0, true, false, null), "reconnected with no motion report yet: hidden until the first stationary report");
+        check(!new RidingFrames.StoppedGate().update(0, true, false, 1.7), "connected and moving at the first look: hidden");
     }
 
     private static void lockTaps() {
@@ -298,6 +322,7 @@ public final class RidingStoppedControlsTest {
         check(main.indexOf("lockQueue.stoppedGateClosed(") < main.indexOf("lockQueue.untilStill(") && main.indexOf("lockQueue.untilStill(") < main.indexOf("decisionOnceIdle(\"lock\",Boolean.TRUE")
                 && main.contains("if(still==LockTapQueue.Action.HOLD)return;"), "then the complete stop, holding it before the lock's own gate");
         check(screen.contains("RidingFrames.still(ble.stationary(), ble.telemetry.liveSpeedKmh(SystemClock.elapsedRealtime()))"), "the complete stop is the stationary flag and a fresh speed of 0");
+        check(screen.contains("session.stoppedGate.update(now, ble != null && ble.connected(), ble != null && ble.stationary(), ble == null ? null : ble.telemetry.liveSpeedKmh(now))"), "the gate reads this connection's live speed, and the stationary flag without one");
         check(screen.contains("lookAgainAt(session.stoppedGate.hideAtMs(), now);") && screen.contains("clockHandler.removeCallbacks(hideCheck);"), "a pending hide lands on time, and stops with the screen");
         check(main.contains("stoppedGate!=null&&!stoppedGate.getAsBoolean()") && main.contains("lockQueue.sending(true);"), "a tap as motion starts is refused, and a send is held from redraws");
         check(screen.contains("RidingFrames.recordAction(service.ble.connected(), controlsShown(SystemClock.elapsedRealtime())") && screen.contains("recordGlyph.stop);")
