@@ -774,10 +774,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
     private void savedListMarksGuess() throws Exception {
         unplugAndSettle();
         for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
-            public boolean keep(long ranMs, double gainedPoints) { return true; }
-            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
-        });
+        // Keeps every recording, short ones too (the store's default rules).
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder());
         String guessed = fixture(fixtures, 1, true).replace(".csv", "");
         String manualId = fixture(fixtures, 2, false).replace(".csv", "");
         require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);
