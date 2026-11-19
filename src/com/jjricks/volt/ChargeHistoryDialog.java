@@ -90,6 +90,7 @@ final class ChargeHistoryDialog {
     }
     private void showList() {
         if (!available()) return;
+        loadGeneration++; // Back while an older recording was still being read: that read no longer opens it.
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout list = padded(); list.setTag("charge-history-list");
         if (recordings.isEmpty()) list.addView(ui.caption(emptyText()));
