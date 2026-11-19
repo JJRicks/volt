@@ -878,7 +878,14 @@ public final class RidesScreen implements AppScreen {
         }
     }
     /** Reads only accepted GPS fixes from the phone journal, never more than 16 MB, and keeps a 64-point outline. */
-    static float[] readThumb(File file) {
+    static float[] readThumb(File file) { return readThumb(file, null); }
+
+    /**
+     * readThumb, and when area is given (four values), the outline's fixes' box in Web Mercator world units
+     * (JustBackBasemap.box: west, north, east, south), so the Just back card can lay map tiles under the outline; area is
+     * left alone when there is no route.
+     */
+    static float[] readThumb(File file, double[] area) {
         if (!file.isFile() || file.length() > 16L * 1024 * 1024) return NO_ROUTE;
         ArrayList<double[]> fixes = new ArrayList<double[]>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))) {
@@ -898,13 +905,15 @@ public final class RidesScreen implements AppScreen {
         int count = Math.min(64, fixes.size());
         double latitude = 0; for (double[] fix : fixes) latitude += fix[0]; latitude /= fixes.size();
         double cos = Math.max(.05, Math.cos(Math.toRadians(latitude)));
-        double[] xs = new double[count], ys = new double[count];
+        double[] xs = new double[count], ys = new double[count], latitudes = new double[count], longitudes = new double[count];
         double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE, minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
         for (int i = 0; i < count; i++) {
             double[] fix = fixes.get(count <= 1 ? 0 : (int) ((long) i * (fixes.size() - 1) / (count - 1)));
             xs[i] = fix[1] * cos; ys[i] = -fix[0];
+            latitudes[i] = fix[0]; longitudes[i] = fix[1];
             minX = Math.min(minX, xs[i]); maxX = Math.max(maxX, xs[i]); minY = Math.min(minY, ys[i]); maxY = Math.max(maxY, ys[i]);
         }
+        if (area != null) System.arraycopy(JustBackBasemap.box(latitudes, longitudes), 0, area, 0, 4);
         double span = Math.max(maxX - minX, maxY - minY);
         float[] result = new float[2 + 2 * count];
         if (span < 1e-7) { result[0] = 0; result[1] = 0; for (int i = 0; i < count; i++) { result[2 + 2 * i] = 0; result[3 + 2 * i] = 0; } return result; }

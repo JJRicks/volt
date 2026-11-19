@@ -108,6 +108,9 @@ including the full-screen map, shares its remembered state with
 provider receives your IP address and viewed map area; choose **Enable basemap** or
 **Cancel**. Cancel keeps tiles off. Once you approve, that acknowledgement is
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
+The after-ride **Just back** card on Clean Home has its own **Basemap** button in its
+route panel's corner. It also starts off, is remembered separately (in backups too),
+uses the same provider, and asks the same one-time question if you haven't approved it yet.
 
 When enabled, the app requests visible map tiles from
 OpenStreetMap by default, or from USGS Topo (United States only) or your chosen

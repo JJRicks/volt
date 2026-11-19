@@ -17,7 +17,8 @@ import java.util.function.Consumer;
 
 /** Local route geometry works without a basemap. Tiles load only for the visible viewport. */
 public final class RouteMapView extends View {
-    private static final ExecutorService TILES =
+    /** Two tile loaders shared by every map, the Just back card's basemap (JustBackView) included. */
+    static final ExecutorService TILES =
             Executors.newFixedThreadPool(
                     2,
                     r -> {
