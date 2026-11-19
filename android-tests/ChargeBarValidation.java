@@ -46,6 +46,14 @@ import java.util.function.Consumer;
  * thickens at once; the alert model's mark is the alert level and a drag saves it in the alert settings.
  * Mode layout: both themes at 1x and 1.4x text at the emulator's size: the mark and the value label inside the bar at
  * both ends of the track and clear of the percentage.
+ *
+ * <p>Argument home=clean runs every mode on Clean Home's charging view instead (the owner's request of 19 Nov 2026: Widgets'
+ * draggable bar and two-reading time tile ported to Clean), where the bar is Clean's charge track along the stage's foot:
+ * the same bar class, so the same cases, but edit mode (Clean's charging view has none) and the stage-height check
+ * (Clean's stage takes the top area's slot). The default mode on Clean also checks the time tile: two readings with the
+ * limit's first, a tap switches and saves the choice, and the other Home style opens on the same choice (one setting).
+ * Mode look (any build, for before and after pictures): the charging view at rest at the emulator's size in the given
+ * theme and text size, then, where the build has them on that Home, each of the time tile's readings and the bar mid-drag.
  */
 public final class ChargeBarValidation extends Instrumentation {
     private MainActivity activity;
@@ -53,6 +61,8 @@ public final class ChargeBarValidation extends Instrumentation {
     private Bundle args;
     private boolean admitted;
     private String ut5, label = "";
+    /** Clean Home's charging view (home=clean) rather than Widgets'. */
+    private boolean clean;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     /** The bar's host wrapped: every limit write and every toast the bar asks for. */
@@ -68,6 +78,7 @@ public final class ChargeBarValidation extends Instrumentation {
         String mode = args.getString("mode", "all");
         try {
             admit(); admitted = true;
+            clean = "clean".equals(args.getString("home", "widgets"));
             seed(args.getString("theme", "dark"), args.getString("text_scale", "1"));
             main(() -> {
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
@@ -76,8 +87,10 @@ public final class ChargeBarValidation extends Instrumentation {
             });
             launch();
             if (mode.equals("layout")) verifyLayoutMatrix();
+            else if (mode.equals("look")) look();
             else {
                 verifyRest();
+                if (clean) verifyCleanTile();
                 verifyDragCommitsOnce();
                 verifyNothingWithoutADrag();
                 verifyVerticalScrolls();
@@ -119,13 +132,104 @@ public final class ChargeBarValidation extends Instrumentation {
             require(b.gate == ChargeBarDrag.Gate.OK && b.blocked == null, "The simulated limit is not draggable: " + b.gate);
             require(Arrays.equals(b.allowed, new int[] {80, 85, 90, 95, 100}), "The limit's choices: " + Arrays.toString(b.allowed));
             View stage = (View) field(hero(), "stage");
-            require(stage.getHeight() == stage.getMinimumHeight(), "The bar made the stage taller: " + stage.getHeight() + " vs " + stage.getMinimumHeight());
+            if (!clean) require(stage.getHeight() == stage.getMinimumHeight(), "The bar made the stage taller: " + stage.getHeight() + " vs " + stage.getMinimumHeight());
+            else {
+                // Clean: the bar is the track along the stage's foot, whole inside the stage, fully shown at rest.
+                require(b.getParent() == stage && b.getBottom() == stage.getHeight() && b.getTop() >= 0, "Clean's bar is not along the stage's foot: " + b.getTop() + ".." + b.getBottom() + " in " + stage.getHeight());
+                require(b.getAlpha() == 1f && b.getVisibility() == View.VISIBLE, "Clean's bar is not fully shown at rest: alpha " + b.getAlpha());
+                require(b.xAt(0) >= 0 && b.xAt(100) <= b.getWidth(), "Clean's track runs past the bar");
+                // Taller than its least 48 dp only as far as the room under the percentage allows.
+                TextView percent = (TextView) field(hero(), "percent");
+                require(onScreen(b).top >= onScreen(percent).bottom - 1 || b.getHeight() == activity.ui().dp(48),
+                        "Clean's bar reaches up over the percentage: bar " + onScreen(b) + ", percentage " + onScreen(percent));
+            }
             require(b.getHeight() >= activity.ui().dp(48), "The bar is under 48 dp: " + b.getHeight());
             require(b.labelBox.isEmpty(), "A value label shows at rest");
         });
         shot("rest");
-        checks.add("At rest: the floor line with a mark at the 85% limit; the stage keeps its height; no label");
+        checks.add(clean ? "Clean at rest: the track along the stage's foot with a mark at the 85% limit, fully shown; no label"
+                : "At rest: the floor line with a mark at the 85% limit; the stage keeps its height; no label");
     }
+
+    /**
+     * Clean's time tile is Widgets' (ChargeTimeTile): beside the simulated UT5 MAX's 85% limit it holds two readings,
+     * the time to 85% first and the time to 100%, dots and all; a tap switches and saves the choice in the one setting
+     * Widgets reads, so the other Home style opens on it; TalkBack's node is the same switchable control.
+     */
+    private void verifyCleanTile() throws Exception {
+        limit(85);
+        main(() -> {
+            View tile = tile();
+            require(Boolean.TRUE.equals(field(tile, "two")), "Clean's tile does not hold two readings beside an 85% limit");
+            TextView[] captions = (TextView[]) field(tile, "captions");
+            require(String.valueOf(captions[0].getContentDescription()).contains("85") && String.valueOf(captions[1].getContentDescription()).contains("100"),
+                    "Clean's readings are not the time to 85% and to 100%: " + captions[0].getContentDescription() + " / " + captions[1].getContentDescription());
+            require(tile.isClickable() && tile.isFocusable(), "Clean's tile is not a control with two readings");
+            AccessibilityNodeInfo node = tile.createAccessibilityNodeInfo();
+            require(node.isClickable() && String.valueOf(node.getContentDescription()).length() > 0, "Clean's tile has no spoken reading");
+            node.recycle();
+        });
+        String key = ChargeTimeReadings.KEY + ut5;
+        int before = tileReading();
+        shot("tile-" + (before == 0 ? "limit" : "full"));
+        main(() -> tile().performClick());
+        await(() -> shownReading() != before && tileAtRest(), "A tap did not switch Clean's tile");
+        String saved = settings().getString(key, null);
+        require(ChargeTimeReadings.encode(1 - before).equals(saved), "Clean's switch did not save the choice: " + saved);
+        shot("tile-" + (before == 0 ? "full" : "limit"));
+        // The other Home style reads the same setting: Widgets opens on the reading Clean left showing.
+        relaunchStyle("widgets");
+        await(() -> shownReading() == 1 - before, "Widgets did not open on the reading Clean saved (" + saved + ")");
+        main(() -> tile().performClick());
+        await(() -> shownReading() == before && tileAtRest(), "A tap did not switch Widgets' tile back");
+        relaunchStyle("clean");
+        await(() -> shownReading() == before, "Clean did not open on the reading Widgets saved");
+        checks.add("Clean's time tile is Widgets': two readings beside an 85% limit (85% first, then 100%), a tap switches and saves it, "
+                + "and each Home style opens on the reading the other left (one setting per scooter)");
+    }
+    private View tile() { return (View) field(hero(), "timeTile"); }
+    /** The reading the tile shows (0 the limit's, 1 the time to 100%), on the main thread; reading() from the test's. */
+    private int shownReading() { View t = tile(); return Boolean.TRUE.equals(field(t, "two")) ? (Integer) field(field(t, "state"), "resting") : 1; }
+    private int tileReading() { int[] r = new int[1]; main(() -> r[0] = shownReading()); return r[0]; }
+    private boolean tileAtRest() { return Boolean.TRUE.equals(invoke(field(tile(), "state"), "atRest")) && field(tile(), "motion") == null; }
+    /** Home in the other style: the activity again with home_style set, the simulator still charging. */
+    private void relaunchStyle(String style) throws Exception {
+        MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle();
+        require(settings().edit().putString("home_style", style).commit(), "Could not set the Home style");
+        boolean was = clean; clean = style.equals("clean");
+        try { launch(); } catch (RuntimeException e) { clean = was; throw e; }
+        limit(85);
+    }
+
+    /** Pictures only (any build): the view at rest, each reading of the time tile, and the bar mid-drag, where they exist. */
+    private void look() throws Exception {
+        String size = args.getString("size_label", "size"), theme = args.getString("theme", "dark"), text = args.getString("text_scale", "1");
+        String name = (clean ? "clean" : "widgets") + "-" + size + "-" + theme + "-" + text;
+        boolean hasBar = field(hero(), "bar") != null;
+        if (hasBar) limit(85);
+        else { main(() -> service.ble.set("charge_limit", 85)); SystemClock.sleep(1500); redraw(); }
+        shot(name + "-rest");
+        View t = tile();
+        boolean[] two = new boolean[1]; main(() -> two[0] = Boolean.TRUE.equals(field(t, "two")) && t.isClickable());
+        if (two[0]) {
+            int first = tileReading();
+            shot(name + "-tile-" + (first == 0 ? "limit" : "full"));
+            main(() -> tile().performClick());
+            await(() -> shownReading() != first && tileAtRest(), "The tile did not switch");
+            shot(name + "-tile-" + (first == 0 ? "full" : "limit"));
+            main(() -> tile().performClick());
+            await(() -> shownReading() == first && tileAtRest(), "The tile did not switch back");
+        }
+        if (hasBar) {
+            Finger f = new Finger(mark());
+            f.move(stepPx() + slop() * .5f, 0, 8);
+            SystemClock.sleep(300); waitForIdleSync();
+            shot(name + "-bar-drag");
+            f.send(MotionEvent.ACTION_CANCEL, f.x, f.y); settle();
+        }
+        checks.add(name + ": pictures at rest" + (two[0] ? ", on each reading" : "") + (hasBar ? ", mid-drag" : "") + " (" + (hasBar ? "bar" : "no bar") + ", " + (two[0] ? "two readings" : "one reading") + ")");
+    }
+    private void redraw() throws Exception { main(() -> activity.redraw()); settle(); SystemClock.sleep(200); settle(); }
 
     private void verifyDragCommitsOnce() throws Exception {
         limit(85);
@@ -225,6 +329,7 @@ public final class ChargeBarValidation extends Instrumentation {
     }
 
     private void verifyEditMode() throws Exception {
+        if (clean) { checks.add("Edit mode: not on Clean, whose charging view has no edit mode"); return; }
         limit(85);
         main(() -> setField(screen(), "editing", true));
         try {
@@ -548,8 +653,10 @@ public final class ChargeBarValidation extends Instrumentation {
     // ---- Fixtures -------------------------------------------------------------------------------------------
 
     private void seed(String theme, String text) {
-        require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("developer_options", true)
-                .putString("theme", theme).putFloat("text_scale", Float.parseFloat(text)).commit(), "Could not seed preferences");
+        SharedPreferences.Editor edit = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false).putBoolean("developer_options", true)
+                .putString("theme", theme).putFloat("text_scale", Float.parseFloat(text));
+        if (clean) edit.putString("home_style", "clean").putBoolean("home_style_chosen", true).putBoolean("home_whats_new_shown", true);
+        require(edit.commit(), "Could not seed preferences");
     }
     private void launch() throws Exception {
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -574,9 +681,19 @@ public final class ChargeBarValidation extends Instrumentation {
                     (SharedPreferences.OnSharedPreferenceChangeListener) field(activity, "settingsChanged"));
         });
         settle();
-        redrawUntil(() -> shownAtRest() && bar().kind != ChargeBarDrag.NONE, "The charging view did not show on the simulator");
+        boolean look = "look".equals(args.getString("mode"));
+        redrawUntil(() -> hero() != null && shownAtRest() && (look || bar().kind != ChargeBarDrag.NONE), "The charging view did not show on the simulator");
     }
-    private boolean shownAtRest() { return hero().isShown() && field(hero(), "reveal") == null && bar().isAttachedToWindow(); }
+    private boolean shownAtRest() {
+        View hero = hero();
+        if (hero == null || !hero.isShown() || field(hero, "reveal") != null) return false;
+        if (clean) {
+            // Clean: Plug in has ended (its top area at rest) and the view is fully shown.
+            Object home = cleanHome();
+            if (home == null || Boolean.TRUE.equals(invoke(field(home, "transition"), "changing")) || hero.getAlpha() != 1f) return false;
+        }
+        return field(hero, "bar") == null || bar().isAttachedToWindow();
+    }
     /** Sets the simulated limit (no counting), redraws until the mark rests there, and clears the record. */
     private void limit(int value) throws Exception {
         main(() -> { if (!Objects.equals(service.ble.featureValue("charge_limit"), value)) require(service.ble.set("charge_limit", value), "Could not set the simulated limit to " + value); service.ble.tickSimulation(); });
@@ -665,12 +782,10 @@ public final class ChargeBarValidation extends Instrumentation {
     private float[] point(double percent) throws Exception { reveal(); float[] p = new float[2]; main(() -> { float[] q = at(percent); p[0] = q[0]; p[1] = q[1]; }); return p; }
     private float[] at(double percent) {
         ChargeBar b = bar(); int[] loc = new int[2]; b.getLocationOnScreen(loc);
-        float w = b.getWidth(), start = w * .06f, end = w * .94f;
-        float x = ChargeBarDrag.x(percent, start, end, b.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL);
-        return new float[] {loc[0] + x, loc[1] + b.getHeight() - activity.ui().dp(18)};
+        return new float[] {loc[0] + b.xAt(percent), loc[1] + b.floorY()};
     }
     private static RectF onScreen(View v) { int[] at = new int[2]; v.getLocationOnScreen(at); return new RectF(at[0], at[1], at[0] + v.getWidth(), at[1] + v.getHeight()); }
-    private float stepPx() { float[] w = new float[1]; main(() -> w[0] = bar().getWidth() * .88f * .05f); return w[0]; }
+    private float stepPx() { float[] w = new float[1]; main(() -> w[0] = Math.abs(bar().xAt(5) - bar().xAt(0))); return w[0]; }
     private float ui(float dp) { return dp * getTargetContext().getResources().getDisplayMetrics().density; }
     private float slop() { return ViewConfiguration.get(getTargetContext()).getScaledTouchSlop(); }
     private void reveal() throws Exception {
@@ -705,7 +820,19 @@ public final class ChargeBarValidation extends Instrumentation {
         return out[0];
     }
     private Object screen() { return field(activity, "screen"); }
-    private View hero() { return (View) field(screen(), "chargingHero"); }
+    /** The charging view: Clean's (tagged, in one pane or the scooter pane of two), else Widgets' takeover. */
+    private View hero() {
+        if (clean) return root().findViewWithTag("clean-home-charging");
+        Object screen = screen();
+        return screen == null || !(screen instanceof DashboardScreen) ? null : (View) field(screen, "chargingHero");
+    }
+    /** Clean Home (one pane, or the scooter pane's of two): the charging view's top area's owner. */
+    private Object cleanHome() {
+        Object screen = screen();
+        if (screen != null && screen.getClass().getSimpleName().equals("CleanHomeScreen")) return screen;
+        Object pane = field(activity, "homeScreen");
+        return pane != null && pane.getClass().getSimpleName().equals("CleanHomeScreen") ? pane : null;
+    }
     /** The Widgets bar, its host wrapped (again, if Home was rebuilt) so every write and toast is seen. */
     private ChargeBar bar() {
         ChargeBar b = (ChargeBar) field(hero(), "bar");

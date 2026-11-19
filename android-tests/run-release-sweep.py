@@ -193,6 +193,10 @@ STEPS += [
     inst('charge-time-tile', T + 'ChargeTimeTileValidation', size=PHONE[0]),
     inst('charge-time-tile-layout-344', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-time-tile-layout-725', T + 'ChargeTimeTileValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The same tile on Clean Home's charging view (the owner's request, 19 Nov 2026), the simulator charging first.
+    inst('charge-time-tile-clean', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', size=PHONE[0]),
+    inst('charge-time-tile-layout-clean-344', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-time-tile-layout-clean-725', T + 'ChargeTimeTileValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     # The time's value at Charging power's size (owner, Nov 15 2026): phones at 412, 360 and 344 dp and the Fold unfolded.
     inst('charge-time-sizes-412', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charge-time-sizes-360', T + 'ChargeTimeSizeValidation', '-e', 'size_label', '360', size='360x800'),
@@ -253,6 +257,12 @@ STEPS += [
     inst('charge-bar-725', PKG + '.ChargeBarValidation', '-e', 'theme', 'light', size=WIDE[0]),
     inst('charge-bar-layout-344', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-bar-layout-725', PKG + '.ChargeBarValidation', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
+    # The same bar as Clean Home's charge track (the owner's request, 19 Nov 2026), with Clean's time tile and the choice
+    # it shares with Widgets; the scooter pane of two at 725 dp.
+    inst('charge-bar-clean', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'theme', 'dark', size=PHONE[0]),
+    inst('charge-bar-clean-725', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'theme', 'light', size=WIDE[0]),
+    inst('charge-bar-layout-clean-344', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charge-bar-layout-clean-725', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),
     # The charging pictures (the UT5 MAX and Ultra X wire, five folded stills) on Widgets and Clean Home: the percentage on
     # each picture as the prototype draws it, the takeover's height while it opens, and the cable's clipping (simulator).
     inst('charge-pictures-344', PKG + '.ChargePictureValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),

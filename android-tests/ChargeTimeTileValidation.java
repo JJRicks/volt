@@ -54,6 +54,13 @@ import com.jjricks.volt.*;
  * Mode layout: every theme, text size (1x, 1.4x) and language (English, German, both Portuguese) at the emulator's
  * current size: labels whole, the dots clear of the label and the state pill, one height for both readings.
  * Mode restart: run after a default pass on the same install (no reinstall): the saved choices survive a new process.
+ *
+ * <p>Argument home=clean runs the default and layout modes on Clean Home's charging view, which shows the same tile since
+ * the owner's request of 19 Nov 2026. Clean shows its charging view only while the scooter really charges, so the
+ * developer simulator's GT3 Max (24182, the fixture scooters' model, with charge alerts) charges first and the fixture's
+ * readings take over from there. The default mode then runs every case but those that need Widgets (edit mode, the
+ * takeover's reveal), another scooter or a rebuild (interruptions, per scooter, the limit model, rotation): the bar
+ * validation's Clean mode covers the limit model and the choice shared between the two Home styles.
  */
 public final class ChargeTimeTileValidation extends Instrumentation {
     private static final int LIMIT = 0, FULL = 1;
@@ -62,6 +69,8 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     private Bundle args;
     private boolean admitted;
     private String a, b, ut5, label = "";
+    /** Clean Home's charging view (home=clean) rather than Widgets' takeover. */
+    private boolean clean;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     private final ChargeAlertPolicy.Settings alert70 = new ChargeAlertPolicy.Settings(true, 70, false, 20, true, false);
@@ -74,6 +83,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
             if (mode.equals("restart")) { admitEmulator(); restartCheck(); }
             else {
                 admit(); admitted = true;
+                clean = "clean".equals(args.getString("home", "widgets"));
                 seed(args.getString("theme", "dark"), args.getString("text_scale", "1"));
                 main(() -> {
                     ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
@@ -94,16 +104,16 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                     if (wanted("diagonal")) verifyDiagonalSwipe();
                     if (wanted("scroll")) verifyScrollFromTile();
                     if (wanted("longpress")) verifyLongPress();
-                    if (wanted("edit")) verifyEditMode();
-                    if (wanted("reset")) verifyResetMidTouch();
+                    if (!clean && wanted("edit")) verifyEditMode();
+                    if (!clean && wanted("reset")) verifyResetMidTouch();
                     if (wanted("label")) verifyHundredLabel();
-                    if (wanted("interruptions")) verifyInterruptions();
-                    if (wanted("scooters")) verifyPerScooterAndRestart();
-                    if (wanted("limit")) verifyLimitScooter();
+                    if (!clean && wanted("interruptions")) verifyInterruptions();
+                    if (!clean && wanted("scooters")) verifyPerScooterAndRestart();
+                    if (!clean && wanted("limit")) verifyLimitScooter();
                     if (wanted("motion")) verifyReducedMotion();
                     if (wanted("accessibility")) verifyAccessibility();
                     if (wanted("frames")) verifyFrames();
-                    if (wanted("rotation")) verifyRotation();
+                    if (!clean && wanted("rotation")) verifyRotation();
                 }
                 assertNoRadio();
             }
@@ -467,10 +477,13 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         main(() -> { uncapped[0] = string("dashboard_charge_time_uncapped"); uncapped[1] = string("dashboard_charge_time_uncapped_short"); uncapped[2] = string("dashboard_charge_time_uncapped_compact"); });
         hero(50, null, 2);
         assertHundred("alert", uncapped);
-        choose(ut5);
-        hero(50, 80d, 2);
-        assertHundred("limit 80%", uncapped);
-        choose(a);
+        // Clean stays on the simulator's alert model (another scooter rebuilds Home); the bar validation's Clean mode has the limit.
+        if (!clean) {
+            choose(ut5);
+            hero(50, 80d, 2);
+            assertHundred("limit 80%", uncapped);
+            choose(a);
+        }
         main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
         hero(50, null, 2);
         main(() -> require(!two() && uncapped[0].equals(String.valueOf(caption(FULL).getContentDescription())),
@@ -762,7 +775,12 @@ public final class ChargeTimeTileValidation extends Instrumentation {
                 TextFit.collectNarrowTextProblems(t, "charge time tile", problems);
                 // The state pill keeps main's 11 sp chip style (tagChip), unchanged by the tile; everything else has a 12 sp floor.
                 boolean pill = t == tags(LIMIT) || t == tags(FULL);
-                if (t.length() > 0 && t.getTextSize() / sp < (pill ? 11 : 12) - .01f) problems.add("tiny text: " + t.getText() + " " + t.getTextSize() / sp);
+                float least = pill ? 11 : 12;
+                // Clean's tile labels take a little smaller text before they wrap, down to their set share of the 12 sp caption
+                // (DashboardCaption.shrinkToOneLine, ChargingFit.TILE_LABEL_MIN_SCALE: the Layout Plan's rule for Clean's tiles).
+                if (clean && t.getClass().getSimpleName().equals("DashboardCaption"))
+                    least = (Float) field(t, "fullPx") * (Float) field(t, "oneLineFloor") / sp;
+                if (t.length() > 0 && t.getTextSize() / sp < least - .01f) problems.add("tiny text: " + t.getText() + " " + t.getTextSize() / sp);
             }
             require(problems.isEmpty(), label + " " + what + ": " + problems);
             if (!two()) return;
@@ -813,8 +831,10 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     // ---- Fixtures -------------------------------------------------------------------------------------------
 
     private void seed(String theme, String text) {
-        require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
-                .putString("theme", theme).putFloat("text_scale", Float.parseFloat(text)).commit(), "Could not seed preferences");
+        SharedPreferences.Editor edit = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
+                .putString("theme", theme).putFloat("text_scale", Float.parseFloat(text));
+        if (clean) edit.putBoolean("developer_options", true).putString("home_style", "clean").putBoolean("home_style_chosen", true).putBoolean("home_whats_new_shown", true);
+        require(edit.commit(), "Could not seed preferences");
     }
     private void setLocale(String tag) throws Exception {
         if (Build.VERSION.SDK_INT < 33) { require(tag.isEmpty(), "Languages need API 33"); return; }
@@ -828,7 +848,32 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         await(() -> activity.service() != null && root().getWidth() > 0, "App did not launch"); service = activity.service();
         // The first screens settle (service bound, scooter state read) before the fixture takes over.
         SystemClock.sleep(2500); settle();
+        if (clean) {
+            // Clean's top area shows the charging view only for a real charge: the simulator's GT3 Max charges, Plug in
+            // plays and ends, then the fixture's readings take over (freeze).
+            main(() -> {
+                if (!service.simulating()) require(service.setSimulation(true), "Simulation did not start");
+                service.ble.setSimulationModel("24182"); service.ble.setSimulationCharging(true); service.ble.tickSimulation();
+            });
+            long end = SystemClock.uptimeMillis() + 15000;
+            boolean[] up = new boolean[1];
+            while (SystemClock.uptimeMillis() < end && !up[0]) {
+                main(() -> invoke(activity, "redraw"));
+                settle(); SystemClock.sleep(300);
+                main(() -> { View h = hero(); Object home = cleanHome();
+                    up[0] = h != null && h.isShown() && h.getAlpha() == 1f && home != null && !Boolean.TRUE.equals(invoke(field(home, "transition"), "changing")); });
+            }
+            require(up[0], "Clean's charging view did not show on the simulator");
+            SystemClock.sleep(600); settle();
+        }
         freeze();
+    }
+    /** Clean Home (one pane, or the scooter pane's of two). */
+    private Object cleanHome() {
+        Object screen = screen();
+        if (screen != null && screen.getClass().getSimpleName().equals("CleanHomeScreen")) return screen;
+        Object pane = field(activity, "homeScreen");
+        return pane != null && pane.getClass().getSimpleName().equals("CleanHomeScreen") ? pane : null;
     }
     private void relaunch() throws Exception {
         MainActivity old = activity;
@@ -1038,7 +1083,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     // ---- Tile state -------------------------------------------------------------------------------------------
 
     private Object screen() { return field(activity, "screen"); }
-    private View hero() { return (View) field(screen(), "chargingHero"); }
+    private View hero() { return clean ? root().findViewWithTag("clean-home-charging") : (View) field(screen(), "chargingHero"); }
     private View tile() { return (View) field(hero(), "timeTile"); }
     private View power() { return (View) ((TextView) field(hero(), "power")).getParent(); }
     private View face(int r) { return ((View[]) field(tile(), "faces"))[r]; }
