@@ -12,7 +12,8 @@ public final class ChargeAutoRecordPolicyTest {
     static final long WALL = 1_800_000_000_000L, MONO = 1_000_000L, MINUTE = 60_000L;
     static final ChargeSessionStore.Charger STOCK = ChargeSessionStore.Charger.STOCK, FAST = ChargeSessionStore.Charger.HIGH_SPEED;
     static final ChargeSessionStore.LabelSource CHOSEN = ChargeSessionStore.LabelSource.CHOSEN,
-            DETECTED = ChargeSessionStore.LabelSource.DETECTED, GUESS = ChargeSessionStore.LabelSource.GUESS;
+            DETECTED = ChargeSessionStore.LabelSource.DETECTED, GUESS = ChargeSessionStore.LabelSource.GUESS,
+            SETTING = ChargeSessionStore.LabelSource.SETTING;
 
     static void check(boolean value, String message) { checks++; if (!value) throw new AssertionError(message); }
 
@@ -20,6 +21,7 @@ public final class ChargeAutoRecordPolicyTest {
         start();
         label();
         relabel();
+        labelMatrix();
         speed();
         liveReadings();
         chargeOff();
@@ -46,6 +48,10 @@ public final class ChargeAutoRecordPolicyTest {
         choiceAllowed();
         storeChoiceRelabels();
         storeChoiceCutShort();
+        storeSettingAudit();
+        storeAuditUnderChoice();
+        storeLearnsFinalLabel();
+        storeOldFiles();
         System.out.println("ChargeAutoRecordPolicyTest: " + checks + " checks");
     }
 
@@ -64,9 +70,15 @@ public final class ChargeAutoRecordPolicyTest {
 
     static void label() {
         ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(FAST, STOCK, 5, 0);
-        check(l.charger == FAST && l.source == CHOSEN, "The chosen charger wins over detection and history");
+        check(l.charger == STOCK && l.source == DETECTED && l.setting == FAST, "Settled detection wins over the charger setting; the setting is kept for audit");
+        l = ChargeAutoRecordPolicy.label(STOCK, STOCK, 0, 5);
+        check(l.charger == STOCK && l.source == DETECTED && l.setting == STOCK, "Detection agreeing with the setting: detected");
         l = ChargeAutoRecordPolicy.label(null, FAST, 5, 0);
-        check(l.charger == FAST && l.source == DETECTED, "Detection for this charge comes next");
+        check(l.charger == FAST && l.source == DETECTED && l.setting == null, "Detection with no setting (Automatic)");
+        l = ChargeAutoRecordPolicy.label(FAST, null, 5, 0);
+        check(l.charger == FAST && l.source == SETTING && l.setting == FAST, "No detection yet: the setting's label, marked as the setting's, over history");
+        l = ChargeAutoRecordPolicy.label(STOCK, null, 0, 5);
+        check(l.charger == STOCK && l.source == SETTING, "The setting's label over a guess from history");
         l = ChargeAutoRecordPolicy.label(null, null, 1, 3);
         check(l.charger == FAST && l.source == GUESS, "Guess: the family with more qualified recordings");
         l = ChargeAutoRecordPolicy.label(null, null, 3, 1);
@@ -86,6 +98,40 @@ public final class ChargeAutoRecordPolicyTest {
         check(ChargeAutoRecordPolicy.relabel(DETECTED, STOCK, STOCK) == null, "Detected and still the same family: nothing to change");
         check(ChargeAutoRecordPolicy.relabel(GUESS, FAST, null) == null, "No detection: keep the first label");
         check(ChargeAutoRecordPolicy.relabel(null, STOCK, FAST) == null, "A manual recording is never relabelled");
+        check(ChargeAutoRecordPolicy.relabel(SETTING, STOCK, FAST) == FAST, "The setting's label follows detection to the other family");
+        check(ChargeAutoRecordPolicy.relabel(SETTING, STOCK, STOCK) == STOCK, "The setting's label that detection confirms becomes detected (same family)");
+        check(ChargeAutoRecordPolicy.relabel(SETTING, FAST, null) == null, "No detection: the setting's label stays");
+    }
+
+    /**
+     * Every combination an automatic recording meets, through the service's steps (label at the start, relabel on each
+     * look): setting chosen or Automatic, detection settled at the start or not, settling later on the same or the other
+     * family or never, and the owner choosing during the recording.
+     */
+    static void labelMatrix() {
+        ChargeSessionStore.Charger[] families = {null, STOCK, FAST};
+        for (ChargeSessionStore.Charger setting : families) for (ChargeSessionStore.Charger atStart : families) for (ChargeSessionStore.Charger later : families) {
+            ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(setting, atStart, 0, 0);
+            ChargeSessionStore.Charger charger = l.charger; ChargeSessionStore.LabelSource source = l.source;
+            check(l.setting == setting, "The setting at the start is kept whatever the label");
+            // Detection stays settled on its family until a sustained contrary run forgets it, then may settle on another.
+            for (ChargeSessionStore.Charger detected : new ChargeSessionStore.Charger[]{atStart, null, later, later}) {
+                ChargeSessionStore.Charger to = ChargeAutoRecordPolicy.relabel(source, charger, detected);
+                if (to != null) { charger = to; source = DETECTED; }
+            }
+            ChargeSessionStore.Charger lastSettled = later != null ? later : atStart;
+            String what = "setting " + setting + ", detected at the start " + atStart + ", later " + later + ": " + charger + " " + source;
+            if (lastSettled != null) check(charger == lastSettled && source == DETECTED, "The last settled detection labels it, family and source: " + what);
+            else if (setting != null) check(charger == setting && source == SETTING, "Never settled: the setting's label, marked as the setting's: " + what);
+            else check(charger == STOCK && source == GUESS, "Never settled, no setting: a guess: " + what);
+            check(ChargeAutoRecordPolicy.countsAsCharger(source) == (source != GUESS), "Only a guess is not the charger in effect: " + what);
+            // The owner's choice during the recording (only while the label is a guess or detected) wins from then on.
+            if (ChargeAutoRecordPolicy.choiceAllowed(true, source)) {
+                ChargeSessionStore.Charger chosen = charger == STOCK ? FAST : STOCK;
+                check(ChargeAutoRecordPolicy.relabel(CHOSEN, chosen, charger) == null && ChargeAutoRecordPolicy.relabel(CHOSEN, chosen, chosen) == null,
+                        "Detection never replaces the owner's choice: " + what);
+            } else check(source == SETTING, "Only the setting's label is locked among automatic ones here: " + what);
+        }
     }
 
     static void speed() {
@@ -335,9 +381,11 @@ public final class ChargeAutoRecordPolicyTest {
     static void labelInEffect() {
         check(ChargeAutoRecordPolicy.countsAsCharger(null), "A manual recording's charger is in effect, as before");
         check(ChargeAutoRecordPolicy.countsAsCharger(CHOSEN) && ChargeAutoRecordPolicy.countsAsCharger(DETECTED), "Chosen and detected labels count");
+        check(ChargeAutoRecordPolicy.countsAsCharger(SETTING), "The setting's label is the charger in effect, as the setting is");
         check(!ChargeAutoRecordPolicy.countsAsCharger(GUESS), "A guess does not stand in for the choice or detection");
         String plain = "00000000-0000-4000-8000-000000000000", guess = "00000000-0000-c000-8000-000000000000", detected = "00000000-0000-b000-8000-000000000000";
         check(ChargeSessionStore.learnsCurve(plain) && ChargeSessionStore.learnsCurve(detected) && !ChargeSessionStore.learnsCurve(guess + ".csv"), "The store's learning rule agrees");
+        check(ChargeSessionStore.learnsCurve("00000000-0000-d000-1000-000000000000.csv"), "The setting's label learns");
     }
 
     static int automaticCount(File folder) { int n = 0; for (String name : names(folder)) if (ChargeSessionStore.labelSource(name) != null) n++; return n; }
@@ -490,6 +538,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(!ChargeAutoRecordPolicy.choiceAllowed(true, CHOSEN), "An automatic recording with the chosen charger: locked");
         check(ChargeAutoRecordPolicy.choiceAllowed(true, GUESS), "An automatic recording with a guess: open");
         check(ChargeAutoRecordPolicy.choiceAllowed(true, DETECTED), "An automatic recording with a detected label: open (the owner overrides detection)");
+        check(!ChargeAutoRecordPolicy.choiceAllowed(true, SETTING), "An automatic recording with the setting's label: locked, as the chosen setting was before (detection may still replace it)");
     }
 
     /** The owner's choice relabels a guess or a detected label CHOSEN, it learns that charger, and detection never changes it again. */
@@ -524,6 +573,140 @@ public final class ChargeAutoRecordPolicyTest {
         check(names(f).size() == 1 && list.size() == 1, "One recording: " + names(f));
         check(list.get(0).charger == FAST && list.get(0).labelSource == GUESS, "The owner's charger under the guess's name: " + list.get(0).charger + " " + list.get(0).labelSource);
         check(!ChargeSessionStore.learnsCurve(list.get(0).id) && recovered.snapshot().curves.get(ChargeSessionStore.key("one", FAST)) == null, "A recording still named a guess teaches nothing");
+    }
+
+    /** The setting's provisional label: the id, the audit, detection replacing it with either family, export and a restart. */
+    static void storeSettingAudit() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        check(store.startAutomatic("one", STOCK, SETTING, STOCK, WALL, MONO), "Starts with the setting's label");
+        String id = id(f);
+        check(id.charAt(14) == 'd' && store.labelSource() == SETTING && store.charger() == STOCK, "The id marks the setting's label: " + id);
+        check(id.charAt(19) == '1' && id.charAt(20) == '0', "The audit: setting stock, nothing detected: " + id);
+        ChargeSessionStore.LabelAudit audit = store.labelAudit();
+        check(audit != null && audit.setting == STOCK && audit.detected == null, "The audit reads back");
+        check(names(f).get(0).matches("[a-f0-9-]{36}\\.(csv|active)")
+                && names(f).get(0).matches("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\\.(csv|active)"),
+                "Older Volt's store and backup patterns still accept the name");
+        charge(store, 5, 3);
+        // The service's look: note detection, then relabel by the policy.
+        store.noteDetected(FAST);
+        ChargeSessionStore.Charger to = ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), FAST);
+        check(to == FAST && store.relabel(to, DETECTED), "Detection on the fast charger replaces the setting's stock label");
+        String after = id(f);
+        check(store.labelSource() == DETECTED && store.charger() == FAST && after.charAt(14) == 'b' && after.charAt(19) == '1' && after.charAt(20) == '2',
+                "Now detected high-speed, the setting at the start still stock: " + after);
+        check(after.substring(0, 14).equals(id.substring(0, 14)) && after.substring(15, 19).equals(id.substring(15, 19)) && after.substring(21).equals(id.substring(21)),
+                "Only the marker and audit digits changed");
+        check(names(f).size() == 1 && names(f).get(0).endsWith(".active"), "No temporary file is left");
+        charge(store, 10, 6);
+        check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "Kept");
+        ChargeSessionStore.HistorySession saved = store.recordings("one").get(0);
+        check(saved.charger == FAST && saved.labelSource == DETECTED && saved.labelAudit != null && saved.labelAudit.setting == STOCK && saved.labelAudit.detected == FAST,
+                "Saved: detected high-speed, with the stock setting audited");
+        // Never settles: the setting's label stays, marked as the setting's; Automatic is audited as such.
+        store.startAutomatic("one", FAST, SETTING, FAST, WALL + 1000 * MINUTE, MONO); charge(store, 10, 5);
+        check(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), null) == null, "No detection: nothing to relabel");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        store.startAutomatic("one", STOCK, GUESS, null, WALL + 2000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        store.startAutomatic("one", STOCK, DETECTED, null, WALL + 3000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        List<ChargeSessionStore.HistorySession> list = store.recordings("one");
+        ChargeSessionStore.HistorySession detectedAtStart = list.get(0), guess = list.get(1), kept = list.get(2);
+        check(kept.labelSource == SETTING && kept.charger == FAST && kept.labelAudit.setting == FAST && kept.labelAudit.detected == null, "The setting's label, saved as the setting's");
+        check(guess.labelSource == GUESS && guess.labelAudit.setting == null && guess.labelAudit.detected == null, "A guess audits Automatic and no detection");
+        check(detectedAtStart.labelSource == DETECTED && detectedAtStart.labelAudit.detected == STOCK && detectedAtStart.labelAudit.setting == null, "Detected at the start: its family is audited");
+        StringWriter out = new StringWriter(); store.exportJson("one", out); String json = out.toString();
+        check(json.contains("\"label_source\":\"setting\",\"label_audit\":{\"charger_setting_at_start\":\"HIGH_SPEED\",\"detected_charger\":null}"), "Export: the setting's label and its audit: " + json.substring(0, Math.min(400, json.length())));
+        check(json.contains("\"label_source\":\"detected\",\"label_audit\":{\"charger_setting_at_start\":\"STOCK\",\"detected_charger\":\"HIGH_SPEED\"}"), "Export: detection over the setting, audited");
+        check(json.contains("\"label_source\":\"guess\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null}"), "Export: Automatic, nothing detected");
+        // A process death while the setting's label runs: recovered as the setting's.
+        store.startAutomatic("one", STOCK, SETTING, STOCK, WALL + 4000 * MINUTE, MONO); charge(store, 20, 10);
+        ChargeSessionStore again = store(f);
+        ChargeSessionStore.HistorySession recovered = again.recordings("one").get(0);
+        check(recovered.stop == ChargeSessionStore.Stop.INTERRUPTED && recovered.labelSource == SETTING && recovered.automatic && recovered.labelAudit.setting == STOCK,
+                "Recovered after a process death with its label and audit");
+    }
+
+    /** Under the owner's choice detection changes nothing but the audit; without an audit nothing is renamed. */
+    static void storeAuditUnderChoice() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        store.startAutomatic("one", STOCK, GUESS, null, WALL, MONO); charge(store, 10, 5);
+        check(store.relabel(FAST, CHOSEN) && store.labelSource() == CHOSEN, "The owner chose high-speed during the guess");
+        store.noteDetected(STOCK);
+        check(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), STOCK) == null, "Detection does not change the owner's choice");
+        String id = id(f);
+        check(store.charger() == FAST && store.labelSource() == CHOSEN && id.charAt(14) == 'a' && id.charAt(19) == '0' && id.charAt(20) == '1',
+                "The disagreement is audited: " + id);
+        store.noteDetected(STOCK); store.noteDetected(null);
+        check(id(f).equals(id), "The same family, or none, renames nothing");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        File g = folder(); ChargeSessionStore old = store(g);
+        old.startAutomatic("one", STOCK, GUESS, WALL, MONO);
+        String before = id(g);
+        old.noteDetected(FAST);
+        check(id(g).equals(before) && old.labelAudit() == null, "A recording started without the audit is never given one: " + before);
+        old.stop(ChargeSessionStore.Stop.STOPPED);
+        File h = folder(); ChargeSessionStore manual = store(h);
+        manual.start("one", STOCK, WALL, MONO); String plain = id(h); manual.noteDetected(FAST);
+        check(id(h).equals(plain) && manual.labelAudit() == null && ChargeSessionStore.labelAudit(plain) == null, "A manual recording carries no audit and gets none");
+        manual.stop(ChargeSessionStore.Stop.STOPPED);
+    }
+
+    /** Learning uses the label a recording ends with: detection over the setting counts under the detected family. */
+    static void storeLearnsFinalLabel() throws Exception {
+        File f = folder(); ChargeSessionStore store = store(f);
+        long at = WALL;
+        // Setting stock, detection fast (relabelled), twice.
+        for (int i = 0; i < 2; i++) {
+            store.startAutomatic("one", STOCK, SETTING, STOCK, at += 1000 * MINUTE, MONO); charge(store, 20, 10);
+            store.relabel(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), FAST), DETECTED); charge(store, 40, 20);
+            store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        }
+        // Setting stock, detection never settles: stays the setting's stock label.
+        store.startAutomatic("one", STOCK, SETTING, STOCK, at += 1000 * MINUTE, MONO); charge(store, 60, 30); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        // Setting fast, detection stock (relabelled).
+        store.startAutomatic("one", FAST, SETTING, FAST, at += 1000 * MINUTE, MONO); charge(store, 20, 10);
+        store.relabel(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), STOCK), DETECTED); charge(store, 40, 20);
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        // Automatic, a guess that never settles: teaches nothing.
+        store.startAutomatic("one", FAST, GUESS, null, at += 1000 * MINUTE, MONO); charge(store, 60, 30); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        ChargeSessionStore.Snapshot snapshot = store.snapshot();
+        ChargeSessionStore.Curve fast = snapshot.curves.get(ChargeSessionStore.key("one", FAST)), stock = snapshot.curves.get(ChargeSessionStore.key("one", STOCK));
+        check(snapshot.sessions == 5, "All five are saved recordings");
+        check(fast != null && fast.qualifiedSessions == 2, "The two detected high-speed charges count under high-speed, not the stock setting: " + (fast == null ? 0 : fast.qualifiedSessions));
+        check(stock != null && stock.qualifiedSessions == 2, "Stock: the setting's never-settled one and the one detected over a fast setting: " + (stock == null ? 0 : stock.qualifiedSessions));
+        StringWriter out = new StringWriter(); store.exportJson("one", out); String json = out.toString();
+        int qualified = json.split("\"qualified_for_learning\":true", -1).length - 1;
+        check(qualified == 4 && json.contains("\"charger\":\"HIGH_SPEED\",\"started_automatically\":true,\"label_source\":\"detected\""), "Export agrees: four qualify, under their final labels");
+    }
+
+    /** Files saved before this change: an automatic id with no audit, and a manual one, read and export as before. */
+    static void storeOldFiles() throws Exception {
+        File f = folder();
+        String journal = "charge-v2,one,HIGH_SPEED," + WALL + "," + MONO + "\n";
+        StringBuilder lines = new StringBuilder(journal);
+        for (int i = 0; i <= 360; i++) {
+            long mono = MONO + i * 10_000L; double soc = 50 + Math.floor(30.0 * i / 360), volts = 52, amps = -2;
+            lines.append("s,").append(WALL + i * 10_000L).append(',').append(mono).append(',').append(soc).append(',').append(volts).append(',').append(amps).append(',').append(volts * amps)
+                    .append(",23.0,").append(i == 0 ? 1 : 0).append(",test-v1,,,,,,0\n");
+        }
+        lines.append("end,CHARGING_ENDED\n");
+        String chosenOld = "11111111-1111-a111-9111-111111111111", manualOld = "33333333-3333-4333-b333-333333333333";
+        Files.write(new File(f, chosenOld + ".csv").toPath(), lines.toString().getBytes(StandardCharsets.UTF_8));
+        Files.write(new File(f, manualOld + ".csv").toPath(), lines.toString().replace("HIGH_SPEED", "STOCK").getBytes(StandardCharsets.UTF_8));
+        ChargeSessionStore store = store(f);
+        List<ChargeSessionStore.HistorySession> list = store.recordings("one");
+        check(list.size() == 2, "Both old files read: " + names(f));
+        for (ChargeSessionStore.HistorySession h : list) {
+            if (h.id.equals(chosenOld)) check(h.automatic && h.labelSource == CHOSEN && h.labelAudit == null && h.charger == FAST, "An old automatic 'chosen' file reads as before, with no audit");
+            else check(!h.automatic && h.labelSource == null && h.labelAudit == null && h.charger == STOCK, "An old manual file reads as before");
+        }
+        check(ChargeSessionStore.labelAudit("11111111-1111-a111-2111-111111111111") != null && ChargeSessionStore.labelAudit("11111111-1111-a111-3111-111111111111") == null
+                && ChargeSessionStore.labelAudit("11111111-1111-a111-1311-111111111111") == null && ChargeSessionStore.labelAudit("short") == null, "Only 0-2 digits are an audit");
+        ChargeSessionStore.Snapshot snapshot = store.snapshot();
+        check(snapshot.curves.get(ChargeSessionStore.key("one", FAST)) != null && snapshot.curves.get(ChargeSessionStore.key("one", STOCK)) != null, "Both still teach their curves");
+        StringWriter out = new StringWriter(); store.exportJson("one", out); String json = out.toString();
+        check(json.contains("\"label_source\":\"chosen\",\"label_audit\":null") && json.contains("\"label_source\":null,\"label_audit\":null"), "Old files export a null audit");
+        check(new File(f, chosenOld + ".csv").exists() && new File(f, manualOld + ".csv").exists(), "Nothing renamed or rewritten");
     }
 
     /** Terra (8be6104f) #4: any unfinished test that may still write back holds an automatic start. */

@@ -26,8 +26,27 @@ public final class ChargeSessionStore {
      * none. It lives in the recording's id, not in the journal: a UUID's version digit (index 14) is always 4, and an
      * automatic recording's id carries a, b or c there instead. The name still matches every reader's pattern, so an
      * older Volt reads, prunes, backs up and restores it unchanged, and old files need nothing new.
+     *
+     * CHOSEN ('a'): the owner chose the charger during this recording (Charger for estimates, while the label was a guess
+     * or detected); detection never changes it. Recordings saved before SETTING existed carry 'a' for the charger setting
+     * at their start too. DETECTED ('b'): charger detection settled on it. GUESS ('c'): no setting and no detection; it
+     * teaches no curve. SETTING ('d', Volt 2.0.1 and later): the charger setting at the start, provisional: detection
+     * replaces it when it settles. An older Volt that does not know 'd' reads such a file as a manual recording (it still
+     * reads, lists, learns from and restores it; it only stops counting it as automatic).
      */
-    public enum LabelSource { CHOSEN, DETECTED, GUESS }
+    public enum LabelSource { CHOSEN, DETECTED, GUESS, SETTING }
+    /**
+     * What an automatic recording's id also records about its label (Volt 2.0.1 and later), for audit: the charger setting
+     * when it started (null: Automatic) and the family charger detection last settled on during it (null: never). Kept in
+     * the id beside the source, because a journal line or header field an older Volt does not know makes the whole file
+     * unreadable to it. The UUID's variant digit (index 19) is always 8, 9, a or b; an automatic recording that carries the
+     * audit has 0, 1 or 2 there (setting: none, STOCK, HIGH_SPEED) and the next digit (index 20) 0, 1 or 2 (detection: none,
+     * STOCK, HIGH_SPEED). Any other id has none ({@link #labelAudit} null).
+     */
+    public static final class LabelAudit {
+        public final Charger setting,detected;
+        LabelAudit(Charger setting,Charger detected){this.setting=setting;this.detected=detected;}
+    }
     /** Which automatic recordings are kept and which may make room (ChargeAutoRecordPolicy). Manual ones never ask. */
     public interface AutomaticRules {
         /** ranMs: start to last saved sample; gainedPoints: battery percent from first to last saved sample. */
@@ -71,8 +90,10 @@ public final class ChargeSessionStore {
         public final long chargerPausedMs;public final int chargerPauses;
         /** Null for a recording started by hand. */
         public final LabelSource labelSource;public final boolean automatic;
+        /** Null for a recording started by hand or an automatic one saved before the audit existed. */
+        public final LabelAudit labelAudit;
         private HistorySession(String id,Session session){
-            this.id=id;labelSource=labelSource(id);automatic=labelSource!=null;profile=session.profile;charger=session.charger;stop=session.stop;startedWall=session.startedWall;startedMono=session.startedMono;
+            this.id=id;labelSource=labelSource(id);labelAudit=labelAudit(id);automatic=labelSource!=null;profile=session.profile;charger=session.charger;stop=session.stop;startedWall=session.startedWall;startedMono=session.startedMono;
             List<HistoryPoint> copy=new ArrayList<>();for(Point point:session.points)copy.add(new HistoryPoint(point));points=Collections.unmodifiableList(copy);
             observedCompleteMono=session.observedCompletion();observedCompleteWall=observedCompleteMono==null?null:clockAt(observedCompleteMono);
             long last=session.points.isEmpty()?startedMono:session.points.get(session.points.size()-1).mono;
@@ -253,10 +274,22 @@ public final class ChargeSessionStore {
     /** Null for a manual recording's id or file name. */
     public static LabelSource labelSource(String id){
         if(id==null||id.length()<36||id.charAt(8)!='-'||id.charAt(13)!='-')return null;
-        switch(id.charAt(14)){case 'a':return LabelSource.CHOSEN;case 'b':return LabelSource.DETECTED;case 'c':return LabelSource.GUESS;default:return null;}
+        switch(id.charAt(14)){case 'a':return LabelSource.CHOSEN;case 'b':return LabelSource.DETECTED;case 'c':return LabelSource.GUESS;case 'd':return LabelSource.SETTING;default:return null;}
     }
+    /** Null for a manual recording, an automatic one saved before the audit existed, or a malformed id. */
+    public static LabelAudit labelAudit(String id){
+        if(labelSource(id)==null||id.length()<36||id.charAt(18)!='-'||auditDigit(id.charAt(19))<0||auditDigit(id.charAt(20))<0)return null;
+        return new LabelAudit(auditCharger(id.charAt(19)),auditCharger(id.charAt(20)));
+    }
+    private static int auditDigit(char digit){return digit>='0'&&digit<='2'?digit-'0':-1;}
+    private static Charger auditCharger(char digit){return digit=='1'?Charger.STOCK:digit=='2'?Charger.HIGH_SPEED:null;}
+    private static char auditChar(Charger charger){return charger==null?'0':(char)('1'+charger.ordinal());}
     private static String automaticId(String id,LabelSource source){
         char[] chars=id.substring(0,36).toCharArray();chars[14]=(char)('a'+source.ordinal());return new String(chars);
+    }
+    /** The id with the audit's setting and detection digits. */
+    private static String auditId(String id,Charger setting,Charger detected){
+        char[] chars=id.substring(0,36).toCharArray();chars[19]=auditChar(setting);chars[20]=auditChar(detected);return new String(chars);
     }
     public synchronized boolean active(){return active!=null;}
     public synchronized String profile(){return profile;}
@@ -268,7 +301,7 @@ public final class ChargeSessionStore {
     public synchronized LabelSource labelSource(){return active==null?null:labelSource;}
     public synchronized boolean automatic(){return active!=null&&labelSource!=null;}
     public synchronized void start(String profile,Charger charger,long wall,long mono) throws IOException {
-        begin(profile,charger,null,wall,mono);
+        begin(profile,charger,null,false,null,wall,mono);
     }
     /**
      * An automatic recording. It never deletes a manual one, and nothing saved is deleted for it until it is kept: at
@@ -278,9 +311,17 @@ public final class ChargeSessionStore {
      */
     public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
-        return begin(profile,charger,source,wall,mono);
+        return begin(profile,charger,source,false,null,wall,mono);
     }
-    private boolean begin(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
+    /**
+     * An automatic recording whose id also records, for audit ({@link LabelAudit}), the charger setting at its start
+     * (null: Automatic); a DETECTED start also records detection's family, its charger.
+     */
+    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,long wall,long mono) throws IOException {
+        if(source==null)throw new IllegalArgumentException();
+        return begin(profile,charger,source,true,setting,wall,mono);
+    }
+    private boolean begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
         String id=UUID.randomUUID().toString();
@@ -291,6 +332,7 @@ public final class ChargeSessionStore {
             for(File file:entries)if(labelSource(file.getName())!=null)automatic++;
             if(rules.toRemove(entries.size(),automatic,MAX_SESSIONS)<0)return false;
             id=automaticId(id,source);
+            if(audit)id=auditId(id,setting,source==LabelSource.DETECTED?charger:null);
         }
         File file=new File(directory,id+".active");
         append(file,"charge-v2,"+profile+","+charger.name()+","+wall+","+mono+"\n");
@@ -317,10 +359,27 @@ public final class ChargeSessionStore {
             if(!temporary.renameTo(active)){temporary.delete();return false;}
             charger=to;
         }
-        File renamed=new File(directory,automaticId(active.getName(),source)+".active");
+        String id=automaticId(active.getName(),source);
+        LabelAudit audit=labelAudit(id);
+        if(audit!=null&&source==LabelSource.DETECTED)id=auditId(id,audit.setting,to);
+        File renamed=new File(directory,id+".active");
         if(!renamed.equals(active)&&(renamed.exists()||!active.renameTo(renamed)))return true;
         active=renamed;labelSource=source;return true;
     }
+    /**
+     * Records in a running automatic recording's id (its {@link LabelAudit}) the family charger detection has settled on,
+     * whatever its label: under a label the owner chose, detection changes nothing else. A recording without the audit
+     * is left alone. A failed rename keeps the old note; nothing else depends on it.
+     */
+    public synchronized void noteDetected(Charger detected){
+        if(active==null||labelSource==null||detected==null)return;
+        LabelAudit audit=labelAudit(active.getName());
+        if(audit==null||audit.detected==detected)return;
+        File renamed=new File(directory,auditId(active.getName(),audit.setting,detected)+".active");
+        if(!renamed.exists()&&active.renameTo(renamed))active=renamed;
+    }
+    /** The running automatic recording's audit, or null (none running, manual, or started without it). */
+    public synchronized LabelAudit labelAudit(){return active==null?null:labelAudit(active.getName());}
     /** Returns true only for a newly committed, fresh paired sample. Rejected samples break continuity. */
     public synchronized boolean sample(Frame frame) throws IOException {
         return sample(frame,ChargingEstimate.recordingSnapshot(null));
@@ -533,7 +592,7 @@ public final class ChargeSessionStore {
             LabelSource source=labelSource(file.getName());
             out.write("{\"id\":\""+file.getName().replace(".csv","")+"\",\"profile_id\":\""+session.profile
                     +"\",\"charger\":\""+session.charger.name()+"\",\"started_automatically\":"+(source!=null)
-                    +",\"label_source\":"+(source==null?"null":"\""+source.name().toLowerCase(Locale.ROOT)+"\"")+",\"started_wall_ms\":"+session.startedWall
+                    +",\"label_source\":"+(source==null?"null":"\""+source.name().toLowerCase(Locale.ROOT)+"\"")+",\"label_audit\":"+auditJson(labelAudit(file.getName()))+",\"started_wall_ms\":"+session.startedWall
                     +",\"started_elapsed_ms\":"+session.startedMono+",\"stop_reason\":"+(session.stop==null?"null":"\""+session.stop.name()+"\"")
                     +",\"qualified_for_learning\":"+(session.evidence()!=null&&learnsCurve(file.getName()))+",\"observed_complete_elapsed_ms\":"+session.observedCompletion()+",\"schedule_pauses\":[");
             writePauses(out,session,0);
@@ -553,10 +612,17 @@ public final class ChargeSessionStore {
         }
         out.write("]}");out.flush();return count;
     }
+    /** Additive field: an automatic recording's charger setting at its start and detection's settled family, or null. */
+    private static String auditJson(LabelAudit audit){
+        if(audit==null)return "null";
+        return "{\"charger_setting_at_start\":\""+(audit.setting==null?"automatic":audit.setting.name())
+                +"\",\"detected_charger\":"+(audit.detected==null?"null":"\""+audit.detected.name()+"\"")+"}";
+    }
     public static String key(String profile,Charger charger){return profile+":"+charger.name();}
     /**
-     * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen
-     * or detected. A label that is still a guess when the recording ends labels the file and nothing else.
+     * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen,
+     * detected or the charger setting's. A label that is still a guess when the recording ends labels the file and nothing
+     * else. The curve it teaches is its final label (the header, which a relabel rewrites).
      */
     public static boolean learnsCurve(String id){return labelSource(id)!=LabelSource.GUESS;}
     private static String csv(Object value){return value==null?"":value.toString();}

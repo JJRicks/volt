@@ -443,8 +443,9 @@ public final class ScooterService extends Service {
     public enum ChargerBasis{RECORDING,MANUAL,DETECTED,UNKNOWN}
     /**
      * A recording's manually confirmed label is temporary and never changes the preference. An automatic recording's label
-     * is the charger in effect only when it was chosen or detected (ChargeAutoRecordPolicy.countsAsCharger): a guess
-     * labels the file, and estimates, Charge done by and the charging view keep waiting for the choice or for detection.
+     * is the charger in effect only when it was chosen, detected or the setting's (ChargeAutoRecordPolicy.countsAsCharger);
+     * detection that settles on the other family relabels a setting's label, so it is then in effect over the setting. A
+     * guess labels the file, and estimates, Charge done by and the charging view keep waiting for the choice or for detection.
      * The owner may choose during an automatic recording they did not label (chargerChoosable): the choice is saved as
      * the preference, as any choice, and relabels the recording CHOSEN, so it is the charger in effect from then on.
      */
@@ -512,20 +513,21 @@ public final class ScooterService extends Service {
             return M.serviceChargeAllowNotifications();
         return null;
     }
-    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null);}
+    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null);}
     /**
-     * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start. An
+     * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start; setting:
+     * the charger setting at an automatic start (null: Automatic), kept in its id for audit. An
      * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
      * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
      */
-    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source){
+    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source,ChargeSessionStore.Charger setting){
         if(isChargeRecording())return false;
         CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
             if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
-            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,wall,mono)){
+            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,setting,wall,mono)){
                 autoChargeNoRoom.add(activeProfileId());chargeStatus=M.serviceChargeAutoNoRoom();changed();return false;}
             chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
@@ -569,7 +571,7 @@ public final class ScooterService extends Service {
      * not: it acts whenever a connection exists and never keeps or opens one. Starts silently when the connected,
      * selected scooter reports charging and a manual start would be allowed; ends an automatic recording at once
      * when the scooter moves off, before auto-record rides looks in the same change; follows charger detection for a
-     * detected or guessed label. A fresh "not charging" reading ends the scooter's hold and latch.
+     * detected, guessed or charger-setting label (detection outranks the setting: ChargeAutoRecordPolicy.label, relabel). A fresh "not charging" reading ends the scooter's hold and latch.
      *
      * Out of sight it sees the battery through the reads #418 makes with every 15 s status poll; it asks for nothing
      * itself. The link's state (linked(), connected()) only says the connection is kept: every decision here rests on
@@ -602,8 +604,11 @@ public final class ScooterService extends Service {
                 // Ended by itself: no hold, and auto-record rides may start a ride in this same change. The work policy waits
                 // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
                 if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
-                ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detectedCharger());
-                // A guess that detection confirms becomes DETECTED too (same family: the store renames only).
+                ChargeSessionStore.Charger detected=detectedCharger();
+                // The audit in the recording's id notes detection's family whatever the label (under the owner's choice too).
+                chargeStore.noteDetected(detected);
+                ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detected);
+                // A guess or the setting's label that detection confirms becomes DETECTED too (same family: the store renames only).
                 if(relabel!=null)try{
                     boolean familyChanges=relabel!=chargeStore.charger();
                     if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){if(familyChanges)chargeReferenceGate.reset();updateNotification();}
@@ -620,7 +625,7 @@ public final class ScooterService extends Service {
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
                     qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
-            if(!startChargeRecording(label.charger,label.source)&&!isChargeRecording())autoChargeLatched.add(active.id);
+            if(!startChargeRecording(label.charger,label.source,label.setting)&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
     /**

@@ -1,11 +1,22 @@
 package com.jjricks.volt;
 
 /**
- * Session-local inference for the two observed UT5 MAX chargers. This is a prediction hint, not a
- * charger ID or a training label. Call only with fresh, paired electrical readings; the caller
- * owns freshness. A confident family is remembered for one profile's physical charge, across
- * reconnects and isolated unusable frames, except where a swap while disconnected is
- * indistinguishable. Nothing is persisted.
+ * Session-local inference for the two observed UT5 MAX chargers: a charger-family inference from
+ * battery-side power, not a decoded charger ID. Call only with fresh, paired electrical readings;
+ * the caller owns freshness. A confident family is remembered for one profile's physical charge,
+ * across reconnects and isolated unusable frames, except where a swap while disconnected is
+ * indistinguishable. Nothing is persisted here.
+ *
+ * It drives estimates under Auto, and it labels automatic charge recordings, outranking the charger
+ * setting there (ChargeAutoRecordPolicy.label and relabel), so its settled family becomes training
+ * data for that family's learned curve. That rests on its rules being bounded by what each charger
+ * can physically deliver, not on a likeness: fast evidence (over 150 W and at least 2.8 A) is
+ * beyond the stock charger's recorded maximum (about 121 W / 2.25 A), and stock evidence (65-135 W,
+ * 1.4-2.5 A, at most 85%) is far below the recorded fast charge there (about 210 W or more at 85%,
+ * 420-540 W in bulk below 72%), each sustained for three frames over four seconds, with a sustained
+ * contrary run forgetting the family. When it cannot tell (another model, a charge first seen near
+ * full, a reconnect where a swap is possible) it stays null and the recording keeps its setting's
+ * label or a guess; a label the owner chose during the recording is never replaced.
  */
 public final class ChargerDetection {
     // Battery polling is user-configurable up to ten seconds. A longer gap restarts an evidence
