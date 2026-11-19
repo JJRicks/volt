@@ -315,6 +315,15 @@ public final class HubText {
         return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
     }
 
+    // ===== Settings › Home style: the overview card's two readings (HomeReadings) =====
+
+    /** The Home style row's title and its sheet's title. */
+    public static Msg overviewReadings() { return M.homeOverviewReadings(); }
+    /** A slot's name: slot 0 is the first reading, 1 the second. */
+    public static Msg overviewReadingSlot(int slot) { return slot == 0 ? M.homeOverviewReadingFirst() : M.homeOverviewReadingSecond(); }
+    /** Screen-reader text of a slot's row: its name, then the reading in it. */
+    public static Msg overviewReadingSlotSpoken(CharSequence slot, CharSequence reading) { return M.homeOverviewReadingSlot(slot, reading); }
+
     // ===== Clean Home's Edit sheet and quick actions =====
 
     public static Msg editTitle() { return M.homeEditTitle(); }

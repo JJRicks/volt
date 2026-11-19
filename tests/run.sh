@@ -145,6 +145,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/LiveRangeEstimator.java" "$APP_DIR/src/
 # Maintenance reminders core: manual intervals, the forward-only odometer, due-ness and storage (maintenance plan, PR 1).
 for name in MaintenanceDistance MaintenancePolicy MaintenanceStore; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/MaintenanceDefaults.java" "$TEST_DIR/MaintenanceBackupTest.java")
+# Settings › Home style's overview readings: catalogue, defaults, each slot, fallback, diagnostics and the backup round trip.
+sources+=("$APP_DIR/src/com/jjricks/volt/HomeReadings.java" "$TEST_DIR/HomeReadingsTest.java")
 # Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
 # that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
 # ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
@@ -254,6 +256,7 @@ done
 # Maintenance reminders (MaintenanceStoreTest uses the compat suites' NaveeModels; the backup round trip uses the backup stores).
 for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done
 (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.MaintenanceBackupTest)
+(cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HomeReadingsTest)
 
 # From the repo root: ModelRegistryTest checks the bundled model photos.
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done

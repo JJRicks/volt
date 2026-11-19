@@ -46,6 +46,20 @@
     <string name="home_moment_ride" volt:screen="Home style settings" volt:purpose="switch">Show the last ride after riding</string>
     <string name="home_moment_ride_sub" volt:screen="Home style settings" volt:purpose="description">For about an hour after a recorded ride, until you close it.</string>
 
+    <!-- ===== Settings › Home style: the overview card's two small readings =====
+      Clean's battery card and the Widgets "Scooter overview" card show two small readings under the charge bar
+      (Odometer and Drive mode until the owner picks others). The row sits under Quick actions; its line under it
+      lists the two readings' names, and it opens a sheet with one row per reading, each opening the list of readings. -->
+    <!-- Row title and the sheet's title. "Overview" as in the Widgets card's name, Scooter overview. -->
+    <string name="home_overview_readings" volt:screen="Home style settings" volt:purpose="setting" volt:max="240dp@15sp">Overview readings</string>
+    <!-- Above the reading in the sheet's first row, and the title of its list of readings. On a narrow screen or with
+         large text the two readings stand one above the other, so the names say first and second, not left and right. -->
+    <string name="home_overview_reading_first" volt:screen="Home style settings, Overview readings sheet" volt:purpose="label" volt:max="240dp@13sp">First reading</string>
+    <string name="home_overview_reading_second" volt:screen="Home style settings, Overview readings sheet" volt:purpose="label" volt:max="240dp@13sp">Second reading</string>
+    <!-- Screen-reader text of a row in the sheet. %1$s is the row's name ("First reading"), %2$s the reading in it
+         ("Odometer"). Tapping lets the owner change it. -->
+    <string name="home_overview_reading_slot" volt:screen="Home style settings, Overview readings sheet" volt:purpose="accessibility">%1$s: %2$s. Change</string>
+
     <!-- ===== Clean Home: the charging view ===== -->
     <!-- Muted line above the big percent while charging. %1$s is the charge limit as a percent ("90%"). Without a limit Home shows "Charging" instead. -->
     <string name="home_charging_to_limit" volt:screen="Clean Home charging view" volt:purpose="status" volt:safety="charge">Charging to your %1$s limit</string>

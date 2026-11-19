@@ -16,7 +16,8 @@ import java.util.List;
 /**
  * Settings › Home style (page {@link HubPages#SETTINGS_HOME}, hub layout plan PR 8), as the Layout Plan's mock-up
  * draws it (the contributor's decisions on #383): the style choice with its two drawings, then one card holding
- * "Quick actions" (the four Clean shows, by their names on Clean; it opens the same picker as Clean's Edit sheet) and
+ * "Quick actions" (the four Clean shows, by their names on Clean; it opens the same picker as Clean's Edit sheet),
+ * "Overview readings" (the battery card's two small readings on both Home styles, HomeReadings; owner, Nov 19 2026) and
  * Clean Home's two moments, "Show charging automatically" and "Show the last ride after riding", each a switch with
  * no line under it (answer 3). Both moments are on until turned off. Text from HubText only.
  */
@@ -25,6 +26,8 @@ final class HomeStyleScreen implements AppScreen {
     static final String TAG_CHARGING = HomeMoment.CHARGING_KEY, TAG_RIDE = HomeMoment.RIDE_KEY;
     /** View tag of the Quick actions row. */
     static final String TAG_QUICK = "home-style-quick-actions";
+    /** View tag of the Overview readings row. */
+    static final String TAG_READINGS = "home-style-overview-readings";
 
     private final ScreenHost host;
     private final Ui ui;
@@ -33,12 +36,15 @@ final class HomeStyleScreen implements AppScreen {
     private final LinearLayout view;
     /** The Quick actions row's line of names, or null with no scooter (there is nowhere to keep the four then). */
     private final TextView quickNames;
+    /** The Overview readings row's line of names, or null with no scooter (as quickNames). */
+    private final TextView readingNames;
     /** The scooter whose four the row shows ("" for none); another one being active rebuilds the page. */
     private final String profileId;
     private DashboardScreen.QuickChooser chooser;
+    private DashboardScreen.ReadingChooser readingChooser;
     /** The picker's drawings: refresh redraws their quick actions from the stored four. */
     private final List<HomeStylePreview> previews = new java.util.ArrayList<>();
-    private android.app.AlertDialog slotsSheet;
+    private android.app.AlertDialog slotsSheet, readingsSheet;
     private boolean closed;
 
     HomeStyleScreen(ScreenHost host, DashboardScreen.Actions actions) {
@@ -61,7 +67,11 @@ final class HomeStyleScreen implements AppScreen {
             quickNames = ui.caption("");
             card.addView(quickRow(quickNames));
             ui.divider(card);
-        } else quickNames = null;
+            // The overview card's two readings (owner, Nov 19 2026: "right under the Quick actions setting").
+            readingNames = ui.caption("");
+            card.addView(readingsRow(readingNames));
+            ui.divider(card);
+        } else quickNames = readingNames = null;
         card.addView(toggle(HomeMoment.CHARGING_KEY, HubText.momentCharging()));
         ui.divider(card);
         card.addView(toggle(HomeMoment.RIDE_KEY, HubText.momentRide()));
@@ -86,6 +96,13 @@ final class HomeStyleScreen implements AppScreen {
             String spoken = HomeQuickEditor.spokenSummary(ids);
             if (!spoken.contentEquals(String.valueOf(quickNames.getContentDescription()))) quickNames.setContentDescription(spoken);
         }
+        if (readingNames != null) {
+            List<String> keys = HomeReadingsEditor.load(service, preferences);
+            String names = HomeReadingsEditor.summary(keys);
+            if (!names.contentEquals(readingNames.getText())) readingNames.setText(names);
+            String spoken = HomeReadingsEditor.spokenSummary(keys);
+            if (!spoken.contentEquals(String.valueOf(readingNames.getContentDescription()))) readingNames.setContentDescription(spoken);
+        }
         // The drawings too: on two panes an edit from Home's long-press sheet in the scooter pane doesn't rebuild this
         // page, so Clean's preview takes the stored four here (#394 council review, third round, P3).
         for (HomeStylePreview preview : previews) preview.refreshQuick(host);
@@ -102,21 +119,35 @@ final class HomeStyleScreen implements AppScreen {
         closed = true;
         if (slotsSheet != null && slotsSheet.isShowing()) slotsSheet.dismiss();
         slotsSheet = null;
+        if (readingsSheet != null && readingsSheet.isShowing()) readingsSheet.dismiss();
+        readingsSheet = null;
         if (chooser != null) chooser.close();
         chooser = null;
+        if (readingChooser != null) readingChooser.close();
+        readingChooser = null;
     }
 
     /** "Quick actions" over the four's names, with a chevron: opens the four, each opening the quick-action picker. */
     private View quickRow(TextView names) {
+        return chevronRow(TAG_QUICK, HubText.editQuickActions(), names, this::showSlots);
+    }
+
+    /** "Overview readings" over the two readings' names, with a chevron: opens the two, each opening the reading picker. */
+    private View readingsRow(TextView names) {
+        return chevronRow(TAG_READINGS, HubText.overviewReadings(), names, this::showReadings);
+    }
+
+    /** A row of this card: its title over a line (names), a chevron, opening tapped. */
+    private View chevronRow(String tag, Msg name, TextView names, Runnable tapped) {
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setGravity(Gravity.CENTER_VERTICAL);
-        line.setTag(TAG_QUICK);
+        line.setTag(tag);
         line.setMinimumHeight(ui.dp(56));
         line.setPadding(0, ui.dp(8), 0, ui.dp(8));
         LinearLayout words = new LinearLayout(host.activity());
         words.setOrientation(LinearLayout.VERTICAL);
-        TextView title = ui.text(HubText.editQuickActions(), 15, false);
+        TextView title = ui.text(name, 15, false);
         words.addView(title, new LinearLayout.LayoutParams(-1, -2));
         names.setPadding(0, ui.dp(2), 0, 0);
         words.addView(names, new LinearLayout.LayoutParams(-1, -2));
@@ -127,8 +158,32 @@ final class HomeStyleScreen implements AppScreen {
         line.setClickable(true);
         line.setFocusable(true);
         line.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 26)), null, ui.shape(Color.WHITE, 10, 0)));
-        line.setOnClickListener(v -> showSlots());
+        line.setOnClickListener(v -> tapped.run());
         return line;
+    }
+
+    /**
+     * The two readings in a sheet, as Quick actions' four: a slot opens the reading picker for it. A pick shows on both
+     * Home styles at once (the whole window redraws, as for the quick actions, so the scooter pane beside this page on two
+     * panes shows it too); a reading the other slot holds changes places with this slot's (HomeReadings.choose).
+     */
+    private void showReadings() {
+        if (closed) return;
+        if (readingsSheet != null && readingsSheet.isShowing()) readingsSheet.dismiss();
+        ScooterService service = host.service();
+        if (service == null || service.profiles.active() == null) return;
+        List<String> keys = HomeReadingsEditor.load(service, preferences);
+        LinearLayout content = host.sheetContent(HubText.overviewReadings(), null, () -> { if (readingsSheet != null) readingsSheet.dismiss(); });
+        content.addView(HomeReadingsEditor.slots(host, keys, slot -> {
+            if (closed) return;
+            if (readingChooser == null) readingChooser = DashboardScreen.readingChooser(host, actions);
+            readingChooser.choose(HubText.overviewReadingSlot(slot).render(), keys, slot, HubText.overviewReadingSlot(1 - slot).render(), picked -> {
+                HomeReadingsEditor.save(host.service(), preferences, HomeReadings.choose(keys, slot, picked));
+                if (readingsSheet != null && readingsSheet.isShowing()) readingsSheet.dismiss();
+                host.redraw();
+            });
+        }), new LinearLayout.LayoutParams(-1, -2));
+        readingsSheet = host.showSheet(content);
     }
 
     /** The four in a sheet, as on Clean's Edit sheet; a slot opens the picker for its position. */

@@ -177,6 +177,11 @@ public final class HomeTextTest {
         equal("Release notes are in English.", HubText.whatsNewNotesInEnglish(), "notes in English");
         check(T.key(HubText.whatsNewNotesInEnglish().id()).equals("compat_update_notes_in_english"), "the update check's line");
         equal("Open release page", HubText.whatsNewReleasePage(), "release page link");
+        // Settings › Home style › Overview readings (owner, Nov 19 2026): the row, its two slots and how a slot row is read.
+        equal("Overview readings", HubText.overviewReadings(), "overview readings");
+        equal("First reading", HubText.overviewReadingSlot(0), "first slot");
+        equal("Second reading", HubText.overviewReadingSlot(1), "second slot");
+        equal("First reading: Battery voltage. Change", HubText.overviewReadingSlotSpoken("First reading", "Battery voltage"), "slot spoken");
         check(T.key(HubText.whatsNewReleasePage().id()).equals("more_update_open"), "the update check's button");
         equal("No browser could open the release page", HubText.whatsNewNoBrowser(), "no browser");
         check(T.key(HubText.whatsNewNoBrowser().id()).equals("more_update_no_browser"), "the update check's message");
@@ -209,7 +214,8 @@ public final class HomeTextTest {
                 HubText.switchScooterDescription("x"), HubText.setupStyleTitle(), HubText.setupStyleBody(),
                 HubText.whatsNewTitle(), HubText.whatsNewBody(), HubText.whatsNewSwitch(), HubText.whatsNewKeep(),
                 HubText.whatsNewLater(), HubText.whatsNewBackgroundNotice(), HubText.whatsNewBackgroundSwitch(),
-                HubText.whatsNewRecordingSettings()));
+                HubText.whatsNewRecordingSettings(), HubText.overviewReadings(), HubText.overviewReadingSlot(0),
+                HubText.overviewReadingSlot(1), HubText.overviewReadingSlotSpoken("x", "y")));
         Set<String> homeKeys = new HashSet<>();
         for (Msg msg : all) {
             check(msg != null && msg.id() >= 0, "a catalog message, not verbatim text");
