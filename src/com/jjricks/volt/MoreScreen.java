@@ -3049,8 +3049,9 @@ public final class MoreScreen implements AppScreen {
         // Locked only for a recording label the owner chose; an automatic recording's detected label reads as detected.
         boolean locked = s != null && !s.chargerChoosable();
         boolean detected = basis == ScooterService.ChargerBasis.DETECTED || basis == ScooterService.ChargerBasis.RECORDING && !locked;
+        // "Auto ·" only under a saved Auto: detection can relabel an automatic recording over an explicit setting.
         chargerLinkRow.sub((effective == null ? HubText.chargerAutomatic()
-                : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected)).render());
+                : HubText.chargerValue(effective == ChargeSessionStore.Charger.HIGH_SPEED, detected, s.chargeCharger() == null)).render());
         Msg detail = HubText.chargerDetail(basis == ScooterService.ChargerBasis.RECORDING && locked, detected, locked);
         chargerDetail.setText(detail == null ? "" : detail.render());
         chargerDetail.setVisibility(detail == null ? View.GONE : View.VISIBLE);

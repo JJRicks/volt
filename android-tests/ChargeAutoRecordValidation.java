@@ -186,6 +186,14 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
                 && chargeStore().labelAudit().setting == ChargeSessionStore.Charger.HIGH_SPEED && chargeStore().labelAudit().detected == ChargeSessionStore.Charger.STOCK),
                 "After detection: the setting changed, detection is not the charger in effect, or the audit is wrong: " + onMainText(() -> service.chargeCharger() + " " + service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("detection settled on stock " + (SystemClock.elapsedRealtime() - raised) + " ms after the current rose: label detected stock, setting still high-speed, audited");
+        // Council #555 F03: both Charger rows name the family in use and say it was detected, never "Auto ·" over a saved choice.
+        String estimatesRow = estimatesChargerRow(), historyRow = historyChargerRow();
+        String expected = T.mainRowStock() + " | " + T.mainRowDetected();
+        require(estimatesRow.equals(expected), "Estimates & charger's Charger row misstates the saved high-speed choice: " + estimatesRow);
+        require(historyRow.equals(expected), "Charge history's Charger row misstates the saved high-speed choice: " + historyRow);
+        require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.DETECTED), "The recording ended while the rows were checked");
+        log("Charger rows after detection: estimates \"" + estimatesRow + "\", history \"" + historyRow + "\"");
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.HOME);
         require(notice().contains("Synthetic") || notice().length() > 0, "No connection notice while recording");
         SystemClock.sleep(15 * S);
         long unplugged = SystemClock.elapsedRealtime();
@@ -578,6 +586,28 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         log("page " + size + ": this app has no Record charges automatically switch (a release sweep's base app); page captured without it");
     }
     /** The status line under the recording controls on Battery & charging › Charge history & recordings, as shown. */
+    /** Battery & charging › Estimates & charger's Charger row: "value | detail". */
+    private String estimatesChargerRow() {
+        ensureFront();
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_ESTIMATES);
+        main(() -> activity.redraw()); settle();
+        return onMainText(() -> {
+            Object row = field(com.jjricks.volt.tests.HubTestPages.part(activity, "ControlsScreen"), "chargerLine");
+            TextView value = (TextView) field(row, "value"), sub = (TextView) field(row, "sub");
+            return value.getText() + " | " + (sub.getVisibility() == View.VISIBLE ? sub.getText() : "");
+        });
+    }
+    /** Charge history & recordings' Charger row: "value | detail" (the row's sub line is its value). */
+    private String historyChargerRow() {
+        ensureFront();
+        com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);
+        settle();
+        return onMainText(() -> {
+            Object more = com.jjricks.volt.tests.HubTestPages.part(activity, "MoreScreen");
+            TextView value = (TextView) field(field(more, "chargerLinkRow"), "sub"), detail = (TextView) field(more, "chargerDetail");
+            return value.getText() + " | " + (detail.getVisibility() == View.VISIBLE ? detail.getText() : "");
+        });
+    }
     private String pageStatus() {
         ensureFront();
         com.jjricks.volt.tests.HubTestPages.reach(this, activity, HubPages.BATTERY_HISTORY);

@@ -173,11 +173,19 @@ public final class HubText {
     public static Msg chargerRow() { return M.mainRowCharger(); }
     /** That row's value while Automatic has not recognized the charger. */
     public static Msg chargerAutomatic() { return M.mainRowAutomatic(); }
-    /** That row's value for a known charger; detected when Automatic recognized it rather than the owner choosing it. */
-    public static Msg chargerValue(boolean highSpeed, boolean detected) {
+    /**
+     * That row's value for a known charger. detected: the family came from charger detection (Automatic recognized it,
+     * or an automatic recording's label is the detected one); savedAuto: the saved Charger for estimates is Auto. Named as
+     * Automatic's ("Auto · Stock") only when both hold ({@link #chargerAutoFamily}): with Stock or High-speed saved, an
+     * automatic recording whose label detection set shows the family estimates use, and the detail line says it was
+     * detected ({@link #chargerDetail}), so the row never calls the owner's explicit choice Auto.
+     */
+    public static Msg chargerValue(boolean highSpeed, boolean detected, boolean savedAuto) {
         Msg family = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
-        return detected ? M.mainRowAutoFamily(family) : family;
+        return chargerAutoFamily(detected, savedAuto) ? M.mainRowAutoFamily(family) : family;
     }
+    /** Whether the Charger row names its family as Automatic's: detected, and the saved setting is Auto. Both Charger rows use it. */
+    public static boolean chargerAutoFamily(boolean detected, boolean savedAuto) { return detected && savedAuto; }
     /**
      * That row's detail line, chosen as the Charger row chooses it: while this scooter's charge is being recorded
      * (the label comes from the recording); else when Automatic recognized the charger from charging power; else

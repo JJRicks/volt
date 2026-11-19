@@ -55,10 +55,16 @@ public final class HubConditionTextTest {
         equal("Charger for estimates", HubText.chargerRow(), "charger row");
         check(T.key(HubText.chargerRow().id()).equals("main_row_charger"), "the charger row reuses the Charger row's name");
         equal("Automatic", HubText.chargerAutomatic(), "charger automatic");
-        equal("Stock", HubText.chargerValue(false, false), "stock chosen");
-        equal("High-speed", HubText.chargerValue(true, false), "high-speed chosen");
-        equal("Auto · Stock", HubText.chargerValue(false, true), "stock recognized");
-        equal("Auto · High-speed", HubText.chargerValue(true, true), "high-speed recognized");
+        equal("Stock", HubText.chargerValue(false, false, false), "stock chosen");
+        equal("High-speed", HubText.chargerValue(true, false, false), "high-speed chosen");
+        equal("Auto · Stock", HubText.chargerValue(false, true, true), "stock recognized under Auto");
+        equal("Auto · High-speed", HubText.chargerValue(true, true, true), "high-speed recognized under Auto");
+        // An automatic recording that detection relabelled over an explicit setting: the family in use, never "Auto".
+        equal("Stock", HubText.chargerValue(false, true, false), "stock detected over a saved high-speed choice");
+        equal("High-speed", HubText.chargerValue(true, true, false), "high-speed detected over a saved stock choice");
+        equal("Detected from power", HubText.chargerDetail(false, true, false), "and the detail says it was detected");
+        check(!HubText.chargerAutoFamily(true, false) && !HubText.chargerAutoFamily(false, true) && !HubText.chargerAutoFamily(false, false)
+                && HubText.chargerAutoFamily(true, true), "Auto only when detected and Auto is saved");
         equal("Recording label · stop to change", HubText.chargerDetail(true, false, false), "charger while this scooter records");
         equal("Recording label · stop to change", HubText.chargerDetail(true, true, false), "recording wins over detected");
         equal("Detected from power", HubText.chargerDetail(false, true, false), "charger detected");
@@ -74,8 +80,8 @@ public final class HubConditionTextTest {
     /** Under the key-echo source every line is exactly one key: nothing is glued around a catalog string. */
     private static void echo() {
         List<Msg> all = Arrays.asList(HubText.chargeSendRow(), HubText.chargeSendNote(), HubText.chargeSendNoEmail(),
-                HubText.chargerRow(), HubText.chargerAutomatic(), HubText.chargerValue(false, false),
-                HubText.chargerValue(true, false), HubText.chargerValue(false, true), HubText.chargerValue(true, true),
+                HubText.chargerRow(), HubText.chargerAutomatic(), HubText.chargerValue(false, false, false),
+                HubText.chargerValue(true, false, false), HubText.chargerValue(false, true, true), HubText.chargerValue(true, true, true),
                 HubText.chargerDetail(true, false, false), HubText.chargerDetail(false, true, false),
                 HubText.chargerDetail(false, false, true), HubText.chargeSendBusy(), HubText.recordInBackground(), HubText.recordInBackgroundNote());
         for (Msg msg : all) {
@@ -83,6 +89,6 @@ public final class HubConditionTextTest {
             check(!msg.isPlural(), "nothing here counts anything: " + T.key(msg.id()));
             equal("⟦" + T.key(msg.id()) + "⟧", msg.render(), "one whole key");
         }
-        equal("Auto · Stock", HubText.chargerValue(false, true).english(), "english() under another source");
+        equal("Auto · Stock", HubText.chargerValue(false, true, true).english(), "english() under another source");
     }
 }
