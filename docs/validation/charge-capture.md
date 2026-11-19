@@ -56,16 +56,26 @@ source opcode. Out-of-range values, electrical spikes and invalid samples are
 rejected. Temperature is optional. SOC rollbacks, skipped percentages, gaps over
 25 seconds and wall-clock discontinuities break the affected curve interval.
 
-Retention is at most 20 journals, approximately 70 MB in total, with an 18-hour,
-6,500-sample and approximately 3.5 MB cap per journal. The byte cap accommodates
-the longest versioned prediction rows; typical files are smaller. Non-qualifying captures are
+Retention (2.0.1) is at most 1,000 saved journals and approximately 150 MB on
+disk, measured on the compressed files, with an 18-hour, 6,500-sample and
+approximately 3.5 MB cap per plain journal. The byte cap accommodates the longest
+versioned prediction rows; typical files are smaller. A saved journal is
+gzip-compressed in place by the analysis worker, its summary (header, stop,
+qualification, capacity evidence, list row) in the gzip header's comment field.
+Non-qualifying captures (unreadable, failed or short, or a guessed label) are
 removed first. If all remaining files qualify, pruning removes the oldest file
 from the largest profile/charger bucket, balancing coverage instead of allowing
 frequent stock captures to evict a minority high-speed curve. Two sessions per
-bucket are protected while the global cap can accommodate them; an active capture
-reserves one of the 20 slots. The cap still takes precedence when too many buckets
-compete. The analysis worker caches closed-file qualification for subsequent
-pruning; changed files invalidate that cache. Abruptly interrupted journals
+bucket are protected while the limits can accommodate them. Room is made after a
+recording is saved, automatic or manual alike, never at a start (the running
+journal is one over), and never at the cost of the journal just saved or
+recovered. The count is enforced at that stop and at startup; the byte budget by
+the worker once the journal is compressed. The caps still take precedence when
+too many buckets compete. Each file's summary is cached in memory against its
+length and modification time; changed files invalidate that cache. The learner
+reads the newest 20 qualifying journals per profile/charger, and capacity
+evidence from the newest 20 completed charges per profile. Before 2.0.1:
+20 journals, about 70 MB plain, and a manual start reserved one of the 20 slots. Abruptly interrupted journals
 are finalized as interrupted on next launch and excluded from learning. A
 per-scooter clear action removes that scooter's closed journals and derived curves.
 Curve parsing runs on a dedicated worker; cached estimates are read on the UI

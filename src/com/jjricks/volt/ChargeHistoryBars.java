@@ -33,15 +33,13 @@ final class ChargeHistoryBars {
         boolean measured() { return Double.isFinite(from) && Double.isFinite(to); }
     }
 
-    /** A recording's charge: its first and last finite battery percent, and its first to last sample time (null for none). */
+    /**
+     * A recording's charge: its first and last finite battery percent, and its first to last sample time (null for none).
+     * A summary has them too (ChargeSessionStore.HistorySession.light), so the card never reads a recording's points.
+     */
     static Charge of(ChargeSessionStore.HistorySession session) {
         if (session == null) return null;
-        double first = Double.NaN, last = Double.NaN; long end = session.startedMono;
-        for (ChargeSessionStore.HistoryPoint point : session.points) {
-            if (Double.isFinite(point.batteryPercent)) { if (Double.isNaN(first)) first = point.batteryPercent; last = point.batteryPercent; }
-            end = Math.max(end, point.mono);
-        }
-        return new Charge(first, last, end - session.startedMono);
+        return new Charge(session.firstPercent, session.lastPercent, session.lastSampleMono - session.startedMono);
     }
 
     /** How many bars a card with this much room inside its padding shows (dp): as many as fit at MIN_BAR_DP, within MIN..MAX. */

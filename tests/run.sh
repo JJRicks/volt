@@ -122,6 +122,8 @@ sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimi
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
 for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransaction; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java"); done
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
+# Charge recordings as a compressed rotating buffer: budget, rotation, compression, recovery and the plain backup round trip.
+sources+=("$TEST_DIR/ChargeRecordingBudgetTest.java")
 # Report diagnostics' charging evidence (fuller diagnostics, part 1); uses the compat suites' CommandLog.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeEvidenceTest.java")
 # Report diagnostics, part 2: the settings allow-list, this connection's drive modes and power sign (Telemetry above
@@ -247,7 +249,7 @@ if [[ -d /dev/shm && -w /dev/shm ]]; then
     # The java function puts its own -Djava.io.tmpdir first, and the later one on a command line wins.
     backup_java+=(-Djava.io.tmpdir="$TEST_SHM_TMP")
 fi
-for name in BackupArchiveTest BackupPlanTest BackupTransactionTest; do
+for name in BackupArchiveTest BackupPlanTest BackupTransactionTest ChargeRecordingBudgetTest; do
     (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name")
 done
 

@@ -197,6 +197,8 @@
     <string name="stats_charge_history_retry" volt:screen="More › Charge recordings" volt:purpose="button">Retry</string>
     <string name="stats_charge_history_empty" volt:screen="More › Charge recordings" volt:purpose="empty state">No saved charge recordings yet.</string>
     <string name="stats_charge_history_current" volt:screen="More › Charge recordings" volt:purpose="note">The current recording appears here after it stops.</string>
+    <!-- Under the recordings list once more are saved than it shows at once: adds the next older ones. Full width, wraps. -->
+    <string name="stats_charge_history_show_older" volt:screen="More › Charge recordings" volt:purpose="button">Show older recordings</string>
     <string name="stats_charge_history_back" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Back to charge recordings</string>
     <string name="stats_charge_history_close" volt:screen="More › Charge recordings" volt:purpose="accessibility description">Close charge recordings</string>
     <!-- Spoken recording row: %1$s is when it started, %2$s the charger and battery span, %3$s how it ended. -->

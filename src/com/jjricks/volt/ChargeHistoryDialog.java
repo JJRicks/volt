@@ -34,6 +34,14 @@ final class ChargeHistoryDialog {
     private List<ChargeSessionStore.HistorySession> recordings = Collections.emptyList();
     private boolean closed;
     private int loadGeneration;
+    /**
+     * The list reads the newest FULL recordings with their points and the rest as summaries, which open after one
+     * recording's read (ChargeSessionStore.history), and shows PAGE rows at a time, so hundreds of saved recordings never
+     * cost the dialog their samples or one view each at once.
+     */
+    static final int FULL = 20, PAGE = 50;
+    /** Rows the list shows now; Show older adds PAGE, and Back from a recording keeps it. */
+    private int shown = PAGE;
 
     ChargeHistoryDialog(ScreenHost host) {
         this.host = host; ui = host.ui(); profile = activeProfile();
@@ -68,7 +76,7 @@ final class ChargeHistoryDialog {
         body.addView(loading);
         int generation = ++loadGeneration;
         ScooterService s = host.service();
-        if (s == null || !s.loadChargeRecordings(sessions -> {
+        if (s == null || !s.loadChargeRecordings(FULL, sessions -> {
             if (!available() || generation != loadGeneration) return;
             if (sessions == null) { failed(); return; }
             recordings = sessions; showList();
@@ -85,7 +93,25 @@ final class ChargeHistoryDialog {
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout list = padded(); list.setTag("charge-history-list");
         if (recordings.isEmpty()) list.addView(ui.caption(emptyText()));
-        for (ChargeSessionStore.HistorySession session : recordings) {
+        LinearLayout rows = column(); list.addView(rows);
+        addRows(rows, 0, Math.min(shown, recordings.size()));
+        if (shown < recordings.size()) {
+            TextView older = ui.secondaryButton(T.statsChargeHistoryShowOlder(), null); older.setTag("charge-history-older");
+            older.setOnClickListener(v -> {
+                if (!available()) return;
+                int from = shown; shown = Math.min(recordings.size(), shown + PAGE);
+                addRows(rows, from, shown);
+                if (shown >= recordings.size()) list.removeView(older);
+            });
+            LinearLayout.LayoutParams op = new LinearLayout.LayoutParams(-1, -2); op.bottomMargin = ui.dp(10); list.addView(older, op);
+        }
+        if (host.service() != null && host.service().isChargeRecording()) {
+            TextView note = ui.caption(T.statsChargeHistoryCurrent()); note.setPadding(0, ui.dp(8), 0, 0); list.addView(note);
+        }
+        body.addView(scroller(list), new LinearLayout.LayoutParams(-1, 0, 1));
+    }
+    private void addRows(LinearLayout list, int from, int to) {
+        for (ChargeSessionStore.HistorySession session : recordings.subList(from, to)) {
             LinearLayout row = column(); row.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
             row.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 45)),
                     ui.shape(ui.surface, 18, 0), null));
@@ -100,13 +126,10 @@ final class ChargeHistoryDialog {
             row.setOnClickListener(v -> showDetail(session));
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10); list.addView(row, rp);
         }
-        if (host.service() != null && host.service().isChargeRecording()) {
-            TextView note = ui.caption(T.statsChargeHistoryCurrent()); note.setPadding(0, ui.dp(8), 0, 0); list.addView(note);
-        }
-        body.addView(scroller(list), new LinearLayout.LayoutParams(-1, 0, 1));
     }
     private void showDetail(ChargeSessionStore.HistorySession session) {
         if (!available() || !profile.equals(session.profile)) return;
+        if (session.light) { loadDetail(session); return; }
         body.removeAllViews(); body.addView(header(T.statsChargeRecordingTitle(), true));
         LinearLayout contents = padded(); contents.setTag("charge-history-detail");
         contents.addView(ui.text(dateTime(session.startedWall), 20, true));
@@ -116,6 +139,18 @@ final class ChargeHistoryDialog {
         Panel panel = new Panel(session, false);
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));
         body.addView(scroller(contents), new LinearLayout.LayoutParams(-1, 0, 1));
+    }
+    /** An older recording is a summary in the list: its samples are read when it is opened. */
+    private void loadDetail(ChargeSessionStore.HistorySession summary) {
+        body.removeAllViews(); body.addView(header(T.statsChargeRecordingTitle(), true));
+        TextView loading = ui.caption(T.statsChargeHistoryLoading()); loading.setPadding(ui.dp(18), ui.dp(12), ui.dp(18), ui.dp(12));
+        body.addView(loading);
+        int generation = ++loadGeneration;
+        ScooterService s = host.service();
+        if (s == null || !s.loadChargeRecording(summary.id, full -> {
+            if (!available() || generation != loadGeneration) return;
+            if (full == null) failed(); else showDetail(full);
+        })) failed();
     }
     /** A Volt charging schedule, or the charger itself, held current off; the chart shows each as a gap. */
     private static String paused(ChargeSessionStore.HistorySession session) {
@@ -160,11 +195,7 @@ final class ChargeHistoryDialog {
         return minutes >= 60 ? T.statsChargeDurationHours(Fmt.integer(minutes / 60), Fmt.integer(minutes % 60)) : T.statsChargeDurationMinutes(Fmt.integer(minutes));
     }
     private String batterySpan(ChargeSessionStore.HistorySession session) {
-        Double first = null, last = null;
-        for (ChargeSessionStore.HistoryPoint point : session.points) if (Double.isFinite(point.batteryPercent)) {
-            if (first == null) first = point.batteryPercent; last = point.batteryPercent;
-        }
-        return first == null ? noSamplesText() : span(first, last);
+        return Double.isNaN(session.firstPercent) ? noSamplesText() : span(session.firstPercent, session.lastPercent);
     }
     private String charger(ChargeSessionStore.Charger charger) {
         return charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();

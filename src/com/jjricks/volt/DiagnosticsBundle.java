@@ -503,19 +503,22 @@ final class DiagnosticsBundle {
         if (reason.equals(RideStore.STOP_AUTO_QUIET) || reason.startsWith(RideStore.STOP_AUTO_QUIET + ";")) return "auto_quiet_disconnect";
         return "other";
     }
-    /** A charge recording's start (its first line's wall time), from its first CHARGE_HEAD_BYTES only; -1 when unreadable. */
+    /**
+     * A charge recording's start (its first line's wall time), from its first CHARGE_HEAD_BYTES only (of its text, when
+     * it is compressed: ChargeSessionStore.open); -1 when unreadable.
+     */
     static long chargeStart(File f) {
-        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(f, "r")) {
-            byte[] head = new byte[(int) Math.min(CHARGE_HEAD_BYTES, in.length())];
-            in.readFully(head);
-            String[] start = new String(head, java.nio.charset.StandardCharsets.UTF_8).split("\n", -1)[0].split(",", -1);
+        try (java.io.InputStream in = ChargeSessionStore.open(f)) {
+            byte[] head = new byte[(int) CHARGE_HEAD_BYTES]; int length = 0;
+            for (int n; length < head.length && (n = in.read(head, length, head.length - length)) > 0; ) length += n;
+            String[] start = new String(head, 0, length, java.nio.charset.StandardCharsets.UTF_8).split("\n", -1)[0].split(",", -1);
             return start.length == 5 && start[3].matches("[0-9]{1,15}") ? Long.parseLong(start[3]) : -1;
         } catch (IOException | RuntimeException unreadable) { return -1; }
     }
     /**
      * The newest finished charge recording (by the start it holds) and its length and end, from its first line and its
-     * last few kilobytes only. The length runs to its last sample or pause line, whichever is later: a recording that
-     * ends while paused closes the pause at its end.
+     * last few kilobytes only (a compressed one is read through to them). The length runs to its last sample or pause
+     * line, whichever is later: a recording that ends while paused closes the pause at its end. Its bytes are on disk.
      */
     static Map<String, Object> lastCharge(File dir) {
         File[] files = dir == null ? null : dir.listFiles();
@@ -527,12 +530,10 @@ final class DiagnosticsBundle {
             if (newest == null || start > newestStart) { newest = f; newestStart = start; }
         }
         if (newest == null) return null;
-        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(newest, "r")) {
-            long length = in.length();
+        try {
+            long length = newest.length();
             long startWall = newestStart;
-            int tail = (int) Math.min(CHARGE_TAIL_BYTES, length);
-            byte[] end = new byte[tail];
-            in.seek(length - tail); in.readFully(end);
+            byte[] end = chargeTail(newest);
             String[] lines = new String(end, java.nio.charset.StandardCharsets.UTF_8).split("\n");
             String stop = null; long lastWall = -1;
             for (int i = lines.length - 1; i >= 0; i--) {
@@ -549,6 +550,26 @@ final class DiagnosticsBundle {
             m.put("bytes", length);
             return m;
         } catch (IOException | RuntimeException unreadable) { return null; }
+    }
+    /** A charge recording's last CHARGE_TAIL_BYTES of text: a seek for a plain file, read through for a compressed one. */
+    private static byte[] chargeTail(File f) throws IOException {
+        if (ChargeSessionStore.compressed(f)) {
+            byte[] ring = new byte[(int) CHARGE_TAIL_BYTES], buffer = new byte[65536]; long total = 0;
+            try (java.io.InputStream in = ChargeSessionStore.open(f)) {
+                for (int n; (n = in.read(buffer)) > 0; total += n)
+                    for (int i = 0; i < n; i++) ring[(int) ((total + i) % ring.length)] = buffer[i];
+            }
+            int tail = (int) Math.min(ring.length, total); byte[] out = new byte[tail];
+            for (int i = 0; i < tail; i++) out[i] = ring[(int) ((total - tail + i) % ring.length)];
+            return out;
+        }
+        try (java.io.RandomAccessFile in = new java.io.RandomAccessFile(f, "r")) {
+            long length = in.length();
+            int tail = (int) Math.min(CHARGE_TAIL_BYTES, length);
+            byte[] end = new byte[tail];
+            in.seek(length - tail); in.readFully(end);
+            return end;
+        }
     }
     private static String chargeStop(String name) {
         for (ChargeSessionStore.Stop s : ChargeSessionStore.Stop.values()) if (s.name().equals(name)) return lower(s);
