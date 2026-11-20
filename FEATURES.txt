@@ -38,6 +38,10 @@ NEW IN 2.0.2
   or files Volt's running automatic recording, still a guessed charger,
   under it. Never while Charging slowed shows, or with the battery outside
   68-100 F (20-38 C); it never labels anything by itself.
+- Words: Record a charge says the oldest recordings are cleared when full
+  (not "keeps the last 20"); Map settings names Just back's map switch Map
+  on Home's last ride; What Volt has learned says Too cold or hot to learn
+  for a stretch a high-speed charge covered only outside 20-38 C.
 - Fixes: on Clean's two panes, a ride opened from Just back while All rides
   is beside Home closes back to All rides; Clean's charge-limit bar takes a
   press just below it again; Find it nearby counts the first connection

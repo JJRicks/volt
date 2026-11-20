@@ -5,12 +5,15 @@
 Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, clearer words in a few places and some fixes.
 
 - **Record this charger.** When your scooter has charge recordings from only one charger, and the charge on now draws far more or far less power than they did, Home shows a **Record this charger** tip under the charging time. Tap it to record this charge as the other charger, or, while Volt is already recording it by itself with a guessed charger, to save that recording as the other charger, so Volt learns an estimate for each.
+- **Clearer words.** The **Record a charge** dialog no longer says Volt keeps the last 20 recordings; it says the oldest are cleared when there's no more room (Volt keeps up to 1,000). In **Map settings**, the **Just back** card's map switch is **Map on Home's last ride** instead of **Home**. **What Volt has learned** says **Too cold or hot to learn** for a stretch a high-speed charge covered only at those temperatures, instead of calling it **No data**.
 - **Fixes:** On a wide Clean Home, closing a ride you opened from **Just back** while **All rides** is open beside Home goes back to All rides. Clean's charge-limit bar takes a drag started just below it again. The card that says a scooter "may have a new Bluetooth address" also counts the first connection attempt when Volt opens on Home. Ride maps on large tablets keep more map tiles ready.
 - **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
 
 ### Charge recordings
 
 - **Record this charger.** Volt watches for a charge far off the only charger this scooter has recordings for: for a minute, below 90%, at least 1.8 times or at most half the power recorded at the same battery level, and at least 50 W apart. Far above the stock charger's recordings means the high-speed charger; far below the high-speed charger's means the stock one. It doesn't count the first minute of a charge or after a reconnect, and it stays quiet while **Charging slowed** shows and when the battery is colder than 68 °F (20 °C) or hotter than 100 °F (38 °C), where a high-speed recording wouldn't teach its curve. Then, on both Home styles, the tip under the time reads **Record this charger** (**Record charger**, or just a bolt icon, where there's less room), in the same place as **Improve this estimate**. Its sheet, **Different charger?**, has one main button that names the charger: **Record this charge as High-speed** (or Stock) starts a recording as that charger; while Volt is recording this charge by itself with a guessed charger, **Save this recording as High-speed** files that recording as that charger instead, as your choice, so it teaches that charger's curve. Neither changes **Charger for estimates**. **Not now** keeps the tip; **Hide this tip** hides this tip only, for good (backups keep that). The tip never labels a recording by itself, and it doesn't show during a recording you started or one whose charger was already set.
+- **Record a charge** now reads "Saved on phone · stops at 100% · oldest cleared when full". It said "keeps the last 20", which stopped being true in 2.0.1: Volt keeps up to 1,000 recordings (about 150 MB) and clears the oldest.
+- **What Volt has learned** words a stretch a high-speed charge recorded only with the battery too cold or hot to learn from (outside 68–100 °F, 20–38 °C) as **Too cold or hot to learn 30–40%**, apart from the gaps no recording covers (**No data 50–54%**).
 
 ### Home
 
@@ -24,6 +27,7 @@ Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, 
 
 ### Maps
 
+- **Map settings** names the **Just back** card's own map switch **Map on Home's last ride** (it said **Home**). While only that map is on, the Map settings row reads, for example, **OSM · Last ride**.
 - **Ride maps on large tablets** keep more map tiles in memory, scaled to the map's size (up to 64 MB), so panning reloads fewer tiles. Phones are unchanged.
 
 ### Upgrading and going back
