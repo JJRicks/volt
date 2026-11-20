@@ -83,10 +83,11 @@ thread without disk parsing.
 
 A qualifying session needs at least 61 samples, ten minutes, ten complete
 one-percentage SOC intervals, and 90% contiguous time coverage. The initial
-partial interval is excluded. Each estimated remaining percentage interval needs
-at least two independently recorded qualifying sessions for this exact profile
-and selected charger. Durations are averaged after rejecting strong outliers;
-two strongly disagreeing sessions cannot establish a curve. Repeated intervals
+partial interval is excluded. The robust estimate needs, for each estimated
+remaining percentage interval, at least two independently recorded qualifying
+sessions for this exact profile and selected charger. Durations are averaged
+after rejecting strong outliers; two strongly disagreeing sessions cannot
+establish a curve, provisionally or not. Repeated intervals
 within one recording do not count as independent evidence. A missing 99–100%
 interval prevents a learned full-charge ETA; a covered lower cutoff may still
 use its learned estimate. The remaining full-charge time then retains its stated
@@ -102,6 +103,41 @@ power at the same SOC, rather than the charger's bulk power. Missing or conflict
 power fails closed to the current-rate estimate. These are conservative heuristic
 tolerances pending hardware validation, not charger identification or an accuracy
 guarantee; temperature and other changes can also cause a mismatch.
+
+### Provisional and joined estimates (stitched-estimate-v1)
+
+On a model and charger without a bundled reference (every pair except the UT5 MAX
+on either charger), a reading that the evidence above leaves without a learned
+time can use provisional evidence instead:
+
+- **Single-recording percents.** A one-percent interval that only one qualifying
+  session covers counts provisionally, with that session's interval power as the
+  live-power check (the same 35% band). Once a second session agrees, the
+  interval is robust again and the averaged path above applies unchanged.
+- **Joined stretches.** Per-percent intervals from different sessions join when
+  every interval from the current level to the target is covered (robust or
+  single). Any uncovered or disagreeing interval in between leaves no estimate.
+- **Joined finishes.** Per-percent times from the current level up to where a
+  completed finish recording starts are joined to that recording's own time from
+  its start to 100%, or to the limit (its first reading at the limit). With
+  several finish recordings each joined time counts; they are combined like
+  matched finishes, and two that disagree by more than 2.5 times give none. A
+  finish recording that covers the current level but cannot place it still
+  blocks provisional evidence there.
+- **Reporting.** The status names what was joined and says the estimate is
+  provisional; the short label stays "From N past charges", N counting the
+  recordings used. A provisional time to a lower limit is never longer than a
+  learned time to 100%.
+- **Planning.** Charge done by plans with the longer of a provisional time and
+  the estimate without past charges (the current rate on these models); the
+  countdown shown is the provisional time. A provisional finish is never held
+  through a high-speed power dropout.
+
+The UT5 MAX keeps its bundled references, voltage models and history weighting
+unchanged and gets no provisional evidence: a replay on private recordings
+showed no gain there and one slightly shorter time to a level. `Curve.summary()`
+exposes each percent's coverage (none, provisional, robust or disagreeing),
+minutes, saved power and finish coverage for a chart of the saved curve.
 
 ## Validation
 

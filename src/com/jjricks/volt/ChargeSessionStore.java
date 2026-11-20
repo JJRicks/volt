@@ -159,29 +159,63 @@ public final class ChargeSessionStore {
     }
     public static final class Duration {
         public final double minutes; public final int sessions;
-        Duration(double minutes,int sessions){this.minutes=minutes;this.sessions=sessions;}
+        /**
+         * Some of it rests on one recording, or it joins a finish recording's own time (Curve.estimateProvisional,
+         * Curve.estimateJoined). sessions then counts the recordings it uses, not the fewest behind any percent.
+         */
+        public final boolean provisional;
+        /** Whether some percent of it rests on a single recording. */
+        public final boolean single;
+        /** The level where a finish recording's own time takes over (the lowest, with several), or NaN for no join. */
+        public final double joinedAt;
+        Duration(double minutes,int sessions){this(minutes,sessions,false,false,Double.NaN);}
+        Duration(double minutes,int sessions,boolean provisional,boolean single,double joinedAt){
+            this.minutes=minutes;this.sessions=sessions;this.provisional=provisional;this.single=single;this.joinedAt=joinedAt;
+        }
     }
     public static final class Curve {
         public enum PowerMatch { MATCH, DIFFERENT, UNKNOWN }
         public final String profile; public final Charger charger; public final int qualifiedSessions;
         private final double[] minutes, watts; private final int[] counts;
+        /**
+         * The recordings behind each percent's minutes, bit i for the i-th qualified recording (the first 64), so a
+         * provisional or joined estimate can say how many recordings it uses.
+         */
+        private final long[] sources;
+        /** A percent whose power comes from one recording: the guard for a provisional estimate only (powerMatch). */
+        private final boolean[] singleWatts;
+        /** How many recordings have minutes for each percent, agreeing or not (summary's disagreeing percents). */
+        private final int[] covering;
         private final List<FinishingCurve> finishing = new ArrayList<>();
+        /** finishing's recordings, as bits like sources. */
+        private final List<Long> finishingSource = new ArrayList<>();
         Curve(String profile, Charger charger, List<Evidence> sessions) {
             this.profile=profile;this.charger=charger;qualifiedSessions=sessions.size();minutes=new double[100];watts=new double[100];counts=new int[100];
-            for (Evidence session : sessions) if (session.finishing != null) finishing.add(session.finishing);
+            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];
+            for (int i=0;i<sessions.size();i++) if (sessions.get(i).finishing != null){finishing.add(sessions.get(i).finishing);finishingSource.add(bit(i));}
             Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);
             for(int bin=0;bin<100;bin++) {
-                List<Double> values=new ArrayList<>();for(Evidence session:sessions)if(Double.isFinite(session.minutes[bin]))values.add(session.minutes[bin]);
+                List<Double> values=new ArrayList<>();int only=-1;
+                for(int i=0;i<sessions.size();i++)if(Double.isFinite(sessions.get(i).minutes[bin])){values.add(sessions.get(i).minutes[bin]);only=i;}
+                covering[bin]=values.size();
+                if(values.size()==1){
+                    // One recording: provisional minutes and power, which only estimateProvisional, estimateJoined and
+                    // powerMatch(…, true) use. A second agreeing recording turns this into the average below.
+                    Evidence session=sessions.get(only);
+                    minutes[bin]=values.get(0);counts[bin]=1;sources[bin]=bit(only);
+                    if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1){watts[bin]=session.watts[bin];singleWatts[bin]=true;}
+                    continue;
+                }
                 Collections.sort(values);if(values.size()<2)continue;
                 double median=median(values);
                 // With just two strongly disagreeing sessions there is no reliable majority.
                 if(values.size()==2&&values.get(1)>values.get(0)*2.5)continue;
-                double sum=0;List<Double> powers=new ArrayList<>();
-                for(Evidence session:sessions)if(session.minutes[bin]>=median*.4&&session.minutes[bin]<=median*2.5){
-                    sum+=session.minutes[bin];counts[bin]++;
+                double sum=0;List<Double> powers=new ArrayList<>();long used=0;
+                for(int i=0;i<sessions.size();i++){Evidence session=sessions.get(i);if(session.minutes[bin]>=median*.4&&session.minutes[bin]<=median*2.5){
+                    sum+=session.minutes[bin];counts[bin]++;used|=bit(i);
                     if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1)powers.add(session.watts[bin]);
-                }
-                if(counts[bin]>=2)minutes[bin]=sum/counts[bin];
+                }}
+                if(counts[bin]>=2){minutes[bin]=sum/counts[bin];sources[bin]=used;}
                 // Use the same duration-qualified sessions, at this SOC, not a bulk-power guess
                 // during taper. Two disagreeing records cannot identify compatible live power.
                 if(powers.size()>=2){
@@ -191,11 +225,30 @@ public final class ChargeSessionStore {
                 }
             }
         }
+        private static long bit(int index){return index<64?1L<<index:0;}
+        /** Read-only: the curve's coverage per percent, for a chart of the saved curve. */
+        public Summary summary() {
+            List<Double> starts=new ArrayList<>();
+            for(FinishingCurve curve:finishing)starts.add(curve.points.get(0).soc);
+            Collections.sort(starts);
+            List<Summary.Bin> bins=new ArrayList<>();
+            for(int bin=0;bin<100;bin++){
+                boolean usable=Double.isFinite(minutes[bin])&&counts[bin]>=1;
+                Summary.Coverage coverage=usable?counts[bin]>=2?Summary.Coverage.ROBUST:Summary.Coverage.PROVISIONAL
+                        :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
+                boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
+                bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
+                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish));
+            }
+            return new Summary(charger,qualifiedSessions,starts,bins);
+        }
         /** A plausibility check, not charger identification; missing local power fails closed. */
-        public PowerMatch powerMatch(double soc,Double liveWatts) {
+        public PowerMatch powerMatch(double soc,Double liveWatts) {return powerMatch(soc,liveWatts,false);}
+        /** single: a percent one recording covers also checks against that recording's power (a provisional estimate). */
+        public PowerMatch powerMatch(double soc,Double liveWatts,boolean single) {
             if(!between(soc,0,100)||liveWatts==null||!Double.isFinite(liveWatts)||liveWatts<1)return PowerMatch.UNKNOWN;
             int bin=Math.min(99,(int)Math.floor(soc));double expected=watts[bin];
-            if(!Double.isFinite(expected))return PowerMatch.UNKNOWN;
+            if(!Double.isFinite(expected)||singleWatts[bin]&&!single)return PowerMatch.UNKNOWN;
             return liveWatts>=expected*.65&&liveWatts<=expected*1.35?PowerMatch.MATCH:PowerMatch.DIFFERENT;
         }
         /** Every remaining interval, including the final taper bin, needs two independent sessions. */
@@ -209,6 +262,62 @@ public final class ChargeSessionStore {
                 if(fraction>0){total+=fraction*minutes[bin];supported=Math.min(supported,counts[bin]);}
             }
             return Double.isFinite(total)?new Duration(total,supported):null;
+        }
+        /**
+         * Like estimate, but a percent that one recording covers counts too, provisionally, and per-percent stretches
+         * from different recordings join wherever every percent from soc to target is covered. A percent two
+         * recordings strongly disagree on stays uncovered, as in estimate. When every percent has two or more agreeing
+         * recordings this is estimate itself (not provisional). Null at or above target: there is nothing to learn.
+         */
+        public Duration estimateProvisional(double soc,double target) {
+            if(!between(soc,0,100)||!between(target,0,100)||soc>=target||qualifiedSessions<1)return null;
+            Duration robust=estimate(soc,target);
+            if(robust!=null)return robust;
+            double[] span=span(soc,target);
+            return span==null?null:new Duration(span[0],Long.bitCount((long)span[1]),true,span[2]>0,Double.NaN);
+        }
+        /**
+         * Per-percent times from soc up to where a completed finish recording starts, then that recording's own time
+         * from its start to target (its first reading at target, or its observed 100%). Only finish recordings that
+         * start above soc and below target join; one already covering soc is estimateFinishing's. single: percents
+         * one recording covers may fill the stretch below the join (otherwise only those two or more agree on). With
+         * several finish recordings, each joined time counts and they are combined like estimateFinishing (two that
+         * disagree by more than 2.5 times give none). Always provisional. Null when nothing joins.
+         */
+        public Duration estimateJoined(double soc,double target,boolean single) {
+            if(!between(soc,0,100)||!between(target,0,100)||soc>=target)return null;
+            List<Double> values=new ArrayList<>();List<Long> used=new ArrayList<>();List<Boolean> singles=new ArrayList<>();List<Double> starts=new ArrayList<>();
+            for(int i=0;i<finishing.size();i++){
+                FinishingCurve curve=finishing.get(i);double start=curve.points.get(0).soc;
+                if(!(start>soc&&start<target))continue;
+                double[] span=span(soc,start);
+                if(span==null||!single&&span[2]>0)continue;
+                Double tail=curve.minutesFromStart(target);
+                if(tail==null)continue;
+                values.add(span[0]+tail);used.add((long)span[1]|finishingSource.get(i));singles.add(span[2]>0);starts.add(start);
+            }
+            if(values.isEmpty())return null;
+            List<Double> sorted=new ArrayList<>(values);Collections.sort(sorted);
+            if(sorted.size()==2&&sorted.get(1)>sorted.get(0)*2.5)return null;
+            double center=median(sorted),sum=0;int count=0;long sources=0;boolean anySingle=false;double joinedAt=Double.NaN;
+            for(int i=0;i<values.size();i++){double value=values.get(i);if(value>=center*.4&&value<=center*2.5){
+                sum+=value;count++;sources|=used.get(i);anySingle|=singles.get(i);
+                if(!(starts.get(i)>=joinedAt))joinedAt=starts.get(i);
+            }}
+            return count==0?null:new Duration(sum/count,Math.max(1,Long.bitCount(sources)),true,anySingle,joinedAt);
+        }
+        /**
+         * {minutes, recordings as bits, 1 when some percent rests on one recording} from soc to target over percents
+         * that one or more agreeing recordings cover; null at the first uncovered percent.
+         */
+        private double[] span(double soc,double target) {
+            double total=0;long used=0;boolean single=false;
+            for(int bin=(int)Math.floor(soc);bin<Math.ceil(target);bin++) {
+                if(bin<0||bin>=100||!Double.isFinite(minutes[bin])||counts[bin]<1)return null;
+                double fraction=Math.min(target,bin+1)-Math.max(soc,bin);
+                if(fraction>0){total+=fraction*minutes[bin];used|=sources[bin];single|=counts[bin]<2;}
+            }
+            return Double.isFinite(total)?new double[]{total,used,single?1:0}:null;
         }
         /** Complete observed finishes can provide a provisional estimate after just one charge. */
         public Duration estimateFinishing(double soc, Double liveWatts) {
@@ -233,6 +342,40 @@ public final class ChargeSessionStore {
         public boolean hasFinishingCoverage(double soc) {
             for (FinishingCurve curve : finishing) if (soc >= curve.points.get(0).soc && soc < 100) return true;
             return false;
+        }
+    }
+    /** A curve's coverage per 1% (Curve.summary): an immutable copy, for a chart of the saved curve. */
+    public static final class Summary {
+        /**
+         * NONE: no recording has this percent. PROVISIONAL: one does (estimateProvisional and estimateJoined use it).
+         * ROBUST: two or more agree (estimate uses it). DISAGREEING: two or more have it but no majority agrees, so
+         * nothing uses it unless a finish recording covers it.
+         */
+        public enum Coverage { NONE, PROVISIONAL, ROBUST, DISAGREEING }
+        public static final class Bin {
+            /** The percent from percent to percent + 1. */
+            public final int percent;
+            public final Coverage coverage;
+            /** Recordings behind the minutes (agreeing ones), or for DISAGREEING how many have the percent. */
+            public final int sessions;
+            /** Minutes for this 1%, null unless PROVISIONAL or ROBUST. */
+            public final Double minutes;
+            /** The saved charging power here in watts (one recording's for PROVISIONAL), or null. */
+            public final Double watts;
+            /** A completed finish recording covers this percent (estimateFinishing can use it). */
+            public final boolean finishCovered;
+            Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered){
+                this.percent=percent;this.coverage=coverage;this.sessions=sessions;this.minutes=minutes;this.watts=watts;this.finishCovered=finishCovered;
+            }
+        }
+        public final Charger charger;public final int qualifiedSessions;
+        /** Where each finish recording starts (its first full percent), lowest first. */
+        public final List<Double> finishStarts;
+        /** 100 bins, 0% to 99%. */
+        public final List<Bin> bins;
+        Summary(Charger charger,int qualifiedSessions,List<Double> finishStarts,List<Bin> bins){
+            this.charger=charger;this.qualifiedSessions=qualifiedSessions;
+            this.finishStarts=Collections.unmodifiableList(new ArrayList<>(finishStarts));this.bins=Collections.unmodifiableList(new ArrayList<>(bins));
         }
     }
     public static final class Snapshot {
@@ -923,8 +1066,13 @@ public final class ChargeSessionStore {
         static final double FLAT_VOLT_TOLERANCE = .35;
         final List<Point> points;
         final boolean recoveredAfterBreak;
+        /** Minutes from the first point to the first at or above each whole level (NaN below the start), for joins. */
+        private final double[] reach = new double[101];
         FinishingCurve(List<Point> points, boolean recoveredAfterBreak) {
             this.points = new ArrayList<>(points); this.recoveredAfterBreak = recoveredAfterBreak;
+            Arrays.fill(reach, Double.NaN);
+            Point first = this.points.get(0); int level = (int) Math.ceil(first.soc);
+            for (Point point : this.points) while (level <= 100 && point.soc >= level) reach[level++] = (point.mono - first.mono) / 60000d;
         }
 
         static FinishingCurve from(Session session) {
@@ -951,6 +1099,16 @@ public final class ChargeSessionStore {
             if (start < 0 || points.size()-start < 61 || 100-points.get(start).soc < 10
                     || points.get(points.size()-1).mono-points.get(start).mono < 600000) return null;
             return new FinishingCurve(points.subList(start, points.size()), recoveredAfterBreak);
+        }
+
+        /**
+         * The recording's own minutes from its start (its first reading at its starting level) to its first reading at
+         * target or above, its observed 100% for 100; null below its start.
+         */
+        Double minutesFromStart(double target) {
+            if (!(target >= points.get(0).soc) || target > 100) return null;
+            double minutes = reach[(int) Math.ceil(target)];
+            return Double.isFinite(minutes) ? minutes : null;
         }
 
         Double estimate(double soc, double liveWatts, Double liveVolts) {
