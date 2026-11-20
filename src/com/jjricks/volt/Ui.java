@@ -1219,6 +1219,10 @@ public final class Ui {
             } else if (key.equals("ruler")) {
                 canvas.drawRoundRect(new RectF(2, 7, 22, 17), 2, 2, paint);
                 for (int i = 6; i < 22; i += 4) canvas.drawLine(i, 7, i, i % 8 == 2 ? 12 : 10, paint);
+            } else if (key.equals("map")) {
+                // A folded paper map (Just back's basemap switch): three panels, their two folds.
+                p.moveTo(3, 6.5f); p.lineTo(9, 4); p.lineTo(15, 6.5f); p.lineTo(21, 4); p.lineTo(21, 17.5f); p.lineTo(15, 20); p.lineTo(9, 17.5f); p.lineTo(3, 20); p.close();
+                p.moveTo(9, 4); p.lineTo(9, 17.5f); p.moveTo(15, 6.5f); p.lineTo(15, 20); canvas.drawPath(p, paint);
             } else if (key.equals("globe")) {
                 // App language: a globe with its equator, two parallels and one meridian.
                 canvas.drawCircle(12, 12, 9, paint);

@@ -37,7 +37,9 @@ import com.jjricks.volt.tests.TextCensus;
  * from detection (2.0.1: settled detection outranks the setting), else a guess; a short charge is
  * not kept and the recording ends two minutes after charging stops; moving above 4.8 km/h ends it at once and
  * Record rides automatically starts a ride in that moment, while jostling below it doesn't; a hand stop (on the page
- * or from the notification) holds until the scooter stops charging; an automatic recording never deletes a manual one.
+ * or from the notification) holds until the scooter stops charging; with the folder full, an automatic recording starts
+ * all the same (owner, Nov 19 2026: automatic and manual recordings rotate alike), deletes nothing until it is kept, and
+ * a saved recording of either kind rotates the oldest away, the worker then compressing it.
  * Also: a manual recording is left alone and its hand stop holds while the switch is on; a ride started by hand ends an
  * automatic one; with Stay connected in background off a recording keeps going out of sight and the link then ends;
  * a simulated charge records nothing; the status never says "saved" for a recording that was not kept. Terra's review of
@@ -91,7 +93,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 main(() -> { link = new FakeLink(); link.attach(); });
                 await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link never ready");
                 log("link ready, not charging");
-                // only=limit runs the 20-recording step alone, for a quick re-check.
+                // only=limit runs the full-folder step alone, for a quick re-check.
                 if ("limit".equals(args.getString("only", ""))) main(() -> settings().edit().putBoolean(KEY, true).commit());
                 else if ("stay".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); stayConnectedOff(); }
                 else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
@@ -106,7 +108,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     outOfSightStartAndNotificationStop();
                     rideAwayOutOfSight();
                 }
-                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", ""))) manualNeverDeleted();
+                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -368,69 +370,60 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         ensureFront();
     }
 
-    /** All 20 saved recordings manual: no automatic recording. One automatic among them: only it makes room. */
-    private void manualNeverDeleted() throws Exception {
+    /**
+     * The folder full of recordings started by hand (ChargeSessionStore.MAX_RECORDINGS): an automatic recording starts
+     * all the same and deletes nothing while it runs; stopped short, it is not kept and costs nothing. A recording kept
+     * at the limit (one started by hand here: an automatic one needs ten minutes, which the JVM tests cover) rotates the
+     * oldest away, and the analysis worker then compresses it in place. Before 2.0.1, all twenty manual refused it.
+     */
+    private void fullFolderRotates() throws Exception {
         unplugAndSettle();
         File folder = folder();
         for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore.AutomaticRules keepAll = new ChargeSessionStore.AutomaticRules() {
-            public boolean keep(long ranMs, double gainedPoints) { return true; }
-            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
-        };
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder, keepAll);
-        for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, i, false);
-        Set<String> manual = names();
-        require(manual.size() == ChargeSessionStore.MAX_SESSIONS, "Expected 20 manual fixtures");
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder);
+        String first = fixture(fixtures, 0, false);
+        byte[] template = java.nio.file.Files.readAllBytes(new File(folder, first).toPath());
+        // The rest are copies under their own ids, each an hour older than the next, so filling the folder takes seconds.
+        long now = System.currentTimeMillis();
+        for (int i = 1; i < ChargeSessionStore.MAX_RECORDINGS; i++) {
+            File copy = new File(folder, UUID.randomUUID() + ".csv");
+            java.nio.file.Files.write(copy.toPath(), template);
+            require(copy.setLastModified(now - (ChargeSessionStore.MAX_RECORDINGS - i) * 3_600_000L), "Fixture time not set");
+        }
+        require(new File(folder, first).setLastModified(now - (ChargeSessionStore.MAX_RECORDINGS + 1) * 3_600_000L), "Fixture time not set");
+        Set<String> manual = journals();
+        require(manual.size() == ChargeSessionStore.MAX_RECORDINGS, "Expected " + ChargeSessionStore.MAX_RECORDINGS + " manual fixtures: " + manual.size());
+        String oldest = saved()[0].getName();
+        require(oldest.equals(first), "Fixture: the first is the oldest");
         ensureFront();
         plugIn();
-        // The failed start latches the scooter: proof the start was tried, not merely not yet seen.
-        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual");
-        require(onMain(() -> !service.isChargeRecording()) && names().equals(manual), "An automatic recording started or a manual one was deleted with all 20 manual");
-        log("20 manual saved: start tried and refused, all kept");
-        String refusedStatus = onMainText(() -> service.chargeCaptureStatus());
-        require(refusedStatus.equals(T.serviceChargeAutoNoRoom()), "A start refused for lack of room said nothing: " + refusedStatus);
-        String refusedOnPage = pageStatus();
-        require(refusedOnPage.equals(T.serviceChargeAutoNoRoom()), "The page did not say the start was refused for lack of room: " + refusedOnPage);
-        log("refused for lack of room; page says: \"" + refusedOnPage + "\"");
-        File makeRoom = saved()[0];
-        require(makeRoom.delete(), "Could not remove a fixture");
-        SystemClock.sleep(6 * S);
-        require(onMain(() -> !service.isChargeRecording() && latched()), "Fixture: the latch let go by itself once a file went");
-        main(() -> settings().edit().putBoolean(KEY, false).commit());
-        main(() -> settings().edit().putBoolean(KEY, true).commit());
-        awaitRecording(20 * S, "after the switch was turned on again with room");
-        log("switch off and on again with room: the charge under way records");
+        awaitRecording(20 * S, "with every saved recording manual");
+        Set<String> running = journals(); running.removeIf(name -> name.endsWith(".active"));
+        require(running.equals(manual) && !onMain(this::latched), "An automatic start with the folder full deleted a saved one or was refused");
+        log(ChargeSessionStore.MAX_RECORDINGS + " manual saved: the automatic recording started, nothing deleted");
         main(() -> service.stopChargeRecording());
-        fixture(fixtures, 50, false);
-        require(names().size() == ChargeSessionStore.MAX_SESSIONS, "Fixture: expected 20 manual again: " + names());
-        main(() -> { link.charging(OFF); link.home(); });
-        await(() -> onMain(() -> !latched()), 20 * S, "A not-charging reading did not clear the latch");
-        await(() -> !holds(), 20 * S, "A not-charging reading did not clear the hand stop's hold");
-        File oldest = saved()[0];
-        require(oldest.delete(), "Could not remove a fixture");
-        String automatic = fixture(fixtures, 99, true);
-        Set<String> before = names();
-        plugIn();
-        awaitRecording(20 * S, "with one automatic among 19 manual");
-        Set<String> after = names(); after.removeIf(name -> name.endsWith(".active"));
-        require(after.equals(before), "Starting an automatic recording at the limit deleted a saved one before it was kept: " + before + " -> " + after);
-        log("19 manual + 1 automatic: started, nothing deleted yet");
+        require(journals().equals(manual), "An automatic recording that was not kept cost a saved one");
+        log("stopped short, not kept: all " + ChargeSessionStore.MAX_RECORDINGS + " still there");
+        // Still charging, and held by the hand stop: a recording started by hand, kept, rotates the oldest away. The stop's
+        // refresh reads (and the worker then compresses) the thousand fixtures first; a start waits for its learning. The
+        // compression may still run during the checks below, so they compare journals, not its temp files.
+        await(() -> onMain(() -> !Boolean.TRUE.equals(field(service, "chargeModelLoading"))), 60 * S, "The charge model did not finish loading");
+        require(onMain(() -> service.startChargeRecording(ChargeSessionStore.Charger.STOCK)), "A manual recording did not start with the folder full");
+        require(onMain(() -> !chargeStore().automatic()), "Fixture: the recording is manual");
+        Set<String> during = journals(); during.removeIf(name -> name.endsWith(".active"));
+        require(during.equals(manual), "A manual start deleted a saved recording");
+        String id = null; for (String name : journals()) if (name.endsWith(".active")) id = name.substring(0, 36);
+        require(id != null, "No running journal");
+        SystemClock.sleep(2 * S);
         main(() -> service.stopChargeRecording());
-        require(names().equals(before), "An automatic recording that was not kept cost a saved one: " + names());
-        log("stopped short, not kept: all 20 still there (room is made only for a kept one; JVM tests cover the replacement)");
-        unplugAndSettle();
-        for (File file : saved()) file.delete();
-        for (int i = 0; i < ChargeSessionStore.MAX_SESSIONS; i++) fixture(fixtures, 60 + i, false);
-        ensureFront();
-        plugIn();
-        awaitOr(() -> onMain(this::latched), 20 * S, "No automatic start was tried with all 20 manual (clear check)");
-        require(onMain(() -> !service.isChargeRecording()), "Recorded with all 20 manual (clear check)");
-        main(() -> { ((Set<String>) field(service, "autoChargeNoRoom")).add("another-scooter"); ((Set<String>) field(service, "autoChargeLatched")).add("another-scooter"); });
-        main(() -> require(service.clearChargeRecordings(null), "Clearing was refused"));
-        awaitRecording(20 * S, "after clearing made room");
-        log("cleared while charging: the charge under way records");
-        require(onMain(() -> !((Set<String>) field(service, "autoChargeLatched")).contains("another-scooter")), "Clearing one scooter's recordings left another scooter refused for lack of the shared room");
-        main(() -> service.stopChargeRecording());
+        Set<String> after = journals();
+        require(after.size() == ChargeSessionStore.MAX_RECORDINGS && !after.contains(oldest) && after.contains(id + ".csv"),
+                "A kept recording at the limit did not rotate the oldest away: " + after.size() + " saved, oldest still " + after.contains(oldest));
+        log("kept at the limit: the oldest went, " + ChargeSessionStore.MAX_RECORDINGS + " saved");
+        File kept = new File(folder, id + ".csv");
+        await(() -> { try { return ChargeSessionStore.compressed(kept); } catch (IOException e) { return false; } }, 20 * S, "The worker did not compress the saved recording");
+        require(onMain(() -> { try { return chargeStore().recording(profile.id, kept.getName().substring(0, 36)) != null; } catch (IOException e) { return false; } }), "The compressed recording does not read");
+        log("the worker compressed it in place, and it reads");
         unplugAndSettle();
         for (File file : saved()) file.delete();
     }
@@ -674,6 +667,8 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         if (files == null) return new File[0];
         Arrays.sort(files, Comparator.comparingLong(File::lastModified).thenComparing(File::getName)); return files;
     }
+    /** The folder's journals: names() without the worker's compression temp files (<id>.csv.repair), which come and go. */
+    private Set<String> journals() { Set<String> names = names(); names.removeIf(name -> name.endsWith(".repair")); return names; }
     private Set<String> names() { Set<String> names = new TreeSet<>(); File[] files = folder().listFiles(); if (files != null) for (File f : files) names.add(f.getName()); return names; }
     private void log(String line) { timeline.append(SystemClock.elapsedRealtime() / 1000).append("s ").append(line).append('\n'); Bundle status = new Bundle(); status.putString("progress", line); sendStatus(0, status); }
     private StatusBarNotification connection() { for (StatusBarNotification n : getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications()) if (n.getId() == 71) return n; return null; }
@@ -783,10 +778,8 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
     private void savedListMarksGuess() throws Exception {
         unplugAndSettle();
         for (File file : saved()) require(file.delete(), "Could not clear " + file.getName());
-        ChargeSessionStore fixtures = new ChargeSessionStore(folder(), new ChargeSessionStore.AutomaticRules() {
-            public boolean keep(long ranMs, double gainedPoints) { return true; }
-            public int toRemove(int saved, int automatic, int max) { return ChargeAutoRecordPolicy.automaticToRemove(saved, automatic, max); }
-        });
+        // Keeps every recording, short ones too (the store's default rules).
+        ChargeSessionStore fixtures = new ChargeSessionStore(folder());
         String guessed = fixture(fixtures, 1, true).replace(".csv", "");
         String manualId = fixture(fixtures, 2, false).replace(".csv", "");
         require(ChargeSessionStore.labelSource(guessed) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.labelSource(manualId) == null, "Fixtures: " + guessed + " " + manualId);

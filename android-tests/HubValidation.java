@@ -84,6 +84,9 @@ import com.jjricks.volt.WideLayout;
  *   to its top first, and every moment is pictured at that scroll. Each place is measured only while the moment it
  *   belongs to is the one shown, its crossfade over. Every picture waits for a frame drawn after the views changed to
  *   reach the screen of the window it pictures (the activity's, or the All sheet's own).</li>
+ *   <li><b>Back from Just back's ride</b> (2.0.1 plan item 8): a tap on the Just back card opens its ride on All rides, and one
+ *   system Back returns to Home with no details left showing; the same ride opened from All rides' own list (Ride row, All
+ *   rides &amp; compare, its history row) still closes back to that list.</li>
  *   <li><b>Widgets Home</b>: its header is main's (no search or gear of its own); Search and Settings are the first rows
  *   of the dock's All sheet and open over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only
  *   (never on a subject page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet
@@ -1858,7 +1861,61 @@ public final class HubValidation extends ValidationInstrumentation {
                 + " (a ride saved just now: its ended line, distance, tiles at one value size and baseline, and "
                 + (routeSaid != null ? "its route drawn on screen (" + routeSaid + ")" : "no route shown: -e just_back_route optional, and JustBackFit.split gives up the route panel at this size")
                 + "; the Ride row shows that ride); each pictured at that scroll");
+        justBackBack(ride);
     }
+
+    /**
+     * Back from a ride Just back opened (a tester's report via the owner, 2.0.1 plan item 8): a tap on the card opens the
+     * ride on All rides (Home, All rides on the stack, the ride's details showing as the window lays them out), and one
+     * system Back returns to Home, with no details left showing, rather than to the All rides list under them. The same
+     * ride opened from All rides' own list (Home's Ride row, then All rides & compare, then its history row) keeps
+     * today's Back: the details close onto the list (on the wide panes, which have no details page, Back leaves the
+     * list for the Ride page), and the walk then goes back to Home.
+     */
+    private void justBackBack(String ride) throws Exception {
+        String title = onMain(() -> { try { return activity.service().rides.get(ride).label; } catch (Exception error) { throw new IllegalStateException(error); } });
+        tapTag(JUST_BACK_TAG);
+        await(() -> onMain(() -> HubPages.RIDE_RIDES.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))),
+                () -> "A tap on Just back opened " + onMain(() -> field(activity, "selectedPage")) + ", not All rides");
+        requireStack(HubPages.HOME, HubPages.RIDE_RIDES);
+        boolean wide = onMain(() -> Boolean.TRUE.equals(field(field(activity, "screen"), "wide")));
+        await(() -> onMain(() -> HubTestPages.rideDetailsProblem(activity, wide, 0, ride, title) == null),
+                () -> "Just back's ride: " + onMain(() -> HubTestPages.rideDetailsProblem(activity, wide, 0, ride, title)));
+        systemBack();
+        arrived(HubPages.HOME, HubPages.HOME);
+        requireHome("CleanHomeScreen");
+        require(!dialogShown(), "Back from Just back's ride left its details showing on Home");
+        screenshot("just-back-back-home");
+        // From the list: the rider's way to All rides (Home's Ride row, then All rides & compare), the same ride's history
+        // row tapped, then Back closes only the details (the compact dialog). Not HubTestPages.openRideDetails: it wants
+        // the window's wide layout, which All rides in two panes' page pane never takes (RidesScreen's paneHosted).
+        HubTestPages.route(this, activity, HubPages.RIDE_RIDES);
+        arrived(HubPages.RIDE_RIDES, HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES);
+        boolean listWide = onMain(() -> Boolean.TRUE.equals(field(field(activity, "screen"), "wide")));
+        View[] row = {null};
+        await(() -> onMain(() -> {
+            View thumb = (View) ((Map<?, ?>) field(field(activity, "screen"), "thumbs")).get(ride);
+            row[0] = thumb != null && thumb.getParent() instanceof View && shown((View) thumb.getParent()) ? (View) thumb.getParent() : null;
+            return row[0] != null;
+        }), "All rides shows no history row for Just back's ride");
+        HubTestPages.tapView(this, activity, row[0], "the history row of Just back's ride");
+        await(() -> onMain(() -> HubTestPages.rideDetailsProblem(activity, listWide, 0, ride, title) == null),
+                () -> "The ride from All rides' list: " + onMain(() -> HubTestPages.rideDetailsProblem(activity, listWide, 0, ride, title)));
+        systemBack();
+        if (!listWide) {
+            arrived(HubPages.RIDE_RIDES, HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES);
+            require(!dialogShown(), "Back did not close the ride's details opened from All rides");
+            systemBack();
+        }
+        arrived(HubPages.RIDE, HubPages.HOME, HubPages.RIDE);
+        systemBack();
+        arrived(HubPages.HOME, HubPages.HOME);
+        requireHome("CleanHomeScreen");
+        checks.add("Just back's ride: a tap on the card opens it on All rides (" + (wide ? "selected in the wide panes" : "its details page") + "), and one system Back"
+                + " returns to Home; the same ride opened from All rides' list closes back to " + (listWide ? "the Ride page (wide panes, no details page)" : "that list") + " as before");
+    }
+    /** JustBackView.TAG: the card itself, which opens its ride. */
+    private static final String JUST_BACK_TAG = "home-just-back";
 
     /** The least number of route points Just back must draw for the seeded ride (a start, an end and two between). */
     private static final int ROUTE_POINTS = 4;

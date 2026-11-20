@@ -371,7 +371,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean maintenancePending;
     private void pendMaintenance(boolean on){maintenancePending=on;MaintenanceScreen.pending(preferences,on);}
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
-    private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();}
+    private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();watchHome();}
     @Override public void onResume(){
         super.onResume();if(startupRedirect || enteringMaintenance)return;
         // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
@@ -419,7 +419,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         });
     }
     private void resume(){
-        resumed=true;resumes++;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
+        resumed=true;resumes++;missedStartOffered=0;watchHome();ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         // A long time away closes sub-pages back to their subject; Data keeps Live Stats' own shorter section reset.
         boolean expired=expireAway();
@@ -453,6 +453,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(HubNav.awayClockStarts(nav.subPagesOpen(),onboarding!=null,OwnDialogs.showing(),launchedAt,now))markAway();
         launchedAt=-1;searchKeyboard=null;
         if(inData())markStatsAway();
+        // Volt leaving the screen ends a stay on Home for Find it nearby's count; a recreation on screen (a theme or text
+        // size change) is not a leave (noteRidingLeft's rule).
+        if(scooterService!=null&&!isChangingConfigurations())scooterService.ble.homeShown(false);
         resumed=false;windowBack=false;windowBackWatch++;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
         super.onPause();
@@ -572,7 +575,19 @@ public final class MainActivity extends Activity implements ScreenHost {
     private boolean inData(){return inData(selectedPage);}
     private static boolean inData(String page){return HubPages.DATA.equals(HubPages.subjectOf(HubPages.canonical(page)));}
     /** Shows a page with only its parents below it, with no transition (startup, notifications, leaving riding mode or setup). */
-    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;searchReading=null;nav.reset(page);selectedPage=nav.current();}
+    private void showPage(String page){pageArgs=null;compatibilityRecovery=false;searchReading=null;nav.reset(page);selectedPage=nav.current();watchHome();}
+    /**
+     * Find it nearby counts only while Home stays the page shown with Volt in front (the owner's rule, Nov 2026; the
+     * count is FindNearby.Timeouts.home's): any other page, riding mode or setup ends a stay (and onPause, Volt leaving
+     * the screen); Home shown while resumed starts one. Called wherever the shown page changes and on every body refresh,
+     * so a quick visit elsewhere between refreshes still ends the stay. Home not yet resumed waits for onResume.
+     */
+    private void watchHome(){
+        if(scooterService==null)return;
+        boolean home=HubPages.HOME.equals(selectedPage)&&riding==null&&onboarding==null&&!enteringMaintenance&&!startupRedirect&&!destroyed;
+        if(!home)scooterService.ble.homeShown(false);
+        else if(resumed)scooterService.ble.homeShown(true);
+    }
     private Context dialogContext(){return new ContextThemeWrapper(this,design.dark?R.style.VoltDialog:R.style.VoltDialogLight);}
     private void ensureService(){
         if(bound||binding||!hasBluetoothPermission()||destroyed||DataMaintenance.active()||enteringMaintenance)return;
@@ -644,6 +659,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
+        watchHome();
         lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();if(homeScreen!=null)homeScreen.refresh();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
@@ -1001,7 +1017,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 RidesScreen rides=new RidesScreen(this,RidesScreen.ALL,paneHosted);
                 // A page argument names a ride to show (Home's last ride); it opens once the page is on screen.
                 String ride=args==null?null:args.ride;
-                // A search result's ride: closing its details goes back past All rides, to the search.
+                // A search result's ride or Home's (Just back): closing its details goes back past All rides, to the page
+                // that opened it (HubNav.Args.backAfterRide).
                 Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen==rides)navigateBack(false);}):null;
                 if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride,closed);});
                 return rides;
@@ -1313,7 +1330,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String id=ridingProfileId();
         RidingSession session=new RidingSession(id,new RidingConfig(preferences,id).powerScale(),SystemClock.elapsedRealtime(),ridingResume,scooterService.rideAutoEnds(),scooterService.ble.telemetry.followedSpeed());
         ridingResume=null;
-        riding=session;
+        riding=session;watchHome();
         session.observeLink(scooterService.ble.connected());
         if(scooterService.simulating()){
             // Sample data has no ride history: a synthetic battery model, so Range at this pace shows (never persisted).
@@ -1880,7 +1897,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The stack changed from page from: show its top, sliding in by depth (deeper from the end side, back from the start). */
     private void arrived(String from){
-        String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();
+        String page=nav.current();selectedPage=page;preferences.edit().putString("last_page",page).apply();watchHome();
         if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
         // The wide Clean Home changes only its page pane; the scooter pane never changes while browsing.
         if(rightPage!=null&&homeScreen!=null&&!rebuilding&&twoPaneHome())swapPagePane(HubNav.direction(from,page));
@@ -1927,7 +1944,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         preferences.edit().remove(HUB_AWAY_AT).remove(HUB_AWAY_BOOT).apply();
         if(!expired||!nav.closeSubPages())return false;
         pageArgs=null;if(!nav.pages().contains(HubPages.SERVICE_COMPATIBILITY))compatibilityRecovery=false;
-        selectedPage=nav.current();preferences.edit().putString("last_page",selectedPage).apply();
+        selectedPage=nav.current();preferences.edit().putString("last_page",selectedPage).apply();watchHome();
         return true;
     }
     private int bootCount(){
@@ -3062,7 +3079,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             historyLoading=true;
             // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": the card says it
             // could not load them, as the Charge history dialog does, and forgets the key so a later refresh loads again.
-            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;
+            if(!scooterService.loadChargeRecordings(0,sessions->{historyLoading=false;if(destroyed)return;
                     // The scooter changed mid-load (the service answers null then too): load the new scooter's at once,
                     // not "Could not load recordings." and a 5 s wait.
                     String now=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;

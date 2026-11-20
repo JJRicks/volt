@@ -17,7 +17,8 @@ import java.util.function.Consumer;
 
 /** Local route geometry works without a basemap. Tiles load only for the visible viewport. */
 public final class RouteMapView extends View {
-    private static final ExecutorService TILES =
+    /** Two tile loaders shared by every map, the Just back card's basemap (JustBackView) included. */
+    static final ExecutorService TILES =
             Executors.newFixedThreadPool(
                     2,
                     r -> {
@@ -32,7 +33,8 @@ public final class RouteMapView extends View {
     private int maximumTileZoom;
     private Consumer<String> statusListener;
     private final LruCache<String, Bitmap> tiles =
-            new LruCache<String, Bitmap>(12 * 1024 * 1024) {
+            // Room for a full screen of the finer tiles (FINER_TILES): about 40 at 256 KB each.
+            new LruCache<String, Bitmap>(20 * 1024 * 1024) {
                 @Override
                 protected int sizeOf(String key, Bitmap value) {
                     return value.getByteCount();
@@ -547,8 +549,14 @@ public final class RouteMapView extends View {
                 (int) (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * fraction));
     }
 
+    /**
+     * Tiles come from one zoom finer than the view's own (owner, Nov 19 2026: "map a little bit finer"), drawn at half
+     * their usual size: crisper streets and smaller labels, about four times the tiles, still only the visible ones.
+     */
+    private static final int FINER_TILES = 1;
+
     private void drawTiles(Canvas canvas) {
-        int tileZoom = Math.min((int)Math.floor(zoom), maximumTileZoom);
+        int tileZoom = Math.min((int)Math.floor(zoom) + FINER_TILES, maximumTileZoom);
         // Enlarge available tiles without limiting close-up route inspection.
         double size = ui.dp(256) * Math.pow(2, zoom - tileZoom),
                 w = world(),

@@ -50,7 +50,10 @@ public final class ChargingTextTest {
         } finally {
             Locale.setDefault(saved);
         }
-        same("98a23bcf76e3d7eb", sha(corpus).substring(0, 16), "the estimate label and status corpus");
+        // stitched-estimate-v1 (owner, Nov 19 2026: partial recordings join, single recordings count provisionally):
+        // a model without a bundled reference now gets a provisional time to an 80% limit from one past charge at 30%
+        // and 45% (4 status lines change; every label is the same).
+        same("feb46aa24f155e8d", sha(corpus).substring(0, 16), "the estimate label and status corpus");
         System.out.println("ChargingTextTest: " + checks + " checks passed (alert wording, estimate labels and statuses, "
                 + "measuring and capacity reasons under 5 phone locales)");
     }
