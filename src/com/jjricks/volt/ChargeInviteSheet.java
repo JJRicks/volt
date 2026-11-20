@@ -13,8 +13,8 @@ import android.widget.TextView;
  * Record charges automatically (the same switch and preference as Charge history &amp; recordings'), Record this charge
  * (opens that page at its Record this charge row and starts it when a recording can start now, else the row's status
  * says why), Charge history &amp; recordings itself, and Not now. Closing the sheet any way keeps the banner: only its X
- * hides it (ChargeInvite's rule). Text from HubText and the rows' own strings. Home's record tip opens a shorter sheet
- * from the same parts (showRecordTip).
+ * hides it (ChargeInvite's rule). Text from HubText and the rows' own strings. Its parts (a point, the auto-record
+ * switch, Charge history &amp; recordings, the spacing) are shared with Home's estimate tip's sheet (ChargeEstimateTip).
  */
 final class ChargeInviteSheet {
     private ChargeInviteSheet() { }
@@ -42,46 +42,8 @@ final class ChargeInviteSheet {
         return shown[0];
     }
 
-    /**
-     * Home's record tip's sheet (ChargeEstimateTip.Tip.NO_RECORDINGS; owner, Nov 19 2026): "Record your charges", the
-     * invite's intro (Volt learns from real charges; recordings make the estimate more accurate), the invite's points but
-     * its first (any charge helps, 100% helps most, keep the phone near, then send them to Volt for the model), then the
-     * same controls in the order a rider on the charging screen wants them: Record this charge (record: the page starts
-     * it right there when it can, and says why not otherwise; it returns whether the sheet should close), Record charges
-     * automatically, Charge history &amp; recordings, Not now, and a quiet Hide this tip (hide), which hides the tip for
-     * good. Closing the sheet any other way keeps the tip. Returns the sheet, so the page can close it with itself.
-     */
-    static AlertDialog showRecordTip(ScreenHost host, SharedPreferences preferences, java.util.function.BooleanSupplier record, Runnable hide) {
-        Ui ui = host.ui();
-        AlertDialog[] shown = new AlertDialog[1];
-        Runnable close = () -> { if (shown[0] != null) shown[0].dismiss(); };
-        LinearLayout content = host.sheetContent(HubText.recordTipTitle(), HubText.chargeInviteIntro(), close);
-        content.setTag(ChargeEstimateTip.TAG_SHEET);
-        for (Msg step : HubText.recordTipSteps()) content.addView(point(host, ui, step.render()), new LinearLayout.LayoutParams(-1, -2));
-        TextView start = ui.button(T.moreDevRecord(), () -> { if (record.getAsBoolean()) close.run(); });
-        start.setTag(ChargeEstimateTip.TAG_RECORD);
-        content.addView(start, buttonSpace(ui, 14));
-        content.addView(autoToggle(ui, preferences, ChargeEstimateTip.TAG_AUTO), toggleSpace(ui));
-        content.addView(historyButton(host, ui, close, ChargeEstimateTip.TAG_OPEN), buttonSpace(ui, 8));
-        TextView later = ui.secondaryButton(T.mainReportNotNow(), close);
-        later.setTag(ChargeEstimateTip.TAG_NOT_NOW);
-        content.addView(later, buttonSpace(ui, 8));
-        // Quiet: plain muted words, no fill or outline, full width and 48 dp to touch.
-        String hideWords = HubText.estimateTipHide().render();
-        TextView hideTip = ui.text(hideWords, 13.5f, false);
-        hideTip.setTypeface(ui.medium()); hideTip.setTextColor(ui.muted); hideTip.setGravity(android.view.Gravity.CENTER);
-        hideTip.setMinHeight(ui.dp(48)); hideTip.setPadding(ui.dp(16), 0, ui.dp(16), 0);
-        hideTip.setFocusable(true); hideTip.setClickable(true); hideTip.setContentDescription(hideWords);
-        hideTip.setBackground(new android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null, ui.shape(0xFFFFFFFF, 14, 0)));
-        hideTip.setTag(ChargeEstimateTip.TAG_HIDE);
-        hideTip.setOnClickListener(v -> { close.run(); hide.run(); });
-        content.addView(hideTip, buttonSpace(ui, 6));
-        shown[0] = host.showSheet(content);
-        return shown[0];
-    }
-
     /** Record charges automatically: the same switch and preference as Charge history &amp; recordings' (MoreScreen.charging). */
-    private static View autoToggle(Ui ui, SharedPreferences preferences, String tag) {
+    static View autoToggle(Ui ui, SharedPreferences preferences, String tag) {
         boolean auto;
         try { auto = preferences.getBoolean(ChargeAutoRecordPolicy.KEY, false); } catch (ClassCastException wrongType) { auto = false; }
         // One preference, which the service follows.
@@ -91,14 +53,14 @@ final class ChargeInviteSheet {
         return toggle;
     }
 
-    private static LinearLayout.LayoutParams toggleSpace(Ui ui) {
+    static LinearLayout.LayoutParams toggleSpace(Ui ui) {
         LinearLayout.LayoutParams toggleSpace = new LinearLayout.LayoutParams(-1, -2);
         toggleSpace.topMargin = ui.dp(14);
         return toggleSpace;
     }
 
     /** Charge history &amp; recordings, by the page's own name: closes the sheet and opens it. */
-    private static TextView historyButton(ScreenHost host, Ui ui, Runnable close, String tag) {
+    static TextView historyButton(ScreenHost host, Ui ui, Runnable close, String tag) {
         TextView open = ui.secondaryButton(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(), () -> {
             close.run();
             host.open(HubPages.BATTERY_HISTORY);
@@ -108,7 +70,7 @@ final class ChargeInviteSheet {
     }
 
     /** One point of the list: a small accent dot beside its sentence, which wraps under itself. */
-    private static View point(ScreenHost host, Ui ui, String text) {
+    static View point(ScreenHost host, Ui ui, String text) {
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setPadding(0, ui.dp(6), 0, ui.dp(2));
@@ -126,7 +88,7 @@ final class ChargeInviteSheet {
         return line;
     }
 
-    private static LinearLayout.LayoutParams buttonSpace(Ui ui, int topDp) {
+    static LinearLayout.LayoutParams buttonSpace(Ui ui, int topDp) {
         LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
         space.topMargin = ui.dp(topDp);
         return space;

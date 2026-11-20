@@ -10,10 +10,10 @@ import java.util.Set;
 
 /**
  * Home's estimate tip (ChargeEstimateTip; owner, Nov 19 2026): which tip shows under the charging view's time, every
- * gate both ways; its hide preference and its backup; its words and its narrow rungs; Clean's room rule
- * (ChargingFit.extraFits); and the text-free wiring around it (source checks). Fixtures are synthesized.
+ * gate both ways; its hide preference and its backup; Clean's room rule (ChargingFit.extraFits); and the text-free
+ * wiring around it (source checks). Its words and Home's slot are ChargeEstimateTipTextTest's. Fixtures are synthesized.
  */
-public final class ChargeEstimateTipTest {
+public final class ChargeEstimateTipRuleTest {
     private static int checks;
 
     public static void main(String[] args) throws Exception {
@@ -21,10 +21,9 @@ public final class ChargeEstimateTipTest {
         snapshot();
         hidden();
         backup();
-        text();
         room();
         wiring();
-        System.out.println("ChargeEstimateTipTest: " + checks + " checks passed");
+        System.out.println("ChargeEstimateTipRuleTest: " + checks + " checks passed");
     }
 
     private static final ChargeEstimateTip.Tip RECORD = ChargeEstimateTip.Tip.NO_RECORDINGS;
@@ -90,25 +89,6 @@ public final class ChargeEstimateTipTest {
         check(plan.contains("estimateTip(root);"), "The backup round trip covers a hidden tip (BackupPlanTest.estimateTip)");
     }
 
-    /** Every tip's words: a full rung, a shorter one, and an icon from the app's set. The record tip's sheet reuses the invite's. */
-    private static void text() {
-        check("Improve this estimate".equals(HubText.estimateTip(RECORD).render()), "Full: " + HubText.estimateTip(RECORD).render());
-        check("Improve estimate".equals(HubText.estimateTipShort(RECORD).render()), "Short: " + HubText.estimateTipShort(RECORD).render());
-        for (ChargeEstimateTip.Tip tip : ChargeEstimateTip.Tip.values()) {
-            String full = HubText.estimateTip(tip).render(), brief = HubText.estimateTipShort(tip).render();
-            check(!full.isEmpty() && !brief.isEmpty() && brief.length() < full.length(), tip.id + ": the short rung is shorter");
-            check(!ChargeEstimateTip.icon(tip).isEmpty(), tip.id + ": an icon");
-        }
-        check("Record your charges".equals(HubText.recordTipTitle().render()), "Sheet title");
-        check("Hide this tip".equals(HubText.estimateTipHide().render()), "Hide button");
-        Msg[] steps = HubText.recordTipSteps();
-        Msg[] invite = HubText.chargeInviteSteps();
-        check(steps.length == 4, "Four points");
-        for (int i = 0; i < steps.length; i++)
-            check(steps[i].render().equals(invite[i + 1].render()), "Point " + i + " is the invite's own: " + steps[i].render());
-        check(steps[3].render().contains(HubText.chargeSendRow().render()), "Donating comes last: " + steps[3].render());
-    }
-
     /** Clean's slot: the tip shows only where it costs nothing but some of the stage's height. */
     private static void room() {
         float d = 2.625f;
@@ -134,27 +114,14 @@ public final class ChargeEstimateTipTest {
         check(!ChargingFit.extraFits(tight, tightWithout), "A short slot: the tip makes way first");
     }
 
-    /** Home, the sheet, the service and Charge history &amp; recordings (source checks). */
+    /** The service and Charge history &amp; recordings' shared question (source checks). */
     private static void wiring() throws Exception {
-        String home = read("src/com/jjricks/volt/DashboardScreen.java").replace(" ", "");
-        String sheet = read("src/com/jjricks/volt/ChargeInviteSheet.java").replace(" ", "");
         String more = read("src/com/jjricks/volt/MoreScreen.java").replace(" ", "");
         String service = read("src/com/jjricks/volt/ScooterService.java").replace(" ", "");
-        check(home.contains("timeTile.update(estimate,chargeAlertEstimate(values),level);\nshowTip();"), "Every charging refresh decides the tip");
-        check(home.contains("ChargeEstimateTip.choose(true,s.chargeRecordingsSaved(),s.isChargeRecording(),stored)"), "Home asks the policy with the service's facts");
-        check(home.contains("Motion.reveal(root,tipSlot,next!=null);"), "It comes and goes with Motion.reveal (instant with animations off)");
-        check(home.contains("preferences.edit().putBoolean(tip.hiddenKey(),true).commit();"), "Hide this tip stores the answer, committed");
-        check(home.contains("Stringunavailable=s.chargeCaptureUnavailable();\nif(unavailable!=null){host.toast(unavailable);returnfalse;}"),
-                "Record this charge says the existing reason when a recording can't start, and the sheet stays");
-        check(home.contains("ChargeRecordDialog.show(host,s,"), "Record this charge asks the charger question on Home");
-        check(home.contains("if(!ChargingFit.extraFits(plan,without)){"), "Clean's tip makes way first");
-        check(sheet.contains("staticAlertDialogshowRecordTip(") && sheet.contains("HubText.recordTipSteps()")
-                && sheet.contains("HubText.chargeInviteIntro()"), "The sheet reuses the invite's intro and points");
-        check(sheet.contains("autoToggle(ui,preferences,ChargeEstimateTip.TAG_AUTO)"), "The same auto-record switch");
-        check(!sheet.contains("ChargeEstimateTip.Tip.NO_RECORDINGS.hiddenKey") && !sheet.contains("putBoolean(ChargeEstimateTip"),
-                "The sheet itself stores nothing: Home's hide does");
-        check(more.contains("ChargeRecordDialog.show(host,s,()->closed||service()!=s,this::refreshCharging,this::show);"),
-                "Charge history & recordings asks the same question");
+        check(more.contains("recordChargeQuestion(host,s,()->closed||service()!=s,this::refreshCharging,this::show);"),
+                "Charge history & recordings asks the shared question");
+        check(more.contains("staticvoidrecordChargeQuestion(") && more.contains("picker.setTag(\"charge-confirmation-selector\");"),
+                "The question is one static method, its tags kept for the validations");
         check(service.contains("Booleanknown=ChargeEstimateTip.savedFromSnapshot(snapshot.sessions,evidence);"),
                 "The service answers from the snapshot first");
         check(service.contains("saved=!chargeStore.recordings(profile).isEmpty();"), "and counts this scooter's own only where it must");

@@ -47,7 +47,8 @@ import java.util.function.BooleanSupplier;
  *   scooter's own) makes it go; with the file gone it comes back.</li>
  * </ul>
  * Arguments: home=widgets|clean, theme, text_scale, size_label. Mode look (-e mode look): only the tip at rest and its
- * sheet, for renders; on an app without the tip it shows the charging view and passes.
+ * sheet, for renders. An app without the tip (built before it, or a sweep's base app) gets a screenshot of its charging
+ * view and passes.
  */
 public final class EstimateTipValidation extends Instrumentation {
     private MainActivity activity;
@@ -75,7 +76,8 @@ public final class EstimateTipValidation extends Instrumentation {
                 profiles.select(profile); OnboardingScreen.markDone(getTargetContext());
             });
             launch();
-            if (mode.equals("look")) look();
+            if (!tipBuilt()) { shot("tip-" + label); checks.add("An app without the estimate tip: its charging view as it is"); }
+            else if (mode.equals("look")) look();
             else {
                 verifyShows();
                 verifySheet();
@@ -195,9 +197,6 @@ public final class EstimateTipValidation extends Instrumentation {
 
     /** Renders: the tip at rest and its sheet. */
     private void look() throws Exception {
-        boolean built;
-        try { built = Class.forName("com.jjricks.volt.ChargeEstimateTip") != null; } catch (ClassNotFoundException missing) { built = false; }
-        if (!built) { shot("tip-" + label); checks.add("No estimate tip in this app: the charging view as it is"); return; }
         long end = SystemClock.uptimeMillis() + 10000;
         while (SystemClock.uptimeMillis() < end && !tipShown()) { main(() -> activity.redraw()); settle(); }
         shot("tip-" + label);
@@ -211,6 +210,15 @@ public final class EstimateTipValidation extends Instrumentation {
 
     // ---- Fixtures and finders -----------------------------------------------------------------------------------
 
+    /** Whether this app's charging view has the tip's slot (a build before it, such as a sweep's base app, has none). */
+    private boolean tipBuilt() {
+        boolean[] out = new boolean[1];
+        main(() -> {
+            for (Class<?> type = hero().getClass(); type != null; type = type.getSuperclass())
+                try { type.getDeclaredField("tipSlot"); out[0] = true; return; } catch (NoSuchFieldException missing) { }
+        });
+        return out[0];
+    }
     private boolean tipShown() {
         boolean[] out = new boolean[1];
         main(() -> {

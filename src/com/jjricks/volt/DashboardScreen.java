@@ -281,7 +281,7 @@ public final class DashboardScreen implements AppScreen {
 
     /**
      * Find it nearby (entry A): a card with what happened and a secondary button that opens the scan sheet in find mode.
-     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address, nothing else going on).
+     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address in one stay on Home, nothing else going on).
      */
     private LinearLayout newFindCard() {
         TextView words = ui.text("", 14, false);
@@ -9424,14 +9424,14 @@ public final class DashboardScreen implements AppScreen {
 
     /**
      * A tap on the charging view's estimate tip runs its action (ChargeEstimateTip). The record tip opens its sheet
-     * (ChargeInviteSheet.showRecordTip), kept as this Home's dialog so it closes with Home. A new tip adds its case here.
+     * (RecordTipSheet), kept as this Home's dialog so it closes with Home. A new tip adds its case here.
      */
     private void openTip(ChargeEstimateTip.Tip tip) {
         switch (tip) {
             case NO_RECORDINGS:
                 if (dialog != null && dialog.isShowing()) return;
                 dismiss();
-                dialog = ChargeInviteSheet.showRecordTip(host, preferences, this::recordFromTip, () -> hideTip(tip));
+                dialog = RecordTipSheet.show(host, preferences, this::recordFromTip, () -> hideTip(tip));
                 break;
             default:
                 break;
@@ -9440,7 +9440,7 @@ public final class DashboardScreen implements AppScreen {
 
     /**
      * The record tip's Record this charge, on the charging screen itself: when a recording can start now, the sheet
-     * closes and the charger question (ChargeRecordDialog, Charge history &amp; recordings' own) opens over Home; when
+     * closes and the charger question (MoreScreen.recordChargeQuestion, Charge history &amp; recordings' own) opens over Home; when
      * it can't, the reason shows (ScooterService.chargeCaptureUnavailable) and the sheet stays. Returns whether the sheet
      * closes.
      */
@@ -9453,10 +9453,10 @@ public final class DashboardScreen implements AppScreen {
         // of its own to post to, so the main thread's queue).
         new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
             if (closed || host.service() != s) return;
-            ChargeRecordDialog.show(host, s, () -> closed || host.service() != s, () -> { if (!closed) host.redraw(); }, (question, onDismiss) -> {
+            MoreScreen.recordChargeQuestion(host, s, () -> closed || host.service() != s, () -> { if (!closed) host.redraw(); }, (question, onDismiss) -> {
                 dismiss();
                 dialog = question;
-                ChargeRecordDialog.present(ui, question, () -> {
+                MoreScreen.presentDialog(ui, question, () -> {
                     if (dialog == question) dialog = null;
                     if (onDismiss != null) onDismiss.run();
                 });

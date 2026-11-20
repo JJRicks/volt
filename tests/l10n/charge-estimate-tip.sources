@@ -1,7 +1,0 @@
-# Home's estimate tip (ChargeEstimateTip): which tip shows, its hide preference and backup, its words, Clean's room
-# rule and its wiring.
-src/com/jjricks/volt/ChargeEstimateTip.java
-src/com/jjricks/volt/ChargeInvite.java
-src/com/jjricks/volt/HubText.java
-src/com/jjricks/volt/HubPages.java
-tests/l10n/ChargeEstimateTipTest.java
