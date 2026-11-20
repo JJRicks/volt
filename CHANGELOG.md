@@ -2,11 +2,13 @@
 
 ## 2.0.2 — 2026-11-20
 
-Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, clearer words in a few places and some fixes.
+Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, a steadier time to full, the live charging card during charge recordings, clearer words in a few places and some fixes.
 
 - **Record this charger.** When your scooter has charge recordings from only one charger, and the charge on now draws far more or far less power than they did, Home shows a **Record this charger** tip under the charging time. Tap it to record this charge as the other charger, or, while Volt is already recording it by itself with a guessed charger, to save that recording as the other charger, so Volt learns an estimate for each.
+- **A steadier time to full.** The time to full no longer flips back and forth between two values a couple of minutes apart, as it could on the standard charger. Volt now uses the charging current averaged over the last minute; a real change, such as a charger plugged in, swapped or stepping down, still shows at once. **Charging power** beside it moves less too.
+- **The live charging card during a recording.** On Android 16 and later, while a charge recording runs, the charging card is the Live Update too (its status-bar chip and progress bar), not a plain notification. The recording's status line shows in Volt, and on the plain card where Android doesn't show a Live Update.
 - **Clearer words.** The **Record a charge** dialog no longer says Volt keeps the last 20 recordings; it says the oldest are cleared when there's no more room (Volt keeps up to 1,000). In **Map settings**, the **Just back** card's map switch is **Map on Home's last ride** instead of **Home**. **What Volt has learned** says **Too cold or hot to learn** for a stretch a high-speed charge covered only at those temperatures, instead of calling it **No data**.
-- **Fixes:** On a wide Clean Home, closing a ride you opened from **Just back** while **All rides** is open beside Home goes back to All rides. Clean's charge-limit bar takes a drag started just below it again. The card that says a scooter "may have a new Bluetooth address" also counts the first connection attempt when Volt opens on Home. Ride maps on large tablets keep more map tiles ready.
+- **Fixes:** On a wide Clean Home, closing a ride you opened from **Just back** while **All rides** is open beside Home goes back to All rides. Clean's charge-limit bar takes a drag started just below it. The card that says a scooter "may have a new Bluetooth address" also counts the first connection attempt when Volt opens on Home. Ride maps on large tablets keep more map tiles ready.
 - **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
 
 ### Charge recordings
@@ -18,12 +20,17 @@ Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, 
 ### Home
 
 - **Just back over All rides.** On a wide screen with Clean's two panes, a ride opened from **Just back** while **All rides** is the page beside Home now closes back to All rides, as a ride opened from that list does. Everywhere else it still closes back to Home.
-- **Clean's charge-limit bar** takes a press in the strip just below it again, so its whole touch band works as on Widgets. Scrolling the page is unchanged.
+- **Clean's charge-limit bar** takes a press in the strip just below it, so its whole touch band works as on Widgets; since Clean got the bar in 2.0.1, that strip had never reached it. Scrolling the page is unchanged.
 - **Find it nearby** counts a failed connection attempt only while Home is on screen, as in 2.0.1, and now also the first one, which Volt starts as it opens (or reopens) on Home.
 
 ### Charging estimates
 
+- **The time to full stops flipping.** The battery reports its charging current in small steps (about 0.02 A). When the current sat on a step's edge, every reading moved between the two steps, and the time to full flipped between two values about two minutes apart on a four-hour standard charge. Every time estimate now uses the current averaged over the last minute, weighted by time. A reading at least 0.1 A and 5% away from the average starts it again from that reading, so a charger plugged in, swapped or stepping down shows at once; slow changes such as the warm-up or the taper show about half a minute later. The average starts afresh when charging stops, on another scooter or after a gap of more than a minute. The same steadier current feeds the live card, alerts, recorded estimates and **Charge done by**, and the **Charging power** shown with the estimate.
 - The time's long-press status says "Charge done by plans with the rated capacity" only when it does. When Charge done by plans with a learned curve or a provisional time instead, the sentence is left off.
+
+### Notifications
+
+- **The live charging card stays a Live Update during a charge recording** (Android 16 and later, with Live updates allowed). Before, a running recording kept the card plain so it could show the recording's status line. It is still the one card, with **Stop charge recording** as its button; as a Live Update it has no status line, so the recording's status shows in Volt, and on the plain card on older Android or with Live updates off.
 
 ### Maps
 

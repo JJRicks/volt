@@ -1,22 +1,27 @@
-VOLT 2.0.2 — RECORD THIS CHARGER, CLEARER WORDS, FIXES (versionCode 62)
+VOLT 2.0.2 — RECORD THIS CHARGER, A STEADIER TIME TO FULL, THE LIVE CARD WHILE RECORDING, CLEARER WORDS, FIXES (versionCode 62)
 Draft, November 20, 2026. The release checks below are still to run.
 
 - Cut from main. Every pull request merged into main since v2.0.1
   (75667d5e) is in it: the "record this charger" tip (#576 and #577,
   held out of 2.0.1) and the P3 sweep (#580: Just back over All rides,
   Home's stay on a fresh bind, the route map tile cache, Clean's bar
-  band, one reading matcher). #581 (RELEASING.md's split release sweep)
-  changes no app code, nor does any other docs-only pull request that
-  merges before the release commit. The English text fixes for
-  2.0.2 (#585), the language top-up for this release's new text and this
-  release's own version, changelog and docs come after them.
+  band, one reading matcher), the English text fixes (#585: Record a
+  charge's line, Map settings' Map on Home's last ride switch, What Volt
+  has learned's too cold or hot stretches), the steadier charging current
+  behind every time estimate (#586) and the live charging card as a Live
+  Update during a charge recording (#587). #581 (RELEASING.md's split
+  release sweep) and #582 (2.0.1's record in this file) change no app
+  code, nor does any other docs-only pull request that merges before the
+  release commit. The language top-up for this release's new text and
+  this release's own version, changelog and docs come after them.
   [PHASE 2: the last PR number merged before the release commit; for each
   PR, CI on its merged head and the independent review on the head that
   merged.]
-- run-release-sweep.py lists 296 steps on main at #580's merge, 4 more
+- run-release-sweep.py lists 296 steps on main at #585's merge, 4 more
   than 2.0.1's 292, none gone: the charger tip on Widgets and Clean at
   344 and 412 dp, two of them during an automatic recording
-  (estimate-tip-charger-*). Every validation registered in
+  (estimate-tip-charger-*). #587 adds charge-live-recording, which makes
+  297. Every validation registered in
   android-tests/AndroidManifest.xml is covered (the script's own guard).
   [PHASE 2: confirm the step list and counts on the release commit.]
 - Languages: [PHASE 2: ship_check --release --aapt required result and the
@@ -33,8 +38,19 @@ Draft, November 20, 2026. The release checks below are still to run.
   hardware: the Record this charger tip on a real second charger (the
   far-off rule on live power, Record this charge as High-speed or Stock
   from its sheet, and Save this recording filing a running automatic
-  recording), Find it nearby's first attempt when Volt opens on Home, and
-  everything 2.0.1's list below still owes.
+  recording), the steadier time to full on a real standard charge (no
+  flipping, and real steps still shown at once), the Live Update during
+  a real charge recording on an Android 16 phone, Find it nearby's first
+  attempt when Volt opens on Home, and everything 2.0.1's list below
+  still owes.
+- The steadier current (#586) was checked by JVM tests on synthesized
+  charges and by replaying 8 recorded standard-charger charges on a
+  computer (aggregate results in #586; the recordings stay private): the
+  time to full going up for 2 minutes or more fell from 84 times to 6,
+  and back-and-forth flips of 2 minutes or more from 43 to 1. The
+  emulator steps run on the simulator, where the average isn't used.
+  The Live Update during a recording (#587) was checked on an Android 16
+  emulator (charge-live-recording), not on a phone.
 - The charger tip's emulator steps set its state through validation-only
   fields, because the simulator never records or runs the far-off rule.
   They check the tip, its sheet's words for both actions, Not now and
