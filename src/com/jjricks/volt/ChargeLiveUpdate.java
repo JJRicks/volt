@@ -100,6 +100,25 @@ public final class ChargeLiveUpdate {
         return chargerPaused || schedulePaused && kind != ChargeLiveState.Kind.WAITING;
     }
 
+    /**
+     * What the plain card and its lock screen version say. The card's own words, except while the recording has
+     * stopped charging (recordingStopped): those read as charging ("Charging · 62%", "Estimating time left"), so the
+     * card and the lock screen both take the recording's title and status, the text the service gives a charge
+     * recording ("Charge recording is active", "charger stopped · waiting for it to resume"). Review of #587 r2: F02 the
+     * title, F01 the lock screen. A lock screen set to show none of the card (Detail.HIDDEN: no public title) still shows none.
+     */
+    public static final class Words {
+        public final String title, text, publicTitle, publicText;
+        private Words(String title, String text, String publicTitle, String publicText) {
+            this.title = title;this.text = text;this.publicTitle = publicTitle;this.publicText = publicText;
+        }
+    }
+    public static Words words(ChargeLiveState live, boolean recordingStopped, String recordingTitle, String recordingStatus) {
+        if (!recordingStopped) return new Words(live.title, live.text, live.publicTitle, live.publicText);
+        boolean hidden = live.publicTitle == null;
+        return new Words(recordingTitle, recordingStatus, hidden ? null : recordingTitle, hidden ? null : recordingStatus);
+    }
+
     /** The developer row's answer: one glance at whether the Pixel promotes the card. */
     public enum Status { OLD_ANDROID, UNAVAILABLE, NOT_ALLOWED, PROMOTED, NOT_PROMOTABLE, NOT_PROMOTED, READY }
 

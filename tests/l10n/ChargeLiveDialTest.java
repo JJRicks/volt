@@ -43,7 +43,8 @@ public final class ChargeLiveDialTest {
         check(from > 0 && to > from, "found chargeLiveCard");
         String card = src.substring(from, to);
         check(card.contains("asked&&chargeLiveLook.dial()&&live.dialPercent!=null"), "the dial needs the request and Android's promotion");
-        check(card.contains(".setContentTitle(live.publicTitle)") && !card.substring(card.indexOf("Notification.Builder lock=")).contains("dialTitle"), "the lock screen keeps its title, with the level in words");
+        // The lock screen's words (ChargeLiveUpdate.words): the card's public title, or the recording's while it has stopped charging (#587 r2 F01).
+        check(card.contains(".setContentTitle(words.publicTitle)") && !card.substring(card.indexOf("Notification.Builder lock=")).contains("dialTitle"), "the lock screen keeps its title, with the level in words");
         check(src.contains("chargeLiveLook.observed(promoted)&&chargeLiveShown())updateNotification()"), "a changed verdict rebuilds a card that's still showing");
         check(src.contains("chargeLiveReposts.reset();chargeLiveLook.reset();"), "each hold starts fresh");
     }

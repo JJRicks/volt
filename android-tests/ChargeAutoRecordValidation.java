@@ -463,13 +463,18 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         return onMain(() -> { Object card = field(service, "chargeLiveBuilt");
             return service.isChargeRecording() && card != null && ChargeLiveUpdate.recordingStopped(chargeStore().chargerPaused(), chargeStore().paused(), ((ChargeLiveState) card).kind); });
     }
-    /** The posted connection notice is the live card: the title the service built for it (or the promoted card's shorter one). */
+    /**
+     * The posted connection notice is the live card: the title the service built for it (or the promoted card's shorter
+     * one); while the recording has stopped charging, the recording's title (#587 r2 F02: the card's own reads as charging).
+     */
     private boolean liveCardPosted() {
         StatusBarNotification n = connection();
         if (n == null) return false;
         CharSequence title = n.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE);
+        boolean stopped = recordingStopped();
         return onMain(() -> { Object card = field(service, "chargeLiveBuilt");
-            return card != null && title != null && (title.toString().equals(String.valueOf(field(card, "title"))) || title.toString().equals(String.valueOf(field(card, "dialTitle")))); });
+            return card != null && title != null && (stopped ? title.toString().equals(T.serviceNoticeChargeActive())
+                    : title.toString().equals(String.valueOf(field(card, "title"))) || title.toString().equals(String.valueOf(field(card, "dialTitle")))); });
     }
     /** Checks the posted live card and returns whether Android promoted it; a promoted card has no summary, a plain recording's card its status. */
     private boolean cardShape(String what, boolean recording) {
@@ -482,9 +487,20 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         boolean asked = onMain(() -> (Boolean) field(service, "liveUpdateAsked"));
         require(asked == liveUpdateAsked(), what + ": the card " + (asked ? "asked" : "did not ask") + " for a Live Update");
         if (asked) require(String.valueOf(template).endsWith("$ProgressStyle") && summary == null, what + ": not the Live Update a charge without a recording shows: " + template + ", summary " + summary);
-        else if (recordingStopped()) require(summary == null && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus()))
-                && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus())),
-                what + ": a stopped recording's card doesn't say so in its text: " + noticeTexts());
+        else if (recordingStopped()) {
+            require(summary == null && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus()))
+                    && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus())),
+                    what + ": a stopped recording's card doesn't say so in its text: " + noticeTexts());
+            // #587 r2 F02, F01: its title is the recording's, and the lock screen's version says the same.
+            require(T.serviceNoticeChargeActive().contentEquals(String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TITLE))),
+                    what + ": a stopped recording's card still has the card's own title: " + noticeTexts());
+            Notification lock = note.publicVersion;
+            require(lock != null && T.serviceNoticeChargeActive().contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))
+                    && String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus())),
+                    what + ": the lock screen's version doesn't say the charger stopped: " + (lock == null ? "(none)"
+                            : lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT)));
+            log(what + ": lock screen " + lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT));
+        }
         else if (recording) require(String.valueOf(summary).equals(onMainText(() -> service.chargeCaptureStatus())), what + ": the plain card lost the recording's status: " + summary);
         log(what + ": live card, asked " + asked + ", promoted " + promoted + ", template " + template + ", summary " + summary + "; " + notice());
         return promoted;

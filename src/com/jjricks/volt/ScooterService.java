@@ -1732,9 +1732,10 @@ public final class ScooterService extends Service {
     }
     /**
      * The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner,
-     * 2026-11-06). text: the card's text (the recording's status while it has stopped charging); capture: the summary.
+     * 2026-11-06). words: the card's and the lock screen's title and text (the recording's while it has stopped
+     * charging, ChargeLiveUpdate.words); capture: the summary.
      */
-    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence text,CharSequence capture){
+    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,ChargeLiveUpdate.Words words,CharSequence capture){
         int red=android.graphics.Color.rgb(0xE3,0x2B,0x2F);
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
@@ -1742,15 +1743,15 @@ public final class ScooterService extends Service {
         boolean asked=promoteChargeLive(builder,live);
         if(!asked&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         builder.setShowWhen(false);
-        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(text);
+        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(words.text);
         if(capture!=null)big.setSummaryText(capture);
         if(!asked)builder.setStyle(big);
         // Only a card Android really promoted takes the dial and the shorter title (ChargeLiveUpdate.Look): asking isn't enough, Android can decline. Everything else stays the plain card, the level in its title.
         android.graphics.drawable.Icon dial=asked&&chargeLiveLook.dial()&&live.dialPercent!=null?chargeLiveDial.icon(live.dialPercent):null;
         if(dial!=null)builder.setLargeIcon(dial).setContentTitle(live.dialTitle);
-        if(live.publicTitle==null)return;
+        if(words.publicTitle==null)return;
         Notification.Builder lock=new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification).setColor(red)
-                .setContentTitle(live.publicTitle).setContentText(live.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
+                .setContentTitle(words.publicTitle).setContentText(words.publicText).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE);
         if(live.publicSubText!=null)lock.setSubText(live.publicSubText);
         // The dial, but not the shorter title: the lock screen's title says the level in words. Android gives the dial no description, and the bar's own value is a share of the limit.
         if(dial!=null)lock.setLargeIcon(dial);
@@ -3492,6 +3493,10 @@ public final class ScooterService extends Service {
     private Intent openVolt(){
         return new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
+    /** A charge recording's notice title: the plain notice's, and the live card's while the recording has stopped charging. */
+    private String chargeRecordingTitle() {
+        return chargeRecovery!=null&&chargeRecovery.recovering()?T.serviceNoticeChargeReconnecting():T.serviceNoticeChargeActive();
+    }
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         String label = T.serviceChannelScooter();
@@ -3514,7 +3519,7 @@ public final class ScooterService extends Service {
         String title =
                 alarming ? alertTitle() : watching ? ChargeAlertPolicy.watchTitle(target) :
                 measuring ? T.serviceNoticeMeasuring() : testing ? T.serviceNoticeTesting() :
-                isChargeRecording() ? (chargeRecovery!=null&&chargeRecovery.recovering()?T.serviceNoticeChargeReconnecting():T.serviceNoticeChargeActive()) : phoneSaving()
+                isChargeRecording() ? chargeRecordingTitle() : phoneSaving()
                         ? T.serviceNoticeSavingRide()
                         : isRecording()
                                 ? (recordingError == null
@@ -3541,11 +3546,13 @@ public final class ScooterService extends Service {
         // The live card takes the charge recording's place, or the plain connected notice's while the hold runs.
         ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
         chargeLiveBuilt = live;
-        // #587 F02: a recording whose charge stopped says so in the text itself (the card would read as charging).
+        // #587 F02: a recording whose charge stopped says so in its title and text (the card's own would read as charging);
+        // the lock screen too (#587 r2 F01, F02). ChargeLiveUpdate.words.
         boolean liveStopped = live != null && chargeLiveStopped(live);
-        if (live != null) {
-            title = live.title;
-            text = liveStopped ? chargeCaptureStatus() : live.text;
+        ChargeLiveUpdate.Words liveWords = live == null ? null : ChargeLiveUpdate.words(live, liveStopped, chargeRecordingTitle(), liveStopped ? chargeCaptureStatus() : null);
+        if (liveWords != null) {
+            title = liveWords.title;
+            text = liveWords.text;
         }
         boolean liveStop = live != null && !isChargeRecording();
         Notification.Builder builder =
@@ -3565,7 +3572,7 @@ public final class ScooterService extends Service {
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
-        if (live != null) chargeLiveCard(builder, live, text, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
+        if (live != null) chargeLiveCard(builder, live, liveWords, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
