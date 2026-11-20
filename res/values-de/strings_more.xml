@@ -848,6 +848,56 @@
     </plurals>
     <!-- src:ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8 -->
     <string name="more_dev_curves_tooltip">Ein abgeschlossener Ladevorgang kann den Bereich verfeinern, in dem er endet. Andere Bereiche brauchen zwei passende Aufzeichnungen. Schätzungen hängen von der Abdeckung und der momentanen Leistung ab; Schätzungen für Originalladegerät und Schnellladegerät des UT5 MAX funktionieren auch ohne Aufzeichnungen.</string>
+    <!-- src:eb64c788f171c931034bc8df1c8024080f554f81 -->
+    <string name="more_learned_label">Was Volt gelernt hat</string>
+    <!-- src:12b9ae6e7697cfd054f21a089bfed6bbf86778f5 -->
+    <string name="more_learned_empty_title">Noch nichts gelernt</string>
+    <!-- src:248229d36d47db47881ffa4103a342a8c86645e3 -->
+    <string name="more_learned_empty">Zeichne einen Ladevorgang auf und Volt lernt, wie schnell dieser Scooter bei jedem Akkustand lädt.</string>
+    <!-- src:279e0dccfab33bdff771a5fffb29b67c35190f9c -->
+    <string name="more_learned_none_usable">Diese Aufzeichnungen stimmen noch nicht überein. Zeichne einen weiteren Ladevorgang mit diesem Ladegerät auf.</string>
+    <!-- src:9bf61430fd90da247529d4a205657c5b09804f6d -->
+    <string name="more_learned_temperature">Der Akku war beim Laden zu kalt oder zu heiß, um daraus zu lernen.</string>
+    <!-- src:0b2f256985dab9fa53c43f6b922e516f78119f23 -->
+    <string name="more_learned_too_little">Noch nicht genug Daten. Zeichne einen weiteren Ladevorgang mit diesem Ladegerät auf.</string>
+    <!-- src:97a247d0391307bbbb8b1c19c60b236f28a3f0f0 -->
+    <plurals name="more_learned_recordings">
+        <item quantity="one">Aus %1$d Aufzeichnung</item>
+        <item quantity="other">Aus %1$d Aufzeichnungen</item>
+    </plurals>
+    <!-- src:572ff76763757929dc019b27dc472758904fe838 -->
+    <string name="more_learned_axis">Minuten pro 1 %%</string>
+    <!-- src:3a9142d0695375e1628cd377d898042d47b10154 -->
+    <string name="more_learned_kind_none">Keine Daten</string>
+    <!-- src:c27cacae6a9a2fc9015059931af33a7d75a9ed7e -->
+    <string name="more_learned_kind_one">Eine Aufzeichnung</string>
+    <!-- src:ca97b36b20a4792ca2a05cdd69c18a9922df1055 -->
+    <string name="more_learned_kind_agree">Zwei oder mehr stimmen überein</string>
+    <!-- src:dce38d18b623e5895f78cd262b90b56f2c87b7dd -->
+    <string name="more_learned_kind_disagree">Aufzeichnungen stimmen nicht überein</string>
+    <!-- src:7ac0073d625a3049a398190923278f27d72fbe6d -->
+    <string name="more_learned_kind_finish">Laden bis voll aufgezeichnet</string>
+    <!-- src:47bfeca68c9c5293a4ff82732753681e7d14786a -->
+    <string name="more_learned_span">Gelernt: %1$s–%2$s %%</string>
+    <!-- src:93ae11fded2996f6e788134d223dbbcbb848bf5e -->
+    <string name="more_learned_finish_from">Laden bis voll aufgezeichnet ab %1$s %%</string>
+    <!-- src:5152c170b552fa0f642c7349573717f3c3613b8b -->
+    <string name="more_learned_gap_below">Keine Daten unter %1$s %%</string>
+    <!-- src:00df7e7b0f91fcb9ed94770c47b11c1eb234a27c -->
+    <string name="more_learned_gap_above">Keine Daten über %1$s %%</string>
+    <!-- src:12585a3b7865864f8d59ce6e780e4e590c4201d9 -->
+    <string name="more_learned_gap_between">Keine Daten: %1$s–%2$s %%</string>
+    <!-- src:0d84bc5096f82b3008facc0e8a39b05d716fee6d -->
+    <string name="more_learned_gap_disagree">Aufzeichnungen stimmen nicht überein: %1$s–%2$s %%</string>
+    <!-- src:2b47608adf7fb9f1016f05ce901456f43a55eb54 -->
+    <plurals name="more_learned_gap_more">
+        <item quantity="one">Und %1$d weitere Lücke</item>
+        <item quantity="other">Und %1$d weitere Lücken</item>
+    </plurals>
+    <!-- src:88f24ef5d16f9a30590b14bd00099b17907e76c1 -->
+    <string name="more_learned_to_full">%1$s %% bis voll: %2$s</string>
+    <!-- src:4a0ec13cde0b5826444615ebaf0a00d1ce75babb -->
+    <string name="more_learned_spoken_run">%1$s: von %2$s bis %3$s %%</string>
     <!-- src:1de6c31331adab8a77537e9baa9a179cd8de467b -->
     <string name="more_notices_view">Vollständige Lizenzhinweise anzeigen</string>
     <!-- src:2e896e1976f3db8e29fcca0001f123e6f44fe1ac -->

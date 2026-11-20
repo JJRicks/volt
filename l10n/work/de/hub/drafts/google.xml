@@ -69,6 +69,10 @@
     <string name="hub_charge_invite_step_full" volt:src="5991c14dbd07948bdf3aa351bfd5f013b4a5f97d">Bis auf 100 %% zu laden, hilft am meisten.</string>
     <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Lass dein Telefon während des Ladens in der Nähe des Scooters, damit Volt verbunden bleibt.</string>
     <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Öffne dann %1$s und tippe auf %2$s. Wir nutzen deine Aufzeichnungen, um die Schätzung für dein Scooter-Modell anzupassen.</string>
+    <string name="hub_estimate_tip_record" volt:src="e385c8bfe54364415acaadccfbe8c4e399cb9337">Diese Schätzung verbessern</string>
+    <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343" volt:attempt="2">Verbessern</string>
+    <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Ladevorgänge aufzeichnen</string>
+    <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Diesen Tipp ausblenden</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Aufzeichnung im Hintergrund starten</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Eine Fahrt, die startet, während Volt im Hintergrund läuft oder der Bildschirm gesperrt ist, hat keine GPS-Route.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · noch ca. %2$s</string>

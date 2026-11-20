@@ -138,6 +138,14 @@
     <string name="hub_charge_invite_step_nearby">Mantén el teléfono cerca del patinete mientras se carga para que Volt siga conectada.</string>
     <!-- src:d157c439746955fe6c175f41b2e27c20cb39dca6 -->
     <string name="hub_charge_invite_step_send">Luego abre «%1$s» y toca «%2$s». Usamos tus grabaciones para ajustar la estimación según el modelo de tu patinete.</string>
+    <!-- src:e385c8bfe54364415acaadccfbe8c4e399cb9337 -->
+    <string name="hub_estimate_tip_record">Mejorar esta estimación</string>
+    <!-- src:8a738c6b7d656b08a91700ca364cdcc83a2ac343 -->
+    <string name="hub_estimate_tip_record_short">Mejorar estimación</string>
+    <!-- src:b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea -->
+    <string name="hub_estimate_tip_record_title">Grabar tus cargas</string>
+    <!-- src:fd71df508edfa68bc33b42a7fcf23245b16d793d -->
+    <string name="hub_estimate_tip_hide">Ocultar este consejo</string>
     <!-- src:04bc34a391adb8a7ad639531d7934a68631293fd -->
     <string name="hub_recording_auto_background">Iniciar la grabación en segundo plano</string>
     <!-- src:4dd6fd0eb9c533661ffd71462e8456c76a8fb01b -->
