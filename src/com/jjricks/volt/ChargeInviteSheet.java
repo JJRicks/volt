@@ -13,7 +13,8 @@ import android.widget.TextView;
  * Record charges automatically (the same switch and preference as Charge history &amp; recordings'), Record this charge
  * (opens that page at its Record this charge row and starts it when a recording can start now, else the row's status
  * says why), Charge history &amp; recordings itself, and Not now. Closing the sheet any way keeps the banner: only its X
- * hides it (ChargeInvite's rule). Text from HubText and the rows' own strings.
+ * hides it (ChargeInvite's rule). Text from HubText and the rows' own strings. Its parts (a point, the auto-record
+ * switch, Charge history &amp; recordings, the spacing) are shared with Home's estimate tip's sheet (ChargeEstimateTip).
  */
 final class ChargeInviteSheet {
     private ChargeInviteSheet() { }
@@ -26,27 +27,14 @@ final class ChargeInviteSheet {
         LinearLayout content = host.sheetContent(HubText.chargeInviteTitle(), HubText.chargeInviteIntro(), close);
         content.setTag(ChargeInvite.TAG_SHEET);
         for (Msg step : HubText.chargeInviteSteps()) content.addView(point(host, ui, step.render()), new LinearLayout.LayoutParams(-1, -2));
-        boolean auto;
-        try { auto = preferences.getBoolean(ChargeAutoRecordPolicy.KEY, false); } catch (ClassCastException wrongType) { auto = false; }
-        // The same switch as Charge history & recordings' (MoreScreen.charging): one preference, which the service follows.
-        View toggle = ui.toggleRow(T.moreChargeAutoRecord(), "recording", T.moreChargeAutoRecordSub(), auto, true,
-                enabled -> preferences.edit().putBoolean(ChargeAutoRecordPolicy.KEY, enabled).apply());
-        toggle.setTag(ChargeInvite.TAG_AUTO);
-        LinearLayout.LayoutParams toggleSpace = new LinearLayout.LayoutParams(-1, -2);
-        toggleSpace.topMargin = ui.dp(14);
-        content.addView(toggle, toggleSpace);
+        content.addView(autoToggle(ui, preferences, ChargeInvite.TAG_AUTO), toggleSpace(ui));
         TextView record = ui.button(T.moreDevRecord(), () -> {
             close.run();
             host.open(HubPages.BATTERY_HISTORY, HubNav.Args.anchor(ChargeInvite.RECORD_ANCHOR));
         });
         record.setTag(ChargeInvite.TAG_RECORD);
         content.addView(record, buttonSpace(ui, 4));
-        TextView open = ui.secondaryButton(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(), () -> {
-            close.run();
-            host.open(HubPages.BATTERY_HISTORY);
-        });
-        open.setTag(ChargeInvite.TAG_OPEN);
-        content.addView(open, buttonSpace(ui, 8));
+        content.addView(historyButton(host, ui, close, ChargeInvite.TAG_OPEN), buttonSpace(ui, 8));
         TextView later = ui.secondaryButton(T.mainReportNotNow(), close);
         later.setTag(ChargeInvite.TAG_NOT_NOW);
         content.addView(later, buttonSpace(ui, 8));
@@ -54,8 +42,35 @@ final class ChargeInviteSheet {
         return shown[0];
     }
 
+    /** Record charges automatically: the same switch and preference as Charge history &amp; recordings' (MoreScreen.charging). */
+    static View autoToggle(Ui ui, SharedPreferences preferences, String tag) {
+        boolean auto;
+        try { auto = preferences.getBoolean(ChargeAutoRecordPolicy.KEY, false); } catch (ClassCastException wrongType) { auto = false; }
+        // One preference, which the service follows.
+        View toggle = ui.toggleRow(T.moreChargeAutoRecord(), "recording", T.moreChargeAutoRecordSub(), auto, true,
+                enabled -> preferences.edit().putBoolean(ChargeAutoRecordPolicy.KEY, enabled).apply());
+        toggle.setTag(tag);
+        return toggle;
+    }
+
+    static LinearLayout.LayoutParams toggleSpace(Ui ui) {
+        LinearLayout.LayoutParams toggleSpace = new LinearLayout.LayoutParams(-1, -2);
+        toggleSpace.topMargin = ui.dp(14);
+        return toggleSpace;
+    }
+
+    /** Charge history &amp; recordings, by the page's own name: closes the sheet and opens it. */
+    static TextView historyButton(ScreenHost host, Ui ui, Runnable close, String tag) {
+        TextView open = ui.secondaryButton(HubText.rowTitle(HubPages.BATTERY_HISTORY).render(), () -> {
+            close.run();
+            host.open(HubPages.BATTERY_HISTORY);
+        });
+        open.setTag(tag);
+        return open;
+    }
+
     /** One point of the list: a small accent dot beside its sentence, which wraps under itself. */
-    private static View point(ScreenHost host, Ui ui, String text) {
+    static View point(ScreenHost host, Ui ui, String text) {
         LinearLayout line = new LinearLayout(host.activity());
         line.setOrientation(LinearLayout.HORIZONTAL);
         line.setPadding(0, ui.dp(6), 0, ui.dp(2));
@@ -73,7 +88,7 @@ final class ChargeInviteSheet {
         return line;
     }
 
-    private static LinearLayout.LayoutParams buttonSpace(Ui ui, int topDp) {
+    static LinearLayout.LayoutParams buttonSpace(Ui ui, int topDp) {
         LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-1, -2);
         space.topMargin = ui.dp(topDp);
         return space;

@@ -72,6 +72,8 @@ final class BackupRegistry {
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
         // Battery & charging's charge recordings invite (ChargeInvite): closed, or recordings sent; travels so a restore doesn't ask again.
         add(app, ChargeInvite.KEY, String.class, PREFERENCES);
+        // Home's estimate tips (ChargeEstimateTip): each one the owner hid with "Hide this tip" stays hidden after a restore.
+        prefix(app, ChargeEstimateTip.HIDDEN_PREFIX, Boolean.class, PREFERENCES, false);
         // An owner release that wasn't confirmed (ReleaseHolds): the scooters held from reconnecting and the questions
         // still owed belong to this phone. Never exported; a restore keeps this phone's, so it never creates or ends one.
         exclude(app, ReleaseHolds.HELD, Set.class, DEVICE);
