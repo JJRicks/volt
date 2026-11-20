@@ -580,8 +580,14 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
         Object card=field(service,"chargeLiveBuilt");
         require(card!=null,message+": not the live charging card");
         boolean stopped=ChargeLiveUpdate.recordingStopped(store().chargerPaused(),store().paused(),(ChargeLiveState.Kind)field(card,"kind"));
-        // #587 r2 F02: stopped, the card's title is the recording's (its own would read as charging).
-        String title=stopped?(String)invoke(service,"chargeRecordingTitle",new Class<?>[]{}):String.valueOf(field(card,"title"));
+        // #587 r2 F02: stopped, the card's title is the recording's (its own would read as charging), with the level the card
+        // holds (#591 F02, the service's chargeRecordingLevelTitle, "Charge recording · 72%"); reconnecting, before any
+        // level or without a level title, the recording's own title.
+        Integer level=(Integer)field(card,"percent");
+        java.util.function.IntFunction<String> levelTitle=service.chargeRecordingLevelTitle();
+        String title=!stopped?String.valueOf(field(card,"title"))
+                :field(card,"kind")!=ChargeLiveState.Kind.RECONNECTING&&level!=null&&levelTitle!=null?levelTitle.apply(level)
+                :(String)invoke(service,"chargeRecordingTitle",new Class<?>[]{});
         require(title.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_TITLE))),message+": not the live charging card's title: "+notice.extras.getCharSequence(Notification.EXTRA_TITLE)+" vs "+title);
         require(status.contains(state),message+": status "+status);
         boolean asked=(Boolean)field(service,"liveUpdateAsked");
@@ -595,7 +601,7 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
                 message+": a stopped recording's card doesn't say so in its text: "+notice.extras.getCharSequence(Notification.EXTRA_TEXT)+" vs "+status);
         else require(status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
                 message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
-        // #587 r2 F01: the lock screen's version (the default, the whole card) says the same as the card while stopped.
+        // #587 r2 F01, #591 F01: the lock screen's version (the default, the whole card) says the same as the card while stopped, the level included.
         if(stopped&&field(card,"publicTitle")!=null){
             Notification lock=notice.publicVersion;
             require(lock!=null&&title.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))&&status.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT))),

@@ -3493,10 +3493,16 @@ public final class ScooterService extends Service {
     private Intent openVolt(){
         return new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
-    /** A charge recording's notice title: the plain notice's, and the live card's while the recording has stopped charging. */
+    /** A charge recording's notice title: the plain notice's, and the live card's while the recording has stopped charging and the card has no level to show (ChargeLiveUpdate.words). */
     private String chargeRecordingTitle() {
         return chargeRecovery!=null&&chargeRecovery.recovering()?T.serviceNoticeChargeReconnecting():T.serviceNoticeChargeActive();
     }
+    /**
+     * The live card's title while the recording has stopped charging, with the battery level, as a function of the level
+     * (review of #591, F02); null while there is no such line, and the card keeps chargeRecordingTitle. Public for the
+     * validations, which expect the same title.
+     */
+    public java.util.function.IntFunction<String> chargeRecordingLevelTitle(){return null;}
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         String label = T.serviceChannelScooter();
@@ -3547,9 +3553,10 @@ public final class ScooterService extends Service {
         ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
         chargeLiveBuilt = live;
         // #587 F02: a recording whose charge stopped says so in its title and text (the card's own would read as charging);
-        // the lock screen too (#587 r2 F01, F02). ChargeLiveUpdate.words.
+        // the lock screen too (#587 r2 F01, F02), with the level in the title (#591 F02, F01). ChargeLiveUpdate.words.
         boolean liveStopped = live != null && chargeLiveStopped(live);
-        ChargeLiveUpdate.Words liveWords = live == null ? null : ChargeLiveUpdate.words(live, liveStopped, chargeRecordingTitle(), liveStopped ? chargeCaptureStatus() : null);
+        ChargeLiveUpdate.Words liveWords = live == null ? null
+                : ChargeLiveUpdate.words(live, liveStopped, chargeRecordingTitle(), chargeRecordingLevelTitle(), liveStopped ? chargeCaptureStatus() : null);
         if (liveWords != null) {
             title = liveWords.title;
             text = liveWords.text;
