@@ -32,12 +32,13 @@ clearing history also clears the selected last-seen cache. Controls are in
 **Data → Data & history**.
 
 Ride files are separate from connected history and remain until you delete them
-or clear app storage. Charge recording retains up to 20 sessions across profiles
-and charger labels; older sessions are pruned to stay within that limit. With
+or clear app storage. Charge recording retains up to 1,000 sessions, or about
+150 MB compressed on the phone, across profiles and charger labels; older sessions
+are removed, oldest first, to stay within that limit. With
 **Record charges automatically** on (off by default), a charge recording can start
 by itself whenever Volt is connected and the scooter starts charging; it is stored
 the same way, only on your phone, and nothing leaves the phone unless you send or
-export it. It only replaces older automatic recordings, never ones you started. Phone
+export it. It rotates with the others, oldest first, whoever started them. Phone
 location and motion sensors run only during ride recording when enabled and
 permitted. A foreground notification supports background recording; Android or
 device restrictions can still interrupt it.
@@ -108,6 +109,9 @@ including the full-screen map, shares its remembered state with
 provider receives your IP address and viewed map area; choose **Enable basemap** or
 **Cancel**. Cancel keeps tiles off. Once you approve, that acknowledgement is
 remembered too. Backups with App preferences include both, and the restore preview says "Online map: on" when it will be on.
+The after-ride **Just back** card on Clean Home has its own **Basemap** button in its
+route panel's corner (also in Map settings, as **Home**). It also starts off, is remembered separately (in backups too),
+uses the same provider, and asks the same one-time question if you haven't approved it yet.
 
 When enabled, the app requests visible map tiles from
 OpenStreetMap by default, or from USGS Topo (United States only) or your chosen

@@ -1,14 +1,19 @@
 package com.jjricks.volt;
 
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.os.SystemClock;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -27,8 +32,10 @@ import android.widget.TextView;
  * area shows it, as the Layout Plan's mock-up draws it (the contributor's decisions on #383): on the page itself, no
  * card. A muted "Ride ended 12 minutes ago" centred with a small round X at the right, the distance large and centred
  * (about 60 sp, its unit smaller in the text colour), the route drawn on a rounded panel in the card colour with a faint
- * dot grid, a green start dot and a white end dot (from the phone journal's own GPS fixes; never a map tile), then three tiles: Ride time, Avg
- * speed and Battery with the signed change ("−18%"). Tapping it opens that ride; the X closes it until the next ride.
+ * dot grid, a green start dot and a white end dot (from the phone journal's own GPS fixes), then three tiles: Ride time, Avg
+ * speed and Battery with the signed change ("−18%"). Tapping it opens that ride; the X closes it until the next ride. A
+ * round switch in the panel's bottom corner puts map tiles behind the route (owner, Nov 19 2026): its own preference,
+ * off by default, so the plain panel stays what Home shows until someone asks for the map (RouteView).
  *
  * <p>It fills the top area's fixed height (the same as parked and charging), so the Lock bar never moves: the route
  * panel takes what the words and tiles leave and goes when that is too little, then the distance gets smaller
@@ -38,6 +45,26 @@ import android.widget.TextView;
 final class JustBackView extends LinearLayout {
     /** View tags: the card itself (it opens the ride), its X and the route panel. */
     static final String TAG = "home-just-back", TAG_CLOSE = "home-just-back-close", TAG_ROUTE = "home-just-back-route";
+    /** View tag: the basemap switch in the route panel's corner. */
+    static final String TAG_BASEMAP = "home-just-back-basemap";
+    /** How long the tile layer and each newly arrived tile take to fade in. */
+    private static final long TILE_FADE_MS = 400;
+    /** The end dots' ring, kept clear of the basemap switch. */
+    private static final int DOT_RING_DP = 7;
+    /**
+     * The dark theme's tiles (JustBackBasemap.darkTiles): lightness inverted, colour softened to 40%, contrast at 85%
+     * and lifted so a street map's land sits just above the panel's own grey. Chosen from renders of a light street map
+     * on the dark panel against plain dimming, which left a flat mid-grey map as bright as the text (Nov 19 2026).
+     */
+    private static final float DARK_SATURATION = .4f, DARK_CONTRAST = .85f, DARK_LIFT = 20;
+    /**
+     * The size a tile is drawn at its own zoom: half the ride maps' 256 dp (owner, Nov 19 2026: "let's get a finer map"),
+     * so the card asks for the zoom one finer than a ride map would at the same scale: crisper streets and smaller
+     * labels on the small panel, about four times the tiles (still only those the panel shows, through the same cache).
+     */
+    private static final int TILE_DP = 128;
+    /** The route's casing over a map: RouteMapView's. */
+    private static final int CASING = 0xff20242c;
     /** Below this height the route panel is not worth drawing; the words and tiles keep the space. */
     private static final int MIN_ROUTE_DP = JustBackFit.MIN_ROUTE_DP;
     /** The gaps above the route panel and above the tiles, and the X's disc inside its 48 dp target. */
@@ -195,7 +222,7 @@ final class JustBackView extends LinearLayout {
         boolean otherRide = !s.id.equals(rideId);
         shownKey = key;
         rideId = s.id;
-        if (otherRide) route.setRoute(null);
+        if (otherRide) route.setRoute(null, null);
         Formatted miles = s.distanceKm == null || !Double.isFinite(s.distanceKm) ? null : RideText.distance(s.distanceKm, units, 1);
         distance.setText(miles == null ? "—" : large(miles));
         spokenDistance = distance.getText().toString();
@@ -223,9 +250,12 @@ final class JustBackView extends LinearLayout {
         }
     }
 
-    /** The route of ride id, from RidesScreen.readThumb; empty when the ride has no usable GPS fixes. */
-    void setRoute(String id, float[] outline) {
-        if (id != null && id.equals(rideId)) route.setRoute(outline);
+    /**
+     * The route of ride id, from RidesScreen.readThumb (empty when the ride has no usable GPS fixes), with its fixes' map
+     * area for the basemap (JustBackBasemap.box; NaN without a route).
+     */
+    void setRoute(String id, float[] outline, double[] area) {
+        if (id != null && id.equals(rideId)) route.setRoute(outline, area);
     }
 
     /** The distance's numbers large, the rest (its unit, a second unit) smaller, in the text colour as the mock-up has it. */
@@ -546,31 +576,169 @@ final class JustBackView extends LinearLayout {
         }
     }
 
-    /** The route on a rounded panel in the card colour, with its start and end marked; a route icon while there is none. */
-    private static final class RouteView extends View {
+    /**
+     * The route on a rounded panel in the card colour, with its start and end marked; a route icon while there is none.
+     * With a route, the round basemap switch (BasemapSwitch) sits in the panel's bottom corner on the end side (the X
+     * takes the top one), and the route is fitted clear of it: where the usual fit would put a fix, a stretch of the
+     * route or a dot's ring under the switch's 48 dp target, the route is fitted again in the room beside it
+     * (JustBackBasemap.touches), so the switch never covers the end dot. Switched on (JustBackBasemap.KEY, the card's own
+     * preference, off by default), map tiles from the ride maps' provider (MapSource) lie behind the route, one zoom
+     * finer than the ride maps draw them (TILE_DP), with its credit in the other bottom corner drawn over the route and a
+     * dark casing under the route: the layer and each tile fade in, never pop, and in the dark theme the tiles are drawn
+     * dark (JustBackBasemap.darkTiles), so no white map flashes up on a dark Home. Until a tile arrives, and without a
+     * network, the panel stays as it is off, with no message.
+     */
+    private static final class RouteView extends FrameLayout {
+        private final ScreenHost host;
         private final Ui ui;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF box = new RectF();
-        private final Path path = new Path();
+        private final SharedPreferences settings;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG), tilePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+        private final android.text.TextPaint creditPaint = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF box = new RectF(), tileBox = new RectF();
+        private final Path path = new Path(), panelShape = new Path();
         private float[] route;
-        /** The mock-up's dot grid: a faint dot every GRID_DP, GRID_INSET_DP in from the panel's edges. */
-        private static final int GRID_DP = 14, GRID_INSET_DP = 12;
+        /** The route's map area, {west, north, east, south} in Web Mercator world units (JustBackBasemap.box), or null. */
+        private double[] area;
+        private final BasemapSwitch toggle;
+        /** The preference as shown, and the tile layer's fade: from fadeFrom at fadeStart toward fadeTo. */
+        private boolean basemap;
+        private float fadeFrom, fadeTo;
+        private long fadeStart;
+        /** The privacy explanation the ride maps share, while it shows for this switch (MapPreferences.setJustBack). */
+        private android.app.AlertDialog prompt;
+        private MapSource source;
+        private MapTiles provider;
+        private final android.util.LruCache<String, Bitmap> tiles = new android.util.LruCache<String, Bitmap>(8 * 1024 * 1024) {
+            @Override protected int sizeOf(String key, Bitmap value) { return value.getByteCount(); }
+        };
+        private final java.util.Set<String> pending = new java.util.HashSet<>();
+        private final java.util.Map<String, Long> arrivals = new java.util.HashMap<>(), failed = new java.util.HashMap<>();
+        /** Answers to requests made before a provider change or a detach go nowhere. */
+        private volatile long generation;
+        private boolean attached;
+        /** Tile requests sent (the validation's proof that switched on fetches, switched off never does). */
+        private int requests;
+        /** Requests that reached the provider on a tile loader (a request queued before the switch went off never does). */
+        private final java.util.concurrent.atomic.AtomicInteger fetches = new java.util.concurrent.atomic.AtomicInteger();
+        /** Whether the last frame drew a map tile (then the casing and the credit show). */
+        private boolean mapShown;
+        /** The last frame's fit: the outline's origin (px) and scale (px per outline unit). */
+        private final float[] fit = new float[3];
+        /** The dark theme's tile colours (JustBackBasemap.darkTiles); null in the light theme, which draws tiles as they are. */
+        private final ColorFilter tileColors;
+        private final SharedPreferences.OnSharedPreferenceChangeListener changed = (p, key) -> {
+            if (key == null || key.equals(JustBackBasemap.KEY)) showBasemap(true);
+            if (key == null || key.startsWith("map_")) followSource();
+        };
 
         RouteView(ScreenHost host) {
             super(host.activity());
+            this.host = host;
             ui = host.ui();
+            settings = host.appSettings();
+            setWillNotDraw(false);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+            tileColors = ui.dark ? new ColorMatrixColorFilter(JustBackBasemap.darkTiles(DARK_SATURATION, DARK_CONTRAST, DARK_LIFT)) : null;
+            creditPaint.setTypeface(ui.regular());
+            toggle = new BasemapSwitch(host, this::flip);
+            toggle.setVisibility(GONE);
+            addView(toggle, new FrameLayout.LayoutParams(ui.dp(48), ui.dp(48), Gravity.BOTTOM | Gravity.END));
+            basemap = MapPreferences.justBackEnabled(settings);
+            fadeFrom = fadeTo = basemap ? 1 : 0;
+            toggle.show(basemap);
         }
 
         /** The panel: the card colour, as the tiles' on the dark page and one step darker than the light page. */
         private int panelColor() { return ui.dark ? ui.surface : ui.raised; }
 
-        void setRoute(float[] value) {
+        /** The route's outline (RidesScreen.readThumb) and its map area (null without one). */
+        void setRoute(float[] value, double[] where) {
             route = value;
+            area = where != null && where.length == 4 && !Double.isNaN(where[0]) ? where.clone() : null;
+            updateSwitch();
             invalidate();
         }
 
+        private boolean hasRoute() { return route != null && route.length >= 4; }
+
+        /** The switch shows with a route that has a map area, on a panel tall enough to draw it. */
+        private void updateSwitch() {
+            int shown = hasRoute() && area != null && (getHeight() == 0 || getHeight() >= ui.dp(MIN_ROUTE_DP)) ? VISIBLE : GONE;
+            if (toggle.getVisibility() != shown) toggle.setVisibility(shown);
+        }
+
+        /** A tap on the switch: the other state, through the shared explanation the first time it turns on. */
+        private void flip() {
+            if (prompt != null && prompt.isShowing()) return;
+            boolean next = !basemap;
+            prompt = MapPreferences.setJustBack(host, next, () -> showBasemap(true));
+            if (prompt == null) Haptics.toggle(toggle, next);
+        }
+
+        /** Follows the preference: the switch at once, the tile layer fading to it (animate) or at once. */
+        private void showBasemap(boolean animate) {
+            boolean on = MapPreferences.justBackEnabled(settings);
+            toggle.show(on);
+            if (on == basemap) return;
+            basemap = on;
+            long now = SystemClock.uptimeMillis();
+            fadeFrom = animate && Ui.motionEnabled() ? layer(now) : (on ? 1 : 0);
+            fadeTo = on ? 1 : 0;
+            fadeStart = now;
+            if (on) failed.clear();
+            else {
+                // Requests already queued for the tile loaders find a new generation and fetch nothing (council, #560 r1).
+                generation++;
+                pending.clear();
+            }
+            invalidate();
+        }
+
+        /** The tile layer's opacity now, 0 to 1. */
+        private float layer(long now) {
+            if (fadeFrom == fadeTo) return fadeTo;
+            float progress = (now - fadeStart) / (float) TILE_FADE_MS;
+            if (progress >= 1 || !Ui.motionEnabled()) { fadeFrom = fadeTo; return fadeTo; }
+            return fadeFrom + (fadeTo - fadeFrom) * Motion.FADE.getInterpolation(Math.max(0, progress));
+        }
+
+        /** The provider the ride maps use, followed when it changes (Maps settings, a restore): its tiles start afresh. */
+        private void followSource() {
+            MapSource now = MapSource.load(settings);
+            if (source != null && now.url.equals(source.url) && now.attribution.equals(source.attribution)) return;
+            source = now;
+            provider = null;
+            generation++;
+            pending.clear(); failed.clear(); arrivals.clear(); tiles.evictAll();
+            invalidate();
+        }
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            attached = true;
+            settings.registerOnSharedPreferenceChangeListener(changed);
+            showBasemap(false);
+            followSource();
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            settings.unregisterOnSharedPreferenceChangeListener(changed);
+            attached = false;
+            generation++;
+            pending.clear();
+            if (prompt != null) { prompt.dismiss(); prompt = null; }
+            super.onDetachedFromWindow();
+        }
+
+        @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            panelShape.reset();
+            panelShape.addRoundRect(0, 0, w, h, ui.dp(20), ui.dp(20), Path.Direction.CW);
+            post(this::updateSwitch);
+        }
+
         @Override protected void onDraw(Canvas canvas) {
+            mapShown = false;
             // What the words and tiles leave (large text) may be too little for a route: then the panel stays empty.
             if (getHeight() < ui.dp(MIN_ROUTE_DP)) return;
             box.set(0, 0, getWidth(), getHeight());
@@ -583,15 +751,28 @@ final class JustBackView extends LinearLayout {
             float step = ui.dp(GRID_DP), grid = ui.dp(GRID_INSET_DP), dot = ui.dp(1) / 2f + .5f;
             for (float y = grid; y <= getHeight() - grid + .5f; y += step)
                 for (float x = grid; x <= getWidth() - grid + .5f; x += step) canvas.drawCircle(x, y, dot, paint);
-            if (route == null || route.length < 4) {
+            if (!hasRoute()) {
                 ui.drawIcon(canvas, "route", Ui.withAlpha(ui.muted, 140), getWidth() / 2f, getHeight() / 2f, ui.dp(22));
                 return;
             }
-            float inset = Math.min(ui.dp(18), getHeight() / 5f), w = getWidth() - 2 * inset, h = getHeight() - 2 * inset;
-            if (w <= 0 || h <= 0) return;
-            float scale = Math.min(w / Math.max(1e-4f, route[0]), h / Math.max(1e-4f, route[1]));
-            if (route[0] < 1e-4f && route[1] < 1e-4f) scale = 0;
-            float ox = inset + (w - route[0] * scale) / 2, oy = inset + (h - route[1] * scale) / 2;
+            float inset = Math.min(ui.dp(18), getHeight() / 5f);
+            float left = inset, top = inset, right = getWidth() - inset, bottom = getHeight() - inset;
+            if (!fitInto(left, top, right, bottom)) return;
+            // Clear of the basemap switch: fitted again beside it when the usual fit reaches under it.
+            if (toggle.getVisibility() == VISIBLE) {
+                float[] corner = {toggle.getLeft(), toggle.getTop(), toggle.getRight(), toggle.getBottom()};
+                if (JustBackBasemap.touches(route, fit[0], fit[1], fit[2], corner, ui.dp(DOT_RING_DP))) {
+                    if (corner[0] >= getWidth() / 2f) right = Math.min(right, corner[0] - ui.dp(DOT_RING_DP + 1));
+                    else left = Math.max(left, corner[2] + ui.dp(DOT_RING_DP + 1));
+                    if (!fitInto(left, top, right, bottom)) return;
+                }
+            }
+            float ox = fit[0], oy = fit[1], scale = fit[2];
+            float layer = layer(SystemClock.uptimeMillis());
+            if (layer > 0 && area != null) mapShown = drawTiles(canvas, layer);
+            // Every frame of a fade asks for the next, its first too: a first frame drawn at the fade's very start has the
+            // layer at exactly 0 (or 1) and would otherwise leave the fade stopped there (local fold run, Nov 19 2026).
+            if (fadeFrom != fadeTo) postInvalidateOnAnimation();
             float sx = ox + route[2] * scale, sy = oy + route[3] * scale;
             float ex = ox + route[route.length - 2] * scale, ey = oy + route[route.length - 1] * scale;
             if (route.length > 4 && scale > 0) {
@@ -599,9 +780,15 @@ final class JustBackView extends LinearLayout {
                 path.moveTo(sx, sy);
                 for (int i = 4; i + 1 < route.length; i += 2) path.lineTo(ox + route[i] * scale, oy + route[i + 1] * scale);
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(ui.dp(4));
                 paint.setStrokeCap(Paint.Cap.ROUND);
                 paint.setStrokeJoin(Paint.Join.ROUND);
+                if (mapShown) {
+                    // Over a map, a dark casing keeps the route clear of the map's own reds and oranges (as RouteMapView's).
+                    paint.setStrokeWidth(ui.dp(7));
+                    paint.setColor(Ui.withAlpha(CASING, Math.round(255 * layer)));
+                    canvas.drawPath(path, paint);
+                }
+                paint.setStrokeWidth(ui.dp(4));
                 paint.setColor(ui.accent);
                 canvas.drawPath(path, paint);
             }
@@ -611,12 +798,181 @@ final class JustBackView extends LinearLayout {
             // A loop ends where it started: the end's white dot then rings the start's smaller green one.
             boolean together = Math.hypot(ex - sx, ey - sy) < ui.dp(10);
             paint.setColor(panel);
-            canvas.drawCircle(sx, sy, ui.dp(7), paint);
-            canvas.drawCircle(ex, ey, ui.dp(7), paint);
+            canvas.drawCircle(sx, sy, ui.dp(DOT_RING_DP), paint);
+            canvas.drawCircle(ex, ey, ui.dp(DOT_RING_DP), paint);
             paint.setColor(ui.dark ? Color.WHITE : ui.text);
             canvas.drawCircle(ex, ey, ui.dp(5), paint);
             paint.setColor(ui.ok);
             canvas.drawCircle(sx, sy, ui.dp(together ? 3 : 5), paint);
+            // The credit last, over the route (owner, Nov 19 2026: "draw the credit over"), so it always reads whole.
+            if (mapShown) drawCredit(canvas, layer);
+        }
+
+        /**
+         * Fits the outline into the box, centred and as large as it goes: fit gets its origin and scale (0 for a ride
+         * with no extent, drawn at the centre). False when the box has no room.
+         */
+        private boolean fitInto(float left, float top, float right, float bottom) {
+            float w = right - left, h = bottom - top;
+            if (w <= 0 || h <= 0) return false;
+            float scale = Math.min(w / Math.max(1e-4f, route[0]), h / Math.max(1e-4f, route[1]));
+            if (route[0] < 1e-4f && route[1] < 1e-4f) scale = 0;
+            fit[0] = left + (w - route[0] * scale) / 2;
+            fit[1] = top + (h - route[1] * scale) / 2;
+            fit[2] = scale;
+            return true;
+        }
+
+        /**
+         * The tiles under the panel at the zoom the route's fit gives (JustBackBasemap.world and tileZoom), each faded in
+         * on arrival, inside the panel's rounded shape, asking for the missing ones. True when one was drawn.
+         */
+        private boolean drawTiles(Canvas canvas, float layer) {
+            if (source == null) followSource();
+            double tilePx = ui.dp(TILE_DP);
+            double world = JustBackBasemap.world(route, area, fit[2], tilePx);
+            int zoom = JustBackBasemap.tileZoom(world, tilePx, MapSource.maximumTileZoom(source.url));
+            if (zoom < 0) return false;
+            if (provider == null) provider = new MapTiles(getContext(), source.url);
+            // The area's box is where the outline's is drawn: its centre on the outline's centre.
+            double centreX = fit[0] + route[0] * fit[2] / 2.0, centreY = fit[1] + route[1] * fit[2] / 2.0;
+            double left = (area[0] + area[2]) / 2 * world - centreX, top = (area[1] + area[3]) / 2 * world - centreY;
+            double size = world / Math.pow(2, zoom);
+            int n = 1 << zoom;
+            int startX = (int) Math.floor(left / size), endX = (int) Math.floor((left + getWidth()) / size);
+            int startY = (int) Math.floor(top / size), endY = (int) Math.floor((top + getHeight()) / size);
+            long now = SystemClock.uptimeMillis();
+            boolean drew = false, fading = false;
+            canvas.save();
+            canvas.clipPath(panelShape);
+            tilePaint.setColorFilter(tileColors);
+            for (int ty = Math.max(0, startY); ty <= Math.min(n - 1, endY); ty++)
+                for (int tx = startX; tx <= endX; tx++) {
+                    int wrapX = ((tx % n) + n) % n;
+                    String key = zoom + "/" + wrapX + "/" + ty;
+                    Bitmap tile = tiles.get(key);
+                    if (tile == null) { request(key, zoom, wrapX, ty); continue; }
+                    int alpha = tileAlpha(key, now);
+                    fading |= alpha < 255;
+                    tilePaint.setAlpha(Math.round(alpha * layer));
+                    tileBox.set((float) (tx * size - left), (float) (ty * size - top), (float) ((tx + 1) * size - left), (float) ((ty + 1) * size - top));
+                    canvas.drawBitmap(tile, null, tileBox, tilePaint);
+                    drew = true;
+                }
+            canvas.restore();
+            if (fading) postInvalidateOnAnimation();
+            return drew;
+        }
+
+        /** A newly arrived tile's opacity (0 to 255), fading up over TILE_FADE_MS. */
+        private int tileAlpha(String key, long now) {
+            Long arrived = arrivals.get(key);
+            if (arrived == null) return 255;
+            float progress = (now - arrived) / (float) TILE_FADE_MS;
+            if (progress >= 1 || !Ui.motionEnabled()) { arrivals.remove(key); return 255; }
+            return Math.round(255 * Motion.FADE.getInterpolation(Math.max(0, progress)));
+        }
+
+        /** Asks the provider for one tile off the main thread, while the switch is on; a failed tile waits a minute. */
+        private void request(String key, int z, int x, int y) {
+            if (!attached || !basemap || provider == null || pending.contains(key) || pending.size() >= 24) return;
+            Long failedAt = failed.get(key);
+            if (failedAt != null && SystemClock.elapsedRealtime() - failedAt < 60_000) return;
+            pending.add(key);
+            requests++;
+            long asked = generation;
+            MapTiles from = provider;
+            try {
+                RouteMapView.TILES.execute(() -> {
+                    Bitmap result = null;
+                    if (asked == generation) { fetches.incrementAndGet(); result = from.get(z, x, y); }
+                    Bitmap arrived = result;
+                    post(() -> {
+                        if (asked != generation) return;
+                        pending.remove(key);
+                        if (arrived != null) {
+                            tiles.put(key, arrived);
+                            if (Ui.motionEnabled()) arrivals.put(key, SystemClock.uptimeMillis());
+                        } else failed.put(key, SystemClock.elapsedRealtime());
+                        if (attached) invalidate();
+                    });
+                });
+            } catch (java.util.concurrent.RejectedExecutionException stopped) {
+                pending.remove(key);
+            }
+        }
+
+        /** The provider's credit in the bottom corner the switch leaves, on the maps' plate, as the ride maps show it. */
+        private void drawCredit(Canvas canvas, float layer) {
+            String credit = source.displayAttribution();
+            creditPaint.setTextSize(Math.min(ui.sp(10.5f), ui.dp(15)));
+            float pad = ui.dp(6), margin = ui.dp(6);
+            float room = getWidth() - ui.dp(48) - 2 * margin - 2 * pad;
+            if (room <= 0) return;
+            String shown = TextUtils.ellipsize(credit, creditPaint, room, TextUtils.TruncateAt.END).toString();
+            Paint.FontMetrics metrics = creditPaint.getFontMetrics();
+            float width = creditPaint.measureText(shown) + 2 * pad, height = metrics.descent - metrics.ascent + ui.dp(4);
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            float left = rtl ? getWidth() - margin - width : margin, top = getHeight() - margin - height;
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Ui.withAlpha(ui.dark ? ui.bg : ui.text, Math.round(205 * layer)));
+            box.set(left, top, left + width, top + height);
+            canvas.drawRoundRect(box, ui.dp(7), ui.dp(7), paint);
+            creditPaint.setColor(Ui.withAlpha(ui.dark ? ui.text : ui.surface, Math.round(255 * layer)));
+            canvas.drawText(shown, left + pad, top + ui.dp(2) - metrics.ascent, creditPaint);
+        }
+
+        /** The mock-up's dot grid: a faint dot every GRID_DP, GRID_INSET_DP in from the panel's edges. */
+        private static final int GRID_DP = 14, GRID_INSET_DP = 12;
+    }
+
+    /**
+     * The round basemap switch in the route panel's corner: a 30 dp disc in a 48 dp target, as the X's, holding a folded
+     * map; filled with the accent while on, outlined while off. Spoken as a switch named Basemap (the ride maps' name for
+     * it) with its state. Its taps are its own: the card under it does not open the ride.
+     */
+    private static final class BasemapSwitch extends FrameLayout {
+        private final Ui ui;
+        private final GradientDrawable disc = new GradientDrawable();
+        private boolean on;
+
+        BasemapSwitch(ScreenHost host, Runnable flip) {
+            super(host.activity());
+            ui = host.ui();
+            setWillNotDraw(false);
+            disc.setShape(GradientDrawable.OVAL);
+            setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 35)),
+                    new InsetDrawable(disc, ui.dp((48 - CLOSE_DISC_DP) / 2)), null));
+            String name = MapPreferences.basemapName();
+            setContentDescription(name);
+            setTooltipText(name);
+            setTag(TAG_BASEMAP);
+            setClickable(true);
+            setFocusable(true);
+            setOnClickListener(v -> flip.run());
+            setAccessibilityDelegate(new AccessibilityDelegate() {
+                @Override public void onInitializeAccessibilityNodeInfo(View view, android.view.accessibility.AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(view, info);
+                    info.setClassName(android.widget.Switch.class.getName());
+                    info.setCheckable(true);
+                    info.setChecked(on);
+                }
+            });
+            show(false);
+        }
+
+        boolean isOn() { return on; }
+
+        void show(boolean value) {
+            on = value;
+            disc.setColor(value ? ui.accent : ui.dark ? ui.raised : ui.surface);
+            disc.setStroke(value ? 0 : ui.dp(1), ui.outline);
+            invalidate();
+        }
+
+        @Override protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            ui.drawIcon(canvas, "map", on ? ui.onAccent : ui.muted, getWidth() / 2f, getHeight() / 2f, ui.dp(16));
         }
     }
 }

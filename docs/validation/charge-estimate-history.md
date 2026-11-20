@@ -30,10 +30,13 @@ same; saved values, sources, and learned-session count preserve what was predict
 No predictions feed back into learned charging curves: learning still uses measured
 SOC, current, voltage and timing only.
 
-Bounds remain 20 journals, 18 hours and 6,500 samples per journal. The byte cap is
-3.5 MB per journal to accommodate the longest allowed prediction rows; typical
+Bounds are 18 hours and 6,500 samples per journal, and (2.0.1) up to 1,000
+journals or about 150 MB compressed (charge-capture.md). The byte cap is 3.5 MB
+per plain journal to accommodate the longest allowed prediction rows; typical
 files are smaller. History parses closed journals on the analysis worker without
-holding the capture lock during disk reads. Results are immutable and profile
+holding the capture lock during disk reads: the list reads its newest 20 in full
+and the rest as summaries from their compressed files' headers, and opening an
+older one reads it then. A saved estimate claims at most 20 learned sessions. Results are immutable and profile
 scoped. App backups preserve the new files without a separate migration.
 
 ## Graph interpretation

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import com.jjricks.volt.ChargeSessionStore;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.RideStore;
 import com.jjricks.volt.ScooterProfiles;
@@ -39,6 +40,9 @@ import com.jjricks.volt.ScooterService;
  * mode=measure starts cold: it times launch (first frame, the service's start where its ride read runs,
  * the service command that starts a connection) and opening Rides twice, with the longest main-thread
  * message in each window. Results are printed as instrumentation result keys, in milliseconds.
+ * charges=N (seed) also saves N synthetic charge recordings of charge_minutes each (compressed, as the store keeps
+ * them, or charge_form=plain); measure then also reports when the charge model was first ready (owner, Nov 19 2026:
+ * "if any of this slows down app launch we should separate it out").
  */
 public final class RidesTimingValidation extends Instrumentation {
     private Bundle args;
@@ -93,6 +97,15 @@ public final class RidesTimingValidation extends Instrumentation {
             while (activity.service() == null && SystemClock.uptimeMillis() < until) SystemClock.sleep(10);
             check(activity.service() != null, "Service ready");
             long serviceReady = SystemClock.uptimeMillis();
+            String[] charges = new File(context.getFilesDir(), "charge-recordings").list();
+            if (charges != null && charges.length > 0) {
+                // The first learned snapshot (ScooterService.refreshChargeCurves), which a charge recording's start waits for.
+                ScooterService service = activity.service(); long limit = SystemClock.uptimeMillis() + 60000;
+                while (Boolean.TRUE.equals(field(service, "chargeModelLoading")) && SystemClock.uptimeMillis() < limit) SystemClock.sleep(2);
+                check(!Boolean.TRUE.equals(field(service, "chargeModelLoading")), "Charge model ready");
+                result.putLong("charge_model_ready_ms", SystemClock.uptimeMillis() - t0);
+                result.putInt("charges", charges.length);
+            }
             SystemClock.sleep(3000);
             long firstDraw = firstDrawAfter(t0);
             long[] create = message(t0, ": 114"), command = message(t0, ": 115");
@@ -199,6 +212,43 @@ public final class RidesTimingValidation extends Instrumentation {
         RideStore.Summary first = new RideStore(rides).list().get(0);
         check(first.sampleCount == seconds && !first.active, "Seeded journals replay as finished rides");
         result.putInt("seeded_rides", count); result.putLong("seeded_bytes", bytes);
+        int charges = Integer.parseInt(args.getString("charges", "0")), minutes = Integer.parseInt(args.getString("charge_minutes", "120"));
+        check(charges >= 0 && charges <= ChargeSessionStore.MAX_RECORDINGS && minutes >= 2 && minutes <= 18 * 60, "Reasonable charge fixture");
+        if (charges > 0) seedCharges(context, charges, minutes, !"plain".equals(args.getString("charge_form", "compressed")), result);
+    }
+    /** N copies of one synthetic charge (a sample every ten seconds, with saved estimates), each a day older. */
+    private void seedCharges(Context context, int count, int minutes, boolean compressed, Bundle result) throws Exception {
+        String profile = new ScooterProfiles(context).all().get(0).id;
+        File templateDir = new File(context.getCacheDir(), "timing-charge-template");
+        ChargeSessionStore template = new ChargeSessionStore(templateDir);
+        long wall = System.currentTimeMillis() - (count + 2L) * 86400000L, mono = 1000;
+        template.start(profile, ChargeSessionStore.Charger.STOCK, wall, mono);
+        for (long t = 0; t <= minutes * 60000L; t += 10000) {
+            double soc = Math.min(100, 20 + t / 90000.0), volts = 44 + soc / 15 + 0.05 * Math.sin(t / 70000.0), amps = soc < 85 ? 2.1 - t / 1e9 : 2.1 * (100 - soc) / 15;
+            long at = mono + t;
+            ChargeSessionStore.Value one = new ChargeSessionStore.Value(1d, at, 0x72);
+            ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(wall + t, at, one, new ChargeSessionStore.Value(Math.floor(soc), at, 0x72),
+                    new ChargeSessionStore.Value(Math.round(volts * 10) / 10.0, at, 0x72), new ChargeSessionStore.Value(-Math.round(amps * 100) / 100.0, at, 0x72),
+                    new ChargeSessionStore.Value(24 + t / 600000.0, at, 0x72));
+            double left = (minutes * 60000L - t) / 60000.0;
+            template.sample(frame, new ChargeSessionStore.Estimate("timing-v1", left, null, null, ChargeSessionStore.Source.CURRENT_RATE, null, 0));
+        }
+        template.stop(ChargeSessionStore.Stop.STOPPED);
+        File[] made = templateDir.listFiles((dir, name) -> name.endsWith(".csv"));
+        check(made != null && made.length == 1, "Charge template saved");
+        byte[] bytes = java.nio.file.Files.readAllBytes(made[0].toPath());
+        File folder = new File(context.getFilesDir(), "charge-recordings");
+        check(folder.isDirectory() || folder.mkdirs(), "Charge folder created");
+        long now = System.currentTimeMillis();
+        for (int k = 0; k < count; k++) {
+            File target = new File(folder, UUID.randomUUID() + ".csv");
+            java.nio.file.Files.write(target.toPath(), bytes);
+            check(target.setLastModified(now - (count - k) * 86400000L), "Charge fixture dated");
+        }
+        made[0].delete(); templateDir.delete();
+        if (compressed) new ChargeSessionStore(folder).maintain();
+        long disk = 0; for (File f : folder.listFiles()) disk += f.length();
+        result.putInt("seeded_charges", count); result.putLong("seeded_charge_plain_bytes", bytes.length * (long) count); result.putLong("seeded_charge_disk_bytes", disk);
     }
 
     /** When the history rows were built, polled from this thread while main builds them (2 ms resolution). */

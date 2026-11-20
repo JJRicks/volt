@@ -1389,11 +1389,11 @@ a write-back outstanding, or a compatibility check runs, and starts after. It en
 so Record rides automatically can start the ride in the same moment), two minutes
 after charging stops unless Volt's schedule holds the current off, or when a ride is
 started by hand. One under 10 minutes or 5 percentage points is not kept, and the
-page keeps saying so after the unplug until a newer status replaces it. At the
-20-recording limit a kept one replaces only the oldest automatic recording, never a
-manual one, and only once kept; the 20 are shared by all scooters, and with all 20
-manual it does not start and the page says so; clearing any scooter's recordings,
-or turning the switch on again, tries the charge under way once more. A hand stop holds that scooter until it stops
+page keeps saying so after the unplug until a newer status replaces it. Room
+(2.0.1): automatic and manual recordings rotate alike, so it always starts; once a
+recording of either kind is kept, the oldest go to stay within up to 1,000
+recordings and about 150 MB compressed, shared by all scooters, unusable ones
+first and about two per scooter and charger kept. A hand stop holds that scooter until it stops
 charging and starts again (a pause Volt's own schedule holds is not a stop),
 across reconnects: an automatic recording's, and a manual one's while the switch
 is on. Once running it records out of sight whatever Stay connected in background
@@ -1543,7 +1543,9 @@ shortest spaces the charge shrinks over them and gives way below a readable
 size. For about an hour after
 a recorded ride, Just back sits on the page in the same area: "Ride ended 12
 minutes ago" with a small X, the distance large, the route on a panel in
-the card colour (green start, white end) and three tiles: Ride time
+the card colour (green start, white end; a round Basemap button in the
+panel's bottom corner puts a map behind the route, its own remembered choice,
+off by default, dark in the dark theme) and three tiles: Ride time
 ("24m", "1h 02m"), Avg speed (from the measured distance and time when the ride
 saved no average, the rule the ride's page and compare sheet on Rides use
 too; a dash only without a distance or a time) and Battery with the signed change ("−18%"); on a short area the route goes
