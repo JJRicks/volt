@@ -46,7 +46,20 @@ sweep (own --out, no --census) rather than in a G7 run.
 
 The closing summary counts the two kinds apart: gating steps passed and failed (only those set the exit code),
 then report-only steps ran, did not finish and skipped, none of which is a pass. summary.json gives each step a
-status (passed, failed, reported, did-not-finish, skipped); only gating steps have the passed field.
+status (passed, failed, reported, did-not-finish, skipped); only gating steps have the passed field. Every
+record also names what the run tested and when it began: app_sha256 and runner_sha256 (the APKs' SHA-256), with
+app_version_name, app_version_code, app_cert_sha256 and runner_cert_sha256 when the SDK's aapt2 and apksigner
+(build-tools beside --adb, else ANDROID_HOME or ANDROID_SDK_ROOT) can read them, and sweep_started (Unix seconds).
+
+Split sweeps. --merge --out DIR RUN_DIR... reads the summary.json (and the <step>.txt outputs) of several runs of
+this script and gives each step of this checkout's --list one final verdict. Runs are read oldest first by
+sweep_started; per step, the latest verdict from a run that ran the step wins (a rerun's pass replaces an earlier
+failure, and a later failure an earlier pass); skipped counts only where no run ran the step. Every try is listed,
+a step with no verdict in any run is named, and the closing lines are the ones a single run prints, so they can be
+copied the same way; DIR gets the merged summary.json (each record with its run and tries; status no-verdict
+where none) and merge.txt, a copy of what was printed. It refuses (exit 2) when the runs used different app or
+runner APKs, or when a run's summary.json is missing or predates app_sha256 and runner_sha256. Exit 1: a gating
+step failed; 3: a step has no verdict (neither a pass nor a fail).
 
 Sizes. PHONE is the Fold5 cover (344x882 dp, dark, 1x text). WIDE is its open panel (725x604 dp, light) at
 1x text, so the wide layout (side rail, two columns) stays checked. WIDE_LARGE is the same panel at 1.4x
@@ -58,6 +71,7 @@ take a text scale run at all three sizes; the size-only ones at PHONE and WIDE.
 import argparse
 import hashlib
 import json
+import os
 import shutil
 from pathlib import Path
 import re
@@ -447,6 +461,107 @@ def uncovered():
     return [name for name in registered() if name not in covered and name not in EXCLUDED]
 
 
+def closing_lines(rows):
+    """The sweep's closing Gating / Report-only lines (RELEASING.md step 5 copies them as printed)."""
+    def with_status(status): return [r['step'] for r in rows if r['status'] == status]
+    failed, unfinished, skipped = with_status('failed'), with_status('did-not-finish'), with_status('skipped')
+    return [f'Gating steps: {len(with_status("passed"))} passed, {len(failed)} failed' + (': ' + ', '.join(failed) if failed else ''),
+            f'Report-only steps (never counted as passes): {len(with_status("reported"))} ran, {len(unfinished)} did not finish, {len(skipped)} skipped'
+            + ('; did not finish: ' + ', '.join(unfinished) if unfinished else '') + ('; skipped: ' + ', '.join(skipped) if skipped else '')]
+
+
+# A step that ran ends in one of these; skipped (no --pseudo-app) means it did not run.
+RAN = ('passed', 'failed', 'reported', 'did-not-finish')
+IDENTITY = ('app_sha256', 'runner_sha256')
+
+
+def refuse(message):
+    print('Refusing to merge: ' + message, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def read_run(folder, listed):
+    """One run folder: its summary.json records, start, APK identity and the steps whose <step>.txt it kept."""
+    summary = folder / 'summary.json'
+    if not folder.is_dir(): refuse(f'{folder} is not a folder')
+    try: rows = json.loads(summary.read_text(encoding='utf-8'))
+    except FileNotFoundError: refuse(f'{folder} has no summary.json (a run writes it as it ends), so which APKs it tested is unknown')
+    except (OSError, ValueError) as error: refuse(f'{summary} could not be read: {error}')
+    if not isinstance(rows, list) or not all(isinstance(r, dict) and isinstance(r.get('step'), str) for r in rows):
+        refuse(f'{summary} is not a run-release-sweep.py summary (a list of step records)')
+    if not rows: refuse(f'{summary} records no steps, so which APKs it tested is unknown')
+    lacking = [r['step'] for r in rows if not all(isinstance(r.get(key), str) and len(r[key]) == 64 for key in IDENTITY)]
+    if lacking:
+        refuse(f'{summary} has no app and runner SHA-256 (app_sha256, runner_sha256) for {len(lacking)} of {len(rows)} step(s), '
+               f'first {lacking[0]}: runs from before the sweep recorded them cannot show which candidate they tested. '
+               'Rerun those steps with this run-release-sweep.py.')
+    identities = {tuple(r[key] for key in IDENTITY) for r in rows}
+    if len(identities) > 1: refuse(f'{summary} names more than one app or runner APK within one run')
+    started = [r['sweep_started'] for r in rows if isinstance(r.get('sweep_started'), (int, float))]
+    if not started: refuse(f'{summary} records no sweep_started, so the runs cannot be put in order')
+    outputs = {path.name[:-4] for path in folder.glob('*.txt') if path.name[:-4] in listed}
+    (app, runner), = identities
+    return dict(folder=folder, rows=rows, started=min(started), app=app, runner=runner, outputs=outputs)
+
+
+def merge(out, folders):
+    """--merge (see the module docstring); returns the exit code."""
+    listed = [step['name'] for step in STEPS]
+    report_only = {step['name'] for step in STEPS if step.get('report_only')}
+    if not folders: refuse('name at least one run folder')
+    if any(out.resolve() == folder.resolve() for folder in folders): refuse(f'--out {out} is one of the run folders; its summary.json would be replaced')
+    runs = [read_run(folder, set(listed)) for folder in folders]
+    for key, what in (('app', 'app'), ('runner', 'runner (test)')):
+        used = {}
+        for run in runs: used.setdefault(run[key], []).append(str(run['folder']))
+        if len(used) > 1:
+            refuse(f'the runs used different {what} APKs: ' + '; '.join(f'SHA-256 {sha} in {", ".join(names)}' for sha, names in used.items())
+                   + '. Every run of a split sweep must test the same candidate with the same runner.')
+    runs = [run for _, run in sorted(enumerate(runs), key=lambda pair: (pair[1]['started'], pair[0]))]
+    first = runs[0]['rows'][0]
+    version = (f', Volt {first["app_version_name"]} ({first.get("app_version_code")})' if first.get('app_version_name') else '') + \
+              (f', certificate SHA-256 {first["app_cert_sha256"]}' if first.get('app_cert_sha256') else '')
+    lines = [f'Merging {len(runs)} run(s) over the {len(listed)} steps of this checkout\'s --list, oldest first '
+             f'(app SHA-256 {runs[0]["app"]}, runner SHA-256 {runs[0]["runner"]}{version}):']
+    lines += [f'  run {number}: {run["folder"]}, started {time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime(run["started"]))}, '
+              f'{len(run["rows"])} step record(s)' for number, run in enumerate(runs, 1)]
+    label = dict(STATUS_LABEL, **{'no-verdict': 'NO VERDICT'})
+    merged, changed = [], []
+    for name in listed:
+        tries, final = [], None
+        for number, run in enumerate(runs, 1):
+            records = [r for r in run['rows'] if r['step'] == name]
+            for record in records:
+                status = record.get('status') if record.get('status') in STATUS_LABEL else 'no-verdict'
+                tries.append(dict(run=number, folder=str(run['folder']), status=status))
+                if status in RAN or (status == 'skipped' and (final is None or final[1]['status'] not in RAN)):
+                    final = (number, record)
+            if not records and name in run['outputs']:
+                # Its output was kept but no record: the run stopped first, or a later run into the same --out replaced summary.json.
+                tries.append(dict(run=number, folder=str(run['folder']), status='no-verdict'))
+        if final:
+            row = dict(final[1], run=final[0], run_folder=str(runs[final[0] - 1]['folder']), tries=tries)
+        else:
+            row = dict(step=name, status='no-verdict', **({'report_only': True} if name in report_only else {}),
+                       **{key: first[key] for key in IDENTITY}, tries=tries)
+        merged.append(row)
+        history = ', '.join(f'run {t["run"]} {label[t["status"]]}' for t in tries)
+        where = f' (run {row["run"]})' if final else ' (no run ran it)' if not tries else ''
+        lines.append(f'{name}: {label[row["status"]]}{where}' + (f'; tries: {history}' if len(tries) > 1 or not final and tries else ''))
+        if len({t['status'] for t in tries}) > 1: changed.append(f'{name} ({history})')
+    unknown = sorted({r['step'] for run in runs for r in run['rows']} - set(listed))
+    if unknown: lines.append(f'Not in this checkout\'s --list, left out: {len(unknown)}: ' + ', '.join(unknown))
+    if changed: lines.append(f'Verdicts that changed between tries (record each reason in VERIFICATION.txt): {len(changed)}: ' + '; '.join(changed))
+    lines += closing_lines(merged)
+    missing = [r['step'] for r in merged if r['status'] == 'no-verdict']
+    if missing: lines.append(f'Without a verdict in any run (neither a pass nor a fail): {len(missing)}: ' + ', '.join(missing))
+    out.mkdir(parents=True, exist_ok=True)
+    (out / 'summary.json').write_text(json.dumps(merged, indent=2) + '\n')
+    (out / 'merge.txt').write_text('\n'.join(lines) + '\n')
+    print('\n'.join(lines))
+    return 3 if missing else 1 if any(r['status'] == 'failed' for r in merged) else 0
+
+
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--adb')
 parser.add_argument('--serial')
@@ -457,6 +572,8 @@ parser.add_argument('--only', action='append', help='step name (repeatable)')
 parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py (sweep the base APK twice, the head once)')
 parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the en-XA and ar-XB locale-* steps; its classes.dex must equal --app\'s')
 parser.add_argument('--list', action='store_true', help='print the steps and exit')
+parser.add_argument('--merge', action='store_true', help='merge the RUN_DIR folders of a split sweep into --out (no emulator; see Split sweeps above)')
+parser.add_argument('runs', nargs='*', type=Path, metavar='RUN_DIR', help='with --merge: the --out folder of each run')
 args = parser.parse_args()
 missing = uncovered()
 if missing:
@@ -466,10 +583,16 @@ if args.list:
     for name, why in EXCLUDED.items(): print(f'(excluded) {name}: {why}')
     for name, where in SUBSUMED.items(): print(f'(subsumed) {name}: by {where}')
     raise SystemExit(0)
+if args.runs and not args.merge: parser.error('run folders are read only with --merge')
+if args.merge:
+    if args.out is None: parser.error('--merge needs --out')
+    raise SystemExit(merge(args.out, args.runs))
 for flag in ('adb', 'serial', 'app', 'runner', 'out'):
     if getattr(args, flag) is None: parser.error(f'--{flag} is required')
 if not re.fullmatch(r'emulator-\d+', args.serial):
     parser.error('An explicit emulator serial is required; physical devices are refused')
+for flag in ('app', 'runner'):
+    if not getattr(args, flag).is_file(): parser.error(f'--{flag} {getattr(args, flag)} is not a file')
 names = {step['name'] for step in STEPS}
 
 
@@ -485,6 +608,37 @@ if args.pseudo_app:
 for name in args.only or []:
     if name not in names: parser.error(f'Unknown step {name}; see --list')
 prefix = [args.adb, '-s', args.serial]
+
+
+def sdk_tool(name):
+    """The newest build-tools' name in the SDK beside --adb (<sdk>/platform-tools/adb), else ANDROID_HOME or ANDROID_SDK_ROOT."""
+    roots = [Path(args.adb).resolve().parent.parent] + [Path(os.environ[v]) for v in ('ANDROID_HOME', 'ANDROID_SDK_ROOT') if os.environ.get(v)]
+    for root in roots:
+        found = sorted((root / 'build-tools').glob('*/' + name), key=lambda p: [int(x) if x.isdigit() else -1 for x in re.split(r'[.-]', p.parent.name)])
+        if found: return found[-1]
+    return None
+
+
+def tool_output(*command):
+    try: return subprocess.run([str(value) for value in command], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=120).stdout
+    except (OSError, subprocess.SubprocessError): return ''
+
+
+def apk_identity():
+    """What every summary.json record names (see the module docstring); fields the SDK's tools can't read are left out."""
+    identity = dict(app_sha256=hashlib.sha256(args.app.read_bytes()).hexdigest(), runner_sha256=hashlib.sha256(args.runner.read_bytes()).hexdigest())
+    aapt2, apksigner = sdk_tool('aapt2'), sdk_tool('apksigner')
+    badging = tool_output(aapt2, 'dump', 'badging', args.app) if aapt2 else ''
+    package = next((line for line in badging.splitlines() if line.startswith('package:')), '')
+    name, code = re.search(r" versionName='([^']*)'", package), re.search(r" versionCode='(\d+)'", package)
+    if name and code: identity.update(app_version_name=name.group(1), app_version_code=int(code.group(1)))
+    for key, apk in (('app', args.app), ('runner', args.runner)):
+        cert = re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]{64})', tool_output(apksigner, 'verify', '--print-certs', apk)) if apksigner else None
+        if cert: identity[f'{key}_cert_sha256'] = cert.group(1)
+    return identity
+
+
+RUN = dict(apk_identity(), sweep_started=round(time.time(), 3))
 
 
 def adb(*values, check=True, timeout=240):
@@ -507,8 +661,7 @@ if args.census:
     # mistake would turn every change into a volatile record) and runs with different test APKs.
     (args.out / 'census').mkdir(exist_ok=True)
     (args.out / 'census' / 'sweep.json').write_text(json.dumps(dict(
-        format='volt-census-sweep-v1', app_sha256=hashlib.sha256(args.app.read_bytes()).hexdigest(),
-        runner_sha256=hashlib.sha256(args.runner.read_bytes()).hexdigest(), only=args.only or []), indent=2) + '\n')
+        format='volt-census-sweep-v1', app_sha256=RUN['app_sha256'], runner_sha256=RUN['runner_sha256'], only=args.only or []), indent=2) + '\n')
 
 
 # A system error dialog's window title names the stalled process; a crash dialog also has focus.
@@ -669,6 +822,7 @@ try:
         label = STATUS_LABEL[status]
         if report_only: result['report_only'] = True
         else: result['passed'] = passed
+        result.update(RUN)
         # Report-only locale steps are not English, so they never join the G7 census.
         if args.census and not report_only:
             screens, census_errors = gather_census(step['name'])
@@ -690,17 +844,11 @@ finally:
     if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
     else: adb('shell', 'settings', 'put', 'global', 'hide_error_dialogs', hide_dialogs, check=False)
     (args.out / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
-def with_status(status): return [r['step'] for r in results if r['status'] == status]
-
-
-failed, unfinished, skipped = with_status('failed'), with_status('did-not-finish'), with_status('skipped')
-print(f'Gating steps: {len(with_status("passed"))} passed, {len(failed)} failed' + (': ' + ', '.join(failed) if failed else ''))
-print(f'Report-only steps (never counted as passes): {len(with_status("reported"))} ran, {len(unfinished)} did not finish, {len(skipped)} skipped'
-      + ('; did not finish: ' + ', '.join(unfinished) if unfinished else '') + ('; skipped: ' + ', '.join(skipped) if skipped else ''))
+print('\n'.join(closing_lines(results)))
 if args.census:
     census_errors = [f'{r["step"]}/{e}' for r in results for e in r.get('census_errors', [])]
     empty = [r['step'] for r in results if 'census_screens' in r and not r['census_screens']]
     print(f'census: {sum(r.get("census_screens", 0) for r in results)} screen(s) in {args.out / "census"}'
           + (f'; {len(census_errors)} problem(s): ' + '; '.join(census_errors[:5]) if census_errors else '')
           + (f'; no census from {len(empty)} step(s) (G7 covers nothing there): ' + ', '.join(empty) if empty else ''))
-raise SystemExit(1 if failed else 0)
+raise SystemExit(1 if any(r['status'] == 'failed' for r in results) else 0)
