@@ -213,7 +213,19 @@ public final class ChargeAutoRecordPolicyTest {
     // The store, with synthesized charges.
 
     static File folder() throws Exception { return Files.createTempDirectory("charge-auto").toFile(); }
-    static ChargeSessionStore store(File folder) throws Exception { return new ChargeSessionStore(folder, ChargeAutoRecordPolicy.RULES, MAX, ChargeSessionStore.BUDGET_BYTES); }
+    static ChargeSessionStore store(File folder) throws Exception {
+        ChargeSessionStore store = new ChargeSessionStore(folder, ChargeAutoRecordPolicy.RULES, MAX, ChargeSessionStore.BUDGET_BYTES);
+        FOLDERS.put(store, folder); return store;
+    }
+    static final Map<ChargeSessionStore, File> FOLDERS = new IdentityHashMap<>();
+    /**
+     * Dates the journals saved since before, as a restore dates them. The store orders recordings by modification time,
+     * then by their random ids, so recordings saved within one millisecond would come back in a random order.
+     */
+    static void dateSaved(File folder, List<String> before, long time) {
+        for (String name : names(folder)) if (name.endsWith(".csv") && !before.contains(name)) check(new File(folder, name).setLastModified(time), "Fixture dated");
+    }
+    static final long HOUR = 3_600_000L;
     /** The count these tests fill: the store's rules are the same at any count, and twenty keeps them quick. */
     static final int MAX = 20;
     static ChargeSessionStore.Value value(double v, long mono) { return new ChargeSessionStore.Value(v, mono, 0x72); }
@@ -259,6 +271,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(!store.stop(ChargeSessionStore.Stop.STOPPED) && names(f).isEmpty(), "No samples is not kept");
         store.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(store, 10, 5);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED) && names(f).size() == 1, "Exactly 10 minutes and 5 points is kept");
+        dateSaved(f, Collections.emptyList(), System.currentTimeMillis() - HOUR);
         List<ChargeSessionStore.HistorySession> saved = store.recordings("one");
         check(saved.size() == 1 && saved.get(0).automatic && saved.get(0).labelSource == GUESS, "History knows it started automatically");
         store.start("one", STOCK, WALL, MONO); charge(store, 1, 0);
@@ -266,10 +279,14 @@ public final class ChargeAutoRecordPolicyTest {
         check(!store.recordings("one").get(0).automatic && store.recordings("one").get(0).labelSource == null, "Manual history has no label source");
     }
 
+    /** Saves manual then automatic recordings, dated an hour apart in the past, oldest first; later saves are newer. */
     static void fill(ChargeSessionStore store, int manual, int automatic) throws Exception {
+        File folder = FOLDERS.get(store); long now = System.currentTimeMillis();
         for (int i = 0; i < manual + automatic; i++) {
+            List<String> before = names(folder);
             if (i < manual) store.start("one", STOCK, WALL + i * 100 * MINUTE, MONO); else store.startAutomatic("one", STOCK, CHOSEN, WALL + i * 100 * MINUTE, MONO);
             charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+            dateSaved(folder, before, now - (manual + automatic - i) * HOUR);
         }
     }
 
@@ -597,15 +614,19 @@ public final class ChargeAutoRecordPolicyTest {
         check(names(f).size() == 1 && names(f).get(0).endsWith(".active"), "No temporary file is left");
         charge(store, 10, 6);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "Kept");
+        long now = System.currentTimeMillis(); dateSaved(f, Collections.emptyList(), now - 4 * HOUR);
         ChargeSessionStore.HistorySession saved = store.recordings("one").get(0);
         check(saved.charger == FAST && saved.labelSource == DETECTED && saved.labelAudit != null && saved.labelAudit.setting == STOCK && saved.labelAudit.detected == FAST,
                 "Saved: detected high-speed, with the stock setting audited");
         // Never settles: the setting's label stays, marked as the setting's; Automatic is audited as such.
+        List<String> before = names(f);
         store.startAutomatic("one", FAST, SETTING, FAST, WALL + 1000 * MINUTE, MONO); charge(store, 10, 5);
         check(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), null) == null, "No detection: nothing to relabel");
-        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED); dateSaved(f, before, now - 3 * HOUR); before = names(f);
         store.startAutomatic("one", STOCK, GUESS, null, WALL + 2000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        dateSaved(f, before, now - 2 * HOUR); before = names(f);
         store.startAutomatic("one", STOCK, DETECTED, null, WALL + 3000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        dateSaved(f, before, now - HOUR); before = names(f);
         List<ChargeSessionStore.HistorySession> list = store.recordings("one");
         ChargeSessionStore.HistorySession detectedAtStart = list.get(0), guess = list.get(1), kept = list.get(2);
         check(kept.labelSource == SETTING && kept.charger == FAST && kept.labelAudit.setting == FAST && kept.labelAudit.detected == null, "The setting's label, saved as the setting's");
@@ -617,7 +638,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(json.contains("\"label_source\":\"guess\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null}"), "Export: Automatic, nothing detected");
         // A process death while the setting's label runs: recovered as the setting's.
         store.startAutomatic("one", STOCK, SETTING, STOCK, WALL + 4000 * MINUTE, MONO); charge(store, 20, 10);
-        ChargeSessionStore again = store(f);
+        ChargeSessionStore again = store(f); dateSaved(f, before, now);
         ChargeSessionStore.HistorySession recovered = again.recordings("one").get(0);
         check(recovered.stop == ChargeSessionStore.Stop.INTERRUPTED && recovered.labelSource == SETTING && recovered.automatic && recovered.labelAudit.setting == STOCK,
                 "Recovered after a process death with its label and audit");
