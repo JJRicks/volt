@@ -44,7 +44,7 @@ import com.jjricks.volt.ScooterProfiles;
  * the page from inside that callback (#523 council review, second round): the check must still wait for the callback's
  * own rebuild. -e mode notice-wide runs only that cold start, on Clean Home (two panes at 725 dp wide).
  */
-public final class UpdateCheckValidation extends Instrumentation {
+public final class UpdateCheckValidation extends ValidationInstrumentation {
     private static final String PAGE = "https://github.com/JJRicks/volt/releases/tag/v9.9.9";
     private static final String APK = "https://github.com/JJRicks/volt/releases/download/v9.9.9/volt-9.9.9.apk";
     private Bundle arguments;

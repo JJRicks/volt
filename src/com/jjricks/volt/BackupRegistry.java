@@ -142,6 +142,9 @@ final class BackupRegistry {
         exclude(app, HomeMoment.DISMISSED_KEY, String.class, DEVICE);
         // Clean Home's four quick actions (HomeQuickActions) travel with the scooter, like its Scooter tab menu.
         prefix(app, HomeQuickActions.KEY_PREFIX, String.class, SCOOTER_PREFERENCES, true);
+        // The overview card's two readings (HomeReadings, Settings › Home style) travel with the scooter, as its quick actions do.
+        prefix(app, HomeReadings.FIRST_PREFIX, String.class, SCOOTER_PREFERENCES, true);
+        prefix(app, HomeReadings.SECOND_PREFIX, String.class, SCOOTER_PREFERENCES, true);
         add(app, "ride_comparison", Set.class, RIDES);add(app, "ride_selected", String.class, RIDES);
         prefix(app, "range_source_", String.class, SCOOTER_PREFERENCES, true);
         prefix(app, "range_follow_mode_", Boolean.class, SCOOTER_PREFERENCES, true);

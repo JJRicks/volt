@@ -34,7 +34,7 @@ import com.jjricks.volt.ScooterService;
  * to nothing, so it lands on each rung: names shorten, then turn into icons, and only then does the last chip go. Screenshots
  * go to the evidence folder. Simulator only.
  */
-public final class RidingChipChoicesValidation extends Instrumentation {
+public final class RidingChipChoicesValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private String profileId, immersivePrevious;
     private File evidence;

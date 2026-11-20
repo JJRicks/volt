@@ -27,7 +27,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Empty disposable emulator only. Holds the real worker to inspect pending UI deterministically. */
-public final class CapacityWidgetValidation extends Instrumentation {
+public final class CapacityWidgetValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private DashboardScreen dashboard;

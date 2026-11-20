@@ -49,7 +49,7 @@ import com.jjricks.volt.ScooterService;
  * </ol>
  * Synthesized profiles and readings only. Screenshots go to the app's external files (maintenance-offline-validation).
  */
-public final class MaintenanceOfflineValidation extends Instrumentation {
+public final class MaintenanceOfflineValidation extends ValidationInstrumentation {
     private static final long DAY = 86_400_000L;
     /** MaintenanceStore.PREFIX (package-private in the app). */
     private static final String PREFIX = "maintenance_v1_";

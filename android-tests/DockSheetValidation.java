@@ -72,7 +72,7 @@ import com.jjricks.volt.ScooterProfiles;
  * behind the dock, dock is the dock alone, a progress 0..1 the sheet pulled that far and held) for -e pose_seconds (4),
  * sending a status line pose=NAME as each is in place, so pictures can be taken from adb.
  */
-public final class DockSheetValidation extends Instrumentation {
+public final class DockSheetValidation extends ValidationInstrumentation {
     private static final String FIXTURE_NAME = "Synthetic dock fixture", FIXTURE_IDENTITY = "B1C2D3E4F5A6",
             FIXTURE_SERIAL = "X2538-SYNTHETIC", FIXTURE_MAC = "C0:FF:EE:12:34:57";
     private static final String STYLE_KEY = "home_style", STYLE_CHOSEN = "home_style_chosen", STYLE_ORIGIN = "home_style_origin", WIDGETS = "widgets";
@@ -87,7 +87,8 @@ public final class DockSheetValidation extends Instrumentation {
     private float cap, dp;
     private String scaleBefore;
 
-    @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
+    // A motion check (the sheet follows the finger, frame by frame): Home as on a phone, endless animations running.
+    @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; runEndlessMotion(); start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {

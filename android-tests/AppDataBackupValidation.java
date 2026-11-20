@@ -15,7 +15,7 @@ import java.nio.file.Files;
 import java.util.*;
 
 /** Isolated real Android preferences/SQLite/crypto. Never uses physical phones or actual app data. */
-public final class AppDataBackupValidation extends Instrumentation {
+public final class AppDataBackupValidation extends ValidationInstrumentation {
     private static final String[] PREFS={"app_settings","profiles","scooter","control_evidence","onboarding"};
     private static final String ID="01234567-89ab-cdef-0123-456789abcdef";
     private static final char[] PASSWORD="emulator-only backup password".toCharArray();

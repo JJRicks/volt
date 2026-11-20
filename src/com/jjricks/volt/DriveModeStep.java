@@ -112,7 +112,7 @@ final class DriveModeStep {
     }
 
     private void begin() {
-        if (ValueAnimator.areAnimatorsEnabled()) {
+        if (Ui.endlessMotionEnabled()) {
             pulse = ObjectAnimator.ofFloat(pulseDot, View.ALPHA, 1f, 0.25f); pulse.setDuration(900);
             pulse.setRepeatMode(ValueAnimator.REVERSE); pulse.setRepeatCount(ValueAnimator.INFINITE); pulse.start();
         }

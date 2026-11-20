@@ -24,7 +24,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable emulator regression: real window lifecycle and system vibrator history. */
-public final class ConnectionHapticsValidation extends Instrumentation {
+public final class ConnectionHapticsValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private Object player;
     private final Bundle result = new Bundle();

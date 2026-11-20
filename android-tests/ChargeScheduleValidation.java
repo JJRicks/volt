@@ -31,7 +31,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable empty emulator, radio disabled. All schedule operations use Volt's simulator. */
-public final class ChargeScheduleValidation extends Instrumentation {
+public final class ChargeScheduleValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

@@ -1,7 +1,6 @@
 package com.jjricks.volt.tests;
 
 import android.Manifest;
-import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -49,7 +48,7 @@ import com.jjricks.volt.ScooterProfiles;
  * -e states a comma list). An app without the
  * section (no more_learned_label string: built before its strings) gets the same screenshot names of the page and passes.
  */
-public final class LearnedCurveValidation extends Instrumentation {
+public final class LearnedCurveValidation extends ValidationInstrumentation {
     private static final long WALL = System.currentTimeMillis() - 7 * 86_400_000L, MONO = 1_000_000L;
     private MainActivity activity;
     private Bundle args;

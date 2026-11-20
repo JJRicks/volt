@@ -39,7 +39,7 @@ import com.jjricks.volt.TelemetryHistory;
  * Then, without the simulator, a never-connected scooter whose owner check timed out twice gets the
  * "Send connection details" offer on its own, and its email holds the steps but no fixture secrets.
  */
-public final class ReportInviteValidation extends Instrumentation {
+public final class ReportInviteValidation extends ValidationInstrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
     // Synthetic private values: none of them may reach the email.
     private static final String FIXTURE_NAME = "Synthetic invite fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",

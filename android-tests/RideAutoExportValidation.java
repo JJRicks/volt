@@ -34,7 +34,7 @@ import com.jjricks.volt.*;
  * on the next ride end and at app start), grant revoked (retried after choosing the folder again), a restored
  * setting with no folder, and turning it off. Never connects Bluetooth. run-ride-auto-export.py runs it.
  */
-public final class RideAutoExportValidation extends Instrumentation {
+public final class RideAutoExportValidation extends ValidationInstrumentation {
     private static final String FOLDER_NAME = "VoltRides", FOLDER_PATH = "/sdcard/Download/" + FOLDER_NAME;
     /** ON is the one switch (the old ride JSON switch's key); LEGACY the retired Route CSV switch, still read as on. */
     private static final String LEGACY = "ride_auto_export_route_csv", ON = "ride_auto_export_json", FOLDER = "ride_auto_export_folder",

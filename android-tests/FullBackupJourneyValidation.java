@@ -39,7 +39,7 @@ import org.json.JSONObject;
  * Legacy: pm clear, push tests/fixtures/legacy/full-v1.voltbackup as legacy-v1.voltbackup,
  * then -e mode legacy-v1 restores the Volt 1.3.1 file with Replace everything.
  */
-public final class FullBackupJourneyValidation extends Instrumentation {
+public final class FullBackupJourneyValidation extends ValidationInstrumentation {
     private static final String[] PREFS={"app_settings","profiles","scooter","control_evidence","onboarding"};
     private static final char[] PASSWORD="synthetic clear-storage journey".toCharArray();
     private static final String DIGEST="fixture_expected_preferences_digest";

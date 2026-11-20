@@ -74,7 +74,7 @@ import com.jjricks.volt.ScooterService;
  *   ar-XB: every window root must lay out right to left; plus TextFit's fit checks.
  *   <tag>: TextFit's fit checks; with -e rtl true (rtl in l10n/lang/<tag>.tsv) also ar-XB's direction check.
  */
-public final class LocaleValidation extends Instrumentation {
+public final class LocaleValidation extends ValidationInstrumentation {
     private static final String[] PAGES = {"home", "stats", "controls", "rides", "more"};
     /** OnboardingScreen's steps WELCOME (0) to DONE (10), in order, as screenshot labels. */
     private static final String[] SETUP_STEPS = {"welcome", "path", "prepare", "usb", "computer", "helper",

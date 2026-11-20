@@ -350,6 +350,208 @@ public final class DashboardScreen implements AppScreen {
         }
     }
 
+    /** The overview readings' picker for Settings › Home style (HomeReadings), from a parts-only instance like Clean's. */
+    static ReadingChooser readingChooser(ScreenHost host, Actions actions) {
+        ScooterService service = host.service();
+        ScooterProfiles.Profile profile = service == null ? null : service.profiles.active();
+        return new DashboardScreen(host, actions, profile).new ReadingChooser();
+    }
+
+    /** One slot's reading picker over HomeReadings' catalogue, for a screen other than Home. */
+    final class ReadingChooser {
+        /** The scooter whose two it picks for; another one being active means the page rebuilds. */
+        String profileId() { return profileId; }
+
+        /**
+         * Opens the picker titled title for slot (0 or 1) of current; picked gets the reading tapped (the picker closes
+         * first). other names the other slot, shown beside the reading it holds (picking that one swaps the two);
+         * notReported stands for the value of a reading this scooter hasn't reported; close names the close button.
+         */
+        void choose(String title, List<String> current, int slot, String other, String notReported, String close,
+                java.util.function.Consumer<String> picked) {
+            if (closed) return;
+            chooseOverviewReading(title, current, slot, other, notReported, close, key -> {
+                dismiss();
+                picked.accept(key);
+            });
+        }
+
+        /**
+         * The way to an odometer carry-over (OdometerCarry) from Settings › Home style › Overview readings' sheet, while
+         * one exists: "Odometer carried over" with the distance carried over. With the odometer in neither of the two,
+         * Clean shows no odometer number for the carry-over's cue and tap, and its explanation and Undo are reached here
+         * instead (never stranded). A tap runs opening (the caller closes its sheet), then opens the explanation, as a tap
+         * on Home's odometer does. Null without a carry-over, as Home's odometer then opens nothing either.
+         */
+        View odometerCarry(Runnable opening) {
+            OdometerCarry record = closed || service == null ? null : service.odometerRecord();
+            OdometerCarry.Carry last = record == null ? null : record.last();
+            if (last == null || record.carriedKm() <= 0) return null;
+            // As the sheet's slot rows: the odometer's icon, the title over what is carried over, and a chevron.
+            String title = T.dashboardOdometerCarryTitle(), carried = odometerText(record.carriedKm());
+            String includes = record.carries.size() == 1 ? T.dashboardOdometerCarryIncludes(carried, carryDate(last.wall))
+                    : T.dashboardOdometerCarryIncludesMany(carried, carryDate(last.wall));
+            LinearLayout line = row();
+            line.setGravity(Gravity.CENTER_VERTICAL);
+            line.setMinimumHeight(ui.dp(60));
+            line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+            line.addView(ui.icon(readingGlyph(ui, MaintenanceView.ODOMETER), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+            LinearLayout texts = column();
+            texts.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+            texts.addView(ui.text(title, 15, false), new LinearLayout.LayoutParams(-1, -2));
+            TextView under = ui.caption(includes);
+            under.setPadding(0, ui.dp(2), 0, 0);
+            texts.addView(under, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams textsSize = new LinearLayout.LayoutParams(0, -2, 1);
+            textsSize.setMarginStart(ui.dp(12));
+            textsSize.setMarginEnd(ui.dp(8));
+            line.addView(texts, textsSize);
+            line.addView(ui.icon("chevron", 15, ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
+            line.setContentDescription(readingWithGroup(title, includes));
+            line.setClickable(true);
+            line.setFocusable(true);
+            line.setBackground(ripple(Ui.withAlpha(ui.accent, 26), null, ui.shape(Color.WHITE, 10, 0)));
+            line.setOnClickListener(v -> {
+                opening.run();
+                showOdometerCarry();
+            });
+            return line;
+        }
+
+        void close() {
+            closed = true;
+            chargingHero.stopReveal();
+            dismiss();
+        }
+    }
+
+    /**
+     * The overview readings' picker: HomeReadings' catalogue under its two groups, each reading with its icon, its name as
+     * the card names it and, under it, its latest value in the owner's units ("Not reported" where this scooter has none
+     * yet) or, for the reading the other slot holds, that slot's name. The slot's own reading is checked. A tap picks.
+     * Over the list, the Reading tiles picker's search field, matching as it does (overviewReadingMatches); a group whose
+     * readings all fail the search hides its heading, and "No matching readings" shows when none match (owner, Nov 19
+     * 2026: "we could reuse the readings search bar from the Reading tiles widget").
+     */
+    private void chooseOverviewReading(String title, List<String> current, int slot, String other, String notReported,
+            String close, java.util.function.Consumer<String> picked) {
+        Map<String, TelemetryHistory.Reading> values = service == null ? readings() : service.dashboardReadings();
+        String mine = current.get(slot), theirs = current.get(1 - slot);
+        LinearLayout choices = column();
+        choices.setTag("overview-reading-choices");
+        // The Reading tiles picker's search field and its "No matching readings" line, as that picker makes them.
+        EditText search = new EditText(dialogContext);
+        search.setSingleLine(true);
+        search.setHint(T.dashboardSearchReadings());
+        search.setContentDescription(T.dashboardSearchReadings());
+        ui.styleSearch(search);
+        search.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 14, ui.outline));
+        LinearLayout header = column();
+        header.addView(search, ui.searchLayout());
+        Map<String, Telemetry.Metric> metrics = new HashMap<>();
+        for (Telemetry.Metric metric : new Telemetry().metrics()) metrics.put(metric.key, metric);
+        // Each row with its metric and its group's heading, for the search: a heading shows while any of its rows does.
+        Map<View, Telemetry.Metric> metricOf = new LinkedHashMap<>();
+        Map<View, View> headingOf = new LinkedHashMap<>();
+        String group = null;
+        View heading = null;
+        for (String key : HomeReadings.catalog()) {
+            String next = HomeReadings.group(key);
+            if (!Objects.equals(next, group)) {
+                group = next;
+                choices.addView(sheetLabel(ScooterReadingLabels.group(group)));
+                heading = choices.getChildAt(choices.getChildCount() - 1);
+            }
+            TelemetryHistory.Reading r = values.get(key);
+            String name = label(key);
+            String below = key.equals(theirs) ? other
+                    : r == null || r.value == null ? notReported : shown(r).toString();
+            boolean selected = key.equals(mine);
+            LinearLayout item = row();
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setMinimumHeight(ui.dp(60));
+            item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+            item.setTag("overview-reading-choice:" + key);
+            GlyphView icon = new GlyphView(readingIcon(key), ui.accent);
+            item.addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+            LinearLayout words = column();
+            words.addView(ui.text(name, 14, false));
+            words.addView(ui.caption(below));
+            LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1);
+            space.setMarginStart(ui.dp(12));
+            item.addView(words, space);
+            if (selected) {
+                GlyphView check = new GlyphView("check", ui.accent);
+                LinearLayout.LayoutParams checkSize = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+                checkSize.setMarginStart(ui.dp(8));
+                item.addView(check, checkSize);
+            }
+            item.setClickable(true);
+            item.setFocusable(true);
+            item.setContentDescription(readingWithGroup(name, below));
+            item.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+                @Override public void onInitializeAccessibilityNodeInfo(View view,
+                        android.view.accessibility.AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(view, info);
+                    info.setClassName("android.widget.RadioButton");
+                    info.setCheckable(true);
+                    info.setChecked(selected);
+                }
+            });
+            item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
+            item.setOnClickListener(v -> picked.accept(key));
+            choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
+            metricOf.put(item, metrics.get(key));
+            headingOf.put(item, heading);
+        }
+        TextView empty = ui.caption(T.dashboardNoMatchingReadings());
+        empty.setGravity(Gravity.CENTER);
+        empty.setPadding(ui.dp(12), ui.dp(24), ui.dp(12), ui.dp(24));
+        choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
+        Runnable filter = () -> {
+            String query = SearchFold.fold(search.getText().toString().trim());
+            Set<View> shownHeadings = new HashSet<>();
+            for (Map.Entry<View, Telemetry.Metric> entry : metricOf.entrySet()) {
+                boolean visible = entry.getValue() != null && overviewReadingMatches(entry.getValue(), query);
+                entry.getKey().setVisibility(visible ? View.VISIBLE : View.GONE);
+                if (visible) shownHeadings.add(headingOf.get(entry.getKey()));
+            }
+            for (View label : new HashSet<>(headingOf.values()))
+                label.setVisibility(shownHeadings.contains(label) ? View.VISIBLE : View.GONE);
+            empty.setVisibility(shownHeadings.isEmpty() ? View.VISIBLE : View.GONE);
+            if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, 0);
+        };
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) { filter.run(); }
+            public void afterTextChanged(android.text.Editable text) {}
+        });
+        filter.run();
+        showSheet(title, header, choices, null, close, null);
+        if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
+    }
+
+    /**
+     * The space the Reading tiles picker's search puts between a reading's names. Written as its code point: this batch
+     * of catalog text may add no literal to src (tools/l10n's gates); one shared helper replaces both copies later.
+     */
+    private static final String READING_SEARCH_JOIN = String.valueOf((char) 0x20);
+
+    /**
+     * Whether the overview list's search (query, folded by SearchFold and trimmed) finds metric, exactly as the Reading
+     * tiles picker's does (chooseReadings): its English name, group, key and short name joined into one line, then the
+     * shown names, folded as the query is. In English that finds nothing more.
+     */
+    private static boolean overviewReadingMatches(Telemetry.Metric metric, String query) {
+        boolean visible = String.join(READING_SEARCH_JOIN, metric.label, metric.group, metric.key,
+                ScooterReadingLabels.label(metric.key, metric.label)).toLowerCase(Locale.ROOT).contains(query);
+        if (!visible)
+            visible = SearchFold.holds(metric.label, metric.group, query)
+                    || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
+                    || SearchFold.holdsShown(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query);
+        return visible;
+    }
+
     /**
      * Usable ride energy for Battery & charging › Estimates & charger (hub layout plan 1.5's PANEL, deferred there
      * from part 4), from a parts-only instance like Clean Home's: one transient capacity widget, never added to a
@@ -1136,7 +1338,7 @@ public final class DashboardScreen implements AppScreen {
                         paint.setColor(ui.raised);
                         canvas.drawOval(arc, paint);
                         paint.setColor(ui.accent);
-                        boolean motion = android.animation.ValueAnimator.areAnimatorsEnabled();
+                        boolean motion = Ui.endlessMotionEnabled();
                         float start = motion ? (android.os.SystemClock.uptimeMillis() % 1000) * .36f : -90;
                         canvas.drawArc(arc, start, 90, false, paint);
                         if (motion && owner.isShown()) owner.postInvalidateDelayed(32);
@@ -1322,12 +1524,33 @@ public final class DashboardScreen implements AppScreen {
                 T.dashboardCapacityPointsUsed(Math.round(points), Fmt.decimal(Locale.US, points, 0)));
     }
 
-    private String label(String key) {
+    private String label(String key) { return cardLabel(key); }
+
+    /**
+     * A reading's name on Home's cards (the top rung of readingCaption's ladder and what TalkBack reads): the full name,
+     * the short one for a signed reading and Drive mode. Static for the Home style page's overview readings.
+     */
+    static String cardLabel(String key) {
         if (key.equals("remaining_range_km")) return T.dashboardEstimatedRange();
         if (key.equals("driving_mode")) return T.dashboardDriveMode();
         for (Telemetry.Metric m : new Telemetry().metrics())
             if (m.key.equals(key)) return m.label.endsWith(TELEMETRY_SIGNED) ? ScooterReadingLabels.label(key, m.label.replace(TELEMETRY_SIGNED, "")) : ScooterReadingLabels.full(key, m.label);
         return key;
+    }
+
+    /**
+     * This scooter's two overview readings from Settings › Home style (HomeReadings): its stored choice, or Odometer and
+     * Drive mode. No scooter set up yet: the defaults.
+     */
+    List<String> homeReadings() {
+        return HomeReadings.load(key -> {
+            try { return preferences.getString(key, null); } catch (ClassCastException wrongType) { return null; }
+        }, "unconfigured".equals(profileId) ? null : profileId);
+    }
+
+    /** This scooter's two overview readings back to the stock pair, Odometer and Drive mode (HomeReadings.resetsHome). */
+    private void forgetHomeReadings() {
+        preferences.edit().remove(HomeReadings.key(0, profileId)).remove(HomeReadings.key(1, profileId)).apply();
     }
 
     /**
@@ -1387,7 +1610,10 @@ public final class DashboardScreen implements AppScreen {
         }
     }
 
-    private String readingIcon(String key) {
+    private String readingIcon(String key) { return readingGlyph(ui, key); }
+
+    /** A reading's icon on Home's cards and in the reading pickers (the Home style page's overview readings too). */
+    static String readingGlyph(Ui ui, String key) {
         if (key.equals("remaining_range_km")) return "route";
         if (key.equals("power_w")) return "bolt";
         if (key.equals("battery_health_percent")) return "heart";
@@ -1642,6 +1868,14 @@ public final class DashboardScreen implements AppScreen {
         float fittedCeiling;
         /** The fit is setting a rung's text itself (no refit for that). */
         boolean picking;
+        /**
+         * At least a line's height at the largest size it may take (fittedCeiling), also while it is drawn smaller: the
+         * overview card's small readings, so a longer value, or another reading, never changes the card's height.
+         */
+        boolean steady;
+        /** steadyLine's last size (pixels) and the height it measured there. */
+        float steadySize = -1;
+        int steadyHeight;
 
         FittedValue(String text, int minimum, int maximum, int lines) {
             super(host.activity());
@@ -1772,7 +2006,29 @@ public final class DashboardScreen implements AppScreen {
             }
             if (getTextSize() != fittedPixels)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, fittedPixels);
+            int line = steady && MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY ? steadyLine(widthSpec) : 0;
             super.onMeasure(widthSpec, heightSpec);
+            if (MeasureSpec.getMode(heightSpec) == MeasureSpec.AT_MOST) line = Math.min(line, MeasureSpec.getSize(heightSpec));
+            if (getMeasuredHeight() < line) setMeasuredDimension(getMeasuredWidth(), line);
+        }
+
+        /** The steady value's height: one line at the largest size it may take, measured by this TextView once per size. */
+        private int steadyLine(int widthSpec) {
+            float size = Math.max(fittedCeiling, fittedPixels);
+            if (size == steadySize) return steadyHeight;
+            CharSequence shown = getText();
+            float drawn = getTextSize();
+            picking = true;
+            try {
+                setText("0");
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, size);
+                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                steadyHeight = getMeasuredHeight();
+                steadySize = size;
+                setText(shown);
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, drawn);
+            } finally { picking = false; }
+            return steadyHeight;
         }
     }
 
@@ -2824,7 +3080,7 @@ public final class DashboardScreen implements AppScreen {
          */
         void updatePulse() {
             updateClip();
-            boolean run = (shown || leaving) && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
+            boolean run = (shown || leaving) && !holdPulse && !closed && !editing && Ui.endlessMotionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
@@ -2842,7 +3098,7 @@ public final class DashboardScreen implements AppScreen {
             final android.animation.ValueAnimator owner = pulse;
             pulse.addUpdateListener(a -> {
                 if (owner != pulse) return;
-                if (!Ui.motionEnabled() || closed) { updatePulse(); return; }
+                if (!Ui.endlessMotionEnabled() || closed) { updatePulse(); return; }
                 glow = (float) (.5 + .5 * Math.cos(2 * Math.PI * a.getAnimatedFraction()));
                 stage.invalidate();
                 if (picture != null) picture.invalidateLive();
@@ -3824,7 +4080,7 @@ public final class DashboardScreen implements AppScreen {
                 case "overview":
                     watched.add("battery_percent");
                     watched.add("remaining_range_km");
-                    overview = new OverviewCard(limited(widget.keys, 0));
+                    overview = new OverviewCard(limited(overviewKeys(), 0));
                     body.addView(overview, new LinearLayout.LayoutParams(-1, -2));
                     break;
                 case "tiles":
@@ -4466,6 +4722,15 @@ public final class DashboardScreen implements AppScreen {
         }
 
         /** Up to four readings; an empty list falls back to the type's defaults when one is required. */
+        /**
+         * The overview card's readings: the scooter's two from Settings › Home style (HomeReadings) while the card's own
+         * list is the stock Odometer and Drive mode (every new card's, and Clean's, which has no list of its own), else the
+         * list picked in the card's Readings sheet.
+         */
+        private List<String> overviewKeys() {
+            return HomeReadings.followsHome(widget.keys) ? homeReadings() : widget.keys;
+        }
+
         private List<String> limited(List<String> keys, int least) {
             ArrayList<String> result = new ArrayList<>();
             for (String key : keys) if (result.size() < 4 && !result.contains(key)) result.add(key);
@@ -4491,6 +4756,8 @@ public final class DashboardScreen implements AppScreen {
             /** Spoken battery text, a Msg rendered when spoken; readings dropped to fit the height are appended to it. */
             CharSequence spoken = "";
             final ArrayList<LinearLayout> items = new ArrayList<>();
+            /** The readings' keys, in the order of items. */
+            final ArrayList<String> keys = new ArrayList<>();
             int budget, readingColumns, fittedWidth = -1, fittedBudget = -1;
             String fittedRangeText;
             /** Clean: the range line's width (dp) at the size it was last fitted at. */
@@ -4548,24 +4815,51 @@ public final class DashboardScreen implements AppScreen {
                 barSize.topMargin = ui.dp(12);
                 addView(bar, barSize);
                 readingsBox = column();
-                for (String key : keys) {
+                LinearLayout.LayoutParams readingsSpace = new LinearLayout.LayoutParams(-1, -2);
+                readingsSpace.topMargin = ui.dp(12);
+                addView(readingsBox, readingsSpace);
+                readingsBox.setVisibility(GONE);
+                setKeys(keys);
+            }
+
+            /**
+             * The small readings under the bar, in order: built again only when they change (the Home style page's
+             * overview readings, HomeReadings), in the same place and at the same height. Each name keeps to one line,
+             * taking its shorter name and then its icon alone where it doesn't fit (the full name stays its tooltip and
+             * what TalkBack reads), and each value keeps the height of a line at its largest size, so a reading that
+             * fits only smaller, or a slot changed to another reading, moves nothing on the card.
+             */
+            void setKeys(List<String> next) {
+                if (keys.equals(next)) return;
+                for (String key : keys) amounts.remove(key);
+                for (LinearLayout item : items)
+                    if (item.getParent() instanceof ViewGroup) ((ViewGroup) item.getParent()).removeView(item);
+                readingsBox.removeAllViews();
+                items.clear();
+                keys.clear();
+                keys.addAll(next);
+                for (String key : next) {
                     LinearLayout item = column();
+                    item.setTag("overview-reading:" + key);
                     item.setPadding(0, 0, ui.dp(6), 0);
-                    TextView name = readingCaption(key);
+                    DashboardCaption name = readingCaption(key);
                     name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale);
+                    name.fitOneLine();
                     // The value speaks "label, value"; the caption would repeat it.
                     name.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
                     item.addView(name, new LinearLayout.LayoutParams(-1, -2));
                     FittedValue value = new FittedValue("—", 13, 20, 1);
+                    value.steady = true;
+                    value.setGravity(Gravity.BOTTOM | Gravity.START);
                     item.addView(value, new LinearLayout.LayoutParams(-1, -2));
                     item.setTooltipText(label(key));
                     amounts.put(key, value);
                     items.add(item);
                 }
-                LinearLayout.LayoutParams readingsSpace = new LinearLayout.LayoutParams(-1, -2);
-                readingsSpace.topMargin = ui.dp(12);
-                addView(readingsBox, readingsSpace);
+                readingColumns = 0;
+                fittedWidth = -1;
                 readingsBox.setVisibility(items.isEmpty() ? GONE : VISIBLE);
+                requestLayout();
             }
 
             void fitHeight(int height) {
@@ -5325,6 +5619,8 @@ public final class DashboardScreen implements AppScreen {
             boolean styled = widget.type.equals("scooter") || widget.type.equals("trip")
                     || widget.type.equals("health") || widget.type.equals("overview")
                     || widget.type.equals("tiles");
+            // A choice made in Settings › Home style shows here at once, in place (no rebuild of Home).
+            if (overview != null) overview.setKeys(limited(overviewKeys(), 0));
             ArrayList<String> shown = new ArrayList<>(amounts.keySet());
             shown.addAll(watched);
             if (big != null || gauge != null) shown.add(widget.metric);
@@ -5342,7 +5638,10 @@ public final class DashboardScreen implements AppScreen {
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
                         amount.setTextColor(r.number < 0 ? ui.ok : r.number > 0 ? ui.danger : ui.text);
                     amount.setContentDescription(
-                            r != null && !live
+                            overview != null && (r == null || r.value == null)
+                                    // The overview's dash: a reading this scooter hasn't reported is read as such.
+                                    ? T.dashboardReading(label(key), T.commonNotReported())
+                                    : r != null && !live
                                     ? T.dashboardReadingSeen(label(key), text, when(r.capturedWallMs))
                                     : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
@@ -5452,7 +5751,7 @@ public final class DashboardScreen implements AppScreen {
             TelemetryHistory.Reading speed = values.get(RidingValues.SPEED_KEY);
             boolean moving = speed != null && speed.live && speed.number != null && speed.number > 0;
             OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(), opens,
-                    Ui.motionEnabled(), !isShown(), moving);
+                    Ui.endlessMotionEnabled(), !isShown(), moving);
             odometerNumber = number;
             odometerStyle = style;
             if (style == OdometerAttention.Style.NONE) {
@@ -8428,11 +8727,16 @@ public final class DashboardScreen implements AppScreen {
         SearchFocus.bind(search, dialog.getWindow());
     }
 
+    /** A reading picker's row as TalkBack reads it: the reading's name, then the line under it (its group, or its value). */
+    private static String readingWithGroup(String name, String below) { return T.dashboardReadingGroup(name, below); }
+
     private void chooseReadings(DashboardConfig.Widget widget) {
         List<Telemetry.Metric> metrics = new Telemetry().metrics();
         // Keep the draft independent of the filtered views. Closing discards it;
         // saving retains selection order, including readings hidden by the query.
-        LinkedHashSet<String> chosen = new LinkedHashSet<>(widget.keys);
+        // An overview card following Settings › Home style's two (HomeReadings.followsHome) starts from the two it shows.
+        final boolean followsHome = widget.type.equals("overview") && HomeReadings.followsHome(widget.keys);
+        LinkedHashSet<String> chosen = new LinkedHashSet<>(followsHome ? homeReadings() : widget.keys);
         // The Home cards show up to four readings; Reading tiles needs at least one.
         final boolean compactCard = widget.type.equals("overview") || widget.type.equals("tiles");
         final int most = compactCard ? 4 : 12, least = widget.type.equals("tiles") ? 1 : 0;
@@ -8469,7 +8773,7 @@ public final class DashboardScreen implements AppScreen {
             item.setClickable(true);
             item.setFocusable(true);
             item.setTag("reading-choice:" + metric.key);
-            item.setContentDescription(T.dashboardReadingGroup(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)));
+            item.setContentDescription(readingWithGroup(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)));
             GlyphView icon = new GlyphView(readingIcon(metric.key), ui.accent);
             icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             item.addView(icon, new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
@@ -8607,8 +8911,23 @@ public final class DashboardScreen implements AppScreen {
                 host.toast(T.dashboardChooseOneReading());
                 return;
             }
-            widget.keys.clear();
-            widget.keys.addAll(chosen);
+            List<String> picked = new ArrayList<>(chosen);
+            // An overview card with its own readings given the stock pair would follow Home style's two: they go back
+            // to the stock pair, so the card shows what was picked (HomeReadings.resetsHome), as a following card's pick
+            // does. Other cards' lists (a Scooter card's defaults are the same pair) never touch Home style's two.
+            boolean overviewCard = widget.type.equals("overview");
+            if (!followsHome && HomeReadings.resetsHome(overviewCard, picked, homeReadings())) forgetHomeReadings();
+            if (!followsHome) {
+                widget.keys.clear();
+                widget.keys.addAll(picked);
+            } else if (HomeReadings.followsHome(picked) && !picked.equals(homeReadings()) && !"unconfigured".equals(profileId)) {
+                // The stock pair picked here would only follow Home style again, showing its other two: Home style's two
+                // go back to Odometer and Drive mode instead, so the card shows what was picked (on Clean too).
+                preferences.edit().remove(HomeReadings.key(0, profileId)).remove(HomeReadings.key(1, profileId)).apply();
+            } else if (!picked.equals(homeReadings())) {
+                widget.keys.clear();
+                widget.keys.addAll(picked);
+            }
             config.save();
             render();
             options(widget);

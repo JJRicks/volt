@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Instrumentation;
 import android.bluetooth.BluetoothAdapter;
@@ -55,7 +56,7 @@ import java.util.function.Consumer;
  * Mode look (any build, for before and after pictures): the charging view at rest at the emulator's size in the given
  * theme and text size, then, where the build has them on that Home, each of the time tile's readings and the bar mid-drag.
  */
-public final class ChargeBarValidation extends Instrumentation {
+public final class ChargeBarValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;
