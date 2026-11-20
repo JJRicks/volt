@@ -86,9 +86,15 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
             showJustBack();
             darkFirstUse();
             relaunched();
+            // The dark theme's Map settings (#560 follow-up's label): the card's map on for it, then off again as relaunched left it.
+            require(settings().edit().putBoolean(JustBackBasemap.KEY, true).commit(), "Could not turn the card's basemap on for Map settings");
+            settle();
+            mapSettings("dark");
+            require(settings().edit().putBoolean(JustBackBasemap.KEY, false).commit(), "Could not turn the card's basemap off after Map settings");
+            settle(); SystemClock.sleep(600); settle();
             queuedThenOff();
             lightTheme();
-            mapSettings();
+            mapSettings("light");
             unreachable();
             rideMap("dark");
             rideMap("light");
@@ -200,7 +206,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
      * Map settings shows the card's own switch (Map on Home's last ride) beside the ride maps' choice, on while the card's basemap is
      * on, and turns it off and on again there (council, #560 r1). The ride maps' choice stays as it was.
      */
-    private void mapSettings() throws Exception {
+    private void mapSettings(String theme) throws Exception {
         boolean rides = settings().getBoolean("map_basemap_enabled", false);
         AlertDialog[] dialog = {null};
         main(() -> dialog[0] = MapPreferences.show((ScreenHost) field(clean(), "host")));
@@ -219,9 +225,9 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
                 int end = lines.getLineEnd(line);
                 require(end <= 0 || end >= row[0].getText().length() || Character.isWhitespace(row[0].getText().charAt(end - 1)), "Map settings' card switch label breaks inside a word at line " + line);
             }
-            checks.add(size + " Map settings: the card's switch reads '" + row[0].getText() + "' on " + (lines == null ? 0 : lines.getLineCount()) + " line(s), " + Math.round(row[0].getWidth() / row[0].getResources().getDisplayMetrics().density) + " dp wide");
+            checks.add(size + " " + theme + " Map settings: the card's switch reads '" + row[0].getText() + "' on " + (lines == null ? 0 : lines.getLineCount()) + " line(s), " + Math.round(row[0].getWidth() / row[0].getResources().getDisplayMetrics().density) + " dp wide");
         });
-        shot("light-map-settings");
+        shot(theme + "-map-settings");
         main(() -> row[0].performClick());
         settle();
         require(!settings().getBoolean(JustBackBasemap.KEY, true), "Map settings' switch did not turn the card's basemap off");
