@@ -141,28 +141,49 @@ public final class ChargeLiveUpdateTest {
      * Review of #587 r2 (F01, F02): while a recording waits for a stopped charger, the plain card and its lock screen
      * version both say so: the recording's title and status, not the card's "Charging · 62%" and "Estimating time
      * left". A lock screen set to show nothing still shows nothing; a card that isn't stopped keeps its own words.
+     * Review of #591 (F02, F01): with a level title, the title keeps the level on the card and on both lock screen
+     * choices; reconnecting keeps the recording's reconnecting title (the level is only the last one seen); with no
+     * level yet, or no level title, the recording's title stays as given.
      */
     private static void words() {
         String recordingTitle = T.serviceNoticeChargeActive(), status = T.serviceChargeStockChargerPaused();
+        java.util.function.IntFunction<String> levelTitle = level -> "level title " + level;
         for (ChargeLiveState.Detail detail : ChargeLiveState.Detail.values()) {
-            ChargeLiveState.Input in = new ChargeLiveState.Input();
-            in.percent = 62;in.scooter = "UT5 MAX";in.nowWall = 1_000_000L;in.detail = detail;
-            ChargeLiveState card = ChargeLiveState.of(in, t -> "3:40 AM");
+            boolean hidden = detail == ChargeLiveState.Detail.HIDDEN;
+            ChargeLiveState card = card(62, false, detail);
             check(card.title.contains("62") && card.text.equals(T.chargeLiveTextEstimating()), "the fixture reads as charging: " + card.title + " | " + card.text);
 
-            ChargeLiveUpdate.Words own = ChargeLiveUpdate.words(card, false, recordingTitle, null);
-            check(own.title.equals(card.title) && own.text.equals(card.text), detail + ": charging, the card's own title and text");
-            check(java.util.Objects.equals(own.publicTitle, card.publicTitle) && java.util.Objects.equals(own.publicText, card.publicText), detail + ": charging, the card's own lock screen");
-
-            ChargeLiveUpdate.Words stopped = ChargeLiveUpdate.words(card, true, recordingTitle, status);
-            check(stopped.title.equals(recordingTitle), detail + ": stopped, the recording's title (F02), not " + stopped.title);
-            check(stopped.text.equals(status), detail + ": stopped, the recording's status as the text");
-            if (detail == ChargeLiveState.Detail.HIDDEN) {
-                check(stopped.publicTitle == null && stopped.publicText == null, "hidden: still no lock screen version");
-            } else {
-                check(recordingTitle.equals(stopped.publicTitle), detail + ": stopped, the lock screen's title is the recording's (F01), not " + stopped.publicTitle);
-                check(status.equals(stopped.publicText), detail + ": stopped, the lock screen says the charger stopped (F01), not " + stopped.publicText);
+            for (java.util.function.IntFunction<String> level : java.util.Arrays.asList(levelTitle, null)) {
+                ChargeLiveUpdate.Words own = ChargeLiveUpdate.words(card, false, recordingTitle, level, null);
+                check(own.title.equals(card.title) && own.text.equals(card.text), detail + ": charging, the card's own title and text");
+                check(java.util.Objects.equals(own.publicTitle, card.publicTitle) && java.util.Objects.equals(own.publicText, card.publicText), detail + ": charging, the card's own lock screen");
             }
+
+            // Stopped with a level: the level title on the card and both lock screen choices (#591 F02, F01).
+            words(detail, ChargeLiveUpdate.words(card, true, recordingTitle, levelTitle, status), "level title 62", status, "stopped, with the level");
+            // Without a level title: the recording's title, as #591 left it.
+            words(detail, ChargeLiveUpdate.words(card, true, recordingTitle, null, status), recordingTitle, status, "stopped, no level title");
+            // No level read yet: the recording's title as given.
+            ChargeLiveState unread = card(null, false, detail);
+            check(unread.percent == null, "the fixture has no level");
+            words(detail, ChargeLiveUpdate.words(unread, true, recordingTitle, levelTitle, status), recordingTitle, status, "stopped, no level yet");
+            // Reconnecting: the card holds only the last level seen, so the recording's reconnecting title keeps priority.
+            String reconnecting = T.serviceNoticeChargeReconnecting();
+            ChargeLiveState lost = card(62, true, detail);
+            check(lost.kind == ChargeLiveState.Kind.RECONNECTING && Integer.valueOf(62).equals(lost.percent), "the fixture is out of reach with a last level");
+            words(detail, ChargeLiveUpdate.words(lost, true, reconnecting, levelTitle, status), reconnecting, status, "stopped, reconnecting");
+            check(!hidden || card.publicTitle == null, "hidden: the card has no lock screen version");
         }
+    }
+    private static ChargeLiveState card(Integer pct, boolean reconnecting, ChargeLiveState.Detail detail) {
+        ChargeLiveState.Input in = new ChargeLiveState.Input();
+        in.percent = pct;in.reconnecting = reconnecting;in.scooter = "UT5 MAX";in.nowWall = 1_000_000L;in.detail = detail;
+        return ChargeLiveState.of(in, t -> "3:40 AM");
+    }
+    /** The card and its lock screen both say title and text; Hidden still has no lock screen version. Level shows the charger words too. */
+    private static void words(ChargeLiveState.Detail detail, ChargeLiveUpdate.Words words, String title, String text, String what) {
+        check(title.equals(words.title) && text.equals(words.text), detail + ", " + what + ": the card reads " + words.title + " | " + words.text);
+        if (detail == ChargeLiveState.Detail.HIDDEN) check(words.publicTitle == null && words.publicText == null, what + ": hidden still shows nothing");
+        else check(title.equals(words.publicTitle) && text.equals(words.publicText), detail + ", " + what + ": the lock screen reads " + words.publicTitle + " | " + words.publicText);
     }
 }

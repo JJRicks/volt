@@ -435,7 +435,17 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 "The paused recording's card doesn't say the charger stopped: " + noticeTexts());
         SystemClock.sleep(3 * S);
         require(!cardShape("automatic recording, charger stopped", true), "The paused recording's card is still a Live Update: " + noticeTexts());
+        // #591 F02: the scooter's level is known here, so the paused card's title carries it ("Charge recording · 72%",
+        // once the service has the line: stoppedTitle).
+        require(onMain(() -> { ChargeLiveState card = (ChargeLiveState) field(service, "chargeLiveBuilt");
+                    return card.kind != ChargeLiveState.Kind.RECONNECTING && card.percent != null; })
+                && stoppedTitle().contentEquals(String.valueOf(connection().getNotification().extras.getCharSequence(Notification.EXTRA_TITLE))),
+                "The paused recording's card doesn't show the level in its title: " + noticeTexts());
+        require(onMainText(() -> T.chargeLiveTitleRecording(Fmt.integer(((ChargeLiveState) field(service, "chargeLiveBuilt")).percent)))
+                .contentEquals(String.valueOf(connection().getNotification().extras.getCharSequence(Notification.EXTRA_TITLE))),
+                "The paused recording's card title isn't Charge recording with the level: " + noticeTexts());
         shade("live-card-recording-charger-stopped");
+        pausedLockScreens();
         main(() -> { link.charging(ON); link.home(); });
         log("automatic recording: plugged back in");
         await(() -> onMain(() -> service.isChargeRecording() && !chargeStore().paused()), 10 * S, "Charging again did not close the charger pause");
@@ -464,18 +474,63 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
             return service.isChargeRecording() && card != null && ChargeLiveUpdate.recordingStopped(chargeStore().chargerPaused(), chargeStore().paused(), ((ChargeLiveState) card).kind); });
     }
     /**
+     * A stopped recording's card title (#587 r2 F02, #591 F02): the recording's with the level the card holds
+     * (the service's chargeRecordingLevelTitle, "Charge recording · 72%"); while reconnecting the recording's
+     * reconnecting title (the level is only the last one seen), and before any level, or without a level title, the
+     * recording's plain title.
+     */
+    private String stoppedTitle() {
+        return onMainText(() -> { ChargeLiveState card = (ChargeLiveState) field(service, "chargeLiveBuilt");
+            java.util.function.IntFunction<String> level = service.chargeRecordingLevelTitle();
+            return card.kind == ChargeLiveState.Kind.RECONNECTING ? T.serviceNoticeChargeReconnecting()
+                    : card.percent == null || level == null ? T.serviceNoticeChargeActive() : level.apply(card.percent); });
+    }
+    /**
      * The posted connection notice is the live card: the title the service built for it (or the promoted card's shorter
-     * one); while the recording has stopped charging, the recording's title (#587 r2 F02: the card's own reads as charging).
+     * one); while the recording has stopped charging, the recording's title with the level (stoppedTitle: the card's own
+     * reads as charging).
      */
     private boolean liveCardPosted() {
         StatusBarNotification n = connection();
         if (n == null) return false;
         CharSequence title = n.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE);
         boolean stopped = recordingStopped();
+        String stoppedTitle = stopped ? stoppedTitle() : null;
         return onMain(() -> { Object card = field(service, "chargeLiveBuilt");
-            return card != null && title != null && (stopped ? title.toString().equals(T.serviceNoticeChargeActive())
+            return card != null && title != null && (stopped ? title.toString().equals(stoppedTitle)
                     : title.toString().equals(String.valueOf(field(card, "title"))) || title.toString().equals(String.valueOf(field(card, "dialTitle")))); });
     }
+    /**
+     * #591 F01: while the recording waits for the charger, each lock screen choice. Level shows the same title with the
+     * level and the recording's status (its charger words, nothing private); Hidden shows none of it. Restores the choice.
+     */
+    private void pausedLockScreens() {
+        ChargeLiveState.Detail before = onMainDetail();
+        try {
+            for (ChargeLiveState.Detail detail : new ChargeLiveState.Detail[]{ChargeLiveState.Detail.LEVEL, ChargeLiveState.Detail.HIDDEN}) {
+                main(() -> service.setChargeLiveDetail(detail));
+                await(() -> { StatusBarNotification n = connection(); Object card = onMainObject(() -> field(service, "chargeLiveBuilt"));
+                    return n != null && card != null && ((ChargeLiveState) card).detail == detail && liveCardPosted()
+                            && (detail == ChargeLiveState.Detail.HIDDEN) == (n.getNotification().publicVersion == null); }, 10 * S,
+                        "The paused card did not take the " + detail + " lock screen: " + noticeTexts());
+                Notification lock = connection().getNotification().publicVersion;
+                if (detail == ChargeLiveState.Detail.HIDDEN) { log("paused, Hidden lock screen: no public version"); continue; }
+                String title = stoppedTitle(), status = onMainText(() -> service.chargeCaptureStatus());
+                require(title.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))
+                        && status.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT))),
+                        "The paused card's " + detail + " lock screen doesn't show the level and the charger stopped (" + title + " | " + status + "): "
+                                + lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT));
+                log("paused, " + detail + " lock screen: " + lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT));
+                require(onMainText(() -> T.chargeLiveTitleRecording(Fmt.integer(((ChargeLiveState) field(service, "chargeLiveBuilt")).percent)))
+                        .contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE))),
+                        "The paused card's " + detail + " lock screen title isn't Charge recording with the level: " + lock.extras.getCharSequence(Notification.EXTRA_TITLE));
+            }
+        } finally {
+            main(() -> service.setChargeLiveDetail(before));
+        }
+    }
+    private ChargeLiveState.Detail onMainDetail() { final ChargeLiveState.Detail[] result = {null}; main(() -> result[0] = service.chargeLiveDetail()); return result[0]; }
+    private Object onMainObject(java.util.function.Supplier<Object> query) { final Object[] result = {null}; main(() -> result[0] = query.get()); return result[0]; }
     /** Checks the posted live card and returns whether Android promoted it; a promoted card has no summary, a plain recording's card its status. */
     private boolean cardShape(String what, boolean recording) {
         require(liveCardPosted(), what + ": the connection notice is not the live card: " + noticeTexts());
@@ -491,11 +546,12 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
             require(summary == null && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus()))
                     && String.valueOf(note.extras.getCharSequence(Notification.EXTRA_BIG_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus())),
                     what + ": a stopped recording's card doesn't say so in its text: " + noticeTexts());
-            // #587 r2 F02, F01: its title is the recording's, and the lock screen's version says the same.
-            require(T.serviceNoticeChargeActive().contentEquals(String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TITLE))),
-                    what + ": a stopped recording's card still has the card's own title: " + noticeTexts());
+            // #587 r2 F02, F01: its title is the recording's, with the level (#591 F02), and the lock screen's version says the same (#591 F01).
+            String stoppedTitle = stoppedTitle();
+            require(stoppedTitle.contentEquals(String.valueOf(note.extras.getCharSequence(Notification.EXTRA_TITLE))),
+                    what + ": a stopped recording's card doesn't have the recording's title with the level (" + stoppedTitle + "): " + noticeTexts());
             Notification lock = note.publicVersion;
-            require(lock != null && T.serviceNoticeChargeActive().contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))
+            require(lock != null && stoppedTitle.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))
                     && String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT)).equals(onMainText(() -> service.chargeCaptureStatus())),
                     what + ": the lock screen's version doesn't say the charger stopped: " + (lock == null ? "(none)"
                             : lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT)));

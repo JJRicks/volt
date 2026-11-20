@@ -106,6 +106,13 @@ public final class ChargeLiveUpdate {
      * card and the lock screen both take the recording's title and status, the text the service gives a charge
      * recording ("Charge recording is active", "charger stopped · waiting for it to resume"). Review of #587 r2: F02 the
      * title, F01 the lock screen. A lock screen set to show none of the card (Detail.HIDDEN: no public title) still shows none.
+     *
+     * Review of #591 (F02, F01): levelTitle, when given, is the recording's title with the battery level ("Charge
+     * recording · 72%"), and the card and both lock screen choices take it for the level the card holds, so the level
+     * shows during the pause. Not while the link recovers (Kind.RECONNECTING, the recording's "Charge recording ·
+     * reconnecting"): the card's level is then only the last one seen. Before any level was read, or without a
+     * levelTitle, the recording's title as given. Level shows the recording's status too: its fixed charger words
+     * ("Stock charger · charger stopped") are nothing private, and they say why charging stopped.
      */
     public static final class Words {
         public final String title, text, publicTitle, publicText;
@@ -113,10 +120,18 @@ public final class ChargeLiveUpdate {
             this.title = title;this.text = text;this.publicTitle = publicTitle;this.publicText = publicText;
         }
     }
-    public static Words words(ChargeLiveState live, boolean recordingStopped, String recordingTitle, String recordingStatus) {
+    public static Words words(ChargeLiveState live, boolean recordingStopped, String recordingTitle,
+            java.util.function.IntFunction<String> levelTitle, String recordingStatus) {
         if (!recordingStopped) return new Words(live.title, live.text, live.publicTitle, live.publicText);
         boolean hidden = live.publicTitle == null;
-        return new Words(recordingTitle, recordingStatus, hidden ? null : recordingTitle, hidden ? null : recordingStatus);
+        String title = levelTitle == null || live.kind == ChargeLiveState.Kind.RECONNECTING || live.percent == null ? recordingTitle
+                : levelTitle.apply(live.percent);
+        return new Words(title, recordingStatus, hidden ? null : title, hidden ? null : recordingStatus);
+    }
+
+    /** The level title words() takes for a paused recording (review of #591, F02): "Charge recording · 72%". */
+    public static String recordingLevelTitle(int level) {
+        return T.chargeLiveTitleRecording(Fmt.integer(level));
     }
 
     /** The developer row's answer: one glance at whether the Pixel promotes the card. */
