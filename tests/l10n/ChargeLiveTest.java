@@ -26,6 +26,7 @@ public final class ChargeLiveTest {
         holdStopEachScooter();
         doneNoticeAnnounced();
         state();
+        cardShown();
         System.out.println("ChargeLiveTest: " + checks + " checks passed");
     }
 
@@ -390,6 +391,23 @@ public final class ChargeLiveTest {
     private static ChargeLiveState.Input input(Integer pct, Integer limit, Double minutes, Double watts) {
         ChargeLiveState.Input in = new ChargeLiveState.Input();
         in.percent = pct;in.limit = limit;in.minutesLeft = minutes;in.watts = watts;in.scooter = "UT5 MAX";in.nowWall = NOW;return in;
+    }
+
+    // ---- Which notice shows: the live card during a charge recording, held or not ---------------------
+
+    private static void cardShown() {
+        // Every combination of the other inputs: a charge recording shows the card unless a schedule test is showing.
+        for (int bits = 0; bits < 1 << 6; bits++) {
+            boolean test = bit(bits, 0), ride = bit(bits, 1), measuring = bit(bits, 2), alarm = bit(bits, 3), watch = bit(bits, 4), hold = bit(bits, 5);
+            String at = " for bits " + Integer.toBinaryString(bits);
+            check(ChargeLiveHold.cardShown(true, test, ride, measuring, alarm, watch, hold) == (!test || ride),
+                    "a charge recording shows the live card unless a schedule test does" + at);
+            check(ChargeLiveHold.cardShown(false, test, ride, measuring, alarm, watch, hold) == (hold && !test && !ride && !measuring && !alarm && !watch),
+                    "without a recording only the hold shows it, below everything ranked above it" + at);
+        }
+        check(ChargeLiveHold.cardShown(true, false, false, false, false, false, false), "a recording with no hold (Volt open, or Live charging off) shows the card");
+        check(ChargeLiveHold.cardShown(true, false, false, true, true, true, true), "measuring, an alarm or a watched alert don't replace a recording's card");
+        check(!ChargeLiveHold.cardShown(true, true, false, false, false, false, true), "a schedule test's Cancel comes first, even over a recording");
     }
 
     private static void state() {

@@ -185,6 +185,8 @@ STEPS += [
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
     # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
     inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
+    # A charge recording (by hand or automatic) shows the live card as a charge without one does, Live Update or not (owner, Nov 20 2026).
+    inst('charge-live-recording', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'livecard', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),

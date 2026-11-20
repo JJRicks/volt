@@ -185,6 +185,20 @@ public final class ChargeLiveHold {
     }
 
     /**
+     * Whether the connection notice is the live card (ScooterService.chargeLiveShown). During a charge recording it
+     * always is (owner, Q48 A), held or not, unless a schedule test's status and Cancel come first; a ride or phone
+     * saving can't run beside a recording, so the card stays then. Otherwise only while the hold runs (hold: active,
+     * with Volt's notifications on) and nothing ranked above it shows: a ride or its saving, Charge done by's measuring,
+     * a schedule test, a sounding alarm or a watched battery alert.
+     */
+    public static boolean cardShown(boolean chargeRecording, boolean scheduleTest, boolean rideOrSaving, boolean measuring,
+            boolean alarm, boolean alertWatch, boolean hold) {
+        if (chargeRecording) return !scheduleTest || rideOrSaving;
+        if (rideOrSaving || measuring || scheduleTest || alarm || alertWatch) return false;
+        return hold;
+    }
+
+    /**
      * Whether a battery alert already announced this finish, so the done notice would repeat it: a Full alert, or a
      * charge alert at or above the level this charge finished at, for the same scooter, posted during this hold and
      * still showing. Anything less (a low battery alert, an older or swiped-away one, another scooter's) posts the notice.
