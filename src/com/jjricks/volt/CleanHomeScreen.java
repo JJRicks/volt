@@ -425,9 +425,12 @@ final class CleanHomeScreen implements AppScreen {
         }
     }
 
-    /** Opens the ride on the Rides page (HubNav.Args.ride names it). */
+    /**
+     * Opens the ride on the Rides page (HubNav.Args.ride names it). Closing its details (Back, predictive Back or Done)
+     * returns to Home rather than to All rides under them (HubNav.Args.fromHome: a tester's report, Nov 2026).
+     */
     private void openRide(String id) {
-        if (!closed) host.open(HubPages.RIDE_RIDES, HubNav.Args.ride(id));
+        if (!closed) host.open(HubPages.RIDE_RIDES, HubNav.Args.fromHome(id));
     }
 
     /** The X: this ride's card stays closed (home_just_back_dismissed); a newer ride shows again. */
