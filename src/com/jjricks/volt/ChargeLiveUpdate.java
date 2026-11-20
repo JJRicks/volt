@@ -12,8 +12,10 @@ import java.util.List;
  * Volt asks only on Android 16 or later, when Android has a promotion request (EXTRA_REQUEST_PROMOTED_ONGOING or
  * Builder.setRequestPromotedOngoing) and allows Volt to post promoted notifications. Otherwise the card is the plain
  * one, unchanged. A charge recording asks too (owner, Nov 20 2026: he records every charge, and the recording used to
- * keep the card plain for its summary line): the Live Update is the same as without one, so the recording's status
- * line shows in Volt and on the plain card only.
+ * keep the card plain for its summary line): the Live Update is the same as without one. While the recording is paused
+ * (its charger stopped, or Volt's schedule holds the current off) the card is the plain one again, whose summary says
+ * so; a promoted card would still read as charging. The pause is the recording's own state (ChargeSessionStore.paused),
+ * opened and closed by fresh readings, so the card doesn't alternate with reading noise.
  */
 public final class ChargeLiveUpdate {
     /** The first Android with ProgressStyle and the promotion APIs (Android 16). */
@@ -79,11 +81,12 @@ public final class ChargeLiveUpdate {
     }
 
     /**
-     * Whether Volt asks Android to promote this card; when false, the card is exactly the plain one. A charge recording
-     * running doesn't change the answer: its card is promoted like any other.
+     * Whether Volt asks Android to promote this card; when false, the card is exactly the plain one. A running charge
+     * recording's card is promoted like any other, except while the recording is paused (recordingPaused: its charger
+     * stopped or a schedule holds the current off), when only the plain card's summary says charging has stopped.
      */
-    public static boolean promote(int sdk, boolean requestAvailable, boolean allowed) {
-        return sdk >= SDK && requestAvailable && allowed;
+    public static boolean promote(int sdk, boolean requestAvailable, boolean allowed, boolean recordingPaused) {
+        return sdk >= SDK && requestAvailable && allowed && !recordingPaused;
     }
 
     /** The developer row's answer: one glance at whether the Pixel promotes the card. */

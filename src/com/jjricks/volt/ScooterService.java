@@ -1786,10 +1786,11 @@ public final class ScooterService extends Service {
      * Asks Android to promote the live card: ProgressStyle's bar, the chip's short text and the request. Returns false,
      * with the builder as it was, when Volt doesn't ask (ChargeLiveUpdate.promote) or anything fails; the card is then
      * the plain one, exactly as before. During a charge recording too (owner, Nov 20 2026): the Live Update is the one
-     * shown without a recording, so the recording's status line (the plain card's summary) isn't on it.
+     * shown without a recording, so the recording's status line (the plain card's summary) isn't on it; while the
+     * recording is paused (charger stopped, or a schedule's hold) the card stays plain, its summary saying so.
      */
     private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live){
-        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed()))return false;
+        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),isChargeRecording()&&chargeStore.paused()))return false;
         ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
         ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
         try{

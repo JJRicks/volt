@@ -572,7 +572,8 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
      * A recording's notice is the live charging card (#250: "Charge recordings show the same card, with the recording's
      * status as the summary"): the card's title, and the recording's own status, containing state, as its summary.
      * Where Android 16 lets Volt ask for a Live Update, the recording's card asks too (owner, Nov 20 2026): it is then
-     * the same Live Update as without a recording, ProgressStyle and no summary, and the status stays in Volt.
+     * the same Live Update as without a recording, ProgressStyle and no summary, and the status stays in Volt. A paused
+     * recording (charger stopped, or a schedule's hold) keeps the plain card and its summary (#587 F02).
      */
     private void requireCaptureNotice(Notification notice,String state,String message){
         String status=service.chargeCaptureStatus();
@@ -581,7 +582,7 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
         require(status.contains(state),message+": status "+status);
         boolean asked=(Boolean)field(service,"liveUpdateAsked");
         boolean allowed=(Boolean)invoke(service,"liveUpdateAllowed",new Class<?>[]{}),available=(Boolean)invoke(service,"liveUpdateRequestAvailable",new Class<?>[]{});
-        require(asked==(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK&&available&&allowed),
+        require(asked==(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK&&available&&allowed&&!store().paused()),
                 message+": the recording's card "+(asked?"asked":"did not ask")+" for a Live Update; request available "+available+", allowed "+allowed);
         if(asked)require(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)==null&&String.valueOf(notice.extras.getString(Notification.EXTRA_TEMPLATE)).endsWith("$ProgressStyle"),
                 message+": not the Live Update shown without a recording: template "+notice.extras.getString(Notification.EXTRA_TEMPLATE)+", summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT));

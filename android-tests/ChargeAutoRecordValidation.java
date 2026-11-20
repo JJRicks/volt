@@ -425,6 +425,28 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         SystemClock.sleep(4 * S);
         require(cardShape("automatic recording, out of sight", true) == promoted, "An automatic recording changed whether the card is a Live Update");
         shade("live-card-automatic-recording");
+        // #587 F02: unplugged mid-recording, the recording waits for the charger (paused); a promoted card would still read
+        // as charging, so the card is the plain one whose summary says the charger stopped. Plugged back in, promoted again.
+        main(() -> link.charging(OFF));
+        log("automatic recording: unplugged out of sight");
+        await(() -> onMain(() -> service.isChargeRecording() && chargeStore().chargerPaused()), StatusCadence.POLL_SLOW_MS + 10 * S,
+                "The recording did not open a charger pause after the unplug: " + noticeTexts());
+        await(() -> liveCardPosted() && connection().getNotification().extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) != null, 10 * S,
+                "The paused recording's card has no summary: " + noticeTexts());
+        SystemClock.sleep(3 * S);
+        require(!cardShape("automatic recording, charger stopped", true), "The paused recording's card is still a Live Update: " + noticeTexts());
+        String summary = String.valueOf(connection().getNotification().extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT));
+        require(summary.contains("charger stopped · waiting for it to resume"),
+                "The paused card's summary doesn't say the charger stopped: " + summary);
+        shade("live-card-recording-charger-stopped");
+        main(() -> { link.charging(ON); link.home(); });
+        log("automatic recording: plugged back in");
+        await(() -> onMain(() -> service.isChargeRecording() && !chargeStore().paused()), 10 * S, "Charging again did not close the charger pause");
+        await(() -> liveCardPosted() && connection().getNotification().extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) == null, 10 * S,
+                "The card did not become the Live Update again after charging resumed: " + noticeTexts());
+        SystemClock.sleep(4 * S);
+        require(cardShape("automatic recording, charging resumed", true) == promoted, "Charging resumed, but the card is not promoted as before the pause");
+        shade("live-card-recording-resumed");
         ensureFront();
         unplugAndSettle();
         main(() -> settings().edit().putBoolean(KEY, false).commit());
@@ -434,9 +456,10 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> onMain(() -> !service.isVisible()), 10000, "Volt never left the foreground");
     }
-    /** Volt would ask Android for a Live Update now (ChargeLiveUpdate.promote). */
+    /** Volt would ask Android for a Live Update now (ChargeLiveUpdate.promote): not while a recording is paused. */
     private boolean liveUpdateAsked() {
-        return onMain(() -> ChargeLiveUpdate.promote(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), service.liveUpdateAllowed()));
+        return onMain(() -> ChargeLiveUpdate.promote(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), service.liveUpdateAllowed(),
+                service.isChargeRecording() && chargeStore().paused()));
     }
     /** The posted connection notice is the live card: the title the service built for it (or the promoted card's shorter one). */
     private boolean liveCardPosted() {
