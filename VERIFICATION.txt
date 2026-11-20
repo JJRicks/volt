@@ -8,7 +8,7 @@ Draft, November 20, 2026. The release checks below are still to run.
   band, one reading matcher). #581 (RELEASING.md's split release sweep)
   changes no app code, nor does any other docs-only pull request that
   merges before the release commit. The English text fixes for
-  2.0.2, the language top-up for this release's new text and this
+  2.0.2 (#585), the language top-up for this release's new text and this
   release's own version, changelog and docs come after them.
   [PHASE 2: the last PR number merged before the release commit; for each
   PR, CI on its merged head and the independent review on the head that
