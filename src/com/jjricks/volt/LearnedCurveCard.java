@@ -229,8 +229,8 @@ final class LearnedCurveCard {
         float labelHeight() { Paint.FontMetrics m = label.getFontMetrics(); return m.descent - m.ascent; }
         float stripHeight() { return ui.dp(10); }
         float plotHeight() { return speed() ? ui.dp(112) : 0; }
-        /** Space over the plot for the finish tick's head and the top value's label. */
-        float headroom() { return speed() ? Math.max(ui.dp(9), labelHeight() / 2) : 0; }
+        /** Space over the plot for the finish tick's head and the top value's label; with no plot, a gap under the words. */
+        float headroom() { return speed() ? Math.max(ui.dp(9), labelHeight() / 2) : ui.dp(12); }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             float h = headroom() + plotHeight() + (speed() ? ui.dp(6) : 0) + stripHeight() + ui.dp(4) + labelHeight();
             setMeasuredDimension(MeasureSpec.getSize(widthSpec), (int) Math.ceil(h));
@@ -244,7 +244,7 @@ final class LearnedCurveCard {
             if (speed) gutter = Math.max(label.measureText(top), label.measureText(zero)) + ui.dp(6);
             float left = gutter, right = getWidth() - ui.dp(1), width = Math.max(1, right - left);
             float plotTop = headroom(), plotBottom = plotTop + plotHeight();
-            float stripTop = speed ? plotBottom + ui.dp(6) : 0, stripBottom = stripTop + stripHeight();
+            float stripTop = speed ? plotBottom + ui.dp(6) : headroom(), stripBottom = stripTop + stripHeight();
             if (speed) {
                 // Recessive frame: a hairline at the top value and the baseline, their values beside them in muted ink.
                 stroke.setStrokeWidth(Math.max(1, ui.dp(.75f))); stroke.setColor(ui.outline);
