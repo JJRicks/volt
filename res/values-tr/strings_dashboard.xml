@@ -88,6 +88,34 @@
     <string name="dashboard_charging">Şarj oluyor</string>
     <!-- src:4f972de5efa07ee8e3dad328a3f252a83153e788 -->
     <string name="dashboard_charging_limit">Şarj oluyor · sınır %%%1$s</string>
+    <!-- src:36763ec3b3f3a7855b7eb26e0a7e12c018cf9be2 -->
+    <string name="dashboard_charging_slowed">Şarj yavaşladı</string>
+    <!-- src:45c3eb8d27b67e0465efa84ee81b834fe3eda494 -->
+    <string name="dashboard_charging_slowed_short">Yavaşladı</string>
+    <!-- src:0af8e219a496c6d32654d93616b393b3aedae460 -->
+    <string name="dashboard_charging_slowed_hot">Şarj yavaşladı · pil sıcak (%1$s°)</string>
+    <!-- src:9e063a61c7cf48ac6296019450d16fe1a9149522 -->
+    <string name="dashboard_charging_slowed_hot_short">Yavaşladı · pil sıcak %1$s°</string>
+    <!-- src:dd3c06e8af17d5e50e97d524fc5423ee49405486 -->
+    <string name="dashboard_charging_slowed_hot_compact">Pil sıcak · %1$s°</string>
+    <!-- src:3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd -->
+    <string name="dashboard_charging_slowed_cold">Şarj yavaşladı · pil soğuk (%1$s°)</string>
+    <!-- src:6da29c3111b775a4f09381f0cbdd3a51a2ca09c0 -->
+    <string name="dashboard_charging_slowed_cold_short">Yavaşladı · pil soğuk %1$s°</string>
+    <!-- src:ca0021bc6fbb2a576cab1a79c671b7a7f93228fb -->
+    <string name="dashboard_charging_slowed_cold_compact">Pil soğuk · %1$s°</string>
+    <!-- src:3d52c20b374a8ce1926590f30d80f0a464dd7f62 -->
+    <string name="dashboard_charging_hot">Şarj yavaşladı · pil sıcak</string>
+    <!-- src:9e3995c13c044419279005d3909fd34450705340 -->
+    <string name="dashboard_charging_hot_short">Yavaşladı · pil sıcak</string>
+    <!-- src:1805b3e2d5f817b3db04443870d9124dd109dbe9 -->
+    <string name="dashboard_charging_hot_compact">Pil sıcak</string>
+    <!-- src:083277affcb58f9917af14d70aafb14b141c0fe7 -->
+    <string name="dashboard_charging_cold">Şarj yavaşladı · pil soğuk</string>
+    <!-- src:2924a8dd6759ad94894463172d2da4c688cd8821 -->
+    <string name="dashboard_charging_cold_short">Yavaşladı · pil soğuk</string>
+    <!-- src:a116033d89989d01f15327189222f8e1b8c72c4f -->
+    <string name="dashboard_charging_cold_compact">Pil soğuk</string>
     <!-- src:ac9d30c02516108c170cc923800e5814ebf9193a -->
     <string name="dashboard_hero_photo">NAVEE UT5 MAX scooter</string>
     <!-- src:43dd6778ce24b90d06842f406e1e4939192ea7db -->
@@ -315,6 +343,14 @@
     <string name="dashboard_reading_seen">%1$s, %2$s, son okuma: %3$s</string>
     <!-- src:e29978a9db24183f719bcc7565e8038070e03695 -->
     <string name="dashboard_reading_group">%1$s, %2$s</string>
+    <!-- src:058f2bac6cc446f10d7cd188fcdeb13e5b2edf90 -->
+    <string name="dashboard_overview_readings">Özet okumaları</string>
+    <!-- src:a5f893fb5016b601c7f5e94705951be9f93058c0 -->
+    <string name="dashboard_overview_reading_first">Birinci okuma</string>
+    <!-- src:bb5c468333ad754986fc07013df47c9cd10cee0e -->
+    <string name="dashboard_overview_reading_second">İkinci okuma</string>
+    <!-- src:280fe2d953050826e125846ec06f32127a214870 -->
+    <string name="dashboard_overview_reading_slot">%1$s: %2$s. Değiştir</string>
     <!-- src:96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3 -->
     <string name="dashboard_drive_mode_reading">Sürüş modu, %1$s</string>
     <!-- src:f438cc08677ac0bcc166fc6cccc34eb97f68bb07 -->
