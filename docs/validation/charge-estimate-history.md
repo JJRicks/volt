@@ -25,6 +25,24 @@ The JSON export retains `navee-charge-recordings-v1` with additive fields:
 
 The estimator version is independent of the APK version. Change
 `ChargingEstimate.ESTIMATOR_VERSION` when the estimator/reference behavior changes.
+It is at most 64 characters (every sample stores it) and is only ever compared whole;
+to make room, a later version may shorten a part's name, never reuse one for something
+else. Versions since v11, newest first:
+
+- `ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1` (2.0.2): every
+  estimate uses the last minute's averaged charging current (`iavg-v1`,
+  [details](stock-pack-estimates.md#live-current-202)). `stitch-v1` and `match-v1` are
+  `stitched-v1` and `chg-match-v1` shortened to make room; nothing else changed.
+- `ut5-fast-cvpoint-v11.stitched-v1.temps-v1.ucap-v1.chg-match-v1`: learned usable
+  capacity (`ucap-v1`) and the learned charger match (`chg-match-v1`).
+- `ut5-fast-cvpoint-v11.stitched-v1.normal-temps-v1.chg-match-v1`: `normal-temps-v1`
+  later shortened to `temps-v1`.
+
+Parts: `ut5-fast-cvpoint-v11` (the base estimator, [fast-charge-taper.md](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11)),
+`stitched-v1`/`stitch-v1` ([stitched-estimate-v1](charge-capture.md#provisional-and-joined-estimates-stitched-estimate-v1)),
+`normal-temps-v1`/`temps-v1` (normal-temperature learning), `ucap-v1` (learned usable
+capacity), `chg-match-v1`/`match-v1` ([learned charger match](charge-capture.md#automatic-picks-a-learned-charger-chg-match-v1)),
+`iavg-v1` (averaged current).
 Personal curves can change between recordings even when this identifier stays the
 same; saved values, sources, and learned-session count preserve what was predicted.
 No predictions feed back into learned charging curves: learning still uses measured

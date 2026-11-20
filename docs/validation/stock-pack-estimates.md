@@ -154,8 +154,8 @@ flipped the time to full between two values about two minutes apart, both counti
 report on 2.0.1).
 
 Every time estimate (this model and every other one) now uses the mean of the last minute's current
-readings for this charge, weighted by time (`ChargeCurrentAverage`), in place of the newest reading
-alone. Steps moving at every read average to exactly halfway, so the time counts down without flipping.
+readings for this charge, weighted by time (`ChargeCurrentAverage`, estimator part `iavg-v1`), in
+place of the newest reading alone. Steps moving at every read average to exactly halfway, so the time counts down without flipping.
 Nothing real is averaged away:
 
 - a reading at least 0.1 A and 5% from the mean (a charger plugged in or swapped, the high-speed

@@ -4,10 +4,12 @@ package com.jjricks.volt;
 public final class ChargingEstimate {
     /**
      * Bump whenever the prediction algorithm/reference changes; independent of app versions. It names every layer since
-     * v11: stitched estimates (stitched-v1), normal-temperature learning (temps-v1), learned usable capacity (ucap-v1) and
-     * the learned charger match (chg-match-v1). At most 64 characters: every recording sample stores it (Estimate).
+     * v11: stitched estimates (stitch-v1), normal-temperature learning (temps-v1), learned usable capacity (ucap-v1), the
+     * learned charger match (match-v1) and the averaged charging current (iavg-v1, ChargeCurrentAverage). At most 64
+     * characters: every recording sample stores it (Estimate). Only the whole string is ever compared, never its parts;
+     * a part shortened to make room keeps its meaning (docs/validation/charge-estimate-history.md lists every version).
      */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-v1.temps-v1.ucap-v1.chg-match-v1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
