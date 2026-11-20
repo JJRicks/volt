@@ -139,7 +139,29 @@ showed no gain there and one slightly shorter time to a level. `Curve.summary()`
 exposes each percent's coverage (none, provisional, robust or disagreeing),
 minutes, saved power and finish coverage for a chart of the saved curve.
 
-### Automatic picks a learned charger (learned-charger-v1)
+### Learning only from normal battery temperatures (normal-temps-v1)
+
+On every model, a high-speed (fast) charger's one-percent interval teaches no
+curve (neither its minutes nor its power) when any of its readings, including
+the reading that ends it, has the battery outside 20–38 °C (68–100 °F)
+(`ChargeSessionStore.learnsAtTemperature`). The battery limits its charging
+current outside that range, so such a percent says more about the weather than
+about the charger. A completed fast charge's finish likewise starts after its
+last such reading; one hot or cold at its end teaches no finish.
+
+- **The recording stays whole:** every sample is kept, listed, charted and
+  exported as recorded, and the recording still qualifies (and keeps its place
+  in the folder) exactly as before. Only what it teaches changes.
+- **The stock charger always learns:** its current stays below the battery's
+  thermal limits (on the UT5 MAX, about 2.25 A against at least 3 A hot and
+  5.5 A cold).
+- **No temperature reported** excludes nothing.
+- A replay on private UT5 MAX recordings changed one partial fast charge whose
+  history held cold percents: its error fell from 1.72 to 0.60 minutes on
+  average, with Charge done by's margin still about 20 minutes. Nothing else
+  moved by more than 0.02 minutes.
+
+### Automatic picks a learned charger (match1)
 
 Under **Auto**, when charger detection (the UT5 MAX's two chargers) has no family
 for this charge, `LearnedChargerMatch` picks the charger whose own recordings
@@ -155,8 +177,8 @@ with charger detection's reset rules, never switches above 90%, and below 90%
 forgets it only on a sustained contrary run. The picked charger then feeds the
 estimate exactly as a detected one does: the evidence above, including
 provisional and joined estimates, with their own live-power checks. A family it
-picks never shows "Charger mismatch"; where the estimate cannot confirm it, the
-estimate is that charger's without past charges.
+picks never shows "Charger mismatch": where the estimate cannot confirm a curve,
+it is that charger's estimate without past charges.
 
 Automatic recordings under Auto take the picked charger as their detected label;
 the charger setting and a charger chosen during the recording still win, and the
@@ -164,9 +186,9 @@ recording's audit (`label_audit.detected_charger`) stays charger detection's
 alone. `RecordChargerHint` decides when a charge is far off the only recorded
 charger (outside the 35% band, at least 1.8 times or at most half the saved
 power and 50 W apart, for a minute below 90%, not in a charge's first minute or
-right after a reconnect, with no recording running, no "Charging slowed", and a
-battery temperature at which that recording would teach its charger's curve: a
-high-speed one only at 20–38 °C);
+right after a reconnect, with no recording running, no "Charging slowed", and
+the battery at 20–38 °C, where a high-speed recording would teach its curve:
+`learnsAtTemperature` above);
 that only suggests recording, never labels.
 
 ## Validation

@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-estimate-v1.learned-charger-v1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-estimate-v1.normal-temps-v1.match1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -88,6 +88,11 @@ public final class ChargingEstimate {
         public final boolean provisional;
         /** withObservedCurve's sentence naming what a provisional estimate used, which withHistory's status leads with. */
         final String provisionalNote;
+        /**
+         * The time to 100% itself rests on provisional evidence (not only the time to the limit): a held finish
+         * (withHeldPersonal) is remembered only without it.
+         */
+        final boolean provisionalFull;
         private final Ut5MaxStockVoltageReference.Match stockVoltageMatch;
 
         private Result(
@@ -153,7 +158,17 @@ public final class ChargingEstimate {
                 Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
                 boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
                 Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel,Double limitRate,boolean provisional,String provisionalNote) {
-            this.provisional=provisional;this.provisionalNote=provisional?provisionalNote:null;
+            this(charging,inputWatts,inputAmps,remainingMinutesToLimit,remainingMinutesToFull,targetPercent,label,status,
+                    learnedToLimit,learnedToFull,learnedSessions,referenceToLimit,referenceToFull,referenceCharger,stockVoltageMatch,
+                    planningMinutesToLimit,planningMinutesToFull,stockPackModel,limitRate,provisional,provisionalNote,provisional);
+        }
+
+        private Result(boolean charging,Double inputWatts,Double inputAmps,Double remainingMinutesToLimit,Double remainingMinutesToFull,
+                Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
+                boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
+                Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel,Double limitRate,boolean provisional,String provisionalNote,
+                boolean provisionalFull) {
+            this.provisional=provisional;this.provisionalNote=provisional?provisionalNote:null;this.provisionalFull=provisional&&provisionalFull;
             this.limitRate=limitRate;
             this.planningMinutesToLimit=planningMinutesToLimit;this.planningMinutesToFull=planningMinutesToFull;
             this.stockPackModel=stockPackModel;
@@ -683,13 +698,13 @@ public final class ChargingEstimate {
         Double planLimit=learned.learnedToLimit?atLeast(learned.planningMinutesToLimit,learned.provisional?prior.planningMinutesToLimit:null):limit;
         // Only a finish from completed charges is held through a power dropout (withHeldPersonal): a provisional or joined
         // one is never remembered, so the hold can never hand Charge done by a provisional time without its longer-of rule.
-        if(fast&&taper!=null&&learned.learnedToFull&&!learned.provisional)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
+        if(fast&&taper!=null&&learned.learnedToFull&&!learned.provisionalFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
         else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
                 limit,prior.remainingMinutesToFull,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,false,learned.learnedSessions,
                 referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,prior.remainingMinutesToFull,false,rate,learned.provisional,learned.provisionalNote),soc,taper,nowMs);
         Double full=learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull;
-        Double planFull=learned.learnedToFull?atLeast(learned.planningMinutesToFull,learned.provisional?prior.planningMinutesToFull:null):full;
+        Double planFull=learned.learnedToFull?atLeast(learned.planningMinutesToFull,learned.provisionalFull?prior.planningMinutesToFull:null):full;
         return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,learned.learnedToFull,learned.learnedSessions,
                 referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,planFull,false,rate,learned.provisional,learned.provisionalNote);
@@ -906,7 +921,7 @@ public final class ChargingEstimate {
                     limitMinutes,finishing.minutes,baseline.targetPercent,
                     M.chargingEstimatePastCharges(finishing.sessions,finishing.sessions),status,limit!=null,true,finishing.sessions,
                     false,false,null,null,provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,finishing.minutes,false,null,
-                    provisionalLimit,note);
+                    provisionalLimit,note,false);
         }
         if(power!=ChargeSessionStore.Curve.PowerMatch.MATCH){
             String reason=power==ChargeSessionStore.Curve.PowerMatch.DIFFERENT
@@ -949,7 +964,7 @@ public final class ChargingEstimate {
                 false,false,null,null,
                 provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,
                 provisionalFull?atLeast(fullMinutes,baseline.remainingMinutesToFull):Double.valueOf(fullMinutes),false,null,
-                provisionalFull||provisionalLimit,note);
+                provisionalFull||provisionalLimit,note,provisionalFull);
     }
 
     private static final String PLANS_LONGER=" Charge done by plans with the longer of this and the estimate without past charges.";

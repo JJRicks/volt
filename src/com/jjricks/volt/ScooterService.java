@@ -508,7 +508,7 @@ public final class ScooterService extends Service {
     /**
      * Whether the charging view offers "Different charger? Record it" (RecordChargerHint.show): this charge's power has
      * been far off the only recorded family's curve for a minute, below 90%, while charging, with no recording running,
-     * no charging slowdown reported, and a battery temperature at which that recording would teach its charger's curve.
+     * no charging slowdown reported, and the battery at 20-38 C (ChargeSessionStore.learnsAtTemperature for high-speed).
      * Under Automatic or a manual setting alike.
      */
     public boolean recordChargerHint(){
@@ -517,12 +517,10 @@ public final class ScooterService extends Service {
         long now=SystemClock.elapsedRealtime();
         ChargeSessionStore.Frame frame=chargeFrame(now,System.currentTimeMillis());
         boolean charging=liveCharge(frame.state,"charging_state",now)&&frame.state.value==1d;
-        // The charger a recording made now would teach: the one the far-off run points to, else the one in effect.
-        ChargeSessionStore.Charger suggested=chargerHint.otherFamily(profile.id,now);
-        ChargeSessionStore.Charger teaches=suggested!=null?suggested:effectiveChargeCharger();
+        // Outside the temperatures a high-speed charge learns from, a recording made now would teach that curve nothing.
         Double batteryC=liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null;
         return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),isChargeRecording(),chargeSlowedForHint(),
-                RecordChargerHint.learnsAtTemperature(teaches,batteryC));
+                ChargeSessionStore.learnsAtTemperature(ChargeSessionStore.Charger.HIGH_SPEED,batteryC));
     }
     /**
      * Whether "Charging slowed" (ChargeSlowdown) holds for the active scooter's charge, so a throttled charge never reads

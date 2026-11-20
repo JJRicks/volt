@@ -389,24 +389,22 @@ public final class LearnedChargerMatchTest {
         check(!RecordChargerHint.show(true, true, true, false, true), "A recording running: hidden");
         check(!RecordChargerHint.show(true, true, false, true, true), "Charging slowed: hidden");
         check(!RecordChargerHint.show(true, true, false, false, false), "A recording now would not teach the curve: hidden");
-        // learnsAtTemperature: the learning store's temperature rule (high-speed 20-38 C inclusive; stock always).
-        check(RecordChargerHint.learnsAtTemperature(FAST, 20d) && RecordChargerHint.learnsAtTemperature(FAST, 38d)
-                && RecordChargerHint.learnsAtTemperature(FAST, 29d), "High-speed at 20, 29 and 38 C learns");
-        check(!RecordChargerHint.learnsAtTemperature(FAST, 19.9) && !RecordChargerHint.learnsAtTemperature(FAST, 38.1)
-                && !RecordChargerHint.learnsAtTemperature(FAST, 5d), "High-speed below 20 or above 38 C: no");
-        check(RecordChargerHint.learnsAtTemperature(STOCK, 5d) && RecordChargerHint.learnsAtTemperature(STOCK, 45d), "Stock always learns");
-        check(RecordChargerHint.learnsAtTemperature(FAST, null) && RecordChargerHint.learnsAtTemperature(FAST, Double.NaN)
-                && RecordChargerHint.learnsAtTemperature(null, 5d), "No temperature or no charger excludes nothing");
         // Stock-only curve, high-speed plugged into a cold pack: the run is sustained, but the tip stays quiet.
         ChargeSessionStore.Curve coldStockOnly = curve(curves(stock(2)), STOCK);
         RecordChargerHint cold = new RecordChargerHint();
         long[] c = {1000};
         hintFeed(cold, 50, 450, c, 13, coldStockOnly, null);
         check(cold.sustained(ONE, c[0]) && cold.otherFamily(ONE, c[0]) == FAST, "Fixture: high-speed far above the stock curve");
-        check(!RecordChargerHint.show(true, true, false, false, RecordChargerHint.learnsAtTemperature(cold.otherFamily(ONE, c[0]), 12d)),
+        check(!RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 12d)),
                 "At 12 C a high-speed recording would teach nothing: quiet");
-        check(RecordChargerHint.show(true, true, false, false, RecordChargerHint.learnsAtTemperature(cold.otherFamily(ONE, c[0]), 25d)),
+        check(RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 25d)),
                 "At 25 C: shown");
+        check(!RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 39d))
+                && RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 38d))
+                && RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 20d))
+                && !RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, 19d))
+                && RecordChargerHint.show(true, true, false, false, ChargeSessionStore.learnsAtTemperature(FAST, null)),
+                "Quiet below 20 and above 38 C, shown at 20-38 C inclusive and with no temperature");
     }
 
     static void hintLabelsOtherFamily() throws Exception {
