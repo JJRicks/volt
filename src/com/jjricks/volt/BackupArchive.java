@@ -115,9 +115,26 @@ final class BackupArchive {
                     && historyMapping.equals(other.historyMapping) && history == other.history;
         }
     }
+    /**
+     * One file a backup holds. A compressed charge journal (ChargeSessionStore) travels plain, so an older Volt restores
+     * it: `length` is then its plain length and `disk` its size on disk, which the write checks for changes.
+     */
     private static final class Entry {
-        final String name, category; final File file; final long length;
-        Entry(String name, String category, File file) { this.name = name; this.category = category; this.file = file; length = file.length(); }
+        final String name, category; final File file; final long length, disk; final boolean inflate;
+        Entry(String name, String category, File file) { this(name, category, file, file.length(), false); }
+        Entry(String name, String category, File file, long length, boolean inflate) {
+            this.name = name; this.category = category; this.file = file; this.length = length; this.inflate = inflate; disk = file.length();
+        }
+    }
+    /** The exact plain length of each compressed journal, read through once; a corrupt one travels as it is, unreadable. */
+    private static List<Entry> exact(List<Entry> entries) throws IOException {
+        List<Entry> result = new ArrayList<>();
+        for (Entry entry : entries) {
+            if (!entry.inflate) { result.add(entry); continue; }
+            long plain = ChargeSessionStore.plainLength(entry.file);
+            result.add(plain < 0 ? new Entry(entry.name, entry.category, entry.file) : new Entry(entry.name, entry.category, entry.file, plain, true));
+        }
+        return result;
     }
     private BackupArchive() { }
 
@@ -165,7 +182,7 @@ final class BackupArchive {
         try {
             for (String category : categories) { Map<String, Map<String, Object>> values = subset(live, category); if (count(values) > 0) prefs.put("prefs/" + category + ".bin", encode(values)); }
             if (complete) { Map<String, Map<String, Object>> values = unassigned(live); if (count(values) > 0) prefs.put(UNASSIGNED, encode(values)); }
-            List<Entry> files = collect(storage, categories);
+            List<Entry> files = exact(collect(storage, categories));
             LinkedHashMap<String, long[]> totals = new LinkedHashMap<>();
             for (String category : categories) totals.put(category, new long[2]);
             long total = 0;
@@ -197,12 +214,13 @@ final class BackupArchive {
                 for (Map.Entry<String, byte[]> entry : prefs.entrySet()) { zip.putNextEntry(new ZipEntry(entry.getKey())); zip.write(entry.getValue()); zip.closeEntry(); }
                 byte[] buffer = new byte[AppDataArchive.BLOCK];
                 for (Entry entry : files) {
-                    if (entry.file.length() != entry.length) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
+                    if (entry.file.length() != entry.disk) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     zip.putNextEntry(new ZipEntry(entry.name));
-                    try (InputStream in = new FileInputStream(entry.file)) {
-                        long copied = AppDataArchive.copy(in, zip, buffer, AppDataArchive.fileLimit(entry.name));
-                        if (copied != entry.length || entry.file.length() != entry.length) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
-                    }
+                    long copied;
+                    try (InputStream in = entry.inflate ? ChargeSessionStore.open(entry.file) : new FileInputStream(entry.file)) {
+                        copied = AppDataArchive.copy(in, zip, buffer, AppDataArchive.fileLimit(entry.name));
+                    } catch (ZipException | EOFException changed) { copied = -1; } // A compressed charge rewritten mid-read.
+                    if (copied != entry.length || entry.file.length() != entry.disk) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     zip.closeEntry();
                 }
                 zip.finish(); encrypted.finish(); output.flush();
@@ -222,7 +240,10 @@ final class BackupArchive {
                 if (!AppDataArchive.allowedFile(name)) { if (child.getName().endsWith(".repair") || child.getName().endsWith(".mapping")) continue; throw new BackupException(M.backupEngineUnsupportedRecordingFileNeedsAttention()); }
                 if (Files.isSymbolicLink(child.toPath()) || !child.isFile() || !child.getCanonicalFile().getParentFile().equals(folder.getCanonicalFile())) throw new BackupException(M.backupEngineUnexpectedRecordingFile());
                 if (child.length() > AppDataArchive.fileLimit(name)) throw new BackupException(M.backupEngineOneRecordingTooLargeBackup());
-                result.add(new Entry(name, category, child));
+                // A compressed charge journal is backed up plain (its size here a cheap hint; the write reads it through).
+                if (category.equals(BackupRegistry.CHARGES) && ChargeSessionStore.compressed(child))
+                    result.add(new Entry(name, category, child, ChargeSessionStore.plainLengthHint(child), true));
+                else result.add(new Entry(name, category, child));
             }
         }
         File database = storage.database();
@@ -490,7 +511,8 @@ final class BackupArchive {
             String id = charge.getName().substring(0, 36);
             if (!chargeIds.add(id.toLowerCase(Locale.ROOT))) throw new BackupException(M.backupEngineBackupRepeatsChargeRecording());
             ChargeSessionStore.Journal journal = null;
-            try { journal = ChargeSessionStore.inspectJournal(charge); } catch (IOException unreadable) { journal = null; }
+            // A backup holds plain journals; anything else in one is no charge Volt merges (kept for an exact Replace everything).
+            try { journal = ChargeSessionStore.compressed(charge) ? null : ChargeSessionStore.inspectJournal(charge); } catch (IOException unreadable) { journal = null; }
             String path = "charge-recordings/" + charge.getName();
             if (journal == null) charges.add(new Recording(id, path, "", 0, 0, false, Collections.singletonList(path)));
             else {
@@ -796,7 +818,9 @@ final class BackupArchive {
             for (String path : group) {
                 File mine = new File(storage.files(), path), incoming = new File(data, "files/" + path);
                 if (Files.exists(mine.toPath(), LinkOption.NOFOLLOW_LINKS)) { exists = true; if (Files.isSymbolicLink(mine.toPath()) || !mine.isFile()) throw new BackupException(M.backupEngineUnexpectedRecordingFile()); }
-                if (mine.exists() != incoming.isFile() || (mine.exists() && (mine.length() != incoming.length() || !Arrays.equals(RideArchive.digest(mine), RideArchive.digest(incoming))))) equal = false;
+                // A saved charge may be compressed on this phone: the same recording then matches by its plain text.
+                if (mine.exists() != incoming.isFile() || (mine.exists() && (charges ? !Arrays.equals(ChargeSessionStore.digest(mine), ChargeSessionStore.digest(incoming))
+                        : mine.length() != incoming.length() || !Arrays.equals(RideArchive.digest(mine), RideArchive.digest(incoming))))) equal = false;
             }
             if (exists) { if (equal) identical++; else conflicts++; continue; }
             String clock = target + "|" + recording.wall + "|" + recording.mono;
@@ -804,8 +828,9 @@ final class BackupArchive {
             clocks.put(clock, recording.id.toLowerCase(Locale.ROOT));
             candidates.add(recording);
         }
-        // The charge store prunes above MAX_SESSIONS on its next start: add only the newest that fit, so nothing here is lost.
-        int full = 0, room = Math.max(0, ChargeSessionStore.MAX_SESSIONS - kept);
+        // The charge store rotates above MAX_RECORDINGS: add only the newest that fit, so nothing here is lost to the count.
+        // (Over its budget in bytes it rotates the oldest away too, once they are compressed.)
+        int full = 0, room = Math.max(0, ChargeSessionStore.MAX_RECORDINGS - kept);
         if (charges && candidates.size() > room) {
             List<Recording> newest = new ArrayList<>(candidates);
             newest.sort((a, b) -> a.wall != b.wall ? Long.compare(b.wall, a.wall) : a.id.compareTo(b.id));
@@ -815,7 +840,7 @@ final class BackupArchive {
         for (Recording recording : candidates) additions.addAll(recording.group);
         String noun = charges ? "charge" : "ride";
         lines.add(charges ? M.backupEnginePlanCharges(candidates.size(), identical, conflicts) : M.backupEnginePlanRides(candidates.size(), identical, conflicts));
-        if (full > 0) lines.add(plural(full, noun) + " skipped · " + ChargeSessionStore.MAX_SESSIONS + "-charge limit");
+        if (full > 0) lines.add(plural(full, noun) + " skipped · " + ChargeSessionStore.MAX_RECORDINGS + "-charge limit");
         if (notRestored > 0) lines.add(plural(notRestored, noun) + " skipped · scooter not restored");
         if (unreadable > 0) lines.add(plural(unreadable, noun) + " skipped · unreadable");
         if (orphans != null && !orphans.isEmpty()) lines.add(M.backupEnginePlanPhoneFilesSkipped(orphans.size(), orphans.size()));
