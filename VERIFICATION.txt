@@ -1,5 +1,11 @@
 VOLT 2.0.2 — RECORD THIS CHARGER, A STEADIER TIME TO FULL, THE LIVE CARD WHILE RECORDING, CLEARER WORDS, FIXES (versionCode 62)
-Draft, November 20, 2026. The release checks below are still to run.
+Built, swept and tagged at commit d7bb98d0, #588's merge into main,
+November 20, 2026. That merge is the release commit (RELEASING.md step
+2): the candidate was built on it, and the tests, ship_check and the
+VOLT_RELEASE=1 build ran again on it before the draft. Nothing merged into
+main between the release commit and the publish, so the checked, built and
+tagged commit is one SHA (step 7). The release APK is identical to the
+swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.1
   (75667d5e) is in it: the "record this charger" tip (#576 and #577,
@@ -13,25 +19,91 @@ Draft, November 20, 2026. The release checks below are still to run.
   release sweep) and #582 (2.0.1's record in this file) change no app
   code, nor does any other docs-only pull request that merges before the
   release commit. The language top-up for this release's new text and
-  this release's own version, changelog and docs come after them.
-  [PHASE 2: the last PR number merged before the release commit; for each
-  PR, CI on its merged head and the independent review on the head that
-  merged.]
+  this release's own version, changelog and docs come after them: #583
+  and the language top-up (#588), whose merge is the release commit. That
+  makes 10 pull requests: #576, #577, #580 to #583 and #585 to #588.
+  #584 (the release sweep's APK identity and merge mode, test tooling
+  only) merged after the publish and is not in this release.
+- Every one of the 10 merged with CI passing on its merged head (4 checks
+  each: android-build, core-tests, english-proof and web-setup), and the
+  release commit passed the same 4. The independent review's last pass was
+  on the merged head for all 10, and none of those passes requested
+  changes. All 10 were reviewed by Claude reviewer seats only, run apart
+  from the authoring session, because the Codex seats were unavailable.
+  Their upheld P3s (wording and logic follow-ups) are tracked for later
+  releases.
 - run-release-sweep.py lists 297 steps on main at #587's merge, 5 more
   than 2.0.1's 292, none gone: the charger tip on Widgets and Clean at
   344 and 412 dp, two of them during an automatic recording
   (estimate-tip-charger-*), and the live card during a charge recording
   (charge-live-recording). Every validation registered in
   android-tests/AndroidManifest.xml is covered (the script's own guard).
-  [PHASE 2: confirm the step list and counts on the release commit.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 2.0.1's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed, each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.]
+  Confirmed on the release commit: 297 steps, the same list.
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4156 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly. #588 translated this release's
+  new and changed text in all ten, made and checked as its pull request
+  describes, including 2.0.1's Polish and Portuguese (Portugal) Charging
+  slowed wording.
+- Release candidate checks on the release commit (d7bb98d0):
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (219
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.2 (no -dev), versionCode 62, signed with 2.0.1's
+    certificate. APK SHA-256
+    806d34d1205d1c36defb6a2903d134a374004ca28897a4421d3c77ce020e63e5.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.2 (62). The validation runner was
+    built with the same key.
+- run-release-sweep.py on that build, November 20, 2026, 5:00 to 7:41 AM
+  MST: Medium Phone API 36.1 emulators on this Mac (eight at once at the
+  start: six lanes of the main run and two for the compat steps) and API
+  36.1 x86_64 emulators on one remote Linux machine with a GPU (two per
+  job). The owner's go for this release covered the release-key
+  candidate running on the remote machine for this sweep. The 297 steps
+  were spread over three runs, merged by the release kit's merge-tally.py,
+  which keeps each step's newest verdict: the main run (every step but
+  the two compat steps and rides-timing, with two rerun rounds), the
+  compat run, and a finale alone on this Mac (rides-timing, the ride
+  auto-save check and one rerun). Every step has a verdict. Closing
+  numbers of the merged result, as printed:
+  - Gating steps: 222 passed, 0 failed.
+  - Report-only steps (never counted as passes): 65 ran, 1 did not
+    finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
+    pseudo-locale steps: no pseudo-locale APK was supplied.
+  - The ride auto-save check passed on its first run.
+  One gating step failed a try and passed when rerun; none failed twice:
+  - riding-disconnected-narrow failed on this Mac in the main run with a
+    ConcurrentModificationException in the validation's own code, after
+    25 assertions. Its frame sampler can record one more frame after
+    sampling stops, while the test reads the samples. That code is
+    unchanged since 2.0.1 and is not part of the app. On an idle rerun,
+    alone on this Mac, it passed (381 assertions). A fix to the
+    validation follows in its own pull request.
+  Infrastructure, not the app, accounts for the other reruns. The remote
+  machine's emulators went offline mid-job in both of its jobs, leaving
+  43 and then 19 steps without a verdict (one of them,
+  reveal-motion-stats-tabs-344, was stopped at its step limit as its
+  emulator went). They reran, on that machine and then on this Mac, and
+  every gating step among them passed. That machine's result uploads
+  were slow, so both its jobs were cancelled once their verdict files had
+  uploaded. The main run reached its time limit just as its second rerun
+  round started on this Mac; those six Mac lanes finished, and
+  merge-tally.py took their verdicts from the records each lane keeps per
+  step. The finale was then started by hand.
+  - The one report-only step that did not finish, gps-accuracy-riding-de,
+    stopped at the same check as in 2.0.1, 2.0.0 and 1.13.2: in German,
+    Halo's GPS accuracy chip shows the no-reading dash instead of "Keine
+    Aufzeichnung" while nothing records. A shorter German text is still a
+    follow-up.
+  - rides-timing passed (202 s), alone on this Mac. Best of two cold
+    starts per case, slowest case: first frame 100 ms and service start
+    command 87 ms (budgets 1.5 s). Rides showed its first row within
+    51 ms, and the longest main-thread message on Rides was at most 50 ms
+    cold and 44 ms warm (budget 1 s). The longest main-thread message at
+    launch was 124 ms in any single run.
 - No parked hardware sweep. The owner decided 2.0.2 ships without one
   ("small enough"), so this release is checked on emulators and by tests
   only, and nothing in it was tried on a real scooter. Untried on real
@@ -67,6 +139,24 @@ Draft, November 20, 2026. The release checks below are still to run.
   24182, 25462, 25852): no compatibility report for a new Model ID is
   recorded since then. Adding any that reached volt-reports@jjricks.com is
   the owner's step.
+- Published November 20, 2026 at 7:48 AM MST (14:48 UTC) from main, on the
+  owner's go, given at about 2:50 AM MST for a full release without a
+  hardware sweep: tag v2.0.2 points at
+  d7bb98d01961648dc85ffca7d8a609b6592565c7, #588's merge, the release
+  commit, which was still main's newest commit. Its tests (219 suites),
+  ship_check and VOLT_RELEASE=1 build ran again before the draft. The
+  release APK (SHA-256
+  ea028ef4badf7716ffd9c2cc764dd036aaac604ce13c4cdf5d693f3b0ee415d9) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 2.0.1's certificate, zipaligned, and reads 2.0.2
+  (62). The source ZIP's SHA-256 is
+  1bbf6ce59cdb2fcbd3fda5279af82d09ee640e1919c94bdc70c103a92192b107. The
+  published assets were downloaded again and matched, the release gates
+  passed on the published APK, and the update check offers its Download.
+  The homepage was deployed from the tag at 7:49 AM MST with
+  site/server/deploy-release.sh; the live variant stayed as chosen, and
+  the deploy's checks passed: every served file of its 120-file manifest
+  at its URL, the share cards, the previews and the live page.
 
 --- Previous verification ---
 
