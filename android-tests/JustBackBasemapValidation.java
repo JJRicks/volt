@@ -45,7 +45,7 @@ import java.util.function.BooleanSupplier;
  *   <li>Tile requests queued behind busy tile loaders when the switch goes off fetch nothing.</li>
  *   <li>The light theme the same way (no explanation the second time), and a provider that cannot be reached (an address
  *       on this device that refuses connections, standing in for no network): the panel stays plain, with no message.</li>
- *   <li>Map settings shows the card's own switch (Home), on with it, and turns it off and on there without touching the
+ *   <li>Map settings shows the card's own switch (Map on Home's last ride), on with it, and turns it off and on there without touching the
  *       ride maps' basemap.</li>
  *   <li>A ride ending in the switch's corner: the route, its end dot and its ring are fitted clear of the switch.</li>
  * </ul>
@@ -86,9 +86,15 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
             showJustBack();
             darkFirstUse();
             relaunched();
+            // The dark theme's Map settings (#560 follow-up's label): the card's map on for it, then off again as relaunched left it.
+            require(settings().edit().putBoolean(JustBackBasemap.KEY, true).commit(), "Could not turn the card's basemap on for Map settings");
+            settle();
+            mapSettings("dark");
+            require(settings().edit().putBoolean(JustBackBasemap.KEY, false).commit(), "Could not turn the card's basemap off after Map settings");
+            settle(); SystemClock.sleep(600); settle();
             queuedThenOff();
             lightTheme();
-            mapSettings();
+            mapSettings("light");
             unreachable();
             rideMap("dark");
             rideMap("light");
@@ -197,10 +203,10 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
     }
 
     /**
-     * Map settings shows the card's own switch (named Home) beside the ride maps' choice, on while the card's basemap is
+     * Map settings shows the card's own switch (Map on Home's last ride) beside the ride maps' choice, on while the card's basemap is
      * on, and turns it off and on again there (council, #560 r1). The ride maps' choice stays as it was.
      */
-    private void mapSettings() throws Exception {
+    private void mapSettings(String theme) throws Exception {
         boolean rides = settings().getBoolean("map_basemap_enabled", false);
         AlertDialog[] dialog = {null};
         main(() -> dialog[0] = MapPreferences.show((ScreenHost) field(clean(), "host")));
@@ -210,9 +216,18 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
             View found = dialog[0].getWindow().getDecorView().findViewWithTag("map-settings-just-back");
             require(found instanceof ViewGroup && found.isShown(), "Map settings has no switch for the card's basemap");
             row[0] = (android.widget.Switch) ((ViewGroup) found).getChildAt(0);
-            require("Home".contentEquals(row[0].getText()) && row[0].isChecked(), "Map settings' card switch reads '" + row[0].getText() + "', checked " + row[0].isChecked() + ", with the card's basemap on");
+            require(row[0].isChecked(), "Map settings' card switch reads '" + row[0].getText() + "', checked " + row[0].isChecked() + ", with the card's basemap on");
+            // Its own label, not the tab's name (#560 follow-up): whole on one line where it fits, never broken inside a word.
+            require(T.mapsJustBackSwitch().contentEquals(row[0].getText()), "Map settings' card switch reads '" + row[0].getText() + "', not its own label");
+            android.text.Layout lines = row[0].getLayout();
+            require(lines != null && lines.getEllipsisCount(lines.getLineCount() - 1) == 0, "Map settings' card switch label is cut off: '" + row[0].getText() + "'");
+            for (int line = 0; lines != null && line < lines.getLineCount() - 1; line++) {
+                int end = lines.getLineEnd(line);
+                require(end <= 0 || end >= row[0].getText().length() || Character.isWhitespace(row[0].getText().charAt(end - 1)), "Map settings' card switch label breaks inside a word at line " + line);
+            }
+            checks.add(size + " " + theme + " Map settings: the card's switch reads '" + row[0].getText() + "' on " + (lines == null ? 0 : lines.getLineCount()) + " line(s), " + Math.round(row[0].getWidth() / row[0].getResources().getDisplayMetrics().density) + " dp wide");
         });
-        shot("light-map-settings");
+        shot(theme + "-map-settings");
         main(() -> row[0].performClick());
         settle();
         require(!settings().getBoolean(JustBackBasemap.KEY, true), "Map settings' switch did not turn the card's basemap off");
@@ -223,7 +238,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
         require(settings().getBoolean("map_basemap_enabled", false) == rides, "Map settings' card switch changed the ride maps' basemap");
         main(() -> dialog[0].dismiss());
         settle();
-        checks.add(size + " Map settings: the card's own switch (Home) shows on, turns the card's basemap off and on, and leaves the ride maps' as it was");
+        checks.add(size + " Map settings: the card's own switch shows on, turns the card's basemap off and on, and leaves the ride maps' as it was");
     }
 
     /** The light theme: off and on (no explanation now), then left off. */

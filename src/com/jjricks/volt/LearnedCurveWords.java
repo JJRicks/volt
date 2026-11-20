@@ -31,6 +31,7 @@ final class LearnedCurveWords implements LearnedCurveCard.Words {
             case BELOW: return T.moreLearnedGapBelow(Fmt.integer(gap.to));
             case ABOVE: return T.moreLearnedGapAbove(Fmt.integer(gap.from));
             case DISAGREE: return T.moreLearnedGapDisagree(Fmt.integer(gap.from), Fmt.integer(gap.to));
+            case TEMPERATURE: return T.moreLearnedGapTemperature(Fmt.integer(gap.from), Fmt.integer(gap.to));
             default: return T.moreLearnedGapBetween(Fmt.integer(gap.from), Fmt.integer(gap.to));
         }
     }

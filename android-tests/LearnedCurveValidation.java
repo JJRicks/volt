@@ -83,6 +83,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                 shotSection("learned-" + state.trim() + "-" + label);
             }
             for (String state : args.getString("reason_states", "cold,finish").split(",")) reasonState(state.trim(), built);
+            if (built && !"none".equals(args.getString("cold_start", "show"))) coldStart();
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", String.valueOf(failure));
@@ -266,6 +267,39 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         if (built) checks.add(state + ": one card that says why nothing is learned" + (cold ? "" : ", with its finish"));
         else checks.add("This app has no What Volt has learned section yet; " + state + " captured without it");
         shotSection("learned-" + state + "-" + label);
+    }
+    /**
+     * A fast charge cold (10 C) from 30% to 50%, then warm (25 C) to full (#572 review, F01): learned from about 50%, and
+     * the cold stretch worded as too cold or hot to learn, not as missing data; below 30% stays no data.
+     */
+    private void coldStart() throws Exception {
+        File folder = new File(getTargetContext().getFilesDir(), "charge-recordings");
+        File[] old = folder.listFiles();
+        if (old != null) for (File file : old) require(file.delete(), "Could not clear " + file.getName());
+        ChargeSessionStore store = new ChargeSessionStore(folder);
+        long wall = WALL - 86_400_000L;
+        store.start(profile, ChargeSessionStore.Charger.HIGH_SPEED, wall, MONO);
+        long t = 0;
+        for (int level = 30; level < 100; level++) {
+            long span = (long) (FAST.minutes(level) * 60000);
+            for (long at = 0; at < span; at += 10000, t += 10000) sampleAt(store, FAST, wall, t, level, false, level < 50 ? 10 : 25);
+        }
+        sampleAt(store, FAST, wall, t, 100, true, 25);
+        store.stop(ChargeSessionStore.Stop.COMPLETE);
+        reload();
+        page();
+        main(() -> {
+            View section = HubTestPages.shownTag(activity, tag("SECTION_TAG"));
+            ViewGroup cards = (ViewGroup) section;
+            require(cards.getChildCount() == 1 && (tag("TAG") + ":high_speed").equals(cards.getChildAt(0).getTag()), "Cold start: one high-speed card, not " + cards.getChildCount());
+            textProblems(section);
+            String words = String.valueOf(cards.getChildAt(0).getContentDescription());
+            require(java.util.regex.Pattern.compile("Too cold or hot to learn 3[01]–(49|50|51)%").matcher(words).find(), "Cold start: the cold stretch in its own words: " + words);
+            require(java.util.regex.Pattern.compile("No data below 3[01]%").matcher(words).find() && !words.contains("No data below 5"), "Cold start: no data only below the recording's start: " + words);
+            require(words.contains("Learned "), "Cold start: the warm part is learned: " + words);
+            checks.add("cold start: " + words);
+        });
+        shotSection("learned-cold-start-" + label);
     }
     /** To 100% complete at battery temperature tempC; with dropoutAt > start, lost for three hours from dropoutAt to resumeAt. */
     private void recordAt(ChargeSessionStore store, ChargeSessionStore.Charger charger, Model model, int start, int dropoutAt, int resumeAt, double tempC) throws Exception {

@@ -13,8 +13,9 @@ import java.util.List;
  *   stretch that is missing simply breaks the line; a "time to full from here" reading would be undefined below
  *   every gap;</li>
  *   <li>the coverage strip: runs of equal Coverage, 0% to 100%;</li>
- *   <li>the words: the learned span, the gaps (below, above and inside it), where recordings disagree, where a finish
- *   recording starts, and the time from the top learned stretch's start to full when that stretch reaches 100%.</li>
+ *   <li>the words: the learned span, the gaps (below, above and inside it), where a fast charge was too cold or hot to
+ *   learn from, where recordings disagree, where a finish recording starts, and the time from the top learned stretch's
+ *   start to full when that stretch reaches 100%.</li>
  * </ul>
  */
 final class LearnedCurveChart {
@@ -26,8 +27,11 @@ final class LearnedCurveChart {
         int length() { return to - from; }
         @Override public String toString() { return coverage + " " + from + "-" + to; }
     }
-    /** Where a gap is: below the learned span, above it, between two learned stretches; or a stretch recordings disagree on. */
-    enum Where { BELOW, ABOVE, BETWEEN, DISAGREE }
+    /**
+     * Where a gap is: below the learned span, above it, between two learned stretches; a stretch a recording covered only
+     * outside the fast charger's learning temperatures (TEMPERATURE: measured, not missing); or one recordings disagree on.
+     */
+    enum Where { BELOW, ABOVE, BETWEEN, TEMPERATURE, DISAGREE }
     static final class Gap {
         final Where where; final int from, to;
         Gap(Where where, int from, int to) { this.where = where; this.from = from; this.to = to; }
@@ -47,9 +51,9 @@ final class LearnedCurveChart {
     final List<Run> runs;
     /** Stretches with usable minutes (one recording or two agreeing), in order. */
     final List<Run> learned;
-    /** The words' gaps: below, the listed inside gaps, above, then the listed disagreeing stretches. */
+    /** The words' gaps: below, the listed inside gaps, above, the listed too cold or hot stretches, then the listed disagreeing ones. */
     final List<Gap> gaps;
-    /** Inside gaps and disagreeing stretches past LISTED each, not in gaps. */
+    /** Inside gaps, too cold or hot stretches and disagreeing stretches past LISTED each, not in gaps. */
     final int unlisted;
     /** The lowest finish recording's start, rounded down to a whole percent; -1 for none. */
     final int finishFrom;
@@ -65,6 +69,8 @@ final class LearnedCurveChart {
     final int toFullFrom;
     /** Whether a recording measured some percent outside the fast charger's learning temperatures. */
     final boolean outsideTemperature;
+    /** Per percent, 0% to 99%: a recording measured it outside the learning temperatures (Summary.Bin.outsideTemperature). */
+    private final boolean[] outsideAt = new boolean[100];
 
     private LearnedCurveChart(ChargeSessionStore.Summary summary) {
         charger = summary.charger; recordings = summary.qualifiedSessions;
@@ -78,7 +84,8 @@ final class LearnedCurveChart {
             boolean usable = b != null && usable(coverage) && b.minutes != null && Double.isFinite(b.minutes) && b.minutes > 0;
             if (!usable && usable(coverage)) coverage = ChargeSessionStore.Summary.Coverage.NONE;
             minutes[bin] = usable ? b.minutes : Double.NaN;
-            outside |= b != null && b.outsideTemperature;
+            outsideAt[bin] = b != null && b.outsideTemperature;
+            outside |= outsideAt[bin];
             if (usable && b.minutes > largest) { largest = b.minutes; slow = bin; }
             if (coverage != current) { if (current != null) all.add(new Run(start, bin, current)); start = bin; current = coverage; }
         }
@@ -97,15 +104,25 @@ final class LearnedCurveChart {
         List<Gap> words = new ArrayList<>();
         int hidden = 0;
         if (!stretches.isEmpty()) {
-            // Each gap is a stretch no recording covers (NONE) and nothing more: a disagreeing stretch has its own words.
-            Gap above = null; int inside = 0;
+            // Each gap is a stretch no recording covers (NONE) and nothing more: a disagreeing stretch has its own words,
+            // and so does a NONE stretch a fast charge measured only too cold or hot to learn from (#572 review, F01):
+            // that is not missing data. A NONE run splits where its percents change between the two.
+            Gap above = null; int inside = 0, temperature = 0;
+            List<Gap> outsideWords = new ArrayList<>();
             for (Run run : all) {
                 if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE) continue;
-                if (run.from == 0) words.add(new Gap(Where.BELOW, 0, run.to));
-                else if (run.to == 100) above = new Gap(Where.ABOVE, run.from, 100);
-                else if (inside++ < LISTED) words.add(new Gap(Where.BETWEEN, run.from, run.to)); else hidden++;
+                for (int from = run.from, to; from < run.to; from = to) {
+                    boolean measured = outsideAt[from];
+                    to = from + 1;
+                    while (to < run.to && outsideAt[to] == measured) to++;
+                    if (measured) { if (temperature++ < LISTED) outsideWords.add(new Gap(Where.TEMPERATURE, from, to)); else hidden++; }
+                    else if (from == 0) words.add(new Gap(Where.BELOW, 0, to));
+                    else if (to == 100) above = new Gap(Where.ABOVE, from, 100);
+                    else if (inside++ < LISTED) words.add(new Gap(Where.BETWEEN, from, to)); else hidden++;
+                }
             }
             if (above != null) words.add(above);
+            words.addAll(outsideWords);
         }
         int disagree = 0;
         for (Run run : all) {
@@ -162,6 +179,7 @@ final class LearnedCurveChart {
     String signature() {
         StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(runs);
         out.append(outsideTemperature);
+        for (boolean at : outsideAt) out.append(at ? 1 : 0);
         for (double m : minutes) out.append(',').append(Double.isNaN(m) ? "-" : Long.toString(Math.round(m * 100)));
         return out.toString();
     }
