@@ -46,4 +46,6 @@ final class LearnedCurveWords implements LearnedCurveCard.Words {
     @Override public String emptyTitle() { return T.moreLearnedEmptyTitle(); }
     @Override public String empty() { return T.moreLearnedEmpty(); }
     @Override public String unusable() { return T.moreLearnedNoneUsable(); }
+    @Override public String temperature() { return T.moreLearnedTemperature(); }
+    @Override public String tooLittle() { return T.moreLearnedTooLittle(); }
 }

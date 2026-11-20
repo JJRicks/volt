@@ -33,6 +33,8 @@ final class LearnedCurveChart {
         Gap(Where where, int from, int to) { this.where = where; this.from = from; this.to = to; }
         @Override public String toString() { return where + " " + from + "-" + to; }
     }
+    /** Why a curve with recordings has no usable percent: they disagree, it was too cold or hot to learn, or too little data. */
+    enum Why { DISAGREE, TEMPERATURE, TOO_LITTLE }
     /** Inside gaps and disagreeing stretches listed by name each; the rest are counted ("and 2 more"). */
     static final int LISTED = 2;
 
@@ -61,25 +63,28 @@ final class LearnedCurveChart {
     /** The top learned stretch's minutes to full when it reaches 100%, else NaN; from toFullFrom. */
     final double toFullMinutes;
     final int toFullFrom;
+    /** Whether a recording measured some percent outside the fast charger's learning temperatures. */
+    final boolean outsideTemperature;
 
     private LearnedCurveChart(ChargeSessionStore.Summary summary) {
         charger = summary.charger; recordings = summary.qualifiedSessions;
         minutes = new double[100];
         List<Run> all = new ArrayList<>();
         int start = 0; ChargeSessionStore.Summary.Coverage current = null;
-        double largest = 0; int slow = -1;
+        double largest = 0; int slow = -1; boolean outside = false;
         for (int bin = 0; bin < 100; bin++) {
             ChargeSessionStore.Summary.Bin b = bin < summary.bins.size() ? summary.bins.get(bin) : null;
             ChargeSessionStore.Summary.Coverage coverage = b == null ? ChargeSessionStore.Summary.Coverage.NONE : b.coverage;
             boolean usable = b != null && usable(coverage) && b.minutes != null && Double.isFinite(b.minutes) && b.minutes > 0;
             if (!usable && usable(coverage)) coverage = ChargeSessionStore.Summary.Coverage.NONE;
             minutes[bin] = usable ? b.minutes : Double.NaN;
+            outside |= b != null && b.outsideTemperature;
             if (usable && b.minutes > largest) { largest = b.minutes; slow = bin; }
             if (coverage != current) { if (current != null) all.add(new Run(start, bin, current)); start = bin; current = coverage; }
         }
         all.add(new Run(start, 100, current));
         runs = Collections.unmodifiableList(all);
-        slowest = slow;
+        slowest = slow; outsideTemperature = outside;
         scaleMax = largest > 0 ? niceCeiling(largest * HEADROOM) : 0;
         List<Run> stretches = new ArrayList<>();
         for (Run run : all) {
@@ -92,14 +97,15 @@ final class LearnedCurveChart {
         List<Gap> words = new ArrayList<>();
         int hidden = 0;
         if (!stretches.isEmpty()) {
-            int low = stretches.get(0).from, high = stretches.get(stretches.size() - 1).to;
-            if (low > 0) words.add(new Gap(Where.BELOW, 0, low));
-            int inside = 0;
+            // Each gap is a stretch no recording covers (NONE) and nothing more: a disagreeing stretch has its own words.
+            Gap above = null; int inside = 0;
             for (Run run : all) {
-                if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE || run.from < low || run.to > high) continue;
-                if (inside++ < LISTED) words.add(new Gap(Where.BETWEEN, run.from, run.to)); else hidden++;
+                if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE) continue;
+                if (run.from == 0) words.add(new Gap(Where.BELOW, 0, run.to));
+                else if (run.to == 100) above = new Gap(Where.ABOVE, run.from, 100);
+                else if (inside++ < LISTED) words.add(new Gap(Where.BETWEEN, run.from, run.to)); else hidden++;
             }
-            if (high < 100) words.add(new Gap(Where.ABOVE, high, 100));
+            if (above != null) words.add(above);
         }
         int disagree = 0;
         for (Run run : all) {
@@ -134,6 +140,11 @@ final class LearnedCurveChart {
         return charts;
     }
 
+    /** Why nothing is usable (only for a chart with none): disagreement shown on the strip, temperature, or too little data. */
+    Why why() {
+        for (Run run : runs) if (run.coverage == ChargeSessionStore.Summary.Coverage.DISAGREEING) return Why.DISAGREE;
+        return outsideTemperature ? Why.TEMPERATURE : Why.TOO_LITTLE;
+    }
     /** Whether any percent has usable minutes. */
     boolean any() { return !learned.isEmpty(); }
     /** The learned span's ends: the first learned percent and the last one's end, or -1 with nothing learned. */
@@ -149,7 +160,7 @@ final class LearnedCurveChart {
     }
     /** A change worth redrawing: what the card shows, as one string. */
     String signature() {
-        StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(runs);
+        StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(outsideTemperature).append(':').append(runs);
         for (double m : minutes) out.append(',').append(Double.isNaN(m) ? "-" : Long.toString(Math.round(m * 100)));
         return out.toString();
     }

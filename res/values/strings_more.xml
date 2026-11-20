@@ -940,6 +940,11 @@
     <string name="more_learned_empty" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Record a charge and Volt learns how fast this scooter charges at each battery level.</string>
     <!-- A charger's card when its recordings give no usable stretch yet (they disagree everywhere). -->
     <string name="more_learned_none_usable" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">These recordings don\'t agree yet. Record another charge with this charger.</string>
+    <!-- A charger's card when its recordings give no usable stretch because the battery was outside the temperatures a
+         fast charge learns from (too cold or too hot). -->
+    <string name="more_learned_temperature" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Charged too cold or hot to learn from.</string>
+    <!-- A charger's card when its recordings give no usable stretch yet: too little data (a dropout, or too short). -->
+    <string name="more_learned_too_little" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Not enough data yet. Record another charge with this charger.</string>
     <!-- Under a charger's name: how many saved recordings the learned curve uses. -->
     <plurals name="more_learned_recordings" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="caption" volt:safety="charge">
         <item quantity="one">From %1$d recording</item>

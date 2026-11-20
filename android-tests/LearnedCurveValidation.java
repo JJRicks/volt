@@ -41,7 +41,9 @@ import com.jjricks.volt.ScooterProfiles;
  *   <li>{@code partial}: one stock recording 17–50%: learned from 18%, no data below or above;</li>
  *   <li>{@code joined}: stock 17–50% and 45–100% (to full): learned 18–100%, both recordings agree 46–50%, a finish tick;</li>
  *   <li>{@code two}: those and two high-speed recordings (20–100%, 30–100%): two cards, stock first;</li>
- *   <li>{@code mixed}: stock recordings that leave an inside gap and a stretch they disagree on: every legend entry.</li>
+ *   <li>{@code mixed}: stock recordings that leave an inside gap and a stretch they disagree on: every legend entry;</li>
+ *   <li>{@code cold}: a fast charge done entirely at 10 C: its card says it was too cold or hot to learn from;</li>
+ *   <li>{@code finish}: a stock charge lost for three hours that still has a valid finish: not enough data, and the finish.</li>
  * </ul>
  * Each card: its tag, words whole (no cut text, no mid-word break), the chart measured, inside the screen, and one
  * TalkBack description that names the learned span and its gaps. Screenshots (-e size_label, -e theme, -e text_scale;
@@ -74,7 +76,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
             });
             launch();
             boolean built = built();
-            for (String state : args.getString("states", "empty,partial,joined,two,mixed").split(",")) {
+            for (String state : args.getString("states", "empty,partial,joined,two,mixed,cold,finish").split(",")) {
                 seed(state.trim());
                 reload();
                 page();
@@ -103,6 +105,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         switch (state) {
             case "empty": expected = new String[]{"empty"}; break;
             case "two": expected = new String[]{"stock", "high_speed"}; break;
+            case "cold": expected = new String[]{"high_speed"}; break;
             default: expected = new String[]{"stock"};
         }
         main(() -> {
@@ -144,6 +147,14 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                         require(card.findViewWithTag("learned-curve-key-disagreeing") != null && card.findViewWithTag("learned-curve-key-none") != null, "Mixed: every kind in the legend");
                         require(words.contains("disagree"), "Mixed: the disagreeing stretch in words: " + words);
                         break;
+                    case "cold":
+                        require(words.contains("too cold or hot") && !words.contains("disagree") && !words.contains("Learned"), "Cold: the reason in words: " + words);
+                        require(legend.getVisibility() != View.VISIBLE, "Cold: a legend with nothing on the strip");
+                        break;
+                    case "finish":
+                        require(words.contains("Not enough data") && words.contains("Charge to full recorded from") && !words.contains("disagree"), "Finish only: the reason and the finish in words: " + words);
+                        require(card.findViewWithTag("learned-curve-key-finish") != null, "Finish only: the finish tick in the legend");
+                        break;
                     default: break;
                 }
             }
@@ -175,6 +186,10 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 50, 70, 3, day++);
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 64, 100, 1, day++);
                 break;
+            // A fast charge done entirely at 10 C: kept, but it teaches no percent (outside the learning temperatures).
+            case "cold": recordAt(store, ChargeSessionStore.Charger.HIGH_SPEED, FAST, 30, -1, -1, 10, day++); break;
+            // A stock charge the phone lost for three hours (55% to 85%): no percent qualifies, but its finish does.
+            case "finish": recordAt(store, ChargeSessionStore.Charger.STOCK, STOCK, 45, 55, 85, 23, day++); break;
             default: throw new IllegalArgumentException("Unknown state " + state);
         }
     }
@@ -203,6 +218,25 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         if (complete) sample(store, model, wall, t, 100, true);
         else for (int i = 0; i < 3; i++, t += 10000) sample(store, model, wall, t, end, false);
         store.stop(complete ? ChargeSessionStore.Stop.COMPLETE : ChargeSessionStore.Stop.STOPPED);
+    }
+    /** To 100% complete at battery temperature tempC; with dropoutAt > start, lost for three hours from dropoutAt to resumeAt. */
+    private void recordAt(ChargeSessionStore store, ChargeSessionStore.Charger charger, Model model, int start, int dropoutAt, int resumeAt, double tempC, int day) throws Exception {
+        long wall = WALL + day * 86_400_000L;
+        store.start(profile, charger, wall, MONO);
+        long t = 0;
+        for (int level = start; level < 100; level++) {
+            if (level == dropoutAt) { t += 3 * 3_600_000L; level = resumeAt; }
+            long span = (long) (model.minutes(level) * 60000);
+            for (long at = 0; at < span; at += 10000, t += 10000) sampleAt(store, model, wall, t, level, false, tempC);
+        }
+        sampleAt(store, model, wall, t, 100, true, tempC);
+        store.stop(ChargeSessionStore.Stop.COMPLETE);
+    }
+    private void sampleAt(ChargeSessionStore store, Model model, long wall, long t, int level, boolean completion, double tempC) throws Exception {
+        long mono = MONO + t; double amps = model.amps.applyAsDouble(Math.min(level, 99)), volts = model.volts.applyAsDouble(level);
+        ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(wall + t, mono, value(completion ? 0 : 1, mono), value(level, mono), value(volts, mono), value(-amps, mono), value(tempC, mono));
+        require(completion ? store.sampleCompletion(frame) : store.sample(frame), "Synthesized sample not saved at " + level + "%");
+        assertions--;
     }
     private void sample(ChargeSessionStore store, Model model, long wall, long t, int level, boolean completion) throws Exception {
         long mono = MONO + t; double amps = model.amps.applyAsDouble(Math.min(level, 99)), volts = model.volts.applyAsDouble(level);
