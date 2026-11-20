@@ -1407,8 +1407,12 @@ recording reaching displayed 100% can provide a provisional finishing estimate
 within its fully observed range. On the UT5 MAX, other learned ranges need two
 usable recordings; on other models a percent one recording covers counts
 provisionally and partial recordings join (Charge done by then plans with the
-longer of that and the current rate). On every model, the current-rate estimate
-below 80% uses the charge the scooter's own gauge took per percent in its
+longer of that and the current rate). On every model, a high-speed charger's
+percents recorded with the battery outside 20-38 C (68-100 F) teach no curve
+(minutes, power or finish), because the battery limits its current there; the
+recording itself stays whole, the stock charger always learns, and a recording
+without battery temperature is used as before. On every model, the current-rate
+estimate below 80% uses the charge the scooter's own gauge took per percent in its
 recordings (whole-percent steps below 80%, at least 10 per recording, recordings
 agreeing within 5%; one recording counts provisionally) when that is below 97% of
 the rated capacity, never below 80% of it; above 80% the rated capacity stays.

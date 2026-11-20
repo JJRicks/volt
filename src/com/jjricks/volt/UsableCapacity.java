@@ -13,7 +13,8 @@ import java.util.List;
  * Per recording: the whole-percent steps below BULK_LIMIT (entered by a step up from the level below, left by a step up
  * to the next, continuous), each step's charge the integral of |current| over it. A recording counts with at least
  * MIN_LEVELS such steps; its value is its charge over its steps (ampere-hours per 100 gauge points). A fast charger's
- * steps with the battery outside the learning temperatures don't count (as for the learned curve).
+ * steps with the battery outside the learning temperatures don't count (ChargeSessionStore.learnsAtTemperature, as
+ * for the learned curve).
  *
  * Across recordings: a recording agrees when it is within AGREEMENT of the recordings' median (two recordings: within
  * AGREEMENT of each other, since both always lie near their own midpoint). Two or more that agree give a robust value (their mean); a single recording gives a
@@ -33,8 +34,6 @@ public final class UsableCapacity {
      */
     public static final double AGREEMENT = .05;
     public static final double MIN_SHARE = .8, DEAD_BAND = .97;
-    /** The battery temperatures (C, inclusive) a fast charger's steps count at: the learned curve's window. */
-    static final double MIN_C = 20, MAX_C = 38;
 
     private UsableCapacity() {}
 
@@ -46,11 +45,6 @@ public final class UsableCapacity {
         Learned(double ahPer100, int recordings, boolean provisional) {
             this.ahPer100 = ahPer100; this.recordings = recordings; this.provisional = provisional;
         }
-    }
-
-    /** A fast charger's step counts only within MIN_C–MAX_C battery temperature; none reported excludes nothing. */
-    static boolean countsAt(boolean fast, Double batteryC) {
-        return !fast || batteryC == null || !Double.isFinite(batteryC) || batteryC >= MIN_C && batteryC <= MAX_C;
     }
 
     /**

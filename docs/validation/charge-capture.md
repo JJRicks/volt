@@ -139,6 +139,28 @@ showed no gain there and one slightly shorter time to a level. `Curve.summary()`
 exposes each percent's coverage (none, provisional, robust or disagreeing),
 minutes, saved power and finish coverage for a chart of the saved curve.
 
+### Learning only from normal battery temperatures (normal-temps-v1)
+
+On every model, a high-speed (fast) charger's one-percent interval teaches no
+curve (neither its minutes nor its power) when any of its readings, including
+the reading that ends it, has the battery outside 20–38 °C (68–100 °F)
+(`ChargeSessionStore.learnsAtTemperature`). The battery limits its charging
+current outside that range, so such a percent says more about the weather than
+about the charger. A completed fast charge's finish likewise starts after its
+last such reading; one hot or cold at its end teaches no finish.
+
+- **The recording stays whole:** every sample is kept, listed, charted and
+  exported as recorded, and the recording still qualifies (and keeps its place
+  in the folder) exactly as before. Only what it teaches changes.
+- **The stock charger always learns:** its current stays below the battery's
+  thermal limits (on the UT5 MAX, about 2.25 A against at least 3 A hot and
+  5.5 A cold).
+- **No temperature reported** excludes nothing.
+- A replay on private UT5 MAX recordings changed one partial fast charge whose
+  history held cold percents: its error fell from 1.72 to 0.60 minutes on
+  average, with Charge done by's margin still about 20 minutes. Nothing else
+  moved by more than 0.02 minutes.
+
 ### Learned usable capacity (usable-capacity-v1)
 
 The current-rate estimate assumes the rated capacity fills the battery gauge's
