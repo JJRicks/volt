@@ -10,3 +10,4 @@
 {"back":"Disconnect","key":"charge_live_action_disconnect","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"de7dcea40755fb26d3681afc559283f26d6ca078","target":"Desconectar"}
 {"back":"Estimating the remaining time","key":"charge_live_text_estimating","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"15467b6f4c5664605c7208ae9b71e444e565c19b","target":"Estimando o tempo restante"}
 {"back":"Estimating the remaining time · %1$s","key":"charge_live_text_estimating_watts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"90eec41c4a783741526ae9faa937957d9a3637f7","target":"Estimando o tempo restante · %1$s"}
+{"back":"Charging recording · %1$s%%","key":"charge_live_title_recording","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"335d67596533df11bcc3876706452a67bcc3d606","target":"Gravação de carregamento · %1$s%%"}
