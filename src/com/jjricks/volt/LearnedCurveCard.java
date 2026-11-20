@@ -111,10 +111,6 @@ final class LearnedCurveCard {
         }
     }
 
-    /** The two looks the owner chooses between (renders before polish); B: the coverage as a tall bar, the speed a thin line above. */
-    enum Look { SPEED, COVERAGE }
-    static Look look = Look.SPEED;
-
     final LinearLayout card;
     private final Ui ui;
     private final Words words;
@@ -160,7 +156,7 @@ final class LearnedCurveCard {
         } else {
             title.setText(words.title(chart.charger)); sub.setText(words.recordings(chart.recordings));
             spoken.add(title.getText().toString()); spoken.add(sub.getText().toString());
-            axis.setVisibility(look == Look.SPEED ? View.VISIBLE : View.GONE); axis.setText(words.axis());
+            axis.setVisibility(View.VISIBLE); axis.setText(words.axis());
             for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) legend.addView(key(kind, words.kind(kind)));
             if (chart.finishFrom >= 0) legend.addView(key(null, words.finish()));
             List<String> lines = new ArrayList<>();
@@ -231,8 +227,8 @@ final class LearnedCurveCard {
         }
         boolean speed() { return chart != null && chart.any(); }
         float labelHeight() { Paint.FontMetrics m = label.getFontMetrics(); return m.descent - m.ascent; }
-        float stripHeight() { return ui.dp(look == Look.COVERAGE && speed() ? 22 : 10); }
-        float plotHeight() { return speed() ? ui.dp(look == Look.COVERAGE ? 52 : 112) : 0; }
+        float stripHeight() { return ui.dp(10); }
+        float plotHeight() { return speed() ? ui.dp(112) : 0; }
         /** Space over the plot for the finish tick's head and the top value's label. */
         float headroom() { return speed() ? Math.max(ui.dp(9), labelHeight() / 2) : 0; }
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -267,7 +263,6 @@ final class LearnedCurveCard {
                 if (run.from > 0) a += ui.dp(1); if (run.to < 100) b -= ui.dp(1);
                 if (b - a < 1) b = a + 1;
                 drawSegment(canvas, run.coverage, a, stripTop, b, stripBottom, alpha / 255f);
-                if (look == Look.COVERAGE && speed) inside(canvas, run, a, b, stripTop, stripBottom);
             }
             if (speed && chart.finishFrom >= 0) {
                 float x = left + width * chart.finishFrom / 100f;
@@ -313,22 +308,10 @@ final class LearnedCurveCard {
                     path.lineTo(x, y);
                     if (bin == run.to - 1) path.lineTo(left + width * run.to / 100f, y);
                 }
-                if (look == Look.SPEED) {
-                    Path area = new Path(path); area.lineTo(left + width * run.to / 100f, bottom); area.lineTo(firstX, bottom); area.close();
-                    fill.setStyle(Paint.Style.FILL); fill.setColor(Ui.withAlpha(color, ui.dark ? 46 : 30)); canvas.drawPath(area, fill);
-                }
-                stroke.setColor(color); stroke.setStrokeWidth(ui.dp(look == Look.SPEED ? 2 : 1.75f)); canvas.drawPath(path, stroke);
+                Path area = new Path(path); area.lineTo(left + width * run.to / 100f, bottom); area.lineTo(firstX, bottom); area.close();
+                fill.setStyle(Paint.Style.FILL); fill.setColor(Ui.withAlpha(color, ui.dark ? 46 : 30)); canvas.drawPath(area, fill);
+                stroke.setColor(color); stroke.setStrokeWidth(ui.dp(2)); canvas.drawPath(path, stroke);
             }
-        }
-        /** Look B: the count inside each run where it fits ("1", "2+"), white or near-black by the fill. */
-        private void inside(Canvas canvas, LearnedCurveChart.Run run, float a, float b, float top, float bottom) {
-            String text = run.coverage == ChargeSessionStore.Summary.Coverage.PROVISIONAL ? Fmt.integer(1)
-                    : run.coverage == ChargeSessionStore.Summary.Coverage.ROBUST ? Fmt.integer(2) + "+" : null;
-            if (text == null) return;
-            Paint p = new Paint(label); p.setTextAlign(Paint.Align.CENTER); p.setTypeface(ui.semibold());
-            if (p.measureText(text) + ui.dp(8) > b - a) return;
-            p.setColor(run.coverage == ChargeSessionStore.Summary.Coverage.ROBUST || ui.dark ? Color.WHITE : Color.parseColor("#0B0B0B"));
-            canvas.drawText(text, (a + b) / 2, (top + bottom) / 2 - (p.descent() + p.ascent()) / 2, p);
         }
         /** One coverage segment: the empty track, hatched light blue, solid blue, or cross-hatched orange. */
         void drawSegment(Canvas canvas, ChargeSessionStore.Summary.Coverage kind, float a, float top, float b, float bottom, float opacity) {
