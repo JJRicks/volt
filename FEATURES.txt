@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.2 (versionCode 62)
+Current version: 2.0.3 (versionCode 63)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,23 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.2
+NEW IN 2.0.3
+------------
+- Charging: while a charge recording waits for a stopped charger, the
+  plain live charging card's title is the recording with the level
+  (Charge recording · 72%; Charge recording · reconnecting while Volt
+  reconnects, Charge recording is active before a level is read), its text
+  the recording's status; the lock screen's Details and Level show the
+  same title and status (no longer Estimating time left), Hidden nothing.
+- Charge recordings: What Volt has learned names the scooter's own % jump
+  (3 or more percents in a row each passed in under 30 s at a steady
+  charge, after a percent held, for example 83% straight to 95%): one
+  stretch with chevrons on the strip, a Scooter's % jump legend entry and
+  the line "The scooter's % jumps from 83% to 95%", instead of No data
+  gaps. Display only; estimates are unchanged. All new text is translated
+  in all ten beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.2
 ------------
 - Charging: with charge recordings from only one charger, a charge whose
   power stays far off them (1.8 times or half, 50 W apart, for a minute
@@ -1475,7 +1491,12 @@ longer of that and the current rate). On every model, a high-speed charger's
 percents recorded with the battery outside 20-38 C (68-100 F) teach no curve
 (minutes, power or finish), because the battery limits its current there; the
 recording itself stays whole, the stock charger always learns, and a recording
-without battery temperature is used as before. On every model, the current-rate
+without battery temperature is used as before. What Volt has learned marks the
+scooter's own % jump (at least 3 percents in a row each passed in under 30 s,
+after a percent held at least 45 s and 3 times their average, at a steady
+current with no gap or pause; the widest in a recording, the one most
+recordings share across several) as one Scooter's % jump stretch with a line
+naming it, not as No data; the estimates don't use it. On every model, the current-rate
 estimate below 80% uses the charge the scooter's own gauge took per percent in its
 recordings (whole-percent steps below 80%, at least 10 per recording, recordings
 agreeing within 5%; one recording counts provisionally) when that is below 97% of
@@ -1514,8 +1535,10 @@ Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
 a Live Update (status-bar chip and segmented bar), also during a charge
-recording while the scooter charges (plain, with the recording's status, while
-it waits for a stopped charger); Battery & charging >
+recording while the scooter charges (plain while it waits for a stopped
+charger, titled with the recording and the level, Charge recording · 72%, and
+the recording's status as its text, on the lock screen's Details and Level
+too); Battery & charging >
 Charge history & recordings > Live Update status reports the outcome. It keeps only the battery reads Volt
 already makes and sends no new scooter command. Out of sight, the card, the
 connection notice and Charge done by / Scheduled charging read the scooter on
