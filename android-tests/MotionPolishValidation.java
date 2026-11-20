@@ -508,6 +508,10 @@ public final class MotionPolishValidation extends ValidationInstrumentation {
 
         // Stale data (simulated disconnect) hides the hero and stops the loop.
         main(() -> { activity.service().ble.disconnect(); screen().refresh(); }); settle();
+        // The takeover closes over 300 ms with its pulse running on under the fade (#534 review, F05); whether the stage
+        // has left the clip before that ends depends on the takeover's height (taller with Home's estimate tip), so the
+        // loop is checked once the close has ended.
+        await(() -> field(hero(), "reveal") == null, "The charging takeover did not finish closing after the disconnect");
         main(() -> require(pulse() == null && glow() == 1f, "Disconnected/stale charging kept the glow running"));
         requireNoneRunning(seen, "disconnect");
         main(() -> { activity.service().ble.connectLast(); activity.service().ble.setSimulationCharging(true); screen().refresh(); });

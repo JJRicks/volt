@@ -2887,6 +2887,8 @@ public final class DashboardScreen implements AppScreen {
         final TextView chipShort;
         final ChargeTimeTile timeTile;
         final InfoTiles tiles;
+        /** The estimate tip's slot under the time tile (ChargeEstimateTip), gone while no tip shows. */
+        final EstimateTipSlot tipSlot;
         final ImageView photo;
         final Stage stage;
         /**
@@ -3049,7 +3051,30 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
+            tipSlot = new EstimateTipSlot(host.activity(), ui, timeTile,
+                    tip -> glyphDrawable(ChargeEstimateTip.icon(tip), ui.accentText, Math.round(14 * ui.textScale)),
+                    tip -> { if (!editing && !closed) openTip(tip); });
+            rows.addView(tipSlot, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        /**
+         * Shows the estimate tip ChargeEstimateTip picks (the charging view's time is on screen whenever this runs), or
+         * none. It fades in or out while what is around it glides (Motion.reveal): on Widgets the page under the takeover,
+         * on Clean the charging view's own parts in its fixed slot. While the view itself is arriving, leaving or hidden,
+         * or with animations off, the change is instant. Called with every refresh, so a recording saved or started, the
+         * tip hidden or the store's answer arriving all show on the next one.
+         */
+        void showTip() {
+            ScooterService s = host.service();
+            Map<String, ?> stored;
+            try { stored = preferences.getAll(); } catch (RuntimeException unreadable) { stored = null; }
+            ChargeEstimateTip.Tip next = s == null || closed || editing ? null
+                    : ChargeEstimateTip.choose(true, s.chargeRecordingsSaved(), s.isChargeRecording(), stored);
+            tipSlot.hold(next);
+            boolean steady = shown && getVisibility() == View.VISIBLE && isLaidOut() && (clean ? !holdPulse : reveal == null);
+            ViewGroup root = !steady ? null : clean ? this : getParent() instanceof ViewGroup ? (ViewGroup) getParent() : null;
+            Motion.reveal(root, tipSlot, next != null);
         }
 
         private ChargeBar.Host barHost() {
@@ -3220,11 +3245,22 @@ public final class DashboardScreen implements AppScreen {
             chip.measure(upTo, free);
             chipShort.measure(upTo, free);
             percent.measure(free, free);
+            tipSlot.fits = true;
             rows.measure(across, free);
             int fullPercent = percent.getMeasuredHeight();
             // While charging is slowed the pill stays: where the line would make way, its short rung keeps the slot's top.
             ChargingFit.Plan plan = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
                     rows.getMeasuredHeight(), getResources().getDisplayMetrics().density, pillKind.slowed());
+            // The estimate tip makes way first: it shows only where it costs the slot nothing but some stage height.
+            if (tipSlot.getVisibility() != View.GONE && tipSlot.getMeasuredHeight() > 0) {
+                ChargingFit.Plan without = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
+                        rows.getMeasuredHeight() - tipSlot.getMeasuredHeight(), getResources().getDisplayMetrics().density, pillKind.slowed());
+                if (!ChargingFit.extraFits(plan, without)) {
+                    tipSlot.fits = false;
+                    rows.measure(across, free);
+                    plan = without;
+                }
+            }
             shown(chip, plan.line && !plan.shortLine);
             shown(chipShort, plan.line && plan.shortLine);
             shown(percent, plan.percent);
@@ -3461,6 +3497,7 @@ public final class DashboardScreen implements AppScreen {
             if (clean || picture == null) stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
             timeTile.update(estimate, chargeAlertEstimate(values), level);
+            showTip();
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -9748,6 +9785,55 @@ public final class DashboardScreen implements AppScreen {
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(ui.accent);
         if (dialog.getWindow() != null)
             dialog.getWindow().setLayout(-1, (int) (host.activity().getResources().getDisplayMetrics().heightPixels * .86));
+    }
+
+    /**
+     * A tap on the charging view's estimate tip runs its action (ChargeEstimateTip). The record tip opens its sheet
+     * (RecordTipSheet), kept as this Home's dialog so it closes with Home. A new tip adds its case here.
+     */
+    private void openTip(ChargeEstimateTip.Tip tip) {
+        switch (tip) {
+            case NO_RECORDINGS:
+                if (dialog != null && dialog.isShowing()) return;
+                dismiss();
+                dialog = RecordTipSheet.show(host, preferences, this::recordFromTip, () -> hideTip(tip));
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * The record tip's Record this charge, on the charging screen itself: when a recording can start now, the sheet
+     * closes and the charger question (MoreScreen.recordChargeQuestion, Charge history &amp; recordings' own) opens over Home; when
+     * it can't, the reason shows (ScooterService.chargeCaptureUnavailable) and the sheet stays. Returns whether the sheet
+     * closes.
+     */
+    private boolean recordFromTip() {
+        ScooterService s = host.service();
+        if (s == null || closed || s.isChargeRecording()) return true;
+        String unavailable = s.chargeCaptureUnavailable();
+        if (unavailable != null) { host.toast(unavailable); return false; }
+        // After the sheet has gone: the question takes its place as Home's dialog (Clean's parts-only Home has no window
+        // of its own to post to, so the main thread's queue).
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            if (closed || host.service() != s) return;
+            MoreScreen.recordChargeQuestion(host, s, () -> closed || host.service() != s, () -> { if (!closed) host.redraw(); }, (question, onDismiss) -> {
+                dismiss();
+                dialog = question;
+                MoreScreen.presentDialog(ui, question, () -> {
+                    if (dialog == question) dialog = null;
+                    if (onDismiss != null) onDismiss.run();
+                });
+            });
+        });
+        return true;
+    }
+
+    /** The sheet's Hide this tip: stored for good (committed, so a process end right after can't bring it back), then gone with motion. */
+    private void hideTip(ChargeEstimateTip.Tip tip) {
+        preferences.edit().putBoolean(tip.hiddenKey(), true).commit();
+        if (!closed) chargingHero.showTip();
     }
 
     private void dismiss() {

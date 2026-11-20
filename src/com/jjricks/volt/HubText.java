@@ -169,6 +169,37 @@ public final class HubText {
                 M.hubChargeInviteStepSend(rowTitle(HubPages.BATTERY_HISTORY), chargeSendRow()),
         };
     }
+
+    // ===== Home: the estimate tip under the charging view's time (ChargeEstimateTip) =====
+
+    /** A tip's label in full ("Improve this estimate"); also what TalkBack reads at every rung. */
+    public static Msg estimateTip(ChargeEstimateTip.Tip tip) {
+        switch (tip) {
+            case NO_RECORDINGS: default: return M.hubEstimateTipRecord();
+        }
+    }
+    /** The same label's shorter rung ("Improve estimate"), where the full one doesn't fit; then the icon alone. */
+    public static Msg estimateTipShort(ChargeEstimateTip.Tip tip) {
+        switch (tip) {
+            case NO_RECORDINGS: default: return M.hubEstimateTipRecordShort();
+        }
+    }
+    /** The record tip's sheet: its title. */
+    public static Msg recordTipTitle() { return M.hubEstimateTipRecordTitle(); }
+    /** The sheet's quiet button that hides the tip for good. */
+    public static Msg estimateTipHide() { return M.hubEstimateTipHide(); }
+    /**
+     * The record tip's sheet's points, in order: the invite's own (ChargeInviteSheet), less its first, whose controls
+     * the sheet's buttons already are: any charge helps, 100% helps most, keep the phone near, then send them to Volt.
+     */
+    public static Msg[] recordTipSteps() {
+        return new Msg[] {
+                M.hubChargeInviteStepAny(),
+                M.hubChargeInviteStepFull(),
+                M.hubChargeInviteStepNearby(),
+                M.hubChargeInviteStepSend(rowTitle(HubPages.BATTERY_HISTORY), chargeSendRow()),
+        };
+    }
     /** The row that shows the charger chosen for estimates and opens that setting (the Charger row's own name). */
     public static Msg chargerRow() { return M.mainRowCharger(); }
     /** That row's value while Automatic has not recognized the charger. */
