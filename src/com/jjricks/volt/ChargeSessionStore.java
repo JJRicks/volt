@@ -240,9 +240,10 @@ public final class ChargeSessionStore {
         /** Per profile: charge accepted per gauge point in completed charges (any charger). */
         public final Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge;
         /**
-         * Per scooter and charger ({@link #key}): the saved recordings that could teach its curve, up to the newest
-         * LEARN_SESSIONS, the ones the curve learns from. "The charger you have recorded more charges with" counts these, so
-         * after a switch to the other charger the guess follows within LEARN_SESSIONS charges, not hundreds.
+         * Per scooter and charger ({@link #key}): of the scooter's newest LEARN_SESSIONS recordings that could teach a curve,
+         * those with this charger. "The charger you have recorded more charges with" counts these, so after a switch to the
+         * other charger the guess follows within about LEARN_SESSIONS / 2 charges, not hundreds. (A cap per charger would
+         * not: both would sit at LEARN_SESSIONS, a tie, for good.)
          */
         private final Map<String,Integer> qualified;
         Snapshot(Map<String,Curve> curves,int sessions,long bytes){this(curves,sessions,bytes,Collections.emptyMap(),Collections.emptyMap());}
@@ -580,7 +581,7 @@ public final class ChargeSessionStore {
         final List<File> source;final File current;
         synchronized(this){source=files();current=active;}
         Map<String,List<File>> chosen=new LinkedHashMap<>();Map<String,Facts> subjects=new LinkedHashMap<>();int sessions=0;long bytes=0;
-        Map<String,Integer> qualified=new HashMap<>();
+        Map<String,Integer> qualified=new HashMap<>(),recent=new HashMap<>();
         Map<String,double[]> gauge=new LinkedHashMap<>();
         for(int i=source.size()-1;i>=0;i--) {
             File file=source.get(i);
@@ -596,7 +597,8 @@ public final class ChargeSessionStore {
             // Its gauge evidence above counts: ampere-hours per gauge point does not depend on which charger supplied them.
             if(!facts.qualified||!learnsCurve(file.getName()))continue;
             String key=key(facts.profile,facts.charger);List<File> files=chosen.computeIfAbsent(key,ignored->new ArrayList<>());
-            if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);qualified.merge(key,1,Integer::sum);}
+            if(recent.merge(facts.profile,1,Integer::sum)<=LEARN_SESSIONS)qualified.merge(key,1,Integer::sum);
+            if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);}
         }
         Map<String,Curve> curves=new LinkedHashMap<>();
         for(Map.Entry<String,List<File>> item:chosen.entrySet()){

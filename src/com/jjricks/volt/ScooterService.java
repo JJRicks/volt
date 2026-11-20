@@ -617,7 +617,7 @@ public final class ScooterService extends Service {
             // Never in the middle of a guided test (or its write-back) or a compatibility check; no latch, so it starts after.
             if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
-            // The guess counts the newest recordings that teach each charger's curve (LEARN_SESSIONS at most), as the curve does.
+            // The guess counts chargers among this scooter's newest LEARN_SESSIONS recordings that teach a curve, so it follows a switch.
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
                     qualifiedRecordings(ChargeSessionStore.Charger.STOCK),qualifiedRecordings(ChargeSessionStore.Charger.HIGH_SPEED));
             if(!startChargeRecording(label.charger,label.source,label.setting)&&!isChargeRecording())autoChargeLatched.add(active.id);

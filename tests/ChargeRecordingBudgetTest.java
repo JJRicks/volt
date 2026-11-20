@@ -267,24 +267,29 @@ public final class ChargeRecordingBudgetTest {
         ChargeSessionStore.Curve curve = snapshot.curves.get(ChargeSessionStore.key("one", STOCK));
         check(snapshot.sessions == 25 && curve.qualifiedSessions == ChargeSessionStore.LEARN_SESSIONS, "Twenty-five stored, twenty learned from: " + curve.qualifiedSessions);
         check(snapshot.qualifiedRecordings("one", STOCK) == ChargeSessionStore.LEARN_SESSIONS && snapshot.qualifiedRecordings("one", FAST) == 0,
-                "The charger guess counts the newest twenty, as the learner does: " + snapshot.qualifiedRecordings("one", STOCK));
+                "The charger guess counts the scooter's newest twenty: " + snapshot.qualifiedRecordings("one", STOCK));
         check(Math.abs(curve.estimate(45, 55).minutes - 10) < 1e-9, "They are the newest twenty (with the five older ones it would be 12 minutes): " + curve.estimate(45, 55).minutes);
     }
 
     /**
-     * Council review, PR #563: the charger guess ("the charger you have recorded more charges with") counts the newest
-     * LEARN_SESSIONS per charger, so after a switch it follows the new charger within twenty-one charges, not hundreds.
+     * Council review, PR #563: the charger guess ("the charger you have recorded more charges with") counts chargers among
+     * the scooter's newest LEARN_SESSIONS recordings that teach a curve, so after a switch it follows the new charger within
+     * eleven charges, not hundreds. Another scooter's recordings count for that scooter only.
      */
     static void guessFollowsSwitch() throws Exception {
-        File f = folder(); ChargeSessionStore store = open(f, 100, ChargeSessionStore.BUDGET_BYTES);
+        File f = folder(); ChargeSessionStore store = open(f, 200, ChargeSessionStore.BUDGET_BYTES);
         long at = WALL;
-        for (int i = 0; i < 30; i++) { String id = charge(store, "one", STOCK, at, false); date(f, id, at); at += HOUR; }
-        for (int i = 0; i < 20; i++) { String id = charge(store, "one", FAST, at, false); date(f, id, at); at += HOUR; }
+        for (int i = 0; i < 100; i++) { String id = charge(store, "one", STOCK, at, false); date(f, id, at); at += HOUR; }
+        for (int i = 0; i < 10; i++) { String id = charge(store, "one", FAST, at, false); date(f, id, at); at += HOUR; }
+        for (int i = 0; i < 30; i++) { String id = charge(store, "two", FAST, at, false); date(f, id, at); at += HOUR; }
         ChargeSessionStore.Snapshot tie = store.snapshot();
-        check(tie.qualifiedRecordings("one", STOCK) == 20 && tie.qualifiedRecordings("one", FAST) == 20, "Thirty stock, then twenty high-speed: twenty each");
+        check(tie.qualifiedRecordings("one", STOCK) == 10 && tie.qualifiedRecordings("one", FAST) == 10,
+                "A hundred stock, then ten high-speed: ten each among the newest twenty: " + tie.qualifiedRecordings("one", STOCK) + "/" + tie.qualifiedRecordings("one", FAST));
+        check(tie.qualifiedRecordings("two", FAST) == 20, "Each scooter counts its own newest twenty");
         String id = charge(store, "one", FAST, at, false); date(f, id, at);
         ChargeSessionStore.Snapshot after = store.snapshot();
-        check(after.qualifiedRecordings("one", FAST) > after.qualifiedRecordings("one", STOCK), "The twenty-first high-speed charge tips the guess");
+        check(after.qualifiedRecordings("one", FAST) == 11 && after.qualifiedRecordings("one", STOCK) == 9, "The eleventh high-speed charge tips the guess");
+        check(after.curves.get(ChargeSessionStore.key("one", STOCK)).qualifiedSessions == ChargeSessionStore.LEARN_SESSIONS, "The stock curve still learns from its newest twenty");
     }
 
     /**
