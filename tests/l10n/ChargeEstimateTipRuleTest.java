@@ -23,6 +23,7 @@ public final class ChargeEstimateTipRuleTest {
         backup();
         room();
         wiring();
+        chargerTip();
         System.out.println("ChargeEstimateTipRuleTest: " + checks + " checks passed");
     }
 
@@ -125,6 +126,33 @@ public final class ChargeEstimateTipRuleTest {
         check(service.contains("Booleanknown=ChargeEstimateTip.savedFromSnapshot(snapshot.sessions,evidence);"),
                 "The service answers from the snapshot first");
         check(service.contains("saved=!chargeStore.recordings(profile).isEmpty();"), "and counts this scooter's own only where it must");
+    }
+
+    private static final ChargeEstimateTip.Tip CHARGER = ChargeEstimateTip.Tip.OTHER_CHARGER;
+
+    /** The charger tip (item 11): before the record tip, its own hide preference, its gates in the service's wiring. */
+    private static void chargerTip() throws Exception {
+        Map<String, Object> none = new HashMap<>();
+        check("other_charger".equals(CHARGER.id) && "estimate_tip_hidden_other_charger".equals(CHARGER.hiddenKey()), "Its id and hide preference");
+        check("estimate_tip_hidden_no_recordings".equals(RECORD.hiddenKey()), "The record tip's id is unchanged");
+        check(ChargeEstimateTip.choose(true, Boolean.TRUE, false, true, none) == CHARGER, "Far off the only charger: the charger tip");
+        check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, true, none) == CHARGER, "It comes before the record tip");
+        check(ChargeEstimateTip.choose(true, Boolean.TRUE, true, true, none) == CHARGER, "A running recording the service allows: still shown");
+        check(ChargeEstimateTip.choose(false, Boolean.TRUE, false, true, none) == null, "No charging time on screen: no tip");
+        check(ChargeEstimateTip.choose(true, Boolean.TRUE, false, false, none) == null, "Not far off: no tip");
+        Map<String, Object> hidden = new HashMap<>(); hidden.put(CHARGER.hiddenKey(), Boolean.TRUE);
+        check(ChargeEstimateTip.choose(true, Boolean.TRUE, false, true, hidden) == null, "Hidden: gone");
+        check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, true, hidden) == RECORD, "Hidden, nothing saved: the record tip is next");
+        Map<String, Object> other = new HashMap<>(); other.put(RECORD.hiddenKey(), Boolean.TRUE);
+        check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, true, other) == CHARGER, "The record tip's hide doesn't hide it");
+        check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, none) == RECORD, "The old form never shows the charger tip");
+        String service = read("src/com/jjricks/volt/ScooterService.java").replace(" ", "");
+        check(service.contains("if(chargeModelLoading)returnfalse;") && service.contains("if(chargeModelLoading)returnnull;"),
+                "Both tips are held while the store's answer is refreshed after a stop (#574 F02)");
+        check(service.contains("chargeStore.relabel(charger,ChargeSessionStore.LabelSource.CHOSEN)"), "Filing a recording is the CHOSEN relabel");
+        String dash = read("src/com/jjricks/volt/DashboardScreen.java").replace(" ", "");
+        check(dash.contains("tipSlot.forceLayout();") && dash.contains("rows.forceLayout();") && !dash.contains("tipSlot.fits=true;rows.measure"),
+                "Clean marks the slot and its rows for a fresh measure when the room changes (#574 F01)");
     }
 
     private static int dp(int value, float density) { return Math.round(value * density); }

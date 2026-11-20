@@ -36,6 +36,8 @@ public final class LearnedChargerMatchTest {
         estimatorVersionFits();
         baselineLabel();
         baselineCharges();
+        chargerTipWhileRecording();
+        chosenClearsBaseline();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -625,6 +627,50 @@ public final class LearnedChargerMatchTest {
         long[] u = {1000};
         hintFeed(h, 50, 450, u, 13, baseline, null);
         check(h.sustained(ONE, u[0]) && h.otherFamily(ONE, u[0]) == FAST, "High-speed power far off the baseline: the hint");
+    }
+
+    /** #575 r2 F01: the hint during a running recording, only an automatic guess with a known other charger. */
+    static void chargerTipWhileRecording() {
+        ChargeSessionStore.LabelSource G = ChargeSessionStore.LabelSource.GUESS;
+        check(RecordChargerHint.show(true, true, false, null, null, false, true), "No recording: as before");
+        check(RecordChargerHint.show(true, true, true, G, FAST, false, true), "An automatic guess, high-speed suggested: shown");
+        check(!RecordChargerHint.show(true, true, true, G, null, false, true), "An automatic guess, no charger named: hidden");
+        check(!RecordChargerHint.show(true, true, true, null, FAST, false, true), "A manual recording: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.CHOSEN, FAST, false, true), "A chosen label: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.DETECTED, FAST, false, true), "A detected label: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.SETTING, FAST, false, true), "A setting's label: hidden");
+        check(!RecordChargerHint.show(true, true, true, G, FAST, true, true), "Slowed: hidden");
+        check(!RecordChargerHint.show(true, true, true, G, FAST, false, false), "Outside 20-38 C: hidden");
+        check(!RecordChargerHint.show(true, false, true, G, FAST, false, true), "Not sustained: hidden");
+        check(!RecordChargerHint.show(false, true, true, G, FAST, false, true), "Not charging: hidden");
+        // The run never relabels by itself: the label rules take no far-off input, and a guess stays a guess without a choice.
+        check(ChargeAutoRecordPolicy.relabel(G, STOCK, ChargeAutoRecordPolicy.detectedLabel(null, null, null)) == null, "No relabel from the run");
+    }
+
+    /** #575 r2 F03: the tip's action files the running guess as CHOSEN, and a chosen recording is never the baseline. */
+    static void chosenClearsBaseline() throws Exception {
+        long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
+        ChargeSessionStore store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, true, wall, mono);
+        check(store.labelAudit().baseline, "Fixture: the running baseline");
+        for (long t = 0; t <= 50 * 60000L; t += 10000) { long at = mono + t;
+            store.sample(new ChargeSessionStore.Frame(wall + t, at, ChargeSessionStoreTest.value(1d, at), ChargeSessionStoreTest.value(30d + t / 60000, at),
+                    ChargeSessionStoreTest.value(V, at), ChargeSessionStoreTest.value(-8d, at), ChargeSessionStoreTest.value(25d, at))); }
+        check(store.relabel(FAST, ChargeSessionStore.LabelSource.CHOSEN), "Filed as high-speed, the owner's choice");
+        check(store.labelSource() == ChargeSessionStore.LabelSource.CHOSEN && store.charger() == FAST && !store.labelAudit().baseline
+                && store.labelAudit().detected == null, "Chosen high-speed, the baseline mark gone, nothing detected");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        String id = store.recordings(ONE).get(0).id;
+        check(id.charAt(20) == '0' && !ChargeSessionStore.baseline(id), "Saved without the mark: " + id);
+        String json = export(store, id);
+        check(json.contains("\"label_source\":\"chosen\"") && !json.contains("stock_baseline"), "A chosen recording never exports stock_baseline: " + json);
+        ChargeSessionStore.Curve fast = store.snapshot().curves.get(ChargeSessionStore.key(ONE, FAST));
+        check(fast != null && store.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK)) == null, "It teaches the high-speed curve, not stock");
+        // A plain guess filed the same way, and a guess never loses the mark by staying a guess.
+        ChargeSessionStore plain = automaticStore();
+        plain.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
+        check(plain.relabel(FAST, ChargeSessionStore.LabelSource.CHOSEN) && plain.labelSource() == ChargeSessionStore.LabelSource.CHOSEN, "A plain guess filed");
+        plain.stop(ChargeSessionStore.Stop.STOPPED);
     }
 
     // ---- the estimate under Automatic ----

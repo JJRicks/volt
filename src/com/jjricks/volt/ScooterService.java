@@ -513,14 +513,53 @@ public final class ScooterService extends Service {
      */
     public boolean recordChargerHint(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null||ble==null)return false;
+        if(destroyed||profile==null||ble==null)return false;
+        if(simulating())return chargerTipForTest!=null&&!chargeModelLoading;
+        // Held while the store's answer is being refreshed (a recording just stopped): no tip flashes in and out (#574 F02).
+        if(chargeModelLoading)return false;
         long now=SystemClock.elapsedRealtime();
         ChargeSessionStore.Frame frame=chargeFrame(now,System.currentTimeMillis());
         boolean charging=liveCharge(frame.state,"charging_state",now)&&frame.state.value==1d;
         // Outside the temperatures a high-speed charge learns from, a recording made now would teach that curve nothing.
         Double batteryC=liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null;
-        return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),isChargeRecording(),chargeSlowedForHint(),
-                ChargeSessionStore.learnsAtTemperature(ChargeSessionStore.Charger.HIGH_SPEED,batteryC));
+        boolean recording=isChargeRecording();
+        ChargeSessionStore.LabelSource source=recording&&profile.id.equals(chargeStore.profile())&&chargeStore.automatic()?chargeStore.labelSource():null;
+        return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),recording,source,chargerHint.otherFamily(profile.id,now),
+                chargeSlowedForHint(),ChargeSessionStore.learnsAtTemperature(ChargeSessionStore.Charger.HIGH_SPEED,batteryC));
+    }
+    /**
+     * Validations only (EstimateTipValidation): the charger tip's state on the simulator, which never records and never
+     * runs the far-off rule. Non-null: the tip shows, suggesting this charger. Never set in the app.
+     */
+    static volatile ChargeSessionStore.Charger chargerTipForTest;
+    /** Validations only: as if an automatic recording labelled a guess were running (the tip then files it). */
+    static volatile boolean chargerTipRecordingForTest;
+    /**
+     * The charger the charger tip suggests (RecordChargerHint.otherFamily): far above the only stock curve, high-speed;
+     * far below the only high-speed curve, stock; null when the run names none.
+     */
+    public ChargeSessionStore.Charger chargerTipFamily(){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        if(destroyed||profile==null)return null;
+        if(simulating())return chargerTipForTest;
+        return chargerHint.otherFamily(profile.id,SystemClock.elapsedRealtime());
+    }
+    /** Whether the charger tip's action files a running recording (an automatic guess) rather than starting one. */
+    public boolean chargerTipFiles(){
+        if(simulating())return chargerTipForTest!=null&&chargerTipRecordingForTest;
+        return isChargeRecording()&&activeProfileId().equals(chargeStore.profile())&&chargeStore.automatic()
+                &&RecordChargerHint.fileable(chargeStore.labelSource(),chargerTipFamily());
+    }
+    /**
+     * The charger tip's action on a running automatic recording still labelled a guess: files it under charger, as the
+     * owner's choice (CHOSEN, the existing relabel path), so it teaches that charger's curve. Unlike choosing under
+     * Charger for estimates, the saved setting is left as it is. False when there is no such recording or the rename fails.
+     */
+    public boolean fileChargeRecordingAs(ChargeSessionStore.Charger charger){
+        if(destroyed||charger==null||!isChargeRecording()||!activeProfileId().equals(chargeStore.profile())||!chargeStore.automatic()
+                ||chargeStore.labelSource()!=ChargeSessionStore.LabelSource.GUESS)return false;
+        try{if(!chargeStore.relabel(charger,ChargeSessionStore.LabelSource.CHOSEN))return false;}catch(IOException unchanged){return false;}
+        chargeReferenceGate.reset();updateNotification();changed();return true;
     }
     /**
      * Whether "Charging slowed" (ChargeSlowdown) holds for the active scooter's charge, so a throttled charge never reads
@@ -839,6 +878,9 @@ public final class ScooterService extends Service {
     public Boolean chargeRecordingsSaved(){
         String profile=activeProfileId();final ChargeSessionStore.Snapshot snapshot=chargeSnapshot;
         if(destroyed||chargeStore==null||snapshot==null||profile.isEmpty())return null;
+        // Unknown while the store's answer is being refreshed (a recording just stopped, or recordings were cleared): the
+        // last snapshot would bring the tip in for a moment and take it away when the new one lands (#574 F02).
+        if(chargeModelLoading)return null;
         boolean evidence=snapshot.gaugeCharge.containsKey(profile);
         for(ChargeSessionStore.Curve curve:snapshot.curves.values())if(profile.equals(curve.profile))evidence=true;
         Boolean known=ChargeEstimateTip.savedFromSnapshot(snapshot.sessions,evidence);

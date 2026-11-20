@@ -647,6 +647,8 @@ public final class ChargeSessionStore {
         String id=automaticId(active.getName(),source);
         LabelAudit audit=labelAudit(id);
         if(audit!=null&&source==LabelSource.DETECTED&&auditDetection)id=auditId(id,audit.setting,to);
+        // A label that is no longer the guess is no longer the stock baseline (#575 r2 F03): its mark goes, nothing detected.
+        else if(audit!=null&&audit.baseline&&source!=LabelSource.GUESS)id=auditId(id,audit.setting,audit.detected);
         File renamed=new File(directory,id+".active");
         if(!renamed.equals(active)&&(renamed.exists()||!active.renameTo(renamed)))return true;
         active=renamed;labelSource=source;return true;

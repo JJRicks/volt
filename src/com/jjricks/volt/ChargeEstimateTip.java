@@ -14,6 +14,9 @@ import java.util.Map;
  *   (manual or automatic, either charger) and none is running. Its tap opens a short sheet: record your charges for
  *   your own estimate first, then send them to Volt for your model (RecordTipSheet). It goes once a
  *   recording for this scooter is saved, and comes back if every recording is deleted.</li>
+ *   <li>{@link Tip#OTHER_CHARGER} comes first: this charge's power is far off the only charger the scooter has recordings
+ *   for (RecordChargerHint, through ScooterService.recordChargerHint). Its tap records this charge as the other charger,
+ *   or files the running automatic recording under it.</li>
  * </ul>
  *
  * <p>Every tip needs the charging view's time on screen, and a tip the owner hid with its sheet's "Hide this tip" stays
@@ -28,7 +31,9 @@ final class ChargeEstimateTip {
 
     /** A tip the slot can show. Its id names its hide preference; never rename one once shipped. */
     enum Tip {
-        NO_RECORDINGS("no_recordings");
+        NO_RECORDINGS("no_recordings"),
+        /** "Different charger? Record it": this charge is far off the only recorded charger (RecordChargerHint). */
+        OTHER_CHARGER("other_charger");
 
         final String id;
         Tip(String id) { this.id = id; }
@@ -54,7 +59,16 @@ final class ChargeEstimateTip {
      * @param stored the app preferences (only each tip's {@link Tip#hiddenKey} is read); null reads as none stored
      */
     static Tip choose(boolean timeShown, Boolean recordingsSaved, boolean recording, Map<String, ?> stored) {
+        return choose(timeShown, recordingsSaved, recording, false, stored);
+    }
+
+    /**
+     * As above, with the charger tip first: otherCharger is ScooterService.recordChargerHint (this charge far off the only
+     * recorded charger, sustained, with its own gates, a running automatic guess allowed). It comes before the record tip.
+     */
+    static Tip choose(boolean timeShown, Boolean recordingsSaved, boolean recording, boolean otherCharger, Map<String, ?> stored) {
         if (!timeShown) return null;
+        if (otherCharger && !hidden(Tip.OTHER_CHARGER, stored)) return Tip.OTHER_CHARGER;
         if (Boolean.FALSE.equals(recordingsSaved) && !recording && !hidden(Tip.NO_RECORDINGS, stored)) return Tip.NO_RECORDINGS;
         return null;
     }
@@ -80,6 +94,7 @@ final class ChargeEstimateTip {
     static String icon(Tip tip) {
         switch (tip) {
             case NO_RECORDINGS: return "chart";
+            case OTHER_CHARGER: return "bolt";
             default: return "chart";
         }
     }

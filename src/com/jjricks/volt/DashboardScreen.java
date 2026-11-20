@@ -3065,6 +3065,18 @@ public final class DashboardScreen implements AppScreen {
          * or with animations off, the change is instant. Called with every refresh, so a recording saved or started, the
          * tip hidden or the store's answer arriving all show on the next one.
          */
+        /**
+         * Clean: whether the estimate tip has room (EstimateTipSlot.fits). A change marks the slot and its rows for a fresh
+         * measure, so the measure right after can't reuse a height from before the change (#574 F01: a stale 48 dp kept the
+         * make-way decision wrong after the room changed).
+         */
+        void fitTip(boolean fits) {
+            if (tipSlot.fits == fits) return;
+            tipSlot.fits = fits;
+            tipSlot.forceLayout();
+            rows.forceLayout();
+        }
+
         void showTip() {
             ScooterService s = host.service();
             Map<String, ?> stored;
@@ -3245,7 +3257,7 @@ public final class DashboardScreen implements AppScreen {
             chip.measure(upTo, free);
             chipShort.measure(upTo, free);
             percent.measure(free, free);
-            tipSlot.fits = true;
+            fitTip(true);
             rows.measure(across, free);
             int fullPercent = percent.getMeasuredHeight();
             // While charging is slowed the pill stays: where the line would make way, its short rung keeps the slot's top.
@@ -3256,7 +3268,7 @@ public final class DashboardScreen implements AppScreen {
                 ChargingFit.Plan without = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
                         rows.getMeasuredHeight() - tipSlot.getMeasuredHeight(), getResources().getDisplayMetrics().density, pillKind.slowed());
                 if (!ChargingFit.extraFits(plan, without)) {
-                    tipSlot.fits = false;
+                    fitTip(false);
                     rows.measure(across, free);
                     plan = without;
                 }
