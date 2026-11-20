@@ -26,7 +26,8 @@ final class HubNav {
         final boolean recovery;
         /**
          * With ride: closing that ride's details (Back or Done) also leaves its page, back to the page that opened it (a
-         * Hub search result: Back returns to the search in one step, as from any other result).
+         * Hub search result: Back returns to the search in one step, as from any other result; Clean Home's Just back
+         * card: Back returns to Home). A ride opened from All rides' own list keeps All rides under its details.
          */
         final boolean backAfterRide;
         Args(String inspect, boolean recovery, String ride, String anchor) { this(inspect, recovery, ride, anchor, null, false); }
@@ -40,6 +41,11 @@ final class HubNav {
         static Args anchor(String tag) { return new Args(null, false, null, tag); }
         static Args reading(String key) { return new Args(null, false, null, null, key, false); }
         static Args rideAndBack(String id) { return new Args(null, false, id, null, null, true); }
+        /**
+         * A ride Home opens (Clean Home's Just back card): its details close back to Home in one step, not to All rides,
+         * which the rider never saw on the way in (a tester's report via the owner, Nov 2026).
+         */
+        static Args fromHome(String id) { return rideAndBack(id); }
         /**
          * These arguments as strings for the activity's saved state, so a recreation while the loading page waits for the
          * service keeps a search result's target owed (#393 council review, fourth round, finding 3); null for none.
