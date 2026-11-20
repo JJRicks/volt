@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.0 (versionCode 60)
+Current version: 2.0.1 (versionCode 61)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
