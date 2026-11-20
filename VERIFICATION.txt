@@ -17,11 +17,11 @@ Draft, November 20, 2026. The release checks below are still to run.
   [PHASE 2: the last PR number merged before the release commit; for each
   PR, CI on its merged head and the independent review on the head that
   merged.]
-- run-release-sweep.py lists 296 steps on main at #585's merge, 4 more
+- run-release-sweep.py lists 297 steps on main at #587's merge, 5 more
   than 2.0.1's 292, none gone: the charger tip on Widgets and Clean at
   344 and 412 dp, two of them during an automatic recording
-  (estimate-tip-charger-*). #587 adds charge-live-recording, which makes
-  297. Every validation registered in
+  (estimate-tip-charger-*), and the live card during a charge recording
+  (charge-live-recording). Every validation registered in
   android-tests/AndroidManifest.xml is covered (the script's own guard).
   [PHASE 2: confirm the step list and counts on the release commit.]
 - Languages: [PHASE 2: ship_check --release --aapt required result and the
@@ -50,7 +50,12 @@ Draft, November 20, 2026. The release checks below are still to run.
   and back-and-forth flips of 2 minutes or more from 43 to 1. The
   emulator steps run on the simulator, where the average isn't used.
   The Live Update during a recording (#587) was checked on an Android 16
-  emulator (charge-live-recording), not on a phone.
+  emulator (charge-live-recording), not on a phone, including the plain
+  card while a recording waits for a stopped charger. #586 changed
+  ChargingEstimate.ESTIMATOR_VERSION to
+  ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1, which
+  recordings from 2.0.2 carry (docs/validation/charge-estimate-history.md
+  lists every version main carried).
 - The charger tip's emulator steps set its state through validation-only
   fields, because the simulator never records or runs the far-off rule.
   They check the tip, its sheet's words for both actions, Not now and
