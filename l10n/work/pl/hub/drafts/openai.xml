@@ -73,6 +73,13 @@
     <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343" volt:attempt="2">Ulepsz oszacowanie</string>
     <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Zapisywanie ładowania</string>
     <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Ukryj tę wskazówkę</string>
+    <string name="hub_estimate_tip_charger" volt:src="303dcdedd4903ecd601eda5da25dd6ba34104c0c">Zapisz tę ładowarkę</string>
+    <string name="hub_estimate_tip_charger_short" volt:src="9d536ab36642bf3a351898d8fbaf8d01e1a767a0">Zapisz ładowarkę</string>
+    <string name="hub_charger_tip_title" volt:src="7af50f8ec8c906f5be54131605964f1bfa6acf39">Inna ładowarka?</string>
+    <string name="hub_charger_tip_text" volt:src="4db950cbd1ee6216ece945a9829c304f5a4ceadb">Moc ładowania nie odpowiada mocy w zapisach Twoich ładowań. Używasz innej ładowarki? Należy zapisać to ładowanie, aby aplikacja Volt poznała także tę ładowarkę.</string>
+    <string name="hub_charger_tip_record_as" volt:src="9c39d55ba8bec74ee2330a9f822249a6be429918">Rozpocznij zapis tego ładowania – ładowarka: %1$s</string>
+    <string name="hub_charger_tip_file_as" volt:src="04a053feb775cd559e7f1ea88264ac94f0b2b58f">Zapisz ten zapis – ładowarka: %1$s</string>
+    <string name="hub_charger_tip_not_saved" volt:src="96706c53ab892d15e6dd88c934c900a2e556fbd1">Ten zapis został zakończony lub ładowarka została już dla niego ustawiona. Niczego nie zmieniono.</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Rozpoczynanie nagrywania w tle</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Przejazd rozpoczęty, gdy aplikacja Volt działa w tle lub ekran jest zablokowany, nie ma śladu GPS.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · pozostały zasięg: około %2$s</string>

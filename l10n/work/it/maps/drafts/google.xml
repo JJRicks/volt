@@ -34,6 +34,7 @@
     <string name="maps_provider_usgs" volt:src="8313b012a080d4dcd5f6c9669f3f1c6faeb4a920">USGS (USA)</string>
     <string name="maps_provider_osm" volt:src="7cec25b29a879b80c59e058a0541a33725dc74b0">OSM</string>
     <string name="maps_provider_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Personalizzata</string>
+    <string name="maps_just_back_switch" volt:src="d0d93ea5afdae3b1f404207bc8e998cff59ef71f">Mappa sull\'ultima corsa della dashboard</string>
     <string name="maps_edit_custom" volt:src="0e876123d50c77be6abbefd934edd5dcda5eddcf">Modifica il fornitore personalizzato</string>
     <string name="maps_settings_title" volt:src="ef02bba94248d90f01e5e9e252d0709686928b0c">Impostazioni mappa</string>
     <string name="maps_custom_title" volt:src="73c9311283c0282961fd1da4aea0c00c21de34e4">Fornitore mappa personalizzato</string>
