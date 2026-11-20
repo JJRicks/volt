@@ -618,6 +618,8 @@ final class JustBackView extends LinearLayout {
         private boolean attached;
         /** Tile requests sent (the validation's proof that switched on fetches, switched off never does). */
         private int requests;
+        /** Requests that reached the provider on a tile loader (a request queued before the switch went off never does). */
+        private final java.util.concurrent.atomic.AtomicInteger fetches = new java.util.concurrent.atomic.AtomicInteger();
         /** Whether the last frame drew a map tile (then the casing and the credit show). */
         private boolean mapShown;
         /** The last frame's fit: the outline's origin (px) and scale (px per outline unit). */
@@ -684,6 +686,11 @@ final class JustBackView extends LinearLayout {
             fadeTo = on ? 1 : 0;
             fadeStart = now;
             if (on) failed.clear();
+            else {
+                // Requests already queued for the tile loaders find a new generation and fetch nothing (council, #560 r1).
+                generation++;
+                pending.clear();
+            }
             invalidate();
         }
 
@@ -875,12 +882,14 @@ final class JustBackView extends LinearLayout {
             MapTiles from = provider;
             try {
                 RouteMapView.TILES.execute(() -> {
-                    Bitmap result = asked == generation ? from.get(z, x, y) : null;
+                    Bitmap result = null;
+                    if (asked == generation) { fetches.incrementAndGet(); result = from.get(z, x, y); }
+                    Bitmap arrived = result;
                     post(() -> {
                         if (asked != generation) return;
                         pending.remove(key);
-                        if (result != null) {
-                            tiles.put(key, result);
+                        if (arrived != null) {
+                            tiles.put(key, arrived);
                             if (Ui.motionEnabled()) arrivals.put(key, SystemClock.uptimeMillis());
                         } else failed.put(key, SystemClock.elapsedRealtime());
                         if (attached) invalidate();

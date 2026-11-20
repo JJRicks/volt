@@ -34,6 +34,11 @@ public final class JustBackBasemapTest {
                 "it travels in backups with App preferences, as a switch for the whole app");
         int ours = DiagnosticsSettings.KEYS.indexOf(JustBackBasemap.KEY), maps = DiagnosticsSettings.KEYS.indexOf("map_basemap_enabled");
         check(ours >= 0 && ours == maps + 1, "the diagnostics settings list it next to map_basemap_enabled");
+        // The online map's summary (About, Your data; App preferences, Map) never says Off while the card fetches tiles.
+        check(JustBackBasemap.summary(false, false, "OSM", "Off", "Home").equals("Off"), "neither basemap on: Off");
+        check(JustBackBasemap.summary(true, false, "OSM", "Off", "Home").equals("OSM") && JustBackBasemap.summary(true, true, "USGS", "Off", "Home").equals("USGS"),
+                "the ride maps' basemap on: the provider, as before");
+        check(JustBackBasemap.summary(false, true, "OSM", "Off", "Home").equals("OSM · Home"), "only the card's basemap on: the provider and Home, not Off");
     }
 
     private static void backups() throws Exception {

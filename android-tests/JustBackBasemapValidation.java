@@ -41,8 +41,11 @@ import java.util.function.BooleanSupplier;
  *       stays plain: the checks say which.</li>
  *   <li>Relaunched, the switch is still on (also in the preferences file on disk) and fetches again; tapped off, nothing
  *       more is asked for and no tile is drawn once the layer has faded.</li>
+ *   <li>Tile requests queued behind busy tile loaders when the switch goes off fetch nothing.</li>
  *   <li>The light theme the same way (no explanation the second time), and a provider that cannot be reached (an address
  *       on this device that refuses connections, standing in for no network): the panel stays plain, with no message.</li>
+ *   <li>Map settings shows the card's own switch (Home), on with it, and turns it off and on there without touching the
+ *       ride maps' basemap.</li>
  *   <li>A ride ending in the switch's corner: the route, its end dot and its ring are fitted clear of the switch.</li>
  * </ul>
  * Then the ride's own map, opened from the card with the ride maps' basemap on, in both themes (pictures only: the ride
@@ -82,11 +85,13 @@ public final class JustBackBasemapValidation extends Instrumentation {
             showJustBack();
             darkFirstUse();
             relaunched();
+            queuedThenOff();
             lightTheme();
+            mapSettings();
             unreachable();
-            corner();
             rideMap("dark");
             rideMap("light");
+            corner();
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", String.valueOf(failure));
@@ -146,6 +151,78 @@ public final class JustBackBasemapValidation extends Instrumentation {
         requireNoTiles("turned off");
         checks.add(size + " off again: saved off, no tile asked for or drawn after the fade");
         shot("dark-off-again");
+    }
+
+    /**
+     * Requests already queued when the switch goes off fetch nothing (council, #560 r1): both tile loaders held busy, the
+     * switch on and the panel drawn so tile requests queue behind them, the switch off, the loaders let go.
+     */
+    private void queuedThenOff() throws Exception {
+        java.util.concurrent.CountDownLatch hold = new java.util.concurrent.CountDownLatch(1), busy = new java.util.concurrent.CountDownLatch(2);
+        int[] before = {0, 0, 0};
+        try {
+            for (int i = 0; i < 2; i++) RouteMapView.TILES.execute(() -> {
+                busy.countDown();
+                try { hold.await(30, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException stopped) { Thread.currentThread().interrupt(); }
+            });
+            require(busy.await(10, java.util.concurrent.TimeUnit.SECONDS), "The tile loaders did not take the holds");
+            main(() -> {
+                View route = route();
+                ((android.util.LruCache<?, ?>) field(route, "tiles")).evictAll();
+                require(settings().edit().putBoolean(JustBackBasemap.KEY, true).commit(), "Could not turn the basemap on");
+                // The layer at full at once (the change listener has started its fade), so this frame asks for tiles.
+                require((Boolean) field(route, "basemap"), "The basemap did not follow the preference");
+                setField(route, "fadeFrom", 1f); setField(route, "fadeTo", 1f);
+                before[0] = (Integer) field(route, "requests");
+                before[1] = ((java.util.concurrent.atomic.AtomicInteger) field(route, "fetches")).get();
+                Bitmap frame = Bitmap.createBitmap(route.getWidth(), route.getHeight(), Bitmap.Config.ARGB_8888);
+                route.draw(new android.graphics.Canvas(frame));
+                frame.recycle();
+                before[2] = (Integer) field(route, "requests");
+                require(before[2] > before[0], "Drawing the panel with the basemap on queued no tile request");
+                require(toggle().performClick(), "The basemap switch took no tap");
+                require(!settings().getBoolean(JustBackBasemap.KEY, true), "The tap did not turn the basemap off");
+            });
+        } finally {
+            hold.countDown();
+        }
+        SystemClock.sleep(2500); settle();
+        main(() -> {
+            int fetched = ((java.util.concurrent.atomic.AtomicInteger) field(route(), "fetches")).get();
+            require(fetched == before[1], "Tile requests queued before the switch went off still fetched " + (fetched - before[1]) + " tile(s)");
+            checks.add(size + " queued then off: " + (before[2] - before[0]) + " tile requests queued behind busy loaders, the switch turned off, none fetched");
+        });
+        requireNoTiles("queued then off");
+    }
+
+    /**
+     * Map settings shows the card's own switch (named Home) beside the ride maps' choice, on while the card's basemap is
+     * on, and turns it off and on again there (council, #560 r1). The ride maps' choice stays as it was.
+     */
+    private void mapSettings() throws Exception {
+        boolean rides = settings().getBoolean("map_basemap_enabled", false);
+        AlertDialog[] dialog = {null};
+        main(() -> dialog[0] = MapPreferences.show((ScreenHost) field(clean(), "host")));
+        settle(); SystemClock.sleep(400);
+        android.widget.Switch[] row = {null};
+        main(() -> {
+            View found = dialog[0].getWindow().getDecorView().findViewWithTag("map-settings-just-back");
+            require(found instanceof ViewGroup && found.isShown(), "Map settings has no switch for the card's basemap");
+            row[0] = (android.widget.Switch) ((ViewGroup) found).getChildAt(0);
+            require("Home".contentEquals(row[0].getText()) && row[0].isChecked(), "Map settings' card switch reads '" + row[0].getText() + "', checked " + row[0].isChecked() + ", with the card's basemap on");
+        });
+        shot("light-map-settings");
+        main(() -> row[0].performClick());
+        settle();
+        require(!settings().getBoolean(JustBackBasemap.KEY, true), "Map settings' switch did not turn the card's basemap off");
+        main(() -> require(!row[0].isChecked() && !toggle().isOn(), "Map settings' switch or the card still shows on"));
+        main(() -> row[0].performClick());
+        settle();
+        require(settings().getBoolean(JustBackBasemap.KEY, false), "Map settings' switch did not turn the card's basemap on again");
+        require(settings().getBoolean("map_basemap_enabled", false) == rides, "Map settings' card switch changed the ride maps' basemap");
+        main(() -> dialog[0].dismiss());
+        settle();
+        checks.add(size + " Map settings: the card's own switch (Home) shows on, turns the card's basemap off and on, and leaves the ride maps' as it was");
     }
 
     /** The light theme: off and on (no explanation now), then left off. */
@@ -217,15 +294,28 @@ public final class JustBackBasemapValidation extends Instrumentation {
         showJustBack();
         main(() -> require(card().performClick(), "The card did not open its ride"));
         settle();
-        await(() -> map(root()) != null && map(root()).isAttachedToWindow(), 10000, "The ride's map did not open from the card");
-        main(() -> { View map = map(root()); map.requestRectangleOnScreen(new android.graphics.Rect(0, 0, map.getWidth(), map.getHeight()), true); });
+        await(() -> rideMapView() != null, 10000, "The ride's map did not open from the card");
+        main(() -> { View map = rideMapView(); map.requestRectangleOnScreen(new android.graphics.Rect(0, 0, map.getWidth(), map.getHeight()), true); });
         SystemClock.sleep(600); settle();
-        boolean drawn = waitFor(() -> ((android.util.LruCache<?, ?>) field(map(root()), "tiles")).size() > 0, 20000);
+        boolean drawn = waitFor(() -> ((android.util.LruCache<?, ?>) field(rideMapView(), "tiles")).size() > 0, 20000);
         SystemClock.sleep(900); settle();
         checks.add(size + " " + theme + " ride map: " + (drawn ? "tiles drawn, one zoom finer" : "no tile arrived in 20 s (emulator without a network?)"));
         shot(theme + "-ride-map");
-        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "home"); });
+        // The ride opens in its own window (its details sheet): Back closes it, then Home.
+        sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
         settle();
+        await(() -> rideMapView() == null, 10000, "The ride's details did not close on Back");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home"));
+        settle();
+    }
+
+    /** The ride map (RouteMapView) shown in any of the app's windows (the ride's details open in a window of their own), or null. */
+    private static View rideMapView() {
+        for (View window : android.view.inspector.WindowInspector.getGlobalWindowViews()) {
+            View found = window.isAttachedToWindow() ? map(window) : null;
+            if (found != null) return found;
+        }
+        return null;
     }
 
     /** The first ride map (RouteMapView) in the tree, or null. */

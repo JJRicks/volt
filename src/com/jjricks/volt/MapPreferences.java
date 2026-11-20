@@ -244,6 +244,60 @@ public final class MapPreferences {
     }
 
     /**
+     * Map settings' switch for the Just back card's own basemap (JustBackBasemap.KEY), named Home (the card is Clean
+     * Home's), so it can be turned off or on without waiting for a ride (council, #560 r1). It stays its own preference:
+     * the selector above is the ride maps'. Turning it on goes through the shared explanation when it was never
+     * approved (setJustBack); a change anywhere else (the card, a restore) shows here at once.
+     */
+    private static final class JustBackControl extends LinearLayout {
+        private final ScreenHost host;
+        private final SharedPreferences settings;
+        private final Switch toggle;
+        private boolean updating, listening;
+        private AlertDialog prompt;
+        private final SharedPreferences.OnSharedPreferenceChangeListener preferenceChanged = (p, key) -> {
+            if (key == null || key.equals(JustBackBasemap.KEY)) refresh();
+        };
+
+        JustBackControl(ScreenHost host) {
+            super(host.activity());
+            this.host = host; this.settings = host.appSettings();
+            Ui ui = host.ui();
+            setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
+            setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
+            setTag("map-settings-just-back");
+            String name = HubText.title(HubPages.HOME).render();
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(name);
+            toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(name);
+            ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
+            refresh();
+            toggle.setOnCheckedChangeListener((button, on) -> {
+                if (updating || (prompt != null && prompt.isShowing())) return;
+                // Not on before an approval: refresh puts the switch back until the explanation's answer.
+                prompt = setJustBack(host, on, this::refresh);
+                refresh();
+            });
+        }
+
+        private void refresh() {
+            updating = true; toggle.setChecked(justBackEnabled(settings)); updating = false;
+        }
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            settings.registerOnSharedPreferenceChangeListener(preferenceChanged); listening = true;
+            refresh();
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            if (listening) { settings.unregisterOnSharedPreferenceChangeListener(preferenceChanged); listening = false; }
+            if (prompt != null) prompt.dismiss();
+            super.onDetachedFromWindow();
+        }
+    }
+
+    /**
      * Saves the answer to the one-time offer to leave USGS (MapDefault.offersSwitch) as the person's own
      * choice, in one commit with the mark that it was answered, so it is never asked again, also after a
      * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS. An answer
@@ -368,6 +422,7 @@ public final class MapPreferences {
         body.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(20));
         body.addView(ui.text(T.mapsSettingsTitle(), 22, true));
         body.addView(new ProviderControl(host));
+        body.addView(new JustBackControl(host));
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton(T.commonDone(), null).create();
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();

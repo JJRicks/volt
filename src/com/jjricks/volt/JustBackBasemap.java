@@ -22,6 +22,16 @@ final class JustBackBasemap {
 
     private static final double MAX_LATITUDE = 85.05112878;
 
+    /**
+     * The online map's one-word summary (About, Your data, Online map; App preferences, Map): off when neither basemap is
+     * on; the provider when the ride maps' is; the provider and where when only the Just back card's is ("OSM · Home"),
+     * so the card's switch is never hidden behind "Off" (council, #560 r1).
+     */
+    static String summary(boolean rideMaps, boolean card, String provider, String off, String home) {
+        if (rideMaps) return provider;
+        return card ? provider + " · " + home : off;
+    }
+
     /** Web Mercator x of a longitude, 0 to 1 across the world (as RouteMapView). */
     static double x(double longitude) { return (longitude + 180) / 360; }
 
