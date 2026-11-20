@@ -20,7 +20,7 @@ public final class ChargerTipTextTest {
     }
 
     private static void text() {
-        check("Different charger? Record it".equals(HubText.estimateTip(CHARGER).render()), "Full: " + HubText.estimateTip(CHARGER).render());
+        check("Record this charger".equals(HubText.estimateTip(CHARGER).render()), "Full: " + HubText.estimateTip(CHARGER).render());
         check("Record charger".equals(HubText.estimateTipShort(CHARGER).render()), "Short: " + HubText.estimateTipShort(CHARGER).render());
         check("bolt".equals(ChargeEstimateTip.icon(CHARGER)), "Icon");
         check("Different charger?".equals(HubText.chargerTipTitle().render()), "Sheet title");
