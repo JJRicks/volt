@@ -13,7 +13,7 @@ Volt 2.0.1 is mostly about charging: time estimates that learn more from your ow
 - **A map on Just back.** A small **Basemap** button on the after-ride card puts a map behind your route. It's off until you turn it on. Ride maps show crisper streets too.
 - **Clean's charging view** gets Widgets' draggable charge-limit bar and its two-time tile.
 - **Riding mode's Lock and Record stay put** while you're nearly stopped.
-- **Fixes:** Back from a ride you opened on Home returns to Home, and the "may have a new Bluetooth address" card comes up only while you're waiting on Home.
+- **Fixes:** Back from a ride you opened on the **Just back** card returns to Home, and the "may have a new Bluetooth address" card comes up only while you're waiting on Home.
 - **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
 
 ### Charging estimates
