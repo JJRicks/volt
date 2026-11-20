@@ -1,0 +1,5 @@
+# Review of #591 (F02, F01): the paused charge recording's live card title with the battery level. tests/run.sh
+# compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/ChargeLiveState.java
+src/com/jjricks/volt/ChargeLiveUpdate.java
+tests/l10n/ChargeLivePausedTitleTest.java

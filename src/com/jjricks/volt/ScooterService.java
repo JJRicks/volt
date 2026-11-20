@@ -3499,10 +3499,9 @@ public final class ScooterService extends Service {
     }
     /**
      * The live card's title while the recording has stopped charging, with the battery level, as a function of the level
-     * (review of #591, F02); null while there is no such line, and the card keeps chargeRecordingTitle. Public for the
-     * validations, which expect the same title.
+     * (review of #591, F02): "Charge recording · 72%". Public for the validations, which expect the same title.
      */
-    public java.util.function.IntFunction<String> chargeRecordingLevelTitle(){return null;}
+    public java.util.function.IntFunction<String> chargeRecordingLevelTitle(){return ChargeLiveUpdate::recordingLevelTitle;}
     private Notification notification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         String label = T.serviceChannelScooter();

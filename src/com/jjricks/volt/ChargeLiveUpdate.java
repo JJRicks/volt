@@ -129,6 +129,11 @@ public final class ChargeLiveUpdate {
         return new Words(title, recordingStatus, hidden ? null : title, hidden ? null : recordingStatus);
     }
 
+    /** The level title words() takes for a paused recording (review of #591, F02): "Charge recording · 72%". */
+    public static String recordingLevelTitle(int level) {
+        return T.chargeLiveTitleRecording(Fmt.integer(level));
+    }
+
     /** The developer row's answer: one glance at whether the Pixel promotes the card. */
     public enum Status { OLD_ANDROID, UNAVAILABLE, NOT_ALLOWED, PROMOTED, NOT_PROMOTABLE, NOT_PROMOTED, READY }
 

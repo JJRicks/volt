@@ -441,6 +441,9 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     return card.kind != ChargeLiveState.Kind.RECONNECTING && card.percent != null; })
                 && stoppedTitle().contentEquals(String.valueOf(connection().getNotification().extras.getCharSequence(Notification.EXTRA_TITLE))),
                 "The paused recording's card doesn't show the level in its title: " + noticeTexts());
+        require(onMainText(() -> T.chargeLiveTitleRecording(Fmt.integer(((ChargeLiveState) field(service, "chargeLiveBuilt")).percent)))
+                .contentEquals(String.valueOf(connection().getNotification().extras.getCharSequence(Notification.EXTRA_TITLE))),
+                "The paused recording's card title isn't Charge recording with the level: " + noticeTexts());
         shade("live-card-recording-charger-stopped");
         pausedLockScreens();
         main(() -> { link.charging(ON); link.home(); });
@@ -518,6 +521,9 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                         "The paused card's " + detail + " lock screen doesn't show the level and the charger stopped (" + title + " | " + status + "): "
                                 + lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT));
                 log("paused, " + detail + " lock screen: " + lock.extras.getCharSequence(Notification.EXTRA_TITLE) + " | " + lock.extras.getCharSequence(Notification.EXTRA_TEXT));
+                require(onMainText(() -> T.chargeLiveTitleRecording(Fmt.integer(((ChargeLiveState) field(service, "chargeLiveBuilt")).percent)))
+                        .contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE))),
+                        "The paused card's " + detail + " lock screen title isn't Charge recording with the level: " + lock.extras.getCharSequence(Notification.EXTRA_TITLE));
             }
         } finally {
             main(() -> service.setChargeLiveDetail(before));

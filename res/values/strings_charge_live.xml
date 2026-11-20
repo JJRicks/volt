@@ -31,6 +31,11 @@
          battery level Volt read. -->
     <string name="charge_live_title_last_seen" volt:screen="Live charging notification" volt:purpose="notification title"
         volt:max="300dp@16sp" volt:safety="charge">Last seen %1$s%%</string>
+    <!-- Card title while a charge recording waits for a stopped charger to resume (or for a schedule's start): the
+         card's text then says why, so the title shows only that a recording runs and the battery level now. %1$s
+         is the battery level ("Charge recording · 72%"). -->
+    <string name="charge_live_title_recording" volt:screen="Live charging notification" volt:purpose="notification title"
+        volt:max="300dp@16sp" volt:safety="charge">Charge recording · %1$s%%</string>
     <!-- Card text: %1$s is the clock time charging should finish ("10:42 PM"). Only the finish time: the
          card shows no time left or countdown (owner, 2026-11-06). -->
     <string name="charge_live_text_eta" volt:screen="Live charging notification" volt:purpose="notification text"
