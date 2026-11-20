@@ -82,6 +82,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                 else checks.add("This app has no What Volt has learned section yet (its strings ship in their own pull request); " + state + " captured without it");
                 shotSection("learned-" + state.trim() + "-" + label);
             }
+            for (String state : args.getString("reason_states", "cold,finish").split(",")) reasonState(state.trim(), built);
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", String.valueOf(failure));
@@ -222,6 +223,69 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         });
         await(() -> !Boolean.TRUE.equals(field(service, "chargeModelLoading")), 30000, "The charge model did not reload");
         settle();
+    }
+
+    // ===== Nothing usable (#571 review) =====
+
+    /**
+     * A charger with recordings but no usable percent: {@code cold}, a fast charge done entirely at 10 C (too cold or hot
+     * to learn from); {@code finish}, a stock charge the phone lost for three hours that still has a valid finish (not
+     * enough data, and the finish tick and words).
+     */
+    private void reasonState(String state, boolean built) throws Exception {
+        File folder = new File(getTargetContext().getFilesDir(), "charge-recordings");
+        File[] old = folder.listFiles();
+        if (old != null) for (File file : old) require(file.delete(), "Could not clear " + file.getName());
+        ChargeSessionStore store = new ChargeSessionStore(folder);
+        boolean cold = "cold".equals(state);
+        if (cold) recordAt(store, ChargeSessionStore.Charger.HIGH_SPEED, FAST, 30, -1, -1, 10);
+        else recordAt(store, ChargeSessionStore.Charger.STOCK, STOCK, 45, 55, 85, 23);
+        reload();
+        page();
+        if (built) main(() -> {
+            View section = HubTestPages.shownTag(activity, tag("SECTION_TAG"));
+            ViewGroup cards = (ViewGroup) section;
+            require(cards.getChildCount() == 1, state + ": one card, not " + cards.getChildCount());
+            View card = cards.getChildAt(0);
+            String key = cold ? "high_speed" : "stock";
+            require((tag("TAG") + ":" + key).equals(card.getTag()), state + ": the card " + card.getTag());
+            textProblems(section);
+            String words = String.valueOf(card.getContentDescription());
+            View legend = card.findViewWithTag("learned-curve-legend");
+            View plot = card.findViewWithTag("learned-curve-plot");
+            require(plot.getHeight() > 0, state + ": the strip is not measured");
+            require(!words.contains("disagree") && !words.contains("Learned"), state + ": disagreement or a learned span in words: " + words);
+            if (cold) {
+                require(words.contains("too cold or hot"), "Cold: the reason in words: " + words);
+                require(legend.getVisibility() != View.VISIBLE, "Cold: a legend with nothing on the strip");
+            } else {
+                require(words.contains("Not enough data") && words.contains("Charge to full recorded from"), "Finish only: the reason and the finish in words: " + words);
+                require(card.findViewWithTag("learned-curve-key-finish") != null, "Finish only: the finish tick in the legend");
+            }
+        });
+        if (built) checks.add(state + ": one card that says why nothing is learned" + (cold ? "" : ", with its finish"));
+        else checks.add("This app has no What Volt has learned section yet; " + state + " captured without it");
+        shotSection("learned-" + state + "-" + label);
+    }
+    /** To 100% complete at battery temperature tempC; with dropoutAt > start, lost for three hours from dropoutAt to resumeAt. */
+    private void recordAt(ChargeSessionStore store, ChargeSessionStore.Charger charger, Model model, int start, int dropoutAt, int resumeAt, double tempC) throws Exception {
+        long wall = WALL - 86_400_000L;
+        store.start(profile, charger, wall, MONO);
+        long t = 0;
+        for (int level = start; level < 100; level++) {
+            if (level == dropoutAt) { t += 3 * 3_600_000L; level = resumeAt; }
+            long span = (long) (model.minutes(level) * 60000);
+            for (long at = 0; at < span; at += 10000, t += 10000) sampleAt(store, model, wall, t, level, false, tempC);
+        }
+        sampleAt(store, model, wall, t, 100, true, tempC);
+        store.stop(ChargeSessionStore.Stop.COMPLETE);
+    }
+    private void sampleAt(ChargeSessionStore store, Model model, long wall, long t, int level, boolean completion, double tempC) throws Exception {
+        long mono = MONO + t;
+        double amps = model.amps.applyAsDouble(Math.min(level, 99));
+        double volts = model.volts.applyAsDouble(level);
+        ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(wall + t, mono, value(completion ? 0 : 1, mono), value(level, mono), value(volts, mono), value(-amps, mono), value(tempC, mono));
+        require(completion ? store.sampleCompletion(frame) : store.sample(frame), "Synthesized sample not saved at " + level + "%");
     }
 
     // ===== Helpers =====

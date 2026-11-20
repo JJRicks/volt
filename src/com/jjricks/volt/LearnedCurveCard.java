@@ -60,8 +60,12 @@ final class LearnedCurveCard {
         /** The empty state's title and words: nothing learned yet, record a charge. */
         String emptyTitle();
         String empty();
-        /** A charger's card whose recordings give no usable stretch yet (they disagree everywhere). */
+        /** A charger's card whose recordings give no usable stretch yet, because they disagree. */
         String unusable();
+        /** ... because a fast charge was measured only outside its learning temperatures (too cold or hot). */
+        String temperature();
+        /** ... because there is too little data (a dropout, or a recording too short to learn a percent from). */
+        String tooLittle();
     }
     /** The section's view tag, and each card's (a charger's card adds ":" and the charger's name). */
     static final String SECTION_TAG = "learned-curves", TAG = "learned-curve-card";
@@ -147,20 +151,25 @@ final class LearnedCurveCard {
         boolean first = signature == null; signature = next;
         List<String> spoken = new ArrayList<>();
         legend.removeAllViews(); notes.removeAllViews();
-        if (chart == null || !chart.any()) {
-            title.setText(chart == null ? words.emptyTitle() : words.title(chart.charger));
-            sub.setText(chart == null ? words.empty() : words.recordings(chart.recordings));
+        if (chart == null) {
+            title.setText(words.emptyTitle()); sub.setText(words.empty());
             spoken.add(title.getText().toString()); spoken.add(sub.getText().toString());
-            if (chart != null) { note(words.unusable()); spoken.add(words.unusable()); }
             axis.setVisibility(View.GONE);
         } else {
+            boolean speed = chart.any();
             title.setText(words.title(chart.charger)); sub.setText(words.recordings(chart.recordings));
             spoken.add(title.getText().toString()); spoken.add(sub.getText().toString());
-            axis.setVisibility(View.VISIBLE); axis.setText(words.axis());
-            for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) legend.addView(key(kind, words.kind(kind)));
-            if (chart.finishFrom >= 0) legend.addView(key(null, words.finish()));
+            axis.setVisibility(speed ? View.VISIBLE : View.GONE); axis.setText(words.axis());
             List<String> lines = new ArrayList<>();
-            lines.add(words.learned(chart.learnedFrom(), chart.learnedTo()));
+            if (!speed) {
+                // Nothing usable: say why, and still show a finish recording, which Charge done by can use.
+                LearnedCurveChart.Why why = chart.why();
+                lines.add(why == LearnedCurveChart.Why.DISAGREE ? words.unusable() : why == LearnedCurveChart.Why.TEMPERATURE ? words.temperature() : words.tooLittle());
+            }
+            if (speed || chart.finishFrom >= 0 || chart.why() == LearnedCurveChart.Why.DISAGREE)
+                for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) legend.addView(key(kind, words.kind(kind)));
+            if (chart.finishFrom >= 0) legend.addView(key(null, words.finish()));
+            if (speed) lines.add(words.learned(chart.learnedFrom(), chart.learnedTo()));
             if (chart.finishFrom >= 0) lines.add(words.finishFrom(chart.finishFrom));
             for (LearnedCurveChart.Gap gap : chart.gaps) lines.add(words.gap(gap));
             if (chart.unlisted > 0) lines.add(words.more(chart.unlisted));
@@ -264,9 +273,10 @@ final class LearnedCurveCard {
                 if (b - a < 1) b = a + 1;
                 drawSegment(canvas, run.coverage, a, stripTop, b, stripBottom, alpha / 255f);
             }
-            if (speed && chart.finishFrom >= 0) {
+            if (chart != null && chart.finishFrom >= 0) {
                 float x = left + width * chart.finishFrom / 100f;
-                drawTick(canvas, x, plotTop - headroom(), plotBottom, false);
+                if (speed) drawTick(canvas, x, plotTop - headroom(), plotBottom, false);
+                else drawTick(canvas, x, stripTop - ui.dp(8), stripTop - ui.dp(2), true);
             }
             // The percent axis: 0, 25, 50, 75 and 100%, or only 0, 50 and 100% (then 0 and 100%) where they would touch.
             label.setColor(ui.muted);

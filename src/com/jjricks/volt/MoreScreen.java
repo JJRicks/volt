@@ -143,6 +143,7 @@ public final class MoreScreen implements AppScreen {
     /** Developer simulator models: "" is the UT5 MAX simulator; the others are synthetic advertised IDs. */
     private TextView simulationStatus, chargeCaptureStatus, chargeCurveValue, chargeCurveScope;
     private LinearLayout chargeCurve;
+    private LearnedCurveCard.Section learnedCurves;
     private Row chargeCaptureRow, clearChargeRow, exportChargeRow, chargeHistoryRow;
     private ChargeHistoryDialog chargeHistoryDialog;
     /** Charge history & recordings: the charger row (a link to Estimates & charger) and Email to Volt. */
@@ -2794,6 +2795,10 @@ public final class MoreScreen implements AppScreen {
      * (owner, #383): the row here only shows it and opens that page, which refuses a change while a charge is recorded.
      */
     private void charging() {
+        // What Volt has learned (owner's 2.0.1 item 13): each learned charger's curve as a small chart, or what to record.
+        label(T.moreLearnedLabel());
+        learnedCurves=new LearnedCurveCard.Section(host.activity(),ui,new LearnedCurveWords());
+        cardDestination.addView(learnedCurves.view);
         label(T.moreDevChargeRecording());
         // A recording is only useful with the right charger chosen: show it, and link to its one home (not a second control).
         chargerLinkRow=row(group(),"battery",HubText.chargerRow(),null,()->host.open(HubPages.BATTERY_ESTIMATES));
@@ -3038,6 +3043,7 @@ public final class MoreScreen implements AppScreen {
             // ending (an unplug makes one at once), until a newer status replaces it; never over others, such as a ride.
             if(!capturing&&unavailable!=null&&s!=null&&s.chargeOutcomeOverReason())chargeCaptureStatus.setText(s.chargeCaptureStatus());
             refreshChargeCurve(s);
+            learnedCurves.show(s==null?java.util.Collections.emptyList():s.learnedChargeSummaries());
             clearChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             exportChargeRow.enabled(s!=null&&!capturing&&!s.chargeExporting());
             chargeHistoryRow.enabled(s!=null&&s.profiles!=null&&s.profiles.active()!=null);
