@@ -389,7 +389,7 @@ details[open] > summary .chev { transform: rotate(90deg); }
 /* ---------- Wide: the unfolded phone's two panes ---------- */
 @media (min-width: 720px) {
   :root { --gutter: 24px; }
-  .shots { grid-template-columns: 1.86fr 1fr 1fr; align-items: start; }
+  .shots { grid-template-columns: 2.14fr 1fr 1fr; align-items: start; }
   .shot.wide { grid-column: auto; }
   .get { flex-direction: row; align-items: flex-end; justify-content: space-between; padding: 24px; }
   .get .actions { margin-top: 0; }
