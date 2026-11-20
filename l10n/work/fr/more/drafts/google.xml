@@ -455,8 +455,10 @@
     <string name="more_learned_kind_agree" volt:src="ca97b36b20a4792ca2a05cdd69c18a9922df1055">Deux ou plus concordent</string>
     <string name="more_learned_kind_disagree" volt:src="dce38d18b623e5895f78cd262b90b56f2c87b7dd">Enregistrements non concordants</string>
     <string name="more_learned_kind_finish" volt:src="7ac0073d625a3049a398190923278f27d72fbe6d">Recharge complète enregistrée</string>
+    <string name="more_learned_kind_jump" volt:src="249f6759ab51e58d49cda1507ad944649ffadd12">Saut du %% de la trottinette</string>
     <string name="more_learned_span" volt:src="47bfeca68c9c5293a4ff82732753681e7d14786a">Appris : %1$s–%2$s %%</string>
     <string name="more_learned_finish_from" volt:src="93ae11fded2996f6e788134d223dbbcbb848bf5e">Recharge complète enregistrée dès %1$s %%</string>
+    <string name="more_learned_jump" volt:src="172f85c4dabdfc0447bbcb1d7e0b72ffd3ff7c6e">Le %% de la trottinette saute de %1$s %% à %2$s %%</string>
     <string name="more_learned_gap_below" volt:src="5152c170b552fa0f642c7349573717f3c3613b8b">Aucune donnée sous %1$s %%</string>
     <string name="more_learned_gap_above" volt:src="00df7e7b0f91fcb9ed94770c47b11c1eb234a27c">Aucune donnée au-dessus de %1$s %%</string>
     <string name="more_learned_gap_between" volt:src="12585a3b7865864f8d59ce6e780e4e590c4201d9">Aucune donnée : %1$s–%2$s %%</string>
