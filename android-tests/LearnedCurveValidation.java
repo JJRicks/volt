@@ -285,7 +285,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         double amps = model.amps.applyAsDouble(Math.min(level, 99));
         double volts = model.volts.applyAsDouble(level);
         ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(wall + t, mono, value(completion ? 0 : 1, mono), value(level, mono), value(volts, mono), value(-amps, mono), value(tempC, mono));
-        if (!(completion ? store.sampleCompletion(frame) : store.sample(frame))) throw new IllegalStateException("Synthesized sample not saved at " + level + "%");
+        require(completion ? store.sampleCompletion(frame) : store.sample(frame), "Synthesized sample not saved at " + level + "%");
     }
 
     // ===== Helpers =====
