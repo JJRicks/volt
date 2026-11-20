@@ -159,6 +159,12 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                             require(words.contains("No data below 38%") && words.contains("95% to full"), "Jump: the rest as before: " + words);
                             require(words.contains("jump from 84 to 95%") && !words.contains("from 87 to 88%") && !words.contains("from 91 to 92%"),
                                     "Jump: TalkBack reads the jump as one stretch: " + words);
+                        } else if (jumpDrawn()) {
+                            // The text-free half: the jump drawn on the strip, no gap lines inside it, no words for it yet.
+                            require(!java.util.regex.Pattern.compile("No data (8[3-9]|9[0-4])").matcher(words).find() && !words.contains("more gap"),
+                                    "Jump (no words yet): no data gaps inside the jump: " + words);
+                            require(!words.contains("from 87 to 88%") && !words.contains("from 91 to 92%"), "Jump (no words yet): no slivers inside the jump: " + words);
+                            checks.add("jump: drawn, not worded yet; words: " + words);
                         } else checks.add("jump: this app has no jump words yet (before); words: " + words);
                         break;
                     default: break;
@@ -389,6 +395,11 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
             Class<?> card = Class.forName("com.jjricks.volt.LearnedCurveCard", true, getTargetContext().getClassLoader());
             Field field = card.getDeclaredField(name); field.setAccessible(true); return (String) field.get(null);
         } catch (ReflectiveOperationException e) { return null; }
+    }
+    /** Whether the app draws the scooter's percent jump (LearnedCurveChart.jumps), worded or not. */
+    private boolean jumpDrawn() {
+        try { Class.forName("com.jjricks.volt.LearnedCurveChart", true, getTargetContext().getClassLoader()).getDeclaredMethod("jumps"); return true; }
+        catch (ReflectiveOperationException e) { return false; }
     }
     /** Whether the app words the scooter's percent jump (its more_learned_jump string). */
     private boolean jumpBuilt() {

@@ -42,7 +42,7 @@ final class LearnedCurveCard {
         String minutes(double value);
         /** An axis label: "50%". */
         String percent(int value);
-        /** The legend's name for a kind of coverage. */
+        /** The legend's name for a kind of coverage; null: the kind has no name yet (no legend entry, nothing spoken). */
         String kind(ChargeSessionStore.Summary.Coverage kind);
         /** The legend's name for the finish tick. */
         String finish();
@@ -50,7 +50,7 @@ final class LearnedCurveCard {
         String learned(int from, int to);
         /** "A finish recording from 46%". */
         String finishFrom(int from);
-        /** "The scooter's % jumps from 83% to 95%". */
+        /** "The scooter's % jumps from 83% to 95%"; null for no line. */
         String jump(int from, int to);
         /** "No data below 18%", "No data 50–54%", "No data above 50%", "Too cold or hot to learn 30–40%", "Recordings disagree 30–33%". */
         String gap(LearnedCurveChart.Gap gap);
@@ -170,17 +170,19 @@ final class LearnedCurveCard {
                 lines.add(why == LearnedCurveChart.Why.DISAGREE ? words.unusable() : why == LearnedCurveChart.Why.TEMPERATURE ? words.temperature() : words.tooLittle());
             }
             if (speed || chart.finishFrom >= 0 || chart.why() == LearnedCurveChart.Why.DISAGREE)
-                for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) legend.addView(key(kind, words.kind(kind)));
+                for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) { String name = words.kind(kind); if (name != null) legend.addView(key(kind, name)); }
             if (chart.finishFrom >= 0) legend.addView(key(null, words.finish()));
             if (speed) lines.add(words.learned(chart.learnedFrom(), chart.learnedTo()));
             if (chart.finishFrom >= 0) lines.add(words.finishFrom(chart.finishFrom));
-            if (chart.jumps()) lines.add(words.jump(chart.jumpFrom, chart.jumpTo));
+            String jump = chart.jumps() ? words.jump(chart.jumpFrom, chart.jumpTo) : null;
+            if (jump != null) lines.add(jump);
             for (LearnedCurveChart.Gap gap : chart.gaps) lines.add(words.gap(gap));
             if (chart.unlisted > 0) lines.add(words.more(chart.unlisted));
             if (chart.toFullFrom >= 0) lines.add(words.toFull(chart.toFullFrom, chart.toFullMinutes));
             for (String line : lines) note(line);
             spoken.addAll(lines);
-            for (LearnedCurveChart.Run run : chart.runs) if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE) spoken.add(words.spokenRun(run.coverage, run.from, run.to));
+            for (LearnedCurveChart.Run run : chart.runs)
+                if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE && words.kind(run.coverage) != null) spoken.add(words.spokenRun(run.coverage, run.from, run.to));
         }
         StringBuilder description = new StringBuilder();
         for (String part : spoken) { if (part == null || part.isEmpty()) continue; if (description.length() > 0) description.append(". "); description.append(part); }
