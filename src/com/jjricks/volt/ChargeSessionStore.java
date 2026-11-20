@@ -45,6 +45,15 @@ public final class ChargeSessionStore {
      */
     public static final long CHARGER_PAUSE_MAX_MS = 30 * 60_000L;
     private static final int MIN_BINS = 10;
+    /**
+     * The scooter's own percent jump (Session.jump, display only): at least JUMP_MIN_FAST percents in a row each passed in
+     * under JUMP_FAST_MS (evidence()'s 30 s floor), widened over percents under JUMP_HELD_MS; the percent before held at
+     * least JUMP_HELD_MS and JUMP_RATIO times the jump's average; the current steady (median within JUMP_CURRENT of the
+     * percent before, no reading under JUMP_DIP of it).
+     */
+    static final int JUMP_MIN_FAST = 3;
+    static final long JUMP_FAST_MS = 30000, JUMP_HELD_MS = 45000;
+    static final double JUMP_RATIO = 3, JUMP_CURRENT = .25, JUMP_DIP = .5;
     public enum Charger { STOCK, HIGH_SPEED }
     public enum Stop { STOPPED, COMPLETE, CHARGING_ENDED, DISCONNECTED, PROFILE_CHANGED, READINGS_STOPPED, LIMIT, ERROR, PROCESS_ENDED, INTERRUPTED, RECOVERY_TIMEOUT, CONNECTION_FAILED, BLUETOOTH_OFF, PERMISSION_LOST, IDENTITY_CHANGED }
     public enum Source { CURRENT_RATE, STOCK_REFERENCE, PERSONAL, FAST_REFERENCE }
@@ -200,7 +209,10 @@ public final class ChargeSessionStore {
         private final List<FinishingCurve> finishing = new ArrayList<>();
         /** finishing's recordings, as bits like sources. */
         private final List<Long> finishingSource = new ArrayList<>();
+        /** The scooter's own percent jump in each recording that shows one ({from, to}, Session.jump): summary's words only. */
+        private final List<int[]> jumps = new ArrayList<>();
         Curve(String profile, Charger charger, List<Evidence> sessions) {
+            for(Evidence session:sessions)if(session.jump!=null)jumps.add(session.jump.clone());
             this.profile=profile;this.charger=charger;qualifiedSessions=sessions.size();minutes=new double[100];watts=new double[100];counts=new int[100];
             sources=new long[100];singleWatts=new boolean[100];covering=new int[100];outsideTemperature=new int[100];
             for(Evidence session:sessions)for(int bin=0;bin<100;bin++)if(session.outsideTemperature[bin])outsideTemperature[bin]++;
@@ -277,16 +289,39 @@ public final class ChargeSessionStore {
             for(FinishingCurve curve:finishing)starts.add(curve.points.get(0).soc);
             Collections.sort(starts);
             List<Summary.Bin> bins=new ArrayList<>();
+            int[] jump=jump(jumps);
             for(int bin=0;bin<100;bin++){
                 boolean usable=Double.isFinite(minutes[bin])&&counts[bin]>=1;
                 Summary.Coverage coverage=usable?counts[bin]>=2?Summary.Coverage.ROBUST:Summary.Coverage.PROVISIONAL
                         :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
+                // Inside the scooter's jump, a percent with no minutes is the jump, not missing data (words only).
+                if(!usable&&jump!=null&&bin>jump[0]&&bin<jump[1])coverage=Summary.Coverage.JUMP;
                 boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
                 bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
                         Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish,outsideTemperature[bin]>0));
             }
-            return new Summary(charger,qualifiedSessions,starts,bins);
+            return new Summary(charger,qualifiedSessions,starts,bins,jump);
         }
+        /**
+         * The recordings' jumps as one {from, to, recordings}, or null for none. Jumps that overlap form a group; the
+         * group most recordings share wins (a tie: the higher one), and it spans from its lowest from to its highest to,
+         * the widest jump those recordings show. The snap happens at a pack voltage, so where the percent starts to jump
+         * drifts from charge to charge (the gauge's own error) while it lands in the same place: the widest names every
+         * percent some recording jumped over. A percent another recording held normally keeps its minutes and its
+         * learned look, so widening never hides data. A jump elsewhere, in fewer recordings, is left as it was.
+         */
+        static int[] jump(List<int[]> jumps){
+            List<int[]> sorted=new ArrayList<>();
+            for(int[] jump:jumps)if(jump!=null&&jump[0]>=0&&jump[1]<=100&&jump[1]>jump[0])sorted.add(jump);
+            sorted.sort((a,b)->a[0]!=b[0]?Integer.compare(a[0],b[0]):Integer.compare(a[1],b[1]));
+            int[] best=null,group=null;
+            for(int[] jump:sorted){
+                if(group!=null&&jump[0]<group[1]){group[1]=Math.max(group[1],jump[1]);group[2]++;}
+                else{best=better(best,group);group=new int[]{jump[0],jump[1],1};}
+            }
+            return better(best,group);
+        }
+        private static int[] better(int[] a,int[] b){return a==null?b:b==null?a:b[2]>a[2]||b[2]==a[2]&&b[1]>a[1]?b:a;}
         /** A plausibility check, not charger identification; missing local power fails closed. */
         public PowerMatch powerMatch(double soc,Double liveWatts) {return powerMatch(soc,liveWatts,false);}
         /** single: a percent one recording covers also checks against that recording's power (a provisional estimate). */
@@ -396,7 +431,13 @@ public final class ChargeSessionStore {
          * ROBUST: two or more agree (estimate uses it). DISAGREEING: two or more have it but no majority agrees, so
          * nothing uses it unless a finish recording covers it.
          */
-        public enum Coverage { NONE, PROVISIONAL, ROBUST, DISAGREEING }
+        public enum Coverage { NONE, PROVISIONAL, ROBUST, DISAGREEING,
+            /**
+             * A percent with no minutes (no recording, or recordings that disagree) inside the scooter's own jump
+             * (jumpFrom–jumpTo): the percent raced past it faster than the 30 s a percent needs to teach anything. The
+             * estimates treat it exactly as NONE or DISAGREEING; only the card words it differently.
+             */
+            JUMP }
         public static final class Bin {
             /** The percent from percent to percent + 1. */
             public final int percent;
@@ -427,9 +468,16 @@ public final class ChargeSessionStore {
         public final List<Double> finishStarts;
         /** 100 bins, 0% to 99%. */
         public final List<Bin> bins;
-        Summary(Charger charger,int qualifiedSessions,List<Double> finishStarts,List<Bin> bins){
+        /**
+         * The scooter's own percent jump (Curve.jump): the last percent held normally before it and the first held
+         * normally again (83 and 95), and how many recordings show it; -1, -1 and 0 for none.
+         */
+        public final int jumpFrom,jumpTo,jumpRecordings;
+        Summary(Charger charger,int qualifiedSessions,List<Double> finishStarts,List<Bin> bins){this(charger,qualifiedSessions,finishStarts,bins,null);}
+        Summary(Charger charger,int qualifiedSessions,List<Double> finishStarts,List<Bin> bins,int[] jump){
             this.charger=charger;this.qualifiedSessions=qualifiedSessions;
             this.finishStarts=Collections.unmodifiableList(new ArrayList<>(finishStarts));this.bins=Collections.unmodifiableList(new ArrayList<>(bins));
+            jumpFrom=jump==null?-1:jump[0];jumpTo=jump==null?-1:jump[1];jumpRecordings=jump==null?0:jump.length>2?jump[2]:1;
         }
     }
     public static final class Snapshot {
@@ -1195,6 +1243,8 @@ public final class ChargeSessionStore {
         /** Percents this recording measured that teach nothing because of the battery's temperature (learnsAtTemperature). */
         final boolean[] outsideTemperature=new boolean[100];
         FinishingCurve finishing;
+        /** The scooter's own battery-percent jump in this recording (Session.jump): {from, to}, or null. Display only. */
+        int[] jump;
         Evidence(){Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);}
     }
     /**
@@ -1373,8 +1423,101 @@ public final class ChargeSessionStore {
                 result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;
             }
             if(whole!=null&&charger==Charger.HIGH_SPEED)result.finishing=FinishingCurve.from(this,true);
+            result.jump=jump();
             return qualified?result:null;
         }
+        /**
+         * The scooter's own battery-percent jump, for the What Volt has learned card only (Summary.jumpFrom): {from, to},
+         * the last percent held normally before it and the first held normally again (83 and 95 for "83% to 95%"), or
+         * null. Nothing here changes minutes, counts or any estimate; it only names why the percents between have none.
+         * <p>
+         * The UT5 MAX's battery management snaps its percent up near the top of a charge (to about 95%, at a fixed pack
+         * voltage): a dozen percents go by in a few minutes at the same current that took several minutes for each
+         * percent before. evidence() keeps only a percent held at least 30 s (JUMP_FAST_MS), so those percents have no
+         * minutes and the card used to call them missing data. A jump is, inside one continuous stretch (evidence()'s
+         * own rule: no recorded gap, no step over MAX_GAP_MS, no clock jump, the percent never falling or skipping):
+         * <ul>
+         *   <li>at least JUMP_MIN_FAST (3) whole percents in a row, each entered and left by a one-percent step, each
+         *   passed in under JUMP_FAST_MS (30 s, the learning floor): one short percent is gauge rounding, three in a row
+         *   is the gauge moving on its own;</li>
+         *   <li>widened over neighbouring percents passed in under JUMP_HELD_MS (45 s), which evidence() keeps with
+         *   about half a minute but which are part of the same jump (the owner's charges had a few of those inside it);
+         *   </li>
+         *   <li>from: the percent just before, entered by a step inside the same stretch and held at least JUMP_HELD_MS,
+         *   and at least JUMP_RATIO (3) times the jump's average time per percent. A reconnect's catch-up therefore never
+         *   counts (the first percent after a break was not entered by an observed step), nor a genuinely fast charge,
+         *   whose percents all take about as long as the one before (a small pack on a strong charger passes every
+         *   percent in under 30 s, so nothing before it is held);</li>
+         *   <li>to: the percent right after, held at least JUMP_HELD_MS while the stretch lasts, or 100%;</li>
+         *   <li>steady charging across it: no schedule or charger pause, every reading charging (at least 1 W), the
+         *   median current within 25% of the median while from was held (the band powerMatch and the curve use), and
+         *   no reading under half of it. A gauge that races because charging stopped or changed is not this jump.</li>
+         * </ul>
+         * With more than one in a recording, the widest.
+         */
+        int[] jump(){
+            // Each whole percent of a continuous stretch: {level, entered mono (-1: not entered by a step), left mono,
+            // index of its first reading, index of the step out}; open: the stretch's last percent, not left yet.
+            List<long[]> held=new ArrayList<>();
+            int[] best=null;
+            long[] open=null;Point previous=null;
+            for(int i=0;i<=points.size();i++){
+                Point point=i<points.size()?points.get(i):null;
+                boolean continuous=point!=null&&previous!=null&&!point.gap&&point.mono>previous.mono&&point.mono-previous.mono<=MAX_GAP_MS
+                        &&Math.abs((point.wall-previous.wall)-(point.mono-previous.mono))<=2000
+                        &&point.soc>=previous.soc&&point.soc-previous.soc<=1;
+                if(!continuous){
+                    if(open!=null)best=widest(best,jumpIn(held,open));
+                    held.clear();
+                    open=point==null||point.soc!=Math.floor(point.soc)?null:new long[]{(long)point.soc,-1,point.mono,i,i};
+                }else if(point.soc>previous.soc){
+                    if(open!=null){open[2]=point.mono;open[4]=i;held.add(open);}
+                    open=point.soc==Math.floor(point.soc)&&previous.soc==Math.floor(previous.soc)?new long[]{(long)point.soc,point.mono,point.mono,i,i}:null;
+                    if(open==null)held.clear();
+                }else if(open!=null)open[2]=point.mono;
+                previous=point;
+            }
+            return best;
+        }
+        /** The widest jump in one continuous stretch: held, its left percents in order; open, its last one (jump). */
+        private int[] jumpIn(List<long[]> held,long[] open){
+            int[] best=null;
+            for(int core=0;core+JUMP_MIN_FAST<=held.size();core++){
+                boolean fast=true;
+                for(int k=core;k<core+JUMP_MIN_FAST;k++)fast&=dwell(held.get(k))<JUMP_FAST_MS;
+                if(!fast)continue;
+                int start=core,end=core+JUMP_MIN_FAST-1;
+                while(start>0&&dwell(held.get(start-1))<JUMP_HELD_MS)start--;
+                while(end+1<held.size()&&dwell(held.get(end+1))<JUMP_HELD_MS)end++;
+                core=end;
+                if(start==0)continue;
+                long[] before=held.get(start-1);
+                if(before[1]<0)continue;
+                long total=0;for(int k=start;k<=end;k++)total+=dwell(held.get(k));
+                double average=total/(double)(end-start+1);
+                if(dwell(before)<JUMP_HELD_MS||dwell(before)<average*JUMP_RATIO)continue;
+                long[] after=end+1<held.size()?held.get(end+1):open;
+                if(after[0]<100&&after[2]-after[1]<JUMP_HELD_MS)continue;
+                long from=held.get(start)[1],to=held.get(end)[2];
+                if(pausedMs(from,to)>0)continue;
+                List<Double> reference=new ArrayList<>(),during=new ArrayList<>();
+                for(int k=(int)before[3];k<before[4];k++)reference.add(Math.abs(points.get(k).current));
+                double steady=reference.isEmpty()?0:median(reference);
+                if(!(steady>0))continue;
+                boolean charging=true;
+                for(int k=(int)held.get(start)[3];k<held.get(end)[4];k++){
+                    Point point=points.get(k);double amps=Math.abs(point.current);
+                    charging&=point.power>=1&&amps>=steady*JUMP_DIP;during.add(amps);
+                }
+                if(!charging||during.isEmpty())continue;
+                double typical=median(during);
+                if(typical<steady*(1-JUMP_CURRENT)||typical>steady*(1+JUMP_CURRENT))continue;
+                best=widest(best,new int[]{(int)before[0],(int)after[0]});
+            }
+            return best;
+        }
+        private static long dwell(long[] percent){return percent[1]<0?Long.MAX_VALUE:percent[2]-percent[1];}
+        private static int[] widest(int[] a,int[] b){return a==null?b:b==null?a:b[1]-b[0]>a[1]-a[0]?b:a;}
     }
     /** Header facts of a saved journal, read without recovery or any write to its folder. */
     static final class Journal {

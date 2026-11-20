@@ -20,12 +20,14 @@ final class LearnedCurveWords implements LearnedCurveCard.Words {
             case PROVISIONAL: return T.moreLearnedKindOne();
             case ROBUST: return T.moreLearnedKindAgree();
             case DISAGREEING: return T.moreLearnedKindDisagree();
+            case JUMP: return T.moreLearnedKindJump();
             default: return T.moreLearnedKindNone();
         }
     }
     @Override public String finish() { return T.moreLearnedKindFinish(); }
     @Override public String learned(int from, int to) { return T.moreLearnedSpan(Fmt.integer(from), Fmt.integer(to)); }
     @Override public String finishFrom(int from) { return T.moreLearnedFinishFrom(Fmt.integer(from)); }
+    @Override public String jump(int from, int to) { return T.moreLearnedJump(Fmt.integer(from), Fmt.integer(to)); }
     @Override public String gap(LearnedCurveChart.Gap gap) {
         switch (gap.where) {
             case BELOW: return T.moreLearnedGapBelow(Fmt.integer(gap.to));

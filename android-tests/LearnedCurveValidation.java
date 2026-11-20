@@ -41,11 +41,15 @@ import com.jjricks.volt.ScooterProfiles;
  *   <li>{@code partial}: one stock recording 17–50%: learned from 18%, no data below or above;</li>
  *   <li>{@code joined}: stock 17–50% and 45–100% (to full): learned 18–100%, both recordings agree 46–50%, a finish tick;</li>
  *   <li>{@code two}: those and two high-speed recordings (20–100%, 30–100%): two cards, stock first;</li>
- *   <li>{@code mixed}: stock recordings that leave an inside gap and a stretch they disagree on: every legend entry.</li>
+ *   <li>{@code mixed}: stock recordings that leave an inside gap and a stretch they disagree on: every legend entry;</li>
+ *   <li>{@code jump}: one stock charge from 37% at a steady 1.98 A whose battery percent jumps from 83% to 95% (most
+ *   percents between passed in 10–20 s, two in 30 s), then the normal finish: the jump named in words and the legend,
+ *   and no "No data" inside it. An app built before the jump words gets the same screenshot without those checks (the
+ *   "before" picture).</li>
  * </ul>
  * Each card: its tag, words whole (no cut text, no mid-word break), the chart measured, inside the screen, and one
  * TalkBack description that names the learned span and its gaps. Screenshots (-e size_label, -e theme, -e text_scale;
- * -e states a comma list). An app without the
+ * -e states a comma list; -e reason_states none and -e cold_start none skip those). An app without the
  * section (no more_learned_label string: built before its strings) gets the same screenshot names of the page and passes.
  */
 public final class LearnedCurveValidation extends ValidationInstrumentation {
@@ -74,7 +78,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
             });
             launch();
             boolean built = built();
-            for (String state : args.getString("states", "empty,partial,joined,two,mixed").split(",")) {
+            for (String state : args.getString("states", "empty,partial,joined,two,mixed,jump").split(",")) {
                 seed(state.trim());
                 reload();
                 page();
@@ -82,7 +86,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                 else checks.add("This app has no What Volt has learned section yet (its strings ship in their own pull request); " + state + " captured without it");
                 shotSection("learned-" + state.trim() + "-" + label);
             }
-            for (String state : args.getString("reason_states", "cold,finish").split(",")) reasonState(state.trim(), built);
+            for (String state : args.getString("reason_states", "cold,finish").split(",")) if (!state.trim().isEmpty() && !"none".equals(state.trim())) reasonState(state.trim(), built);
             if (built && !"none".equals(args.getString("cold_start", "show"))) coldStart();
             result.putString("result", "PASS");
         } catch (Throwable failure) {
@@ -146,6 +150,15 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                         require(card.findViewWithTag("learned-curve-key-disagreeing") != null && card.findViewWithTag("learned-curve-key-none") != null, "Mixed: every kind in the legend");
                         require(words.contains("disagree"), "Mixed: the disagreeing stretch in words: " + words);
                         break;
+                    case "jump":
+                        if (jumpBuilt()) {
+                            require(words.contains("jumps from 83% to 95%"), "Jump: the jump named: " + words);
+                            require(card.findViewWithTag("learned-curve-key-jump") != null, "Jump: the jump in the legend");
+                            require(!java.util.regex.Pattern.compile("No data (8[3-9]|9[0-4])").matcher(words).find() && !words.contains("more gap"),
+                                    "Jump: no data gaps inside the jump: " + words);
+                            require(words.contains("No data below 38%") && words.contains("95% to full"), "Jump: the rest as before: " + words);
+                        } else checks.add("jump: this app has no jump words yet (before); words: " + words);
+                        break;
                     default: break;
                 }
             }
@@ -171,6 +184,7 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 17, 50, 1, day++);
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 45, 100, 1, day++);
                 break;
+            case "jump": recordJump(store, day++); break;
             case "mixed":
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 10, 30, 1, day++);
                 record(store, ChargeSessionStore.Charger.STOCK, STOCK, 34, 60, 1, day++);
@@ -205,6 +219,30 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
         if (complete) sample(store, model, wall, t, 100, true);
         else for (int i = 0; i < 3; i++, t += 10000) sample(store, model, wall, t, end, false);
         store.stop(complete ? ChargeSessionStore.Stop.COMPLETE : ChargeSessionStore.Stop.STOPPED);
+    }
+    /**
+     * A UT5 MAX-shaped stock charge, round made-up numbers: from 37% at a steady 1.98 A (280 s a percent), the battery
+     * percent jumping from 83% to 95% (84–94% in 10–30 s each, as LearnedJumpTest's recording), then the taper to 100%.
+     */
+    private void recordJump(ChargeSessionStore store, int day) throws Exception {
+        long wall = WALL + day * 86_400_000L;
+        store.start(profile, ChargeSessionStore.Charger.STOCK, wall, MONO);
+        int[] jump = {20, 20, 20, 30, 20, 20, 10, 30, 20, 20, 20}, finish = {360, 420, 480, 600, 900};
+        double[] taper = {1.6, 1.3, 1.0, .8, .5};
+        long t = 0; double amps = 1.98;
+        for (int level = 37; level < 100; level++) {
+            long seconds = level < 84 ? 280 : level < 95 ? jump[level - 84] : finish[level - 95];
+            amps = level < 95 ? 1.98 : taper[level - 95];
+            for (long at = 0; at < seconds * 1000; at += 10000, t += 10000) sampleAmps(store, wall, t, level, amps, false);
+        }
+        sampleAmps(store, wall, t, 100, amps, true);
+        store.stop(ChargeSessionStore.Stop.COMPLETE);
+    }
+    private void sampleAmps(ChargeSessionStore store, long wall, long t, int level, double amps, boolean completion) throws Exception {
+        long mono = MONO + t; double volts = 41 + 12 * level / 100.0;
+        ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(wall + t, mono, value(completion ? 0 : 1, mono), value(level, mono), value(volts, mono), value(-amps, mono), value(23, mono));
+        require(completion ? store.sampleCompletion(frame) : store.sample(frame), "Synthesized sample not saved at " + level + "%");
+        assertions--;
     }
     private void sample(ChargeSessionStore store, Model model, long wall, long t, int level, boolean completion) throws Exception {
         long mono = MONO + t; double amps = model.amps.applyAsDouble(Math.min(level, 99)), volts = model.volts.applyAsDouble(level);
@@ -349,6 +387,11 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
             Class<?> card = Class.forName("com.jjricks.volt.LearnedCurveCard", true, getTargetContext().getClassLoader());
             Field field = card.getDeclaredField(name); field.setAccessible(true); return (String) field.get(null);
         } catch (ReflectiveOperationException e) { return null; }
+    }
+    /** Whether the app words the scooter's percent jump (its more_learned_jump string). */
+    private boolean jumpBuilt() {
+        Context app = getTargetContext();
+        return app.getResources().getIdentifier("more_learned_jump", "string", app.getPackageName()) != 0;
     }
     private boolean built() {
         Context app = getTargetContext();
