@@ -177,6 +177,7 @@ public final class ChargeEstimateValidation extends Instrumentation {
                 require(Double.isFinite(estimate.scale.fraction(Double.MIN_VALUE)),"Tiny ETA rendered nonfinite geometry");
                 assertSample(chart,"estimated_countdown",0,Double.MIN_VALUE);
             });
+            back();verifyLongHistory();
             main(()->{
                 Dialog old=dialog();service.profiles.create("Different synthetic scooter","111111111111",0);
                 invoke(viewer(),"refresh",new Class<?>[]{});require(!old.isShowing(),"Profile switch left old charge history visible");
@@ -336,9 +337,51 @@ public final class ChargeEstimateValidation extends Instrumentation {
     private ChargeSessionStore.Frame frame(long wall,long mono,double soc){return new ChargeSessionStore.Frame(wall,mono,new ChargeSessionStore.Value(1d,mono,0x72),new ChargeSessionStore.Value(soc,mono,0x72),new ChargeSessionStore.Value(52d,mono,0x72),new ChargeSessionStore.Value(-2d,mono,0x72),new ChargeSessionStore.Value(23d,mono,0x72));}
     private void verifyAsyncHistory(){
         AtomicReference<List<ChargeSessionStore.HistorySession>> found=new AtomicReference<>();
-        main(()->require(service.loadChargeRecordings(found::set),"Async history refused"));await(()->found.get()!=null,"Async history callback missing");
+        main(()->require(service.loadChargeRecordings(20,found::set),"Async history refused"));await(()->found.get()!=null,"Async history callback missing");
         require(found.get().size()==5,"Wrong profile history count");
         for(ChargeSessionStore.HistorySession session:found.get())require(profile.equals(session.profile),"History leaked profile");
+    }
+    /**
+     * A long history (owner, Nov 19 2026: a rotating buffer of hundreds): the list shows fifty rows, scrolling to its end adds
+     * the rest, and an older recording, a summary in the list, opens once its samples are read. Sixty synthetic plain
+     * recordings, older than the five above, are written for it and removed after.
+     */
+    private void verifyLongHistory()throws Exception{
+        List<File> seeded=new ArrayList<>();long wall=1735000000000L,mono=50000000;
+        for(int i=0;i<60;i++){
+            File file=new File(getTargetContext().getFilesDir(),"charge-recordings/"+UUID.randomUUID()+".csv");seeded.add(file);
+            long at=wall-(i+1)*3600000L,clock=mono+i;
+            try(Writer out=new OutputStreamWriter(new FileOutputStream(file),"UTF-8")){
+                out.write("charge-v1,"+profile+",STOCK,"+at+","+clock+"\n");
+                out.write("s,"+at+","+clock+",40.0,52.0,-2.0,-104.0,,1\n");
+                out.write("s,"+(at+10000)+","+(clock+10000)+",41.0,52.0,-2.0,-104.0,,0\nend,STOPPED\n");
+            }
+            require(file.setLastModified(at),"Long-history fixture time not set");
+        }
+        main(()->invoke(viewer(),"close",new Class<?>[]{}));settle();
+        main(()->root().findViewWithTag("charge-history-action").performClick());
+        await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-list")!=null,"Long history did not load");
+        main(()->require(rows(dialogRoot())==50,"The list does not show fifty rows at once: "+rows(dialogRoot())));
+        main(()->{View list=dialogRoot().findViewWithTag("charge-history-list");((View)list.getParent()).scrollTo(0,list.getHeight());});settle();
+        await(()->rows(dialogRoot())==65,"Scrolling to the end did not add the older rows");
+        main(()->{View list=dialogRoot().findViewWithTag("charge-history-list");((View)list.getParent()).scrollTo(0,list.getHeight());});settle();
+        main(()->require(rows(dialogRoot())==65,"The list did not stop at the 65 saved: "+rows(dialogRoot())));
+        screenshot("history-scrolled-older");
+        String oldest=seeded.get(59).getName().substring(0,36);
+        open(oldest);
+        await(()->dialog()!=null&&dialogRoot().findViewWithTag("charge-history-panel")!=null,"An older recording did not open after its read");
+        main(()->require(text(dialogRoot()).contains("40% → 41%")||text(dialogRoot()).contains("40%"),"The older recording's span is missing"));
+        screenshot("history-older-opened");
+        back();
+        for(File file:seeded)require(file.delete()||!file.exists(),"Long-history fixture cleanup failed");
+        main(()->invoke(viewer(),"close",new Class<?>[]{}));settle();
+        main(()->root().findViewWithTag("charge-history-action").performClick());
+        await(()->dialog()!=null&&dialog().getWindow().getDecorView().findViewWithTag("charge-history-session:"+completeId)!=null,"History did not load again");
+    }
+    private int rows(View root){
+        int count=root.getTag()!=null&&String.valueOf(root.getTag()).startsWith("charge-history-session:")?1:0;
+        if(root instanceof ViewGroup)for(int i=0;i<((ViewGroup)root).getChildCount();i++)count+=rows(((ViewGroup)root).getChildAt(i));
+        return count;
     }
     private void open(String id){main(()->dialogRoot().findViewWithTag("charge-history-session:"+id).performClick());settle();}
     private void back(){main(()->findDescription(dialogRoot(),"Back to charge recordings").performClick());settle();}

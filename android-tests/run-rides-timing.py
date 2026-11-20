@@ -24,6 +24,10 @@ parser.add_argument("--out", required=True)
 parser.add_argument("--case", action="append", help="widthxheight dp")
 parser.add_argument("--fixture", action="append", help="rides x seconds per ride, e.g. 41x3600")
 parser.add_argument("--repeat", type=int, default=1, help="cold measurements per seeded case")
+parser.add_argument("--charges", default="0",
+                    help="also seed charge recordings: N, or NxMINUTES (default 120 minutes each), N at most 1000")
+parser.add_argument("--charge-form", choices=("compressed", "plain"), default="compressed",
+                    help="seeded charges as the store keeps them (compressed), or plain as an older Volt or a restore left them")
 parser.add_argument("--enforce", action="store_true", help="fail when a budget is missed")
 parser.add_argument("--release", action="store_true",
                     help="release gate: at least 2 cold starts per case; fail when the best one misses a RELEASE_BUDGETS budget")
@@ -109,12 +113,18 @@ try:
             adb("install", args.runner)
             for permission in ("BLUETOOTH_SCAN", "BLUETOOTH_CONNECT", "POST_NOTIFICATIONS"):
                 adb("shell", "pm", "grant", "com.jjricks.volt", f"android.permission.{permission}")
-            seeded = instrument("-e", "mode", "seed", "-e", "rides", str(rides), "-e", "seconds", str(seconds))
+            charges, _, minutes = args.charges.partition("x")
+            seeded = instrument("-e", "mode", "seed", "-e", "rides", str(rides), "-e", "seconds", str(seconds),
+                                "-e", "charges", str(int(charges)), "-e", "charge_minutes", str(int(minutes or 120)),
+                                "-e", "charge_form", args.charge_form)
             for run in range(args.repeat):
                 adb("shell", "am", "force-stop", "com.jjricks.volt")
                 delay = ("-e", "select_delay_ms", str(args.select_delay_ms)) if args.select_delay_ms else ()
                 measured = instrument("-e", "mode", "measure", *delay)
                 row = {"fixture": fixture, "case": case, "run": run + 1, "seeded_bytes": int(seeded["seeded_bytes"])}
+                for key in ("seeded_charges", "seeded_charge_plain_bytes", "seeded_charge_disk_bytes"):
+                    if key in seeded:
+                        row[key] = int(seeded[key])
                 row.update({k: (int(v) if re.fullmatch(r"-?\d+", v) else v) for k, v in measured.items() if k != "result"})
                 results.append(row)
                 print(json.dumps(row), flush=True)

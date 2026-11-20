@@ -52,7 +52,7 @@ final class BackupRegistry {
         // phone_placement is retired (no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "theme units temperature_unit time_format stats_density phone_placement map_tile_url map_tile_attribution map_tile_attribution_url stats_favourite_order ride_chart_key last_ride_label".split(" ")) add(app, key, String.class, PREFERENCES);
         // developer_options is retired (Developer options are always visible; no longer read or written). It stays registered so older backups that hold it restore it.
-        for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained map_usgs_switch_answered developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
+        for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained map_usgs_switch_answered just_back_basemap developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
         // USGS saved by the old default rather than chosen (MapDefault.USGS_BY_DEFAULT_KEY) travels with map_tile_url.
         add(app, "map_usgs_by_default", Boolean.class, PREFERENCES);

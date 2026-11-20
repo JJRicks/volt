@@ -3078,7 +3078,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             historyLoading=true;
             // No answer (maintenance, a read error, the scooter changed mid-load) is not "no recordings": the card says it
             // could not load them, as the Charge history dialog does, and forgets the key so a later refresh loads again.
-            if(!scooterService.loadChargeRecordings(sessions->{historyLoading=false;if(destroyed)return;
+            if(!scooterService.loadChargeRecordings(0,sessions->{historyLoading=false;if(destroyed)return;
                     // The scooter changed mid-load (the service answers null then too): load the new scooter's at once,
                     // not "Could not load recordings." and a 5 s wait.
                     String now=scooterService==null||scooterService.profiles==null||scooterService.profiles.active()==null?"":scooterService.profiles.active().id;
