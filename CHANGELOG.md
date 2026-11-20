@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.2 — 2026-11-20
+
+Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, clearer words in a few places and some fixes.
+
+- **Record this charger.** When your scooter has charge recordings from only one charger, and the charge on now draws far more or far less power than they did, Home shows a **Record this charger** tip under the charging time. Tap it to record this charge as the other charger, or, while Volt is already recording it by itself with a guessed charger, to save that recording as the other charger, so Volt learns an estimate for each.
+- **Fixes:** On a wide Clean Home, closing a ride you opened from **Just back** while **All rides** is open beside Home goes back to All rides. Clean's charge-limit bar takes a drag started just below it again. The card that says a scooter "may have a new Bluetooth address" also counts the first connection attempt when Volt opens on Home. Ride maps on large tablets keep more map tiles ready.
+- **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Charge recordings
+
+- **Record this charger.** Volt watches for a charge far off the only charger this scooter has recordings for: for a minute, below 90%, at least 1.8 times or at most half the power recorded at the same battery level, and at least 50 W apart. Far above the stock charger's recordings means the high-speed charger; far below the high-speed charger's means the stock one. It doesn't count the first minute of a charge or after a reconnect, and it stays quiet while **Charging slowed** shows and when the battery is colder than 68 °F (20 °C) or hotter than 100 °F (38 °C), where a high-speed recording wouldn't teach its curve. Then, on both Home styles, the tip under the time reads **Record this charger** (**Record charger**, or just a bolt icon, where there's less room), in the same place as **Improve this estimate**. Its sheet, **Different charger?**, has one main button that names the charger: **Record this charge as High-speed** (or Stock) starts a recording as that charger; while Volt is recording this charge by itself with a guessed charger, **Save this recording as High-speed** files that recording as that charger instead, as your choice, so it teaches that charger's curve. Neither changes **Charger for estimates**. **Not now** keeps the tip; **Hide this tip** hides this tip only, for good (backups keep that). The tip never labels a recording by itself, and it doesn't show during a recording you started or one whose charger was already set.
+
+### Home
+
+- **Just back over All rides.** On a wide screen with Clean's two panes, a ride opened from **Just back** while **All rides** is the page beside Home now closes back to All rides, as a ride opened from that list does. Everywhere else it still closes back to Home.
+- **Clean's charge-limit bar** takes a press in the strip just below it again, so its whole touch band works as on Widgets. Scrolling the page is unchanged.
+- **Find it nearby** counts a failed connection attempt only while Home is on screen, as in 2.0.1, and now also the first one, which Volt starts as it opens (or reopens) on Home.
+
+### Charging estimates
+
+- The time's long-press status says "Charge done by plans with the rated capacity" only when it does. When Charge done by plans with a learned curve or a provisional time instead, the sentence is left off.
+
+### Maps
+
+- **Ride maps on large tablets** keep more map tiles in memory, scaled to the map's size (up to 64 MB), so panning reloads fewer tiles. Phones are unchanged.
+
+### Upgrading and going back
+
+- Nothing needs doing to update. Charge recordings and exports keep 2.0.1's format.
+
 ## 2.0.1 — 2026-11-20
 
 Volt 2.0.1 is mostly about charging: time estimates that learn more from your own charges, a charging pill that says when the battery's temperature is slowing the charge, and a look at what Volt has learned. It also adds a map on the **Just back** card, a choice of Home's two small readings and fixes riders reported.

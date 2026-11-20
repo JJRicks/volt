@@ -191,7 +191,10 @@ charge the scooter's own gauge takes per percent (`UsableCapacity`):
   level, and any part that past charges, a reference or a model don't set) is
   shown with the learned capacity instead. A learned curve or bundled reference
   that covers a target keeps its time. The label stays the current rate's; the
-  status names the capacity used.
+  status names the capacity used. It adds "Charge done by plans with the
+  rated capacity" only when Charge done by's planning times (to 100% and to
+  any limit) are the rated current-rate times (from 2.0.2; before, a learned
+  limit or a provisional fill-in got the sentence too).
 - **Charge done by** plans with exactly the minutes the estimate has without
   this pass, on every path (held finishes, references, provisional fill-ins and
   limits below 100% included), so it never plans with a shorter time than before.
@@ -228,11 +231,24 @@ recording's audit (`label_audit.detected_charger`) stays charger detection's
 alone. `RecordChargerHint` decides when a charge is far off the only recorded
 charger (outside the 35% band, at least 1.8 times or at most half the saved
 power and 50 W apart, for a minute below 90%, not in a charge's first minute or
-right after a reconnect, with no recording running, no "Charging slowed", and
-the battery at 20–38 °C, where a high-speed recording would teach its curve:
-`learnsAtTemperature` above).
-It never labels, and 2.0.1 shows nothing from it: no tip asks to record the
-other charger in that version.
+right after a reconnect, with no "Charging slowed", and the battery at
+20–38 °C, where a high-speed recording would teach its curve:
+`learnsAtTemperature` above). It never labels. From 2.0.2 it drives Home's
+**Record this charger** tip (`ChargeEstimateTip.Tip.OTHER_CHARGER`), only when
+the run names the other charger (`RecordChargerHint.otherFamily`: far above the
+only stock curve, high-speed; far below the only high-speed curve, stock; any
+other run shows nothing). With no recording running, the tip's sheet starts a
+recording labelled that charger. While a recording runs, the tip shows only
+for an automatic one still labelled a guess, and its sheet files that same
+recording (by its start) under the named charger as CHOSEN through the
+store's relabel (`ScooterService.fileChargeRecordingAs`), leaving the charger
+setting unchanged; a manual recording or a setting, detected or chosen label
+never shows it. A relabel away from a guess clears the stock-baseline mark, so
+a recording filed this way never exports `stock_baseline`. Tests:
+`LearnedChargerMatchTest`, `ChargeEstimateTipRuleTest`, `ChargerTipTextTest`;
+emulator: `EstimateTipValidation -e mode charger` (the simulator never
+records, so it sets the tip's state through validation-only fields, and it
+opens the sheet without tapping its main button).
 
 ## Validation
 

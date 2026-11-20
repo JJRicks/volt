@@ -1,3 +1,53 @@
+VOLT 2.0.2 — RECORD THIS CHARGER, CLEARER WORDS, FIXES (versionCode 62)
+Draft, November 20, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.1
+  (75667d5e) is in it: the "record this charger" tip (#576 and #577,
+  held out of 2.0.1) and the P3 sweep (#580: Just back over All rides,
+  Home's stay on a fresh bind, the route map tile cache, Clean's bar
+  band, one reading matcher). Docs-only pull requests that merge before
+  the release commit change no app code. The English text fixes for
+  2.0.2, the language top-up for this release's new text and this
+  release's own version, changelog and docs come after them.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR, CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 296 steps on main at #580's merge, 4 more
+  than 2.0.1's 292, none gone: the charger tip on Widgets and Clean at
+  344 and 412 dp, two of them during an automatic recording
+  (estimate-tip-charger-*). Every validation registered in
+  android-tests/AndroidManifest.xml is covered (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.1's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- No parked hardware sweep. The owner decided 2.0.2 ships without one
+  ("small enough"), so this release is checked on emulators and by tests
+  only, and nothing in it was tried on a real scooter. Untried on real
+  hardware: the Record this charger tip on a real second charger (the
+  far-off rule on live power, Record this charge as High-speed or Stock
+  from its sheet, and Save this recording filing a running automatic
+  recording), Find it nearby's first attempt when Volt opens on Home, and
+  everything 2.0.1's list below still owes.
+- The charger tip's emulator steps set its state through validation-only
+  fields, because the simulator never records or runs the far-off rule.
+  They check the tip, its sheet's words for both actions, Not now and
+  Hide this tip, but they don't tap the sheet's main button; that button's
+  filing and recording are covered by JVM tests
+  (LearnedChargerMatchTest, ChargeEstimateTipRuleTest,
+  ChargerTipTextTest) with synthesized charges only.
+- ModelRegistry.REPORTED is unchanged from 2.0.1 (22131, 23452, 24162,
+  24182, 25462, 25852): no compatibility report for a new Model ID is
+  recorded since then. Adding any that reached volt-reports@jjricks.com is
+  the owner's step.
+
+--- Previous verification ---
+
 VOLT 2.0.1 — CHARGING SLOWED, ESTIMATES THAT LEARN MORE, WHAT VOLT HAS LEARNED, OVERVIEW READINGS, JUST BACK BASEMAP (versionCode 61)
 Draft, November 19, 2026. The release checks below are still to run.
 
