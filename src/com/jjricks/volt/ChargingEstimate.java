@@ -878,6 +878,12 @@ public final class ChargingEstimate {
                 :target<100?" The 100% time assumes a higher charge limit.":"";
     }
 
+    /** withUsableCapacity's last words: with ratedPlan the rated-capacity plan, else the learned value's sentence ends there. */
+    private static String usableTail(boolean ratedPlan) {
+        String tail=" Ah per 100%); Charge done by plans with the rated capacity.";
+        return ratedPlan?tail:tail.substring(0,tail.indexOf(';'))+".";
+    }
+
     /**
      * usable-capacity-v1, a display-only last pass over the finished estimate (forScooter's result, shown): every time
      * it shows that is still baseline's rated-capacity current-rate time (no past charges, reference or model set it)
@@ -888,12 +894,6 @@ public final class ChargingEstimate {
      * shown itself without a learned value, at or above BULK_LIMIT, without a usable reading, or where no shown time is
      * baseline's. The label stays; the status says what was used.
      */
-    /** withUsableCapacity's last words: with ratedPlan the rated-capacity plan, else the learned value's sentence ends there. */
-    private static String usableTail(boolean ratedPlan) {
-        String tail=" Ah per 100%); Charge done by plans with the rated capacity.";
-        return ratedPlan?tail:tail.substring(0,tail.indexOf(';'))+".";
-    }
-
     public static Result withUsableCapacity(Result shown,Result baseline,Value soc,Value ratedAh,UsableCapacity.Learned learned) {
         if(shown==null||baseline==null||!baseline.charging||baseline.remainingMinutesToFull==null||baseline.inputAmps==null
                 ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||ratedAh.number<=0||soc.number>=UsableCapacity.BULK_LIMIT)return shown;

@@ -52,7 +52,8 @@ import java.util.function.Consumer;
  * draggable bar and two-reading time tile ported to Clean), where the bar is Clean's charge track along the stage's foot:
  * the same bar class, so the same cases, but edit mode (Clean's charging view has none) and the stage-height check
  * (Clean's stage takes the top area's slot). The default mode on Clean also checks the time tile: two readings with the
- * limit's first, a tap switches and saves the choice, and the other Home style opens on the same choice (one setting).
+ * limit's first, a tap switches and saves the choice, and the other Home style opens on the same choice (one setting),
+ * and a drag begun in the band's part below the stage's foot moves the limit (#556 review).
  * Mode look (any build, for before and after pictures): the charging view at rest at the emulator's size in the given
  * theme and text size, then, where the build has them on that Home, each of the time tile's readings and the bar mid-drag.
  */
@@ -93,6 +94,7 @@ public final class ChargeBarValidation extends ValidationInstrumentation {
                 verifyRest();
                 if (clean) verifyCleanTile();
                 verifyDragCommitsOnce();
+                if (clean) verifyBandBelowStage();
                 verifyNothingWithoutADrag();
                 verifyVerticalScrolls();
                 verifyCancels();
@@ -268,6 +270,29 @@ public final class ChargeBarValidation extends ValidationInstrumentation {
         main(() -> require(writes.equals(Collections.singletonList(95)), "The release wrote " + writes + ", not 95 once"));
         main(() -> require(bar().confirms - felt[1] == 1, "The release of a changed value did not confirm once: " + (bar().confirms - felt[1])));
         checks.add("A real drag: thickens, follows in steps (85 to 95) with one tick per step, shows the value, no layout pass, nothing written until the lift; the lift writes 95 once with one confirm");
+    }
+
+    /**
+     * Clean (#556 review): the press band reaches 18 dp below the track, which sits 7.5 dp above the stage's foot, so its
+     * lower part lies below the stage. A press there near the mark, then a sideways drag of one step, still moves the
+     * limit: the hero hands that strip to the bar.
+     */
+    private void verifyBandBelowStage() throws Exception {
+        limit(85);
+        float[] at = mark();
+        float[] press = {at[0], at[1] + ui(18) - ui(2)};
+        float[] foot = new float[1];
+        main(() -> { View stage = (View) field(hero(), "stage"); foot[0] = onScreen(stage).bottom; });
+        require(press[1] > foot[0], "The band's lower part is not below the stage's foot here (" + press[1] + " vs " + foot[0] + ")");
+        Finger f = new Finger(press);
+        f.move(slop() + 2, 0, 4);
+        f.move(stepPx() + slop() * .5f, 0, 6);
+        f.up();
+        await(() -> !bar().writePending() && Objects.equals(service.ble.featureValue("charge_limit"), 90), "A drag begun in the band below the stage's foot did not set 90");
+        await(() -> bar().lift == 0f && bar().drawn == 90f, "The bar did not come to rest on 90");
+        settle();
+        main(() -> require(writes.equals(Collections.singletonList(90)), "The drag from below the stage's foot wrote " + writes + ", not 90 once"));
+        checks.add("Clean: a drag begun in the band's part below the stage's foot (16 dp under the track) moves the limit one step");
     }
 
     private void verifyNothingWithoutADrag() throws Exception {
