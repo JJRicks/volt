@@ -84,6 +84,9 @@
     <string name="maps_provider_osm" volt:screen="Map settings" volt:purpose="option" volt:dnt="OSM">OSM</string>
     <!-- Selector option: a basemap the owner sets up. -->
     <string name="maps_provider_custom" volt:screen="Map settings" volt:purpose="option">Custom</string>
+    <!-- Switch under the map provider selector: an online map behind the route on Home's last-ride card (shown for about
+         an hour after a ride), separate from the ride maps' basemap. -->
+    <string name="maps_just_back_switch" volt:screen="Map settings" volt:purpose="switch">Map on Home\'s last ride</string>
     <!-- Opens the custom map provider editor. -->
     <string name="maps_edit_custom" volt:screen="Map settings" volt:purpose="button">Edit custom provider</string>
     <!-- Title of the map settings dialog. -->

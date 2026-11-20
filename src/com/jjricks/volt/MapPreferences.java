@@ -244,8 +244,9 @@ public final class MapPreferences {
     }
 
     /**
-     * Map settings' switch for the Just back card's own basemap (JustBackBasemap.KEY), named Home (the card is Clean
-     * Home's), so it can be turned off or on without waiting for a ride (council, #560 r1). It stays its own preference:
+     * Map settings' switch for the Just back card's own basemap (JustBackBasemap.KEY), "Map on Home's last ride" (its
+     * own label since 2.0.2; it reused the tab's name, Home, before), so it can be turned off or on without waiting for a
+     * ride (council, #560 r1). It stays its own preference:
      * the selector above is the ride maps'. Turning it on goes through the shared explanation when it was never
      * approved (setJustBack); a change anywhere else (the card, a restore) shows here at once.
      */
@@ -266,7 +267,7 @@ public final class MapPreferences {
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
             setTag("map-settings-just-back");
-            String name = HubText.title(HubPages.HOME).render();
+            String name = T.mapsJustBackSwitch();
             toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(name);
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
             toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(name);

@@ -1,0 +1,5 @@
+# English text fixes for 2.0.2: the Record a charge dialog's rotation words (#563 F01), Map settings' switch for the
+# Just back card's map (#560) and What Volt has learned's too cold or hot stretches (#572 F01).
+src/com/jjricks/volt/LearnedCurveChart.java
+src/com/jjricks/volt/JustBackBasemap.java
+tests/l10n/EnglishFixes202Test.java

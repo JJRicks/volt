@@ -808,8 +808,6 @@
     <string name="more_dev_hide_test">Schließe den Test zuerst ab oder brich ihn ab</string>
     <!-- src:fbc9bb6baff246c2834f064cbd71cbe77243f7c0 -->
     <string name="more_dev_connect_first">Verbinde dich zuerst mit deinem Scooter</string>
-    <!-- src:636ce54288d4caccb2117da1b33f05bc9a00279b -->
-    <string name="more_dev_record_body" formatted="false">Auf dem Telefon gespeichert · endet bei 100 % · die letzten 20 bleiben erhalten</string>
     <!-- src:7b52501fb200660f62b9170ec96b9318ade02e6a -->
     <string name="more_dev_which_charger">Welches Ladegerät ist angeschlossen?</string>
     <!-- src:4164decc547d00c1731dec7b88050f253a9d7171 -->

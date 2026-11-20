@@ -812,8 +812,6 @@
     <string name="more_dev_hide_test">Conclua ou cancele o teste primeiro</string>
     <!-- src:fbc9bb6baff246c2834f064cbd71cbe77243f7c0 -->
     <string name="more_dev_connect_first">Conecte o patinete primeiro</string>
-    <!-- src:636ce54288d4caccb2117da1b33f05bc9a00279b -->
-    <string name="more_dev_record_body" formatted="false">Salva no telefone · para em 100% · mantém as últimas 20</string>
     <!-- src:7b52501fb200660f62b9170ec96b9318ade02e6a -->
     <string name="more_dev_which_charger">Qual carregador está conectado?</string>
     <!-- src:4164decc547d00c1731dec7b88050f253a9d7171 -->

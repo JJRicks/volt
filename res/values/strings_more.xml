@@ -249,6 +249,9 @@
     <string name="more_prefs_battery_value_optimized" volt:screen="App preferences" volt:purpose="status" volt:dnt="⚠">Optimized ⚠\uFE0E</string>
     <!-- Map settings row value: a custom map source. USGS and OSM stay as they are (map service names). -->
     <string name="more_prefs_map_custom" volt:screen="App preferences" volt:purpose="value">Custom</string>
+    <!-- Map settings row value (also About › Your data › Online map) after the map service, as "OSM · Last ride": only
+         Home's last-ride card shows an online map, the ride maps don't. Keep it short: it shares the row with the title. -->
+    <string name="more_prefs_map_last_ride" volt:screen="App preferences" volt:purpose="value">Last ride</string>
     <!-- Shown when Android's app list opens instead of Volt's own settings page. -->
     <string name="more_prefs_choose_volt" volt:screen="App preferences" volt:purpose="toast" volt:dnt="Volt">Choose Volt to manage its Android settings</string>
     <!-- Shown when Volt cannot open Android's settings for it. -->
@@ -892,8 +895,9 @@
     <string name="more_dev_hide_test" volt:screen="Developer options" volt:purpose="toast" volt:safety="experimental">Finish or cancel the test first</string>
     <!-- Why a charge can't be recorded yet. -->
     <string name="more_dev_connect_first" volt:screen="Developer options" volt:purpose="status" volt:safety="charge">Connect your scooter first</string>
-    <!-- Under the dialog title: the recording stays on the phone, ends at full charge, and the last 20 are kept. -->
-    <string name="more_dev_record_body" volt:screen="Record a charge" volt:purpose="dialog" formatted="false" volt:safety="charge">Saved on phone · stops at 100% · keeps the last 20</string>
+    <!-- Under the dialog title: the recording stays on the phone and ends at full charge; when the recordings' room on the
+         phone is full (up to 1,000, about 150 MB), saving a new one clears the oldest automatically. -->
+    <string name="more_dev_record_body" volt:screen="Record a charge" volt:purpose="dialog" formatted="false" volt:safety="charge">Saved on phone · stops at 100% · oldest cleared when full</string>
     <!-- Dialog title before a charger is chosen. -->
     <string name="more_dev_which_charger" volt:screen="Record a charge" volt:purpose="title" volt:safety="charge">Which charger is attached?</string>
     <!-- Dialog title with the stock charger chosen. -->
@@ -974,6 +978,9 @@
     <string name="more_learned_gap_between" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">No data %1$s–%2$s%%</string>
     <!-- %1$s and %2$s are battery levels without the percent sign: recordings disagree there, so it is not used. -->
     <string name="more_learned_gap_disagree" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Recordings disagree %1$s–%2$s%%</string>
+    <!-- %1$s and %2$s are battery levels without the percent sign: a fast charge covered this stretch only with the
+         battery too cold or too hot (outside 20–38 °C), so Volt learned nothing there. Not a missing recording. -->
+    <string name="more_learned_gap_temperature" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Too cold or hot to learn %1$s–%2$s%%</string>
     <!-- More gaps than the card lists by name. -->
     <plurals name="more_learned_gap_more" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">
         <item quantity="one">And %1$d more gap</item>
