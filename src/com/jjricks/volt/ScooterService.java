@@ -666,10 +666,11 @@ public final class ScooterService extends Service {
     private ChargeSessionStore.Snapshot learnedFor;private String learnedProfile;private List<ChargeSessionStore.Summary> learned=Collections.emptyList();
     /**
      * The active scooter's learned charge curves, one Summary per charger that has one (Charge history & recordings' What
-     * Volt has learned); empty while loading or with none. Main thread; read again only when the snapshot or scooter changes.
+     * Volt has learned); empty with none, null while the recordings are still being read. Main thread; read again only when
+     * the snapshot or scooter changes.
      */
     public List<ChargeSessionStore.Summary> learnedChargeSummaries(){
-        if(chargeModelLoading||chargeSnapshot==null)return Collections.emptyList();
+        if(chargeModelLoading||chargeSnapshot==null)return null;
         String profile=activeProfileId();
         if(chargeSnapshot!=learnedFor||!profile.equals(learnedProfile)){
             List<ChargeSessionStore.Summary> summaries=new ArrayList<>();

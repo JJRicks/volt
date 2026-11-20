@@ -60,6 +60,8 @@ final class LearnedCurveCard {
         /** The empty state's title and words: nothing learned yet, record a charge. */
         String emptyTitle();
         String empty();
+        /** A charger's card whose recordings give no usable stretch yet (they disagree everywhere). */
+        String unusable();
     }
     /** The section's view tag, and each card's (a charger's card adds ":" and the charger's name). */
     static final String SECTION_TAG = "learned-curves", TAG = "learned-curve-card";
@@ -80,8 +82,12 @@ final class LearnedCurveCard {
             this.context = context; this.ui = ui; this.words = words;
             view = new LinearLayout(context); view.setOrientation(LinearLayout.VERTICAL); view.setTag(SECTION_TAG);
         }
-        /** The active scooter's summaries (ScooterService.learnedChargeSummaries); null or empty: the empty state. */
+        /**
+         * The active scooter's summaries (ScooterService.learnedChargeSummaries); empty: the empty state. Null (still
+         * loading) keeps what is shown, or shows nothing yet, so a load never flashes the empty state.
+         */
         void show(List<ChargeSessionStore.Summary> summaries) {
+            if (summaries == null) return;
             List<LearnedCurveChart> charts = LearnedCurveChart.of(summaries);
             StringBuilder order = new StringBuilder();
             for (LearnedCurveChart chart : charts) order.append(chart.charger).append(' ');
@@ -149,7 +155,7 @@ final class LearnedCurveCard {
             title.setText(chart == null ? words.emptyTitle() : words.title(chart.charger));
             sub.setText(chart == null ? words.empty() : words.recordings(chart.recordings));
             spoken.add(title.getText().toString()); spoken.add(sub.getText().toString());
-            if (chart != null) { note(words.empty()); spoken.add(words.empty()); }
+            if (chart != null) { note(words.unusable()); spoken.add(words.unusable()); }
             axis.setVisibility(View.GONE);
         } else {
             title.setText(words.title(chart.charger)); sub.setText(words.recordings(chart.recordings));
