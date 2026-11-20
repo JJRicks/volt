@@ -128,6 +128,7 @@ class Summary(unittest.TestCase):
 
 
 APP, RUNNER, OTHER = 'a' * 64, 'b' * 64, 'c' * 64
+PSEUDO_APK, OTHER_PSEUDO_APK = 'd' * 64, 'e' * 64
 
 
 class Merge(unittest.TestCase):
@@ -137,14 +138,18 @@ class Merge(unittest.TestCase):
     def setUpClass(cls):
         listed = subprocess.run([sys.executable, str(SWEEP), '--list'], text=True, stdout=subprocess.PIPE, check=True, timeout=60).stdout
         cls.steps = [line for line in listed.splitlines() if not line.startswith('(')]
+        # The pseudo-locale steps: skipped in a run without --pseudo-app, as most runs of a split sweep are.
+        cls.pseudo = [step for step in cls.steps if step.startswith(('locale-en-XA-', 'locale-ar-XB-'))]
+        cls.gating = len(cls.steps) - 1 - len(cls.pseudo)
 
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.root = pathlib.Path(folder.name)
 
-    def run_folder(self, name, started, statuses, app=APP, runner=RUNNER, outputs=(), identity=True):
-        """statuses: {step: status}; a status of reported, did-not-finish or skipped is a report-only record."""
+    def run_folder(self, name, started, statuses, app=APP, runner=RUNNER, outputs=(), identity=True, pseudo=None):
+        """statuses: {step: status}; a status of reported, did-not-finish or skipped is a report-only record.
+        pseudo: the run's pseudo_app_sha256 (given with --pseudo-app), which a run puts on every record."""
         folder = self.root / name
         folder.mkdir()
         rows = []
@@ -153,6 +158,7 @@ class Merge(unittest.TestCase):
             if status in ('passed', 'failed'): row['passed'] = status == 'passed'
             else: row['report_only'] = True
             if identity: row.update(app_sha256=app, runner_sha256=runner, sweep_started=started)
+            if pseudo: row['pseudo_app_sha256'] = pseudo
             rows.append(row)
             (folder / f'{step}.txt').write_text('INSTRUMENTATION_RESULT: result=PASS\n')
         for step in outputs: (folder / f'{step}.txt').write_text('cut off\n')
@@ -160,8 +166,8 @@ class Merge(unittest.TestCase):
         return folder
 
     def everything(self, **overrides):
-        statuses = {step: 'passed' for step in self.steps}
-        statuses.update({REPORT: 'reported', PSEUDO: 'skipped'}, **overrides)
+        statuses = {step: 'skipped' if step in self.pseudo else 'passed' for step in self.steps}
+        statuses.update({REPORT: 'reported'}, **overrides)
         return statuses
 
     def merge(self, *folders):
@@ -182,9 +188,10 @@ class Merge(unittest.TestCase):
         code, lines, _, rows = self.merge(self.run_folder('two', 2000.0, second), self.run_folder('one', 1000.0, first))
         self.assertEqual(code, 0, lines)
         self.assertEqual(len(rows), len(self.steps))
-        gating = len(self.steps) - 2
-        self.assertEqual(lines[-2:], [f'Gating steps: {gating} passed, 0 failed',
-                                      f'Report-only steps (never counted as passes): 1 ran, 0 did not finish, 1 skipped; skipped: {PSEUDO}'])
+        self.assertEqual(lines[-2:], [f'Gating steps: {self.gating} passed, 0 failed',
+                                      f'Report-only steps (never counted as passes): 1 ran, 0 did not finish, {len(self.pseudo)} skipped; '
+                                      'skipped: ' + ', '.join(self.pseudo)])
+        self.assertFalse(any('pseudo-locale APK' in line for line in lines), 'no pseudo-locale step ran')
         self.assertTrue(lines[1].startswith(f'  run 1: {self.root / "one"}, started 1970-01-01 00:16:40 UTC'), lines[:3])
         self.assertEqual(rows[self.steps[0]]['run'], 1)
         self.assertEqual(rows[self.steps[-1]]['run'], 2)
@@ -201,16 +208,17 @@ class Merge(unittest.TestCase):
         self.assertIn(f'{GATING}: PASS (run 3); tries: run 1 FAIL, run 3 PASS', lines)
         # The latest verdict wins either way: a later failure replaces an earlier pass.
         self.assertIn(f'{OTHER_GATING}: FAIL (run 3); tries: run 1 PASS, run 3 FAIL', lines)
-        self.assertIn(f'Gating steps: {len(self.steps) - 3} passed, 1 failed: {OTHER_GATING}', lines)
+        self.assertIn(f'Gating steps: {self.gating - 1} passed, 1 failed: {OTHER_GATING}', lines)
         self.assertTrue(any(line.startswith('Verdicts that changed between tries') and GATING in line and OTHER_GATING in line for line in lines))
 
     def test_a_later_skip_does_not_replace_a_run(self):
         first, second = self.split(self.everything(**{PSEUDO: 'reported'}))
-        code, lines, _, rows = self.merge(self.run_folder('one', 1000.0, first), self.run_folder('two', 2000.0, second),
+        code, lines, _, rows = self.merge(self.run_folder('one', 1000.0, first, pseudo=PSEUDO_APK), self.run_folder('two', 2000.0, second, pseudo=PSEUDO_APK),
                                           self.run_folder('three', 3000.0, {PSEUDO: 'skipped'}))
         self.assertEqual(code, 0, lines)
         self.assertEqual(rows[PSEUDO]['status'], 'reported')
-        self.assertIn('Report-only steps (never counted as passes): 2 ran, 0 did not finish, 0 skipped', lines)
+        self.assertIn(f'Report-only steps (never counted as passes): 2 ran, 0 did not finish, {len(self.pseudo) - 1} skipped; skipped: '
+                      + ', '.join(step for step in self.pseudo if step != PSEUDO), lines)
 
     def test_a_step_without_a_verdict_is_named(self):
         statuses = self.everything()
@@ -223,7 +231,7 @@ class Merge(unittest.TestCase):
         self.assertEqual(rows[OTHER_GATING]['tries'], [dict(run=2, folder=str(self.root / 'two'), status='no-verdict')])
         self.assertIn(f'{OTHER_GATING}: NO VERDICT; tries: run 2 NO VERDICT', lines)
         self.assertEqual(lines[-1], f'Without a verdict in any run (neither a pass nor a fail): 1: {OTHER_GATING}')
-        self.assertIn(f'Gating steps: {len(self.steps) - 3} passed, 0 failed', lines)
+        self.assertIn(f'Gating steps: {self.gating - 1} passed, 0 failed', lines)
 
     def test_mixed_apks_are_refused(self):
         for key in ('app', 'runner'):
@@ -237,6 +245,62 @@ class Merge(unittest.TestCase):
                 self.assertIn(OTHER, error)
                 self.assertEqual(lines, [])
                 self.assertIsNone(rows, 'nothing is written')
+
+    def pseudo_runs(self, *pseudo_apks):
+        """The steps without the pseudo-locale ones in run 1 (no --pseudo-app), then one run per pseudo_apks entry that reruns
+        the pseudo-locale steps with that pseudo_app_sha256 (None: none recorded)."""
+        folders = [self.run_folder('main', 1000.0, {step: status for step, status in self.everything().items() if step not in self.pseudo})]
+        for number, apk in enumerate(pseudo_apks, 2):
+            statuses = {step: 'reported' for step in self.pseudo}
+            statuses[self.pseudo[-1]] = 'did-not-finish'
+            folders.append(self.run_folder(f'pseudo{number}', 1000.0 * number, statuses, pseudo=apk))
+        return folders
+
+    def test_one_pseudo_apk_is_named(self):
+        code, lines, _, rows = self.merge(*self.pseudo_runs(PSEUDO_APK, PSEUDO_APK))
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f'Pseudo-locale steps ran with one pseudo-locale APK: SHA-256 {PSEUDO_APK} (runs 2, 3).', lines)
+        self.assertEqual(lines[-2], f'Gating steps: {self.gating} passed, 0 failed')
+        self.assertEqual(rows[PSEUDO]['pseudo_app_sha256'], PSEUDO_APK)
+
+    def test_mixed_pseudo_apks_are_noted_not_refused(self):
+        # Report-only steps: the gating verdicts still merge, and the note names each pseudo-locale APK and its runs.
+        code, lines, error, rows = self.merge(*self.pseudo_runs(PSEUDO_APK, OTHER_PSEUDO_APK, PSEUDO_APK))
+        self.assertEqual(code, 0, lines + [error])
+        note = [line for line in lines if 'pseudo-locale APK' in line]
+        self.assertEqual(note, [f'Note: the pseudo-locale steps (report only, so no gating effect) did not all run with one recorded pseudo-locale APK: '
+                                f'SHA-256 {PSEUDO_APK} in runs 2, 4; SHA-256 {OTHER_PSEUDO_APK} in run 3. Each pseudo-locale record keeps '
+                                'its own run\'s pseudo_app_sha256; record this in VERIFICATION.txt.'])
+        self.assertEqual(lines[-2:], [f'Gating steps: {self.gating} passed, 0 failed',
+                                      f'Report-only steps (never counted as passes): {len(self.pseudo)} ran, 1 did not finish, 0 skipped'
+                                      f'; did not finish: {self.pseudo[-1]}'])
+        self.assertEqual(rows[PSEUDO]['run'], 4)
+        self.assertEqual(rows[PSEUDO]['pseudo_app_sha256'], PSEUDO_APK)
+        self.assertEqual((self.root / 'merged' / 'merge.txt').read_text().splitlines(), lines)
+
+    def test_a_pseudo_run_without_its_apk_recorded_is_noted(self):
+        code, lines, _, _ = self.merge(*self.pseudo_runs(PSEUDO_APK, None))
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f'Note: the pseudo-locale steps (report only, so no gating effect) did not all run with one recorded pseudo-locale APK: '
+                      f'SHA-256 {PSEUDO_APK} in run 2; no SHA-256 recorded in run 3. Each pseudo-locale record keeps '
+                      'its own run\'s pseudo_app_sha256; record this in VERIFICATION.txt.', lines)
+
+    def test_pseudo_steps_without_any_apk_recorded_are_noted(self):
+        code, lines, _, _ = self.merge(*self.pseudo_runs(None))
+        self.assertEqual(code, 0, lines)
+        self.assertIn('Note: the pseudo-locale steps (report only, so no gating effect) did not all run with one recorded pseudo-locale APK: '
+                      'no SHA-256 recorded in run 2. Each pseudo-locale record keeps its own run\'s pseudo_app_sha256; record this in VERIFICATION.txt.', lines)
+
+    def test_a_pseudo_apk_only_counts_where_pseudo_steps_ran(self):
+        # Run 1 was given --pseudo-app but ran only gating steps; run 2 skipped the pseudo-locale steps (no --pseudo-app).
+        statuses = {step: status for step, status in self.everything().items() if step not in self.pseudo}
+        first, second = self.split(statuses)
+        skipped = dict(second, **{step: 'skipped' for step in self.pseudo})
+        code, lines, _, _ = self.merge(self.run_folder('one', 1000.0, first, pseudo=OTHER_PSEUDO_APK), self.run_folder('two', 2000.0, skipped),
+                                       self.run_folder('three', 3000.0, {PSEUDO: 'reported'}, pseudo=PSEUDO_APK))
+        self.assertEqual(code, 0, lines)
+        self.assertIn(f'Pseudo-locale steps ran with one pseudo-locale APK: SHA-256 {PSEUDO_APK} (run 3).', lines)
+        self.assertFalse(any(OTHER_PSEUDO_APK in line for line in lines), lines)
 
     def test_runs_without_identity_are_refused(self):
         first, second = self.split(self.everything())
