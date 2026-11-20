@@ -271,7 +271,7 @@ final class LearnedCurveCard {
             }
             if (speed && chart.finishFrom >= 0) {
                 float x = left + width * chart.finishFrom / 100f;
-                drawTick(canvas, x, plotTop - headroom(), stripBottom, false);
+                drawTick(canvas, x, plotTop - headroom(), plotBottom, false);
             }
             // The percent axis: 0, 25, 50, 75 and 100%, or only 0, 50 and 100% (then 0 and 100%) where they would touch.
             label.setColor(ui.muted);
@@ -353,14 +353,14 @@ final class LearnedCurveCard {
             stroke.setStrokeCap(Paint.Cap.ROUND); stroke.setAlpha(255);
             canvas.restore();
         }
-        /** The finish tick: a small head over a hairline down to the strip, in the text's ink. legend: the head alone, centred. */
+        /** The finish tick: a small head in the text's ink over a muted hairline down to the speed's baseline. legend: the head alone, centred. */
         void drawTick(Canvas canvas, float x, float top, float bottom, boolean legend) {
             float half = ui.dp(4.5f), head = ui.dp(6);
             float y0 = legend ? (bottom - top - head) / 2 + top : top;
             path.reset(); path.moveTo(x - half, y0); path.lineTo(x + half, y0); path.lineTo(x, y0 + head); path.close();
             fill.setStyle(Paint.Style.FILL); fill.setColor(ui.text); canvas.drawPath(path, fill);
             if (legend) return;
-            stroke.setColor(Ui.withAlpha(ui.text, 150)); stroke.setStrokeWidth(Math.max(1, ui.dp(1)));
+            stroke.setColor(ui.muted); stroke.setStrokeWidth(Math.max(1, ui.dp(1)));
             canvas.drawLine(x, y0 + head, x, bottom, stroke);
         }
     }
