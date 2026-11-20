@@ -30,8 +30,32 @@ public final class BackupPlanTest {
             noScooterLayout(root, source);
             modelEvidence(root);
             homeStyle(root, source);
-            System.out.println("BackupPlanTest: " + checks + " checks passed (profile resolution, merge rules, UUID and clock duplicates, shared destinations, fresh install, charge limit, no-scooter layout, model evidence fields, Home style)");
+            estimateTip(root);
+            System.out.println("BackupPlanTest: " + checks + " checks passed (profile resolution, merge rules, UUID and clock duplicates, shared destinations, fresh install, charge limit, no-scooter layout, model evidence fields, Home style, estimate tip)");
         } finally { AppDataArchive.deleteTree(root); }
+    }
+
+    /**
+     * Home's estimate tip hidden with "Hide this tip" (ChargeEstimateTip): its answer goes out with App preferences and
+     * comes back with them, by App preferences alone (onto a phone that never hid it) and by Replace everything; a backup
+     * of only another category leaves this phone's answer alone.
+     */
+    private static void estimateTip(File root) throws Exception {
+        String key = ChargeEstimateTip.Tip.NO_RECORDINGS.hiddenKey();
+        BackupTestStore source = BackupTestStore.rich(new File(root, "tip-source"));
+        source.put("app_settings", key, true);
+        byte[] prefsOnly = source.export(set(BackupRegistry.PREFERENCES));
+        BackupTestStore phone = BackupArchiveTest.phone(new File(root, "tip-prefs"));
+        check(!phone.preferences().get("app_settings").containsKey(key), "the phone starts with the tip not hidden");
+        phone.restore(prefsOnly, set(BackupRegistry.PREFERENCES), false, null);
+        check(Boolean.TRUE.equals(phone.preferences().get("app_settings").get(key)), "App preferences brings the hidden tip back");
+        BackupTestStore replaced = BackupArchiveTest.phone(new File(root, "tip-replace"));
+        replaced.restore(source.export(BackupTestStore.all()), BackupTestStore.all(), true, null);
+        check(Boolean.TRUE.equals(replaced.preferences().get("app_settings").get(key)), "Replace everything brings the hidden tip back");
+        BackupTestStore kept = BackupArchiveTest.phone(new File(root, "tip-kept"));
+        kept.put("app_settings", key, true);
+        kept.restore(source.export(set(BackupRegistry.RIDES)), set(BackupRegistry.RIDES), false, BackupArchive.SKIP);
+        check(Boolean.TRUE.equals(kept.preferences().get("app_settings").get(key)), "a Rides-only restore keeps this phone's answer");
     }
 
     /** The compatibility registry's profile fields (advertised PID, firmware, default name) survive

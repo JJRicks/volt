@@ -153,6 +153,16 @@
     <!-- The sheet's last point. %1$s is the "Charge history & recordings" page's name, %2$s the "Email to Volt" row's name on that page. -->
     <string name="hub_charge_invite_step_send" volt:screen="Charge recordings invite sheet" volt:purpose="list item" volt:safety="charge">Then open %1$s and tap %2$s. We use your recordings to tune the estimate for your scooter\'s model.</string>
 
+    <!-- ===== Home: the estimate tip under the charging view's time ===== -->
+    <!-- A small outlined button with a chart icon, under the charging time ("Time to 100%") on Home while the scooter charges, shown while this scooter has no charge recordings yet. Tapping it opens a short sheet about recording charges. It sits under the time tile, about half the screen wide; where this doesn't fit, the short form below shows, then the icon alone. -->
+    <string name="hub_estimate_tip_record" volt:screen="Home charging view" volt:purpose="button" volt:ladder="full" volt:max="110dp@12sp" volt:overflow="short" volt:safety="charge">Improve this estimate</string>
+    <!-- The same button's shorter form, where the full one doesn't fit. -->
+    <string name="hub_estimate_tip_record_short" volt:screen="Home charging view" volt:purpose="button" volt:ladder="short" volt:max="110dp@12sp" volt:safety="charge">Improve estimate</string>
+    <!-- The sheet that button opens: its title. It suggests recording charges, first for the owner's own estimate, then to send to Volt. -->
+    <string name="hub_estimate_tip_record_title" volt:screen="Record your charges sheet" volt:purpose="sheet title" volt:safety="charge">Record your charges</string>
+    <!-- A quiet text button at the foot of that sheet: hides the button on Home for good. -->
+    <string name="hub_estimate_tip_hide" volt:screen="Record your charges sheet" volt:purpose="button">Hide this tip</string>
+
     <!-- ===== Ride › Recording settings ===== -->
     <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->
     <string name="hub_recording_auto_background" volt:screen="Recording settings" volt:purpose="row" volt:safety="ride">Start recording in the background</string>

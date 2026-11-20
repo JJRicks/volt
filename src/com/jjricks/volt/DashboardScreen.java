@@ -2548,6 +2548,105 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /**
+     * The estimate tip's slot (ChargeEstimateTip; owner, Nov 19 2026: "a subtle but noticeable UI element around the
+     * charge time estimation in charging mode"), under the charging view's time tile on Widgets and Clean: one small
+     * outlined pill, accent words and the tip's icon, no fill, so it never competes with the charging pill above. Its
+     * start lines up with the time tile's (the tile's whole width under a stacked pair), and it is as wide as its words,
+     * at most the tile's width. Its label steps down the narrow-label ladder in that room: the full words, the short
+     * ones, then the icon alone, which TalkBack and a long press still name in full; never a broken word or smaller
+     * text. 48 dp to touch (more with larger text); the outline sits 8 dp inside that. Which tip shows is ChargeEstimateTip's choice; the charging
+     * view shows and hides the slot (Motion.reveal) and a tap runs the tip's action (openTip).
+     */
+    private final class EstimateTipSlot extends FrameLayout {
+        final TextView pill;
+        /** The time tile the pill sits under. */
+        final View anchor;
+        /** The tip it holds (kept while it fades out); null before the first. */
+        ChargeEstimateTip.Tip tip;
+        /** Its label's rungs (rendered when measured, in the language current then). */
+        Msg full, brief;
+        /** The rung showing: 0 full, 1 short, -1 the icon alone; -2 none chosen yet. */
+        int rung = -2;
+        /** Clean: false where its fixed slot has no room for the tip (ChargingHero.onMeasure, ChargingFit.extraFits). */
+        boolean fits = true;
+
+        EstimateTipSlot(View anchor) {
+            super(host.activity());
+            this.anchor = anchor;
+            setTag(ChargeEstimateTip.TAG_SLOT);
+            setClipChildren(false); setClipToPadding(false);
+            pill = ui.text("", 12, false);
+            pill.setTag(ChargeEstimateTip.TAG_PILL);
+            pill.setTypeface(ui.medium());
+            pill.setTextColor(ui.accentText);
+            pill.setGravity(Gravity.CENTER_VERTICAL);
+            pill.setMaxLines(1);
+            pill.setMinHeight(ui.dp(48));
+            pill.setCompoundDrawablePadding(ui.dp(6));
+            int inset = ui.dp(8);
+            pill.setBackground(ripple(Ui.withAlpha(ui.accent, 36),
+                    new android.graphics.drawable.InsetDrawable(ui.shape(Color.TRANSPARENT, 100, Ui.withAlpha(ui.accentText, ui.dark ? 120 : 110)), 0, inset, 0, inset),
+                    new android.graphics.drawable.InsetDrawable(ui.shape(Color.WHITE, 100, 0), 0, inset, 0, inset)));
+            pill.setClickable(true); pill.setFocusable(true);
+            pill.setOnClickListener(v -> { if (tip != null && !editing && !closed) openTip(tip); });
+            addView(pill, new FrameLayout.LayoutParams(-2, -2));
+            setVisibility(GONE);
+        }
+
+        /** Holds this tip: its icon, its words and its spoken name. Showing or hiding is the charging view's. */
+        void hold(ChargeEstimateTip.Tip next) {
+            if (next == null || next == tip) return;
+            tip = next;
+            full = HubText.estimateTip(next);
+            brief = HubText.estimateTipShort(next);
+            pill.setContentDescription(full.render());
+            // The icon grows with the words (Text size), so it stays their companion at large text.
+            pill.setCompoundDrawablesRelative(glyphDrawable(ChargeEstimateTip.icon(next), ui.accentText, Math.round(14 * ui.textScale)), null, null, null);
+            rung = -2;
+            requestLayout();
+        }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            int width = MeasureSpec.getSize(widthSpec);
+            int tile = anchor.getMeasuredWidth();
+            int room = tile > 0 && tile <= width ? tile : width;
+            // The words' room: the pill's room less its padding and the icon beside them.
+            int icon = ui.dp(Math.round(14 * ui.textScale)), start = ui.dp(10), end = ui.dp(12), gap = ui.dp(6);
+            android.text.TextPaint paint = pill.getPaint();
+            String fullText = full == null ? "" : full.render(), briefText = brief == null ? "" : brief.render();
+            int next = TileRung.first(new float[] {paint.measureText(fullText), paint.measureText(briefText)}, room - start - end - icon - gap);
+            if (next != rung) {
+                rung = next;
+                boolean words = next >= 0;
+                String text = next == 0 ? fullText : next == 1 ? briefText : "";
+                if (TileRung.needsSet(text, pill.getText())) pill.setText(text);
+                // The icon alone: centred in a pill of even sides, named by its tooltip as by TalkBack.
+                // Above and below: the outline's 8 dp inset plus room inside it, so larger text grows the pill, never past its outline.
+                int around = ui.dp(8) + ui.dp(6);
+                pill.setPaddingRelative(words ? start : end, around, end, around);
+                pill.setCompoundDrawablePadding(words ? gap : 0);
+                pill.setTooltipText(words ? null : fullText);
+            }
+            pill.measure(MeasureSpec.makeMeasureSpec(Math.max(0, room), MeasureSpec.AT_MOST), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            int visibility = fits ? VISIBLE : GONE;
+            if (pill.getVisibility() != visibility) pill.setVisibility(visibility);
+            setMeasuredDimension(width, fits ? pill.getMeasuredHeight() : 0);
+        }
+
+        @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            // The time tile's start in this slot's own coordinates (both are inside the charging view's rows).
+            int x = 0;
+            View parent = getParent() instanceof View ? (View) getParent() : null;
+            for (View v = anchor; v != null && v != parent; v = v.getParent() instanceof View ? (View) v.getParent() : null) x += v.getLeft();
+            x -= getLeft();
+            int w = pill.getMeasuredWidth();
+            int at = getLayoutDirection() == LAYOUT_DIRECTION_RTL ? x + anchor.getWidth() - w : x;
+            at = Math.max(0, Math.min(at, (right - left) - w));
+            pill.layout(at, 0, at + w, pill.getMeasuredHeight());
+        }
+    }
+
+    /**
      * Charging takeover, kept as a hero above the grid: shown only while charging is freshly
      * reported, with the percentage, the scooter photo over a red glow and a floor line that
      * fills to the charge and then, in grey, to the charge limit.
@@ -2631,6 +2730,8 @@ public final class DashboardScreen implements AppScreen {
         final TextView chipShort;
         final ChargeTimeTile timeTile;
         final InfoTiles tiles;
+        /** The estimate tip's slot under the time tile (ChargeEstimateTip), gone while no tip shows. */
+        final EstimateTipSlot tipSlot;
         final ImageView photo;
         final Stage stage;
         /**
@@ -2788,7 +2889,28 @@ public final class DashboardScreen implements AppScreen {
                 }
             }
             rows.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
+            tipSlot = new EstimateTipSlot(timeTile);
+            rows.addView(tipSlot, new LinearLayout.LayoutParams(-1, -2));
             addView(rows, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        /**
+         * Shows the estimate tip ChargeEstimateTip picks (the charging view's time is on screen whenever this runs), or
+         * none. It fades in or out while what is around it glides (Motion.reveal): on Widgets the page under the takeover,
+         * on Clean the charging view's own parts in its fixed slot. While the view itself is arriving, leaving or hidden,
+         * or with animations off, the change is instant. Called with every refresh, so a recording saved or started, the
+         * tip hidden or the store's answer arriving all show on the next one.
+         */
+        void showTip() {
+            ScooterService s = host.service();
+            Map<String, ?> stored;
+            try { stored = preferences.getAll(); } catch (RuntimeException unreadable) { stored = null; }
+            ChargeEstimateTip.Tip next = s == null || closed || editing ? null
+                    : ChargeEstimateTip.choose(true, s.chargeRecordingsSaved(), s.isChargeRecording(), stored);
+            tipSlot.hold(next);
+            boolean steady = shown && getVisibility() == View.VISIBLE && isLaidOut() && (clean ? !holdPulse : reveal == null);
+            ViewGroup root = !steady ? null : clean ? this : getParent() instanceof ViewGroup ? (ViewGroup) getParent() : null;
+            Motion.reveal(root, tipSlot, next != null);
         }
 
         private ChargeBar.Host barHost() {
@@ -2958,10 +3080,21 @@ public final class DashboardScreen implements AppScreen {
             chip.measure(upTo, free);
             chipShort.measure(upTo, free);
             percent.measure(free, free);
+            tipSlot.fits = true;
             rows.measure(across, free);
             int fullPercent = percent.getMeasuredHeight();
             ChargingFit.Plan plan = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
                     rows.getMeasuredHeight(), getResources().getDisplayMetrics().density);
+            // The estimate tip makes way first: it shows only where it costs the slot nothing but some stage height.
+            if (tipSlot.getVisibility() != View.GONE && tipSlot.getMeasuredHeight() > 0) {
+                ChargingFit.Plan without = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
+                        rows.getMeasuredHeight() - tipSlot.getMeasuredHeight(), getResources().getDisplayMetrics().density);
+                if (!ChargingFit.extraFits(plan, without)) {
+                    tipSlot.fits = false;
+                    rows.measure(across, free);
+                    plan = without;
+                }
+            }
             shown(chip, plan.line && !plan.shortLine);
             shown(chipShort, plan.line && plan.shortLine);
             shown(percent, plan.percent);
@@ -3193,6 +3326,7 @@ public final class DashboardScreen implements AppScreen {
             if (clean || picture == null) stage.setMinimumHeight(clean ? 0 : ui.dp(known ? 236 : 44));
             updatePulse();
             timeTile.update(estimate, chargeAlertEstimate(values), level);
+            showTip();
             String watts = estimate.inputWatts == null ? null
                     : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
@@ -9286,6 +9420,55 @@ public final class DashboardScreen implements AppScreen {
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(ui.accent);
         if (dialog.getWindow() != null)
             dialog.getWindow().setLayout(-1, (int) (host.activity().getResources().getDisplayMetrics().heightPixels * .86));
+    }
+
+    /**
+     * A tap on the charging view's estimate tip runs its action (ChargeEstimateTip). The record tip opens its sheet
+     * (ChargeInviteSheet.showRecordTip), kept as this Home's dialog so it closes with Home. A new tip adds its case here.
+     */
+    private void openTip(ChargeEstimateTip.Tip tip) {
+        switch (tip) {
+            case NO_RECORDINGS:
+                if (dialog != null && dialog.isShowing()) return;
+                dismiss();
+                dialog = ChargeInviteSheet.showRecordTip(host, preferences, this::recordFromTip, () -> hideTip(tip));
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * The record tip's Record this charge, on the charging screen itself: when a recording can start now, the sheet
+     * closes and the charger question (ChargeRecordDialog, Charge history &amp; recordings' own) opens over Home; when
+     * it can't, the reason shows (ScooterService.chargeCaptureUnavailable) and the sheet stays. Returns whether the sheet
+     * closes.
+     */
+    private boolean recordFromTip() {
+        ScooterService s = host.service();
+        if (s == null || closed || s.isChargeRecording()) return true;
+        String unavailable = s.chargeCaptureUnavailable();
+        if (unavailable != null) { host.toast(unavailable); return false; }
+        // After the sheet has gone: the question takes its place as Home's dialog (Clean's parts-only Home has no window
+        // of its own to post to, so the main thread's queue).
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+            if (closed || host.service() != s) return;
+            ChargeRecordDialog.show(host, s, () -> closed || host.service() != s, () -> { if (!closed) host.redraw(); }, (question, onDismiss) -> {
+                dismiss();
+                dialog = question;
+                ChargeRecordDialog.present(ui, question, () -> {
+                    if (dialog == question) dialog = null;
+                    if (onDismiss != null) onDismiss.run();
+                });
+            });
+        });
+        return true;
+    }
+
+    /** The sheet's Hide this tip: stored for good (committed, so a process end right after can't bring it back), then gone with motion. */
+    private void hideTip(ChargeEstimateTip.Tip tip) {
+        preferences.edit().putBoolean(tip.hiddenKey(), true).commit();
+        if (!closed) chargingHero.showTip();
     }
 
     private void dismiss() {

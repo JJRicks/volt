@@ -263,6 +263,11 @@ STEPS += [
     # The same bar as Clean Home's charge track (the owner's request, 19 Nov 2026), with Clean's time tile and the choice
     # it shares with Widgets; the scooter pane of two at 725 dp.
     inst('charge-bar-clean', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'theme', 'dark', size=PHONE[0]),
+    # Home's estimate tip (ChargeEstimateTip): with no recordings it shows under the charging time; a tap opens its sheet;
+    # Hide this tip and a saved recording each make it go. Widgets and Clean at the 344 dp phone, Clean on the Fold open.
+    inst('estimate-tip-widgets', PKG + '.EstimateTipValidation', '-e', 'home', 'widgets', '-e', 'theme', 'dark', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('estimate-tip-clean', PKG + '.EstimateTipValidation', '-e', 'home', 'clean', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
+    inst('estimate-tip-clean-fold', PKG + '.EstimateTipValidation', '-e', 'home', 'clean', '-e', 'theme', 'dark', '-e', 'size_label', 'fold', size='790x820'),
     inst('charge-bar-clean-725', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'theme', 'light', size=WIDE[0]),
     inst('charge-bar-layout-clean-344', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-bar-layout-clean-725', PKG + '.ChargeBarValidation', '-e', 'home', 'clean', '-e', 'mode', 'layout', '-e', 'size_label', '725', size=WIDE[0]),

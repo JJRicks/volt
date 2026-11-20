@@ -43,6 +43,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeSizeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time size beside power validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ModelPhotosValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated model photo set and Home photo validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />
+  <instrumentation android:name="com.jjricks.volt.EstimateTipValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Home estimate tip validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargePictureValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging pictures on Widgets and Clean Home validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ShortcutPickerValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shortcut picker and Charge alerts shortcut validation" />
