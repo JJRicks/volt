@@ -38,6 +38,8 @@ public final class LearnedChargerMatchTest {
         baselineCharges();
         chargerTipWhileRecording();
         chosenClearsBaseline();
+        chargerTipNeedsACharger();
+        chargerTipFilesWhatItOffered();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -632,7 +634,7 @@ public final class LearnedChargerMatchTest {
     /** #575 r2 F01: the hint during a running recording, only an automatic guess with a known other charger. */
     static void chargerTipWhileRecording() {
         ChargeSessionStore.LabelSource G = ChargeSessionStore.LabelSource.GUESS;
-        check(RecordChargerHint.show(true, true, false, null, null, false, true), "No recording: as before");
+        check(RecordChargerHint.show(true, true, false, null, FAST, false, true), "No recording, a charger named: shown");
         check(RecordChargerHint.show(true, true, true, G, FAST, false, true), "An automatic guess, high-speed suggested: shown");
         check(!RecordChargerHint.show(true, true, true, G, null, false, true), "An automatic guess, no charger named: hidden");
         check(!RecordChargerHint.show(true, true, true, null, FAST, false, true), "A manual recording: hidden");
@@ -671,6 +673,45 @@ public final class LearnedChargerMatchTest {
         plain.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
         check(plain.relabel(FAST, ChargeSessionStore.LabelSource.CHOSEN) && plain.labelSource() == ChargeSessionStore.LabelSource.CHOSEN, "A plain guess filed");
         plain.stop(ChargeSessionStore.Stop.STOPPED);
+    }
+
+    /** #577 F01: the tip is offered only for a charger Volt can name; a run that names none (null) never shows it. */
+    static void chargerTipNeedsACharger() {
+        for (boolean rec : new boolean[]{false, true}) {
+            ChargeSessionStore.LabelSource source = rec ? ChargeSessionStore.LabelSource.GUESS : null;
+            check(!RecordChargerHint.show(true, true, rec, source, null, false, true), "No charger named" + (rec ? ", during a guess" : "") + ": hidden");
+            check(RecordChargerHint.show(true, true, rec, source, FAST, false, true) && RecordChargerHint.show(true, true, rec, source, STOCK, false, true),
+                    "A charger named" + (rec ? ", during a guess" : "") + ": shown");
+        }
+        // The same run, end to end: far below the only stock curve names no charger, so the tip stays away.
+        check(RecordChargerHint.otherFamily(STOCK, -1) == null
+                && !RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(STOCK, -1), false, true), "Far below stock: no tip");
+        check(!RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(FAST, 1), false, true), "Far above high-speed: no tip");
+        check(RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(STOCK, 1), false, true)
+                && RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(FAST, -1), false, true), "Either named direction: the tip");
+    }
+
+    /** #577 F03: the sheet's Save button files only the recording it offered, under the charger it named, and never starts one. */
+    static void chargerTipFilesWhatItOffered() throws Exception {
+        String service = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterService.java")),
+                java.nio.charset.StandardCharsets.UTF_8).replace(" ", "");
+        int at = service.indexOf("publicbooleanfileChargeRecordingAs(ChargeSessionStore.Chargercharger,longstarted){");
+        check(at > 0, "The Save button's filing takes the recording the sheet offered");
+        int end = at < 0 ? -1 : service.indexOf("returnfileChargeRecordingAs(charger);", at);
+        String body = end < 0 ? "" : service.substring(at, end + "returnfileChargeRecordingAs(charger);".length());
+        check(body.contains("store.startedMono()!=started)returnfalse;") && body.contains("returnfileChargeRecordingAs(charger);"),
+                "Only that same recording, through the guarded relabel: " + body);
+        check(!body.contains("startChargeRecording"), "It never starts a recording");
+        check(service.contains("returnstore!=null&&store.active()?store.startedMono():0;"), "The sheet keeps the running recording's start, 0 with none");
+        // The store's own start: two recordings never share one, so a replaced recording is never filed.
+        long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
+        ChargeSessionStore store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
+        long first = store.startedMono();
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall + 120000, mono + 120000);
+        check(first == mono && store.startedMono() == mono + 120000, "Each recording keeps its own start");
+        store.stop(ChargeSessionStore.Stop.STOPPED);
     }
 
     // ---- the estimate under Automatic ----
