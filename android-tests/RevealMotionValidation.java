@@ -109,8 +109,9 @@ import com.jjricks.volt.ScooterProfiles;
  *
  * Parts (-e part): {@code find} (Home's Find it nearby card, FindNearby entry A; -e home widgets|clean). The card is
  * offered the app's own way: BleController's timeout tally for the saved address reaches two (FindNearby.Timeouts, as
- * two connect timeouts leave it) while a connection is wanted; it goes when the tally starts again (as a connection
- * does). Nothing is sent and Bluetooth stays off. The connection parts run the simulator (memory only, never a
+ * two connect timeouts leave it, both in one stay on Home, which the app itself must have started) while a connection is
+ * wanted; it goes when the tally starts again (as a connection does). Its home-only check (2.0.1): a visit to another
+ * page ends the stay, and back on Home the card is gone. Nothing is sent and Bluetooth stays off. The connection parts run the simulator (memory only, never a
  * command): its dropout script leaves the link Connecting, as a scooter that stops answering does, and the default
  * script brings it back. {@code controls}: Controls › Limits' connection banner. {@code rides}: Ride › Rides'
  * Connect to record. {@code scooters}: Settings › My scooters, the card's "Last connected" line. {@code night}:
@@ -188,7 +189,7 @@ public final class RevealMotionValidation extends Instrumentation {
                 else {
                     // -e only <check> runs one check (to show which one a build fails).
                     String only = arguments.getString("only", "");
-                    String[] names = {"hitch", "arrives", "pulse", "toggles", "reversals", "recreated", "at-rest", "off", "instant", "turns", "scrolled", "mid", "ghost", "gather", "opened-live", "into-view", "taps"};
+                    String[] names = {"hitch", "arrives", "pulse", "toggles", "reversals", "recreated", "at-rest", "off", "instant", "turns", "scrolled", "mid", "ghost", "gather", "opened-live", "into-view", "home-only", "taps"};
                     require(only.isEmpty() || java.util.Arrays.asList(names).contains(only), "Unknown -e only " + only);
                     boolean alert = part.equals("riding-alert");
                     if (only.isEmpty() || only.equals("hitch")) hitchPerMeasurement();
@@ -224,6 +225,7 @@ public final class RevealMotionValidation extends Instrumentation {
                     if (part.equals("battery") && (only.isEmpty() || only.equals("gather"))) gather(site);
                     if (part.equals("battery") && (only.isEmpty() || only.equals("opened-live"))) gatherOpened(site);
                     if (part.equals("onboarding") && (only.isEmpty() || only.equals("into-view"))) intoView(site);
+                    if (part.equals("find") && (only.isEmpty() || only.equals("home-only"))) homeOnly(site);
                     // Last: it ends the simulator (and, for Rides, records a ride on a synthetic link).
                     if (only.isEmpty() || only.equals("taps")) taps();
                 }
@@ -772,13 +774,54 @@ public final class RevealMotionValidation extends Instrumentation {
                 () -> main(() -> { tally(0); activity.redraw(); }));
     }
 
-    /** On the main thread: BleController's tally for the fixture's saved address, and a connection wanted. */
+    /**
+     * On the main thread: BleController's tally for the fixture's saved address, and a connection wanted. Since 2.0.1
+     * (plan item 7, the owner's rule) Home's card counts only the failed attempts of one stay on Home (FindNearby.Timeouts'
+     * homeCount), so both counts are set; the stay itself must be the app's own: Home shown with Volt in front has told
+     * the tally (MainActivity.watchHome), never set here.
+     */
     private void tally(int count) {
         Object ble = field(activity.service(), "ble");
         Object timeouts = field(ble, "timeouts");
+        if (count > 0) require(Boolean.TRUE.equals(field(timeouts, "home")), "Home is shown with Volt in front, but the timeout tally was not told (MainActivity.watchHome)");
         set(timeouts, "profileId", profileId);
         set(timeouts, "count", count);
+        set(timeouts, "homeCount", count);
         set(ble, "wanted", true);
+    }
+
+    /**
+     * Find it nearby counts only on Home (2.0.1 plan item 7, the owner's rule: "only begin counting ... when the user is
+     * on the home screen and doesnt visit any other app page"): with the card offered, a visit to Battery & charging ends
+     * Home's stay there (the Home count reset, though the raw tally of timeouts still holds two), and back on Home the
+     * count starts at zero, so the card is gone until two more attempts fail while Home stays shown.
+     */
+    private void homeOnly(Site site) {
+        main(() -> { tally(2); activity.redraw(); });
+        awaitRest(site, true);
+        requireRest(site, true, "offered on Home before the visit elsewhere");
+        main(() -> activity.open(HubPages.BATTERY));
+        await(() -> onMain(() -> HubPages.BATTERY.equals(field(activity, "selectedPage"))), "Battery & charging did not open from Home");
+        settle();
+        main(() -> {
+            Object timeouts = field(field(activity.service(), "ble"), "timeouts");
+            require(!Boolean.TRUE.equals(field(timeouts, "home")) && ((Integer) field(timeouts, "homeCount")) == 0,
+                    "Another page did not end Home's stay (home " + field(timeouts, "home") + ", Home count " + field(timeouts, "homeCount") + ")");
+            require(!activity.service().ble.findNearbyOffered(), "Find it nearby is still offered on another page");
+        });
+        main(() -> activity.onBackPressed());
+        requireHome();
+        main(() -> {
+            Object timeouts = field(field(activity.service(), "ble"), "timeouts");
+            require(Boolean.TRUE.equals(field(timeouts, "home")) && ((Integer) field(timeouts, "homeCount")) == 0 && ((Integer) field(timeouts, "count")) == 2,
+                    "Back on Home: the stay should start again from zero with the raw tally kept (home " + field(timeouts, "home") + ", Home count "
+                            + field(timeouts, "homeCount") + ", tally " + field(timeouts, "count") + ")");
+            activity.redraw();
+        });
+        awaitRest(site, false);
+        requireRest(site, false, "back on Home after a visit elsewhere");
+        checks.add(site.name + ": offered on Home, then a visit to Battery & charging ends Home's stay (the count reset there, the card not offered), and back on Home"
+                + " the count starts at zero, so the card stays away");
     }
 
     /** The views after this one in its parent, then after its parent in the grandparent (what a size change moves). */

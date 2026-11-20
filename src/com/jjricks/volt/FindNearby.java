@@ -28,7 +28,8 @@ final class FindNearby {
 
     /**
      * Home's Find it nearby button (entry A): an eligible profile Volt wants connected, whose last {@link #TIMEOUTS}
-     * attempts at its saved address all timed out, and nothing else going on: not connected, not simulating, not
+     * attempts at its saved address all timed out while Home was the page shown with Volt in front, begun and ended
+     * there in one stay ({@link Timeouts#stuckOnHome}), and nothing else going on: not connected, not simulating, not
      * recording, no change in flight.
      */
     static boolean offerHome(String savedMac, String savedSerial, boolean wanted, boolean stuck, boolean connected,
@@ -51,36 +52,72 @@ final class FindNearby {
     static final class Timeouts {
         private String profileId = "";
         private int count;
+        /**
+         * The Home stay (the owner's rule, Nov 2026: the card showed far too often): whether Home is the page shown with
+         * Volt in front (MainActivity tells it, {@link #home}), which stay this is (each start and end of one is a new
+         * stay), the stay the attempt in flight began in (-1: none, or begun away from Home), and the failed attempts
+         * this stay counted, each begun and ended in it. Only this count offers Home's card ({@link #stuckOnHome}).
+         */
+        private boolean home;
+        private long stay, attemptStay = -1;
+        private int homeCount;
 
         /** A connection attempt for this profile: another profile than the tally's starts it again. */
-        void attempt(String id) { if (!same(id)) { profileId = id == null ? "" : id; count = 0; } }
+        void attempt(String id) { if (!same(id)) start(id); attemptStay = home ? stay : -1; }
 
         /**
          * The active profile is {@code id}: BleController.scooterSwitched tells it on every switch (My scooters' Use,
          * Find at a new address, an import, forgetting the current scooter), and findNearbyOffered before every look.
          * When it changed, the tally starts again for it, so A, then B, then A again starts A from zero.
          */
-        void active(String id) { if (!same(id)) { profileId = id == null ? "" : id; count = 0; } }
+        void active(String id) { if (!same(id)) start(id); }
 
         /**
-         * A link failed. Counts only an attempt at the profile's saved address that {@link #counts} counts.
+         * Home is (true) or is no longer (false) the page shown with Volt in front. Either change starts the Home count
+         * again: leaving Home for any other page, riding mode or setup, or Volt leaving the screen, resets it, and a
+         * return to Home counts from zero, so only attempts begun and ended in one stay on Home count. The same value
+         * again changes nothing, so a refresh may tell it on every pass.
+         */
+        void home(boolean shown) {
+            if (shown == home) return;
+            home = shown; stay++; homeCount = 0; attemptStay = -1;
+        }
+
+        /**
+         * A link failed. Counts only an attempt at the profile's saved address that {@link #counts} counts; the Home
+         * count also needs the attempt to have begun in this stay on Home ({@link #attempt}), with Home still shown.
          * {@code neverConnected}: the link never reached STATE_CONNECTED (BleController passes it beside the event
          * log's reason, which stays as it is).
          */
         void failed(String id, String attemptMac, String savedMac, ConnectionEventLog.Reason reason, boolean neverConnected) {
             if (!counts(reason, neverConnected)) return;
             if (savedMac == null || savedMac.isEmpty() || attemptMac == null || !savedMac.equalsIgnoreCase(attemptMac)) return;
-            if (!same(id)) { profileId = id == null ? "" : id; count = 0; }
+            if (!same(id)) start(id);
             count++;
+            if (home && attemptStay == stay) homeCount++;
+            // One failure per attempt: a second report for the same attempt (a timeout after a native drop) isn't another.
+            attemptStay = -1;
         }
 
         /** The link reached ready (authenticated, serial checked, first status): the tally starts again. */
-        void connected() { count = 0; }
+        void connected() { count = 0; homeCount = 0; }
 
         int count(String id) { return same(id) ? count : 0; }
 
+        /** Failed attempts at the saved address in this stay on Home (0 away from Home). */
+        int homeCount(String id) { return home && same(id) ? homeCount : 0; }
+
         /** Whether this profile's last {@link #TIMEOUTS} attempts at its saved address all timed out. */
         boolean stuck(String id) { return count(id) >= TIMEOUTS; }
+
+        /**
+         * Whether Home offers Find it nearby: {@link #TIMEOUTS} failed attempts at the saved address, each begun and
+         * ended while Home stayed the page shown with Volt in front (the owner's rule).
+         */
+        boolean stuckOnHome(String id) { return homeCount(id) >= TIMEOUTS; }
+
+        /** A new profile's tally: nothing counted yet, and the attempt in flight (another profile's) not this one's. */
+        private void start(String id) { profileId = id == null ? "" : id; count = 0; homeCount = 0; attemptStay = -1; }
 
         private boolean same(String id) { return id != null && !id.isEmpty() && id.equals(profileId); }
     }
