@@ -281,7 +281,7 @@ public final class DashboardScreen implements AppScreen {
 
     /**
      * Find it nearby (entry A): a card with what happened and a secondary button that opens the scan sheet in find mode.
-     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address, nothing else going on).
+     * Shown only while FindNearby.offerHome holds (two timeouts at the saved address in one stay on Home, nothing else going on).
      */
     private LinearLayout newFindCard() {
         TextView words = ui.text("", 14, false);

@@ -16,6 +16,7 @@ public final class FindNearbyTest {
     public static void main(String[] args) {
         eligibility();
         timeouts();
+        homeStay();
         picks();
         serials();
         sheet();
@@ -117,6 +118,90 @@ public final class FindNearbyTest {
         t.failed("c", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(t.count("c") == 1 && t.count("b") == 0, "a timeout for another profile starts its own tally");
         check(FindNearby.TIMEOUTS == 2, "two timeouts");
+    }
+
+    /**
+     * The owner's rule (Nov 2026: the card showed far too often): Home's card counts only failed attempts begun and ended
+     * while Home stayed the page shown with Volt in front. Staying on Home through two shows it; visiting another page or
+     * Volt leaving the screen starts the count again; an attempt begun before the stay, or a failure after it, doesn't count.
+     */
+    private static void homeStay() {
+        // Stays on Home: two failed attempts, each begun and ended there, offer the card (and still need all else).
+        FindNearby.Timeouts t = new FindNearby.Timeouts();
+        t.home(true);
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(t.homeCount("a") == 1 && !t.stuckOnHome("a"), "one failed attempt on Home: not yet");
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(t.stuckOnHome("a") && t.stuck("a"), "two failed attempts while staying on Home: the card");
+        check(FindNearby.offerHome(SAVED, SERIAL, true, t.stuckOnHome("a"), false, false, false, false), "the scooter at a new address while the rider waits on Home: offered");
+        t.home(true);
+        check(t.stuckOnHome("a"), "Home told again (a refresh) keeps the stay");
+        // Another page: the count starts again, and a return to Home counts from zero.
+        t.home(false);
+        check(!t.stuckOnHome("a") && t.homeCount("a") == 0, "another page: no card, the count reset");
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(!t.stuckOnHome("a") && t.count("a") == 4, "failed attempts away from Home never count for the card (the raw tally still does)");
+        t.home(true);
+        check(!t.stuckOnHome("a") && t.homeCount("a") == 0, "back on Home: the count starts at zero");
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.home(false); t.home(true);
+        check(t.homeCount("a") == 0, "a quick visit elsewhere between two attempts resets the count");
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(t.stuckOnHome("a"), "two more on Home after the visit: the card");
+        // Volt in the background (onPause, the same false): reset, and the card goes.
+        t.home(false);
+        check(!t.stuckOnHome("a"), "Volt in the background: no card, the count reset");
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.home(true);
+        check(!t.stuckOnHome("a") && t.homeCount("a") == 0, "background attempts (background connection on) don't count on return");
+        // An attempt begun before the stay (on another page, or in the background) that fails on Home doesn't count.
+        FindNearby.Timeouts early = new FindNearby.Timeouts();
+        early.attempt("a");
+        early.home(true);
+        early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(early.homeCount("a") == 0, "an attempt begun before Home showed doesn't count");
+        early.attempt("a"); early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        early.attempt("a"); early.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(early.stuckOnHome("a"), "the next two, begun on Home: the card");
+        // An attempt begun on Home that fails after leaving and coming back doesn't count either.
+        FindNearby.Timeouts away = new FindNearby.Timeouts();
+        away.home(true);
+        away.attempt("a"); away.home(false); away.home(true);
+        away.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(away.homeCount("a") == 0, "an attempt that outlived a visit elsewhere doesn't count");
+        // One failure per attempt: a second report for the same attempt isn't another.
+        FindNearby.Timeouts once = new FindNearby.Timeouts();
+        once.home(true);
+        once.attempt("a");
+        once.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, true);
+        once.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(once.homeCount("a") == 1 && !once.stuckOnHome("a"), "two reports of one attempt count once on Home");
+        // The tally's other rules hold on Home: only counted reasons at the saved address; a connection, a profile switch reset.
+        FindNearby.Timeouts rules = new FindNearby.Timeouts();
+        rules.home(true);
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.IDENTITY_REJECTED, false);
+        rules.attempt("a"); rules.failed("a", OTHER, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.NATIVE_DISCONNECT, false);
+        check(rules.homeCount("a") == 0, "a refusal, a find's address and a lost link don't count on Home");
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_FAILED, false);
+        check(rules.stuckOnHome("a"), "a timeout and a connectGatt failure on Home: the card");
+        rules.connected();
+        check(!rules.stuckOnHome("a"), "a connection resets the Home count");
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        rules.attempt("a"); rules.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        rules.active("b");
+        check(!rules.stuckOnHome("a") && !rules.stuckOnHome("b"), "a profile switch resets the Home count");
+        rules.attempt("b"); rules.failed("b", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        rules.attempt("b"); rules.failed("b", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(rules.stuckOnHome("b") && !rules.stuckOnHome("a"), "the new profile counts its own stay");
+        // Never told Home (a service with no activity, the default): never offered.
+        FindNearby.Timeouts never = new FindNearby.Timeouts();
+        for (int i = 0; i < 5; i++) { never.attempt("a"); never.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false); }
+        check(never.stuck("a") && !never.stuckOnHome("a"), "without Home shown, any number of timeouts offers nothing");
     }
 
     /** Failure modes 2, 3 and 4: what a pick may send. */
@@ -281,7 +366,20 @@ public final class FindNearbyTest {
         check(main.contains("if(find&&!FindNearby.offerRow(finding.mac,finding.serial))return;"), "the sheet's find mode needs a saved address and serial");
         String more = read("src/com/jjricks/volt/MoreScreen.java");
         check(more.contains("if (FindNearby.offerRow(p.mac, p.serial)) {") && more.contains("if (p == null || !FindNearby.offerRow(p.mac, p.serial)) { host.redraw(); return; }"), "the row too");
-        check(ble.contains("FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuck(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null)"), "Home's button");
+        check(ble.contains("FindNearby.offerHome(p.mac,p.serial,wanted,timeouts.stuckOnHome(p.id),connected()||answeringAt(p.mac),simulating(),recording,mutation!=null)"), "Home's button: the Home stay's count");
+        // The Home stay (owner, Nov 2026): MainActivity tells the tally where the page changes, on every refresh, and as
+        // Volt leaves the screen (not for a recreation on screen); only Home, resumed, outside riding mode and setup, starts one.
+        check(ble.contains("public void homeShown(boolean shown){timeouts.home(shown);}"), "the controller passes the stay on");
+        String watch = body(main, "    private void watchHome(){", "\n    }\n");
+        check(watch.contains("boolean home=HubPages.HOME.equals(selectedPage)&&riding==null&&onboarding==null&&!enteringMaintenance&&!startupRedirect&&!destroyed;")
+                && watch.contains("if(!home)scooterService.ble.homeShown(false);") && watch.contains("else if(resumed)scooterService.ble.homeShown(true);"), "Home, resumed, starts a stay; anything else ends it");
+        check(main.contains("if(scooterService!=null&&!isChangingConfigurations())scooterService.ble.homeShown(false);\n        resumed=false;"), "onPause ends the stay, a recreation doesn't");
+        check(body(main, "    private void resume(){", "\n    }\n").contains("resumed=true;resumes++;missedStartOffered=0;watchHome();ScooterService.setUiVisible(true);"),
+                "a return to Home starts a stay before the service hears Volt is visible (its first attempt counts)");
+        check(main.contains("String page=nav.current();selectedPage=page;preferences.edit().putString(\"last_page\",page).apply();watchHome();"), "every page change through the stack");
+        check(main.contains("nav.reset(page);selectedPage=nav.current();watchHome();}") && main.contains("nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();watchHome();}")
+                && main.contains("preferences.edit().putString(\"last_page\",selectedPage).apply();watchHome();"), "every reset of the stack, and an expired return");
+        check(main.contains("riding=session;watchHome();") && main.contains("    private void refreshBodyNow(){\n        watchHome();"), "riding mode, and every body refresh");
         // 8: Find during an attempt ends it first: the sheet disconnects before scanning.
         String show = body(main, "private void showScanner(boolean start,boolean find){", "\n    private void connectSelectedScan(){");
         check(show.contains("if(start){scooterService.ble.disconnect();scooterService.ble.scan();}") && main.contains("showScanner(true,true);"), "Find disconnects, then scans");
