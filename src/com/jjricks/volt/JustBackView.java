@@ -770,7 +770,9 @@ final class JustBackView extends LinearLayout {
             float ox = fit[0], oy = fit[1], scale = fit[2];
             float layer = layer(SystemClock.uptimeMillis());
             if (layer > 0 && area != null) mapShown = drawTiles(canvas, layer);
-            if (layer > 0 && layer < 1) postInvalidateOnAnimation();
+            // Every frame of a fade asks for the next, its first too: a first frame drawn at the fade's very start has the
+            // layer at exactly 0 (or 1) and would otherwise leave the fade stopped there (local fold run, Nov 19 2026).
+            if (fadeFrom != fadeTo) postInvalidateOnAnimation();
             float sx = ox + route[2] * scale, sy = oy + route[3] * scale;
             float ex = ox + route[route.length - 2] * scale, ey = oy + route[route.length - 1] * scale;
             if (route.length > 4 && scale > 0) {
