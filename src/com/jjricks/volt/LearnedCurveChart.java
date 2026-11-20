@@ -51,7 +51,10 @@ final class LearnedCurveChart {
     final int unlisted;
     /** The lowest finish recording's start, rounded down to a whole percent; -1 for none. */
     final int finishFrom;
-    /** The top of the speed axis: the largest learned minutes rounded up to 1, 2 or 5 times a power of ten; 0 for none. */
+    /**
+     * The top of the speed axis: the next nice number (niceCeiling) over the largest learned minutes plus 5% headroom, so
+     * the line uses the chart's height without touching its top; 0 for none.
+     */
     final double scaleMax;
     /** The percent of the slowest learned 1% (its minutes are the largest); -1 for none. */
     final int slowest;
@@ -77,7 +80,7 @@ final class LearnedCurveChart {
         all.add(new Run(start, 100, current));
         runs = Collections.unmodifiableList(all);
         slowest = slow;
-        scaleMax = largest > 0 ? niceCeiling(largest) : 0;
+        scaleMax = largest > 0 ? niceCeiling(largest * HEADROOM) : 0;
         List<Run> stretches = new ArrayList<>();
         for (Run run : all) {
             if (!usable(run.coverage)) continue;
@@ -154,10 +157,14 @@ final class LearnedCurveChart {
     private static boolean usable(ChargeSessionStore.Summary.Coverage coverage) {
         return coverage == ChargeSessionStore.Summary.Coverage.PROVISIONAL || coverage == ChargeSessionStore.Summary.Coverage.ROBUST;
     }
-    /** The smallest 1, 2 or 5 times a power of ten at or above value (value > 0). */
+    /** The speed axis' room over the slowest learned 1%. */
+    static final double HEADROOM = 1.05;
+    /** The axis' steps per power of ten: tight enough that the curve fills most of the chart. */
+    private static final double[] NICE = {1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10};
+    /** The smallest NICE step times a power of ten at or above value (value > 0): 13.9 gives 15, 9.4 gives 10. */
     static double niceCeiling(double value) {
         double power = Math.pow(10, Math.floor(Math.log10(value)));
-        for (double step : new double[]{1, 2, 5, 10}) if (step * power >= value - 1e-9 * power) return step * power;
+        for (double step : NICE) if (step * power >= value - 1e-9 * power) return Math.round(step * power * 1e6) / 1e6;
         return 10 * power;
     }
 }
