@@ -669,7 +669,9 @@ final class BackupArchive {
                 Object mine = mineNow.get(key);
                 if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
             }
-        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))) lines.add(M.backupEnginePlanOnlineMap());
+        // Online map tiles after the restore: the ride maps' basemap, or the Just back card's own (JustBackBasemap.KEY).
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && (Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))
+                || Boolean.TRUE.equals(result.get("app_settings").get("just_back_basemap")))) lines.add(M.backupEnginePlanOnlineMap());
         Map<String, Map<String, Object>> touched = new LinkedHashMap<>();
         for (String name : BackupRegistry.NAMESPACES) if (!result.get(name).equals(live.get(name))) touched.put(name, result.get(name));
         return new Plan(prepared, categories, replace, mapping, historyMapping, additions, lines, touched, history);

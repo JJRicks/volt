@@ -1543,7 +1543,9 @@ shortest spaces the charge shrinks over them and gives way below a readable
 size. For about an hour after
 a recorded ride, Just back sits on the page in the same area: "Ride ended 12
 minutes ago" with a small X, the distance large, the route on a panel in
-the card colour (green start, white end) and three tiles: Ride time
+the card colour (green start, white end; a round Basemap button in the
+panel's bottom corner puts a map behind the route, its own remembered choice,
+off by default, dark in the dark theme) and three tiles: Ride time
 ("24m", "1h 02m"), Avg speed (from the measured distance and time when the ride
 saved no average, the rule the ride's page and compare sheet on Rides use
 too; a dash only without a distance or a time) and Battery with the signed change ("−18%"); on a short area the route goes

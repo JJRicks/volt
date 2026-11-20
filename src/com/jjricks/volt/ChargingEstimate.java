@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "stitched-estimate-v1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-estimate-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -266,6 +266,29 @@ public final class ChargingEstimate {
             ChargeSessionStore.Charger selectedCharger, ChargeSessionStore.Curve personal,
             ChargeReferenceGate gate, String scope, long frameMs, long nowMs, ChargeProgressTracker.Progress progress,
             FastChargeTaper taper) {
+        return forScooter(baseline,soc,ratedAh,productId,selectedCharger,personal,gate,scope,frameMs,nowMs,progress,taper,null);
+    }
+
+    /**
+     * slowdown is ChargeSlowdown's state for this charge, or null, which leaves every estimate exactly as
+     * ut5-stock-finish-v9 made it. With a state, a UT5 MAX fast charge gets the temperature-aware layer
+     * (ut5-fast-thermal-v10, withSlowdown): while the state is slowed, the time shown and Charge done by's
+     * minutes; otherwise only Charge done by's (a cold stretch's slower taper, and the voltage check on bulk).
+     * Every other charger and model is returned unchanged.
+     */
+    public static Result forScooter(Result baseline, Value soc, Value ratedAh, int productId,
+            ChargeSessionStore.Charger selectedCharger, ChargeSessionStore.Curve personal,
+            ChargeReferenceGate gate, String scope, long frameMs, long nowMs, ChargeProgressTracker.Progress progress,
+            FastChargeTaper taper, ChargeSlowdown.State slowdown) {
+        Result shown=withoutSlowdown(baseline,soc,ratedAh,productId,selectedCharger,personal,gate,scope,frameMs,nowMs,progress,taper);
+        return slowdown==null?shown:withSlowdown(shown,baseline,soc,ratedAh,productId,selectedCharger,personal,scope,frameMs,nowMs,slowdown);
+    }
+
+    /** The v9 estimate: everything forScooter does without a slowdown state. */
+    private static Result withoutSlowdown(Result baseline, Value soc, Value ratedAh, int productId,
+            ChargeSessionStore.Charger selectedCharger, ChargeSessionStore.Curve personal,
+            ChargeReferenceGate gate, String scope, long frameMs, long nowMs, ChargeProgressTracker.Progress progress,
+            FastChargeTaper taper) {
         if(selectedCharger==null){if(gate!=null)gate.reset();return baseline;}
         boolean fast=selectedCharger==ChargeSessionStore.Charger.HIGH_SPEED;
         Result prior=fast
@@ -300,7 +323,192 @@ public final class ChargingEstimate {
             Result own=withFastTaper(withoutFullReference(prior,baseline),baseline,soc,ratedAh,productId,taper);
             if(own!=null&&own.referenceToFull)return withPersonalPlanning(withPersonalLimit(own,baseline,soc,selectedCharger,personal),v7);
         }
-        return v7;
+        return withCvPoint(v7,baseline,soc,ratedAh,productId,selectedCharger);
+    }
+
+    /**
+     * ut5-fast-cvpoint-v11: before the charger's voltage limit, at a normal current level, where past charges do
+     * not set the time to 100% (a fresh install, or history that does not cover this reading), the time comes from
+     * FastChargeTaper.cvPoint ahead of the 72%-anchored percentage table: from pack voltage it places where the
+     * limit will come, so a top-up gets the BMS's 80% step to 8 A that the table (fitted on a deep charge) lacks.
+     * Past charges' time to a lower limit is kept, up to the time to 100%. A charge's own taper (forScooter) and
+     * past charges keep their priority; the standard charger, other models and anything cvPoint declines are
+     * unchanged.
+     */
+    private static Result withCvPoint(Result r,Result baseline,Value soc,Value ratedAh,int productId,ChargeSessionStore.Charger selectedCharger) {
+        if(selectedCharger!=ChargeSessionStore.Charger.HIGH_SPEED||productId!=Ut5MaxFastChargeReference.PRODUCT_ID||r==null||r.remainingMinutesToFull==null
+                ||r.learnedToFull||baseline==null||!baseline.charging||baseline.inputAmps==null||baseline.inputWatts==null
+                ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh))return r;
+        double amps=baseline.inputAmps;
+        FastChargeTaper.CvPoint cv=FastChargeTaper.cvPoint(soc.number,baseline.inputWatts/amps,amps,ratedAh.number);
+        if(cv==null)return r;
+        Double target=r.targetPercent,limit=r.remainingMinutesToLimit;
+        boolean personalLimit=target!=null&&target<100&&r.learnedToLimit&&limit!=null;
+        if(personalLimit)limit=Math.min(limit,cv.full);
+        else if(target!=null)limit=cv.minutesTo(target);
+        String status="Experimental UT5 MAX high-speed estimate from pack voltage and charging current: constant current until the charger's voltage limit, "
+                +"with the battery's step down at 80% when the limit comes later, then its observed taper. ";
+        if(personalLimit)status+="Time to the limit uses personal history, up to the time to 100%. ";
+        status+="Time to displayed 100%; balancing may continue."+cutoffNote(target);
+        return new Result(r.charging,r.inputWatts,r.inputAmps,limit,cv.full,target,personalLimit?r.labelMsg:highSpeedReferenceLabel(),status,
+                personalLimit,false,personalLimit?r.learnedSessions:0,target!=null&&!personalLimit,true,ChargeSessionStore.Charger.HIGH_SPEED,null,
+                limit,cv.full,false,personalLimit&&same(limit,r.remainingMinutesToLimit)?r.limitRate:null);
+    }
+
+    /**
+     * ut5-fast-thermal-v10 (ChargeSlowdown; docs/validation/fast-charge-slowdown.md), for a UT5 MAX fast charge
+     * only: shown (the v9 estimate) comes back unchanged for anything else, or without a usable live rate, battery
+     * level, rated capacity or time to 100%.
+     *
+     * While slowed, the time shown is the estimate at the expected current plus the extra minutes the rest of the
+     * bulk stage (to the 80% step, to 85% inside the 8 A stage, or to a lower limit) takes at the current predicted
+     * for it (extraBulkMinutes): for a cold battery the BMS's cold levels as it warms at WARM_SHOWN, never below
+     * the live current; for a hot or unexplained slowdown the live current, with no recovery assumed. The estimate
+     * at the expected current is FastChargeTaper's voltage model with the pack voltage moved by PACK_OHMS for the
+     * change in current (the v9 estimate re-run at that current where the model has no answer); a lower limit
+     * keeps the re-run's time there, up to the time to 100%. Charge done by plans with the longer of that and the
+     * same with the battery warming at WARM_PLAN from the bottom of its reading, plus COLD_TAIL_MINUTES once this
+     * charge was slowed cold.
+     *
+     * Outside a slowed stretch the time shown stays v9's. Charge done by adds COLD_TAIL_MINUTES after a
+     * cold-slowed stretch, and in the bulk stage at full current where the bundled reference (not past charges)
+     * sets the time to 100%, plans with the longer of it and the voltage model (withVoltagePlanning).
+     * Per reading this costs a few comparisons, plus one more pure estimate while slowed.
+     */
+    private static Result withSlowdown(Result shown,Result baseline,Value soc,Value ratedAh,int productId,
+            ChargeSessionStore.Charger selectedCharger,ChargeSessionStore.Curve personal,String scope,long frameMs,long nowMs,
+            ChargeSlowdown.State slowdown) {
+        if(selectedCharger!=ChargeSessionStore.Charger.HIGH_SPEED||productId!=Ut5MaxFastChargeReference.PRODUCT_ID||shown==null
+                ||shown.remainingMinutesToFull==null||baseline==null||!baseline.charging||baseline.inputAmps==null||baseline.inputWatts==null
+                ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||!FastChargeTaper.calibratedPack(ratedAh.number))return shown;
+        double amps=baseline.inputAmps,volts=baseline.inputWatts/amps,level=soc.number,rated=ratedAh.number;
+        Double target=shown.targetPercent;
+        boolean toFull=target!=null&&target==100;
+        if(!slowdown.slowed){
+            Result r=shown;
+            if(slowdown.coldTail&&r.planningMinutesToFull!=null){
+                double full=r.planningMinutesToFull+ChargeSlowdown.COLD_TAIL_MINUTES;
+                r=planned(r,toFull?Double.valueOf(full):r.planningMinutesToLimit,full);
+            }
+            return withVoltagePlanning(r,level,volts,amps,rated);
+        }
+        double expected=ChargeSlowdown.expectedAmps(level),end=slowedBulkEnd(level,volts,amps,rated);
+        double nominalVolts=volts+ChargeSlowdown.PACK_OHMS*(expected-amps);
+        // The same pure estimate at the expected current: no gate, progress or taper state, so nothing is changed.
+        Result rerun=withoutSlowdown(calculate(new Value(1d,true,1),new Value(nominalVolts,true,1),new Value(expected,true,1),soc,ratedAh,
+                new Value(target,true,1)),soc,ratedAh,productId,selectedCharger,personal,null,scope,frameMs,nowMs,null,null);
+        if(rerun==null||rerun.remainingMinutesToFull==null)return shown;
+        // Past charges that still cover the reading at the expected current keep their time and label; otherwise the
+        // bundled voltage model sets it, labelled and recorded as the bundled reference.
+        boolean historyFull=rerun.learnedToFull;
+        Double voltage=historyFull?null:depthAwareMinutes(level,nominalVolts,expected,rated);
+        double nominalFull=voltage==null?rerun.remainingMinutesToFull:voltage;
+        Double nominalLimit=rerun.remainingMinutesToLimit==null||voltage==null?rerun.remainingMinutesToLimit
+                :toFull?Double.valueOf(nominalFull):Double.valueOf(Math.min(nominalFull,rerun.remainingMinutesToLimit));
+        boolean historyLimit=nominalLimit!=null&&(toFull?historyFull:rerun.learnedToLimit);
+        // The cold model (the BMS's levels as the battery warms) applies only where a cold level explains the live
+        // current; any other slowdown, cold or not, is assumed to last (review of #561).
+        boolean cold=ChargeSlowdown.coldExplains(slowdown.batteryTempC,amps,expected);
+        Double temperature=cold?slowdown.batteryTempC:null;
+        double fullShown=nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_SHOWN,.5,rated);
+        double fullPlan=Math.max(fullShown,nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)
+                +(slowdown.coldTail?ChargeSlowdown.COLD_TAIL_MINUTES:0));
+        Double limitShown=shown.remainingMinutesToLimit,limitPlan=shown.planningMinutesToLimit;
+        if(nominalLimit!=null){
+            double limitEnd=Math.min(end,target);
+            limitShown=Math.min(fullShown,nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,ChargeSlowdown.WARM_SHOWN,.5,rated));
+            limitPlan=Math.max(limitShown,Math.min(fullPlan,
+                    nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)));
+        }
+        // A slowdown never makes Charge done by shorter than the same reading's estimate without it, nor the time shown,
+        // except where the cold model applies (a BMS cold level explains the live current) and predicts it rising as the
+        // battery warms (review of #561). There the estimate without a slowdown assumes the live current lasts, and
+        // drops by up to 25 minutes at each step up; Charge done by still keeps the longer time.
+        if(!cold){
+            fullShown=Math.max(fullShown,shown.remainingMinutesToFull);
+            if(limitShown!=null&&shown.remainingMinutesToLimit!=null)limitShown=Math.max(limitShown,shown.remainingMinutesToLimit);
+        }
+        fullPlan=Math.max(fullPlan,Math.max(fullShown,shown.planningMinutesToFull==null?fullShown:shown.planningMinutesToFull));
+        if(limitPlan!=null&&limitShown!=null)limitPlan=Math.max(limitPlan,limitShown);
+        if(limitPlan!=null&&shown.planningMinutesToLimit!=null)limitPlan=Math.max(limitPlan,shown.planningMinutesToLimit);
+        String status=(shown.status==null?"":shown.status)+(cold
+                ?" Charging is slowed by a cold battery; the time assumes the current rises in steps as the battery warms."
+                :" Charging is slowed; the time assumes the current stays this low to the end of the bulk stage.");
+        boolean learned=historyFull||historyLimit;
+        // limitRate is only for a time to the limit that is past charges' own, uncapped; this one is not.
+        return new Result(shown.charging,shown.inputWatts,shown.inputAmps,limitShown,fullShown,target,learned?rerun.labelMsg:highSpeedReferenceLabel(),status,
+                historyLimit,historyFull,learned?rerun.learnedSessions:0,limitShown!=null&&!historyLimit,!historyFull,ChargeSessionStore.Charger.HIGH_SPEED,
+                null,limitPlan,fullPlan,false,null);
+    }
+
+    /**
+     * Where the slowed estimate's bulk stage ends: the BMS's 80% step below it; in the 8 A stage, where this reading
+     * meets the charger's voltage limit at the live current (FastChargeTaper's headroom table), since the live
+     * current is assumed to last, not to recover, until then.
+     */
+    private static double slowedBulkEnd(double soc,double volts,double amps,double ratedAh) {
+        if(soc<ChargeSlowdown.STEP_SOC)return ChargeSlowdown.STEP_SOC;
+        Double ah=FastChargeTaper.bulkAh(FastChargeTaper.CV_SET-FastChargeTaper.CV_DROP*amps-volts);
+        return ah==null?ChargeSlowdown.STEP_END_SOC:Math.min(100,soc+100*ah/ratedAh);
+    }
+
+    /** The label of every bundled high-speed estimate (the reference, the voltage model and cvPoint). */
+    private static Msg highSpeedReferenceLabel(){return M.chargingEstimateHighSpeedReference();}
+
+    /** Below this level and from this current, withVoltagePlanning checks a bundled reference's bulk time against the voltage model. */
+    private static final double VOLTAGE_PLAN_SOC=72,VOLTAGE_PLAN_AMPS=9;
+
+    /**
+     * r with Charge done by planning the longer of its time to 100% and FastChargeTaper's voltage model, in the bulk
+     * stage (below VOLTAGE_PLAN_SOC, at VOLTAGE_PLAN_AMPS or more) where the bundled reference sets that time, not
+     * past charges. The reference's percentage table runs short on charges whose voltage limit comes later; the
+     * voltage model reads that from the pack. The time shown is unchanged; a lower limit's planning too.
+     */
+    private static Result withVoltagePlanning(Result r,double soc,double volts,double amps,double ratedAh) {
+        if(r.learnedToFull||!r.referenceToFull||soc>=VOLTAGE_PLAN_SOC||amps<VOLTAGE_PLAN_AMPS||r.planningMinutesToFull==null)return r;
+        Double voltage=depthAwareMinutes(soc,volts,amps,ratedAh);
+        if(voltage==null||voltage<=r.planningMinutesToFull)return r;
+        boolean toFull=r.targetPercent!=null&&r.targetPercent==100;
+        return planned(r,toFull&&r.planningMinutesToLimit!=null?voltage:r.planningMinutesToLimit,voltage);
+    }
+
+    /** The bundled voltage model's minutes to 100%: cvPoint's where it applies, else FastChargeTaper.minutes without a watched decay. */
+    private static Double depthAwareMinutes(double soc,double volts,double amps,double ratedAh) {
+        FastChargeTaper.CvPoint cv=FastChargeTaper.cvPoint(soc,volts,amps,ratedAh);
+        return cv!=null?Double.valueOf(cv.full):FastChargeTaper.minutes(volts,amps,ratedAh,null);
+    }
+
+    /** r with Charge done by's minutes replaced; everything shown is kept. */
+    private static Result planned(Result r,Double planningLimit,Double planningFull) {
+        return new Result(r.charging,r.inputWatts,r.inputAmps,r.remainingMinutesToLimit,r.remainingMinutesToFull,r.targetPercent,r.labelMsg,r.status,
+                r.learnedToLimit,r.learnedToFull,r.learnedSessions,r.referenceToLimit,r.referenceToFull,r.referenceCharger,r.stockVoltageMatch,
+                planningLimit,planningFull,r.stockPackModel,r.limitRate);
+    }
+
+    /** Longest bulk time extraBulkMinutes counts, in minutes. */
+    private static final double MAX_BULK_MINUTES=600;
+
+    /**
+     * Minutes beyond the expected current's time that charging from soc to endSoc takes at the current predicted
+     * for it. Hot or unexplained (temperatureC null or at least COLD_FULL_C): the live amps last. Cold: the BMS's
+     * levels (COLDEST_AMPS below COLD_LOW_C, COOL_AMPS below COLD_FULL_C, then the expected current), never below
+     * amps, as the battery warms at warm C a minute from temperatureC + offset (offset 0.5: the middle of a 1 C
+     * reading). Worked out per stage, so the cost is fixed; the total is capped at MAX_BULK_MINUTES.
+     */
+    static double extraBulkMinutes(double soc,double endSoc,double amps,double expected,Double temperatureC,double warm,double offset,double ratedAh) {
+        if(!(endSoc>soc)||!(amps>0)||!(expected>0))return 0;
+        double ah=ratedAh*(endSoc-soc)/100,atExpected=ah/expected*60;
+        if(temperatureC==null||!Double.isFinite(temperatureC)||temperatureC>=ChargeSlowdown.COLD_FULL_C)
+            return Math.min(MAX_BULK_MINUTES,ah/amps*60)-atExpected;
+        double temperature=temperatureC+offset,minutes=0,left=ah;
+        double[] edges={ChargeSlowdown.COLD_LOW_C,ChargeSlowdown.COLD_FULL_C},levels={ChargeSlowdown.COLDEST_AMPS,ChargeSlowdown.COOL_AMPS};
+        for(int i=0;i<edges.length;i++){
+            if(temperature>=edges[i])continue;
+            double a=Math.min(expected,Math.max(amps,levels[i])),span=(edges[i]-temperature)/warm,delivered=a*span/60;
+            if(left<=delivered)return Math.min(MAX_BULK_MINUTES,minutes+left/a*60)-atExpected;
+            left-=delivered;minutes+=span;temperature=edges[i];
+        }
+        return Math.min(MAX_BULK_MINUTES,minutes+left/expected*60)-atExpected;
     }
 
     /**
@@ -506,7 +714,7 @@ public final class ChargingEstimate {
         status+="Time to displayed 100%; balancing may continue."+cutoffNote(baseline.targetPercent);
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                 limit==null?baseline.remainingMinutesToLimit:limit,full==null?baseline.remainingMinutesToFull:full,
-                baseline.targetPercent,M.chargingEstimateHighSpeedReference(),status,false,false,0,limit!=null,full!=null,ChargeSessionStore.Charger.HIGH_SPEED);
+                baseline.targetPercent,highSpeedReferenceLabel(),status,false,false,0,limit!=null,full!=null,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
     /**
@@ -528,7 +736,7 @@ public final class ChargingEstimate {
         String status="Experimental UT5 MAX high-speed estimate from pack voltage and charging current: constant current until the charger's voltage limit, then its observed taper. ";
         if(target!=null&&target<100&&!prior.referenceToLimit)status+="Time to the limit uses the current rate, up to the time to 100%. ";
         status+="Time to displayed 100%; balancing may continue."+cutoffNote(target);
-        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,target,M.chargingEstimateHighSpeedReference(),status,
+        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,target,highSpeedReferenceLabel(),status,
                 false,false,0,referenceLimit,true,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
