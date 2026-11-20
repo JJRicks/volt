@@ -34,6 +34,15 @@ final class ChargeHistoryDialog {
     private List<ChargeSessionStore.HistorySession> recordings = Collections.emptyList();
     private boolean closed;
     private int loadGeneration;
+    /**
+     * The list reads the newest FULL recordings with their points and the rest as summaries, which open after one
+     * recording's read (ChargeSessionStore.history), and shows PAGE rows at a time, adding the next PAGE as the list
+     * scrolls near its end, so hundreds of saved recordings never cost the dialog their samples or one view each at once.
+     * Scrolling needs no button, so no new text.
+     */
+    static final int FULL = 20, PAGE = 50;
+    /** Rows the list shows now; scrolling near the end adds PAGE, and Back from a recording keeps it. */
+    private int shown = PAGE;
 
     ChargeHistoryDialog(ScreenHost host) {
         this.host = host; ui = host.ui(); profile = activeProfile();
@@ -63,16 +72,20 @@ final class ChargeHistoryDialog {
     }
     private void load() {
         if (!available()) return;
-        body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
-        TextView loading = ui.caption(T.statsChargeHistoryLoading()); loading.setPadding(ui.dp(18), ui.dp(12), ui.dp(18), ui.dp(12));
-        body.addView(loading);
-        int generation = ++loadGeneration;
+        int generation = loading(header(T.statsChargeHistoryTitle(), false));
         ScooterService s = host.service();
-        if (s == null || !s.loadChargeRecordings(sessions -> {
+        if (s == null || !s.loadChargeRecordings(FULL, sessions -> {
             if (!available() || generation != loadGeneration) return;
             if (sessions == null) { failed(); return; }
             recordings = sessions; showList();
         })) failed();
+    }
+    /** The title bar over a Loading caption, for the list or one older recording; returns the read's generation. */
+    private int loading(View titleBar) {
+        body.removeAllViews(); body.addView(titleBar);
+        TextView loading = ui.caption(T.statsChargeHistoryLoading()); loading.setPadding(ui.dp(18), ui.dp(12), ui.dp(18), ui.dp(12));
+        body.addView(loading);
+        return ++loadGeneration;
     }
     private void failed() {
         if (!available()) return;
@@ -82,10 +95,27 @@ final class ChargeHistoryDialog {
     }
     private void showList() {
         if (!available()) return;
+        loadGeneration++; // Back while an older recording was still being read: that read no longer opens it.
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout list = padded(); list.setTag("charge-history-list");
         if (recordings.isEmpty()) list.addView(ui.caption(emptyText()));
-        for (ChargeSessionStore.HistorySession session : recordings) {
+        LinearLayout rows = column(); list.addView(rows);
+        addRows(rows, 0, Math.min(shown, recordings.size()));
+        if (host.service() != null && host.service().isChargeRecording()) {
+            TextView note = ui.caption(T.statsChargeHistoryCurrent()); note.setPadding(0, ui.dp(8), 0, 0); list.addView(note);
+        }
+        ScrollView scroll = scroller(list);
+        // Within a screen of the end, the next PAGE older rows join the list.
+        scroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> {
+            if (shown >= recordings.size() || !available()) return;
+            if (list.getHeight() - (y + scroll.getHeight()) > scroll.getHeight()) return;
+            int from = shown; shown = Math.min(recordings.size(), shown + PAGE);
+            addRows(rows, from, shown);
+        });
+        body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    }
+    private void addRows(LinearLayout list, int from, int to) {
+        for (ChargeSessionStore.HistorySession session : recordings.subList(from, to)) {
             LinearLayout row = column(); row.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
             row.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 45)),
                     ui.shape(ui.surface, 18, 0), null));
@@ -100,14 +130,11 @@ final class ChargeHistoryDialog {
             row.setOnClickListener(v -> showDetail(session));
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10); list.addView(row, rp);
         }
-        if (host.service() != null && host.service().isChargeRecording()) {
-            TextView note = ui.caption(T.statsChargeHistoryCurrent()); note.setPadding(0, ui.dp(8), 0, 0); list.addView(note);
-        }
-        body.addView(scroller(list), new LinearLayout.LayoutParams(-1, 0, 1));
     }
     private void showDetail(ChargeSessionStore.HistorySession session) {
         if (!available() || !profile.equals(session.profile)) return;
-        body.removeAllViews(); body.addView(header(T.statsChargeRecordingTitle(), true));
+        if (session.light) { loadDetail(session); return; }
+        body.removeAllViews(); body.addView(recordingTitleBar());
         LinearLayout contents = padded(); contents.setTag("charge-history-detail");
         contents.addView(ui.text(dateTime(session.startedWall), 20, true));
         TextView sub = ui.caption(charger(session.charger) + " · " + batterySpan(session));
@@ -117,6 +144,16 @@ final class ChargeHistoryDialog {
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));
         body.addView(scroller(contents), new LinearLayout.LayoutParams(-1, 0, 1));
     }
+    /** An older recording is a summary in the list: its samples are read when it is opened. */
+    private void loadDetail(ChargeSessionStore.HistorySession summary) {
+        int generation = loading(recordingTitleBar());
+        ScooterService s = host.service();
+        if (s == null || !s.loadChargeRecording(summary.id, full -> {
+            if (!available() || generation != loadGeneration) return;
+            if (full == null) failed(); else showDetail(full);
+        })) failed();
+    }
+    private LinearLayout recordingTitleBar() { return header(T.statsChargeRecordingTitle(), true); }
     /** A Volt charging schedule, or the charger itself, held current off; the chart shows each as a gap. */
     private static String paused(ChargeSessionStore.HistorySession session) {
         String text = "";
@@ -160,11 +197,7 @@ final class ChargeHistoryDialog {
         return minutes >= 60 ? T.statsChargeDurationHours(Fmt.integer(minutes / 60), Fmt.integer(minutes % 60)) : T.statsChargeDurationMinutes(Fmt.integer(minutes));
     }
     private String batterySpan(ChargeSessionStore.HistorySession session) {
-        Double first = null, last = null;
-        for (ChargeSessionStore.HistoryPoint point : session.points) if (Double.isFinite(point.batteryPercent)) {
-            if (first == null) first = point.batteryPercent; last = point.batteryPercent;
-        }
-        return first == null ? noSamplesText() : span(first, last);
+        return Double.isNaN(session.firstPercent) ? noSamplesText() : span(session.firstPercent, session.lastPercent);
     }
     private String charger(ChargeSessionStore.Charger charger) {
         return charger == ChargeSessionStore.Charger.HIGH_SPEED ? T.statsChargeHighSpeedCharger() : T.statsChargeStockCharger();

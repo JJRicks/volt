@@ -47,7 +47,7 @@ import java.util.function.Predicate;
  * authenticated link covers what the simulator can't: connected with no motion report yet (hidden), and a real end of the link.
  * Disposable emulator only.
  */
-public final class RidingDisconnectedValidation extends Instrumentation {
+public final class RidingDisconnectedValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private File evidence;

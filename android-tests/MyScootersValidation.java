@@ -45,7 +45,7 @@ import com.jjricks.volt.ScooterService;
  *   -e theme dark|light   -e text_scale 1|1.4   -e layout wide|phone (optional: the side rail and More's two
  *   columns must be shown, or the bottom bar and one column; the release sweep's 725 dp steps set it)
  */
-public final class MyScootersValidation extends Instrumentation {
+public final class MyScootersValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterProfiles.Profile a, b;
     private ActivityMonitor bluetoothPrompt;

@@ -21,7 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /** Portable dashboard files against real Android JSON/preferences; synthetic emulator fixtures only. */
-public final class DashboardTransferValidation extends Instrumentation {
+public final class DashboardTransferValidation extends ValidationInstrumentation {
     private SharedPreferences prefs;
     private String fixture;
     private int assertions;

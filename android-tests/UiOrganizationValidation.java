@@ -54,7 +54,7 @@ import com.jjricks.volt.T;
 import com.jjricks.volt.Ui;
 
 /** UI checks on a fresh emulator only. No owner profile, sensor recording, radio or network work. */
-public final class UiOrganizationValidation extends Instrumentation {
+public final class UiOrganizationValidation extends ValidationInstrumentation {
     private static final String[] PREFS = {"app_settings", "profiles", "scooter", "pending_documents", "onboarding"};
     private final List<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     private Bundle arguments;

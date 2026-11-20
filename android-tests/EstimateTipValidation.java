@@ -2,7 +2,7 @@ package com.jjricks.volt;
 
 import android.Manifest;
 import android.app.Dialog;
-import android.app.Instrumentation;
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -50,7 +50,7 @@ import java.util.function.BooleanSupplier;
  * sheet, for renders. An app without the tip (built before it, or a sweep's base app) gets a screenshot of its charging
  * view and passes.
  */
-public final class EstimateTipValidation extends Instrumentation {
+public final class EstimateTipValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

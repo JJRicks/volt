@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
  * stop doesn't; neither leaves an auto-open hold. Max and Average speed count from opening. Runs against the
  * sample scooter, whose trip max is 35.6 km/h while its live speed never passes 29.8. Disposable emulator only.
  */
-public final class RidingAutoCloseValidation extends Instrumentation {
+public final class RidingAutoCloseValidation extends ValidationInstrumentation {
     private static final String NO_MOTION = RideStore.STOP_AUTO_NO_MOTION;
     private MainActivity activity;
     private ScooterService service;

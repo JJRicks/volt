@@ -27,14 +27,14 @@ final class DiagnosticsSettings {
             // Look and units
             "home_style", "home_style_chosen", "home_moment_charging", "home_moment_ride", "units", "temperature_unit",
             "time_format", "theme", "text_scale", "stats_density", "dashboard_columns", "app_language",
-            "keep_screen_awake", "haptics_enabled", "map_basemap_enabled",
+            "keep_screen_awake", "haptics_enabled", "map_basemap_enabled", "just_back_basemap",
             // Riding mode
             "riding_night_vision", "riding_night_schedule", "riding_brightness", "riding_rotation",
             // Reports and updates
             "report_diagnostics", "update_auto_check"));
     /** Per-scooter keys (prefix + profile id), shown for the selected scooter under the prefix's name. */
     static final List<String> SCOOTER_PREFIXES = Collections.unmodifiableList(Arrays.asList(
-            "charge_alerts_", "charge_charger_", "range_source_", "range_follow_mode_"));
+            "charge_alerts_", "charge_charger_", "range_source_", "range_follow_mode_", "home_reading_1_v1_", "home_reading_2_v1_"));
     static final String SET = "(set)";
     /** A fixed choice ("km", "dark", "HIGH_SPEED"), or an encoded switch list like charge alerts' "charge=1;at=80". */
     private static final Pattern CHOICE = Pattern.compile("[A-Za-z0-9_.:-]{1,32}"),

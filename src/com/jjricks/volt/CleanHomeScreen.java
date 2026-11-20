@@ -404,7 +404,8 @@ final class CleanHomeScreen implements AppScreen {
 
     /**
      * Reads the ride's route once, on the worker, from its phone journal's GPS fixes (RidesScreen.readThumb), only
-     * after the phone has finished saving it. A ride without fixes keeps the plain panel.
+     * after the phone has finished saving it, with the map area the card's basemap needs. A ride without fixes keeps the
+     * plain panel.
      */
     private void loadRoute(ScooterService service, RideStore.Summary ride) {
         if (ride == null || ride.id.equals(routeAsked) || service == null || service.phoneSaving()) return;
@@ -415,19 +416,24 @@ final class CleanHomeScreen implements AppScreen {
         try {
             worker.execute(() -> {
                 float[] outline;
-                try { outline = RidesScreen.readThumb(phone.rawCsv(id)); } catch (RuntimeException invalid) { outline = null; }
+                // With the outline, its fixes' map area, for the card's basemap (JustBackBasemap); NaN when there is no route.
+                double[] area = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+                try { outline = RidesScreen.readThumb(phone.rawCsv(id), area); } catch (RuntimeException invalid) { outline = null; }
                 if (outline == null) return;
                 float[] shown = outline;
-                host.activity().runOnUiThread(() -> { if (!closed) justBack.setRoute(id, shown); });
+                host.activity().runOnUiThread(() -> { if (!closed) justBack.setRoute(id, shown, area); });
             });
         } catch (java.util.concurrent.RejectedExecutionException stopped) {
             routeAsked = null;
         }
     }
 
-    /** Opens the ride on the Rides page (HubNav.Args.ride names it). */
+    /**
+     * Opens the ride on the Rides page (HubNav.Args.ride names it). Closing its details (Back, predictive Back or Done)
+     * returns to Home rather than to All rides under them (HubNav.Args.fromHome: a tester's report, Nov 2026).
+     */
     private void openRide(String id) {
-        if (!closed) host.open(HubPages.RIDE_RIDES, HubNav.Args.ride(id));
+        if (!closed) host.open(HubPages.RIDE_RIDES, HubNav.Args.fromHome(id));
     }
 
     /** The X: this ride's card stays closed (home_just_back_dismissed); a newer ride shows again. */

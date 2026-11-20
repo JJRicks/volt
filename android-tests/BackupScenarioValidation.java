@@ -30,7 +30,7 @@ import com.jjricks.volt.*;
  *                  merges refuse it, and a genuinely wrong password still reports bad file.
  * -e mode render-scooters  checks Scooters-only destination choices and Don't restore.
  */
-public final class BackupScenarioValidation extends Instrumentation {
+public final class BackupScenarioValidation extends ValidationInstrumentation {
     static final char[] PASSWORD = "synthetic scenario password".toCharArray();
     private String mode, theme = "dark"; private int assertions; private Context app; private android.app.Activity current;
     @Override public void onCreate(Bundle args) { mode = args == null ? null : args.getString("mode"); if (args != null) theme = args.getString("theme", "dark"); start(); }
@@ -190,7 +190,8 @@ public final class BackupScenarioValidation extends Instrumentation {
         require("Destination for Old UT5: Fold UT5".contentEquals(spinners.get(0).getContentDescription()) && "Destination for Spare scooter: Add from backup".contentEquals(spinners.get(1).getContentDescription()), "TalkBack hears each destination choice: " + spinners.get(0).getContentDescription());
         shot(backup, "restore-destinations.png");
         click(backup, "restore-review"); await(() -> view(backup, "restore-apply") != null, "Review missing");
-        require(text(backup, "Charges: 8 new · 0 already here · 0 kept here") && text(backup, "7 charges skipped · 20-charge limit") && text(backup, "Dashboards: replaces layouts for Fold UT5"), "Review lines");
+        // 12 here and 15 in the backup: all fit (2.0.1's rotating buffer holds ChargeSessionStore.MAX_RECORDINGS; 2.0.0 held 20).
+        require(text(backup, "Charges: 15 new · 0 already here · 0 kept here") && !text(backup, "-charge limit") && text(backup, "Dashboards: replaces layouts for Fold UT5"), "Review lines");
         shot(backup, "restore-review.png");
         require(new File(app.getFilesDir(), "charge-recordings").listFiles().length == 12, "Review changed nothing");
         bad.delete(); good.delete();

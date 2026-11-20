@@ -346,6 +346,19 @@ public final class HubText {
         return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
     }
 
+    // ===== Settings › Home style: the overview card's two readings (HomeReadings, HomeReadingsEditor.Row) =====
+
+    /** The Home style row's title and its sheet's title. */
+    public static Msg overviewReadings() { return M.dashboardOverviewReadings(); }
+    /** A slot's name: slot 0 is the first reading, 1 the second. */
+    public static Msg overviewReadingSlot(int slot) { return slot == 0 ? M.dashboardOverviewReadingFirst() : M.dashboardOverviewReadingSecond(); }
+    /** Screen-reader text of a slot's row: its name, then the reading in it. */
+    public static Msg overviewReadingSlotSpoken(CharSequence slot, CharSequence reading) { return M.dashboardOverviewReadingSlot(slot, reading); }
+    /** The reading list's line under a reading the scooter hasn't reported. */
+    public static Msg overviewReadingNotReported() { return M.commonNotReported(); }
+    /** The reading list's close button. */
+    public static Msg overviewReadingsClose() { return M.commonClose(); }
+
     // ===== Clean Home's Edit sheet and quick actions =====
 
     public static Msg editTitle() { return M.homeEditTitle(); }

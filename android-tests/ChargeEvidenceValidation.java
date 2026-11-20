@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.ActivityManager;
 import android.app.Dialog;
@@ -46,7 +47,7 @@ import com.jjricks.volt.tests.TextCensus;
  * a second scooter while offline, whose file must show; "arm" arms a start (on main's build, or this one with the
  * evidence files dropped) and "after-upgrade" finds that plan, its start window and its start's lock after the update.
  */
-public final class ChargeEvidenceValidation extends Instrumentation {
+public final class ChargeEvidenceValidation extends ValidationInstrumentation {
     private static final String NAME = "Synthetic evidence fixture", IDENTITY = "A1B2C3D4E5F6", SERIAL = "Q2538ZZ9US7777777", MAC = "C0:FF:EE:00:25:38";
     private static final String NAME_B = "Second evidence fixture", IDENTITY_B = "B1C2D3E4F5A6", SERIAL_B = "Q2538ZZ9US8888888", MAC_B = "C0:FF:EE:00:25:39";
     /** The second scooter's synthetic evidence: a first reading with this battery level marks it in the file. */

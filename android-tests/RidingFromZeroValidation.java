@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
  * scooter, whose trip is already past 6 km and 23 minutes. Back and reopen starts over; rotation and a
  * recreated activity keep counting. Disposable emulator only: it refuses a device or an app with data.
  */
-public final class RidingFromZeroValidation extends Instrumentation {
+public final class RidingFromZeroValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private final Bundle result = new Bundle();
     private final ArrayList<String> notes = new ArrayList<>();
