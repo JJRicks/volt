@@ -5,8 +5,9 @@ Draft, November 20, 2026. The release checks below are still to run.
   (75667d5e) is in it: the "record this charger" tip (#576 and #577,
   held out of 2.0.1) and the P3 sweep (#580: Just back over All rides,
   Home's stay on a fresh bind, the route map tile cache, Clean's bar
-  band, one reading matcher). Docs-only pull requests that merge before
-  the release commit change no app code. The English text fixes for
+  band, one reading matcher). #581 (RELEASING.md's split release sweep)
+  changes no app code, nor does any other docs-only pull request that
+  merges before the release commit. The English text fixes for
   2.0.2, the language top-up for this release's new text and this
   release's own version, changelog and docs come after them.
   [PHASE 2: the last PR number merged before the release commit; for each
