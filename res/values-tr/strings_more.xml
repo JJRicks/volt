@@ -808,8 +808,6 @@
     <string name="more_dev_hide_test">Önce testi tamamlayın veya iptal edin</string>
     <!-- src:fbc9bb6baff246c2834f064cbd71cbe77243f7c0 -->
     <string name="more_dev_connect_first">Önce scooter’a bağlanın</string>
-    <!-- src:636ce54288d4caccb2117da1b33f05bc9a00279b -->
-    <string name="more_dev_record_body" formatted="false">Telefona kaydedilir · %100’e ulaşınca durur · son 20 kayıt saklanır</string>
     <!-- src:7b52501fb200660f62b9170ec96b9318ade02e6a -->
     <string name="more_dev_which_charger">Hangi şarj cihazı takılı?</string>
     <!-- src:4164decc547d00c1731dec7b88050f253a9d7171 -->

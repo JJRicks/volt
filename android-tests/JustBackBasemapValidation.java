@@ -45,7 +45,7 @@ import java.util.function.BooleanSupplier;
  *   <li>Tile requests queued behind busy tile loaders when the switch goes off fetch nothing.</li>
  *   <li>The light theme the same way (no explanation the second time), and a provider that cannot be reached (an address
  *       on this device that refuses connections, standing in for no network): the panel stays plain, with no message.</li>
- *   <li>Map settings shows the card's own switch (Home), on with it, and turns it off and on there without touching the
+ *   <li>Map settings shows the card's own switch (Map on Home's last ride), on with it, and turns it off and on there without touching the
  *       ride maps' basemap.</li>
  *   <li>A ride ending in the switch's corner: the route, its end dot and its ring are fitted clear of the switch.</li>
  * </ul>
@@ -197,7 +197,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
     }
 
     /**
-     * Map settings shows the card's own switch (named Home) beside the ride maps' choice, on while the card's basemap is
+     * Map settings shows the card's own switch (Map on Home's last ride) beside the ride maps' choice, on while the card's basemap is
      * on, and turns it off and on again there (council, #560 r1). The ride maps' choice stays as it was.
      */
     private void mapSettings() throws Exception {
@@ -210,7 +210,16 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
             View found = dialog[0].getWindow().getDecorView().findViewWithTag("map-settings-just-back");
             require(found instanceof ViewGroup && found.isShown(), "Map settings has no switch for the card's basemap");
             row[0] = (android.widget.Switch) ((ViewGroup) found).getChildAt(0);
-            require("Home".contentEquals(row[0].getText()) && row[0].isChecked(), "Map settings' card switch reads '" + row[0].getText() + "', checked " + row[0].isChecked() + ", with the card's basemap on");
+            require(row[0].isChecked(), "Map settings' card switch reads '" + row[0].getText() + "', checked " + row[0].isChecked() + ", with the card's basemap on");
+            // Its own label, not the tab's name (#560 follow-up): whole on one line where it fits, never broken inside a word.
+            require(T.mapsJustBackSwitch().contentEquals(row[0].getText()), "Map settings' card switch reads '" + row[0].getText() + "', not its own label");
+            android.text.Layout lines = row[0].getLayout();
+            require(lines != null && lines.getEllipsisCount(lines.getLineCount() - 1) == 0, "Map settings' card switch label is cut off: '" + row[0].getText() + "'");
+            for (int line = 0; lines != null && line < lines.getLineCount() - 1; line++) {
+                int end = lines.getLineEnd(line);
+                require(end <= 0 || end >= row[0].getText().length() || Character.isWhitespace(row[0].getText().charAt(end - 1)), "Map settings' card switch label breaks inside a word at line " + line);
+            }
+            checks.add(size + " Map settings: the card's switch reads '" + row[0].getText() + "' on " + (lines == null ? 0 : lines.getLineCount()) + " line(s), " + Math.round(row[0].getWidth() / row[0].getResources().getDisplayMetrics().density) + " dp wide");
         });
         shot("light-map-settings");
         main(() -> row[0].performClick());
@@ -223,7 +232,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
         require(settings().getBoolean("map_basemap_enabled", false) == rides, "Map settings' card switch changed the ride maps' basemap");
         main(() -> dialog[0].dismiss());
         settle();
-        checks.add(size + " Map settings: the card's own switch (Home) shows on, turns the card's basemap off and on, and leaves the ride maps' as it was");
+        checks.add(size + " Map settings: the card's own switch shows on, turns the card's basemap off and on, and leaves the ride maps' as it was");
     }
 
     /** The light theme: off and on (no explanation now), then left off. */

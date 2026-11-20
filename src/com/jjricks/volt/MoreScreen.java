@@ -1400,8 +1400,8 @@ public final class MoreScreen implements AppScreen {
         if (!rides && !card) return T.commonOff();
         String url = MapSource.load(settings).url;
         String provider = MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
-        // Only the Just back card's own switch on: the provider, and that it is Home's (JustBackBasemap.summary).
-        return JustBackBasemap.summary(rides, card, provider, null, HubText.title(HubPages.HOME).render());
+        // Only the Just back card's own switch on: the provider, and that it is the last ride's (JustBackBasemap.summary).
+        return JustBackBasemap.summary(rides, card, provider, null, T.morePrefsMapLastRide());
     }
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);

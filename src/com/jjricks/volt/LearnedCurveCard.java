@@ -49,7 +49,7 @@ final class LearnedCurveCard {
         String learned(int from, int to);
         /** "A finish recording from 46%". */
         String finishFrom(int from);
-        /** "No data below 18%", "No data 50–54%", "No data above 50%", "Recordings disagree at 30–33%". */
+        /** "No data below 18%", "No data 50–54%", "No data above 50%", "Too cold or hot to learn 30–40%", "Recordings disagree 30–33%". */
         String gap(LearnedCurveChart.Gap gap);
         /** "And 2 more gaps". */
         String more(int count);
