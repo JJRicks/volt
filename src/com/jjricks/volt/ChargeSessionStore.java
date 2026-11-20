@@ -294,8 +294,9 @@ public final class ChargeSessionStore {
                 boolean usable=Double.isFinite(minutes[bin])&&counts[bin]>=1;
                 Summary.Coverage coverage=usable?counts[bin]>=2?Summary.Coverage.ROBUST:Summary.Coverage.PROVISIONAL
                         :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
-                // Inside the scooter's jump, a percent with no minutes is the jump, not missing data (words only).
-                if(!usable&&jump!=null&&bin>jump[0]&&bin<jump[1])coverage=Summary.Coverage.JUMP;
+                // Inside the scooter's jump, a percent no recording covers is the jump, not missing data (words only). A
+                // percent recordings disagree on stays DISAGREEING: one of them held it normally (#595 review).
+                if(coverage==Summary.Coverage.NONE&&jump!=null&&bin>jump[0]&&bin<jump[1])coverage=Summary.Coverage.JUMP;
                 boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
                 bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
                         Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish,outsideTemperature[bin]>0));
@@ -433,9 +434,9 @@ public final class ChargeSessionStore {
          */
         public enum Coverage { NONE, PROVISIONAL, ROBUST, DISAGREEING,
             /**
-             * A percent with no minutes (no recording, or recordings that disagree) inside the scooter's own jump
-             * (jumpFrom–jumpTo): the percent raced past it faster than the 30 s a percent needs to teach anything. The
-             * estimates treat it exactly as NONE or DISAGREEING; only the card words it differently.
+             * A percent no recording covers inside the scooter's own jump (jumpFrom–jumpTo): the percent raced past it
+             * faster than the 30 s a percent needs to teach anything. The estimates treat it exactly as NONE; only the
+             * card words it differently. A percent recordings disagree on stays DISAGREEING.
              */
             JUMP }
         public static final class Bin {

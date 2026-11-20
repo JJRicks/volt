@@ -114,6 +114,20 @@ public final class LearnedJumpTest {
         check(twoChart.runs.toString().equals("[NONE 0-38, PROVISIONAL 38-51, ROBUST 51-84, PROVISIONAL 84-87, JUMP 87-95, ROBUST 95-100]"), "Two recordings drawn: " + twoChart.runs);
         check(two.bins.get(87).minutes != null && Double.isNaN(twoChart.minutes[87]) && twoChart.minutes[86] > 4, "87%: data kept, drawn as the jump; 86%: learned");
 
+        // 4b. Recordings that disagree inside the jump (#595 review): A's jump starts with an 84% that took 40 s, B held
+        //     84% normally (about 4.7 min). 84% is DISAGREEING, not the jump: it keeps its own "Recordings disagree"
+        //     words and splits the jump stretch on the strip; the jump around it stays.
+        ChargeJumpRecordings.Plan slowStart = ChargeJumpRecordings.finish(new ChargeJumpRecordings.Plan().range(37, 84, 280, 1.98)
+                .each(84, new int[]{40, 20, 20, 20, 20, 20, 10, 20, 20, 20, 20}, 1.98));
+        ChargeSessionStore.Summary split = stock(slowStart, ChargeJumpRecordings.jump86());
+        check(split.jumpFrom == 83 && split.jumpTo == 95, "Disagreeing pair: the jump 83–95%: " + split.jumpFrom + "–" + split.jumpTo);
+        check(split.bins.get(84).coverage == ChargeSessionStore.Summary.Coverage.DISAGREEING && split.bins.get(84).sessions == 2,
+                "84%: two recordings disagree, kept as DISAGREEING: " + kinds(split, 83, 95));
+        LearnedCurveChart splitChart = LearnedCurveChart.of(split);
+        check(splitChart.gaps.toString().contains("DISAGREE 84-85"), "Recordings disagree 84–85% stays in the words: " + splitChart.gaps);
+        check(splitChart.runs.toString().contains("DISAGREEING 84-85") && splitChart.runs.toString().contains("JUMP 87-95"),
+                "The strip: the disagreement, then the jump: " + splitChart.runs);
+
         // Combining the recordings' jumps: overlapping ones join (widest), the group most recordings share wins.
         check(Arrays.toString(ChargeSessionStore.Curve.jump(Arrays.asList(new int[]{83, 95}, new int[]{86, 95}, new int[]{40, 45}))).equals("[83, 95, 2]"), "Widest of the shared group");
         check(Arrays.toString(ChargeSessionStore.Curve.jump(Arrays.asList(new int[]{40, 45}, new int[]{83, 95}))).equals("[83, 95, 1]"), "A tie: the higher jump");

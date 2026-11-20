@@ -12,7 +12,7 @@ import java.util.TreeMap;
  * detected. The digest below was taken with the same recordings on main before this change (the class uses only calls
  * main has), so any change to minutes, counts, estimate, estimateProvisional, estimateJoined, the finishing curves,
  * powerMatch or familyWatts fails here. Summary coverage is compared with a jump percent read as what it was before
- * (no data, or disagreeing for two or more recordings), since only the card words it differently.
+ * (no data), since only the card words it differently.
  */
 public final class ChargeJumpEstimatesTest {
     /** SHA-256 of the dump on main before the change (0792aae2). */
@@ -52,7 +52,7 @@ public final class ChargeJumpEstimatesTest {
                 }
                 out.append(" w").append(curve.familyWatts(soc)).append(" c").append(curve.hasFinishingCoverage(soc));
                 ChargeSessionStore.Summary.Bin bin = curve.summary().bins.get(soc);
-                String kind = bin.coverage.name().equals("JUMP") ? bin.sessions >= 2 ? "DISAGREEING" : "NONE" : bin.coverage.name();
+                String kind = bin.coverage.name().equals("JUMP") ? "NONE" : bin.coverage.name();
                 out.append(" s").append(kind).append(',').append(bin.sessions).append(',').append(bin.minutes).append(',').append(bin.watts)
                         .append(',').append(bin.finishCovered).append(',').append(bin.outsideTemperature).append('\n');
             }
