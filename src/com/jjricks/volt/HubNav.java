@@ -47,6 +47,14 @@ final class HubNav {
          */
         static Args fromHome(String id) { return rideAndBack(id); }
         /**
+         * fromHome, given the page already shown (shown): where All rides is that page (the wide Clean Home, whose card
+         * stays beside All rides in the page pane), a plain ride, so closing its details keeps the All rides the rider
+         * was on rather than leaving it (#557 review, F01).
+         */
+        static Args fromHome(String id, String shown) {
+            return shown != null && HubPages.RIDE_RIDES.equals(HubPages.canonical(shown)) ? ride(id) : fromHome(id);
+        }
+        /**
          * These arguments as strings for the activity's saved state, so a recreation while the loading page waits for the
          * service keeps a search result's target owed (#393 council review, fourth round, finding 3); null for none.
          */

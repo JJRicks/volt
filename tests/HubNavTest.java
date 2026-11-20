@@ -127,6 +127,12 @@ public final class HubNavTest {
                 "A ride opened from Home closes back to Home");
         HubNav.Args restoredHome = HubNav.Args.restore(HubNav.Args.save(home));
         require(restoredHome != null && "r3".equals(restoredHome.ride) && restoredHome.backAfterRide, "A ride owed from Home keeps closing back to Home after a recreation");
+        // The wide Clean Home beside All rides already shown (#557 review, F01): a plain ride, so All rides stays under it.
+        HubNav.Args besideList = HubNav.Args.fromHome("r4", HubPages.RIDE_RIDES);
+        require("r4".equals(besideList.ride) && !besideList.backAfterRide, "Just back over All rides keeps All rides under its details");
+        for (String shown : new String[] {HubPages.HOME, HubPages.RIDE, HubPages.SEARCH, null})
+            require(HubNav.Args.fromHome("r5", shown).backAfterRide && "r5".equals(HubNav.Args.fromHome("r5", shown).ride),
+                    "Just back from " + shown + " still closes back to the page that opened it");
         // The stack under it: Home opens All rides with the ride, so the one Back the closed details take lands on Home;
         // from the Ride page's list (Home, Ride, All rides) a plain ride's details close to All rides, still on top.
         HubNav fromHome = new HubNav();

@@ -888,6 +888,12 @@ public final class ChargingEstimate {
      * shown itself without a learned value, at or above BULK_LIMIT, without a usable reading, or where no shown time is
      * baseline's. The label stays; the status says what was used.
      */
+    /** withUsableCapacity's last words: with ratedPlan the rated-capacity plan, else the learned value's sentence ends there. */
+    private static String usableTail(boolean ratedPlan) {
+        String tail=" Ah per 100%); Charge done by plans with the rated capacity.";
+        return ratedPlan?tail:tail.substring(0,tail.indexOf(';'))+".";
+    }
+
     public static Result withUsableCapacity(Result shown,Result baseline,Value soc,Value ratedAh,UsableCapacity.Learned learned) {
         if(shown==null||baseline==null||!baseline.charging||baseline.remainingMinutesToFull==null||baseline.inputAmps==null
                 ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||ratedAh.number<=0||soc.number>=UsableCapacity.BULK_LIMIT)return shown;
@@ -899,9 +905,14 @@ public final class ChargingEstimate {
         Double full=fullRate?UsableCapacity.minutes(soc.number,100,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToFull;
         Double limit=limitRate?UsableCapacity.minutes(soc.number,baseline.targetPercent,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToLimit;
         if(full==null||limit==null&&shown.remainingMinutesToLimit!=null||!fullRate&&!limitRate)return shown;
+        // The status names the rated capacity as Charge done by's plan only where every time it plans with is that rated
+        // current-rate time: a learned or provisional time to the limit, or a provisional fill-in planned with the longer of
+        // it and the rated time, plans otherwise, and its own sentence (withHistory, withObservedCurve) says so (#567 review, F01).
+        boolean ratedPlan=same(shown.planningMinutesToFull,baseline.remainingMinutesToFull)
+                &&(shown.planningMinutesToLimit==null||same(shown.planningMinutesToLimit,baseline.remainingMinutesToLimit));
         String status=(shown.status==null?"":shown.status)+" Below "+Math.round(UsableCapacity.BULK_LIMIT)+"% the current rate uses the charge this battery's gauge took per percent in "
                 +learned.recordings+" past charge"+(learned.recordings==1?", provisionally":"s")+" ("+Math.round(usable*10)/10.0
-                +" Ah per 100%); Charge done by plans with the rated capacity.";
+                +usableTail(ratedPlan);
         return new Result(shown.charging,shown.inputWatts,shown.inputAmps,limit,full,shown.targetPercent,shown.labelMsg,status,
                 shown.learnedToLimit,shown.learnedToFull,shown.learnedSessions,shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,
                 shown.stockVoltageMatch,shown.planningMinutesToLimit,shown.planningMinutesToFull,shown.stockPackModel,shown.limitRate,

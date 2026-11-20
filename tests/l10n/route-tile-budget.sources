@@ -1,0 +1,4 @@
+# RouteMapView's tile cache size (RouteTileBudget): the view's visible tiles x 1.5, between the old 20 MB and a cap.
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/RouteTileBudget.java
+tests/l10n/RouteTileBudgetTest.java

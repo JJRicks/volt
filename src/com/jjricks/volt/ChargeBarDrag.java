@@ -168,6 +168,17 @@ final class ChargeBarDrag {
      * One touch on the bar, from its first contact to its lift or cancel. The view passes its geometry in pixels; the
      * gesture keeps no Android state, so a test drives it with numbers.
      */
+    /**
+     * Whether a touch at (x, y) in the bar view's pixels lies in the part of its band below foot, the foot of the stage
+     * that holds it: Clean's track sits 7.5 dp above the stage's foot, and its band reaches 18 dp below the track (bottom,
+     * the band's lowest y), past the stage, whose bounds a touch must fall inside to reach the bar. Its parent hands such
+     * a touch to the bar, which still takes it only near the mark (Gesture.down); one inside the stage reaches it anyway.
+     * width: the bar view's (#556 review).
+     */
+    static boolean overhang(float x, float y, float width, float foot, float bottom) {
+        return x >= 0 && x <= width && y >= foot && y <= bottom;
+    }
+
     static final class Gesture {
         /** IDLE: no touch. PRESSED: down near the mark, direction not known yet. DRAGGING: the mark follows the finger.
          *  BLOCKED: a deliberate drag on a mark that can't move now (said once). DONE: the rest of this touch is ignored. */

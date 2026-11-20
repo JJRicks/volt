@@ -374,6 +374,25 @@ public final class FindNearbyTest {
         check(watch.contains("boolean home=HubPages.HOME.equals(selectedPage)&&riding==null&&onboarding==null&&!enteringMaintenance&&!startupRedirect&&!destroyed;")
                 && watch.contains("if(!home)scooterService.ble.homeShown(false);") && watch.contains("else if(resumed)scooterService.ble.homeShown(true);"), "Home, resumed, starts a stay; anything else ends it");
         check(main.contains("if(scooterService!=null&&!isChangingConfigurations())scooterService.ble.homeShown(false);\n        resumed=false;"), "onPause ends the stay, a recreation doesn't");
+        // #558 review, F02: a fresh start's first attempt begins in the service's onCreate, before the bind. The activity
+        // keeps the stay where an unbound service reads it, the service tells the controller before it can attempt, and
+        // the bind tells the bound service before visible() can start one.
+        check(watch.indexOf("if(!home)ScooterService.homeHint(false);else if(resumed)ScooterService.homeHint(true);") >= 0
+                && watch.indexOf("ScooterService.homeHint") < watch.indexOf("if(scooterService==null)return;"), "an unbound service hears the stay too");
+        check(main.contains("if(!isChangingConfigurations())ScooterService.homeHint(false);\n        if(scooterService!=null&&!isChangingConfigurations())"), "onPause ends the kept stay as well");
+        String service = read("src/com/jjricks/volt/ScooterService.java");
+        check(service.contains("static void homeHint(boolean shown){homeShown=shown;}") && service.contains("ble.homeShown(homeShown);ble.visibility("),
+                "the service tells the controller the stay before its first attempt");
+        String connected = body(main, "        private void connected(IBinder binder){", "\n        }\n");
+        check(connected.indexOf("watchHome();") >= 0 && connected.indexOf("watchHome();") < connected.indexOf("scooterService.visible(resumed);")
+                && connected.indexOf("watchHome();") > connected.indexOf("scooterService=((ScooterService.LocalBinder)binder).service();"), "the bind tells the stay before visible()");
+        // The tally itself: a fresh start told Home before its first attempt counts that attempt.
+        FindNearby.Timeouts fresh = new FindNearby.Timeouts();
+        fresh.home(true);
+        fresh.attempt("a"); fresh.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        fresh.home(true);  // the bind's watchHome: the same stay
+        fresh.attempt("a"); fresh.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(fresh.stuckOnHome("a"), "told before the first attempt and again at the bind: both attempts count");
         check(body(main, "    private void resume(){", "\n    }\n").contains("resumed=true;resumes++;missedStartOffered=0;watchHome();ScooterService.setUiVisible(true);"),
                 "a return to Home starts a stay before the service hears Volt is visible (its first attempt counts)");
         check(main.contains("String page=nav.current();selectedPage=page;preferences.edit().putString(\"last_page\",page).apply();watchHome();"), "every page change through the stack");

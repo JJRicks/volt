@@ -21,6 +21,7 @@ public final class ChargeBarDragTest {
         geometryAndRtl();
         steps();
         touchStartsOnlyNearTheMark();
+        bandBelowTheStage();
         commitsOnceOnRelease();
         cancelsCommitNothing();
         verticalSwipeIsThePages();
@@ -119,6 +120,26 @@ public final class ChargeBarDragTest {
         // The mark keeps the finger's offset: 9 px of travel (3%) from 85 lands on 90; jumping to the finger, 28 + 9 px
         // right of the mark (97%), would land on 95.
         require(g.value == 90, "the mark moves by the finger's travel, not to the finger: " + g.value);
+    }
+
+    /**
+     * Clean's band below the stage's foot (#556 review): the track 7.5 dp above the foot, the band 18 dp below the track,
+     * so 10.5 dp of it lies past the stage, whose parent hands a touch there to the bar; the bar still takes it only near
+     * the mark, so the whole 30 + 18 dp band is the bar's again.
+     */
+    private static void bandBelowTheStage() {
+        float dp = 3, width = 400, track = 30 * dp, foot = track + 7.5f * dp, bottom = track + 18 * dp;
+        require(ChargeBarDrag.overhang(10, foot, width, foot, bottom) && ChargeBarDrag.overhang(width, bottom, width, foot, bottom),
+                "the band's part below the stage's foot is handed to the bar");
+        require(!ChargeBarDrag.overhang(10, foot - 1, width, foot, bottom), "inside the stage the bar gets the touch anyway: not handed");
+        require(!ChargeBarDrag.overhang(10, bottom + 1, width, foot, bottom), "below the band: the views under it keep the touch");
+        require(!ChargeBarDrag.overhang(-1, foot + 1, width, foot, bottom) && !ChargeBarDrag.overhang(width + 1, foot + 1, width, foot, bottom),
+                "beside the bar: not handed");
+        // Handed to the bar, the band's lowest point still starts a press only near the mark, as everywhere else.
+        float mark = ChargeBarDrag.x(85, START, END, false);
+        ChargeBarDrag.Gesture g = new ChargeBarDrag.Gesture();
+        require(g.down(mark, BAR + BELOW, mark, BAR, ABOVE, BELOW, HALF, true, 85), "the band's lowest point near the mark is taken");
+        require(!new ChargeBarDrag.Gesture().down(mark + HALF + 1, BAR + BELOW, mark, BAR, ABOVE, BELOW, HALF, true, 85), "away from the mark it isn't");
     }
 
     /** Rule 3: commit on release, once, and only if the value changed. */
