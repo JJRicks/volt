@@ -164,8 +164,7 @@ public final class ScooterService extends Service {
                 if (key == null) return;
                 if (key.equals(ChargeAutoRecordPolicy.KEY)) {
                     // Record charges automatically: turning it on looks at once (observeAutoCharge), so a charge already under way starts.
-                    // Turning it on also releases a refusal for lack of room (Terra's review of #416, finding 1): it tries again.
-                    Runnable look = () -> { if (destroyed) return; if (autoChargeEnabled()) releaseAutoChargeNoRoom(null); changed(); };
+                    Runnable look = () -> { if (destroyed) return; changed(); };
                     if (Looper.myLooper() == Looper.getMainLooper()) look.run();
                     else handler.post(look);
                     return;
@@ -474,6 +473,9 @@ public final class ScooterService extends Service {
         if(destroyed||profile==null)return null;
         return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
     }
+    private int qualifiedRecordings(ChargeSessionStore.Charger charger){
+        return chargeSnapshot==null?0:chargeSnapshot.qualifiedRecordings(activeProfileId(),charger);
+    }
     private int qualifiedSessions(ChargeSessionStore.Charger charger){
         ChargeSessionStore.Curve curve=chargeSnapshot==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         return curve==null?0:curve.qualifiedSessions;
@@ -518,9 +520,8 @@ public final class ScooterService extends Service {
     public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null);}
     /**
      * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start; setting:
-     * the charger setting at an automatic start (null: Automatic), kept in its id for audit. An
-     * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
-     * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
+     * the charger setting at an automatic start (null: Automatic), kept in its id for audit. Both kinds always find room:
+     * once saved, a recording rotates the oldest away (ChargeSessionStore's budget).
      */
     private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source,ChargeSessionStore.Charger setting){
         if(isChargeRecording())return false;
@@ -529,8 +530,7 @@ public final class ScooterService extends Service {
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
             if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
-            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,setting,wall,mono)){
-                autoChargeNoRoom.add(activeProfileId());chargeStatus=M.serviceChargeAutoNoRoom();changed();return false;}
+            else chargeStore.startAutomatic(activeProfileId(),charger,source,setting,wall,mono);
             chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
             ble.recordDiagnostic(ConnectionEventLog.Reason.CHARGE_STARTED,-1);
@@ -543,14 +543,8 @@ public final class ScooterService extends Service {
     public void stopChargeRecording(){holdAutoChargeAfterHandStop();finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
     /** Record charges automatically: the switch, off by default. */
     private boolean autoChargeEnabled(){return settings!=null&&settings.getBoolean(ChargeAutoRecordPolicy.KEY,false);}
-    /** Scooters whose automatic start failed (storage, or no room beside manual recordings), until they stop charging. */
+    /** Scooters whose automatic start failed (storage), until they stop charging. */
     private final Set<String> autoChargeLatched=new HashSet<>();
-    /** The latched scooters whose refusal was for lack of room: released when room appears or the switch is turned on. */
-    private final Set<String> autoChargeNoRoom=new HashSet<>();
-    /** Releases a lack-of-room latch, for one scooter or (null) all, so the next look tries again. */
-    private void releaseAutoChargeNoRoom(String profile){
-        for(String id:new ArrayList<>(autoChargeNoRoom))if(profile==null||profile.equals(id)){autoChargeNoRoom.remove(id);autoChargeLatched.remove(id);}
-    }
     private boolean autoChargeBusy;
     /**
      * A hand stop holds its scooter until it stops charging (ChargeAutoRecordPolicy.holdsAfterHandStop: an automatic
@@ -564,7 +558,7 @@ public final class ScooterService extends Service {
         if(profile!=null&&holds.add(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).commit();
     }
     private void clearAutoChargeHold(String profile){
-        autoChargeLatched.remove(profile);autoChargeNoRoom.remove(profile);
+        autoChargeLatched.remove(profile);
         Set<String> holds=ChargeAutoRecordPolicy.holds(settings.getString(ChargeAutoRecordPolicy.HOLD_KEY,""));
         if(holds.remove(profile))settings.edit().putString(ChargeAutoRecordPolicy.HOLD_KEY,ChargeAutoRecordPolicy.store(holds)).apply();
     }
@@ -625,8 +619,9 @@ public final class ScooterService extends Service {
             // Never in the middle of a guided test (or its write-back) or a compatibility check; no latch, so it starts after.
             if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
+            // The guess counts chargers among this scooter's newest LEARN_SESSIONS recordings that teach a curve, so it follows a switch.
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),detectedCharger(),
-                    qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
+                    qualifiedRecordings(ChargeSessionStore.Charger.STOCK),qualifiedRecordings(ChargeSessionStore.Charger.HIGH_SPEED));
             if(!startChargeRecording(label.charger,label.source,label.setting)&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
@@ -683,20 +678,35 @@ public final class ScooterService extends Service {
             try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=M.serviceChargeClearFailed();}
             final CharSequence message=error;final ChargeSessionStore.Snapshot result=snapshot;
             handler.post(()->{if(destroyed)return;chargeModelLoading=false;if(result!=null)chargeSnapshot=result;
-                // Room now: a charge refused for lack of it records after all (Terra's review of #416, finding 1). The
-                // twenty are shared by every scooter, so every scooter's refusal goes (its review at 39f813dd).
-                if(message==null)releaseAutoChargeNoRoom(null);
                 chargeStatus=message==null?M.serviceChargeCleared():message;changed();if(completion!=null)completion.run();});});return true;
     }
     public boolean chargeExporting(){return chargeExporting;}
-    /** Read only this scooter's closed journals off-main; never re-run today's estimator on history. */
-    public boolean loadChargeRecordings(Consumer<List<ChargeSessionStore.HistorySession>> completion){
+    /**
+     * Read only this scooter's closed journals off-main; never re-run today's estimator on history. Newest first: the
+     * newest `full` with their points, the rest as summaries (ChargeSessionStore.history), so hundreds of saved recordings
+     * cost neither parsing nor memory. A summary's points load when it is opened (loadChargeRecording).
+     */
+    public boolean loadChargeRecordings(int full,Consumer<List<ChargeSessionStore.HistorySession>> completion){
         if(destroyed||dataMaintenance||chargeStore==null||activeProfileId().isEmpty())return false;
         final String profile=activeProfileId();
         chargeWorker.execute(()->{
             List<ChargeSessionStore.HistorySession> recordings=null;
-            try{recordings=chargeStore.recordings(profile);}catch(IOException unavailable){}
+            try{recordings=chargeStore.history(profile,full);}catch(IOException unavailable){}
             final List<ChargeSessionStore.HistorySession> result=recordings;
+            handler.post(()->{
+                if(destroyed)return;
+                completion.accept(!dataMaintenance&&profile.equals(activeProfileId())?result:null);
+            });
+        });return true;
+    }
+    /** One saved recording of this scooter in full, off-main; null to the completion when it is gone or unreadable. */
+    public boolean loadChargeRecording(String id,Consumer<ChargeSessionStore.HistorySession> completion){
+        if(destroyed||dataMaintenance||chargeStore==null||activeProfileId().isEmpty())return false;
+        final String profile=activeProfileId();
+        chargeWorker.execute(()->{
+            ChargeSessionStore.HistorySession recording=null;
+            try{recording=chargeStore.recording(profile,id);}catch(IOException unavailable){}
+            final ChargeSessionStore.HistorySession result=recording;
             handler.post(()->{
                 if(destroyed)return;
                 completion.accept(!dataMaintenance&&profile.equals(activeProfileId())?result:null);
@@ -738,12 +748,19 @@ public final class ScooterService extends Service {
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});
         });changed();return true;
     }
+    /**
+     * Learns on the worker, then (a second job, after capture is admitted again) compresses finished recordings and
+     * rotates the folder to its budget (ChargeSessionStore.maintain). A rotation that removed any refreshes once more.
+     */
     private void refreshChargeCurves(){
         if(destroyed||chargeStore==null||chargeModelLoading)return;chargeModelLoading=true;
         chargeWorker.execute(()->{ChargeSessionStore.Snapshot snapshot=null;
             try{snapshot=chargeStore.snapshot();}catch(IOException ignored){}
             final ChargeSessionStore.Snapshot result=snapshot;handler.post(()->{if(destroyed)return;chargeModelLoading=false;
                 if(result!=null)chargeSnapshot=result;changed();});});
+        chargeWorker.execute(()->{int removed=0;
+            try{removed=chargeStore.maintain();}catch(IOException|RuntimeException ignored){}
+            if(removed>0)handler.post(()->{if(!destroyed)refreshChargeCurves();});});
     }
     private ChargeSessionStore.Frame chargeFrame(long mono,long wall){
         Map<String,ChargeSessionStore.Value> values=new HashMap<>();
@@ -897,15 +914,21 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
+        ChargingEstimate.Result shown;
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
-            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
+            shown=ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
+        }else{
+            // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
+            long now=SystemClock.elapsedRealtime();
+            shown=ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
+                    profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
+                    chargeTaper.tracking(profile.id)?chargeTaper:null,chargeSlowdown.state(profile.id,now));
         }
-        // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
-        long now=SystemClock.elapsedRealtime();
-        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
-                profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
-                chargeTaper.tracking(profile.id)?chargeTaper:null,chargeSlowdown.state(profile.id,now));
+        // Display only, last: the current-rate times shown below 80% use this scooter's usable capacity from its own
+        // recordings (UsableCapacity); Charge done by's planning minutes stay the estimate's own.
+        return simulating()||chargeSnapshot==null?shown
+                :ChargingEstimate.withUsableCapacity(shown,baseline,soc,rated,chargeSnapshot.usableCapacity.get(activeProfileId()));
     }
 
     /**

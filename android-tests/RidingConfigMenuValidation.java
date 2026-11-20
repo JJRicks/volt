@@ -37,7 +37,7 @@ import java.util.function.Supplier;
  * the menu staying open at walking pace and closing at 4 mph with its dialogs, auto-save with no Done
  * button, and More keeping only the two automatic switches. Refuses a device or an app with data.
  */
-public final class RidingConfigMenuValidation extends Instrumentation {
+public final class RidingConfigMenuValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private final Bundle result = new Bundle();
     private final ArrayList<String> notes = new ArrayList<>();

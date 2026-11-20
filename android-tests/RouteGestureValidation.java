@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.jjricks.volt.*;
 
 /** Synthetic route views on an emulator only. Does not start the app or touch Bluetooth. */
-public final class RouteGestureValidation extends Instrumentation {
+public final class RouteGestureValidation extends ValidationInstrumentation {
     private int checks;
     private File directory;
     private Ui ui;

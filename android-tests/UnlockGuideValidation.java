@@ -36,7 +36,7 @@ import com.jjricks.volt.*;
  * no matching pictures: the same steps, and no drawing. A screenshot of each case is taken for review. Sends no scooter
  * command.
  */
-public final class UnlockGuideValidation extends Instrumentation {
+public final class UnlockGuideValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private Bundle args;
     private String label = "";

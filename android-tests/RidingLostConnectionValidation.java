@@ -43,7 +43,7 @@ import java.util.function.BooleanSupplier;
  * and wait out the real 2 minutes. Process death can't be driven from inside the process that would die, so that
  * one is in RidingValuesTest's saved-state round trip. Disposable emulator only.
  */
-public final class RidingLostConnectionValidation extends Instrumentation {
+public final class RidingLostConnectionValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private final Bundle result = new Bundle();

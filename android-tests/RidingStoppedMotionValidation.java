@@ -39,7 +39,7 @@ import java.util.function.BooleanSupplier;
  * under 1 mph and a short blip over it keep them up on every frame; a lock tap while rolling waits, shows its side and goes out
  * at the stop; one that never sees a stop goes back after 5 s; one waiting when the controls hide goes back then.
  */
-public final class RidingStoppedMotionValidation extends Instrumentation {
+public final class RidingStoppedMotionValidation extends ValidationInstrumentation {
     private static final long CHANGE_MS = 220;
     /** RidingFrames.HIDE_AFTER_MS: a hide starts this long after the speed reaches 1 mph or more. */
     private static final long HIDE_MS = 2000;
@@ -59,7 +59,8 @@ public final class RidingStoppedMotionValidation extends Instrumentation {
         boolean takes, recordClickable, recordEnabled;
     }
 
-    @Override public void onCreate(Bundle args) { start(); }
+    // A motion check: riding mode as on a phone, its recording dot pulsing.
+    @Override public void onCreate(Bundle args) { runEndlessMotion(); start(); }
 
     @Override public void onStart() {
         Bundle result = new Bundle();

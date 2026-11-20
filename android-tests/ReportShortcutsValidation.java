@@ -32,7 +32,7 @@ import com.jjricks.volt.ScooterProfiles;
  * has finished, asks which scooter this is and drafts the finished report to the alias. Both go
  * through the email sheet's Open email.
  */
-public final class ReportShortcutsValidation extends Instrumentation {
+public final class ReportShortcutsValidation extends ValidationInstrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
     private static final String FIXTURE_NAME = "Synthetic shortcut fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
             FIXTURE_SERIAL = "X2538-SYNTHETIC", FIXTURE_MAC = "C0:FF:EE:12:34:56";

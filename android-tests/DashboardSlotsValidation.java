@@ -26,7 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /** Real Android preference persistence in a disposable fixture, with no app launch or BLE. */
-public final class DashboardSlotsValidation extends Instrumentation {
+public final class DashboardSlotsValidation extends ValidationInstrumentation {
     private final ArrayList<String> checks = new ArrayList<>();
     private SharedPreferences preferences;
     private String fixtureName;

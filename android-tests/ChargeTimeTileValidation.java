@@ -62,7 +62,7 @@ import com.jjricks.volt.*;
  * takeover's reveal), another scooter or a rebuild (interruptions, per scooter, the limit model, rotation): the bar
  * validation's Clean mode covers the limit model and the choice shared between the two Home styles.
  */
-public final class ChargeTimeTileValidation extends Instrumentation {
+public final class ChargeTimeTileValidation extends ValidationInstrumentation {
     private static final int LIMIT = 0, FULL = 1;
     private MainActivity activity;
     private ScooterService service;
@@ -521,8 +521,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         // Hidden mid-switch (charging stops reporting), then shown again.
         int before = readingNow();
         scale("6");
-        tapQuick(); SystemClock.sleep(200);
-        main(() -> require(!atRest(), "The slowed switch was not running"));
+        tapIntoSlowedSwitch();
         hero(50, null, 0);
         // The charging view closes over ChargeTransition.WIDGETS_OUT_MS (300 ms since the Plug in transition, #534, up from
         // 240 ms), six times slower here, and the tile settles once it has closed (stopReveal). Wait for that, then check.
@@ -534,7 +533,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         // Re-parented mid-switch (a fold hands the header to another pane).
         int now = readingNow();
         scale("6");
-        tapQuick(); SystemClock.sleep(200);
+        tapIntoSlowedSwitch();
         main(() -> {
             require(!atRest(), "The slowed switch was not running");
             View hero = hero(); ViewGroup parent = (ViewGroup) hero.getParent(); int index = parent.indexOfChild(hero);
@@ -543,11 +542,20 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         });
         scale("1");
         hero(50, null, 2);
-        // A fresh estimate mid-switch: label and value stay together on each face.
+        // A fresh estimate mid-switch: label and value stay together on each face. The estimate lands in the same main-thread
+        // turn as the check that the switch is running, so the switch's own state decides, not a wall-clock sleep that a
+        // slow machine outlasts; and the estimate neither ends nor restarts the switch.
         scale("6");
-        tapQuick(); SystemClock.sleep(150);
-        hero(52, null, 2);
-        main(() -> require(!atRest(), "The slowed switch ended before the fresh estimate"));
+        tapIntoSlowedSwitch();
+        Map<String, TelemetryHistory.Reading> fresh = readings(52, null, 2);
+        main(() -> {
+            require(!atRest(), "The slowed switch ended before the fresh estimate");
+            float progress = switchProgress(); int target = state("target");
+            invoke(hero(), "refresh", new Class<?>[]{Map.class}, fresh);
+            require(!atRest() && state("target") == target && switchProgress() >= progress,
+                    "The fresh estimate ended or restarted the slowed switch (progress " + progress + " to " + switchProgress() + ")");
+        });
+        hero(52, null, 2);  // the same readings by the usual path: shown, and a stray refresh of the app's own undone
         scale("1");
         awaitRest();
         main(() -> require(cleanRest() && String.valueOf(value(LIMIT).getContentDescription()).startsWith(String.valueOf(caption(LIMIT).getContentDescription())),
@@ -947,6 +955,14 @@ public final class ChargeTimeTileValidation extends Instrumentation {
         return c;
     }
     private void tap() throws Exception { tapQuick(); settle(); }
+    /**
+     * A tap at a slowed animator scale that returns once its switch is under way (moved past 0, not yet at rest),
+     * by the switch's own progress rather than a fixed sleep, which a slow machine can outlast.
+     */
+    private void tapIntoSlowedSwitch() throws Exception {
+        tapQuick();
+        await(() -> !atRest() && switchProgress() > 0, "The slowed switch was not running");
+    }
     private void tapQuick() throws Exception {
         float[] c = centre(); long down = SystemClock.uptimeMillis();
         send(MotionEvent.ACTION_DOWN, down, c[0], c[1]); SystemClock.sleep(40); send(MotionEvent.ACTION_UP, down, c[0], c[1]);
@@ -1097,6 +1113,7 @@ public final class ChargeTimeTileValidation extends Instrumentation {
     private boolean two() { return Boolean.TRUE.equals(field(tile(), "two")); }
     private int state(String name) { return (Integer) field(field(tile(), "state"), name); }
     private boolean atRest() { return Boolean.TRUE.equals(invoke(field(tile(), "state"), "atRest")); }
+    private float switchProgress() { return (Float) field(field(tile(), "state"), "progress"); }
     private int shownReading() { return two() ? state("resting") : FULL; }
     private int readingNow() { int[] r = new int[1]; main(() -> r[0] = shownReading()); return r[0]; }
     private static int other(int r) { return r == FULL ? LIMIT : FULL; }

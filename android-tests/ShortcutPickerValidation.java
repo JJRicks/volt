@@ -51,7 +51,7 @@ import com.jjricks.volt.*;
  *   search by English name, fit)  -e mode look (opens the picker and takes its pictures, no assertions about the
  *   sections: runs on any build, for before/after pictures of the picker).
  */
-public final class ShortcutPickerValidation extends Instrumentation {
+public final class ShortcutPickerValidation extends ValidationInstrumentation {
     private static final String ALERTS = "charge_alerts";
     private static final List<String> ORDER = Arrays.asList("ride", "battery", "lights", "line_lights", "star_lights", "security",
             "preferences", "pages", "menus", "experimental", "unavailable");

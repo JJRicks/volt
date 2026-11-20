@@ -36,7 +36,7 @@ final class LiveStatsTitle extends LinearLayout {
         Signal() { super(ui.context); setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO); }
         @Override protected void onDraw(Canvas canvas) {
             float x = getWidth() / 2f, y = getHeight() / 2f;
-            boolean moving = live && isShown() && hasWindowFocus() && Ui.motionEnabled();
+            boolean moving = live && isShown() && hasWindowFocus() && Ui.endlessMotionEnabled();
             float phase = moving ? (SystemClock.uptimeMillis() % 3000) / 3000f : 0;
             int color = live ? ui.accent : ui.dim;
             if (moving) {

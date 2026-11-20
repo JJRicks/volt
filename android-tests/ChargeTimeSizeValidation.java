@@ -45,7 +45,7 @@ import com.jjricks.volt.*;
  * power's size, and never in English. Sizes are recorded in the checks; argument diagnose records without failing.
  * Sends no scooter command.
  */
-public final class ChargeTimeSizeValidation extends Instrumentation {
+public final class ChargeTimeSizeValidation extends ValidationInstrumentation {
     private static final int LIMIT = 0, FULL = 1;
     private MainActivity activity;
     private ScooterService service;

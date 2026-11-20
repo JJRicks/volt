@@ -46,7 +46,7 @@ import java.util.function.BooleanSupplier;
  * the regen side in every frame, and a saved unsigned ride's graph below zero with its energy rows unavailable;
  * a signed ride stays exactly as measured. Synthetic only. Disposable emulator only.
  */
-public final class RegenDisplayValidation extends Instrumentation {
+public final class RegenDisplayValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private Object screen;
     private final Bundle result = new Bundle();

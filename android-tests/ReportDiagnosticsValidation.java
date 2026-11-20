@@ -45,7 +45,7 @@ import com.jjricks.volt.ScooterProfiles;
  * one, and old snapshots are pruned. Email to Volt's charge recordings are snapshots under their own
  * name, gzip-compressed over 25 MB. Every email is intercepted in-process and never sent.
  */
-public final class ReportDiagnosticsValidation extends Instrumentation {
+public final class ReportDiagnosticsValidation extends ValidationInstrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
     private static final String FIXTURE_NAME = "Synthetic diagnostics fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",
             FIXTURE_SERIAL = "X2538SYNTHETIC0042", FIXTURE_MAC = "C0:FF:EE:12:34:56";

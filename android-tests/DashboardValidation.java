@@ -57,7 +57,7 @@ import com.jjricks.volt.TelemetryHistory;
  * explicitly identified; Bluetooth stays off and no recording, scooter write or tile request occurs.
  * Run separately at 360, 411 and 701 dp; the runner also checks 140% app text in a light theme.
  */
-public final class DashboardValidation extends Instrumentation {
+public final class DashboardValidation extends ValidationInstrumentation {
     private static final String[] PREFS = {"app_settings", "profiles", "scooter", "pending_documents"};
     /**
      * The tab bar's five destinations (Home, Scooter, Live Stats, Rides, More) as part 11 (#392) holds them: Home and the

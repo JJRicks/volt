@@ -55,7 +55,7 @@ import com.jjricks.volt.TelemetryHistory;
 import com.jjricks.volt.Ui;
 
 /** Fresh disposable emulator only. Sample controls run with Bluetooth disabled and no real identity. */
-public final class DeveloperSettingsValidation extends Instrumentation {
+public final class DeveloperSettingsValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;
