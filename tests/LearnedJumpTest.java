@@ -56,7 +56,11 @@ public final class LearnedJumpTest {
         check(chart.jumps() && chart.jumpFrom == 83 && chart.jumpTo == 95, "The chart names the jump");
         check(chart.gaps.toString().equals("[BELOW 0-38]") && chart.unlisted == 0, "No data only below the recording (no gap inside the jump): " + chart.gaps + " +" + chart.unlisted);
         check(chart.legend().equals(Arrays.asList(NONE, ONE, JUMP)), "Legend: no data, one recording, the jump: " + chart.legend());
-        check(chart.runs.toString().equals("[NONE 0-38, PROVISIONAL 38-84, JUMP 84-87, PROVISIONAL 87-88, JUMP 88-91, PROVISIONAL 91-92, JUMP 92-95, PROVISIONAL 95-100]"), "Runs: " + chart.runs);
+        // Drawn as one jump, 84–95% (option B): the two half-minute percents inside it are the jump on the strip and draw no
+        // speed, while the Summary above keeps their minutes.
+        check(chart.runs.toString().equals("[NONE 0-38, PROVISIONAL 38-84, JUMP 84-95, PROVISIONAL 95-100]"), "Runs: " + chart.runs);
+        check(Double.isNaN(chart.minutes[87]) && Double.isNaN(chart.minutes[91]) && chart.minutes[83] > 4 && chart.minutes[95] > 5, "No speed drawn inside the jump");
+        check(chart.learned.toString().equals("[PROVISIONAL 38-84, PROVISIONAL 95-100]"), "Two learned stretches around the jump: " + chart.learned);
         check(chart.learnedFrom() == 38 && chart.learnedTo() == 100 && chart.toFullFrom == 95, "Learned 38–100%, time to full from 95% as before: " + chart.learned);
 
         // The same recording before this change would have read: "No data 84–87%", "No data 88–91%", "And 1 more gap".
@@ -106,6 +110,9 @@ public final class LearnedJumpTest {
         boolean inside = false;
         for (LearnedCurveChart.Gap gap : twoChart.gaps) inside |= gap.from < 95 && gap.to > 83;
         check(!inside && twoChart.unlisted == 0 && twoChart.jumpFrom == 83 && twoChart.jumpTo == 95, "No gap inside the jump: " + twoChart.gaps);
+        // 84–86% stay learned (the second recording held them normally); 87–94% are one jump; 87% keeps its half minute in the data.
+        check(twoChart.runs.toString().equals("[NONE 0-38, PROVISIONAL 38-51, ROBUST 51-84, PROVISIONAL 84-87, JUMP 87-95, ROBUST 95-100]"), "Two recordings drawn: " + twoChart.runs);
+        check(two.bins.get(87).minutes != null && Double.isNaN(twoChart.minutes[87]) && twoChart.minutes[86] > 4, "87%: data kept, drawn as the jump; 86%: learned");
 
         // Combining the recordings' jumps: overlapping ones join (widest), the group most recordings share wins.
         check(Arrays.toString(ChargeSessionStore.Curve.jump(Arrays.asList(new int[]{83, 95}, new int[]{86, 95}, new int[]{40, 45}))).equals("[83, 95, 2]"), "Widest of the shared group");

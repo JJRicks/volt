@@ -44,7 +44,7 @@ import com.jjricks.volt.ScooterProfiles;
  *   <li>{@code mixed}: stock recordings that leave an inside gap and a stretch they disagree on: every legend entry;</li>
  *   <li>{@code jump}: one stock charge from 37% at a steady 1.98 A whose battery percent jumps from 83% to 95% (most
  *   percents between passed in 10–20 s, two in 30 s), then the normal finish: the jump named in words and the legend,
- *   and no "No data" inside it. An app built before the jump words gets the same screenshot without those checks (the
+ *   no "No data" inside it, and the strip's jump read as one stretch, 84–95%. An app built before the jump words gets the same screenshot without those checks (the
  *   "before" picture).</li>
  * </ul>
  * Each card: its tag, words whole (no cut text, no mid-word break), the chart measured, inside the screen, and one
@@ -157,6 +157,8 @@ public final class LearnedCurveValidation extends ValidationInstrumentation {
                             require(!java.util.regex.Pattern.compile("No data (8[3-9]|9[0-4])").matcher(words).find() && !words.contains("more gap"),
                                     "Jump: no data gaps inside the jump: " + words);
                             require(words.contains("No data below 38%") && words.contains("95% to full"), "Jump: the rest as before: " + words);
+                            require(words.contains("jump from 84 to 95%") && !words.contains("from 87 to 88%") && !words.contains("from 91 to 92%"),
+                                    "Jump: TalkBack reads the jump as one stretch: " + words);
                         } else checks.add("jump: this app has no jump words yet (before); words: " + words);
                         break;
                     default: break;
