@@ -92,6 +92,7 @@ variant_title() {
     refined) echo "Refined" ;;
     hybrid) echo "Hybrid" ;;
     app) echo "App look" ;;
+    clean) echo "Clean Home" ;;
     *) printf '%s%s\n' "$(printf '%s' "${1:0:1}" | tr '[:lower:]' '[:upper:]')" "${1:1}" ;;
   esac
 }
@@ -101,6 +102,7 @@ variant_description() {
     refined) echo "Today's page, refined: same identity, screenshots and lightning background." ;;
     hybrid) echo "Today's layout and screenshots, rebuilt in the Volt app's design language." ;;
     app) echo "A page in the Volt app's own design language." ;;
+    clean) echo "The app's Clean Home as the page: two panes, with the top area following the moment." ;;
     *) echo "A homepage variant from site/variants/$1/." ;;
   esac
 }
@@ -135,11 +137,11 @@ python3 -I "$here/tools/check-variants.py" --collect-cards "$dist" 2>/dev/null
 
 # Known variants first, in the owner's order, then any others alphabetically (the glob above is sorted).
 ordered=()
-for name in original refined hybrid app; do
+for name in original refined hybrid app clean; do
   for have in "${names[@]}"; do [ "$have" = "$name" ] && ordered+=("$name"); done
 done
 for have in "${names[@]}"; do
-  case "$have" in original|refined|hybrid|app) ;; *) ordered+=("$have") ;; esac
+  case "$have" in original|refined|hybrid|app|clean) ;; *) ordered+=("$have") ;; esac
 done
 {
   printf '{\n  "format": "volt-homepage-variants-v1",\n  "version": "%s",\n  "variants": [\n' "$version"
