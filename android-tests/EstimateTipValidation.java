@@ -198,7 +198,7 @@ public final class EstimateTipValidation extends ValidationInstrumentation {
 
     /**
      * The charger tip (item 11): the simulator never records and never runs the far-off rule, so its state is set as the
-     * service's validation-only fields allow. It shows before the record tip, named "Different charger? Record it", its
+     * service's validation-only fields allow. It shows before the record tip, named "Record this charger", its
      * words whole; its sheet names the charger the charge is filed under (Save this recording as High-speed while an
      * automatic guess records, else Record this charge as High-speed); Not now keeps it; Hide this tip hides it alone.
      */
@@ -217,10 +217,10 @@ public final class EstimateTipValidation extends ValidationInstrumentation {
             main(() -> {
                 TextView pill = pill();
                 String spoken = String.valueOf(pill.getContentDescription());
-                require("Different charger? Record it".equals(spoken), "The charger tip's name: " + spoken);
+                require("Record this charger".equals(spoken), "The charger tip's name: " + spoken);
                 int rung = (Integer) field(slot(), "rung");
                 String shown = pill.getText().toString();
-                require(rung == 0 ? shown.equals("Different charger? Record it") : rung == 1 ? shown.equals("Record charger") : shown.isEmpty(),
+                require(rung == 0 ? shown.equals("Record this charger") : rung == 1 ? shown.equals("Record charger") : shown.isEmpty(),
                         "Rung " + rung + " shows '" + shown + "'");
                 Layout layout = pill.getLayout();
                 require(shown.isEmpty() || layout != null && layout.getLineCount() == 1 && layout.getEllipsisCount(0) == 0, "The charger tip's words are cut or wrapped");
