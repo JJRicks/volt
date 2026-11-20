@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.0.3 — 2026-11-20
+
+Volt 2.0.3 is a small release: the live charging card now says when a charge recording is waiting for the charger, with the battery level, and What Volt has learned shows the scooter's own battery-percent jump instead of calling it missing data.
+
+- **A paused charge recording says so.** While a charge recording waits for a stopped charger, the live charging card's title reads **Charge recording · 72%**, with the battery level, and its text says why, for example **Stock charger · charger stopped · waiting for it to resume**. In 2.0.2 the text said so, but the title still read as charging and the lock screen still said **Estimating time left**. The lock screen now shows the same words, unless it is set to **Hidden**.
+- **The scooter's % jump.** Near the top of a charge, a scooter's own battery percent can jump, for example from 83% straight to 95% in a few minutes; a UT5 MAX often does. Volt can't time those percents, so **What Volt has learned** listed them as **No data**, as if the phone had lost the scooter. It now draws that stretch with small chevrons, adds **Scooter's % jump** to the legend and says, for example, **The scooter's % jumps from 83% to 95%**. Time-to-full estimates are unchanged: they already allowed for the jump.
+- **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Notifications
+
+- **A paused charge recording's card.** While a charge recording waits for a stopped charger (or for a schedule's start the card doesn't already show), the live charging card is the plain one, and its title is now the recording with the battery level, for example **Charge recording · 72%**. While Volt reconnects to the scooter it reads **Charge recording · reconnecting**, since the level it holds is only the last one seen, and before Volt has read a level, **Charge recording is active**. The text is the recording's status, as in 2.0.2. Once charging resumes, the card goes back to its usual title, and on Android 16 it is a Live Update again.
+- **On the lock screen**, **Details** and **Level** show that same title and status during the pause; before, they still read **Estimating time left**. On **Level**, the status names only the charger kind (**Stock charger** or **High-speed charger**) and why charging stopped. **Hidden** still shows nothing.
+
+### Charge recordings
+
+- **What Volt has learned names the scooter's % jump.** On a UT5 MAX, the battery percent often jumps from the mid 80s to about 95% in a few minutes while the charger keeps charging steadily: the scooter's battery management snaps its reading at a set pack voltage. Volt learns only from a percent the scooter stayed on for at least 30 seconds, so the percents inside the jump had no minutes, and the card read, for example, **No data 84–87%**, **No data 88–91%** and **And 1 more gap**. Now Volt finds the jump in a recording: at least three percents in a row, each passed in under 30 seconds, after a percent held for a while, with the charge steady throughout (no reconnect, no pause and no change in current). The strip draws the whole jump as one stretch with small chevrons pointing the way the battery fills, the legend names it **Scooter's % jump**, and the card says **The scooter's % jumps from 83% to 95%**. Those percents are no longer **No data** gaps and don't count in **And N more gaps**, and TalkBack reads the jump as one stretch. With several recordings, the card shows the jump most of them share; a percent another recording held normally keeps its learned look.
+- **Estimates are unchanged.** Only the card's picture and words change: the time to full, **Charge done by** and the learned curves are the same as in 2.0.2.
+
+### Upgrading and going back
+
+- Nothing needs doing to update. Charge recordings and exports keep 2.0.2's format.
+- A backup made by 2.0.3 restores only in 2.0.3 or later: Volt 2.0.2 refuses it and says the backup needs a newer app version.
+
 ## 2.0.2 — 2026-11-20
 
 Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, a steadier time to full, the live charging card during charge recordings, clearer words in a few places and some fixes.

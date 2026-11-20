@@ -1,3 +1,68 @@
+VOLT 2.0.3 — A PAUSED CHARGE RECORDING'S CARD SHOWS THE LEVEL, WHAT VOLT HAS LEARNED NAMES THE SCOOTER'S % JUMP (versionCode 63)
+Draft, November 20, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.2
+  (d7bb98d0) is in it: the paused charge recording's card title and lock
+  screen (#591), its battery level in the title, "Charge recording ·
+  72%" (#593, text-free prep, and #594, the new line), and What Volt has
+  learned naming the scooter's own % jump (#595, text-free prep with the
+  detection and the chart, and #596, the legend entry and line). #584 and
+  #592 (the release sweep's APK identity, --merge mode and pseudo-locale
+  note), #589 (2.0.2's record in this file) and #590 (the
+  riding-disconnected validation's frame sampler) change test tooling or
+  docs only, as do #597 (the homepage's Clean Home variant) and #598
+  (README screenshots); none changes the app. The language top-up for
+  this release's new text (#599) and this release's own version,
+  changelog and docs come after them.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR, CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 297 steps on main at #597's merge, the same
+  list as 2.0.2: #595 adds a jump state to LearnedCurveValidation's
+  default states, so the existing learned-curve-* steps (412 dp light,
+  dark and large text, 344 dp, the Fold unfolded) run it, and #591 and
+  #594 add checks to charge-live-recording and charge-capture. Every
+  validation registered in android-tests/AndroidManifest.xml is covered
+  (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit. Before #599, 3 keys per
+  language fell back to English: charge_live_title_recording,
+  more_learned_kind_jump and more_learned_jump.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.2's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed (from
+  --merge for a split sweep, with its pseudo-locale note), each rerun and
+  why, numbers after reruns, rides-timing, ride auto-save.]
+- Parked hardware sweep: [PHASE 2: its report.md outcomes, or the owner's
+  decision to ship without one.] Not yet tried on real hardware: the
+  paused card's title and lock screen during a real charge recording
+  whose charger stops, on a phone (Android 16 and older), the jump on
+  What Volt has learned from a real recording, and everything 2.0.2's
+  list below still owes.
+- The paused card (#591, #594) was checked by JVM tests
+  (ChargeLiveUpdateTest, ChargeLivePausedTitleTest) and on an Android 16
+  emulator (charge-live-recording and charge-capture): the paused card's
+  title Charge recording · <level>% and the recording's status on the
+  card and on the Details and Level lock screens, nothing on Hidden.
+- The jump (#595, #596) is display only. LearnedJumpTest checks the
+  detection on synthesized recordings only (an 83 to 95% jump, no jump in
+  genuine slow or fast charges, after a reconnect, when the current
+  changes or nothing is held after it, and combining several
+  recordings). ChargeJumpEstimatesTest pins a hash of every estimate,
+  finishing estimate, power match, family power and summary bin from 5
+  synthetic recordings, taken on main before #595, so the estimates are
+  unchanged. ChargingEstimate.ESTIMATOR_VERSION is unchanged:
+  ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1.
+- ModelRegistry.REPORTED is unchanged from 2.0.2 (22131, 23452, 24162,
+  24182, 25462, 25852): no compatibility report for a new Model ID is
+  recorded since then. Adding any that reached volt-reports@jjricks.com is
+  the owner's step.
+
+--- Previous verification ---
+
 VOLT 2.0.2 — RECORD THIS CHARGER, A STEADIER TIME TO FULL, THE LIVE CARD WHILE RECORDING, CLEARER WORDS, FIXES (versionCode 62)
 Built, swept and tagged at commit d7bb98d0, #588's merge into main,
 November 20, 2026. That merge is the release commit (RELEASING.md step
