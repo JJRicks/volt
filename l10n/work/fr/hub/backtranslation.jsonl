@@ -43,3 +43,4 @@
 {"back":"Record your recharges","key":"hub_estimate_tip_record_title","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea","target":"Enregistrer vos recharges"}
 {"back":"Improve this estimate","key":"hub_estimate_tip_record","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"e385c8bfe54364415acaadccfbe8c4e399cb9337","target":"Améliorer cette estimation"}
 {"back":"Refine the estimate","key":"hub_estimate_tip_record_short","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"8a738c6b7d656b08a91700ca364cdcc83a2ac343","target":"Affiner l’estimation"}
+{"back":"Save this charger","key":"hub_estimate_tip_charger","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"303dcdedd4903ecd601eda5da25dd6ba34104c0c","target":"Enregistrer ce chargeur"}

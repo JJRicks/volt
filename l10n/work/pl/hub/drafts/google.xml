@@ -76,7 +76,7 @@
     <string name="hub_estimate_tip_charger" volt:src="303dcdedd4903ecd601eda5da25dd6ba34104c0c">Zapisz tę ładowarkę</string>
     <string name="hub_estimate_tip_charger_short" volt:src="9d536ab36642bf3a351898d8fbaf8d01e1a767a0">Zapisz ładowarkę</string>
     <string name="hub_charger_tip_title" volt:src="7af50f8ec8c906f5be54131605964f1bfa6acf39">Inna ładowarka?</string>
-    <string name="hub_charger_tip_text" volt:src="4db950cbd1ee6216ece945a9829c304f5a4ceadb">Moc ładowania różni się od zapisanych ładowań. Używasz innej ładowarki? Zapisz to ładowanie, aby aplikacja Volt też się jej nauczyła.</string>
+    <string name="hub_charger_tip_text" volt:src="4db950cbd1ee6216ece945a9829c304f5a4ceadb" volt:attempt="2">Moc ładowania nie zgadza się z zapisanymi ładowaniami. Używasz innej ładowarki? Zapisz to ładowanie, aby aplikacja Volt też się jej nauczyła.</string>
     <string name="hub_charger_tip_record_as" volt:src="9c39d55ba8bec74ee2330a9f822249a6be429918">Zapisz to ładowanie jako %1$s</string>
     <string name="hub_charger_tip_file_as" volt:src="04a053feb775cd559e7f1ea88264ac94f0b2b58f">Zapisz ten zapis ładowania jako %1$s</string>
     <string name="hub_charger_tip_not_saved" volt:src="96706c53ab892d15e6dd88c934c900a2e556fbd1">Ten zapis ładowania został zakończony lub ładowarka została już ustawiona. Niczego nie zmieniono.</string>

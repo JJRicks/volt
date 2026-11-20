@@ -46,7 +46,7 @@
     <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Ładowanie · limit %1$s%%</string>
     <string name="dashboard_charging_slowed" volt:src="36763ec3b3f3a7855b7eb26e0a7e12c018cf9be2">Ładowanie spowolnione</string>
     <string name="dashboard_charging_slowed_short" volt:src="45c3eb8d27b67e0465efa84ee81b834fe3eda494">Spowolnione</string>
-    <string name="dashboard_charging_slowed_hot" volt:src="0af8e219a496c6d32654d93616b393b3aedae460">Wolniejsze ładowanie · gorąca bateria (%1$s°)</string>
+    <string name="dashboard_charging_slowed_hot" volt:src="0af8e219a496c6d32654d93616b393b3aedae460" volt:attempt="2">Zwolnione ładowanie · gorąca bateria (%1$s°)</string>
     <string name="dashboard_charging_slowed_hot_short" volt:src="9e063a61c7cf48ac6296019450d16fe1a9149522">Spowolnione · bateria gorąca %1$s°</string>
     <string name="dashboard_charging_slowed_hot_compact" volt:src="dd3c06e8af17d5e50e97d524fc5423ee49405486">Bateria gorąca · %1$s°</string>
     <string name="dashboard_charging_slowed_cold" volt:src="3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd">Wolniejsze ładowanie · zimna bateria (%1$s°)</string>

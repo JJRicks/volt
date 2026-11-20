@@ -74,7 +74,7 @@
     <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Registra le tue ricariche</string>
     <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Nascondi questo suggerimento</string>
     <string name="hub_estimate_tip_charger" volt:src="303dcdedd4903ecd601eda5da25dd6ba34104c0c">Registra questo caricabatterie</string>
-    <string name="hub_estimate_tip_charger_short" volt:src="9d536ab36642bf3a351898d8fbaf8d01e1a767a0">Registra caricabatterie</string>
+    <string name="hub_estimate_tip_charger_short" volt:src="9d536ab36642bf3a351898d8fbaf8d01e1a767a0" volt:attempt="2">Registra il caricabatterie</string>
     <string name="hub_charger_tip_title" volt:src="7af50f8ec8c906f5be54131605964f1bfa6acf39">Caricabatterie diverso?</string>
     <string name="hub_charger_tip_text" volt:src="4db950cbd1ee6216ece945a9829c304f5a4ceadb">La potenza di ricarica non corrisponde alle ricariche registrate. Stai usando un caricabatterie diverso? Registra questa ricarica così Volt impara a conoscerlo.</string>
     <string name="hub_charger_tip_record_as" volt:src="9c39d55ba8bec74ee2330a9f822249a6be429918">Registra questa ricarica come %1$s</string>
