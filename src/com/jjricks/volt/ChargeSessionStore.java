@@ -912,6 +912,17 @@ public final class ChargeSessionStore {
                 +"\",\"detected_charger\":"+(audit.detected==null?"null":"\""+audit.detected.name()+"\"")+"}";
     }
     public static String key(String profile,Charger charger){return profile+":"+charger.name();}
+    /** The battery temperatures (C, inclusive) a fast charge learns from: 68–100 F (owner, Nov 19 2026). */
+    public static final double LEARN_MIN_C=20,LEARN_MAX_C=38;
+    /**
+     * Whether a reading on this charger at this battery temperature may teach a learned curve (owner, Nov 19 2026: on
+     * every model, a fast charger's percents with the battery outside LEARN_MIN_C–LEARN_MAX_C don't feed the curve,
+     * because the battery limits its current there). The stock charger always learns: its current stays below the
+     * battery's thermal limits. No temperature reported excludes nothing. The recording itself is never changed.
+     */
+    public static boolean learnsAtTemperature(Charger charger,Double batteryC){
+        return charger!=Charger.HIGH_SPEED||batteryC==null||!Double.isFinite(batteryC)||batteryC>=LEARN_MIN_C&&batteryC<=LEARN_MAX_C;
+    }
     /**
      * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen,
      * detected or the charger setting's. A label that is still a guess when the recording ends labels the file and nothing
@@ -1075,7 +1086,13 @@ public final class ChargeSessionStore {
             for (Point point : this.points) while (level <= 100 && point.soc >= level) reach[level++] = (point.mono - first.mono) / 60000d;
         }
 
-        static FinishingCurve from(Session session) {
+        static FinishingCurve from(Session session) {return from(session, false);}
+        /**
+         * normalTemperatures: a reading the charger and battery temperature keep from learning (learnsAtTemperature)
+         * also invalidates the prefix, like a break, so the finish starts after the last such reading. It does not mark
+         * recoveredAfterBreak: the recording's qualification is judged without it (Session.evidence).
+         */
+        static FinishingCurve from(Session session, boolean normalTemperatures) {
             List<Point> points = session.points;
             if (session.stop != Stop.COMPLETE || points.size() < 61 || points.get(points.size()-1).soc != 100) return null;
             int start = -1;
@@ -1092,6 +1109,8 @@ public final class ChargeSessionStore {
                     recoveredAfterBreak = true;
                     continue;
                 }
+                if (normalTemperatures && (!learnsAtTemperature(session.charger, point.temperature)
+                        || !learnsAtTemperature(session.charger, before.temperature))) { start = -1; continue; }
                 // A break invalidates only the prefix. Wait for a later observed rise so the
                 // first partially recorded SOC bin after a reconnect is never included.
                 if (start < 0 && point.soc > before.soc) start = i;
@@ -1181,12 +1200,15 @@ public final class ChargeSessionStore {
         }
         Evidence evidence(){
             if(stop==null||stop==Stop.INTERRUPTED||stop==Stop.PROCESS_ENDED||stop==Stop.ERROR||points.size()<61)return null;
-            Evidence result=new Evidence();result.finishing=FinishingCurve.from(this);boolean[] repeated=new boolean[100];List<Double> powerSamples=new ArrayList<>();
-            Point previous=null;double anchorSoc=Double.NaN;long anchorTime=0,covered=0;int bins=0;
+            // The recording qualifies as before; percents a fast charge recorded outside the learning temperatures
+            // (learnsAtTemperature) then teach nothing, and the finish starts after them.
+            FinishingCurve whole=FinishingCurve.from(this);
+            Evidence result=new Evidence();result.finishing=whole;boolean[] repeated=new boolean[100],outsideBins=new boolean[100];List<Double> powerSamples=new ArrayList<>();
+            Point previous=null;double anchorSoc=Double.NaN;long anchorTime=0,covered=0;int bins=0;boolean outside=false;
             for(Point point:points){
                 boolean continuous=previous!=null&&!point.gap&&point.mono>previous.mono&&point.mono-previous.mono<=MAX_GAP_MS
                         &&Math.abs((point.wall-previous.wall)-(point.mono-previous.mono))<=2000;
-                if(!continuous||previous!=null&&(point.soc<previous.soc||point.soc-previous.soc>1)){anchorSoc=Double.NaN;anchorTime=0;powerSamples.clear();}
+                if(!continuous||previous!=null&&(point.soc<previous.soc||point.soc-previous.soc>1)){anchorSoc=Double.NaN;anchorTime=0;powerSamples.clear();outside=false;}
                 else covered+=point.mono-previous.mono;
                 if(continuous&&point.soc>previous.soc){
                     if(Double.isFinite(anchorSoc)&&point.soc-anchorSoc==1&&anchorSoc==Math.floor(anchorSoc)){
@@ -1194,13 +1216,14 @@ public final class ChargeSessionStore {
                         if(bin>=0&&bin<100&&minutes>=.5&&minutes<=90&&!repeated[bin]){
                             if(Double.isFinite(result.minutes[bin])){result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;repeated[bin]=true;bins--;}
                             else{result.minutes[bin]=minutes;if(powerSamples.size()>=3)result.watts[bin]=median(powerSamples);bins++;}
+                            if(outside||!learnsAtTemperature(charger,point.temperature))outsideBins[bin]=true;
                         }
                     }
-                    anchorSoc=point.soc;anchorTime=point.mono;powerSamples.clear();
+                    anchorSoc=point.soc;anchorTime=point.mono;powerSamples.clear();outside=false;
                 }
                 // The next SOC's first sample (including a zero-current cutoff packet) belongs
                 // to the next interval, so it cannot dilute power from the completed interval.
-                if(point.soc==anchorSoc)powerSamples.add(point.power);
+                if(point.soc==anchorSoc){powerSamples.add(point.power);outside|=!learnsAtTemperature(charger,point.temperature);}
                 previous=point;
             }
             long first=points.get(0).mono,last=points.get(points.size()-1).mono;
@@ -1213,7 +1236,10 @@ public final class ChargeSessionStore {
                 // for the independent per-SOC model, including bins before a long gap.
                 Arrays.fill(result.minutes,Double.NaN);Arrays.fill(result.watts,Double.NaN);
             }
-            return result.finishing!=null || binsQualified?result:null;
+            boolean qualified=whole!=null||binsQualified;
+            for(int bin=0;bin<100;bin++)if(outsideBins[bin]){result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;}
+            if(whole!=null&&charger==Charger.HIGH_SPEED)result.finishing=FinishingCurve.from(this,true);
+            return qualified?result:null;
         }
     }
     /** Header facts of a saved journal, read without recovery or any write to its folder. */

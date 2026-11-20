@@ -26,7 +26,7 @@ sources=()
 for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
 done
-sources+=("$APP_DIR/src/com/jjricks/volt/Ut5MaxStockVoltageReference.java" "$TEST_DIR/StockStartupReferenceTest.java" "$TEST_DIR/StockVoltageReferenceTest.java" "$TEST_DIR/StockVoltageReplayTrace.java" "$TEST_DIR/StockVoltageReplayTest.java" "$TEST_DIR/DualChargerEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxFastChargeReference.java" "$TEST_DIR/Ut5MaxFastChargeReferenceTest.java" "$APP_DIR/src/com/jjricks/volt/ChargeTaperMatcher.java" "$TEST_DIR/StockChargeHoldoutTrace.java" "$TEST_DIR/ChargeTaperMatcherTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerCaptureProcess.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxStockChargeReference.java" "$APP_DIR/src/com/jjricks/volt/ChargeReferenceGate.java" "$TEST_DIR/CompletedChargeEstimateTest.java" "$TEST_DIR/StitchedChargeEstimateTest.java" "$TEST_DIR/StockChargeReferenceTest.java" "$TEST_DIR/ChargeReferenceGateTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/Ut5MaxStockVoltageReference.java" "$TEST_DIR/StockStartupReferenceTest.java" "$TEST_DIR/StockVoltageReferenceTest.java" "$TEST_DIR/StockVoltageReplayTrace.java" "$TEST_DIR/StockVoltageReplayTest.java" "$TEST_DIR/DualChargerEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxFastChargeReference.java" "$TEST_DIR/Ut5MaxFastChargeReferenceTest.java" "$APP_DIR/src/com/jjricks/volt/ChargeTaperMatcher.java" "$TEST_DIR/StockChargeHoldoutTrace.java" "$TEST_DIR/ChargeTaperMatcherTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerCaptureProcess.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxStockChargeReference.java" "$APP_DIR/src/com/jjricks/volt/ChargeReferenceGate.java" "$TEST_DIR/CompletedChargeEstimateTest.java" "$TEST_DIR/StitchedChargeEstimateTest.java" "$TEST_DIR/LearnNormalTemperatureTest.java" "$TEST_DIR/StockChargeReferenceTest.java" "$TEST_DIR/ChargeReferenceGateTest.java")
 sources+=( )
 # Compile the actual Android coordinator against test-only binding and preferences APIs.
 # These stubs are confined to this test output and never enter the Android build.
@@ -194,6 +194,8 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSlowdownTest "$APP_DIR
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
 # Partial recordings join, and a percent one recording covers counts provisionally (stitched-estimate-v1).
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StitchedChargeEstimateTest
+# Fast-charger percents outside 20–38 C battery temperature teach no curve (normal-temps-v1).
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LearnNormalTemperatureTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockStartupReferenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockChargeReferenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockVoltageReplayTest
