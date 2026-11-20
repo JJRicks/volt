@@ -562,6 +562,25 @@ public final class ScooterService extends Service {
         chargeReferenceGate.reset();updateNotification();changed();return true;
     }
     /**
+     * The running charge recording's start (ChargeSessionStore.startedMono), or 0 with none. The charger tip's sheet keeps
+     * it when it opens, so its Save button files only the recording it offered (#577 F03).
+     */
+    public long chargeRecordingStart(){
+        ChargeSessionStore store=chargeStore;
+        return store!=null&&store.active()?store.startedMono():0;
+    }
+    /**
+     * The charger tip's Save button (#577 F03): files the recording the sheet offered (started, from chargeRecordingStart
+     * when it opened) under the charger it named, while that same automatic guess still runs. The far-off run need not
+     * still hold: the owner's tap is the choice. False when that recording has ended, was replaced or labelled since, or
+     * the rename fails; it never starts a recording.
+     */
+    public boolean fileChargeRecordingAs(ChargeSessionStore.Charger charger,long started){
+        ChargeSessionStore store=chargeStore;
+        if(started<=0||store==null||!store.active()||store.startedMono()!=started)return false;
+        return fileChargeRecordingAs(charger);
+    }
+    /**
      * Whether "Charging slowed" (ChargeSlowdown) holds for the active scooter's charge, so a throttled charge never reads
      * as a different charger. It watches the UT5 MAX on the high-speed charger; elsewhere it reports none.
      */
