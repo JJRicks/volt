@@ -164,7 +164,9 @@ recording's audit (`label_audit.detected_charger`) stays charger detection's
 alone. `RecordChargerHint` decides when a charge is far off the only recorded
 charger (outside the 35% band, at least 1.8 times or at most half the saved
 power and 50 W apart, for a minute below 90%, not in a charge's first minute or
-right after a reconnect, with no recording running and no "Charging slowed");
+right after a reconnect, with no recording running, no "Charging slowed", and a
+battery temperature at which that recording would teach its charger's curve: a
+high-speed one only at 20–38 °C);
 that only suggests recording, never labels.
 
 ## Validation

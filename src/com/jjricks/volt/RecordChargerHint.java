@@ -18,8 +18,9 @@ package com.jjricks.volt;
  * with power inside the far limits restarts the run; a frame with no saved power at its level neither counts nor breaks
  * it. Exactly one family must have learned recordings for this profile; with none or both, nothing is far off.
  *
- * Shown ({@link #show}): sustained, still charging, no charge recording running, and no charging slowdown reported (a
- * throttled charge runs at 40-80% of nominal and must not read as a different charger). The charger setting does not
+ * Shown ({@link #show}): sustained, still charging, no charge recording running, no charging slowdown reported (a
+ * throttled charge runs at 40-80% of nominal and must not read as a different charger), and a recording made now would
+ * teach the charger's curve at the live battery temperature ({@link #learnsAtTemperature}). The charger setting does not
  * matter: under Automatic or a manual setting alike the hint names a charger that has not been recorded.
  *
  * The run's direction names the charger the tip can suggest ({@link #otherFamily}): far above a stock curve is the
@@ -57,9 +58,25 @@ public final class RecordChargerHint {
         return null;
     }
 
-    /** Whether to show the tip now. sustained is {@link #sustained}; slowed is the charging-slowed detector's report. */
-    public static boolean show(boolean charging, boolean sustained, boolean recording, boolean slowed) {
-        return charging && sustained && !recording && !slowed;
+    /**
+     * Whether to show the tip now. sustained is {@link #sustained}; slowed is the charging-slowed detector's report; learns
+     * is {@link #learnsAtTemperature} for the charger the recording would teach at the live battery temperature.
+     */
+    public static boolean show(boolean charging, boolean sustained, boolean recording, boolean slowed, boolean learns) {
+        return charging && sustained && !recording && !slowed && learns;
+    }
+
+    /** The battery temperatures (C, inclusive) a high-speed charge learns from. */
+    static final double LEARN_MIN_C = 20, LEARN_MAX_C = 38;
+    /**
+     * Whether a recording on this charger at this battery temperature would teach its curve, the same rule as the
+     * learning store's (owner, Nov 19 2026): a high-speed charge only with the battery at 20-38 C inclusive, since the
+     * battery limits its current outside that; the stock charger always; an unknown charger or no temperature excludes
+     * nothing. A recording the tip suggests now that would teach nothing is not worth suggesting.
+     */
+    public static boolean learnsAtTemperature(ChargeSessionStore.Charger charger, Double batteryC) {
+        return charger != ChargeSessionStore.Charger.HIGH_SPEED || batteryC == null || !Double.isFinite(batteryC)
+                || batteryC >= LEARN_MIN_C && batteryC <= LEARN_MAX_C;
     }
 
     public void reset() {

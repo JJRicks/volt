@@ -507,16 +507,22 @@ public final class ScooterService extends Service {
     }
     /**
      * Whether the charging view offers "Different charger? Record it" (RecordChargerHint.show): this charge's power has
-     * been far off the only recorded family's curve for a minute, below 90%, while charging, with no recording running and
-     * no charging slowdown reported. Under Automatic or a manual setting alike.
+     * been far off the only recorded family's curve for a minute, below 90%, while charging, with no recording running,
+     * no charging slowdown reported, and a battery temperature at which that recording would teach its charger's curve.
+     * Under Automatic or a manual setting alike.
      */
     public boolean recordChargerHint(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
         if(destroyed||simulating()||profile==null||ble==null)return false;
         long now=SystemClock.elapsedRealtime();
-        ChargeSessionStore.Value state=chargeFrame(now,System.currentTimeMillis()).state;
-        boolean charging=liveCharge(state,"charging_state",now)&&state.value==1d;
-        return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),isChargeRecording(),chargeSlowedForHint());
+        ChargeSessionStore.Frame frame=chargeFrame(now,System.currentTimeMillis());
+        boolean charging=liveCharge(frame.state,"charging_state",now)&&frame.state.value==1d;
+        // The charger a recording made now would teach: the one the far-off run points to, else the one in effect.
+        ChargeSessionStore.Charger suggested=chargerHint.otherFamily(profile.id,now);
+        ChargeSessionStore.Charger teaches=suggested!=null?suggested:effectiveChargeCharger();
+        Double batteryC=liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null;
+        return RecordChargerHint.show(charging,chargerHint.sustained(profile.id,now),isChargeRecording(),chargeSlowedForHint(),
+                RecordChargerHint.learnsAtTemperature(teaches,batteryC));
     }
     /**
      * Whether "Charging slowed" (ChargeSlowdown) holds for the active scooter's charge, so a throttled charge never reads
@@ -967,17 +973,6 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
-        ChargingEstimate.Result result=chargingEstimate(baseline,soc,rated,profile,charger,curve,readings);
-        // A family Automatic took from the learned curves (LearnedChargerMatch, not ChargerDetection) matched this charge's
-        // power, so it never reads "Charger mismatch": where the estimate's own power check can't confirm its curve, the
-        // estimate is the family's without past charges (the current rate on most models).
-        if(curve!=null&&chargerBasis()==ChargerBasis.DETECTED&&chargerDetection.selected(profile.id,SystemClock.elapsedRealtime())==null
-                &&M.chargingEstimateChargerMismatch().equals(result.labelMsg))
-            result=chargingEstimate(baseline,soc,rated,profile,charger,null,readings);
-        return result;
-    }
-    private ChargingEstimate.Result chargingEstimate(ChargingEstimate.Result baseline,ChargingEstimate.Value soc,ChargingEstimate.Value rated,
-            ScooterProfiles.Profile profile,ChargeSessionStore.Charger charger,ChargeSessionStore.Curve curve,Map<String,TelemetryHistory.Reading> readings){
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
             return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
