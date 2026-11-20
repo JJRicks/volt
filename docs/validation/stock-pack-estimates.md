@@ -145,6 +145,31 @@ it is a possible follow-up, outside this change.
 - In these replays no plan for 100%, 95% or 80% started too late to finish by the deadline.
 - Full-charge plans can finish up to about an hour early, worst case 39.75 + 20 minutes.
 
+## Live current (2.0.2)
+
+The battery reports its charging current in steps of about 0.02-0.03 A. When the real current sits at
+a step's edge, the reading moves between the two steps at every battery read (about every two seconds
+with Volt open). The model divides by the live current, so on the standard charger's 2 A that 1% swing
+flipped the time to full between two values about two minutes apart, both counting down (owner's
+report on 2.0.1).
+
+Every time estimate (this model and every other one) now uses the mean of the last minute's current
+readings for this charge, weighted by time (`ChargeCurrentAverage`), in place of the newest reading
+alone. Steps moving at every read average to exactly halfway, so the time counts down without flipping.
+Nothing real is averaged away:
+
+- a reading at least 0.1 A and 5% from the mean (a charger plugged in or swapped, the high-speed
+  charger's step down, a slowdown) starts the mean again from it, so the estimate follows it at once;
+- a gradual change (the warm-up decay, a taper) shows about half a minute late;
+- charging off, another scooter, a clock running back or a gap of more than a minute starts afresh.
+
+The mean stands in only for the reading it ends with, keeping that reading's frame time, so voltage
+and current stay paired. Charge done by's minutes come from the same averaged estimate; a mean is not
+biased short, and its buffer is unchanged. `tests/ChargeCurrentAverageTest.java` replays a synthesized
+first charge after the recordings were cleared (unseen start at 44%, readings moving between 2.06 and
+2.08 A) through the service's estimate chain: the reading as it comes flips the shown minutes at
+almost every read; averaged, the time never flips or goes up.
+
 ## Limits
 
 - **Small data:** five completed standard charges from two scooters and two chargers. The
