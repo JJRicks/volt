@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-stock-finish-v9";
+    public static final String ESTIMATOR_VERSION = "stitched-estimate-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -80,6 +80,14 @@ public final class ChargingEstimate {
          * the limit on to 100% at this rate.
          */
         public final Double limitRate;
+        /**
+         * A learned time here rests on provisional evidence: a percent only one past charge covers, or a join of
+         * per-percent times with a completed charge's own finish (withObservedCurve). Charge done by then plans with
+         * the longer of it and the estimate without past charges (planningMinutesToLimit, planningMinutesToFull).
+         */
+        public final boolean provisional;
+        /** withObservedCurve's sentence naming what a provisional estimate used, which withHistory's status leads with. */
+        final String provisionalNote;
         private final Ut5MaxStockVoltageReference.Match stockVoltageMatch;
 
         private Result(
@@ -136,6 +144,16 @@ public final class ChargingEstimate {
                 Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
                 boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
                 Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel,Double limitRate) {
+            this(charging,inputWatts,inputAmps,remainingMinutesToLimit,remainingMinutesToFull,targetPercent,label,status,
+                    learnedToLimit,learnedToFull,learnedSessions,referenceToLimit,referenceToFull,referenceCharger,stockVoltageMatch,
+                    planningMinutesToLimit,planningMinutesToFull,stockPackModel,limitRate,false,null);
+        }
+
+        private Result(boolean charging,Double inputWatts,Double inputAmps,Double remainingMinutesToLimit,Double remainingMinutesToFull,
+                Double targetPercent,CharSequence label,String status,boolean learnedToLimit,boolean learnedToFull,int learnedSessions,
+                boolean referenceToLimit,boolean referenceToFull,ChargeSessionStore.Charger referenceCharger,Ut5MaxStockVoltageReference.Match stockVoltageMatch,
+                Double planningMinutesToLimit,Double planningMinutesToFull,boolean stockPackModel,Double limitRate,boolean provisional,String provisionalNote) {
+            this.provisional=provisional;this.provisionalNote=provisional?provisionalNote:null;
             this.limitRate=limitRate;
             this.planningMinutesToLimit=planningMinutesToLimit;this.planningMinutesToFull=planningMinutesToFull;
             this.stockPackModel=stockPackModel;
@@ -393,7 +411,7 @@ public final class ChargingEstimate {
             ChargeSessionStore.Curve personal,ChargeReferenceGate gate,FastChargeTaper taper,long nowMs) {
         boolean fast=selectedCharger==ChargeSessionStore.Charger.HIGH_SPEED;
         if (personal==null || personal.charger!=selectedCharger) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
-        Result learned=withObservedCurve(baseline,soc,personal);
+        Result learned=withObservedCurve(baseline,soc,personal,provisionalAllowed(productId,selectedCharger));
         if (learned==null || !learned.learnedToFull&&!learned.learnedToLimit) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
         double planningWeight=prior.referenceToFull
                 &&selectedCharger==ChargeSessionStore.Charger.STOCK
@@ -440,26 +458,31 @@ public final class ChargingEstimate {
         }
         boolean referenceFull=!learned.learnedToFull&&prior.referenceToFull;
         boolean referenceLimit=!learned.learnedToLimit&&prior.referenceToLimit;
-        String status=learned.learnedSessions==1?"Provisional personal estimate from 1 completed charge. "
+        String status=learned.provisional?learned.provisionalNote:learned.learnedSessions==1?"Provisional personal estimate from 1 completed charge. "
                 :"Personal estimate from "+learned.learnedSessions+" qualified charges. ";
         if(referenceFull||referenceLimit)status+=REFERENCE_FOR_OTHER;
         if(!learned.learnedToFull&&!referenceFull)status+=FULL_AT_CURRENT_RATE;
         if(prior.targetPercent!=null&&!learned.learnedToLimit&&!referenceLimit)status+="Time to the limit uses the current rate. ";
         status+="Time to displayed 100%; balancing may continue.";
         status+=cutoffNote(prior.targetPercent);
+        if(learned.provisional)status+=PLANS_LONGER;
         // The one place a learned time to the limit is shown as it is, uncapped, beside a time to 100% that is not
         // learned: only here does limitRate let the tile carry it on to 100% (review of #445 at 6805913a).
         Double rate=learned.learnedToLimit&&!learned.learnedToFull?limitRate(personal,prior.targetPercent):null;
         Double limit=learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit;
+        // Provisional evidence plans with the longer of it and the estimate without past charges (withObservedCurve
+        // compares with the current rate; prior is the same here unless a bundled reference set it).
+        Double planLimit=learned.learnedToLimit?atLeast(learned.planningMinutesToLimit,learned.provisional?prior.planningMinutesToLimit:null):limit;
         if(fast&&taper!=null&&learned.learnedToFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
         else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
                 limit,prior.remainingMinutesToFull,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,false,learned.learnedSessions,
-                referenceLimit,referenceFull,prior.referenceCharger,null,limit,prior.remainingMinutesToFull,false,rate),soc,taper,nowMs);
+                referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,prior.remainingMinutesToFull,false,rate,learned.provisional,learned.provisionalNote),soc,taper,nowMs);
         Double full=learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull;
+        Double planFull=learned.learnedToFull?atLeast(learned.planningMinutesToFull,learned.provisional?prior.planningMinutesToFull:null):full;
         return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,learned.learnedToFull,learned.learnedSessions,
-                referenceLimit,referenceFull,prior.referenceCharger,null,limit,full,false,rate);
+                referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,planFull,false,rate,learned.provisional,learned.provisionalNote);
     }
 
     private static Result withFastReference(Result baseline,Value soc,Value ratedAh,int productId,
@@ -524,7 +547,7 @@ public final class ChargingEstimate {
     private static Result withPersonalLimit(Result own,Result baseline,Value soc,ChargeSessionStore.Charger selectedCharger,
             ChargeSessionStore.Curve personal) {
         if(own.targetPercent==null||own.targetPercent>=100||personal==null||personal.charger!=selectedCharger)return own;
-        Result learned=withObservedCurve(baseline,soc,personal);
+        Result learned=withObservedCurve(baseline,soc,personal,provisionalAllowed(Ut5MaxFastChargeReference.PRODUCT_ID,selectedCharger));
         if(learned==null||!learned.learnedToLimit||learned.remainingMinutesToLimit==null)return own;
         int sessions=learned.learnedSessions;
         String status="Time to the limit uses personal history from "+sessions+" completed high-speed charge"+(sessions==1?"":"s")
@@ -626,28 +649,54 @@ public final class ChargingEstimate {
                 :target<100?" The 100% time assumes a higher charge limit.":"";
     }
 
-    /** Learned curves may replace a usable current-rate estimate, never bypass its fresh paired-data gate. */
+    /**
+     * Learned curves may replace a usable current-rate estimate, never bypass its fresh paired-data gate. Without
+     * provisional evidence: withHistory chooses it per model and charger (provisionalAllowed).
+     */
     public static Result withObservedCurve(Result baseline,Value soc,ChargeSessionStore.Curve curve) {
+        return withObservedCurve(baseline,soc,curve,false);
+    }
+
+    /**
+     * provisional: besides today's evidence (a matching finish, then per-percent times two or more past charges agree
+     * on), use provisional evidence (stitched-estimate-v1) where that gives none: first per-percent times up to where a
+     * completed finish recording starts, joined to that recording's own time from there to the target
+     * (Curve.estimateJoined), then per-percent stretches from any past charges, a percent only one of them covers
+     * counting provisionally (Curve.estimateProvisional). Live power is checked first as always, against the one past
+     * charge's power at a percent only it covers. A finish recording that covers this level but cannot place it
+     * (unresolvedFinish) still blocks it. Charge done by plans with the longer of a provisional time and the current
+     * rate; the time shown is the provisional one. false is the estimate before stitched-estimate-v1.
+     */
+    static Result withObservedCurve(Result baseline,Value soc,ChargeSessionStore.Curve curve,boolean provisional) {
         if(baseline==null||!baseline.charging||baseline.inputWatts==null||baseline.remainingMinutesToFull==null
                 ||!valid(soc)||!Double.isFinite(soc.number)||soc.number<0||soc.number>100||curve==null)return baseline;
         // Prefer the finishing trajectory even after a second recording becomes available:
         // a SOC-only average would otherwise freeze the ETA throughout a long 99% plateau.
         Double volts=baseline.inputAmps==null||baseline.inputAmps<=0?null:baseline.inputWatts/baseline.inputAmps;
         ChargeSessionStore.Duration finishing=curve.estimateFinishing(soc.number,baseline.inputWatts,volts);
-        ChargeSessionStore.Curve.PowerMatch power=curve.powerMatch(soc.number,baseline.inputWatts);
+        ChargeSessionStore.Curve.PowerMatch power=curve.powerMatch(soc.number,baseline.inputWatts,provisional);
+        String charger=curve.charger==ChargeSessionStore.Charger.STOCK?"stock":"high-speed";
         if(finishing!=null){
             ChargeSessionStore.Duration limit=baseline.targetPercent==null?null:baseline.targetPercent==100
                     ?finishing:power==ChargeSessionStore.Curve.PowerMatch.MATCH?curve.estimate(soc.number,baseline.targetPercent):null;
-            String charger=curve.charger==ChargeSessionStore.Charger.STOCK?"stock":"high-speed";
+            if(provisional&&limit==null&&baseline.targetPercent!=null&&power==ChargeSessionStore.Curve.PowerMatch.MATCH)
+                limit=provisionalDuration(curve,soc.number,baseline.targetPercent);
+            boolean provisionalLimit=limit!=null&&limit.provisional;
             String status=(finishing.sessions==1?"Provisional finish estimate from 1 completed ":"Approximate finish estimate from "+finishing.sessions+" completed ")
                     +charger+" charge"+(finishing.sessions==1?"":"s")
                     +"; matched battery level and charging power. Time to displayed 100%; balancing may continue.";
             if(baseline.targetPercent==null)status+=" Cutoff unknown; 100% assumes charging continues.";
             else if(baseline.targetPercent<100)status+=" The 100% time assumes a higher charge limit.";
             if(limit==null&&baseline.targetPercent!=null)status+=" Time to the limit uses the current-rate estimate.";
+            String note=provisionalLimit?provisionalNote(limit,charger,false):null;
+            if(provisionalLimit)status+=" "+note.trim()+PLANS_LONGER;
+            // A provisional time to a lower limit is never longer than the matched finish to 100%.
+            Double limitMinutes=limit==null?baseline.remainingMinutesToLimit:provisionalLimit?Double.valueOf(Math.min(limit.minutes,finishing.minutes)):Double.valueOf(limit.minutes);
             return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
-                    limit==null?baseline.remainingMinutesToLimit:Double.valueOf(limit.minutes),finishing.minutes,baseline.targetPercent,
-                    M.chargingEstimatePastCharges(finishing.sessions,finishing.sessions),status,limit!=null,true,finishing.sessions);
+                    limitMinutes,finishing.minutes,baseline.targetPercent,
+                    M.chargingEstimatePastCharges(finishing.sessions,finishing.sessions),status,limit!=null,true,finishing.sessions,
+                    false,false,null,null,provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,finishing.minutes,false,null,
+                    provisionalLimit,note);
         }
         if(power!=ChargeSessionStore.Curve.PowerMatch.MATCH){
             String reason=power==ChargeSessionStore.Curve.PowerMatch.DIFFERENT
@@ -661,22 +710,62 @@ public final class ChargingEstimate {
         // must not silently resurrect the same frozen countdown we rejected above.
         boolean unresolvedFinish=curve.hasFinishingCoverage(soc.number);
         ChargeSessionStore.Duration full=unresolvedFinish?null:curve.estimate(soc.number,100);
+        if(provisional&&full==null&&!unresolvedFinish)full=provisionalDuration(curve,soc.number,100);
         ChargeSessionStore.Duration limit=baseline.targetPercent==null||unresolvedFinish&&baseline.targetPercent==100
                 ?null:curve.estimate(soc.number,baseline.targetPercent);
+        if(provisional&&limit==null&&baseline.targetPercent!=null&&!unresolvedFinish)
+            limit=baseline.targetPercent==100?full:provisionalDuration(curve,soc.number,baseline.targetPercent);
         if(full==null&&limit==null)return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                 baseline.remainingMinutesToLimit,baseline.remainingMinutesToFull,baseline.targetPercent,
                 M.chargingEstimateRateBased(),"Current-rate estimate; not enough matching charge curves cover the remaining range. Taper can lengthen charging. "
                         +(baseline.targetPercent==null?"Cutoff unknown; 100% assumes charging continues.":baseline.targetPercent<100?"100% assumes a higher cutoff.":""));
-        int sessions=full==null?limit.sessions:limit==null?full.sessions:Math.min(full.sessions,limit.sessions);
-        String charger=curve.charger==ChargeSessionStore.Charger.STOCK?"stock":"high-speed";
-        String status="Observed average from "+sessions+" "+charger+" charges; live power is compatible at this battery level.";
+        boolean provisionalFull=full!=null&&full.provisional,provisionalLimit=limit!=null&&limit.provisional;
+        int sessions=full==null?limit.sessions:limit==null?full.sessions
+                :provisionalFull||provisionalLimit?Math.max(full.sessions,limit.sessions):Math.min(full.sessions,limit.sessions);
+        String note=provisionalFull?provisionalNote(full,charger,true):provisionalLimit?provisionalNote(limit,charger,false):null;
+        String status=note!=null?note+"Live power is compatible at this battery level."
+                :"Observed average from "+sessions+" "+charger+" charges; live power is compatible at this battery level.";
         if(full==null)status+=" Full-charge taper is not covered; 100% uses the current-rate estimate.";
         if(limit==null&&baseline.targetPercent!=null)status+=" Time to the limit uses the current-rate estimate.";
         if(baseline.targetPercent==null)status+=" Cutoff unknown; 100% assumes charging continues.";
         else if(baseline.targetPercent<100)status+=" The 100% time assumes a higher charge limit.";
+        if(note!=null)status+=PLANS_LONGER;
+        double fullMinutes=full==null?baseline.remainingMinutesToFull:full.minutes;
+        // A provisional time to a lower limit is never longer than a learned time to 100%.
+        Double limitMinutes=limit==null?baseline.remainingMinutesToLimit
+                :provisionalLimit&&full!=null?Double.valueOf(Math.min(limit.minutes,fullMinutes)):Double.valueOf(limit.minutes);
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
-                limit==null?baseline.remainingMinutesToLimit:Double.valueOf(limit.minutes),full==null?baseline.remainingMinutesToFull:full.minutes,
-                baseline.targetPercent,M.chargingEstimatePastCharges(sessions,sessions),status,limit!=null,full!=null,sessions);
+                limitMinutes,fullMinutes,baseline.targetPercent,M.chargingEstimatePastCharges(sessions,sessions),status,limit!=null,full!=null,sessions,
+                false,false,null,null,
+                provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,
+                provisionalFull?atLeast(fullMinutes,baseline.remainingMinutesToFull):Double.valueOf(fullMinutes),false,null,
+                provisionalFull||provisionalLimit,note);
+    }
+
+    private static final String PLANS_LONGER=" Charge done by plans with the longer of this and the estimate without past charges.";
+
+    /** A finish recording joined to per-percent times first, then per-percent stretches with single-charge percents. */
+    private static ChargeSessionStore.Duration provisionalDuration(ChargeSessionStore.Curve curve,double soc,double target) {
+        ChargeSessionStore.Duration joined=curve.estimateJoined(soc,target,true);
+        return joined!=null?joined:curve.estimateProvisional(soc,target);
+    }
+
+    /** What a provisional estimate joined, as its status's first sentence; full: it covers the time to 100%, else only the limit. */
+    private static String provisionalNote(ChargeSessionStore.Duration used,String charger,boolean full) {
+        String note=(full?"Provisional estimate from ":"Provisional time to the limit from ")+used.sessions+" past "+charger+" charge"+(used.sessions==1?"":"s")+": ";
+        if(Double.isFinite(used.joinedAt))note+="per-percent times up to "+Math.round(used.joinedAt)
+                +"%, then a completed charge's own time from there"+(used.single&&used.sessions>1?"; some percents rest on one charge":"");
+        else note+=used.sessions==1?"its per-percent times":"per-percent times joined across charges"+(used.single?", some percents resting on one charge":"");
+        return note+". ";
+    }
+
+    /**
+     * Whether provisional evidence (withObservedCurve) is used for this model and charger: everywhere except where
+     * Volt bundles a reference for the pair (the UT5 MAX on either charger), whose precedence stays as it was.
+     */
+    static boolean provisionalAllowed(int productId,ChargeSessionStore.Charger charger) {
+        return !(charger==ChargeSessionStore.Charger.STOCK&&productId==Ut5MaxStockChargeReference.PRODUCT_ID
+                ||charger==ChargeSessionStore.Charger.HIGH_SPEED&&productId==Ut5MaxFastChargeReference.PRODUCT_ID);
     }
 
     private static boolean valid(Value value) {
