@@ -40,7 +40,7 @@ public final class ChargerTipTextTest {
         String strings = read("res/values/strings_hub.xml");
         check(home.contains("next=ChargeEstimateTip.withCharger(next,true,s.recordChargerHint(),stored);"), "The charger tip comes first, from the service's far-off rule");
         check(home.contains("caseOTHER_CHARGER:"), "Its tap is handled");
-        check(home.contains("ChargerTipSheet.show(host,files,family==ChargeSessionStore.Charger.HIGH_SPEED,()->chargerTipAction(family),()->hideTip(tip));"),
+        check(home.contains("ChargerTipSheet.show(host,files,family==ChargeSessionStore.Charger.HIGH_SPEED,\n()->chargerTipAction(family),()->hideTip(tip));"),
                 "Its tap opens its sheet, with the charger it files under");
         check(home.contains("if(s.chargerTipFiles()){s.fileChargeRecordingAs(family);"), "During an automatic guess the button files that recording (CHOSEN, one tap)");
         check(home.contains("s.startChargeRecording(family);"), "Otherwise it records this charge under that charger");
