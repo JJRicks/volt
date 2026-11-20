@@ -216,6 +216,18 @@ final class ChargingFit {
     }
 
     /**
+     * Whether an optional extra under the readings (Home's estimate tip, ChargeEstimateTip) fits Clean's slot: the plan
+     * with it ({@code with}, the readings measured with the extra) gives up nothing the plan without it keeps but some
+     * of the stage's height (the photo a little smaller). The line, its words, the readings' full gap, the percentage at
+     * its size, the photo and the track all stay; otherwise the extra makes way, first of everything.
+     */
+    static boolean extraFits(Plan with, Plan without) {
+        return with.line == without.line && with.shortLine == without.shortLine && with.readingsGap >= without.readingsGap
+                && with.percent == without.percent && with.percentScale >= without.percentScale
+                && with.photo() == without.photo() && with.track == without.track && with.readings == without.readings;
+    }
+
+    /**
      * Where the percentage sits in a stage {@code stage} pixels tall when the model has no photo: the percentage
      * ({@code percent} tall) and the track zone under it ({@code under}) are centred together in the stage, so the
      * stage keeps its height (the top area's height is fixed) without an empty photo-sized band between the number and

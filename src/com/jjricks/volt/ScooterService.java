@@ -824,6 +824,32 @@ public final class ScooterService extends Service {
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});
         });changed();return true;
     }
+    /** This scooter's own count, read once per snapshot where the snapshot alone can't tell (chargeRecordingsSaved). */
+    private ChargeSessionStore.Snapshot savedCheckedFor;private String savedCheckedProfile;private Boolean savedChecked;private boolean savedChecking;
+    /**
+     * Whether the active scooter has a saved charge recording (Home's estimate tip, ChargeEstimateTip): TRUE, FALSE, or
+     * null while unknown. Mostly the store's last snapshot answers (ChargeEstimateTip.savedFromSnapshot); where it can't,
+     * this scooter's recordings are counted once on the charge worker for that snapshot, and the answer arrives with a
+     * changed(). A new snapshot (a recording saved or cleared, a restore) asks again.
+     */
+    public Boolean chargeRecordingsSaved(){
+        String profile=activeProfileId();final ChargeSessionStore.Snapshot snapshot=chargeSnapshot;
+        if(destroyed||chargeStore==null||snapshot==null||profile.isEmpty())return null;
+        boolean evidence=snapshot.gaugeCharge.containsKey(profile);
+        for(ChargeSessionStore.Curve curve:snapshot.curves.values())if(profile.equals(curve.profile))evidence=true;
+        Boolean known=ChargeEstimateTip.savedFromSnapshot(snapshot.sessions,evidence);
+        if(known!=null)return known;
+        if(snapshot==savedCheckedFor&&profile.equals(savedCheckedProfile))return savedChecked;
+        if(!savedChecking){
+            savedChecking=true;
+            chargeWorker.execute(()->{Boolean saved=null;
+                try{saved=!chargeStore.recordings(profile).isEmpty();}catch(IOException|RuntimeException unreadable){}
+                final Boolean result=saved;
+                handler.post(()->{savedChecking=false;if(destroyed)return;
+                    savedCheckedFor=snapshot;savedCheckedProfile=profile;savedChecked=result;changed();});});
+        }
+        return null;
+    }
     /**
      * Learns on the worker, then (a second job, after capture is admitted again) compresses finished recordings and
      * rotates the folder to its budget (ChargeSessionStore.maintain). A rotation that removed any refreshes once more.
