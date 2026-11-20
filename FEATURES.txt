@@ -1404,7 +1404,15 @@ label_source and label_audit (the setting at the start and detection's family). 
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate
-within its fully observed range. Other learned ranges need two usable recordings.
+within its fully observed range. On the UT5 MAX, other learned ranges need two
+usable recordings; on other models a percent one recording covers counts
+provisionally and partial recordings join (Charge done by then plans with the
+longer of that and the current rate). On every model, the current-rate estimate
+below 80% uses the charge the scooter's own gauge took per percent in its
+recordings (whole-percent steps below 80%, at least 10 per recording, recordings
+agreeing within 5%; one recording counts provisionally) when that is below 97% of
+the rated capacity, never below 80% of it; above 80% the rated capacity stays.
+Charge done by keeps planning with the rated capacity.
 Personal estimates require compatible live power at the current battery level;
 missing or incompatible evidence keeps the applicable default. The bundled
 reference is never counted as a personal recording. Lower cutoffs include only

@@ -911,6 +911,9 @@ public final class ScooterService extends Service {
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(chargingValue(readings,"charging_state"),chargingValue(readings,"voltage_v"),
                 chargingValue(readings,"current_a"),soc,rated,target);
+        // The scooter's usable capacity from its own recordings, any charger (UsableCapacity): the current-rate times
+        // below 80% shown with it; Charge done by keeps the rated-capacity times.
+        if(!simulating()&&chargeSnapshot!=null)baseline=ChargingEstimate.withUsableCapacity(baseline,soc,rated,chargeSnapshot.usableCapacity.get(activeProfileId()));
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
