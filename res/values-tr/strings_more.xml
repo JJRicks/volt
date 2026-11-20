@@ -879,10 +879,14 @@
     <string name="more_learned_kind_disagree">Kayıtlar uyuşmuyor</string>
     <!-- src:7ac0073d625a3049a398190923278f27d72fbe6d -->
     <string name="more_learned_kind_finish">Tam şarj kaydı</string>
+    <!-- src:249f6759ab51e58d49cda1507ad944649ffadd12 -->
+    <string name="more_learned_kind_jump">Scooter’ın %% sıçraması</string>
     <!-- src:47bfeca68c9c5293a4ff82732753681e7d14786a -->
     <string name="more_learned_span">Öğrenilen aralık: %%%1$s–%2$s</string>
     <!-- src:93ae11fded2996f6e788134d223dbbcbb848bf5e -->
     <string name="more_learned_finish_from">%%%1$s seviyesinden tam şarj kaydedildi</string>
+    <!-- src:172f85c4dabdfc0447bbcb1d7e0b72ffd3ff7c6e -->
+    <string name="more_learned_jump">Scooter’ın %% değeri %%%1$s seviyesinden %%%2$s seviyesine sıçrıyor</string>
     <!-- src:5152c170b552fa0f642c7349573717f3c3613b8b -->
     <string name="more_learned_gap_below">%%%1$s seviyesinin altında veri yok</string>
     <!-- src:00df7e7b0f91fcb9ed94770c47b11c1eb234a27c -->

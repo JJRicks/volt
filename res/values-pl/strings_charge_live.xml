@@ -12,6 +12,8 @@
     <string name="charge_live_title_waiting_time">Start ładowania: %1$s</string>
     <!-- src:07cf423c0ba7146c9313c32555d6061b4e801db1 -->
     <string name="charge_live_title_last_seen">Ostatni odczyt: %1$s%%</string>
+    <!-- src:335d67596533df11bcc3876706452a67bcc3d606 -->
+    <string name="charge_live_title_recording">Zapis ładowania · %1$s%%</string>
     <!-- src:6f6df833d3fb8846db45eae307e93dca8b27b5f0 -->
     <string name="charge_live_text_eta">Koniec: %1$s</string>
     <!-- src:384dcf86a50b09de18e885e7a7b9261021ebe5f6 -->
