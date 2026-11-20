@@ -571,12 +571,21 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
     /**
      * A recording's notice is the live charging card (#250: "Charge recordings show the same card, with the recording's
      * status as the summary"): the card's title, and the recording's own status, containing state, as its summary.
+     * Where Android 16 lets Volt ask for a Live Update, the recording's card asks too (owner, Nov 20 2026): it is then
+     * the same Live Update as without a recording, ProgressStyle and no summary, and the status stays in Volt.
      */
     private void requireCaptureNotice(Notification notice,String state,String message){
         String status=service.chargeCaptureStatus();
         Object card=field(service,"chargeLiveBuilt");
         require(card!=null&&String.valueOf(field(card,"title")).contentEquals(notice.extras.getCharSequence(Notification.EXTRA_TITLE)),message+": not the live charging card");
-        require(status.contains(state)&&status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
+        require(status.contains(state),message+": status "+status);
+        boolean asked=(Boolean)field(service,"liveUpdateAsked");
+        boolean allowed=(Boolean)invoke(service,"liveUpdateAllowed",new Class<?>[]{}),available=(Boolean)invoke(service,"liveUpdateRequestAvailable",new Class<?>[]{});
+        require(asked==(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK&&available&&allowed),
+                message+": the recording's card "+(asked?"asked":"did not ask")+" for a Live Update; request available "+available+", allowed "+allowed);
+        if(asked)require(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)==null&&String.valueOf(notice.extras.getString(Notification.EXTRA_TEMPLATE)).endsWith("$ProgressStyle"),
+                message+": not the Live Update shown without a recording: template "+notice.extras.getString(Notification.EXTRA_TEMPLATE)+", summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT));
+        else require(status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
                 message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
     }
     private void require(boolean condition,String message){checks++;if(!condition)throw new IllegalStateException(message);}

@@ -10,8 +10,10 @@ import java.util.List;
  * promotion at all, and the developer row's status. The service turns roles into colours and calls the platform.
  *
  * Volt asks only on Android 16 or later, when Android has a promotion request (EXTRA_REQUEST_PROMOTED_ONGOING or
- * Builder.setRequestPromotedOngoing), allows Volt to post promoted notifications, and no charge recording needs the
- * card's summary line. Otherwise the card is the plain one, unchanged.
+ * Builder.setRequestPromotedOngoing) and allows Volt to post promoted notifications. Otherwise the card is the plain
+ * one, unchanged. A charge recording asks too (owner, Nov 20 2026: he records every charge, and the recording used to
+ * keep the card plain for its summary line): the Live Update is the same as without one, so the recording's status
+ * line shows in Volt and on the plain card only.
  */
 public final class ChargeLiveUpdate {
     /** The first Android with ProgressStyle and the promotion APIs (Android 16). */
@@ -76,9 +78,12 @@ public final class ChargeLiveUpdate {
         return new ChargeLiveUpdate(Collections.unmodifiableList(segments), Collections.unmodifiableList(points), progress, pct == null, chip);
     }
 
-    /** Whether Volt asks Android to promote this card; when false, the card is exactly the plain one. */
-    public static boolean promote(int sdk, boolean requestAvailable, boolean allowed, boolean chargeRecording) {
-        return sdk >= SDK && requestAvailable && allowed && !chargeRecording;
+    /**
+     * Whether Volt asks Android to promote this card; when false, the card is exactly the plain one. A charge recording
+     * running doesn't change the answer: its card is promoted like any other.
+     */
+    public static boolean promote(int sdk, boolean requestAvailable, boolean allowed) {
+        return sdk >= SDK && requestAvailable && allowed;
     }
 
     /** The developer row's answer: one glance at whether the Pixel promotes the card. */

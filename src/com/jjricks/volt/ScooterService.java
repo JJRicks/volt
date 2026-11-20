@@ -1694,10 +1694,8 @@ public final class ScooterService extends Service {
      */
     private boolean chargeLiveShown(){
         if(destroyed||simulating())return false;
-        // A schedule test's status and Cancel come first, even over a charge recording (now often an automatic one).
-        if(isChargeRecording())return scheduleTestStatus()==null||isRecording()||phoneSaving();
-        if(isRecording()||phoneSaving()||chargeMeasure.active()||scheduleTestStatus()!=null||alarmPlaying()||alertWatchShown())return false;
-        return chargeLiveHold();
+        return ChargeLiveHold.cardShown(isChargeRecording(),scheduleTestStatus()!=null,isRecording()||phoneSaving(),chargeMeasure.active(),
+                alarmPlaying(),alertWatchShown(),chargeLiveHold());
     }
     private ChargeLiveState chargeLiveState(){
         ChargeLiveHold.Facts facts=chargeLiveFacts();
@@ -1725,7 +1723,7 @@ public final class ScooterService extends Service {
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
         // Android 16 and later, where allowed: the same card asked to be a Live Update, with ProgressStyle's bar.
-        boolean asked=promoteChargeLive(builder,live,capture);
+        boolean asked=promoteChargeLive(builder,live);
         if(!asked&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         builder.setShowWhen(false);
         Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
@@ -1787,10 +1785,11 @@ public final class ScooterService extends Service {
     /**
      * Asks Android to promote the live card: ProgressStyle's bar, the chip's short text and the request. Returns false,
      * with the builder as it was, when Volt doesn't ask (ChargeLiveUpdate.promote) or anything fails; the card is then
-     * the plain one, exactly as before.
+     * the plain one, exactly as before. During a charge recording too (owner, Nov 20 2026): the Live Update is the one
+     * shown without a recording, so the recording's status line (the plain card's summary) isn't on it.
      */
-    private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
-        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),capture!=null))return false;
+    private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live){
+        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed()))return false;
         ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
         ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
         try{

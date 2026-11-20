@@ -51,6 +51,9 @@ import com.jjricks.volt.tests.TextCensus;
  * Its review of 8be6104f, in #416: a guessed charger is marked as guessed ("· charger guessed") in the status line, the
  * notification, the saved list and the recording's detail.
  *
+ * Only "livecard" (owner, Nov 20 2026): a charge recording, by hand or automatic, in front or out of sight, shows the live
+ * charging card as the same charge without one does, promoted to a Live Update or not alike; screenshots of the shade.
+ *
  * Mode "page": Battery & charging › Charge history & recordings with the switch, screenshots and a text check for cut
  * or mid-word-broken text; the sweep runs it at 344 dp and 725 dp, both themes, large text. An app with no switch at
  * all (no more_charge_auto_record string: a release sweep's base app) gets the same page and screenshot names at the
@@ -98,6 +101,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 else if ("stay".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); stayConnectedOff(); }
                 else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
                 else if ("rideaway".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); rideAwayOutOfSight(); }
+                else if ("livecard".equals(args.getString("only", ""))) liveCardWhileRecording();
                 else {
                     offByDefault();
                     onScreenSettingThenDetectedAndShortChargeNotKept();
@@ -108,7 +112,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     outOfSightStartAndNotificationStop();
                     rideAwayOutOfSight();
                 }
-                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", ""))) fullFolderRotates();
+                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -339,7 +343,11 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         require(onMain(() -> chargeStore().labelSource() == ChargeSessionStore.LabelSource.GUESS), "Expected a guessed label (no charger chosen, nothing detected yet)");
         String guessedStatus = onMainText(() -> service.chargeCaptureStatus());
         require(guessedStatus.endsWith(T.serviceChargeChargerGuessed("")), "The status line showed a guessed charger as known: " + guessedStatus);
-        await(() -> noticeTexts().contains(T.serviceChargeChargerGuessed("")), 10 * S, "The notification showed a guessed charger as known: " + noticeTexts());
+        // Owner, Nov 20 2026: where Android takes a Live Update, the recording's card is the one shown without a recording,
+        // with no summary line; the guess then shows in Volt (above). The plain card still carries it.
+        if (liveUpdateAsked()) await(() -> connection() != null && connection().getNotification().extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT) == null, 10 * S,
+                "The Live Update carried the recording's status line: " + noticeTexts());
+        else await(() -> noticeTexts().contains(T.serviceChargeChargerGuessed("")), 10 * S, "The notification showed a guessed charger as known: " + noticeTexts());
         require(onMain(() -> service.chargerBasis() != ScooterService.ChargerBasis.RECORDING && service.effectiveChargeCharger() == null),
                 "A guessed label stood in for the charger choice or detection: basis " + onMainText(() -> service.chargerBasis() + " " + service.effectiveChargeCharger()));
         log("out of sight: started " + (SystemClock.elapsedRealtime() - plugged) + " ms after plugging in, label " + onMainText(() -> String.valueOf(chargeStore().labelSource())) + "; notice: " + notice());
@@ -368,6 +376,96 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         await(() -> !holds(), StatusCadence.POLL_SLOW_MS + 10 * S, "The background read's not-charging reading did not end the hold");
         log("out of sight unplugged: hold cleared");
         ensureFront();
+    }
+
+    /**
+     * Owner, Nov 20 2026 ("when a charge recording is running, the live activity doesn't appear"): the card a charge shows
+     * out of sight without a recording (the live charging hold's), then the same charge recorded by hand (in front and
+     * out of sight) and automatically (out of sight). Each time the posted connection notice is the live card, Android
+     * promotes it or not exactly as the card without a recording, with the same template; a promoted one has no summary,
+     * a plain one the recording's status. The notification's Stop still stops the recording. Shade screenshots of each.
+     */
+    private void liveCardWhileRecording() throws Exception {
+        main(() -> { settings().edit().putBoolean(KEY, false).commit(); require(service.setChargeCharger(null), "Could not set Automatic"); });
+        ensureFront();
+        plugIn();
+        await(() -> onMain(() -> Double.valueOf(1d).equals(ble.telemetry.number("charging_state"))), 10 * S, "No charging reading");
+        SystemClock.sleep(4 * S);
+        leaveVolt();
+        await(() -> liveCardPosted(), 20 * S, "No live card after leaving with the scooter charging: " + noticeTexts());
+        SystemClock.sleep(4 * S);
+        boolean promoted = cardShape("no recording, out of sight", false);
+        shade("live-card-no-recording");
+        log("Android " + (promoted ? "promoted" : "did not promote") + " the card without a recording (Volt asks: " + liveUpdateAsked() + "); each recording's card must match");
+
+        ensureFront();
+        main(() -> require(service.startChargeRecording(ChargeSessionStore.Charger.STOCK), "Could not start a manual recording"));
+        await(() -> liveCardPosted(), 10 * S, "No live card for a recording with Volt in front: " + noticeTexts());
+        SystemClock.sleep(4 * S);
+        require(cardShape("manual recording, Volt in front", true) == promoted, "A recording with Volt in front changed whether the card is a Live Update");
+        leaveVolt();
+        SystemClock.sleep(4 * S);
+        require(cardShape("manual recording, out of sight", true) == promoted, "A recording out of sight changed whether the card is a Live Update");
+        shade("live-card-manual-recording");
+        getTargetContext().startForegroundService(new Intent(getTargetContext(), ScooterService.class).setAction("STOP_CHARGE_RECORDING"));
+        await(() -> onMain(() -> !service.isChargeRecording()), 10 * S, "The notification's Stop did not stop the recording");
+        await(() -> liveCardPosted(), 10 * S, "The hold's card did not stay after the recording stopped: " + noticeTexts());
+        SystemClock.sleep(4 * S);
+        require(cardShape("recording stopped, the hold's card", false) == promoted, "The card after the recording differs");
+        log("notification Stop: stopped; " + notice());
+
+        ensureFront();
+        unplugAndSettle();
+        for (File file : saved()) require(file.delete(), "Could not clear the manual recording");
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
+        plugIn();
+        awaitRecording(10 * S, "for the live card");
+        leaveVolt();
+        await(() -> liveCardPosted(), 20 * S, "No live card for an automatic recording out of sight: " + noticeTexts());
+        SystemClock.sleep(4 * S);
+        require(cardShape("automatic recording, out of sight", true) == promoted, "An automatic recording changed whether the card is a Live Update");
+        shade("live-card-automatic-recording");
+        ensureFront();
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean(KEY, false).commit());
+        for (File file : saved()) file.delete();
+    }
+    private void leaveVolt() {
+        getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        await(() -> onMain(() -> !service.isVisible()), 10000, "Volt never left the foreground");
+    }
+    /** Volt would ask Android for a Live Update now (ChargeLiveUpdate.promote). */
+    private boolean liveUpdateAsked() {
+        return onMain(() -> ChargeLiveUpdate.promote(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), service.liveUpdateAllowed()));
+    }
+    /** The posted connection notice is the live card: the title the service built for it (or the promoted card's shorter one). */
+    private boolean liveCardPosted() {
+        StatusBarNotification n = connection();
+        if (n == null) return false;
+        CharSequence title = n.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE);
+        return onMain(() -> { Object card = field(service, "chargeLiveBuilt");
+            return card != null && title != null && (title.toString().equals(String.valueOf(field(card, "title"))) || title.toString().equals(String.valueOf(field(card, "dialTitle")))); });
+    }
+    /** Checks the posted live card and returns whether Android promoted it; a promoted card has no summary, a plain recording's card its status. */
+    private boolean cardShape(String what, boolean recording) {
+        require(liveCardPosted(), what + ": the connection notice is not the live card: " + noticeTexts());
+        require(onMain(() -> service.isChargeRecording()) == recording, what + ": expected a recording " + (recording ? "running" : "not running"));
+        Notification note = connection().getNotification();
+        boolean promoted = (note.flags & Notification.FLAG_PROMOTED_ONGOING) != 0;
+        String template = note.extras.getString(Notification.EXTRA_TEMPLATE);
+        CharSequence summary = note.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT);
+        boolean asked = onMain(() -> (Boolean) field(service, "liveUpdateAsked"));
+        require(asked == liveUpdateAsked(), what + ": the card " + (asked ? "asked" : "did not ask") + " for a Live Update");
+        if (asked) require(String.valueOf(template).endsWith("$ProgressStyle") && summary == null, what + ": not the Live Update a charge without a recording shows: " + template + ", summary " + summary);
+        else if (recording) require(String.valueOf(summary).equals(onMainText(() -> service.chargeCaptureStatus())), what + ": the plain card lost the recording's status: " + summary);
+        log(what + ": live card, asked " + asked + ", promoted " + promoted + ", template " + template + ", summary " + summary + "; " + notice());
+        return promoted;
+    }
+    /** The notification shade, opened over the launcher, as a screenshot. */
+    private void shade(String label) throws Exception {
+        shell("cmd statusbar expand-notifications");
+        SystemClock.sleep(1500);
+        try { screenshot(label); } finally { shell("cmd statusbar collapse"); SystemClock.sleep(500); }
     }
 
     /**

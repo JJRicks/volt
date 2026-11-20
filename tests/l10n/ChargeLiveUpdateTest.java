@@ -54,12 +54,16 @@ public final class ChargeLiveUpdateTest {
     }
 
     private static void promote() {
-        check(ChargeLiveUpdate.promote(36, true, true, false), "Android 16, a request, allowed: asks");
-        check(ChargeLiveUpdate.promote(37, true, true, false), "later Androids too");
-        check(!ChargeLiveUpdate.promote(35, true, true, false), "never before Android 16");
-        check(!ChargeLiveUpdate.promote(36, false, true, false), "no request on this Android: plain card");
-        check(!ChargeLiveUpdate.promote(36, true, false, false), "not allowed: plain card");
-        check(!ChargeLiveUpdate.promote(36, true, true, true), "a charge recording keeps the plain card's summary");
+        check(ChargeLiveUpdate.promote(36, true, true), "Android 16, a request, allowed: asks");
+        check(ChargeLiveUpdate.promote(37, true, true), "later Androids too");
+        check(!ChargeLiveUpdate.promote(35, true, true), "never before Android 16");
+        check(!ChargeLiveUpdate.promote(36, false, true), "no request on this Android: plain card");
+        check(!ChargeLiveUpdate.promote(36, true, false), "not allowed: plain card");
+        // Owner, Nov 20 2026: a charge recording no longer keeps the card plain. The decision has no recording input,
+        // so a recording's card is promoted exactly when the same card without one is.
+        for (java.lang.reflect.Method method : ChargeLiveUpdate.class.getDeclaredMethods())
+            if (method.getName().equals("promote"))
+                check(method.getParameterCount() == 3, "promotion takes no charge recording input: " + method);
     }
 
     private static void status() {
