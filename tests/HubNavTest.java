@@ -120,7 +120,20 @@ public final class HubNavTest {
         require(HubNav.Args.anchor("row").reading == null && HubNav.Args.ride("r1").reading == null, "Other arguments carry no reading");
         HubNav.Args back = HubNav.Args.rideAndBack("r2");
         require("r2".equals(back.ride) && back.backAfterRide && back.anchor == null && back.reading == null, "A search result's ride closes back to the search");
-        require(!HubNav.Args.ride("r1").backAfterRide, "Home's last ride keeps All rides under its details");
+        require(!HubNav.Args.ride("r1").backAfterRide, "A plain ride argument keeps All rides under its details");
+        // Clean Home's Just back card (a tester's report via the owner): Back from the ride it opened returns to Home.
+        HubNav.Args home = HubNav.Args.fromHome("r3");
+        require("r3".equals(home.ride) && home.backAfterRide && home.anchor == null && home.reading == null && home.inspect == null && !home.recovery,
+                "A ride opened from Home closes back to Home");
+        HubNav.Args restoredHome = HubNav.Args.restore(HubNav.Args.save(home));
+        require(restoredHome != null && "r3".equals(restoredHome.ride) && restoredHome.backAfterRide, "A ride owed from Home keeps closing back to Home after a recreation");
+        // The stack under it: Home opens All rides with the ride, so the one Back the closed details take lands on Home;
+        // from the Ride page's list (Home, Ride, All rides) a plain ride's details close to All rides, still on top.
+        HubNav fromHome = new HubNav();
+        require(fromHome.open(HubPages.RIDE_RIDES) && HubPages.HOME.equals(fromHome.back()) && stack(fromHome, HubPages.HOME), "Back past All rides opened from Home lands on Home");
+        HubNav fromList = new HubNav();
+        fromList.open(HubPages.RIDE); fromList.open(HubPages.RIDE_RIDES);
+        require(stack(fromList, HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES), "All rides from the Ride page sits over the Ride page");
     }
 
     /**
