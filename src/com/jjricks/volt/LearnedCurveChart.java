@@ -160,7 +160,8 @@ final class LearnedCurveChart {
     }
     /** A change worth redrawing: what the card shows, as one string. */
     String signature() {
-        StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(outsideTemperature).append(':').append(runs);
+        StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(runs);
+        out.append(outsideTemperature);
         for (double m : minutes) out.append(',').append(Double.isNaN(m) ? "-" : Long.toString(Math.round(m * 100)));
         return out.toString();
     }

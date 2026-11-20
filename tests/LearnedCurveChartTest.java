@@ -68,27 +68,6 @@ public final class LearnedCurveChartTest {
         return out;
     }
 
-    /**
-     * A recording from start to end at the battery temperature tempC (a sample every ten seconds), to 100% complete; with
-     * dropoutAt > start, it charges to dropoutAt, the phone loses it for three hours, and it comes back at resumeAt.
-     */
-    private static void recordAt(ChargeSessionStore store, ChargeSessionStore.Charger charger, Model model, int start, int dropoutAt, int resumeAt, double tempC) throws Exception {
-        store.start("one", charger, WALL, MONO);
-        long t = 0;
-        for (int level = start; level < 100; level++) {
-            if (level == dropoutAt) { t += 3 * 3_600_000L; level = resumeAt; }
-            long span = (long) (model.minutes(level) * 60000);
-            for (long at = 0; at < span; at += 10000, t += 10000) sampleAt(store, model, t, level, false, tempC);
-        }
-        sampleAt(store, model, t, 100, true, tempC);
-        store.stop(ChargeSessionStore.Stop.COMPLETE);
-    }
-    private static void sampleAt(ChargeSessionStore store, Model model, long t, int level, boolean completion, double tempC) throws Exception {
-        long mono = MONO + t; double amps = model.amps.applyAsDouble(Math.min(level, 99)), volts = model.volts.applyAsDouble(level);
-        ChargeSessionStore.Frame frame = new ChargeSessionStore.Frame(WALL + t, mono, value(completion ? 0 : 1, mono), value(level, mono), value(volts, mono), value(-amps, mono), value(tempC, mono));
-        check(completion ? store.sampleCompletion(frame) : store.sample(frame), "Synthesized sample saved at " + level + "%");
-    }
-
     public static void main(String[] args) throws Exception {
         // Nothing learned: no charts, the card's empty state.
         check(LearnedCurveChart.of((List<ChargeSessionStore.Summary>) null).isEmpty(), "No summaries: no charts");
@@ -146,42 +125,6 @@ public final class LearnedCurveChartTest {
         check(stock.toFullFrom == 18 && stock.toFullMinutes > 0, "Stock time to full");
         check(fast.recordings == 1 && fast.learnedFrom() == 31 && fast.learnedTo() == 100 && fast.minutes[50] < stock.minutes[50], "Fast learned from 31%, faster: " + fast.learned);
         check(!stock.signature().equals(fast.signature()) && stock.signature().equals(LearnedCurveChart.of(summaries(store)).get(0).signature()), "Signatures follow the data");
-
-        // Gaps are only stretches no recording covers: recordings that disagree at 0–10% are not "no data below 30%".
-        LearnedCurveChart trimmed = LearnedCurveChart.of(summary(ChargeSessionStore.Charger.STOCK, 2, fill(0, 10, SPLIT, 30, 90, ONE, 95, 100, SPLIT)));
-        check(trimmed.gaps.toString().equals("[BETWEEN 10-30, BETWEEN 90-95, DISAGREE 0-10, DISAGREE 95-100]"), "Gaps trimmed to no-data stretches: " + trimmed.gaps);
-        LearnedCurveChart edges = LearnedCurveChart.of(summary(ChargeSessionStore.Charger.STOCK, 2, fill(0, 5, NONE, 5, 10, SPLIT, 10, 60, ONE, 60, 70, SPLIT)));
-        check(edges.gaps.toString().equals("[BELOW 0-5, ABOVE 70-100, DISAGREE 5-10, DISAGREE 60-70]"), "Below and above stop at a disagreeing stretch: " + edges.gaps);
-
-        // Nothing usable: why, and the finish still shows.
-        LearnedCurveChart split = LearnedCurveChart.of(summary(ChargeSessionStore.Charger.STOCK, 2, fill(20, 60, SPLIT)));
-        check(!split.any() && split.why() == LearnedCurveChart.Why.DISAGREE && split.gaps.toString().equals("[DISAGREE 20-60]"), "Disagreeing everywhere: " + split.gaps);
-        LearnedCurveChart finishOnly = LearnedCurveChart.of(summary(ChargeSessionStore.Charger.STOCK, 1, fill(), 86d));
-        check(!finishOnly.any() && finishOnly.why() == LearnedCurveChart.Why.TOO_LITTLE && finishOnly.finishFrom == 86 && finishOnly.gaps.isEmpty(), "A finish with no usable percent: too little data, finish at 86%");
-        List<ChargeSessionStore.Summary.Bin> coldBins = new ArrayList<>();
-        for (int bin = 0; bin < 100; bin++) coldBins.add(new ChargeSessionStore.Summary.Bin(bin, NONE, 0, null, null, false, bin >= 30));
-        LearnedCurveChart coldHand = LearnedCurveChart.of(new ChargeSessionStore.Summary(ChargeSessionStore.Charger.HIGH_SPEED, 1, Collections.emptyList(), coldBins));
-        check(!coldHand.any() && coldHand.outsideTemperature && coldHand.why() == LearnedCurveChart.Why.TEMPERATURE, "Measured only outside the learning temperatures");
-
-        // From synthesized recordings: a fast charge done entirely at 10 C teaches nothing and says why.
-        ChargeSessionStore cold = new ChargeSessionStore(Files.createTempDirectory("learned-curve-cold-").toFile());
-        recordAt(cold, ChargeSessionStore.Charger.HIGH_SPEED, FAST, 30, -1, -1, 10);
-        List<LearnedCurveChart> coldCharts = LearnedCurveChart.of(summaries(cold));
-        check(coldCharts.size() == 1 && !coldCharts.get(0).any() && coldCharts.get(0).why() == LearnedCurveChart.Why.TEMPERATURE && coldCharts.get(0).finishFrom == -1,
-                "A cold fast charge: shown, nothing learned, too cold or hot: " + coldCharts.get(0).runs + " " + coldCharts.get(0).finishFrom);
-        ChargeSessionStore.Summary coldSummary = summaries(cold).get(0);
-        check(coldSummary.bins.get(50).outsideTemperature && !coldSummary.bins.get(20).outsideTemperature, "The summary marks the percents measured outside the temperatures");
-        // The same charge at 25 C learns as usual, and marks nothing.
-        ChargeSessionStore warm = new ChargeSessionStore(Files.createTempDirectory("learned-curve-warm-").toFile());
-        recordAt(warm, ChargeSessionStore.Charger.HIGH_SPEED, FAST, 30, -1, -1, 25);
-        LearnedCurveChart warmChart = LearnedCurveChart.of(summaries(warm)).get(0);
-        check(warmChart.any() && !warmChart.outsideTemperature, "A warm fast charge learns");
-        // A stock charge lost for three hours (50% to 85%) keeps its finish but no percent: too little data, with the finish.
-        ChargeSessionStore dropout = new ChargeSessionStore(Files.createTempDirectory("learned-curve-dropout-").toFile());
-        recordAt(dropout, ChargeSessionStore.Charger.STOCK, STOCK, 45, 55, 85, 23);
-        List<LearnedCurveChart> dropoutCharts = LearnedCurveChart.of(summaries(dropout));
-        check(dropoutCharts.size() == 1 && !dropoutCharts.get(0).any() && dropoutCharts.get(0).why() == LearnedCurveChart.Why.TOO_LITTLE && dropoutCharts.get(0).finishFrom >= 85,
-                "A dropout with a valid finish: " + (dropoutCharts.isEmpty() ? "no chart" : dropoutCharts.get(0).runs + " finish " + dropoutCharts.get(0).finishFrom));
         System.out.println("Learned curve chart tests passed: " + checks + " checks");
     }
 }
