@@ -1569,7 +1569,9 @@ and Second reading, each opening a list of the live ride and battery readings
 (speed, trip distance and time, trip average and top speed, odometer, drive
 mode, battery voltage, current, power and temperature, reported health and
 charges, capacity and energy counters), each with its latest value, where the
-slot's own reading is checked. Picking the other slot's reading swaps the two.
+slot's own reading is checked, under the Reading tiles picker's search field
+(the same matching and "No matching readings"). Picking the other slot's
+reading swaps the two.
 Each scooter keeps its own two, as its quick actions (Scooter preferences in a
 backup); untouched they stay Odometer and Drive mode. A reading the scooter
 hasn't reported shows a dash under its name, which TalkBack reads as "Not
