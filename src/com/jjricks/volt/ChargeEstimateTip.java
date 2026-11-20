@@ -12,7 +12,7 @@ import java.util.Map;
  * <ul>
  *   <li>{@link Tip#NO_RECORDINGS}, "Improve this estimate": the active scooter has no saved charge recording yet
  *   (manual or automatic, either charger) and none is running. Its tap opens a short sheet: record your charges for
- *   your own estimate first, then send them to Volt for your model (ChargeInviteSheet.showRecordTip). It goes once a
+ *   your own estimate first, then send them to Volt for your model (RecordTipSheet). It goes once a
  *   recording for this scooter is saved, and comes back if every recording is deleted.</li>
  * </ul>
  *
@@ -21,7 +21,7 @@ import java.util.Map;
  *
  * <p>Adding a tip: a {@link Tip} value with its id, its rule in {@link #choose} (in its place in the order), its label's
  * rungs in HubText.estimateTip and estimateTipShort, its icon in {@link #icon}, and its action in DashboardScreen.openTip.
- * The slot, its motion, its narrow-label ladder and its hide preference come with it.
+ * The slot (EstimateTipSlot), its motion, its narrow-label ladder and its hide preference come with it.
  */
 final class ChargeEstimateTip {
     private ChargeEstimateTip() { }
