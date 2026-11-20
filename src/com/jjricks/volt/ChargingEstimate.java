@@ -473,7 +473,9 @@ public final class ChargingEstimate {
         // Provisional evidence plans with the longer of it and the estimate without past charges (withObservedCurve
         // compares with the current rate; prior is the same here unless a bundled reference set it).
         Double planLimit=learned.learnedToLimit?atLeast(learned.planningMinutesToLimit,learned.provisional?prior.planningMinutesToLimit:null):limit;
-        if(fast&&taper!=null&&learned.learnedToFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
+        // Only a finish from completed charges is held through a power dropout (withHeldPersonal): a provisional or joined
+        // one is never remembered, so the hold can never hand Charge done by a provisional time without its longer-of rule.
+        if(fast&&taper!=null&&learned.learnedToFull&&!learned.provisional)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
         else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
                 limit,prior.remainingMinutesToFull,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,false,learned.learnedSessions,

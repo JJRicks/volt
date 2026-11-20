@@ -68,6 +68,11 @@ public final class StitchedChargeEstimateTest {
         return ChargingEstimate.forScooter(baseline(model,level,target,power),new ChargingEstimate.Value(level,true,100),
                 new ChargingEstimate.Value(model.ratedAh,true,100),product,curve.charger,curve);
     }
+    /** As ScooterService passes it for a high-speed charge it is tracking: the 12-argument forScooter with its taper state. */
+    private static ChargingEstimate.Result withTaper(ChargeSessionStore.Curve curve,double level,double power,FastChargeTaper taper,long now){
+        return ChargingEstimate.forScooter(baseline(FAST,level,100d,power),new ChargingEstimate.Value(level,true,100),
+                new ChargingEstimate.Value(FAST.ratedAh,true,100),OTHER_MODEL,curve.charger,curve,null,"one:test",now,now,null,taper);
+    }
     private static ChargingEstimate.Result estimate(ChargeSessionStore.Curve curve,Model model,double level,Double target){
         return estimate(curve,model,level,target,1,OTHER_MODEL);
     }
@@ -117,6 +122,28 @@ public final class StitchedChargeEstimateTest {
     public static void main(String[] args)throws Exception{
         ownersExample(ChargeSessionStore.Charger.STOCK,STOCK);
         ownersExample(ChargeSessionStore.Charger.HIGH_SPEED,FAST);
+
+        // Council review of #562, finding 1: a provisional finish is never held through a power dropout. High-speed
+        // charger, another model, the 17–50% + 45–100% recordings: at 30% with a 100% limit the joined time shows; when
+        // live power drops to 0.6x within the hold (FastChargeTaper.HOLD_MS), the estimate falls back to the current rate,
+        // so Charge done by plans at least that, and nothing claims completed charges.
+        ChargeSessionStore held=store();
+        record(held,ChargeSessionStore.Charger.HIGH_SPEED,FAST,17,50,1);record(held,ChargeSessionStore.Charger.HIGH_SPEED,FAST,45,100,1);
+        ChargeSessionStore.Curve heldCurve=curve(held,ChargeSessionStore.Charger.HIGH_SPEED);
+        FastChargeTaper taper=new FastChargeTaper();
+        long now=5_000_000L;
+        taper.observe("one",true,FAST.volts.applyAsDouble(30),FAST.amps.applyAsDouble(30),now);
+        check(taper.tracking("one"),"Fixture: the taper state is tracking this charge");
+        ChargingEstimate.Result joined=withTaper(heldCurve,30,1,taper,now);
+        check(joined.learnedToFull&&joined.provisional,"At the recorded power the joined estimate shows: "+joined.status);
+        for(long later:new long[]{10_000L,60_000L,FastChargeTaper.HOLD_MS-10_000L}){
+            taper.observe("one",true,FAST.volts.applyAsDouble(30),FAST.amps.applyAsDouble(30)*.6,now+later);
+            ChargingEstimate.Result dropped=withTaper(heldCurve,30,.6,taper,now+later);
+            double rate=baseline(FAST,30,100d,.6).remainingMinutesToFull;
+            check(dropped.planningMinutesToLimit!=null&&dropped.planningMinutesToLimit>=rate-1e-9&&dropped.planningMinutesToFull>=rate-1e-9,
+                    "After "+later+" ms at 0.6x power, Charge done by plans at least the current rate: "+dropped.planningMinutesToLimit+" vs "+rate);
+            check(!dropped.status.contains("completed")&&!dropped.learnedToFull,"Nothing claims completed charges: "+dropped.status);
+        }
 
         // A single recording only: its percents count provisionally to a covered target, never past its end.
         ChargeSessionStore single=store();record(single,ChargeSessionStore.Charger.STOCK,STOCK,20,95,1);
