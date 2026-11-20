@@ -25,7 +25,8 @@ package com.jjricks.volt;
  * charger that has not been recorded.
  *
  * The run's direction names the charger the tip can suggest ({@link #otherFamily}): far above a stock curve is the
- * high-speed charger, far below a high-speed curve the stock one. It is a reason to suggest recording, never a label: a
+ * high-speed charger, far below a high-speed curve the stock one; the tip needs that name, so a run naming none (far below
+ * stock, far above high-speed) shows nothing (#577 F01). It is a reason to suggest recording, never a label: a
  * throttled charge can look like the other charger, so automatic recordings never take it (ChargeAutoRecordPolicy.detectedLabel).
  */
 public final class RecordChargerHint {
@@ -66,6 +67,26 @@ public final class RecordChargerHint {
      */
     public static boolean show(boolean charging, boolean sustained, boolean recording, boolean slowed, boolean learns) {
         return charging && sustained && !recording && !slowed && learns;
+    }
+
+    /**
+     * As above, while a charge recording may be running (#575 r2 F01: under Record charges automatically the second
+     * charger would otherwise never get a curve). A running recording allows the tip only when it is an automatic one still
+     * labelled a guess (source GUESS) and the run points to a known other charger (suggested, {@link #otherFamily}): the
+     * tip's action then files that recording under it, as the owner's choice. A manual recording (source null), one the
+     * owner labelled (CHOSEN), a detected or a setting's label never shows it. The run itself never relabels anything.
+     * With or without a recording, a run that names no charger (suggested null) never shows the tip (#577 F01).
+     */
+    public static boolean show(boolean charging, boolean sustained, boolean recording, ChargeSessionStore.LabelSource source,
+            ChargeSessionStore.Charger suggested, boolean slowed, boolean learns) {
+        // #577 F01: a run that names no charger (far below the only stock curve, far above the only high-speed one) offers
+        // nothing: its tap could only file a third charger wrongly, so the tip waits for a charger Volt can name.
+        return show(charging, sustained, false, slowed, learns) && suggested != null && (!recording || fileable(source, suggested));
+    }
+
+    /** Whether the running recording may be filed under the suggested charger: an automatic guess, a known charger. */
+    public static boolean fileable(ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger suggested) {
+        return source == ChargeSessionStore.LabelSource.GUESS && suggested != null;
     }
 
     public void reset() {

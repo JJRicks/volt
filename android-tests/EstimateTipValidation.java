@@ -78,6 +78,7 @@ public final class EstimateTipValidation extends ValidationInstrumentation {
             launch();
             if (!tipBuilt()) { shot("tip-" + label); checks.add("An app without the estimate tip: its charging view as it is"); }
             else if (mode.equals("look")) look();
+            else if (mode.startsWith("charger")) charger(mode.equals("charger-look"), "true".equals(args.getString("recording", "false")));
             else {
                 verifyShows();
                 verifySheet();
@@ -193,6 +194,110 @@ public final class EstimateTipValidation extends ValidationInstrumentation {
         refreshCurves();
         redrawUntil(this::tipShown, "With the recording deleted the tip did not come back");
         checks.add("A saved recording for this scooter (one that teaches no curve, so the scooter's own are counted) makes the tip go; deleted, it comes back");
+    }
+
+    /**
+     * The charger tip (item 11): the simulator never records and never runs the far-off rule, so its state is set as the
+     * service's validation-only fields allow. It shows before the record tip, named "Record this charger", its
+     * words whole; its sheet names the charger the charge is filed under (Save this recording as High-speed while an
+     * automatic guess records, else Record this charge as High-speed); Not now keeps it; Hide this tip hides it alone.
+     */
+    private void charger(boolean lookOnly, boolean recording) throws Exception {
+        main(() -> { ScooterService.chargerTipRecordingForTest = recording; ScooterService.chargerTipForTest = ChargeSessionStore.Charger.HIGH_SPEED; });
+        try {
+            String tag = "charger-" + (recording ? "recording-" : "") + label;
+            redrawUntil(() -> ChargeEstimateTip.Tip.OTHER_CHARGER.equals(field(slot(), "tip")) && (tipShown() || clean && !(Boolean) field(slot(), "fits")),
+                    "The charger tip did not show");
+            if (!tipShown()) {
+                // Clean at this size has no room to spare: the tip makes way (K's rule), and the view is as it was.
+                shot("tip-" + tag);
+                checks.add("Clean at this size has no room to spare: the charger tip makes way");
+                return;
+            }
+            main(() -> {
+                TextView pill = pill();
+                String spoken = String.valueOf(pill.getContentDescription());
+                require("Record this charger".equals(spoken), "The charger tip's name: " + spoken);
+                int rung = (Integer) field(slot(), "rung");
+                String shown = pill.getText().toString();
+                require(rung == 0 ? shown.equals("Record this charger") : rung == 1 ? shown.equals("Record charger") : shown.isEmpty(),
+                        "Rung " + rung + " shows '" + shown + "'");
+                Layout layout = pill.getLayout();
+                require(shown.isEmpty() || layout != null && layout.getLineCount() == 1 && layout.getEllipsisCount(0) == 0, "The charger tip's words are cut or wrapped");
+                require(pill.getHeight() >= dp(48) - 1, "The charger tip is under 48 dp to touch");
+            });
+            shot("tip-" + tag);
+            checks.add("The charger tip shows (rung " + rungNow() + "), named in full" + (recording ? ", during an automatic guess" : ""));
+            tapPill();
+            View[] found = new View[1];
+            await(() -> {
+                for (Dialog d : (Set<Dialog>) field(activity, "shownDialogs")) {
+                    if (d == null || !d.isShowing() || d.getWindow() == null) continue;
+                    View sheet = d.getWindow().getDecorView().findViewWithTag(ChargeEstimateTip.TAG_CHARGER_SHEET);
+                    if (sheet != null && sheet.isShown()) { found[0] = sheet; return true; }
+                }
+                return false;
+            }, "The charger tip's sheet did not open");
+            View sheet = found[0];
+            main(() -> {
+                String words = texts(sheet);
+                String action = recording ? "Save this recording as High-speed" : "Record this charge as High-speed";
+                for (String expected : new String[] {"Different charger?", "Charging power doesn't match your recorded charges.", action, "Not now", "Hide this tip"})
+                    require(words.contains(expected), "The charger sheet lacks '" + expected + "': " + words);
+                require(sheet.findViewWithTag(ChargeEstimateTip.TAG_CHARGER_ACTION).getHeight() >= dp(48) - 1, "Its button is under 48 dp");
+                textProblems(sheet);
+            });
+            shot("sheet-" + tag);
+            checks.add("Its sheet names the charger it files under: " + (recording ? "Save this recording as High-speed" : "Record this charge as High-speed"));
+            if (lookOnly) return;
+            main(() -> sheet.findViewWithTag(ChargeEstimateTip.TAG_NOT_NOW).performClick());
+            await(() -> !sheet.isShown(), "Not now did not close the charger sheet");
+            if (clean) roomChanges();
+            await(() -> !sheet.isShown(), "Not now did not close the charger sheet");
+            redrawUntil(() -> tipShown() && ChargeEstimateTip.Tip.OTHER_CHARGER.equals(field(slot(), "tip")), "Not now hid the charger tip");
+            tapPill();
+            View[] again = new View[1];
+            await(() -> {
+                for (Dialog d : (Set<Dialog>) field(activity, "shownDialogs")) {
+                    if (d == null || !d.isShowing() || d.getWindow() == null) continue;
+                    View s2 = d.getWindow().getDecorView().findViewWithTag(ChargeEstimateTip.TAG_CHARGER_SHEET);
+                    if (s2 != null && s2.isShown()) { again[0] = s2; return true; }
+                }
+                return false;
+            }, "The charger sheet did not open again");
+            main(() -> again[0].findViewWithTag(ChargeEstimateTip.TAG_HIDE).performClick());
+            await(() -> !again[0].isShown(), "Hide this tip did not close the charger sheet");
+            require(settings().getBoolean(ChargeEstimateTip.Tip.OTHER_CHARGER.hiddenKey(), false), "Hide this tip stored no answer for the charger tip");
+            require(!settings().contains(ChargeEstimateTip.Tip.NO_RECORDINGS.hiddenKey()), "It hid the record tip too");
+            // Hidden, with no recordings saved: the record tip is next.
+            redrawUntil(() -> tipShown() && ChargeEstimateTip.Tip.NO_RECORDINGS.equals(field(slot(), "tip")), "With the charger tip hidden the record tip did not follow");
+            checks.add("Not now keeps it; Hide this tip hides the charger tip alone, and the record tip follows");
+        } finally {
+            main(() -> { ScooterService.chargerTipForTest = null; ScooterService.chargerTipRecordingForTest = false; });
+            settings().edit().remove(ChargeEstimateTip.Tip.OTHER_CHARGER.hiddenKey()).commit();
+        }
+    }
+
+    /**
+     * #574 F01: Clean's room changes after the first layout. The charging view loses most of its height (bottom padding),
+     * so the tip must make way on the very next layout, then gets it back, and the tip must return whole: a measure that
+     * reused the slot's height from before the change would keep either answer stale.
+     */
+    private void roomChanges() throws Exception {
+        int[] before = new int[1];
+        main(() -> { View hero = hero(); before[0] = hero.getPaddingBottom();
+            hero.setPadding(hero.getPaddingLeft(), hero.getPaddingTop(), hero.getPaddingRight(), before[0] + hero.getHeight() / 2); });
+        try {
+            await(() -> { boolean[] gone = new boolean[1]; main(() -> gone[0] = !(Boolean) field(slot(), "fits") && slot().getHeight() == 0); return gone[0]; },
+                    "With half the room gone the tip did not make way");
+            checks.add("Clean: with half the room gone after the first layout, the tip makes way");
+        } finally {
+            main(() -> { View hero = hero(); hero.setPadding(hero.getPaddingLeft(), hero.getPaddingTop(), hero.getPaddingRight(), before[0]); });
+        }
+        await(() -> { boolean[] back = new boolean[1]; main(() -> back[0] = (Boolean) field(slot(), "fits") && slot().getHeight() == pill().getHeight() && pill().getHeight() > 0); return back[0]; },
+                "With the room back the tip did not return");
+        redrawUntil(() -> tipShown() && ChargeEstimateTip.Tip.OTHER_CHARGER.equals(field(slot(), "tip")), "With the room back the charger tip is not shown");
+        checks.add("Clean: with the room back, the tip returns whole");
     }
 
     /** Renders: the tip at rest and its sheet. */

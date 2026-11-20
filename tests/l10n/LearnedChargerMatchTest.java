@@ -36,6 +36,10 @@ public final class LearnedChargerMatchTest {
         estimatorVersionFits();
         baselineLabel();
         baselineCharges();
+        chargerTipWhileRecording();
+        chosenClearsBaseline();
+        chargerTipNeedsACharger();
+        chargerTipFilesWhatItOffered();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -625,6 +629,89 @@ public final class LearnedChargerMatchTest {
         long[] u = {1000};
         hintFeed(h, 50, 450, u, 13, baseline, null);
         check(h.sustained(ONE, u[0]) && h.otherFamily(ONE, u[0]) == FAST, "High-speed power far off the baseline: the hint");
+    }
+
+    /** #575 r2 F01: the hint during a running recording, only an automatic guess with a known other charger. */
+    static void chargerTipWhileRecording() {
+        ChargeSessionStore.LabelSource G = ChargeSessionStore.LabelSource.GUESS;
+        check(RecordChargerHint.show(true, true, false, null, FAST, false, true), "No recording, a charger named: shown");
+        check(RecordChargerHint.show(true, true, true, G, FAST, false, true), "An automatic guess, high-speed suggested: shown");
+        check(!RecordChargerHint.show(true, true, true, G, null, false, true), "An automatic guess, no charger named: hidden");
+        check(!RecordChargerHint.show(true, true, true, null, FAST, false, true), "A manual recording: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.CHOSEN, FAST, false, true), "A chosen label: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.DETECTED, FAST, false, true), "A detected label: hidden");
+        check(!RecordChargerHint.show(true, true, true, ChargeSessionStore.LabelSource.SETTING, FAST, false, true), "A setting's label: hidden");
+        check(!RecordChargerHint.show(true, true, true, G, FAST, true, true), "Slowed: hidden");
+        check(!RecordChargerHint.show(true, true, true, G, FAST, false, false), "Outside 20-38 C: hidden");
+        check(!RecordChargerHint.show(true, false, true, G, FAST, false, true), "Not sustained: hidden");
+        check(!RecordChargerHint.show(false, true, true, G, FAST, false, true), "Not charging: hidden");
+        // The run never relabels by itself: the label rules take no far-off input, and a guess stays a guess without a choice.
+        check(ChargeAutoRecordPolicy.relabel(G, STOCK, ChargeAutoRecordPolicy.detectedLabel(null, null, null)) == null, "No relabel from the run");
+    }
+
+    /** #575 r2 F03: the tip's action files the running guess as CHOSEN, and a chosen recording is never the baseline. */
+    static void chosenClearsBaseline() throws Exception {
+        long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
+        ChargeSessionStore store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, true, wall, mono);
+        check(store.labelAudit().baseline, "Fixture: the running baseline");
+        for (long t = 0; t <= 50 * 60000L; t += 10000) { long at = mono + t;
+            store.sample(new ChargeSessionStore.Frame(wall + t, at, ChargeSessionStoreTest.value(1d, at), ChargeSessionStoreTest.value(30d + t / 60000, at),
+                    ChargeSessionStoreTest.value(V, at), ChargeSessionStoreTest.value(-8d, at), ChargeSessionStoreTest.value(25d, at))); }
+        check(store.relabel(FAST, ChargeSessionStore.LabelSource.CHOSEN), "Filed as high-speed, the owner's choice");
+        check(store.labelSource() == ChargeSessionStore.LabelSource.CHOSEN && store.charger() == FAST && !store.labelAudit().baseline
+                && store.labelAudit().detected == null, "Chosen high-speed, the baseline mark gone, nothing detected");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        String id = store.recordings(ONE).get(0).id;
+        check(id.charAt(20) == '0' && !ChargeSessionStore.baseline(id), "Saved without the mark: " + id);
+        String json = export(store, id);
+        check(json.contains("\"label_source\":\"chosen\"") && !json.contains("stock_baseline"), "A chosen recording never exports stock_baseline: " + json);
+        ChargeSessionStore.Curve fast = store.snapshot().curves.get(ChargeSessionStore.key(ONE, FAST));
+        check(fast != null && store.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK)) == null, "It teaches the high-speed curve, not stock");
+        // A plain guess filed the same way, and a guess never loses the mark by staying a guess.
+        ChargeSessionStore plain = automaticStore();
+        plain.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
+        check(plain.relabel(FAST, ChargeSessionStore.LabelSource.CHOSEN) && plain.labelSource() == ChargeSessionStore.LabelSource.CHOSEN, "A plain guess filed");
+        plain.stop(ChargeSessionStore.Stop.STOPPED);
+    }
+
+    /** #577 F01: the tip is offered only for a charger Volt can name; a run that names none (null) never shows it. */
+    static void chargerTipNeedsACharger() {
+        for (boolean rec : new boolean[]{false, true}) {
+            ChargeSessionStore.LabelSource source = rec ? ChargeSessionStore.LabelSource.GUESS : null;
+            check(!RecordChargerHint.show(true, true, rec, source, null, false, true), "No charger named" + (rec ? ", during a guess" : "") + ": hidden");
+            check(RecordChargerHint.show(true, true, rec, source, FAST, false, true) && RecordChargerHint.show(true, true, rec, source, STOCK, false, true),
+                    "A charger named" + (rec ? ", during a guess" : "") + ": shown");
+        }
+        // The same run, end to end: far below the only stock curve names no charger, so the tip stays away.
+        check(RecordChargerHint.otherFamily(STOCK, -1) == null
+                && !RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(STOCK, -1), false, true), "Far below stock: no tip");
+        check(!RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(FAST, 1), false, true), "Far above high-speed: no tip");
+        check(RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(STOCK, 1), false, true)
+                && RecordChargerHint.show(true, true, false, null, RecordChargerHint.otherFamily(FAST, -1), false, true), "Either named direction: the tip");
+    }
+
+    /** #577 F03: the sheet's Save button files only the recording it offered, under the charger it named, and never starts one. */
+    static void chargerTipFilesWhatItOffered() throws Exception {
+        String service = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterService.java")),
+                java.nio.charset.StandardCharsets.UTF_8).replace(" ", "");
+        int at = service.indexOf("publicbooleanfileChargeRecordingAs(ChargeSessionStore.Chargercharger,longstarted){");
+        check(at > 0, "The Save button's filing takes the recording the sheet offered");
+        int end = at < 0 ? -1 : service.indexOf("returnfileChargeRecordingAs(charger);", at);
+        String body = end < 0 ? "" : service.substring(at, end + "returnfileChargeRecordingAs(charger);".length());
+        check(body.contains("store.startedMono()!=started)returnfalse;") && body.contains("returnfileChargeRecordingAs(charger);"),
+                "Only that same recording, through the guarded relabel: " + body);
+        check(!body.contains("startChargeRecording"), "It never starts a recording");
+        check(service.contains("returnstore!=null&&store.active()?store.startedMono():0;"), "The sheet keeps the running recording's start, 0 with none");
+        // The store's own start: two recordings never share one, so a replaced recording is never filed.
+        long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
+        ChargeSessionStore store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
+        long first = store.startedMono();
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall + 120000, mono + 120000);
+        check(first == mono && store.startedMono() == mono + 120000, "Each recording keeps its own start");
+        store.stop(ChargeSessionStore.Stop.STOPPED);
     }
 
     // ---- the estimate under Automatic ----
