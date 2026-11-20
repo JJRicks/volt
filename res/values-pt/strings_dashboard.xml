@@ -93,13 +93,13 @@
     <!-- src:45c3eb8d27b67e0465efa84ee81b834fe3eda494 -->
     <string name="dashboard_charging_slowed_short">Abrandado</string>
     <!-- src:0af8e219a496c6d32654d93616b393b3aedae460 -->
-    <string name="dashboard_charging_slowed_hot">Abrandado · bateria quente (%1$s°)</string>
+    <string name="dashboard_charging_slowed_hot">Carga abrandada · bateria quente (%1$s°)</string>
     <!-- src:9e063a61c7cf48ac6296019450d16fe1a9149522 -->
     <string name="dashboard_charging_slowed_hot_short">Abrandado · bateria quente %1$s°</string>
     <!-- src:dd3c06e8af17d5e50e97d524fc5423ee49405486 -->
     <string name="dashboard_charging_slowed_hot_compact">Bateria quente · %1$s°</string>
     <!-- src:3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd -->
-    <string name="dashboard_charging_slowed_cold">Abrandado · bateria fria (%1$s°)</string>
+    <string name="dashboard_charging_slowed_cold">Carga abrandada · bateria fria (%1$s°)</string>
     <!-- src:6da29c3111b775a4f09381f0cbdd3a51a2ca09c0 -->
     <string name="dashboard_charging_slowed_cold_short">Abrandado · bateria fria %1$s°</string>
     <!-- src:ca0021bc6fbb2a576cab1a79c671b7a7f93228fb -->

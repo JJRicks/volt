@@ -146,6 +146,20 @@
     <string name="hub_estimate_tip_record_title">Registra le tue ricariche</string>
     <!-- src:fd71df508edfa68bc33b42a7fcf23245b16d793d -->
     <string name="hub_estimate_tip_hide">Nascondi questo suggerimento</string>
+    <!-- src:303dcdedd4903ecd601eda5da25dd6ba34104c0c -->
+    <string name="hub_estimate_tip_charger">Registra questo caricabatterie</string>
+    <!-- src:9d536ab36642bf3a351898d8fbaf8d01e1a767a0 -->
+    <string name="hub_estimate_tip_charger_short">Registra</string>
+    <!-- src:7af50f8ec8c906f5be54131605964f1bfa6acf39 -->
+    <string name="hub_charger_tip_title">Caricabatterie diverso?</string>
+    <!-- src:4db950cbd1ee6216ece945a9829c304f5a4ceadb -->
+    <string name="hub_charger_tip_text">La potenza di ricarica non corrisponde alle tue registrazioni della ricarica. Usi un caricabatterie diverso? Registra questa ricarica così Volt impara anche questo.</string>
+    <!-- src:9c39d55ba8bec74ee2330a9f822249a6be429918 -->
+    <string name="hub_charger_tip_record_as">Registra questa ricarica come caricabatterie %1$s</string>
+    <!-- src:04a053feb775cd559e7f1ea88264ac94f0b2b58f -->
+    <string name="hub_charger_tip_file_as">Salva questa registrazione come caricabatterie %1$s</string>
+    <!-- src:96706c53ab892d15e6dd88c934c900a2e556fbd1 -->
+    <string name="hub_charger_tip_not_saved">Quella registrazione è terminata oppure il relativo caricabatterie era già stato impostato. Non è stato modificato nulla.</string>
     <!-- src:04bc34a391adb8a7ad639531d7934a68631293fd -->
     <string name="hub_recording_auto_background">Avvia la registrazione in background</string>
     <!-- src:4dd6fd0eb9c533661ffd71462e8456c76a8fb01b -->

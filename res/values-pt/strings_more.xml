@@ -192,6 +192,8 @@
     <string name="more_prefs_battery_value_optimized">Otimizada ⚠︎</string>
     <!-- src:3f5fcb256158db4a9289fcb2559edc1c2fad01b6 -->
     <string name="more_prefs_map_custom">Personalizado</string>
+    <!-- src:0b6b3c2d5b2107da2502b466dcad131dff2d00b7 -->
+    <string name="more_prefs_map_last_ride">Última viagem</string>
     <!-- src:959f384457cf1961921af4f7b52f35df101971eb -->
     <string name="more_prefs_choose_volt">Escolhe a Volt para gerir as definições da app no Android</string>
     <!-- src:5253dd0d1afe5f9024b34f5d00ee241cc5327fed -->
@@ -812,6 +814,8 @@
     <string name="more_dev_hide_test">Termina ou cancela o teste primeiro</string>
     <!-- src:fbc9bb6baff246c2834f064cbd71cbe77243f7c0 -->
     <string name="more_dev_connect_first">Conecta a trotinete primeiro</string>
+    <!-- src:c6a3fec5d246d6a07a5788266be982cbea0986b0 -->
+    <string name="more_dev_record_body" formatted="false">Guardada no telemóvel · termina aos 100% · a mais antiga é eliminada quando não há espaço</string>
     <!-- src:7b52501fb200660f62b9170ec96b9318ade02e6a -->
     <string name="more_dev_which_charger">Que carregador está ligado?</string>
     <!-- src:4164decc547d00c1731dec7b88050f253a9d7171 -->
@@ -894,6 +898,8 @@
     <string name="more_learned_gap_between">Sem dados: %1$s–%2$s%%</string>
     <!-- src:0d84bc5096f82b3008facc0e8a39b05d716fee6d -->
     <string name="more_learned_gap_disagree">Gravações divergentes: %1$s–%2$s%%</string>
+    <!-- src:9f08bab9de4ed403a17a908a38a127992facd6c7 -->
+    <string name="more_learned_gap_temperature">Demasiado frio ou quente para aprender: %1$s–%2$s%%</string>
     <!-- src:2b47608adf7fb9f1016f05ce901456f43a55eb54 -->
     <plurals name="more_learned_gap_more">
         <item quantity="one">E mais %1$d lacuna</item>

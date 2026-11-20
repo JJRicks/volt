@@ -146,6 +146,20 @@
     <string name="hub_estimate_tip_record_title">Enregistrer vos recharges</string>
     <!-- src:fd71df508edfa68bc33b42a7fcf23245b16d793d -->
     <string name="hub_estimate_tip_hide">Masquer ce conseil</string>
+    <!-- src:303dcdedd4903ecd601eda5da25dd6ba34104c0c -->
+    <string name="hub_estimate_tip_charger">Enregistrer ce chargeur</string>
+    <!-- src:9d536ab36642bf3a351898d8fbaf8d01e1a767a0 -->
+    <string name="hub_estimate_tip_charger_short">Enregistrer</string>
+    <!-- src:7af50f8ec8c906f5be54131605964f1bfa6acf39 -->
+    <string name="hub_charger_tip_title">Autre chargeur ?</string>
+    <!-- src:4db950cbd1ee6216ece945a9829c304f5a4ceadb -->
+    <string name="hub_charger_tip_text">La puissance de recharge ne correspond pas à vos enregistrements de recharge. Vous utilisez un autre chargeur ? Enregistrez cette recharge pour que Volt l’apprenne aussi.</string>
+    <!-- src:9c39d55ba8bec74ee2330a9f822249a6be429918 -->
+    <string name="hub_charger_tip_record_as">Enregistrer cette recharge comme chargeur %1$s</string>
+    <!-- src:04a053feb775cd559e7f1ea88264ac94f0b2b58f -->
+    <string name="hub_charger_tip_file_as">Sauvegarder cet enregistrement comme chargeur %1$s</string>
+    <!-- src:96706c53ab892d15e6dd88c934c900a2e556fbd1 -->
+    <string name="hub_charger_tip_not_saved">Cet enregistrement est terminé ou son chargeur a déjà été défini. Rien n’a été modifié.</string>
     <!-- src:04bc34a391adb8a7ad639531d7934a68631293fd -->
     <string name="hub_recording_auto_background">Démarrer l’enregistrement en arrière-plan</string>
     <!-- src:4dd6fd0eb9c533661ffd71462e8456c76a8fb01b -->
