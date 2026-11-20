@@ -22,7 +22,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,7 +46,7 @@ import com.jjricks.volt.ScooterProfiles;
  * </ul>
  * Each card: its tag, words whole (no cut text, no mid-word break), the chart measured, inside the screen, and one
  * TalkBack description that names the learned span and its gaps. Screenshots (-e size_label, -e theme, -e text_scale;
- * -e look speed|coverage picks one of the two looks the owner chose between; -e states a comma list). An app without the
+ * -e states a comma list). An app without the
  * section (no more_learned_label string: built before its strings) gets the same screenshot names of the page and passes.
  */
 public final class LearnedCurveValidation extends Instrumentation {
@@ -63,9 +62,9 @@ public final class LearnedCurveValidation extends Instrumentation {
         Bundle result = new Bundle();
         try {
             admit();
-            String theme = args.getString("theme", "light"), look = args.getString("look", "");
+            String theme = args.getString("theme", "light");
             label = args.getString("size_label", getTargetContext().getResources().getConfiguration().screenWidthDp + "") + "-" + theme
-                    + ("1".equals(args.getString("text_scale", "1")) ? "" : "-text" + args.getString("text_scale")) + (look.isEmpty() ? "" : "-" + look);
+                    + ("1".equals(args.getString("text_scale", "1")) ? "" : "-text" + args.getString("text_scale"));
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putString("theme", theme).putFloat("text_scale", Float.parseFloat(args.getString("text_scale", "1"))).commit(), "Could not seed preferences");
             main(() -> {
@@ -74,7 +73,6 @@ public final class LearnedCurveValidation extends Instrumentation {
                 p.serial = "X2538-SYNTHETIC"; profiles.update(p); profiles.select(p.id); profile = p.id;
                 OnboardingScreen.markDone(getTargetContext());
             });
-            if (!look.isEmpty()) chooseLook(look);
             launch();
             boolean built = built();
             for (String state : args.getString("states", "empty,partial,joined,two,mixed").split(",")) {
@@ -247,15 +245,6 @@ public final class LearnedCurveValidation extends Instrumentation {
         });
         settle(); SystemClock.sleep(900); waitForIdleSync();
         screenshot(name);
-    }
-    private void chooseLook(String look) {
-        try {
-            Class<?> card = Class.forName("com.jjricks.volt.LearnedCurveCard", true, getTargetContext().getClassLoader());
-            Field field = card.getDeclaredField("look"); field.setAccessible(true);
-            Class<?> type = field.getType();
-            for (Object value : type.getEnumConstants()) if (((Enum<?>) value).name().equalsIgnoreCase(look)) { field.set(null, value); return; }
-            throw new IllegalArgumentException("No look " + look + " in " + Arrays.toString(type.getEnumConstants()));
-        } catch (ReflectiveOperationException e) { throw new IllegalStateException("No looks in this app: " + e); }
     }
     private String tag(String name) { String tag = tagOrNull(name); require(tag != null, "LearnedCurveCard." + name + " missing"); return tag; }
     private String tagOrNull(String name) {
