@@ -32,7 +32,7 @@ final class ChargeEstimateTip {
     /** A tip the slot can show. Its id names its hide preference; never rename one once shipped. */
     enum Tip {
         NO_RECORDINGS("no_recordings"),
-        /** "Different charger? Record it": this charge is far off the only recorded charger (RecordChargerHint). */
+        /** The charger tip ("Record this charger"): this charge is far off the only recorded charger (RecordChargerHint). */
         OTHER_CHARGER("other_charger");
 
         final String id;
