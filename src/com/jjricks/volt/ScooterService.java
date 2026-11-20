@@ -1717,8 +1717,15 @@ public final class ScooterService extends Service {
         }
         return ChargeLiveState.of(in,wall->DisplayTime.clock(this,settings,wall));
     }
-    /** The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner, 2026-11-06). */
-    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
+    /** A running recording's charge has stopped and the card would read as charging (ChargeLiveUpdate.recordingStopped). */
+    private boolean chargeLiveStopped(ChargeLiveState live){
+        return isChargeRecording()&&ChargeLiveUpdate.recordingStopped(chargeStore.chargerPaused(),chargeStore.paused(),live.kind);
+    }
+    /**
+     * The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner,
+     * 2026-11-06). text: the card's text (the recording's status while it has stopped charging); capture: the summary.
+     */
+    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence text,CharSequence capture){
         int red=android.graphics.Color.rgb(0xE3,0x2B,0x2F);
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
@@ -1726,7 +1733,7 @@ public final class ScooterService extends Service {
         boolean asked=promoteChargeLive(builder,live);
         if(!asked&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         builder.setShowWhen(false);
-        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
+        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(text);
         if(capture!=null)big.setSummaryText(capture);
         if(!asked)builder.setStyle(big);
         // Only a card Android really promoted takes the dial and the shorter title (ChargeLiveUpdate.Look): asking isn't enough, Android can decline. Everything else stays the plain card, the level in its title.
@@ -1787,10 +1794,10 @@ public final class ScooterService extends Service {
      * with the builder as it was, when Volt doesn't ask (ChargeLiveUpdate.promote) or anything fails; the card is then
      * the plain one, exactly as before. During a charge recording too (owner, Nov 20 2026): the Live Update is the one
      * shown without a recording, so the recording's status line (the plain card's summary) isn't on it; while the
-     * recording is paused (charger stopped, or a schedule's hold) the card stays plain, its summary saying so.
+     * recording has stopped charging (chargeLiveStopped) the card stays plain, its text saying so.
      */
     private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live){
-        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),isChargeRecording()&&chargeStore.paused()))return false;
+        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),chargeLiveStopped(live)))return false;
         ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
         ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
         try{
@@ -3523,9 +3530,11 @@ public final class ScooterService extends Service {
         // The live card takes the charge recording's place, or the plain connected notice's while the hold runs.
         ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
         chargeLiveBuilt = live;
+        // #587 F02: a recording whose charge stopped says so in the text itself (the card would read as charging).
+        boolean liveStopped = live != null && chargeLiveStopped(live);
         if (live != null) {
             title = live.title;
-            text = live.text;
+            text = liveStopped ? chargeCaptureStatus() : live.text;
         }
         boolean liveStop = live != null && !isChargeRecording();
         Notification.Builder builder =
@@ -3545,7 +3554,7 @@ public final class ScooterService extends Service {
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
-        if (live != null) chargeLiveCard(builder, live, isChargeRecording() ? chargeCaptureStatus() : null);
+        if (live != null) chargeLiveCard(builder, live, text, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
