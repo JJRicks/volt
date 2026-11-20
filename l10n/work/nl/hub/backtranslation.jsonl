@@ -42,3 +42,4 @@
 {"back":"Speed brake","key":"hub_qa_overspeed_round","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"ec8c4ae4bf5bc2548bb14ecc381dc75c22cfa330","target":"Snelh.rem"}
 {"back":"Improve this estimate","key":"hub_estimate_tip_record","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"e385c8bfe54364415acaadccfbe8c4e399cb9337","target":"Deze schatting verbeteren"}
 {"back":"Refine estimate","key":"hub_estimate_tip_record_short","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"8a738c6b7d656b08a91700ca364cdcc83a2ac343","target":"Schatting verfijnen"}
+{"back":"Record charging sessions","key":"hub_estimate_tip_record_title","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea","target":"Laadsessies opnemen"}
