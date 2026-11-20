@@ -69,6 +69,10 @@
     <string name="hub_charge_invite_step_full" volt:src="5991c14dbd07948bdf3aa351bfd5f013b4a5f97d">Une recharge complète jusqu’à 100 %% aide le plus.</string>
     <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Gardez le téléphone près de la trottinette pendant qu’elle se recharge, pour que Volt reste connectée.</string>
     <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Ouvrez ensuite %1$s et touchez %2$s. Nous utilisons vos enregistrements pour affiner l’estimation pour le modèle de votre trottinette.</string>
+    <string name="hub_estimate_tip_record" volt:src="e385c8bfe54364415acaadccfbe8c4e399cb9337">Améliorer cette estimation</string>
+    <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343">Affiner l’estimation</string>
+    <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Enregistrer vos recharges</string>
+    <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Masquer cette suggestion</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Démarrer l’enregistrement en arrière-plan</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Un trajet qui démarre lorsque Volt est en arrière-plan ou que l’écran est verrouillé n’a pas de tracé GPS.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · reste environ %2$s</string>

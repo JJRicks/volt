@@ -431,6 +431,34 @@
         <item quantity="other">%1$s geeignete Ladeaufzeichnungen mit dem Schnellladegerät</item>
     </plurals>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Ein abgeschlossener Ladevorgang kann den Bereich verfeinern, in dem er endet. Andere Bereiche brauchen zwei passende Aufzeichnungen. Schätzungen hängen von der Abdeckung und der momentanen Leistung ab; Schätzungen für Originalladegerät und Schnellladegerät des UT5 MAX funktionieren auch ohne Aufzeichnungen.</string>
+    <string name="more_learned_label" volt:src="eb64c788f171c931034bc8df1c8024080f554f81">Was Volt gelernt hat</string>
+    <string name="more_learned_empty_title" volt:src="12b9ae6e7697cfd054f21a089bfed6bbf86778f5">Noch nichts gelernt</string>
+    <string name="more_learned_empty" volt:src="248229d36d47db47881ffa4103a342a8c86645e3">Zeichne einen Ladevorgang auf, dann lernt Volt, wie schnell dieser Scooter bei jedem Akkustand lädt.</string>
+    <string name="more_learned_none_usable" volt:src="279e0dccfab33bdff771a5fffb29b67c35190f9c">Diese Ladeaufzeichnungen stimmen noch nicht überein. Zeichne einen weiteren Ladevorgang mit diesem Ladegerät auf.</string>
+    <string name="more_learned_temperature" volt:src="9bf61430fd90da247529d4a205657c5b09804f6d">Beim Laden zu kalt oder zu heiß, um daraus zu lernen.</string>
+    <string name="more_learned_too_little" volt:src="0b2f256985dab9fa53c43f6b922e516f78119f23">Noch nicht genug Daten. Zeichne einen weiteren Ladevorgang mit diesem Ladegerät auf.</string>
+    <plurals name="more_learned_recordings" volt:src="97a247d0391307bbbb8b1c19c60b236f28a3f0f0">
+        <item quantity="one">Aus %1$d Ladeaufzeichnung</item>
+        <item quantity="other">Aus %1$d Ladeaufzeichnungen</item>
+    </plurals>
+    <string name="more_learned_axis" volt:src="572ff76763757929dc019b27dc472758904fe838">Minuten pro 1 %%</string>
+    <string name="more_learned_kind_none" volt:src="3a9142d0695375e1628cd377d898042d47b10154">Keine Daten</string>
+    <string name="more_learned_kind_one" volt:src="c27cacae6a9a2fc9015059931af33a7d75a9ed7e">Eine Ladeaufzeichnung</string>
+    <string name="more_learned_kind_agree" volt:src="ca97b36b20a4792ca2a05cdd69c18a9922df1055">Zwei oder mehr stimmen überein</string>
+    <string name="more_learned_kind_disagree" volt:src="dce38d18b623e5895f78cd262b90b56f2c87b7dd">Ladeaufzeichnungen widersprechen sich</string>
+    <string name="more_learned_kind_finish" volt:src="7ac0073d625a3049a398190923278f27d72fbe6d">Bis voll aufgezeichnet</string>
+    <string name="more_learned_span" volt:src="47bfeca68c9c5293a4ff82732753681e7d14786a">Gelernt: %1$s–%2$s %%</string>
+    <string name="more_learned_finish_from" volt:src="93ae11fded2996f6e788134d223dbbcbb848bf5e">Laden bis voll aufgezeichnet ab %1$s %%</string>
+    <string name="more_learned_gap_below" volt:src="5152c170b552fa0f642c7349573717f3c3613b8b">Keine Daten unter %1$s %%</string>
+    <string name="more_learned_gap_above" volt:src="00df7e7b0f91fcb9ed94770c47b11c1eb234a27c">Keine Daten über %1$s %%</string>
+    <string name="more_learned_gap_between" volt:src="12585a3b7865864f8d59ce6e780e4e590c4201d9">Keine Daten: %1$s–%2$s %%</string>
+    <string name="more_learned_gap_disagree" volt:src="0d84bc5096f82b3008facc0e8a39b05d716fee6d">Ladeaufzeichnungen widersprechen sich: %1$s–%2$s %%</string>
+    <plurals name="more_learned_gap_more" volt:src="2b47608adf7fb9f1016f05ce901456f43a55eb54">
+        <item quantity="one">Und %1$d weitere Lücke</item>
+        <item quantity="other">Und %1$d weitere Lücken</item>
+    </plurals>
+    <string name="more_learned_to_full" volt:src="88f24ef5d16f9a30590b14bd00099b17907e76c1">%1$s %% bis voll: %2$s</string>
+    <string name="more_learned_spoken_run" volt:src="4a0ec13cde0b5826444615ebaf0a00d1ce75babb">%1$s: von %2$s bis %3$s %%</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Vollständige Lizenzhinweise anzeigen</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Vollständige Lizenzhinweise</string>
     <string name="more_notices_unreadable" volt:src="5f65b6a856c7646ae7452808d89371f67149989d">Die Lizenzhinweise konnten nicht gelesen werden.</string>
