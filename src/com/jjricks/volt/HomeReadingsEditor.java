@@ -188,6 +188,17 @@ final class HomeReadingsEditor {
                 card.addView(slot(host, keys, slot, words, () -> choose(keys, slot)));
             }
             content.addView(card, new LinearLayout.LayoutParams(-1, -2));
+            // While a carry-over exists, its explanation and Undo, which the odometer opens on Home: reachable here when
+            // neither reading is the odometer (and so on Clean nothing else is), and offered the same either way.
+            if (chooser == null) chooser = DashboardScreen.readingChooser(host, actions);
+            View carried = chooser.odometerCarry(() -> { if (sheet != null) sheet.dismiss(); });
+            if (carried != null) {
+                LinearLayout more = ui.groupCard();
+                more.addView(carried, new LinearLayout.LayoutParams(-1, -2));
+                LinearLayout.LayoutParams below = new LinearLayout.LayoutParams(-1, -2);
+                below.topMargin = ui.dp(12);
+                content.addView(more, below);
+            }
             sheet = host.showSheet(content);
         }
 

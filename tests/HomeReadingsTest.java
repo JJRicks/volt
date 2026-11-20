@@ -22,9 +22,27 @@ public final class HomeReadingsTest {
         choicePerSlot();
         fallback();
         follows();
+        stockPairOnOwnCard();
         diagnostics();
         backup();
         System.out.println("HomeReadingsTest: " + checks + " checks passed (catalogue, defaults, each slot, fallback, Widgets follow rule, diagnostics, backup round trip)");
+    }
+
+    /**
+     * A Widgets card with its own readings given the stock pair (Odometer, then Drive mode) in its Readings sheet: that
+     * pair means "follow Home style", so Home style's two go back to the stock pair and the card shows what was picked.
+     */
+    private static void stockPairOnOwnCard() {
+        List<String> homePair = Arrays.asList("voltage_v", "power_w");
+        List<String> stockPick = Arrays.asList(ODO, MODE);
+        check(HomeReadings.resetsHome(stockPick, homePair), "the stock pair picked on a card puts Home style's two back to the stock pair");
+        check(!HomeReadings.resetsHome(stockPick, HomeReadings.DEFAULTS), "nothing to put back while Home style's two are the stock pair");
+        check(!HomeReadings.resetsHome(Arrays.asList(MODE, ODO), homePair), "Drive mode then Odometer is the card's own list, Home style's two stay");
+        check(!HomeReadings.resetsHome(Arrays.asList(ODO, MODE, "voltage_v"), homePair), "three readings are the card's own list");
+        check(!HomeReadings.resetsHome(Collections.singletonList(ODO), homePair), "Odometer alone is the card's own list");
+        check(!HomeReadings.resetsHome(homePair, homePair), "any other pair is the card's own list");
+        check(HomeReadings.followsHome(stockPick) && HomeReadings.load(key -> null, "p1").equals(stockPick),
+                "after the reset the card follows Home style, whose two are now the pick");
     }
 
     private static void catalog() {

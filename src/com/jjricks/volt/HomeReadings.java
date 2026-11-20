@@ -107,4 +107,13 @@ final class HomeReadings {
      * (anything else) is kept as picked.
      */
     static boolean followsHome(List<String> widgetKeys) { return DEFAULTS.equals(widgetKeys); }
+
+    /**
+     * Whether picking {@code picked} in a Widgets overview card's own Readings sheet puts Home style's two ({@code home})
+     * back to the stock pair. The stock pair on any overview card means "follow Home style" (followsHome), so a card
+     * given Odometer then Drive mode would show Home style's other two instead of what was picked: Home style's two go
+     * back to Odometer and Drive mode, so the card shows the pick, and so do Clean and every other card that follows
+     * Home style. Nothing changes while Home style's two already are the stock pair.
+     */
+    static boolean resetsHome(List<String> picked, List<String> home) { return followsHome(picked) && !DEFAULTS.equals(home); }
 }

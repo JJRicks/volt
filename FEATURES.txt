@@ -441,7 +441,8 @@ reports both whole km and tenths is followed by the tenths, and no change of
 field drops the total. An orange dot by the odometer sends out a sonar
 ring until the number is tapped once (a still dot with animations off or while
 moving; nothing in riding mode);
-the tap explains it and offers an Undo of the latest carry-over. Rides, range,
+the tap explains it and offers an Undo of the latest carry-over (also from
+Settings > Home style > Overview readings while one exists). Rides, range,
 maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
 Backups (Scooters & setup keys) carry the record per profile, newer reading
 wins; a forgotten or released scooter's record waits on this phone by serial
@@ -1566,14 +1567,22 @@ Overview readings (owner, Nov 19 2026) sets the two small readings under the
 battery card's bar on both styles: Clean's battery card and every Widgets
 Scooter overview card whose own reading list is still the stock Odometer and
 Drive mode (a card whose readings were picked in its own Readings sheet keeps
-them). Its line names the two ("Odometer, Drive mode"); it opens First reading
+them). That stock pair means "follow Home style" on any overview card, so
+picking exactly Odometer then Drive mode in a card's own Readings sheet also
+puts Home style's two back to that pair: the card shows the pick, and so do
+Clean and every card following Home style. Its line names the two ("Odometer, Drive mode"); it opens First reading
 and Second reading, each opening a list of the live ride and battery readings
 (speed, trip distance and time, trip average and top speed, odometer, drive
 mode, battery voltage, current, power and temperature, reported health and
 charges, capacity and energy counters), each with its latest value, where the
 slot's own reading is checked, under the Reading tiles picker's search field
 (the same matching and "No matching readings"). Picking the other slot's
-reading swaps the two.
+reading swaps the two. While an odometer carry-over exists (see the odometer
+record above), the sheet also has an "Odometer carried over" row with the
+distance carried over, opening the same explanation and Undo as a tap on
+Home's odometer, so they stay reachable with the odometer in neither reading
+(Clean then shows no odometer number to tap; its cue returns with the
+odometer, until the explanation is opened once).
 Each scooter keeps its own two, as its quick actions (Scooter preferences in a
 backup); untouched they stay Odometer and Drive mode. A reading the scooter
 hasn't reported shows a dash under its name, which TalkBack reads as "Not
