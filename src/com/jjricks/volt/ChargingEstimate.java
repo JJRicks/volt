@@ -2,8 +2,12 @@ package com.jjricks.volt;
 
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
-    /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-v1.normal-temps-v1.usable-cap-v1";
+    /**
+     * Bump whenever the prediction algorithm/reference changes; independent of app versions. It names every layer since
+     * v11: stitched estimates (stitched-v1), normal-temperature learning (temps-v1), learned usable capacity (ucap-v1) and
+     * the learned charger match (chg-match-v1). At most 64 characters: every recording sample stores it (Estimate).
+     */
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-v1.temps-v1.ucap-v1.chg-match-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
