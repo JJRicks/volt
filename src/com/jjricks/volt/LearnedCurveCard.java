@@ -61,6 +61,50 @@ final class LearnedCurveCard {
         String emptyTitle();
         String empty();
     }
+    /** The section's view tag, and each card's (a charger's card adds ":" and the charger's name). */
+    static final String SECTION_TAG = "learned-curves", TAG = "learned-curve-card";
+
+    /**
+     * The section: a card per learned charger (stock first; LearnedCurveChart.of), or one empty-state card. A charger's
+     * card is kept across refreshes, so a refresh with the same curve redraws nothing and moves nothing.
+     */
+    static final class Section {
+        final LinearLayout view;
+        private final Context context;
+        private final Ui ui;
+        private final Words words;
+        private final java.util.Map<String, LearnedCurveCard> cards = new java.util.HashMap<>();
+        private String shown;
+
+        Section(Context context, Ui ui, Words words) {
+            this.context = context; this.ui = ui; this.words = words;
+            view = new LinearLayout(context); view.setOrientation(LinearLayout.VERTICAL); view.setTag(SECTION_TAG);
+        }
+        /** The active scooter's summaries (ScooterService.learnedChargeSummaries); null or empty: the empty state. */
+        void show(List<ChargeSessionStore.Summary> summaries) {
+            List<LearnedCurveChart> charts = LearnedCurveChart.of(summaries);
+            StringBuilder order = new StringBuilder();
+            for (LearnedCurveChart chart : charts) order.append(chart.charger).append(' ');
+            String next = charts.isEmpty() ? "empty" : order.toString();
+            if (!next.equals(shown)) {
+                view.removeAllViews();
+                if (charts.isEmpty()) view.addView(card("empty").card);
+                else for (LearnedCurveChart chart : charts) view.addView(card(chart.charger.name()).card);
+                shown = next;
+            }
+            if (charts.isEmpty()) card("empty").show(null);
+            else for (LearnedCurveChart chart : charts) card(chart.charger.name()).show(chart);
+        }
+        private LearnedCurveCard card(String key) {
+            LearnedCurveCard card = cards.get(key);
+            if (card == null) {
+                card = new LearnedCurveCard(context, ui, words); card.card.setTag(TAG + ":" + key.toLowerCase(java.util.Locale.ROOT));
+                cards.put(key, card);
+            }
+            return card;
+        }
+    }
+
     /** The two looks the owner chooses between (renders before polish); B: the coverage as a tall bar, the speed a thin line above. */
     enum Look { SPEED, COVERAGE }
     static Look look = Look.SPEED;
@@ -76,7 +120,7 @@ final class LearnedCurveCard {
     LearnedCurveCard(Context context, Ui ui, Words words) {
         this.ui = ui; this.words = words;
         card = ui.card(); card.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
-        card.setTag("learned-curve-card");
+        card.setTag(TAG);
         title = ui.text("", 16, true); title.setTag("learned-curve-title");
         card.addView(title, new LinearLayout.LayoutParams(-1, -2));
         sub = ui.caption(""); sub.setTag("learned-curve-recordings"); sub.setPadding(0, ui.dp(3), 0, 0);
