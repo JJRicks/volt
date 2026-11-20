@@ -3059,7 +3059,8 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * "Record with Stock charger?": the charger is picked inside the dialog, and the title follows it.
-     * Older recordings beyond the 20 kept are dropped.
+     * Saved recordings rotate (ChargeSessionStore.MAX_RECORDINGS or BUDGET_BYTES, oldest first). The body's "keeps the last
+     * 20" is the old rule's text; it changes in the release's language top-up, with every language.
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();

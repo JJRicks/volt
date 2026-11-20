@@ -240,8 +240,9 @@ public final class ChargeSessionStore {
         /** Per profile: charge accepted per gauge point in completed charges (any charger). */
         public final Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge;
         /**
-         * Per scooter and charger ({@link #key}): every saved recording that could teach its curve, though the curve learns
-         * from the newest LEARN_SESSIONS only. "The charger you have recorded more charges with" counts these.
+         * Per scooter and charger ({@link #key}): the saved recordings that could teach its curve, up to the newest
+         * LEARN_SESSIONS, the ones the curve learns from. "The charger you have recorded more charges with" counts these, so
+         * after a switch to the other charger the guess follows within LEARN_SESSIONS charges, not hundreds.
          */
         private final Map<String,Integer> qualified;
         Snapshot(Map<String,Curve> curves,int sessions,long bytes){this(curves,sessions,bytes,Collections.emptyMap(),Collections.emptyMap());}
@@ -269,8 +270,10 @@ public final class ChargeSessionStore {
     private final Map<String,Known> known=new HashMap<>();
     /** The recording last saved or recovered: never the one pruning removes. */
     private final Set<String> justSaved=new HashSet<>();
-    private File active;
-    private String profile;
+    // Written under the lock; read without it by active() and profile(), which the service asks from the main thread many
+    // times a second, so they never wait for a long walk of the folder.
+    private volatile File active;
+    private volatile String profile;
     private Charger charger;
     private LabelSource labelSource;
     private double firstSoc;
@@ -340,8 +343,8 @@ public final class ChargeSessionStore {
     private static String auditId(String id,Charger setting,Charger detected){
         char[] chars=id.substring(0,36).toCharArray();chars[19]=auditChar(setting);chars[20]=auditChar(detected);return new String(chars);
     }
-    public synchronized boolean active(){return active!=null;}
-    public synchronized String profile(){return profile;}
+    public boolean active(){return active!=null;}
+    public String profile(){return profile;}
     public synchronized Charger charger(){return charger;}
     public synchronized int sampleCount(){return samples;}
     public synchronized long lastFreshMono(){return lastFreshMono;}
@@ -555,10 +558,15 @@ public final class ChargeSessionStore {
         pruneTo(maxRecordings,Long.MAX_VALUE);
         return !discarded&&saved.exists();
     }
-    public synchronized void clear(String targetProfile) throws IOException {
-        if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
-        for(File file:files()) {
-            if(file.equals(active))continue;
+    /** Run outside the UI thread. Only the list is taken under the lock: reading up to MAX_RECORDINGS files' facts is not. */
+    public void clear(String targetProfile) throws IOException {
+        final List<File> source;final File current;
+        synchronized(this){
+            if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
+            source=files();current=active;
+        }
+        for(File file:source) {
+            if(file.equals(current))continue;
             Facts facts;
             try{facts=file.getName().endsWith(".csv")?facts(file):null;}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
             if(targetProfile==null||facts!=null&&targetProfile.equals(facts.profile))remove(file,"Charge history could not be cleared");
@@ -588,8 +596,7 @@ public final class ChargeSessionStore {
             // Its gauge evidence above counts: ampere-hours per gauge point does not depend on which charger supplied them.
             if(!facts.qualified||!learnsCurve(file.getName()))continue;
             String key=key(facts.profile,facts.charger);List<File> files=chosen.computeIfAbsent(key,ignored->new ArrayList<>());
-            qualified.merge(key,1,Integer::sum);
-            if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);}
+            if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);qualified.merge(key,1,Integer::sum);}
         }
         Map<String,Curve> curves=new LinkedHashMap<>();
         for(Map.Entry<String,List<File>> item:chosen.entrySet()){
@@ -705,17 +712,28 @@ public final class ChargeSessionStore {
         try{session=readSaved(file);}catch(FileNotFoundException removed){return null;}
         return session==null||!targetProfile.equals(session.profile)?null:new HistorySession(id,Facts.of(session),session);
     }
-    /** Stream saved journals for one scooter. No owner credentials, names, or radio identifiers. */
-    public synchronized int exportJson(String targetProfile, Writer out) throws IOException {
+    /**
+     * Stream saved journals for one scooter. No owner credentials, names, or radio identifiers. Only the list is taken under
+     * the lock: reading, inflating and writing up to MAX_RECORDINGS recordings is not, so the service's main-thread calls
+     * never wait for an export. A recording rotated away meanwhile is left out.
+     */
+    public int exportJson(String targetProfile, Writer out) throws IOException {
         if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Select a scooter");
-        if(active!=null)throw new IllegalStateException("Stop charge recording before exporting");
+        final List<File> source;
+        synchronized(this){
+            if(active!=null)throw new IllegalStateException("Stop charge recording before exporting");
+            source=files();
+        }
         out.write("{\"format\":\"navee-charge-recordings-v1\",\"charger_selection\":\"manual\",\"sessions\":[");
         int count=0;
-        for(File file:files()) {
+        for(File file:source) {
             if(!file.getName().endsWith(".csv"))continue;
-            Facts facts=facts(file);
-            if(facts==null||!targetProfile.equals(facts.profile))continue;
-            Session session=readSaved(file);
+            Facts facts;Session session;
+            try{
+                facts=facts(file);
+                if(facts==null||!targetProfile.equals(facts.profile))continue;
+                session=readSaved(file);
+            }catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
             if(session==null||!targetProfile.equals(session.profile))continue;
             if(count++>0)out.write(",");
             // Additive fields: whether Record charges automatically started it, and how its charger label was chosen.

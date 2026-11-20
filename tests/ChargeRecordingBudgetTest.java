@@ -28,6 +28,8 @@ public final class ChargeRecordingBudgetTest {
         activeJournalRecovery();
         corruptCompressedFile();
         learnerCap();
+        guessFollowsSwitch();
+        exportHoldsNoLock();
         summaries();
         backupRoundTrip();
         System.out.println("ChargeRecordingBudget: " + checks + " checks passed");
@@ -264,8 +266,75 @@ public final class ChargeRecordingBudgetTest {
         ChargeSessionStore.Snapshot snapshot = store.snapshot();
         ChargeSessionStore.Curve curve = snapshot.curves.get(ChargeSessionStore.key("one", STOCK));
         check(snapshot.sessions == 25 && curve.qualifiedSessions == ChargeSessionStore.LEARN_SESSIONS, "Twenty-five stored, twenty learned from: " + curve.qualifiedSessions);
-        check(snapshot.qualifiedRecordings("one", STOCK) == 25 && snapshot.qualifiedRecordings("one", FAST) == 0, "The charger guess still counts all twenty-five");
+        check(snapshot.qualifiedRecordings("one", STOCK) == ChargeSessionStore.LEARN_SESSIONS && snapshot.qualifiedRecordings("one", FAST) == 0,
+                "The charger guess counts the newest twenty, as the learner does: " + snapshot.qualifiedRecordings("one", STOCK));
         check(Math.abs(curve.estimate(45, 55).minutes - 10) < 1e-9, "They are the newest twenty (with the five older ones it would be 12 minutes): " + curve.estimate(45, 55).minutes);
+    }
+
+    /**
+     * Council review, PR #563: the charger guess ("the charger you have recorded more charges with") counts the newest
+     * LEARN_SESSIONS per charger, so after a switch it follows the new charger within twenty-one charges, not hundreds.
+     */
+    static void guessFollowsSwitch() throws Exception {
+        File f = folder(); ChargeSessionStore store = open(f, 100, ChargeSessionStore.BUDGET_BYTES);
+        long at = WALL;
+        for (int i = 0; i < 30; i++) { String id = charge(store, "one", STOCK, at, false); date(f, id, at); at += HOUR; }
+        for (int i = 0; i < 20; i++) { String id = charge(store, "one", FAST, at, false); date(f, id, at); at += HOUR; }
+        ChargeSessionStore.Snapshot tie = store.snapshot();
+        check(tie.qualifiedRecordings("one", STOCK) == 20 && tie.qualifiedRecordings("one", FAST) == 20, "Thirty stock, then twenty high-speed: twenty each");
+        String id = charge(store, "one", FAST, at, false); date(f, id, at);
+        ChargeSessionStore.Snapshot after = store.snapshot();
+        check(after.qualifiedRecordings("one", FAST) > after.qualifiedRecordings("one", STOCK), "The twenty-first high-speed charge tips the guess");
+    }
+
+    /**
+     * Council review, PR #563: an export reads, inflates and writes up to a thousand recordings, and the service asks the
+     * store whether it records from the main thread many times a second. The export holds the store's lock only for its
+     * list: active() answers, and a recording starts, while the export is stuck in a write.
+     */
+    static void exportHoldsNoLock() throws Exception {
+        File f = folder(); ChargeSessionStore store = open(f, 100, ChargeSessionStore.BUDGET_BYTES);
+        for (int i = 0; i < 5; i++) { String id = charge(store, "one", STOCK, WALL + i * HOUR, false); date(f, id, WALL + i * HOUR); }
+        store.maintain();
+        java.util.concurrent.CountDownLatch writing = new java.util.concurrent.CountDownLatch(1), release = new java.util.concurrent.CountDownLatch(1);
+        Writer stuck = new Writer() {
+            boolean first = true;
+            @Override public void write(char[] buffer, int offset, int length) throws IOException {
+                if (!first) return;
+                first = false; writing.countDown();
+                try { if (!release.await(10, java.util.concurrent.TimeUnit.SECONDS)) throw new IOException("Never released"); }
+                catch (InterruptedException e) { throw new InterruptedIOException(); }
+            }
+            @Override public void flush() { }
+            @Override public void close() { }
+        };
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            java.util.concurrent.Future<Integer> export = pool.submit(() -> store.exportJson("one", stuck));
+            check(writing.await(5, java.util.concurrent.TimeUnit.SECONDS), "The export reached its first write");
+            long began = System.nanoTime();
+            java.util.concurrent.Future<Boolean> asked = pool.submit(store::active);
+            boolean answer = asked.get(50, java.util.concurrent.TimeUnit.MILLISECONDS);
+            check(!answer && System.nanoTime() - began < 50_000_000L, "active() answers within 50 ms while an export writes");
+            store.start("one", STOCK, WALL + 10 * HOUR, MONO + 10 * HOUR);
+            check(store.active(), "A recording starts while an export writes");
+            release.countDown();
+            check(export.get(10, java.util.concurrent.TimeUnit.SECONDS) == 5, "The export finishes with the five saved before it began");
+            store.stop(ChargeSessionStore.Stop.STOPPED);
+        } finally { release.countDown(); pool.shutdownNow(); }
+        // A recording rotated away between the export's list and its read is left out, not an error.
+        File g = folder(); ChargeSessionStore other = open(g, 100, ChargeSessionStore.BUDGET_BYTES);
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < 3; i++) { ids.add(charge(other, "one", STOCK, WALL + i * HOUR, false)); date(g, ids.get(i), WALL + i * HOUR); }
+        Writer deleting = new Writer() {
+            boolean done;
+            @Override public void write(char[] buffer, int offset, int length) {
+                if (!done) { done = true; check(new File(g, ids.get(2) + ".csv").delete(), "Fixture removed mid-export"); }
+            }
+            @Override public void flush() { }
+            @Override public void close() { }
+        };
+        check(other.exportJson("one", deleting) == 2, "A recording removed mid-export is left out");
     }
 
     /** The list's summaries carry what its rows show, from the facts alone. */
