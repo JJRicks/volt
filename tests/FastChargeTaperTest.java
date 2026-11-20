@@ -29,6 +29,7 @@ public final class FastChargeTaperTest {
         plateau();
         noise();
         planning();
+        cvPoint();
         replay(Paths.get(args[0]));
         System.out.println("FastChargeTaper: " + checks + " checks passed");
     }
@@ -110,6 +111,84 @@ public final class FastChargeTaperTest {
         check(!flat.tracking("b"), "Reset forgets the charge");
     }
 
+    /** Headroom (V) that leaves ah to the voltage limit: the inverse of bulkAh, for synthesized charges. */
+    private static double headroomFor(double ah) {
+        double[] v = FastChargeTaper.HEADROOM_VOLTS, a = FastChargeTaper.BULK_AH;
+        if (ah <= a[0]) return 0;
+        int i = 1;
+        while (ah > a[i]) i++;
+        return v[i - 1] + (ah - a[i - 1]) / (a[i] - a[i - 1]) * (v[i] - v[i - 1]);
+    }
+
+    /**
+     * ut5-fast-cvpoint-v11 on synthesized charges whose pack voltage follows the bundled headroom table: a deep
+     * charge meeting the voltage limit at full current, and a top-up that takes the BMS's 80% step to 8.03 A first.
+     */
+    private static void cvPoint() {
+        final double I = 10.05, S = FastChargeTaper.STEP_ARRIVAL_AMPS, X = FastChargeTaper.EXTRA_AH, R = 15.3;
+        // Deep: from 30% with 6.5 Ah to the limit (cvSoc 72.5%): the same as the voltage model without a decay.
+        double v = FastChargeTaper.CV_SET - FastChargeTaper.CV_DROP * I - headroomFor(6.5);
+        FastChargeTaper.CvPoint deep = FastChargeTaper.cvPoint(30, v, I, R);
+        check(deep != null && deep.deep && !deep.stage, "A charge meeting the limit below 80% is deep");
+        near(30 + 100 * 6.5 / R, deep.cvSoc, 1e-6, "The limit's level follows the Ah to it");
+        near(FastChargeTaper.minutes(v, I, R, null), deep.full, 1e-9, "A deep charge keeps the voltage model");
+        near(R * .4 / I * 60, deep.minutesTo(70), 1e-6, "A limit before the voltage limit is bulk time");
+        // Top-up: from 60% with 4 Ah to the limit at full current (cvSoc 86%): 10 A to 80%, then 8.03 A with EXTRA_AH.
+        v = FastChargeTaper.CV_SET - FastChargeTaper.CV_DROP * I - headroomFor(4);
+        FastChargeTaper.CvPoint top = FastChargeTaper.cvPoint(60, v, I, R);
+        double before = R * .2, bulk = before / I * 60 + (4 - before + X) / S * 60, tail = FastChargeTaper.TAU_MINUTES * Math.log(S / FastChargeTaper.END_AMPS);
+        check(top != null && !top.deep && !top.stage, "A charge meeting the limit after 80% is a top-up");
+        near(bulk + tail, top.full, 1e-6, "Top-up: full current to 80%, then the 8 A stage, then the taper from 8.03 A");
+        check(top.full > FastChargeTaper.minutes(v, I, R, null), "The 80% step makes this top-up longer than the old voltage model");
+        near(before / I * 60, top.minutesTo(80), 1e-6, "To an 80% limit: full current");
+        near(before / I * 60 + R * .05 / S * 60, top.minutesTo(85), 1e-6, "To 85%: then the 8 A stage");
+        double cv = 60 + 100 * (4 + X) / R;
+        near(cv, top.cvSoc, 1e-6, "The 8 A stage's extra charge moves the limit's level");
+        near(bulk + tail * (95 - cv) / (100 - cv), top.minutesTo(95), 1e-6, "Above the limit's level, a straight share of the taper");
+        near(top.full, top.minutesTo(100), 0, "100% is the whole time");
+        check(top.minutesTo(50) == 0, "A level already passed takes no time");
+        // The 8 A stage at 82%: the voltage model, unchanged.
+        v = FastChargeTaper.CV_SET - FastChargeTaper.CV_DROP * 8.03 - headroomFor(.8);
+        FastChargeTaper.CvPoint stage = FastChargeTaper.cvPoint(82, v, 8.03, R);
+        check(stage != null && stage.stage, "8 A from 79% is the 8 A stage");
+        near(FastChargeTaper.minutes(v, 8.03, R, null), stage.full, 1e-9, "The 8 A stage keeps the voltage model");
+        // Declined: near or at the voltage limit, odd currents, another pack, out of the table.
+        check(FastChargeTaper.cvPoint(60, FastChargeTaper.CV_SET - .08 - FastChargeTaper.CV_DROP * I, I, R) == null, "At the pre-limit margin it does not apply");
+        check(FastChargeTaper.cvPoint(60, 50, 9.2, R) == null && FastChargeTaper.cvPoint(60, 50, 8, R) == null && FastChargeTaper.cvPoint(81, 52, I, R) == null,
+                "Only the two normal current levels");
+        check(FastChargeTaper.cvPoint(60, 50, I, 10) == null && FastChargeTaper.cvPoint(20, 46, I, R) == null, "Another pack or below the table");
+
+        // Along each synthesized charge the predicted finish (minutes in + time shown) holds still, through the 80% step.
+        for (double ahToLimit : new double[]{4, 6.5}) {
+            double soc = ahToLimit == 4 ? 60 : 30, q = ahToLimit, start = Double.NaN;
+            ChargeProgressTracker progress = new ChargeProgressTracker();
+            progress.observe("a", false, null, null, T0 - SEC);
+            for (int k = 0; ; k++) {
+                long t = T0 + k * 10 * SEC;
+                boolean stepped = ahToLimit == 4 && soc >= 80;
+                double amps = stepped ? S : I;
+                if (q <= .3) break; // near the limit the pre-limit margin hands over
+                double volts = FastChargeTaper.CV_SET - FastChargeTaper.CV_DROP * amps - headroomFor(q);
+                progress.observe("a", true, Math.floor(soc), amps, t);
+                ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(volts, t), live(-amps, t), live(Math.floor(soc), t), live(R, t), live(100, t));
+                ChargingEstimate.Result r = ChargingEstimate.forScooter(base, live(Math.floor(soc), t), live(R, t), 2538, FAST, null, null, null, t, t,
+                        progress.progress("a", t), null);
+                double finish = k / 6d + r.remainingMinutesToFull;
+                if (k == 0) start = finish;
+                near(start, finish, 1.2, (ahToLimit == 4 ? "Top-up" : "Deep") + " finish holds at " + soc + "%");
+                check(r.referenceToFull && r.planningMinutesToFull.equals(r.remainingMinutesToFull), "Planned as shown");
+                double ah = amps * 10 / 3600;
+                soc += 100 * ah / R;
+                // Before the step the table's headroom is the full-current Ah left; at the step the 8 A stage adds EXTRA_AH.
+                if (ahToLimit == 4 && !stepped && soc >= 80) q += X;
+                q -= ah;
+            }
+        }
+        // Other models are untouched (the standard charger: the committed replay below).
+        ChargingEstimate.Result other = estimate(60, v, I, 100d, -1, FAST, null, T0);
+        near(R * .4 / I * 60, other.remainingMinutesToFull, 1e-9, "Other models keep the current rate");
+    }
+
     private static void composition() {
         // Session 12's first reading: charger already at its voltage limit at 91%.
         ChargingEstimate.Result early = estimate(91, 53.551, 8.04, 100d, 2538, FAST, null, T0);
@@ -121,8 +200,13 @@ public final class FastChargeTaperTest {
                 && saved.learnedSessions == 0, "Recorded as the bundled high-speed reference");
         check(saved.version.equals(ChargingEstimate.ESTIMATOR_VERSION), "Algorithm changes carry a new capture version");
         ChargingEstimate.Result lower = estimate(91, 53.551, 8.04, 95d, 2538, FAST, null, T0);
-        near(15.3 * .04 / 8.04 * 60, lower.remainingMinutesToLimit, 1e-9, "A lower cutoff keeps the current rate");
-        check(ChargingEstimate.recordingSnapshot(lower).limitSource == ChargeSessionStore.Source.CURRENT_RATE, "and says so");
+        // Just before the voltage limit in the 8 A stage, cvPoint (v11) places a lower cutoff too.
+        FastChargeTaper.CvPoint stage = FastChargeTaper.cvPoint(91, 53.551, 8.04, 15.3);
+        check(stage != null && stage.stage, "8 A at 91% before the limit is the 8 A stage");
+        near(stage.minutesTo(95), lower.remainingMinutesToLimit, 1e-9, "A lower cutoff takes cvPoint's time");
+        check(lower.remainingMinutesToLimit > 15.3 * .04 / 8.04 * 60 && lower.remainingMinutesToLimit <= lower.remainingMinutesToFull,
+                "longer than the current rate (part of the taper), never longer than 100%");
+        check(ChargingEstimate.recordingSnapshot(lower).limitSource == ChargeSessionStore.Source.FAST_REFERENCE, "and says so");
         ChargingEstimate.Result high = estimate(98, 54.33, 2.1, 99.5d, 2538, FAST, null, T0);
         check(high.remainingMinutesToLimit <= high.remainingMinutesToFull, "A cutoff never takes longer than 100%");
         ChargingEstimate.Result other = estimate(91, 53.551, 8.04, 100d, -1, FAST, null, T0);
@@ -789,7 +873,7 @@ public final class FastChargeTaperTest {
         List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
         check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
         int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, ownFast = 0, changed = 0, replaced = 0, planned = 0;
-        int finish = 0, finishWasCurrentRate = 0;
+        int finish = 0, finishWasCurrentRate = 0, cvChanged = 0, cvRows = 0;
         double earlier = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
@@ -812,7 +896,17 @@ public final class FastChargeTaperTest {
             // bundled reference supplies it: exactly the current-based finish, where v7 showed the
             // voltage-matched reference or (when no stored voltage matched) the current rate.
             boolean stockFinish = stockFinish(row);
-            if (!same && stockFinish) {
+            boolean cvp = cvRow(row);
+            if (cvp) {
+                // ut5-fast-cvpoint-v11 places these from where the voltage limit will come, as the bundled reference.
+                cvRows++;
+                FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(row.sample.soc, row.sample.volts, Math.abs(row.sample.amps), 15.3);
+                check(!base[3].equals("PERSONAL") && row.source.equals("FAST_REFERENCE") && row.learned == 0 && Math.abs(row.full - cv.full) <= 1e-9,
+                        "Session " + row.sample.session + " at " + row.minutes + " min: cvPoint's time, as the bundled reference");
+                if (!same) cvChanged++;
+            }
+            if (!same && cvp) {
+            } else if (!same && stockFinish) {
                 check(base[3].equals("STOCK_REFERENCE") || base[3].equals("CURRENT_RATE"),
                         "Session " + row.sample.session + " at " + row.minutes + " min: the 99% finish replaces only the reference or current rate");
                 finish++;
@@ -837,12 +931,14 @@ public final class FastChargeTaperTest {
             }
             if (row.sample.charger.equals("STOCK") || row.sample.session == 4 && !row.ownTaper) {
                 if (row.sample.charger.equals("STOCK")) stock++; else reference++;
-                if (stockFinish) continue;
+                if (stockFinish || cvp) continue;
                 check(older == null ? row.full == null : row.full != null && Math.abs(older - row.full) <= 1e-6, "Unchanged estimate, session " + row.sample.session);
                 check(old[3].equals(row.source) && Integer.parseInt(old[4]) == row.learned, "Unchanged source, session " + row.sample.session);
             }
         }
         check(stock == 5457 && reference == 343 && recorded == 1028, "Parity covers all standard-charger samples and the reference charge before its own taper");
+        System.out.println("FastChargeTaper replay: cvPoint places " + cvRows + " high-speed samples, " + cvChanged + " changed from v7");
+        check(cvRows == CV_ROWS && cvChanged == CV_CHANGED, "cvPoint rows " + cvRows + ", changed " + cvChanged);
         check(finish == FINISH_CHANGED && finishWasCurrentRate == FINISH_WAS_CURRENT_RATE,
                 "The v9 99% finish changed " + finish + " standard-charger samples, " + finishWasCurrentRate + " of them from the current rate");
         // Every high-speed sample that reaches its own taper keeps it (1,197). On standard-charger
@@ -894,6 +990,7 @@ public final class FastChargeTaperTest {
         check(v7.size() == full.size() && Arrays.equals(FastChargeTaperReplay.LIMITS, new double[]{95, 80}), "The lower-limit baseline covers every sample");
         // Per limit: own-taper samples with a personal time to the limit, without one, and relabelled.
         int[][] want = {{453, 737, 494}, {494, 696, 453}};
+        int[] cvLimits = new int[FastChargeTaperReplay.LIMITS.length];
         FastChargeTaperReplay.Row s15 = null;
         for (int k = 0; k < FastChargeTaperReplay.LIMITS.length; k++) {
             double target = FastChargeTaperReplay.LIMITS[k];
@@ -906,6 +1003,17 @@ public final class FastChargeTaperTest {
                 String where = "Session " + row.sample.session + " at " + row.minutes + " min, " + target + "% limit";
                 check(base[0].equals(String.valueOf(row.sample.session)) && base[1].equals(String.format(Locale.ROOT, "%.4f", row.minutes)),
                         where + ": aligned with the v7 baseline");
+                if (cvRow(row)) {
+                    // v11: cvPoint's time to the limit, or past charges' own (v7's), up to the time to 100%.
+                    FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(row.sample.soc, row.sample.volts, Math.abs(row.sample.amps), 15.3);
+                    boolean kept = base[column + 1].equals("PERSONAL");
+                    double expected = kept ? Math.min(Double.parseDouble(base[column]), cv.full) : cv.minutesTo(target);
+                    check(row.limit != null && Math.abs(row.limit - expected) <= 1e-6 && row.limitSource.equals(kept ? "PERSONAL" : "FAST_REFERENCE")
+                            && Objects.equals(row.planningLimit, row.limit) && row.limit <= row.full + 1e-9,
+                            where + ": cvPoint's time to the limit, or past charges' kept: " + row.limit + " vs " + expected);
+                    cvLimits[k]++;
+                    continue;
+                }
                 check(close(base[column], row.limit) && base[column + 1].equals(row.limitSource) && close(base[column + 2], row.planningLimit),
                         where + ": v7's time to the limit, its source and Charge done by minutes");
                 int learnedV7 = Integer.parseInt(base[column + 3]);
@@ -937,6 +1045,7 @@ public final class FastChargeTaperTest {
             check(personal == want[k][0] && other == want[k][1] && relabelled == want[k][2],
                     target + "% limit: own-taper samples with a personal time " + personal + ", without " + other + ", relabelled " + relabelled);
         }
+        check(cvLimits[0] == CV_ROWS && cvLimits[1] == CV_ROWS, "cvPoint places the same samples at each limit: " + Arrays.toString(cvLimits));
         check(s15 != null && s15.limitSource.equals("PERSONAL") && Math.abs(s15.limit - 19.39) < .01 && s15.planningLimit.equals(s15.limit),
                 "Session 15 at 82% keeps v7's personal 19.4 minutes to 95%");
 
@@ -959,6 +1068,19 @@ public final class FastChargeTaperTest {
             if (row.personalLimit > row.full + 1e-9) { capped++; most = Math.max(most, row.personalLimit - row.full); check(row.sample.session == 15, where); }
         }
         check(capped == 18 && Math.abs(most - 2.045) < .001, "99% limit: " + capped + " capped samples, up to " + most + " min shorter than past charges' time");
+    }
+
+    /** Samples cvPoint places (ut5-fast-cvpoint-v11), and of those, the ones whose time to 100% changed from v7. */
+    private static final int CV_ROWS = 493, CV_CHANGED = 347;
+
+    /**
+     * v11's cvPoint places this sample: the fast charger, not its own taper, no past charges' time to 100%, before
+     * the voltage limit at a normal current level.
+     */
+    private static boolean cvRow(FastChargeTaperReplay.Row row) {
+        if (!row.sample.charger.equals("HIGH_SPEED") || row.ownTaper || row.source.equals("PERSONAL") || row.full == null) return false;
+        FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(row.sample.soc, row.sample.volts, Math.abs(row.sample.amps), 15.3);
+        return cv != null;
     }
 
     /** A baseline value written with six decimals (empty for none) against the replayed one. */
