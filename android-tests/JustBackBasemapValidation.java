@@ -45,6 +45,8 @@ import java.util.function.BooleanSupplier;
  *       on this device that refuses connections, standing in for no network): the panel stays plain, with no message.</li>
  *   <li>A ride ending in the switch's corner: the route, its end dot and its ring are fitted clear of the switch.</li>
  * </ul>
+ * Then the ride's own map, opened from the card with the ride maps' basemap on, in both themes (pictures only: the ride
+ * maps' tiles, one zoom finer, for comparison).
  * Pictures: off and on in both themes, the explanation, the unreachable provider and the corner ride. Argument
  * size_label names them. Sends no scooter command.
  */
@@ -83,6 +85,8 @@ public final class JustBackBasemapValidation extends Instrumentation {
             lightTheme();
             unreachable();
             corner();
+            rideMap("dark");
+            rideMap("light");
             result.putString("result", "PASS");
         } catch (Throwable failure) {
             result.putString("result", "FAIL"); result.putString("error", String.valueOf(failure));
@@ -201,6 +205,37 @@ public final class JustBackBasemapValidation extends Instrumentation {
         requireClearOfSwitch("the corner ride, off");
         shot("dark-corner-off");
         checks.add(size + " a ride ending in the switch's corner: its route, end dot and ring are fitted clear of the switch, on and off");
+    }
+
+    /**
+     * The ride's own map (Rides, the ride's details) with the ride maps' basemap on, for the owner's comparison of the
+     * finer tiles there (RouteMapView.FINER_TILES): opened from the card, as an owner would, in this theme.
+     */
+    private void rideMap(String theme) throws Exception {
+        require(settings().edit().putString("theme", theme).putBoolean("map_basemap_enabled", true).commit(), "Could not turn the ride maps' basemap on");
+        relaunch();
+        showJustBack();
+        main(() -> require(card().performClick(), "The card did not open its ride"));
+        settle();
+        await(() -> map(root()) != null && map(root()).isAttachedToWindow(), 10000, "The ride's map did not open from the card");
+        main(() -> { View map = map(root()); map.requestRectangleOnScreen(new android.graphics.Rect(0, 0, map.getWidth(), map.getHeight()), true); });
+        SystemClock.sleep(600); settle();
+        boolean drawn = waitFor(() -> ((android.util.LruCache<?, ?>) field(map(root()), "tiles")).size() > 0, 20000);
+        SystemClock.sleep(900); settle();
+        checks.add(size + " " + theme + " ride map: " + (drawn ? "tiles drawn, one zoom finer" : "no tile arrived in 20 s (emulator without a network?)"));
+        shot(theme + "-ride-map");
+        main(() -> { invoke(activity, "select", new Class<?>[]{String.class}, "home"); });
+        settle();
+    }
+
+    /** The first ride map (RouteMapView) in the tree, or null. */
+    private static View map(View view) {
+        if (view instanceof RouteMapView && view.isShown()) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+            View found = map(((ViewGroup) view).getChildAt(i));
+            if (found != null) return found;
+        }
+        return null;
     }
 
     // ---- Checks --------------------------------------------------------------------------------------------------
