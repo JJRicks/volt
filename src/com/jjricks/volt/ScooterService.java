@@ -2094,7 +2094,8 @@ public final class ScooterService extends Service {
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
         // After detection, so the charger in effect is this frame's. The limit is the scooter's own (unknown counts as 100).
-        chargeSlowdown.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),effectiveChargeCharger(),frame.state.value==1d,
+        chargeSlowdown.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),ble.liveNumber("rated_capacity_ah"),
+                effectiveChargeCharger(),frame.state.value==1d,
                 paired?frame.soc.value:null,paired?frame.voltage.value:null,paired?frame.current.value:null,
                 liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null,ble.liveNumber("charge_limit_percent"),paired?frame.current.mono:0);
     }

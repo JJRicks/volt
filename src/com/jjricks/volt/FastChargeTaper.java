@@ -192,8 +192,7 @@ public final class FastChargeTaper {
      * be null (no watched decay): the reference tau applies and only voltage headroom marks CV.
      */
     public static Double minutes(double volts, double amps, double ratedAh, FastChargeTaper state) {
-        if (!finite(volts) || !finite(amps) || !finite(ratedAh) || Math.abs(ratedAh - RATED_AH) > RATED_AH * .1
-                || amps <= 0 || amps > MAX_AMPS || volts <= 0) return null;
+        if (!finite(volts) || !finite(amps) || !calibratedPack(ratedAh) || amps <= 0 || amps > MAX_AMPS || volts <= 0) return null;
         double tau = state == null ? TAU_MINUTES : state.tau();
         double tail = amps <= END_AMPS ? 0 : tau * Math.log(amps / END_AMPS);
         double headroom = CV_SET - CV_DROP * amps - volts;
@@ -262,7 +261,7 @@ public final class FastChargeTaper {
      * The taper is TAU_MINUTES x ln(I / END_AMPS), as minutes() without a watched decay.
      */
     static CvPoint cvPoint(double soc, double volts, double amps, double ratedAh) {
-        if (!finite(soc) || !finite(volts) || !finite(amps) || !finite(ratedAh) || Math.abs(ratedAh - RATED_AH) > RATED_AH * .1
+        if (!finite(soc) || !finite(volts) || !finite(amps) || !calibratedPack(ratedAh)
                 || soc < 0 || soc >= 100 || volts <= 0 || amps > MAX_AMPS) return null;
         if (volts + CV_DROP * amps >= CV_SET - PRE_CV_MARGIN) return null;
         boolean full = soc < FULL_BELOW_SOC && amps >= FULL_LOW_AMPS, stage = soc >= STAGE_FROM_SOC && amps >= STAGE_LOW_AMPS && amps <= STAGE_HIGH_AMPS;
@@ -280,6 +279,9 @@ public final class FastChargeTaper {
         }
         return new CvPoint(soc, amps, ratedAh, cvSoc, bulk, TAU_MINUTES * Math.log(from / END_AMPS), stage, deep);
     }
+
+    /** A pack this model (and the BMS current levels it was fitted with) covers: rated within 10% of RATED_AH. */
+    static boolean calibratedPack(double ratedAh) { return finite(ratedAh) && Math.abs(ratedAh - RATED_AH) <= RATED_AH * .1; }
 
     /** Ah delivered at constant current before CV; null below the calibrated range. */
     static Double bulkAh(double headroom) {

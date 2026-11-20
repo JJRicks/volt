@@ -13,8 +13,9 @@ package com.jjricks.volt;
  *
  * The rule, on fresh paired readings of one charge:
  * <ul>
- * <li>only the UT5 MAX (product {@link Ut5MaxFastChargeReference#PRODUCT_ID}) on the fast charger, detected or
- *     chosen; the standard charger's 1.9 to 2.3 A sits below every BMS limit;</li>
+ * <li>only the UT5 MAX (product {@link Ut5MaxFastChargeReference#PRODUCT_ID}) with its calibrated pack (rated
+ *     capacity within 10% of 15.3 Ah, FastChargeTaper.calibratedPack) on the fast charger, detected or chosen; the
+ *     standard charger's 1.9 to 2.3 A sits below every BMS limit;</li>
  * <li>eligible outside the charger's voltage limit (V + CV_DROP x I below {@link #CV_EDGE_V}, FastChargeTaper's
  *     CV_SET less CV_MARGIN), below the charge limit less {@link #LIMIT_MARGIN} percent, and at least
  *     {@link #START_MS} after charging began or after a gap or pause in readings of {@link #GAP_MS} or more;</li>
@@ -57,7 +58,7 @@ public final class ChargeSlowdown {
 
     /** The BMS's healthy fast-charge current below and from its 80% step (A). */
     static final double FULL_AMPS = 10.05, STEP_AMPS = 8.0, STEP_SOC = 80;
-    /** Where the bulk stage ends for the slowed estimate: the 80% step, or 85% within the 8 A stage. */
+    /** The 8 A stage's bulk end for the slowed estimate when the headroom table cannot place the voltage limit. */
     static final double STEP_END_SOC = 85;
     static final double SHOW = .90, CLEAR = .95;
     /** FastChargeTaper.CV_SET less 0.15 V: at and above this the charger's voltage limit is near and current falls by design. */
@@ -91,21 +92,18 @@ public final class ChargeSlowdown {
     /** The healthy current at this displayed battery level. */
     static double expectedAmps(double soc) { return soc < STEP_SOC ? FULL_AMPS : STEP_AMPS; }
 
-    /** The end of the bulk stage the slowed estimate covers from this level. */
-    static double bulkEnd(double soc) { return soc < STEP_SOC ? STEP_SOC : STEP_END_SOC; }
-
     static Cause cause(Double temperatureC) {
         if (temperatureC == null || !finite(temperatureC)) return Cause.PLAIN;
         return temperatureC <= COLD_NAME_C ? Cause.COLD : temperatureC >= HOT_NAME_C ? Cause.HOT : Cause.PLAIN;
     }
 
     /**
-     * One reading. charging is the fresh charging state (null changes nothing). soc, volts and amps are a fresh
-     * paired reading or null; temperatureC a fresh battery temperature or null; limit the scooter's charge limit
+     * One reading. charging is the fresh charging state (null changes nothing). ratedAh is the pack's rated capacity
+     * or null (unknown: not watched). soc, volts and amps are a fresh paired reading or null; temperatureC a fresh battery temperature or null; limit the scooter's charge limit
      * (percent) or null when unknown, which counts as 100. sampleMs is the paired reading's time on the monotonic
      * clock; the same reading seen again changes nothing.
      */
-    public void observe(String profile, int productId, ChargeSessionStore.Charger charger, Boolean charging,
+    public void observe(String profile, int productId, Double ratedAh, ChargeSessionStore.Charger charger, Boolean charging,
             Double soc, Double volts, Double amps, Double temperatureC, Double limit, long sampleMs) {
         if (profile == null || profile.isEmpty() || charging == null) return;
         if (!profile.equals(this.profile)) { reset(); this.profile = profile; }
@@ -113,7 +111,8 @@ public final class ChargeSlowdown {
         if (soc == null || volts == null || amps == null || !finite(soc) || !finite(volts) || !finite(amps) || sampleMs <= 0) return;
         if (sampleMs == last) return;
         if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS)) clearCharge();
-        if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || charger != ChargeSessionStore.Charger.HIGH_SPEED) {
+        if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)
+                || charger != ChargeSessionStore.Charger.HIGH_SPEED) {
             // Not watched: a later fast-charger reading starts its own START_MS.
             on = false; since = -1; last = 0; temperature = null;
             return;

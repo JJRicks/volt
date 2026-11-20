@@ -30,8 +30,9 @@ A fixed nominal power cannot tell these apart: the cold 8.5 A stage reaches 450 
 Fed once per fresh paired reading in `ScooterService.updateChargerDetection()`, beside the charge-age
 tracker and the taper watcher:
 
-- **Scope:** the UT5 MAX on the fast charger, detected or chosen. The standard charger (1.9–2.3 A) sits
-  below every BMS limit.
+- **Scope:** the UT5 MAX on the fast charger, detected or chosen, with the pack these current levels were
+  measured on (rated capacity within 10% of 15.3 Ah, as the voltage model requires; unknown or other packs
+  get no state and no layer). The standard charger (1.9–2.3 A) sits below every BMS limit.
 - **Eligible:** outside the charger's voltage limit (V + 0.107 × I below 54.38 V, FastChargeTaper's
   CV_SET less 0.15 V); below the charge limit less 2% (an unknown limit counts as 100%); and at least
   60 s after charging starts or after a gap or pause in readings of 30 s or more.
@@ -52,17 +53,25 @@ ones); healthy stretches stay at 0.997 × or more of the expected current.
 
 `ChargingEstimate.forScooter` takes the state as its last argument (`null` keeps v9 exactly).
 
-- **Time shown:** the estimate at the expected current (FastChargeTaper's voltage model, depth-aware since
-  [v11](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11), with the pack
-  voltage moved 0.1 Ω × the change in current; the v9 estimate re-run at that current where the model has
-  no answer), plus the extra minutes the rest of the bulk stage (to 80%, to 85% inside the 8 A stage, or
-  to a lower limit) takes at the current predicted for it:
+- **Time shown:** the estimate at the expected current, plus the extra minutes the rest of the bulk stage
+  takes at the current predicted for it. The bulk stage runs to 80% below the BMS's step; in the 8 A
+  stage, to where this reading meets the charger's voltage limit at the live current (the headroom
+  table); or to a lower limit. The estimate at the expected current is the v9 estimate re-run there
+  (pack voltage moved 0.1 Ω × the change in current) where past charges still set the time, labelled as
+  past charges; otherwise FastChargeTaper's voltage model (depth-aware since
+  [v11](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11)), labelled and
+  recorded as the bundled reference. The predicted current is:
   - **cold** (battery below 20 °C): the BMS's cold levels as the battery warms 0.25 °C a minute from the
     middle of its 1 °C reading, never below the live current;
   - **hot or unexplained:** the live current lasts to the end of the bulk stage; no recovery is assumed.
 - **Charge done by:** the longer of the time shown and the same bulk calculation warming 0.15 °C a minute
   from the bottom of the reading, plus 6 minutes once this charge was slowed cold (a cold taper runs
   slower).
+- **Never less conservative** (review of #561): Charge done by is never shorter than the same reading's
+  estimate without a slowdown, to 100% or to a limit. Neither is the time shown, except while the cold
+  model predicts the warm-up: there the estimate without a slowdown assumes the live current lasts and
+  drops by up to 25 minutes at each BMS step up, which the cold model avoids; Charge done by keeps the
+  longer time.
 - **Hot onset is not predicted.** No recording shows one to tune on, and a guard fast enough to matter
   fired on healthy deep charges.
 

@@ -77,9 +77,10 @@ public final class ChargeSlowdownTest {
     static final class Watch {
         final ChargeSlowdown observer = new ChargeSlowdown();
         final List<ChargeSlowdown.State> states = new ArrayList<>();
-        Watch(List<Sample> samples, int product, ChargeSessionStore.Charger charger, Double limit) {
+        Watch(List<Sample> samples, int product, ChargeSessionStore.Charger charger, Double limit) { this(samples, product, RATED, charger, limit); }
+        Watch(List<Sample> samples, int product, double rated, ChargeSessionStore.Charger charger, Double limit) {
             for (Sample s : samples) {
-                observer.observe(P, product, charger, true, s.soc, s.volts, -s.amps, s.temp, limit, s.t);
+                observer.observe(P, product, rated, charger, true, s.soc, s.volts, -s.amps, s.temp, limit, s.t);
                 states.add(observer.state(P, s.t));
             }
         }
@@ -106,6 +107,9 @@ public final class ChargeSlowdownTest {
         observerState();
         bulkMinutes();
         voltagePlanning();
+        neverShorter();
+        otherPack();
+        historyLabels();
         if (args.length > 0) committedReplay(Paths.get(args[0]));
         System.out.println("ChargeSlowdown: " + checks + " checks passed");
     }
@@ -307,7 +311,8 @@ public final class ChargeSlowdownTest {
             FastChargeTaper.CvPoint cv = FastChargeTaper.cvPoint(s.soc, nominalVolts, 10.05, RATED);
             Double nominal = cv != null ? Double.valueOf(cv.full) : FastChargeTaper.minutes(nominalVolts, 10.05, RATED, null);
             check(nominal != null, "The voltage model covers the hot charge");
-            double ah = RATED * (80 - s.soc) / 100, expected = nominal + ah / s.amps * 60 - ah / 10.05 * 60;
+            // The bulk to 80% lasts at the live current, and never shorter than the same reading unslowed.
+            double ah = RATED * (80 - s.soc) / 100, expected = Math.max(nominal + ah / s.amps * 60 - ah / 10.05 * 60, e.v9.get(i).remainingMinutesToFull);
             near(expected, r.remainingMinutesToFull, 1e-9, "Hot: the bulk lasts at the live current, sample " + i);
             near(r.remainingMinutesToFull, r.planningMinutesToFull, 1e-9, "Hot: no warming to plan for");
             check(r.status.contains("stays this low"), "The hot status says the current is assumed to stay low");
@@ -347,12 +352,12 @@ public final class ChargeSlowdownTest {
         // A plain one takes the cause once a temperature names it, and keeps a named one.
         ChargeSlowdown o = new ChargeSlowdown();
         long t = T0;
-        for (; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, null, null, t);
+        for (; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, null, null, t);
         check(o.state(P, t).cause == ChargeSlowdown.Cause.PLAIN, "No temperature: plain");
-        o.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, 12d, null, t);
+        o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 12d, null, t);
         check(o.state(P, t).cause == ChargeSlowdown.Cause.COLD, "A temperature arriving names it");
         t += STEP;
-        o.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, 25d, null, t);
+        o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 25d, null, t);
         check(o.state(P, t).cause == ChargeSlowdown.Cause.COLD && o.state(P, t).batteryTempC == 25, "Once named, the cause holds while shown");
         check(ChargeSlowdown.cause(Double.NaN) == ChargeSlowdown.Cause.PLAIN, "An unusable temperature is unknown");
     }
@@ -457,49 +462,49 @@ public final class ChargeSlowdownTest {
         ChargeSlowdown o = new ChargeSlowdown();
         check(o.state(P, T0) == ChargeSlowdown.State.NONE, "Nothing watched: NONE");
         long t = T0;
-        for (; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, FAST, true, 40d, 49.2, -8.74, 15d, 100d, t);
+        for (; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, -8.74, 15d, 100d, t);
         long last = t - STEP;
         check(o.state(P, last).slowed && o.state("other", last) == ChargeSlowdown.State.NONE, "Another profile reads NONE");
         check(o.state(P, last + 29_000).slowed && !o.state(P, last + 30_000).slowed, "Stale readings are not slowed");
         check(o.state(P, last + 30_000).coldTail, "A stale charge keeps its cold stretch for planning");
         // The same reading seen again changes nothing; nor does a reading without its pair or a stale charging state.
-        o.observe(P, UT5, FAST, true, 40d, 49.2, 10.05, 25d, 100d, last);
-        o.observe(P, UT5, FAST, true, null, 49.2, 10.05, 25d, 100d, last + 5000);
-        o.observe(P, UT5, FAST, null, 40d, 49.2, 10.05, 25d, 100d, last + 6000);
+        o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 10.05, 25d, 100d, last);
+        o.observe(P, UT5, (Double) RATED, FAST, true, null, 49.2, 10.05, 25d, 100d, last + 5000);
+        o.observe(P, UT5, (Double) RATED, FAST, null, 40d, 49.2, 10.05, 25d, 100d, last + 6000);
         check(o.state(P, last).slowed && o.state(P, last).batteryTempC == 15, "Repeated, unpaired and unknown readings change nothing");
         // A gap of 30 s or more clears it at once and restarts the start window.
-        o.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, 15d, 100d, last + 30_000);
+        o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 15d, 100d, last + 30_000);
         check(!o.state(P, last + 30_000).slowed, "A 30 s gap clears at once");
         final long NEXT = T0 + 3 * MIN + STEP; // the reading after slowedNow()
         // Leaving the fast charger clears at once; coming back starts over.
         ChargeSlowdown c = slowedNow();
-        c.observe(P, UT5, STOCK, true, 40d, 49.2, 8.74, 15d, 100d, NEXT);
+        c.observe(P, UT5, (Double) RATED, STOCK, true, 40d, 49.2, 8.74, 15d, 100d, NEXT);
         check(c.state(P, NEXT) == ChargeSlowdown.State.NONE, "Another charger clears at once");
-        c.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, 15d, 100d, NEXT + STEP);
+        c.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 15d, 100d, NEXT + STEP);
         check(!c.state(P, NEXT + STEP).slowed && c.state(P, NEXT + STEP).coldTail, "Back on the fast charger: a new start window, the cold stretch kept");
         // The charge ending clears everything, cold stretch included.
-        c.observe(P, UT5, FAST, false, null, null, null, null, null, T0 + 5 * MIN);
+        c.observe(P, UT5, (Double) RATED, FAST, false, null, null, null, null, null, T0 + 5 * MIN);
         check(c.state(P, T0 + 5 * MIN) == ChargeSlowdown.State.NONE, "A finished charge clears the state");
         // The voltage limit clears at once.
         ChargeSlowdown v = slowedNow();
-        v.observe(P, UT5, FAST, true, 40d, 54.38 - .107 * 8.74, 8.74, 15d, 100d, NEXT);
+        v.observe(P, UT5, (Double) RATED, FAST, true, 40d, 54.38 - .107 * 8.74, 8.74, 15d, 100d, NEXT);
         check(!v.state(P, NEXT).slowed, "At the charger's voltage limit it clears at once");
         ChargeSlowdown below = slowedNow();
-        below.observe(P, UT5, FAST, true, 40d, 54.37 - .107 * 8.74, 8.74, 15d, 100d, NEXT);
+        below.observe(P, UT5, (Double) RATED, FAST, true, 40d, 54.37 - .107 * 8.74, 8.74, 15d, 100d, NEXT);
         check(below.state(P, NEXT).slowed, "Just below the voltage limit it holds");
         // A long silence starts a new charge, and a profile switch resets.
         ChargeSlowdown s = slowedNow();
-        s.observe(P, UT5, FAST, true, 40d, 49.2, 10.05, 25d, 100d, T0 + 40 * MIN);
+        s.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 10.05, 25d, 100d, T0 + 40 * MIN);
         check(!s.state(P, T0 + 40 * MIN).coldTail, "After 30 min of silence it is a new charge");
         ChargeSlowdown q = slowedNow();
-        q.observe("other", UT5, FAST, true, 40d, 49.2, 8.74, 15d, 100d, NEXT);
+        q.observe("other", UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 15d, 100d, NEXT);
         check(q.state(P, NEXT) == ChargeSlowdown.State.NONE && !q.state("other", NEXT).slowed, "A profile switch starts over");
         check(new ChargeSlowdown.State(false, ChargeSlowdown.Cause.HOT, 40d, false).cause == null, "A cause only while slowed");
     }
 
     private static ChargeSlowdown slowedNow() {
         ChargeSlowdown o = new ChargeSlowdown();
-        for (long t = T0; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, FAST, true, 40d, 49.2, 8.74, 15d, 100d, t);
+        for (long t = T0; t <= T0 + 3 * MIN; t += STEP) o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 15d, 100d, t);
         check(o.state(P, T0 + 3 * MIN).slowed, "Fixture: slowed");
         return o;
     }
@@ -511,7 +516,7 @@ public final class ChargeSlowdownTest {
                 for (Double temp : new Double[]{null, 5d, 13d, 14.6d, 17d, 19.4d, 19.9d, 20d, 30d, 45d})
                     for (double warm : new double[]{.15, .25})
                         for (double offset : new double[]{0, .5}) {
-                            double expected = ChargeSlowdown.expectedAmps(soc), end = ChargeSlowdown.bulkEnd(soc);
+                            double expected = ChargeSlowdown.expectedAmps(soc), end = soc < 80 ? 80 : 85;
                             if (amps >= expected) continue;
                             double got = ChargingEstimate.extraBulkMinutes(soc, end, amps, expected, temp, warm, offset, RATED);
                             near(stepped(soc, end, amps, expected, temp, warm, offset), got, .06, "Bulk minutes at " + soc + "% " + amps + " A " + temp + " C");
@@ -574,6 +579,141 @@ public final class ChargeSlowdownTest {
         check(identical(a, b), "Below 9 A nothing is planned differently");
     }
 
+    // ----- Review of #561 -----
+
+    /** One estimate at a single reading, with or without a slowdown state (null: v9's form). */
+    private static ChargingEstimate.Result at(double soc, double volts, double amps, double rated, Double limit, ChargeSessionStore.Curve curve,
+            ChargeSlowdown.State state, boolean withState) {
+        long t = T0;
+        ChargingEstimate.Value s = live(soc, t), r = live(rated, t);
+        ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(volts, t), live(-amps, t), s, r, new ChargingEstimate.Value(limit, true, t));
+        return withState ? ChargingEstimate.forScooter(base, s, r, UT5, FAST, curve, null, P + ":serial", t, t, null, null, state)
+                : ChargingEstimate.forScooter(base, s, r, UT5, FAST, curve, null, P + ":serial", t, t, null, null);
+    }
+
+    private static void atLeast(Double slowed, Double plain, String what) {
+        check(plain == null || slowed != null && slowed >= plain - 1e-9, what + ": slowed " + slowed + " < unslowed " + plain);
+    }
+
+    /** The source a recording logs and the label agree: past charges exactly when the label names them. */
+    private static void consistent(ChargingEstimate.Result r, String what) {
+        ChargeSessionStore.Estimate saved = ChargingEstimate.recordingSnapshot(r);
+        boolean personal = saved.fullSource == ChargeSessionStore.Source.PERSONAL || saved.limitSource == ChargeSessionStore.Source.PERSONAL;
+        check(r.label != null && r.label.startsWith("From ") == personal && personal == (r.learnedSessions > 0), what + ": label " + r.label + " with " + saved.fullSource + "/" + saved.limitSource);
+    }
+
+    /**
+     * A slowdown never makes the time shown or Charge done by shorter than the same reading without it: the review's
+     * probe (86%, 53.1 V, 3 A, 40 C: 42.8 fell to 35.6), its neighbours, and a sweep of level, current, temperature,
+     * voltage and limit.
+     */
+    private static void neverShorter() {
+        for (double soc : new double[]{82, 84, 86}) {
+            double volts = 53.1 - .085 * (86 - soc);
+            List<Sample> samples = steady(soc, volts, 3.0, 40d, 3 * MIN);
+            Watch w = new Watch(samples);
+            ChargeSlowdown.State state = w.states.get(w.states.size() - 1);
+            check(state.slowed && state.cause == ChargeSlowdown.Cause.HOT, "3 A at " + soc + "% and 40 C is slowed, hot");
+            ChargingEstimate.Result a = at(soc, volts, 3, RATED, 100d, null, null, false), b = at(soc, volts, 3, RATED, 100d, null, state, true);
+            atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, soc + "% shown");
+            atLeast(b.planningMinutesToFull, a.planningMinutesToFull, soc + "% planned");
+            atLeast(b.planningMinutesToFull, b.remainingMinutesToFull, soc + "% planning covers the time shown");
+            if (soc == 86) check(a.remainingMinutesToFull > 40 && b.remainingMinutesToFull >= a.remainingMinutesToFull, "The probe no longer drops: " + a.remainingMinutesToFull + " -> " + b.remainingMinutesToFull);
+        }
+        int n = 0;
+        for (double soc = 20; soc <= 98; soc += 2)
+            for (double amps : new double[]{2, 3, 4, 5.5, 6, 7, 7.5, 8.5, 9})
+                for (Double temp : new Double[]{null, 5d, 13d, 17d, 19.5d, 25d, 40d, 47d})
+                    for (double offset : new double[]{-1, -.3, 0, .3, .6})
+                        for (Double limit : new Double[]{100d, 95d, 80d, null})
+                            for (boolean coldTail : new boolean[]{false, true}) {
+                                double volts = Math.min(54.6, Sim.bulkVolts(soc, amps) + offset);
+                                ChargeSlowdown.State state = new ChargeSlowdown.State(true, ChargeSlowdown.cause(temp), temp, coldTail);
+                                ChargingEstimate.Result a = at(soc, volts, amps, RATED, limit, null, null, false), b = at(soc, volts, amps, RATED, limit, null, state, true);
+                                String what = soc + "% " + amps + " A " + volts + " V " + temp + " C limit " + limit;
+                                // The time shown may sit below the live-current estimate only while the cold model predicts the warm-up.
+                                if (temp == null || temp >= 20) {
+                                    atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what + " full shown");
+                                    atLeast(b.remainingMinutesToLimit, a.remainingMinutesToLimit, what + " limit shown");
+                                }
+                                atLeast(b.planningMinutesToFull, a.planningMinutesToFull, what + " full planned");
+                                atLeast(b.planningMinutesToFull, a.remainingMinutesToFull, what + " full planned over the unslowed time shown");
+                                atLeast(b.planningMinutesToLimit, a.planningMinutesToLimit, what + " limit planned");
+                                atLeast(b.planningMinutesToFull, b.remainingMinutesToFull, what + " planning covers the time shown");
+                                if (b.remainingMinutesToLimit != null) atLeast(b.planningMinutesToLimit, b.remainingMinutesToLimit, what + " limit planning covers the time shown");
+                                consistent(b, what);
+                                n++;
+                            }
+        check(n > 50_000, "The sweep covers " + n + " readings");
+    }
+
+    /** Another pack (25 Ah): no slowdown state and no layer, so every field is v9's. */
+    private static void otherPack() {
+        List<Sample> samples = steady(40, 49.2, 8.74, 15d, 3 * MIN);
+        check(!new Watch(samples, UT5, 25, FAST, 100d).ever(), "A 25 Ah pack is not watched");
+        check(new Watch(samples, UT5, 16.8, FAST, 100d).ever() && !new Watch(samples, UT5, 16.9, FAST, 100d).ever(), "Within 10% of 15.3 Ah only");
+        ChargeSlowdown unknown = new ChargeSlowdown();
+        for (Sample s : samples) unknown.observe(P, UT5, null, FAST, true, s.soc, s.volts, s.amps, s.temp, 100d, s.t);
+        check(unknown.state(P, samples.get(samples.size() - 1).t) == ChargeSlowdown.State.NONE, "An unknown capacity is not watched");
+        ChargeSlowdown.State forced = new ChargeSlowdown.State(true, ChargeSlowdown.Cause.COLD, 15d, true);
+        for (double soc = 20; soc < 100; soc += 5)
+            for (double amps : new double[]{3, 8.74, 10.05}) {
+                double volts = Sim.bulkVolts(soc, amps);
+                check(identical(at(soc, volts, amps, 25, 100d, null, null, false), at(soc, volts, amps, 25, 100d, null, forced, true)),
+                        "25 Ah at " + soc + "% " + amps + " A is v9's in every field");
+                check(identical(at(soc, volts, amps, 25, 100d, null, null, false), at(soc, volts, amps, 25, 100d, null, ChargeSlowdown.State.NONE, true)),
+                        "25 Ah gets no voltage planning or cold tail either");
+            }
+    }
+
+    /**
+     * With past charges: a slowed estimate whose time comes from the bundled model carries the bundled label and is
+     * recorded as the reference; one that keeps past charges' time keeps their label. Never shorter either way.
+     */
+    private static void historyLabels() throws Exception {
+        Path dir = Files.createTempDirectory("slowdown-history-");
+        try {
+            for (int k = 0; k < 3; k++) {
+                Sim sim = new Sim(40 + k, 24).run(WARM, 101);
+                List<FastChargeTaperReplay.Sample> rows = new ArrayList<>();
+                for (Sample x : sim.samples) {
+                    FastChargeTaperReplay.Sample r = new FastChargeTaperReplay.Sample();
+                    r.session = k; r.charger = "HIGH_SPEED"; r.stop = "COMPLETE"; r.elapsed = x.t - T0; r.soc = x.soc; r.volts = x.volts; r.amps = x.amps;
+                    rows.add(r);
+                }
+                File file = dir.resolve(String.format("00000000-0000-0000-0000-%012d.csv", k)).toFile();
+                FastChargeTaperReplay.journal(rows, file);
+                file.setLastModified(FastChargeTaperReplay.BASE_WALL + k * 1000L);
+            }
+            ChargeSessionStore.Curve curve = new ChargeSessionStore(dir.toFile()).snapshot().curves.get(ChargeSessionStore.key(P, FAST));
+            check(curve != null && curve.qualifiedSessions >= 2, "Synthesized history qualifies");
+            int personal = 0, bundled = 0, mixed = 0;
+            for (double soc = 42; soc < 98; soc += 2)
+                for (double amps : new double[]{3, 5.5, 7, 8.5})
+                    for (Double temp : new Double[]{12d, 25d, 40d}) {
+                        double volts = Sim.bulkVolts(soc, amps);
+                        ChargeSlowdown.State state = new ChargeSlowdown.State(true, ChargeSlowdown.cause(temp), temp, false);
+                        ChargingEstimate.Result a = at(soc, volts, amps, RATED, 100d, curve, null, false), b = at(soc, volts, amps, RATED, 100d, curve, state, true);
+                        String what = "History, " + soc + "% " + amps + " A " + temp + " C";
+                        consistent(a, what + " unslowed");
+                        consistent(b, what + " slowed");
+                        // Past charges are named exactly when they set the time at the expected current.
+                        double expected = ChargeSlowdown.expectedAmps(soc);
+                        boolean rerun = at(soc, volts + .1 * (expected - amps), expected, RATED, 100d, curve, null, false).learnedToFull;
+                        check(b.learnedToFull == rerun, what + ": past charges named " + b.learnedToFull + ", but they set the nominal time: " + rerun);
+                        if (a.learnedToFull != rerun) mixed++;
+                        if (temp >= 20) atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what);
+                        atLeast(b.planningMinutesToFull, a.planningMinutesToFull, what);
+                        if (b.learnedToFull) personal++; else bundled++;
+                    }
+            check(personal > 0 && bundled > 0 && mixed > 0, "Both kinds occur: past charges " + personal + ", bundled " + bundled
+                    + ", and " + mixed + " where the reading without a slowdown names the other source");
+        } finally {
+            try (DirectoryStream<Path> files = Files.newDirectoryStream(dir)) { for (Path f : files) Files.delete(f); }
+            Files.delete(dir);
+        }
+    }
+
     // ----- The committed fast-charge fixture -----
 
     /**
@@ -610,7 +750,7 @@ public final class ChargeSlowdownTest {
                         long t = FastChargeTaperReplay.mono(s);
                         progress.observe(P, true, s.soc, s.amps, t);
                         t9.observe(P, true, s.volts, s.amps, t); t10.observe(P, true, s.volts, s.amps, t);
-                        slowdown.observe(P, UT5, charger, true, s.soc, s.volts, s.amps, null, 100d, t);
+                        slowdown.observe(P, UT5, (Double) RATED, charger, true, s.soc, s.volts, s.amps, null, 100d, t);
                         ChargeSlowdown.State state = slowdown.state(P, t);
                         ChargingEstimate.Value soc = live(s.soc, t), rated = live(RATED, t);
                         ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(s.volts, t), live(s.amps, t), soc, rated, live(100, t));
