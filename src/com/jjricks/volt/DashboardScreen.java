@@ -3083,6 +3083,8 @@ public final class DashboardScreen implements AppScreen {
             try { stored = preferences.getAll(); } catch (RuntimeException unreadable) { stored = null; }
             ChargeEstimateTip.Tip next = s == null || closed || editing ? null
                     : ChargeEstimateTip.choose(true, s.chargeRecordingsSaved(), s.isChargeRecording(), stored);
+            // The charger tip comes first (ChargeEstimateTip.withCharger: this charge far off the only recorded charger).
+            if (s != null && !closed && !editing) next = ChargeEstimateTip.withCharger(next, true, s.recordChargerHint(), stored);
             tipSlot.hold(next);
             boolean steady = shown && getVisibility() == View.VISIBLE && isLaidOut() && (clean ? !holdPulse : reveal == null);
             ViewGroup root = !steady ? null : clean ? this : getParent() instanceof ViewGroup ? (ViewGroup) getParent() : null;
@@ -9810,6 +9812,23 @@ public final class DashboardScreen implements AppScreen {
                 dismiss();
                 dialog = RecordTipSheet.show(host, preferences, this::recordFromTip, () -> hideTip(tip));
                 break;
+            case OTHER_CHARGER: {
+                if (dialog != null && dialog.isShowing()) return;
+                ScooterService s = host.service();
+                if (s == null) return;
+                ChargeSessionStore.Charger family = s.chargerTipFamily();
+                boolean files = s.chargerTipFiles();
+                if (family == null) {
+                    // No charger to name (a charge far below the only stock curve): the record tip's question asks which.
+                    dismiss();
+                    dialog = RecordTipSheet.show(host, preferences, this::recordFromTip, () -> hideTip(tip));
+                    break;
+                }
+                dismiss();
+                dialog = ChargerTipSheet.show(host, files, family == ChargeSessionStore.Charger.HIGH_SPEED,
+                        () -> chargerTipAction(family), () -> hideTip(tip));
+                break;
+            }
             default:
                 break;
         }
@@ -9839,6 +9858,23 @@ public final class DashboardScreen implements AppScreen {
                 });
             });
         });
+        return true;
+    }
+
+    /**
+     * The charger tip's main button. While Volt records this charge by itself with a guessed charger, that recording is
+     * saved as the named charger (ScooterService.fileChargeRecordingAs, the owner's choice); otherwise a recording of this
+     * charge starts as it (the reason shows when one can't, and the sheet stays). Returns whether the sheet closes.
+     */
+    private boolean chargerTipAction(ChargeSessionStore.Charger family) {
+        ScooterService s = host.service();
+        if (s == null || closed) return true;
+        if (s.chargerTipFiles()) { s.fileChargeRecordingAs(family); host.redraw(); return true; }
+        if (s.isChargeRecording()) return true;
+        String unavailable = s.chargeCaptureUnavailable();
+        if (unavailable != null) { host.toast(unavailable); return false; }
+        s.startChargeRecording(family);
+        host.redraw();
         return true;
     }
 

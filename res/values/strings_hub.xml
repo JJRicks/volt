@@ -162,6 +162,18 @@
     <string name="hub_estimate_tip_record_title" volt:screen="Record your charges sheet" volt:purpose="sheet title" volt:safety="charge">Record your charges</string>
     <!-- A quiet text button at the foot of that sheet: hides the button on Home for good. -->
     <string name="hub_estimate_tip_hide" volt:screen="Record your charges sheet" volt:purpose="button">Hide this tip</string>
+    <!-- A second tip in the same place, with a lightning icon: shown while this charge's power is far off the only charger this scooter has recordings for (for example a high-speed charger after only stock charges were recorded). Tapping it opens a short sheet offering to record this charge as that charger. Where this doesn't fit, the short form below shows, then the icon alone. -->
+    <string name="hub_estimate_tip_charger" volt:screen="Home charging view" volt:purpose="button" volt:ladder="full" volt:max="190dp@12sp" volt:overflow="short" volt:safety="charge">Different charger? Record it</string>
+    <!-- The same button's shorter form, where the full one doesn't fit. -->
+    <string name="hub_estimate_tip_charger_short" volt:screen="Home charging view" volt:purpose="button" volt:ladder="short" volt:max="110dp@12sp" volt:safety="charge">Record charger</string>
+    <!-- The sheet that button opens: its title. -->
+    <string name="hub_charger_tip_title" volt:screen="Different charger sheet" volt:purpose="sheet title" volt:safety="charge">Different charger?</string>
+    <!-- The sheet's text, under its title. -->
+    <string name="hub_charger_tip_text" volt:screen="Different charger sheet" volt:purpose="explanation" volt:safety="charge">Charging power doesn\'t match your recorded charges. Using a different charger? Record this charge so Volt learns it too.</string>
+    <!-- The sheet's main button while no recording runs: starts recording this charge, saved as the named charger. %1$s: the charger, "Stock" or "High-speed". -->
+    <string name="hub_charger_tip_record_as" volt:screen="Different charger sheet" volt:purpose="button" volt:safety="charge">Record this charge as %1$s</string>
+    <!-- The sheet's main button while Volt is already recording this charge by itself with a guessed charger: saves that recording as the named charger instead. %1$s: the charger, "Stock" or "High-speed". -->
+    <string name="hub_charger_tip_file_as" volt:screen="Different charger sheet" volt:purpose="button" volt:safety="charge">Save this recording as %1$s</string>
 
     <!-- ===== Ride › Recording settings ===== -->
     <!-- Switch under Record rides automatically: lets that automatic start also happen while Volt is not on screen. Off by default. -->

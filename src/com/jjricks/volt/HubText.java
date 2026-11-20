@@ -175,17 +175,27 @@ public final class HubText {
     /** A tip's label in full ("Improve this estimate"); also what TalkBack reads at every rung. */
     public static Msg estimateTip(ChargeEstimateTip.Tip tip) {
         switch (tip) {
+            case OTHER_CHARGER: return M.hubEstimateTipCharger();
             case NO_RECORDINGS: default: return M.hubEstimateTipRecord();
         }
     }
     /** The same label's shorter rung ("Improve estimate"), where the full one doesn't fit; then the icon alone. */
     public static Msg estimateTipShort(ChargeEstimateTip.Tip tip) {
         switch (tip) {
+            case OTHER_CHARGER: return M.hubEstimateTipChargerShort();
             case NO_RECORDINGS: default: return M.hubEstimateTipRecordShort();
         }
     }
     /** The record tip's sheet: its title. */
     public static Msg recordTipTitle() { return M.hubEstimateTipRecordTitle(); }
+    /** The charger tip's sheet: its title and its text. */
+    public static Msg chargerTipTitle() { return M.hubChargerTipTitle(); }
+    public static Msg chargerTipText() { return M.hubChargerTipText(); }
+    /** Its main button: record this charge as the charger, or (files) save the running automatic recording as it. */
+    public static Msg chargerTipAction(boolean files, boolean highSpeed) {
+        Msg charger = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
+        return files ? M.hubChargerTipFileAs(charger) : M.hubChargerTipRecordAs(charger);
+    }
     /** The sheet's quiet button that hides the tip for good. */
     public static Msg estimateTipHide() { return M.hubEstimateTipHide(); }
     /**
