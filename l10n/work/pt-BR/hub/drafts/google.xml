@@ -69,6 +69,10 @@
     <string name="hub_charge_invite_step_full" volt:src="5991c14dbd07948bdf3aa351bfd5f013b4a5f97d">Carregar até 100%% é o que mais ajuda.</string>
     <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Mantenha o telefone perto do patinete enquanto ele carrega, para que o Volt continue conectado.</string>
     <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Depois, abra “%1$s” e toque em “%2$s”. Usamos suas gravações para calibrar a estimativa para o modelo do seu patinete.</string>
+    <string name="hub_estimate_tip_record" volt:src="e385c8bfe54364415acaadccfbe8c4e399cb9337">Melhorar esta estimativa</string>
+    <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343">Melhorar estimativa</string>
+    <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Gravar seus carregamentos</string>
+    <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Ocultar esta dica</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Iniciar gravação em segundo plano</string>
     <string name="hub_recording_auto_background_note" volt:src="4dd6fd0eb9c533661ffd71462e8456c76a8fb01b">Uma viagem que começa com o Volt em segundo plano ou com a tela bloqueada não tem rota de GPS.</string>
     <string name="hub_battery_level_range" volt:src="16d988a7cc48a1f24089cb41f544a09f93150eed">%1$s · cerca de %2$s restantes</string>

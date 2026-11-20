@@ -437,6 +437,36 @@
         <item quantity="other">%1$s registrazioni della ricarica idonee con caricabatterie rapido</item>
     </plurals>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Una ricarica completata può affinare l\'intervallo finale. Gli altri intervalli richiedono due registrazioni corrispondenti. Le stime dipendono dalla copertura e dalla potenza in tempo reale; per UT5 MAX le stime con caricabatterie originale e rapido funzionano anche senza registrazioni.</string>
+    <string name="more_learned_label" volt:src="eb64c788f171c931034bc8df1c8024080f554f81">Dati appresi da Volt</string>
+    <string name="more_learned_empty_title" volt:src="12b9ae6e7697cfd054f21a089bfed6bbf86778f5">Ancora nessun dato appreso</string>
+    <string name="more_learned_empty" volt:src="248229d36d47db47881ffa4103a342a8c86645e3">Registra una ricarica e Volt apprenderà la velocità di ricarica di questo monopattino a ogni livello di batteria.</string>
+    <string name="more_learned_none_usable" volt:src="279e0dccfab33bdff771a5fffb29b67c35190f9c">Queste registrazioni non concordano ancora. Registra un\'altra ricarica con questo caricabatterie.</string>
+    <string name="more_learned_temperature" volt:src="9bf61430fd90da247529d4a205657c5b09804f6d">Ricarica effettuata a temperatura troppo bassa o alta per l\'apprendimento.</string>
+    <string name="more_learned_too_little" volt:src="0b2f256985dab9fa53c43f6b922e516f78119f23">Dati ancora insufficienti. Registra un\'altra ricarica con questo caricabatterie.</string>
+    <plurals name="more_learned_recordings" volt:src="97a247d0391307bbbb8b1c19c60b236f28a3f0f0">
+        <item quantity="one">Da %1$d registrazione</item>
+        <item quantity="many">Da %1$d di registrazioni</item>
+        <item quantity="other">Da %1$d registrazioni</item>
+    </plurals>
+    <string name="more_learned_axis" volt:src="572ff76763757929dc019b27dc472758904fe838">Minuti per 1%%</string>
+    <string name="more_learned_kind_none" volt:src="3a9142d0695375e1628cd377d898042d47b10154">Nessun dato</string>
+    <string name="more_learned_kind_one" volt:src="c27cacae6a9a2fc9015059931af33a7d75a9ed7e">Una registrazione</string>
+    <string name="more_learned_kind_agree" volt:src="ca97b36b20a4792ca2a05cdd69c18a9922df1055">Due o più concordano</string>
+    <string name="more_learned_kind_disagree" volt:src="dce38d18b623e5895f78cd262b90b56f2c87b7dd">Registrazioni non concordi</string>
+    <string name="more_learned_kind_finish" volt:src="7ac0073d625a3049a398190923278f27d72fbe6d">Carica completa registrata</string>
+    <string name="more_learned_span" volt:src="47bfeca68c9c5293a4ff82732753681e7d14786a">Dati appresi %1$s–%2$s%%</string>
+    <string name="more_learned_finish_from" volt:src="93ae11fded2996f6e788134d223dbbcbb848bf5e">Ricarica completa registrata da %1$s%%</string>
+    <string name="more_learned_gap_below" volt:src="5152c170b552fa0f642c7349573717f3c3613b8b">Nessun dato sotto %1$s%%</string>
+    <string name="more_learned_gap_above" volt:src="00df7e7b0f91fcb9ed94770c47b11c1eb234a27c">Nessun dato sopra %1$s%%</string>
+    <string name="more_learned_gap_between" volt:src="12585a3b7865864f8d59ce6e780e4e590c4201d9">Nessun dato %1$s–%2$s%%</string>
+    <string name="more_learned_gap_disagree" volt:src="0d84bc5096f82b3008facc0e8a39b05d716fee6d">Registrazioni non concordi %1$s–%2$s%%</string>
+    <plurals name="more_learned_gap_more" volt:src="2b47608adf7fb9f1016f05ce901456f43a55eb54">
+        <item quantity="one">E %1$d altra interruzione</item>
+        <item quantity="many">E altre %1$d di interruzioni</item>
+        <item quantity="other">E altre %1$d interruzioni</item>
+    </plurals>
+    <string name="more_learned_to_full" volt:src="88f24ef5d16f9a30590b14bd00099b17907e76c1">Da %1$s%% alla carica completa: %2$s</string>
+    <string name="more_learned_spoken_run" volt:src="4a0ec13cde0b5826444615ebaf0a00d1ce75babb">%1$s da %2$s a %3$s%%</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Visualizza le informative complete</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Informative complete</string>
     <string name="more_notices_unreadable" volt:src="5f65b6a856c7646ae7452808d89371f67149989d">Non è stato possibile leggere le informative.</string>

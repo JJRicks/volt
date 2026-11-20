@@ -44,6 +44,20 @@
     <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Temps avant charge complète</string>
     <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">En recharge</string>
     <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">En recharge · limite %1$s %%</string>
+    <string name="dashboard_charging_slowed" volt:src="36763ec3b3f3a7855b7eb26e0a7e12c018cf9be2">Recharge ralentie</string>
+    <string name="dashboard_charging_slowed_short" volt:src="45c3eb8d27b67e0465efa84ee81b834fe3eda494">Ralentie</string>
+    <string name="dashboard_charging_slowed_hot" volt:src="0af8e219a496c6d32654d93616b393b3aedae460">Recharge ralentie · batterie chaude (%1$s°)</string>
+    <string name="dashboard_charging_slowed_hot_short" volt:src="9e063a61c7cf48ac6296019450d16fe1a9149522">Ralentie · batterie chaude %1$s°</string>
+    <string name="dashboard_charging_slowed_hot_compact" volt:src="dd3c06e8af17d5e50e97d524fc5423ee49405486">Batterie chaude · %1$s°</string>
+    <string name="dashboard_charging_slowed_cold" volt:src="3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd">Recharge ralentie · batterie froide (%1$s°)</string>
+    <string name="dashboard_charging_slowed_cold_short" volt:src="6da29c3111b775a4f09381f0cbdd3a51a2ca09c0">Ralentie · batterie froide %1$s°</string>
+    <string name="dashboard_charging_slowed_cold_compact" volt:src="ca0021bc6fbb2a576cab1a79c671b7a7f93228fb">Batterie froide · %1$s°</string>
+    <string name="dashboard_charging_hot" volt:src="3d52c20b374a8ce1926590f30d80f0a464dd7f62">Recharge ralentie · batterie chaude</string>
+    <string name="dashboard_charging_hot_short" volt:src="9e3995c13c044419279005d3909fd34450705340">Ralentie · batterie chaude</string>
+    <string name="dashboard_charging_hot_compact" volt:src="1805b3e2d5f817b3db04443870d9124dd109dbe9">Batterie chaude</string>
+    <string name="dashboard_charging_cold" volt:src="083277affcb58f9917af14d70aafb14b141c0fe7">Recharge ralentie · batterie froide</string>
+    <string name="dashboard_charging_cold_short" volt:src="2924a8dd6759ad94894463172d2da4c688cd8821">Ralentie · batterie froide</string>
+    <string name="dashboard_charging_cold_compact" volt:src="a116033d89989d01f15327189222f8e1b8c72c4f">Batterie froide</string>
     <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Trottinette NAVEE UT5 MAX</string>
     <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Batterie : aucune donnée</string>
     <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
@@ -200,6 +214,10 @@
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, dernier relevé : %3$s</string>
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_overview_readings" volt:src="058f2bac6cc446f10d7cd188fcdeb13e5b2edf90">Relevés de l’aperçu</string>
+    <string name="dashboard_overview_reading_first" volt:src="a5f893fb5016b601c7f5e94705951be9f93058c0">Premier relevé</string>
+    <string name="dashboard_overview_reading_second" volt:src="bb5c468333ad754986fc07013df47c9cd10cee0e">Deuxième relevé</string>
+    <string name="dashboard_overview_reading_slot" volt:src="280fe2d953050826e125846ec06f32127a214870">%1$s : %2$s. Modifier</string>
     <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Mode de conduite, %1$s</string>
     <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Mode de conduite, %1$s, dernier relevé : %2$s</string>
     <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">%1$s recharges indiquées</string>
