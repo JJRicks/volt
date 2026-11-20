@@ -398,6 +398,21 @@
     <!-- Spoken for a row of the Choose readings sheet: %1$s is the reading's name, %2$s its group
          ("Battery", "Motor"). -->
     <string name="dashboard_reading_group" volt:screen="Choose readings sheet" volt:purpose="accessibility description">%1$s, %2$s</string>
+
+    <!-- ===== Settings › Home style: the overview card's two small readings =====
+      Clean's battery card and the Widgets "Scooter overview" card show two small readings under the charge bar
+      (Odometer and Drive mode until the owner picks others). The Home style row sits under Quick actions; the line
+      under it lists the two readings' names, and it opens a sheet with one row per reading, each opening the list of
+      readings (whose rows are read with dashboard_reading_group). -->
+    <!-- Row title and the sheet's title. "Overview" as in the Widgets card's name, Scooter overview. -->
+    <string name="dashboard_overview_readings" volt:screen="Home style settings" volt:purpose="setting" volt:max="240dp@15sp">Overview readings</string>
+    <!-- Above the reading in the sheet's first row, and the title of its list of readings. On a narrow screen or with
+         large text the two readings stand one above the other, so the names say first and second, not left and right. -->
+    <string name="dashboard_overview_reading_first" volt:screen="Home style settings, Overview readings sheet" volt:purpose="label" volt:max="240dp@13sp">First reading</string>
+    <string name="dashboard_overview_reading_second" volt:screen="Home style settings, Overview readings sheet" volt:purpose="label" volt:max="240dp@13sp">Second reading</string>
+    <!-- Screen-reader text of a row in the sheet. %1$s is the row's name ("First reading"), %2$s the reading in it
+         ("Total odometer"). Tapping lets the owner change it. -->
+    <string name="dashboard_overview_reading_slot" volt:screen="Home style settings, Overview readings sheet" volt:purpose="accessibility">%1$s: %2$s. Change</string>
     <!-- Spoken for the drive mode card: %1$s is the mode's name as the scooter reports it; the _seen
          form adds when it was read (%2$s: a date and time). -->
     <string name="dashboard_drive_mode_reading" volt:screen="Home drive mode card" volt:purpose="accessibility description">Drive mode, %1$s</string>
