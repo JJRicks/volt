@@ -909,11 +909,20 @@ public final class ScooterService extends Service {
     }
 
     /**
+     * Test-only: a slowdown state the charging pill's emulator validation shows in place of the live one, so each
+     * state can be drawn on the simulator (which never slows). Null in the app: nothing here writes it, and there is
+     * no setter; only the validation sets it, by reflection.
+     */
+    private static volatile ChargeSlowdown.State testChargeSlowdown;
+
+    /**
      * Whether the active scooter's UT5 MAX fast charge is slowed now, why, and its battery temperature (ChargeSlowdown):
      * the state the charging status shows and the time left already uses. NONE while simulating, without a watched fast
      * charge, or once its readings are stale.
      */
     public ChargeSlowdown.State chargeSlowdown(){
+        ChargeSlowdown.State forced=testChargeSlowdown;
+        if(forced!=null)return forced;
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
         if(destroyed||simulating()||profile==null)return ChargeSlowdown.State.NONE;
         return chargeSlowdown.state(profile.id,SystemClock.elapsedRealtime());

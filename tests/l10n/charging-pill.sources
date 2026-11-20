@@ -1,0 +1,5 @@
+# The charging pill's states (ChargingPillStatus): state, icon, colours, words, ladder, and ChargingFit's kept line.
+src/com/jjricks/volt/ChargingPillStatus.java
+src/com/jjricks/volt/ChargingFit.java
+src/com/jjricks/volt/ChargeSlowdown.java
+tests/l10n/ChargingPillStatusTest.java

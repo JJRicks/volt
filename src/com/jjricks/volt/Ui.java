@@ -1372,6 +1372,25 @@ public final class Ui {
                 p.moveTo(9.4f, 2.3f); p.lineTo(10.6f, 5.2f); p.lineTo(13.4f, 5.2f); p.lineTo(14.6f, 2.3f); canvas.drawPath(p, paint);
                 canvas.drawRoundRect(new RectF(10.3f, 10.2f, 13.7f, 22.5f), 1.7f, 1.7f, paint);
                 canvas.restore();
+            } else if (key.equals(ChargingPillStatus.GLYPH_COLD)) {
+                // A snowflake (the charging pill, battery cold): six arms from the centre, each with a V of two short
+                // branches near its end.
+                for (int k = 0; k < 6; k++) {
+                    double a = Math.PI / 2 + k * Math.PI / 3;
+                    p.moveTo(12, 12); p.lineTo(12 + 9.5f * (float) Math.cos(a), 12 - 9.5f * (float) Math.sin(a));
+                    float bx = 12 + 6f * (float) Math.cos(a), by = 12 - 6f * (float) Math.sin(a);
+                    for (int s = -1; s <= 1; s += 2) {
+                        double b = a + s * Math.PI / 4;
+                        p.moveTo(bx, by); p.lineTo(bx + 3.2f * (float) Math.cos(b), by - 3.2f * (float) Math.sin(b));
+                    }
+                }
+                canvas.drawPath(p, paint);
+            } else if (key.equals(ChargingPillStatus.GLYPH_SLOWED)) {
+                // The speedometer's dial with its needle down at the low end (the charging pill, charging slowed).
+                canvas.drawArc(new RectF(3, 4, 21, 22), 160, 220, false, paint);
+                p.moveTo(5, 18); p.lineTo(19, 18); p.moveTo(12, 15); p.lineTo(6.6f, 11.2f);
+                canvas.drawPath(p, paint);
+                paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 15, 1.7f, paint);
             } else {
                 canvas.drawCircle(12, 12, 9, paint); canvas.drawLine(12, 11, 12, 17, paint); paint.setStyle(Paint.Style.FILL); canvas.drawCircle(12, 7, 1, paint);
             }

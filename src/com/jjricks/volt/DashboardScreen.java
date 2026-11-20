@@ -2713,6 +2713,11 @@ public final class DashboardScreen implements AppScreen {
             }
             addView(chip, new LinearLayout.LayoutParams(-2, -2));
             if (clean) addView(chipShort, new LinearLayout.LayoutParams(-2, -2));
+            // The pill's icon grows with its words and crossfades between states (PillIcon; pill() set a fixed 14 dp bolt).
+            pillToFill = Ui.withAlpha(ui.accent, ChargingPillStatus.alpha(ui.dark));
+            pillToInk = ui.accentOnTint;
+            pillIcon(chip);
+            if (clean) pillIcon(chipShort);
             // The pill draws last (getChildDrawingOrder), over the stage below it.
             setChildrenDrawingOrderEnabled(true);
             percent = ui.text("—", 72, true);
@@ -2948,6 +2953,7 @@ public final class DashboardScreen implements AppScreen {
          * slot, the stage taking what is left, so nothing is left empty under the readings.
          */
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) fitPill(MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
             if (!clean || MeasureSpec.getMode(heightSpec) != MeasureSpec.EXACTLY) { super.onMeasure(widthSpec, heightSpec); return; }
             int width = Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight());
             int inner = MeasureSpec.getSize(heightSpec) - getPaddingTop() - getPaddingBottom();
@@ -2960,8 +2966,9 @@ public final class DashboardScreen implements AppScreen {
             percent.measure(free, free);
             rows.measure(across, free);
             int fullPercent = percent.getMeasuredHeight();
+            // While charging is slowed the pill stays: where the line would make way, its short rung keeps the slot's top.
             ChargingFit.Plan plan = ChargingFit.plan(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(), fullPercent,
-                    rows.getMeasuredHeight(), getResources().getDisplayMetrics().density);
+                    rows.getMeasuredHeight(), getResources().getDisplayMetrics().density, pillKind.slowed());
             shown(chip, plan.line && !plan.shortLine);
             shown(chipShort, plan.line && plan.shortLine);
             shown(percent, plan.percent);
@@ -2993,7 +3000,8 @@ public final class DashboardScreen implements AppScreen {
                 // placement, the number no larger than over the smallest picture and never larger than in a taller slot
                 // (ChargePictureFit.cleanSlot).
                 float density = getResources().getDisplayMetrics().density;
-                ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
+                // A kept line's height is not the picture's: the picture fits the rest of the slot (ChargingFit.Plan.kept).
+                ChargePictureFit.Fit planned = ChargePictureFit.cleanSlot(inner - plan.kept, chip.getMeasuredHeight(), chipShort.getMeasuredHeight(),
                         fullPercent, rows.getMeasuredHeight(), width, plan.stageHeight - pictureFloor(plan.stageHeight),
                         ui.dp(ChargePicture.PERCENT_LIFT_DP), percent.getPaddingTop(), baselineShare(), percentFullPx, textGrowth(), sizeGrowth(), density).fit;
                 if (planned.text != percent.getTextSize()) percent.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, planned.text);
@@ -3168,9 +3176,13 @@ public final class DashboardScreen implements AppScreen {
             boolean hasLimit = estimate.targetPercent != null && estimate.targetPercent < 100;
             limit = hasLimit ? estimate.targetPercent : 100;
             if (bar != null) bar.update(level, limit, estimate.targetPercent);
-            chip.setText(clean ? cleanLine(hasLimit, limit) : hasLimit
+            CharSequence normal = clean ? cleanLine(hasLimit, limit) : hasLimit
                     ? T.dashboardChargingLimit(Fmt.decimal(Locale.US, estimate.targetPercent, 0))
-                    : T.dashboardCharging());
+                    : T.dashboardCharging();
+            ChargeSlowdown.State slowdown = chargeSlowdown();
+            ChargingPillStatus.Kind kind = ChargingPillStatus.kind(hasLimit, slowdown.slowed, slowdown.cause);
+            boolean fahrenheit = DisplayTemperature.unitCode(temperatureUnit()) == UnitCode.FAHRENHEIT;
+            showPill(kind, ChargingPillStatus.rungs(kind, slowdown.batteryTempC, fahrenheit, normal.toString()));
             if (Double.isNaN(level)) {
                 percent.setText("—");
                 percent.setContentDescription(T.dashboardBatteryNotReported());
@@ -3237,6 +3249,135 @@ public final class DashboardScreen implements AppScreen {
             line.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 34 : 24), 100, 0));
             line.setCompoundDrawablesRelative(glyphDrawable("bolt", ui.accentOnTint, ChargingFit.LINE_GLYPH_DP), null, null, null);
             line.setCompoundDrawablePadding(ui.dp(ChargingFit.LINE_GLYPH_GAP_DP));
+        }
+
+        // ---- The pill's state (ChargingPillStatus: the owner's pick, Nov 19 2026) ----
+        /** The pill's state now, and its words longest first (one for the normal states). */
+        ChargingPillStatus.Kind pillKind = ChargingPillStatus.Kind.CHARGING;
+        String[] pillRungs;
+        /** The pill has been given a state (the first one is drawn at once, with no crossfade). */
+        boolean pillStyled;
+        /** The crossfade between two states: from the colours and icon drawn when it began to the new state's, at pillT. */
+        int pillFromFill, pillFromInk, pillToFill, pillToInk;
+        String pillFromGlyph = ChargingPillStatus.GLYPH_BOLT, pillGlyph = ChargingPillStatus.GLYPH_BOLT;
+        float pillT = 1;
+        android.animation.ValueAnimator pillFade;
+
+        /** The slowdown the pill shows: the service's (ChargeSlowdown), or none without a service. */
+        private ChargeSlowdown.State chargeSlowdown() {
+            ScooterService service = host.service();
+            return service == null ? ChargeSlowdown.State.NONE : service.chargeSlowdown();
+        }
+
+        /** The line's icon: the pill's own (PillIcon), as tall as its words call for (ChargingPillStatus.glyphPx). */
+        private void pillIcon(TextView line) {
+            PillIcon icon = new PillIcon();
+            int side = ChargingPillStatus.glyphPx(line.getTextSize());
+            icon.setBounds(0, 0, side, side);
+            line.setCompoundDrawablesRelative(icon, null, null, null);
+        }
+
+        /**
+         * Shows the pill's state with its words (ChargingPillStatus.rungs, longest first): the line takes the longest rung
+         * that fits on one line (fitPill), Clean's short line the shortest, and TalkBack the full text. A change of state
+         * crossfades the colours and the icon (Motion.CROSSFADE_MS), or changes at once with Android's animations off or
+         * before the pill has shown.
+         */
+        private void showPill(ChargingPillStatus.Kind kind, String[] rungs) {
+            pillRungs = rungs;
+            boolean slowed = kind.slowed();
+            chip.setText(rungs[0]);
+            if (pillRoom > 0) fitPill(pillRoom);
+            chip.setContentDescription(slowed ? rungs[0] : null);
+            if (chipShort != null) {
+                chipShort.setText(slowed ? rungs[rungs.length - 1] : HubText.charging().render());
+                chipShort.setContentDescription(slowed ? rungs[0] : null);
+            }
+            if (pillStyled && kind == pillKind) return;
+            boolean dark = ui.dark;
+            int fill = ChargingPillStatus.accent(kind) ? ui.accent : ChargingPillStatus.base(kind, dark);
+            int toFill = Ui.withAlpha(fill, ChargingPillStatus.alpha(dark));
+            int toInk = ChargingPillStatus.accent(kind) ? ui.accentOnTint : ChargingPillStatus.ink(kind, dark);
+            boolean animate = pillStyled && Ui.motionEnabled() && isShown() && isLaidOut();
+            // From what is drawn now: mid-crossfade, the blend on screen.
+            pillFromFill = blend(pillFromFill, pillToFill, pillT);
+            pillFromInk = blend(pillFromInk, pillToInk, pillT);
+            pillFromGlyph = pillT < .5f ? pillFromGlyph : pillGlyph;
+            if (pillFade != null) { android.animation.ValueAnimator old = pillFade; pillFade = null; old.cancel(); }
+            pillKind = kind;
+            pillStyled = true;
+            pillGlyph = ChargingPillStatus.glyph(kind);
+            pillToFill = toFill;
+            pillToInk = toInk;
+            if (!animate) { pillT = 1; paintPill(); return; }
+            pillT = 0;
+            paintPill();
+            final android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(0, 1);
+            fade.setDuration(Motion.CROSSFADE_MS);
+            fade.setInterpolator(Motion.FADE);
+            fade.addUpdateListener(a -> {
+                if (pillFade != fade) return;
+                pillT = a.getAnimatedFraction();
+                paintPill();
+            });
+            fade.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator animation) {
+                    if (pillFade != fade) return;
+                    pillFade = null;
+                    pillT = 1;
+                    paintPill();
+                }
+            });
+            pillFade = fade;
+            fade.start();
+        }
+
+        /** The narrow ladder: the line's longest rung that fits {@code room} on one line, with its padding and icon. */
+        private void fitPill(int room) {
+            if (pillRungs == null || room <= 0) return;
+            pillRoom = room;
+            String text = pillRungs[0];
+            if (pillRungs.length > 1) {
+                int extra = chip.getCompoundPaddingLeft() + chip.getCompoundPaddingRight();
+                float[] needed = new float[pillRungs.length];
+                for (int i = 0; i < needed.length; i++) needed[i] = chip.getPaint().measureText(pillRungs[i]) + extra;
+                text = pillRungs[ChargingPillStatus.pick(needed, room)];
+            }
+            if (!android.text.TextUtils.equals(chip.getText(), text)) chip.setText(text);
+        }
+
+        /** The width the pill's line may take, from the last measure (-1 before one). */
+        int pillRoom = -1;
+
+        /** The pill's colours at pillT of the crossfade, on both lines. */
+        private void paintPill() {
+            int ink = blend(pillFromInk, pillToInk, pillT), fill = blend(pillFromFill, pillToFill, pillT);
+            for (TextView line : chipShort == null ? new TextView[] {chip} : new TextView[] {chip, chipShort}) {
+                line.setTextColor(ink);
+                if (line.getBackground() instanceof android.graphics.drawable.GradientDrawable)
+                    ((android.graphics.drawable.GradientDrawable) line.getBackground()).setColor(fill);
+                android.graphics.drawable.Drawable icon = line.getCompoundDrawablesRelative()[0];
+                if (icon != null) icon.invalidateSelf();
+            }
+        }
+
+        private int blend(int from, int to, float t) {
+            if (t >= 1) return to;
+            if (t <= 0) return from;
+            return (Integer) new android.animation.ArgbEvaluator().evaluate(t, from, to);
+        }
+
+        /** The pill's icon: the state's glyph in its ink, crossfading from the last state's while the change runs. */
+        private final class PillIcon extends android.graphics.drawable.Drawable {
+            @Override public void draw(Canvas canvas) {
+                Rect b = getBounds();
+                float size = Math.min(b.width(), b.height());
+                if (pillT < 1) drawGlyph(canvas, pillFromGlyph, Ui.withAlpha(pillFromInk, Math.round(255 * (1 - pillT))), b.exactCenterX(), b.exactCenterY(), size);
+                drawGlyph(canvas, pillGlyph, Ui.withAlpha(pillToInk, Math.round(255 * pillT)), b.exactCenterX(), b.exactCenterY(), size);
+            }
+            @Override public void setAlpha(int alpha) {}
+            @Override public void setColorFilter(ColorFilter filter) {}
+            @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
         }
 
         /** Clean's pill text: "Charging to your 90% limit", or "Charging" with no limit below 100%. */
