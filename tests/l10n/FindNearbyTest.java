@@ -381,8 +381,18 @@ public final class FindNearbyTest {
                 && watch.indexOf("ScooterService.homeHint") < watch.indexOf("if(scooterService==null)return;"), "an unbound service hears the stay too");
         check(main.contains("if(!isChangingConfigurations())ScooterService.homeHint(false);\n        if(scooterService!=null&&!isChangingConfigurations())"), "onPause ends the kept stay as well");
         String service = read("src/com/jjricks/volt/ScooterService.java");
-        check(service.contains("static void homeHint(boolean shown){homeShown=shown;}") && service.contains("ble.homeShown(homeShown);ble.visibility("),
-                "the service tells the controller the stay before its first attempt");
+        check(service.contains("ble.homeShown(homeShown);ble.visibility("), "the service tells the controller the stay before its first attempt");
+        // #580 review, round 2: Volt reopened on Home while the service still runs (its idle window after Back), before the
+        // new activity binds: the running service's controller hears the stay at once, on the main thread or posted as
+        // setUiVisible posts, and resume() tells it (watchHome) before setUiVisible can start the attempt.
+        String hint = body(service, "    static void homeHint(boolean shown){", "\n    }\n");
+        check(hint.contains("homeShown=shown;ScooterService service=running;if(service==null)return;")
+                && hint.contains("if(Looper.myLooper()==Looper.getMainLooper()){if(service.ble!=null)service.ble.homeShown(shown);}")
+                && hint.contains("else service.handler.post(()->{if(running==service&&service.ble!=null)service.ble.homeShown(homeShown);});"),
+                "a running service's controller hears the stay at once");
+        String resumed = body(main, "    private void resume(){", "\n    }\n");
+        check(resumed.indexOf("watchHome();") >= 0 && resumed.indexOf("watchHome();") < resumed.indexOf("ScooterService.setUiVisible(true);"),
+                "resume tells the stay before the service hears Volt is visible");
         String connected = body(main, "        private void connected(IBinder binder){", "\n        }\n");
         check(connected.indexOf("watchHome();") >= 0 && connected.indexOf("watchHome();") < connected.indexOf("scooterService.visible(resumed);")
                 && connected.indexOf("watchHome();") > connected.indexOf("scooterService=((ScooterService.LocalBinder)binder).service();"), "the bind tells the stay before visible()");
@@ -393,6 +403,17 @@ public final class FindNearbyTest {
         fresh.home(true);  // the bind's watchHome: the same stay
         fresh.attempt("a"); fresh.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
         check(fresh.stuckOnHome("a"), "told before the first attempt and again at the bind: both attempts count");
+        // The rebind path: Back ended the stay (the service stays up in its idle window); Volt reopens on Home and the
+        // running service's controller hears the stay before setUiVisible's attempt, so that attempt counts.
+        FindNearby.Timeouts rebind = new FindNearby.Timeouts();
+        rebind.home(true);
+        rebind.home(false);  // Back: onPause's hint
+        rebind.home(true);   // reopened: resume's watchHome reaches the running service, before setUiVisible
+        rebind.attempt("a"); rebind.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(rebind.homeCount("a") == 1, "reopened on Home with the service still up: its first attempt counts");
+        rebind.home(true);   // the bind's watchHome: the same stay
+        rebind.attempt("a"); rebind.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        check(rebind.stuckOnHome("a"), "and with the next one, the card");
         check(body(main, "    private void resume(){", "\n    }\n").contains("resumed=true;resumes++;missedStartOffered=0;watchHome();ScooterService.setUiVisible(true);"),
                 "a return to Home starts a stay before the service hears Volt is visible (its first attempt counts)");
         check(main.contains("String page=nav.current();selectedPage=page;preferences.edit().putString(\"last_page\",page).apply();watchHome();"), "every page change through the stack");

@@ -27,12 +27,19 @@ public final class ScooterService extends Service {
         else service.handler.post(()->{if(running==service)service.applyVisibility(uiVisible);});
     }
     /**
-     * Whether Home is the page shown with Volt in front (MainActivity.watchHome), kept for a service not bound yet: its
+     * Whether Home is the page shown with Volt in front (MainActivity.watchHome), for a service not bound yet: its
      * onCreate tells the controller before the first connection attempt starts, so on a fresh start that attempt begins
-     * in Home's stay and counts for Find it nearby's card, as one begun after the bind does (#558 review, F02).
+     * in Home's stay and counts for Find it nearby's card, as one begun after the bind does (#558 review, F02). A service
+     * still running (Volt reopened within its idle window, before the new activity binds) hears it at once, before
+     * setUiVisible's applyVisibility can start that attempt (#580 review, round 2): MainActivity.resume calls
+     * watchHome before setUiVisible.
      */
     private static volatile boolean homeShown;
-    static void homeHint(boolean shown){homeShown=shown;}
+    static void homeHint(boolean shown){
+        homeShown=shown;ScooterService service=running;if(service==null)return;
+        if(Looper.myLooper()==Looper.getMainLooper()){if(service.ble!=null)service.ble.homeShown(shown);}
+        else service.handler.post(()->{if(running==service&&service.ble!=null)service.ble.homeShown(homeShown);});
+    }
     public final class LocalBinder extends Binder {public ScooterService service(){return ScooterService.this;}}
     private final LocalBinder binder=new LocalBinder();private final Handler handler=new Handler(Looper.getMainLooper());private final NotificationPacer<java.util.function.Supplier<Notification>> notices=new NotificationPacer<>(CHARGE_ALERT_NOTICE);private final Runnable noticeDrain=this::drainNotices;private final LinkedHashSet<Runnable> listeners=new LinkedHashSet<>();
     public ScooterProfiles profiles;public BleController ble;public RideStore rides;public PhoneRideStore phoneRides;public TelemetryHistory history;public SharedPreferences settings;
