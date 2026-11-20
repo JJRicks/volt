@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Instrumentation;
@@ -53,7 +54,7 @@ import java.util.function.BooleanSupplier;
  * Pictures: off and on in both themes, the explanation, the unreachable provider and the corner ride. Argument
  * size_label names them. Sends no scooter command.
  */
-public final class JustBackBasemapValidation extends Instrumentation {
+public final class JustBackBasemapValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

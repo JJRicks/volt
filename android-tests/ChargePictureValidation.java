@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.animation.ValueAnimator;
 import android.app.Instrumentation;
@@ -46,7 +47,7 @@ import java.util.function.BooleanSupplier;
  * runs again, takes each speed without restarting and rests again, as the setting changes (review of #483, P3).
  * Screenshots of every state go to files/charge-picture-validation.
  */
-public final class ChargePictureValidation extends Instrumentation {
+public final class ChargePictureValidation extends ValidationInstrumentation {
     private static final String[] KEYS = {"ut5max", "ut5ultrax", "st3pro", "n65i", "gt3max", "gt5max", "xt5ultra",
             "g5pro", "gt3", "gt3pro", "gt5pro", "k100max", "n65iii", "v25series", "v40series", "xt5max", "xt5pro"};
     /** The frozen moments: {seconds, watts} and their names (the prototype's stills). */
@@ -61,7 +62,9 @@ public final class ChargePictureValidation extends Instrumentation {
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
 
-    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
+    // verifyScaleFollowed checks the cable pulses run at each animator scale: they run here as on a phone (the frozen
+    // frames turn animations off themselves).
+    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; runEndlessMotion(); start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         String theme = args.getString("theme", "dark"), text = args.getString("text_scale", "1");

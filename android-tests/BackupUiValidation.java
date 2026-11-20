@@ -34,7 +34,7 @@ import com.jjricks.volt.MoreScreen;
 import com.jjricks.volt.OnboardingScreen;
 
 /** Disposable fresh emulator only. Exercises the Back up & restore entry, consent, category list and the paused lifecycle. */
-public final class BackupUiValidation extends Instrumentation {
+public final class BackupUiValidation extends ValidationInstrumentation {
     private Activity current;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>();

@@ -1338,7 +1338,7 @@ public final class DashboardScreen implements AppScreen {
                         paint.setColor(ui.raised);
                         canvas.drawOval(arc, paint);
                         paint.setColor(ui.accent);
-                        boolean motion = android.animation.ValueAnimator.areAnimatorsEnabled();
+                        boolean motion = Ui.endlessMotionEnabled();
                         float start = motion ? (android.os.SystemClock.uptimeMillis() % 1000) * .36f : -90;
                         canvas.drawArc(arc, start, 90, false, paint);
                         if (motion && owner.isShown()) owner.postInvalidateDelayed(32);
@@ -3080,7 +3080,7 @@ public final class DashboardScreen implements AppScreen {
          */
         void updatePulse() {
             updateClip();
-            boolean run = (shown || leaving) && !holdPulse && !closed && !editing && Ui.motionEnabled() && stage.onScreen
+            boolean run = (shown || leaving) && !holdPulse && !closed && !editing && Ui.endlessMotionEnabled() && stage.onScreen
                     && photo.getVisibility() == View.VISIBLE && stage.isAttachedToWindow() && stage.intersectsViewport();
             if (run == (pulse != null)) return;
             if (!run) {
@@ -3098,7 +3098,7 @@ public final class DashboardScreen implements AppScreen {
             final android.animation.ValueAnimator owner = pulse;
             pulse.addUpdateListener(a -> {
                 if (owner != pulse) return;
-                if (!Ui.motionEnabled() || closed) { updatePulse(); return; }
+                if (!Ui.endlessMotionEnabled() || closed) { updatePulse(); return; }
                 glow = (float) (.5 + .5 * Math.cos(2 * Math.PI * a.getAnimatedFraction()));
                 stage.invalidate();
                 if (picture != null) picture.invalidateLive();
@@ -5751,7 +5751,7 @@ public final class DashboardScreen implements AppScreen {
             TelemetryHistory.Reading speed = values.get(RidingValues.SPEED_KEY);
             boolean moving = speed != null && speed.live && speed.number != null && speed.number > 0;
             OdometerAttention.Style style = OdometerAttention.style(record != null && record.unacknowledged(), opens,
-                    Ui.motionEnabled(), !isShown(), moving);
+                    Ui.endlessMotionEnabled(), !isShown(), moving);
             odometerNumber = number;
             odometerStyle = style;
             if (style == OdometerAttention.Style.NONE) {

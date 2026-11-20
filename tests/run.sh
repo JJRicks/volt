@@ -42,6 +42,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ShizukuCaptureClient.java" "$TEST_DIR/S
 sources+=("$APP_DIR/src/com/jjricks/volt/RouteSpeedScale.java" "$TEST_DIR/RouteSpeedScaleTest.java")
 # Lock slider motion trail.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSliderTrailTest.java")
+# The emulator validations' hold on the never-ending animations: off by default, and no way in from the app.
+sources+=("$APP_DIR/src/com/jjricks/volt/EndlessMotion.java" "$TEST_DIR/EndlessMotionTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
 # Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
@@ -208,6 +210,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeReferenceGateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShizukuCaptureClientTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.EndlessMotionTest "$APP_DIR/src" "$APP_DIR/android-tests"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest

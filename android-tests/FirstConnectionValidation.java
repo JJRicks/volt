@@ -28,7 +28,7 @@ import com.jjricks.volt.Telemetry;
 import com.jjricks.volt.TelemetryHistory;
 
 /** Disposable emulator only: production failure/retry and hardware binding, with Bluetooth disabled. */
-public final class FirstConnectionValidation extends Instrumentation {
+public final class FirstConnectionValidation extends ValidationInstrumentation {
     private BleController ble;
     private ScooterProfiles profiles;
     private ScooterProfiles.Profile profile;

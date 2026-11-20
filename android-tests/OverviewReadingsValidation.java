@@ -50,7 +50,7 @@ import com.jjricks.volt.*;
  * card (Est. capacity (health) and Lifetime throughput, values in Ah), then Home style's page, its sheet and the list,
  * the list searched ("temp") and matching nothing, and the sheet with a carry-over and the explanation it opens.
  */
-public final class OverviewReadingsValidation extends Instrumentation {
+public final class OverviewReadingsValidation extends ValidationInstrumentation {
     private static final String ODO = "odometer_km", MODE = "driving_mode", VOLT = "voltage_v", POWER = "power_w";
     private static final String LONG_A = "health_adjusted_capacity_ah", LONG_B = "capacity_throughput_ah";
     private MainActivity activity;

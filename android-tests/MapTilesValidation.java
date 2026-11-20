@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -14,7 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /** Isolated cache + fake HTTP responses only; never contacts providers or a scooter. */
-public final class MapTilesValidation extends Instrumentation {
+public final class MapTilesValidation extends ValidationInstrumentation {
     private final ArrayList<String> checks = new ArrayList<>();
     private File directory;
     private String preferencesName;
