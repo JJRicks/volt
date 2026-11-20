@@ -10,6 +10,7 @@ There can be several versions of the page, called variants. One is live at `/`, 
 - `src/img/` holds the app screenshots, exported as WebP. They were captured on an emulator in simulation mode with sample data; the developer-mode banner is omitted, and the footer says the screens show sample data. The phone image retains the three-reading arrangement shared by the current default; Capacity experiment is below its viewport. The unfolded screenshot uses a custom four-reading arrangement in Volt 1.4.5: Power, Temp, Health and Charge limit in a 2×2 grid. It includes the full Capacity experiment card below Record ride in the same taller viewport. This screenshot does not change the app defaults or the folded phone image. The sample name and existing readings are unchanged. Capacity values are simulated examples, not recorded evidence.
 - `tools/` holds the templates and script that render `og.png` and the PNG icons with a local Google Chrome: `bash site/tools/render-images.sh`. The rendered files are committed, so a normal build doesn't need Chrome.
 - `variants/<name>/` holds the other homepage variants (see "Variants"). Today's page is the `original` variant and stays in `src/`.
+- `tools/variants/` holds each variant's link-preview template and the script that renders it into `variants/<name>/og.png` (for example `bash site/tools/variants/render-clean-og.sh`). After a re-render, the variant's card URL changes with the image's hash (see "Variants").
 - `tools/check-variants.py` checks today's page and every variant against the variant contract and the production CSP. `tests/site-homepage-test.py` runs it in CI.
 - `nginx/volt-homepage.conf` is the server configuration, with security headers, caching, previews and the ACME webroot.
 - `server/` holds the root-owned live-variant switch (`volt-homepage-switch` with its systemd path and service units, and `install-switch.sh`) and `deploy-release.sh`, the server half of a homepage deploy (see "Deploy").
@@ -23,14 +24,14 @@ bash site/build.sh
 This writes `site/dist/` and a SHA-256 manifest, `site/dist.sha256`, kept beside it rather than served:
 
 - `dist/variants/<name>/`: one complete page per variant: `original` from `src/`, and one per folder in `variants/`.
-- `dist/variants.json`: each variant's name, title and one-line description, in the order the Workbench lists them. The titles are Original, Refined, Hybrid and App look; any other name gets itself, capitalized, as its title.
+- `dist/variants.json`: each variant's name, title and one-line description, in the order the Workbench lists them. The titles are Original, Refined, Hybrid, App look and Clean Home; any other name gets itself, capitalized, as its title.
 - `dist/` itself: today's page again, byte for byte the same as `dist/variants/original/`. This keeps older tools working: release scripts that read `dist/index.html`, and the nginx configuration from before variants, which served the release root. The copies add about 1 MB to a release. The Saira fonts and their SIL OFL license come straight from `res/font/` and `licenses/`, so they aren't duplicated. The download buttons link to GitHub Releases; this site doesn't host an APK.
 
 `build.sh` fills the download line's `@VERSION@` from `AndroidManifest.xml`'s `versionName`, so rebuilding after a release keeps the page current. Deploying still needs the owner's OK.
 
 ## Variants
 
-A variant is a folder `variants/<name>/` (lowercase letters, digits and hyphens). The names the switch accepts are fixed: `original` (today's page, `src/`), `refined`, `hybrid` and `app`. Others build, but can't go live.
+A variant is a folder `variants/<name>/` (lowercase letters, digits and hyphens). The names the switch accepts are fixed: `original` (today's page, `src/`), `refined`, `hybrid`, `app` and `clean`. Others build, but can't go live.
 
 - `index.html` is required and must contain the `@VERSION@` placeholder; the build fails otherwise.
 - Every other regular file is copied, keeping subpaths, except `*.md` files and dotfiles. Symbolic links stop the build.
@@ -43,6 +44,13 @@ A variant is a folder `variants/<name>/` (lowercase letters, digits and hyphens)
 - Original is today's page byte for byte, so it keeps `https://volt.jjricks.com/og.png`. That URL serves the live variant's `og.png`, so while a variant with its own card is live, a fresh unfurl of the original's links shows that card. Link-preview caches keep what they fetched before.
 - Robots rules come from nginx and the one shared `src/robots.txt` only. A variant may not ship `robots.txt` (the build stops), the shared one has no `Disallow` lines, and no page may have a `<meta name="robots">`, a crawler-specific one such as `<meta name="googlebot">`, or `<meta http-equiv="X-Robots-Tag">`. A crawler that may not fetch a preview never sees its noindex (see below), and a variant's own robots rules would follow it to `/` when it goes live.
 - Nothing else about caching: every file is revalidated on each visit (see "Caching"), so CSS, scripts and images may keep the same names in every variant.
+
+The variants so far:
+
+- `refined`, `hybrid` and `app` (App look): see their surface briefs in `.impeccable/surfaces/`.
+- `clean` (Clean Home): the app's Clean Home, the Home new installs start on, as the page. On a wide window it is the unfolded phone's two panes: a sample Clean Home stays in view at the left while the page scrolls at the right, and its fixed-height top area follows the moment being read (Parked, Charging, Just back), with the Lock bar and the four round quick actions never moving. On a phone the panes stack and a Parked / Charging / Just back switch under the sample changes the moment. Without JavaScript it rests on Parked; with reduced motion the change is instant. The charging glow is the only looping animation. It runs only while the charging view shows, and it pauses where it is while the Home is off screen or the page is hidden or unfocused, then resumes from there. Its screenshots in `variants/clean/img/` are emulator captures with synthetic data (simulated scooters, made-up rides); the Clean Home one uses a model Volt has no photo for.
+
+To look at a variant locally with the production CSP, build and serve `site/dist/variants/<name>/` with a server that sends the `Content-Security-Policy` header from `nginx/volt-homepage.conf`.
 
 `python3 site/tools/check-variants.py` checks all of this for `src/` and every variant, and `build.sh` runs it on every built variant: any problem stops the build. The content policy and animation rules below apply to every variant.
 
@@ -63,7 +71,7 @@ Switching variants changes the files behind the same URLs (`/styles.css`, `/img/
 
 1. The Workbench (the unprivileged `volt-dev` service) writes the requested name to `/var/lib/volt-dev/homepage/request`, which it owns, and records the change in its history.
 2. `volt-homepage-switch.path` notices and starts `volt-homepage-switch.service`, a oneshot that runs `/usr/local/sbin/volt-homepage-switch` as root. It:
-   - accepts only an exact `original`, `refined`, `hybrid` or `app` (one trailing newline allowed). A missing request means `original`. A request that is a symbolic link, too large or anything else is refused, and its content is never copied anywhere;
+   - accepts only an exact `original`, `refined`, `hybrid`, `app` or `clean` (one trailing newline allowed). A missing request means `original`. A request that is a symbolic link, too large or anything else is refused, and its content is never copied anywhere;
    - checks that the variant is a real folder, with a real `index.html`, in the release `current` points at;
    - replaces `live` atomically: a new link under a temporary name, renamed over the old one. nginx resolves the link on every request, so no reload is needed;
    - writes `/var/lib/volt-homepage-switch/status.json`, readable by everyone: what its last run did (the live name and its release, the requested name, the time in UTC ISO 8601, the result `ok`, `error` or `fallback`, and a message). It is a record of that run, not the state: a failed deploy restores the links without touching it. The Workbench therefore reads "Live now" and the release from `readlink live` and `readlink current`, which are world-readable, and shows the status only as the last switch result.

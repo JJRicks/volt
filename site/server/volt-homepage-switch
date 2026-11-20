@@ -6,7 +6,7 @@ volt-homepage-switch.path starts whenever the Workbench (the unprivileged volt-d
 variant name it wants into its request file. Homepage deploys start the service too. See site/README.md.
 
 What it does, in order:
-  1. reads the requested name: one of original, refined, hybrid or app, exactly, with at most one
+  1. reads the requested name: one of original, refined, hybrid, app or clean, exactly, with at most one
      trailing newline. No request file means original;
   2. checks that the variant is a real directory (not a symbolic link) in the current release;
   3. points <home>/live at <home>/releases/<release>/variants/<name> by renaming a new symbolic link over
@@ -21,8 +21,8 @@ Standard library only; Python 3.8 or later.
 """
 import argparse, errno, fcntl, json, os, re, stat, sys, tempfile, time
 
-ALLOWED = ('original', 'refined', 'hybrid', 'app')
-TITLES = {'original': 'Original', 'refined': 'Refined', 'hybrid': 'Hybrid', 'app': 'App look'}
+ALLOWED = ('original', 'refined', 'hybrid', 'app', 'clean')
+TITLES = {'original': 'Original', 'refined': 'Refined', 'hybrid': 'Hybrid', 'app': 'App look', 'clean': 'Clean Home'}
 DEFAULT = 'original'
 REQUEST_MAX_BYTES = 64
 RELEASE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,79}')

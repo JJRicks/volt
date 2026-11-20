@@ -7,7 +7,7 @@ from pathlib import Path
 sys.dont_write_bytecode = True  # loading the extensionless switch script must leave no __pycache__ in site/
 APP = Path(__file__).resolve().parents[1]
 SITE = APP / 'site'
-KNOWN = ('original', 'refined', 'hybrid', 'app')
+KNOWN = ('original', 'refined', 'hybrid', 'app', 'clean')
 SHARED = ['favicon.svg', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'og.png',
           'site.webmanifest', 'robots.txt', 'sitemap.xml']
 
@@ -163,7 +163,7 @@ class BuildContract(unittest.TestCase):
             self.assertTrue((self.dist / 'variants' / v['name'] / 'index.html').is_file())
 
     def test_known_titles(self):
-        for name, title in [('original', 'Original'), ('refined', 'Refined'), ('hybrid', 'Hybrid'), ('app', 'App look')]:
+        for name, title in [('original', 'Original'), ('refined', 'Refined'), ('hybrid', 'Hybrid'), ('app', 'App look'), ('clean', 'Clean Home')]:
             out = subprocess.run(['bash', '-c', 'eval "$(sed -n "/^variant_title()/,/^}/p" "$1")"; variant_title "$2"', '_',
                                   str(SITE / 'build.sh'), name], capture_output=True, text=True)
             self.assertEqual(out.stdout.strip(), title)
@@ -429,7 +429,7 @@ class NginxConfig(unittest.TestCase):
         for path, effective in previews:
             self.assertIn('noindex', effective.get('x-robots-tag', ''), path)
         nested = ' '.join(p[-1] for p, e in previews)
-        self.assertEqual(sorted(set(re.findall(r'\((\w+(?:\|\w+)+)\)', nested))), ['original|refined|hybrid|app'])
+        self.assertEqual(sorted(set(re.findall(r'\((\w+(?:\|\w+)+)\)', nested))), ['original|refined|hybrid|app|clean'])
         self.assertEqual(tuple(switch.ALLOWED), KNOWN)
 
     def test_workbench_include_is_kept(self):
