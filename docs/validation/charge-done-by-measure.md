@@ -92,9 +92,9 @@ a fresh charging=off reading like this:
 - a recording that ends inside a pause closes it at the last fresh reading, so history shows the real
   paused time.
 
-Older Volt versions do not read `p` lines. Restoring a newer backup into an older version keeps such a
-recording as unreadable: **Replace everything** restores it byte for byte, and a merge skips it. Earlier
-recordings are unaffected.
+Older Volt versions do not read `p` lines. An older version refuses a whole backup made by a newer app
+version (`BackupArchive.extract`), so such a recording reaches one only through a downgrade that keeps app
+data, where it doesn't read. Earlier recordings are unaffected.
 
 ## Validation
 

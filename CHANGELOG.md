@@ -84,7 +84,7 @@ Volt 2.0.1 is mostly about charging: time estimates that learn more from your ow
 ### Upgrading and going back
 
 - Recordings saved before this version keep their labels, and nothing needs doing to update.
-- Backups and exports from 2.0.1 keep the plain recording format, so Volt 2.0.0 can still restore them, within its limit of 20 recordings. 2.0.0 counts an automatic recording labelled from your charger setting as one you started, so it won't replace those to make room.
+- A backup made by 2.0.1 restores only in 2.0.1 or later: Volt 2.0.0 refuses it and says the backup needs a newer app version. Backups and exports still hold charge recordings uncompressed.
 
 ## 2.0.0 — 2026-11-18
 
