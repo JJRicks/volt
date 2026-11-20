@@ -351,10 +351,20 @@ public final class ChargeSessionStore {
      * (null: Automatic); a DETECTED start also records detection's family, its charger.
      */
     public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,long wall,long mono) throws IOException {
+        return startAutomatic(profile,charger,source,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    }
+    /**
+     * As above, with the family charger detection (ChargerDetection) has settled on for the audit given apart from the
+     * label: a DETECTED label from this scooter's learned curves (LearnedChargerMatch) audits no detection.
+     */
+    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
-        return begin(profile,charger,source,true,setting,wall,mono);
+        return begin(profile,charger,source,true,setting,detected,wall,mono);
     }
     private boolean begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
+        return begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    }
+    private boolean begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
         String id=UUID.randomUUID().toString();
@@ -365,7 +375,7 @@ public final class ChargeSessionStore {
             for(File file:entries)if(labelSource(file.getName())!=null)automatic++;
             if(rules.toRemove(entries.size(),automatic,MAX_SESSIONS)<0)return false;
             id=automaticId(id,source);
-            if(audit)id=auditId(id,setting,source==LabelSource.DETECTED?charger:null);
+            if(audit)id=auditId(id,setting,detected);
         }
         File file=new File(directory,id+".active");
         append(file,"charge-v2,"+profile+","+charger.name()+","+wall+","+mono+"\n");
@@ -380,6 +390,13 @@ public final class ChargeSessionStore {
      * process death between the two leaves the new charger with the old source in the id, nothing worse.
      */
     public synchronized boolean relabel(Charger to,LabelSource source) throws IOException {
+        return relabel(to,source,true);
+    }
+    /**
+     * As above; auditDetection false leaves the audit's detected family as it is (a DETECTED label from the learned
+     * curves, LearnedChargerMatch, is not charger detection: noteDetected keeps the audit to ChargerDetection's family).
+     */
+    public synchronized boolean relabel(Charger to,LabelSource source,boolean auditDetection) throws IOException {
         if(active==null||labelSource==null||to==null||source==null)return false;
         if(to!=charger){
             byte[] bytes=java.nio.file.Files.readAllBytes(active.toPath());int end=0;
@@ -394,7 +411,7 @@ public final class ChargeSessionStore {
         }
         String id=automaticId(active.getName(),source);
         LabelAudit audit=labelAudit(id);
-        if(audit!=null&&source==LabelSource.DETECTED)id=auditId(id,audit.setting,to);
+        if(audit!=null&&source==LabelSource.DETECTED&&auditDetection)id=auditId(id,audit.setting,to);
         File renamed=new File(directory,id+".active");
         if(!renamed.equals(active)&&(renamed.exists()||!active.renameTo(renamed)))return true;
         active=renamed;labelSource=source;return true;

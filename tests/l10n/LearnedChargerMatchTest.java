@@ -28,6 +28,9 @@ public final class LearnedChargerMatchTest {
         hintRun();
         hintGates();
         hintLabelsOtherFamily();
+        farOffNeverLabels();
+        auditKeepsPhysicalDetection();
+        learnedMatchNeverMismatch();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -220,30 +223,68 @@ public final class LearnedChargerMatchTest {
     // ---- labels ----
 
     static void labels() {
-        // detectedLabel(setting, detection, learned, farOff)
-        check(ChargeAutoRecordPolicy.detectedLabel(null, FAST, STOCK, null) == FAST, "ChargerDetection first");
-        check(ChargeAutoRecordPolicy.detectedLabel(STOCK, FAST, null, null) == FAST, "ChargerDetection outranks the setting, as since #555");
-        check(ChargeAutoRecordPolicy.detectedLabel(null, null, STOCK, FAST) == STOCK, "Automatic: a learned match");
-        check(ChargeAutoRecordPolicy.detectedLabel(null, null, null, FAST) == FAST, "Automatic: far above the only (stock) curve");
-        check(ChargeAutoRecordPolicy.detectedLabel(STOCK, null, FAST, null) == null, "A setting: a learned match never replaces it");
-        check(ChargeAutoRecordPolicy.detectedLabel(FAST, null, null, STOCK) == null, "A setting: a far-off run never replaces it");
-        check(ChargeAutoRecordPolicy.detectedLabel(null, null, null, null) == null, "Nothing known: null");
+        // detectedLabel(setting, detection, learned)
+        check(ChargeAutoRecordPolicy.detectedLabel(null, FAST, STOCK) == FAST, "ChargerDetection first");
+        check(ChargeAutoRecordPolicy.detectedLabel(STOCK, FAST, null) == FAST, "ChargerDetection outranks the setting, as since #555");
+        check(ChargeAutoRecordPolicy.detectedLabel(null, null, STOCK) == STOCK, "Automatic: a learned match");
+        check(ChargeAutoRecordPolicy.detectedLabel(STOCK, null, FAST) == null, "A setting: a learned match never replaces it");
+        check(ChargeAutoRecordPolicy.detectedLabel(null, null, null) == null, "Nothing known: null");
         // label(): start labels.
-        ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, STOCK, null), 1, 0);
+        ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, STOCK), 1, 0);
         check(l.charger == STOCK && l.source == ChargeSessionStore.LabelSource.DETECTED, "A clear match labels as detected");
-        l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, null, FAST), 1, 0);
-        check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.DETECTED, "Far above stock-only: high-speed, detected");
-        l = ChargeAutoRecordPolicy.label(FAST, ChargeAutoRecordPolicy.detectedLabel(FAST, null, STOCK, null), 1, 0);
+        l = ChargeAutoRecordPolicy.label(FAST, ChargeAutoRecordPolicy.detectedLabel(FAST, null, STOCK), 1, 0);
         check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.SETTING, "The setting still wins over a learned match");
-        l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, null, null), 2, 1);
+        l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, null), 2, 1);
         check(l.charger == STOCK && l.source == ChargeSessionStore.LabelSource.GUESS, "Both recorded, neither matching: today's guess");
         // relabel(): a guess follows the learned family; a chosen label never does.
-        check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.GUESS, STOCK, FAST) == FAST, "A guess takes the far-off family");
+        check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.GUESS, STOCK, FAST) == FAST, "A guess takes a matched family");
         check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.GUESS, STOCK, STOCK) == STOCK, "A guess confirmed becomes detected");
         check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.CHOSEN, STOCK, FAST) == null, "A chosen label is never replaced");
         check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.SETTING, STOCK,
-                ChargeAutoRecordPolicy.detectedLabel(STOCK, null, FAST, FAST)) == null, "A setting's label keeps it against a likeness");
+                ChargeAutoRecordPolicy.detectedLabel(STOCK, null, FAST)) == null, "A setting's label keeps it against a likeness");
         check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.DETECTED, STOCK, null) == null, "A match forgotten keeps the label");
+    }
+
+    /** A learned match labels as DETECTED, but the audit keeps only ChargerDetection's family (council round 1, finding 4). */
+    static ChargeSessionStore automaticStore() throws Exception {
+        return new ChargeSessionStore(java.nio.file.Files.createTempDirectory("learned-charger-audit-").toFile(), ChargeAutoRecordPolicy.RULES);
+    }
+    static void auditKeepsPhysicalDetection() throws Exception {
+        long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
+        // Started on a learned match: DETECTED, the audit's detection empty.
+        ChargeSessionStore store = automaticStore();
+        check(store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.DETECTED, null, null, wall, mono), "Starts on a learned match");
+        check(store.labelSource() == ChargeSessionStore.LabelSource.DETECTED && store.labelAudit().detected == null,
+                "Learned match at the start: DETECTED, no detection audited");
+        store.noteDetected(null);
+        check(store.labelAudit().detected == null, "Nothing physical noted: still none");
+        // Physical detection later: the audit takes it.
+        store.noteDetected(FAST);
+        check(store.labelAudit().detected == FAST, "ChargerDetection's family is audited");
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+        // Started on a guess, relabelled by a learned match: DETECTED, the audit's detection empty.
+        store = automaticStore();
+        store.startAutomatic(ONE, FAST, ChargeSessionStore.LabelSource.GUESS, null, null, wall, mono);
+        ChargeSessionStore.Charger to = ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(),
+                ChargeAutoRecordPolicy.detectedLabel(null, null, STOCK));
+        check(to == STOCK && store.relabel(to, ChargeSessionStore.LabelSource.DETECTED, false), "The learned match relabels the guess");
+        check(store.charger() == STOCK && store.labelSource() == ChargeSessionStore.LabelSource.DETECTED && store.labelAudit().detected == null,
+                "Relabelled DETECTED by the learned match: the audit's detection stays empty");
+        for (int i = 0; i <= 70; i++) store.sample(ChargeSessionStoreTest.frame(mono + i * 10000L, 50 + i / 6));
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+        java.io.StringWriter json = new java.io.StringWriter();
+        store.exportJson(ONE, json);
+        check(json.toString().contains("\"label_source\":\"detected\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null}"),
+                "Export: detected label, no detected_charger: " + json.toString().substring(0, Math.min(300, json.toString().length())));
+        // ChargerDetection's relabel still audits its family (the three-argument form with true, and the old form).
+        store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, wall, mono);
+        check(store.relabel(FAST, ChargeSessionStore.LabelSource.DETECTED, true) && store.labelAudit().detected == FAST, "Physical relabel audited");
+        store.stop(ChargeSessionStore.Stop.STOPPED);
+        store = automaticStore();
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.DETECTED, null, wall, mono);
+        check(store.labelAudit().detected == STOCK, "The old start form still audits a DETECTED start's family");
+        store.stop(ChargeSessionStore.Stop.STOPPED);
     }
 
     // ---- RecordChargerHint ----
@@ -353,13 +394,59 @@ public final class LearnedChargerMatchTest {
         RecordChargerHint h = new RecordChargerHint();
         long[] t = {1000};
         hintFeed(h, 50, 40, t, 13, stockOnly, null);
-        check(h.sustained(ONE, t[0]) && h.otherFamily(ONE, t[0]) == null, "Far below stock: hint, but no family to label");
+        check(h.sustained(ONE, t[0]) && h.otherFamily(ONE, t[0]) == null, "Far below stock: hint, no family to suggest");
         ChargeSessionStore.Curve fastOnly = curve(curves(fast(8)), FAST);
         h = new RecordChargerHint(); t[0] = 1000;
         hintFeed(h, 50, 104, t, 13, null, fastOnly);
-        check(h.otherFamily(ONE, t[0]) == STOCK, "Far below high-speed: stock");
-        check(ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, null, h.otherFamily(ONE, t[0])), 0, 1).charger == STOCK,
-                "...and an automatic recording under Automatic is labelled stock");
+        check(h.otherFamily(ONE, t[0]) == STOCK, "Far below high-speed: the hint suggests stock");
+    }
+
+    /**
+     * The far-off run suggests recording but labels nothing (council round 1, finding 3): a high-speed charge held at 0.45x
+     * of the only (high-speed) curve, as a cold or hot pack can be, keeps its guess and never becomes stock.
+     */
+    static void farOffNeverLabels() throws Exception {
+        ChargeSessionStore.Curve fastOnly = curve(curves(fast(8)), FAST);
+        double slowed = 416 * .45;
+        RecordChargerHint h = new RecordChargerHint();
+        LearnedChargerMatch m = new LearnedChargerMatch();
+        long t = 1000;
+        for (int i = 0; i < 20; i++) {
+            t += 10000;
+            h.observe(ONE, true, 50d, V, -slowed / V, t, t, null, fastOnly);
+            m.observe(ONE, true, 50d, V, -slowed / V, t, t, null, fastOnly);
+        }
+        check(h.sustained(ONE, t), "Fixture: a sustained far-off run (the hint's slowed gate decides whether it shows)");
+        check(m.selected(ONE, t) == null, "No learned match at 0.45x");
+        ChargeSessionStore.Charger detected = ChargeAutoRecordPolicy.detectedLabel(null, null, m.selected(ONE, t));
+        check(detected == null, "Nothing for labels");
+        ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(null, detected, 0, 1);
+        check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.GUESS, "Starts as today's guess (high-speed, the family recorded)");
+        check(ChargeAutoRecordPolicy.relabel(ChargeSessionStore.LabelSource.GUESS, FAST, detected) == null, "Never relabelled to stock");
+    }
+
+    /**
+     * A learned match never reads "Charger mismatch" (council round 1, finding 1): through LearnedChargerMatch into forScooter,
+     * on a UT5 MAX and another model, with one partial recording (where powerMatch is UNKNOWN), at every level and target.
+     */
+    static void learnedMatchNeverMismatch() throws Exception {
+        for (ChargeSessionStore.Charger family : new ChargeSessionStore.Charger[]{STOCK, FAST}) {
+            double amps = family == STOCK ? 2 : 8;
+            ChargeSessionStore.Snapshot s = curves(new double[]{family == STOCK ? 0 : 1, amps, 30, 70});
+            ChargeSessionStore.Curve stock = curve(s, STOCK), fast = curve(s, FAST), own = family == STOCK ? stock : fast;
+            for (int pid : new int[]{-1, 2538}) for (int soc = 31; soc <= 69; soc++) {
+                LearnedChargerMatch m = new LearnedChargerMatch();
+                ChargeSessionStore.Charger matched = feed(m, ONE, soc, V * amps, new long[]{1000}, 3, stock, fast);
+                check(matched == family, "Fixture: the learned match settles " + family + " at " + soc);
+                for (Double target : new Double[]{null, 80d, 95d, 100d}) {
+                    ChargingEstimate.Result base = ChargingEstimate.calculate(live(1), live(V), live(-amps), live(soc), live(15.3),
+                            new ChargingEstimate.Value(target, true, 1000));
+                    ChargingEstimate.Result r = ChargingEstimate.forScooter(base, live(soc), live(15.3), pid, matched, own);
+                    check(!M.chargingEstimateChargerMismatch().equals(r.labelMsg),
+                            "Never 'Charger mismatch': " + family + " pid " + pid + " at " + soc + "% to " + target);
+                }
+            }
+        }
     }
 
     // ---- the estimate under Automatic ----

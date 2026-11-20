@@ -105,18 +105,16 @@ public final class ChargeAutoRecordPolicy {
     /**
      * The family automatic recordings take as DETECTED ({@link #label} and {@link #relabel}'s detected), or null.
      * ChargerDetection's settled family first (detection: it rests on what each charger can physically deliver, and
-     * outranks the setting, as since #555). Then, only under Automatic (setting null), this scooter's own learned
-     * curves: the family LearnedChargerMatch settled on (learned), or else the family a sustained far-off run points to
-     * when only one family has recordings (farOff, RecordChargerHint.otherFamily: far above a stock curve is the
-     * high-speed charger, far below a high-speed curve the stock one), so that charge teaches the other family's curve.
-     * A likeness never replaces the charger setting; a label the owner chose is never replaced (relabel). With both
-     * families recorded and neither matching, nothing: the recording keeps its guess.
+     * outranks the setting, as since #555). Then, only under Automatic (setting null), the family LearnedChargerMatch
+     * settled on: this charge's power matches that family's own learned curve. Nothing else: a charge far off the only
+     * recorded family (RecordChargerHint) suggests recording it, but labels nothing, since a throttled charge can look
+     * like the other charger. A likeness never replaces the charger setting, and a label the owner chose is never
+     * replaced (relabel). With neither, the recording keeps the setting's label or its guess.
      */
     public static ChargeSessionStore.Charger detectedLabel(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detection,
-            ChargeSessionStore.Charger learned, ChargeSessionStore.Charger farOff) {
+            ChargeSessionStore.Charger learned) {
         if (detection != null) return detection;
-        if (setting != null) return null;
-        return learned != null ? learned : farOff;
+        return setting == null ? learned : null;
     }
 
     /**

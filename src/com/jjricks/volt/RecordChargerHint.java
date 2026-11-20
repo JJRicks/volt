@@ -22,8 +22,9 @@ package com.jjricks.volt;
  * throttled charge runs at 40-80% of nominal and must not read as a different charger). The charger setting does not
  * matter: under Automatic or a manual setting alike the hint names a charger that has not been recorded.
  *
- * The run's direction also gives automatic recordings a family under Automatic ({@link #otherFamily}): far above a stock
- * curve is the high-speed charger, far below a high-speed curve the stock one (ChargeAutoRecordPolicy.detectedLabel).
+ * The run's direction names the charger the tip can suggest ({@link #otherFamily}): far above a stock curve is the
+ * high-speed charger, far below a high-speed curve the stock one. It is a reason to suggest recording, never a label: a
+ * throttled charge can look like the other charger, so automatic recordings never take it (ChargeAutoRecordPolicy.detectedLabel).
  */
 public final class RecordChargerHint {
     public static final double FAR_ABOVE = 1.8, FAR_BELOW = .5, MIN_APART_W = 50;
@@ -47,8 +48,8 @@ public final class RecordChargerHint {
     }
 
     /**
-     * The family a far-off run points to: far above the stock curve, the high-speed charger; far below the high-speed
-     * curve, the stock one; otherwise (far below stock, far above high-speed) no known family, null.
+     * The family a far-off run points to, for the tip only: far above the stock curve, the high-speed charger; far below
+     * the high-speed curve, the stock one; otherwise (far below stock, far above high-speed) no known family, null.
      */
     public static ChargeSessionStore.Charger otherFamily(ChargeSessionStore.Charger recorded, int direction) {
         if (recorded == ChargeSessionStore.Charger.STOCK && direction > 0) return ChargeSessionStore.Charger.HIGH_SPEED;

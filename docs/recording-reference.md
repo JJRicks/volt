@@ -337,7 +337,12 @@ already charging starts then; the recording is partial.
 - **Label.** The charger chosen in Estimates & charger; otherwise Volt's
   detection for this charge; otherwise a best guess: the charger with more
   qualified recordings for this scooter, or the stock charger on a tie or with
-  none. A detected label follows detection when it settles on the other
+  none. Under Automatic, detection includes the learned match: on any model,
+  when the charger detection has nothing, the charger whose saved recordings'
+  power at this battery level matches the live power (Auto's choice for
+  estimates); it never replaces the charger setting, and a charge far off your
+  only recorded charger never labels anything (it only suggests recording that
+  charger). A detected label follows detection when it settles on the other
   charger; a guess becomes detected as soon as detection settles, on either
   charger, so a recording stays a guess only when detection never settled; a
   chosen one never changes. Only a chosen or detected label is
@@ -393,11 +398,15 @@ Volt** add `started_automatically` (true or false) and `label_source`
 (`setting`, `detected`, `chosen`, `guess`, or null for a manual recording) to each
 charge; `qualified_for_learning` is false for a guess. `setting` is the charger
 setting's label, kept because detection never settled; `detected` means charger
-detection settled on it (it outranks the setting, 2.0.1 and later); `chosen` means
+detection settled on it (it outranks the setting, 2.0.1 and later) or, under
+Automatic, that its power matched that charger's saved recordings (the learned
+match, 2.0.1 and later); `chosen` means
 you chose the charger during the recording (on recordings from before 2.0.1, also
 the setting at its start). From 2.0.1 an automatic recording also has
 `label_audit`: `charger_setting_at_start` (`automatic`, `STOCK` or `HIGH_SPEED`)
-and `detected_charger` (the family detection last settled on, or null); it is
+and `detected_charger` (the family charger detection last settled on, or null); it
+is detection's alone, never the learned match, so a `detected` label with a null
+`detected_charger` came from the learned match. `label_audit` is
 null for manual and older recordings. `charger` is always the final label, the
 one learning uses.
 

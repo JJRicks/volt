@@ -380,8 +380,11 @@ PREVIOUSLY IN 1.4.0
   Record starts immediately with a date/time/mode name; rename later.
 - Speed-colored ride routes; battery clipping, charging glow and lock motion polish.
 - UT5 MAX automatic stock/high-speed charger selection, separate provisional
-  charging curves and matching personal history. Ambiguous/unsupported cases
-  fall back to live power; manual family overrides remain available.
+  charging curves and matching personal history. On every model (2.0.1), Auto also
+  picks the charger whose saved recordings match the live power at this battery
+  level, and Volt can tell when a charge is far off the only recorded charger.
+  Ambiguous/unsupported cases fall back to live power; manual family overrides
+  remain available.
 - Simpler homepage with the alternating lock/unlock demonstration.
 
 NEW OWNER-SETUP ROUTES: VALIDATION LIMITS
@@ -1376,7 +1379,9 @@ charging, if a manual start would be allowed then; never in simulation. It never
 connects or turns on another setting, so a charge that starts while Volt isn't
 connected, or with notifications off, is missed; connecting mid-charge records the
 rest. The label is Volt's detection once it settles (it outranks the charger setting,
-so a recording teaches the curve of the charger actually plugged in), until then the
+so a recording teaches the curve of the charger actually plugged in; under Automatic
+only, detection also includes the learned match, the charger whose saved recordings
+match the live power, on any model), until then the
 charger setting, else a best guess (the charger with more qualified recordings, stock
 on a tie); the setting's label, a guess and a detected label follow detection to
 whichever charger it settles on; a charger chosen during the recording is kept.
@@ -1398,7 +1403,7 @@ is on. Once running it records out of sight whatever Stay connected in backgroun
 says, as any charge recording; it never opens or keeps a connection itself. It
 decides only on live readings (charging state at most 5 s old, speed at most 3 s),
 never on a reading from before a gap or a phone sleep. Exports mark each charge's started_automatically,
-label_source and label_audit (the setting at the start and detection's family). Manual recordings are unchanged.
+label_source and label_audit (the setting at the start and charger detection's family, never the learned match). Manual recordings are unchanged.
 
 Qualified recordings learn curves for each scooter/charger label. One continuous
 recording reaching displayed 100% can provide a provisional finishing estimate

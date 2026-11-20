@@ -484,7 +484,7 @@ public final class ScooterService extends Service {
     }
     /**
      * The family automatic recordings follow as DETECTED (ChargeAutoRecordPolicy.detectedLabel): ChargerDetection's, and
-     * under Automatic only, the learned match or a sustained far-off run's other family.
+     * under Automatic only, the learned match. The far-off run (RecordChargerHint) only suggests recording.
      */
     private ChargeSessionStore.Charger labelDetectedCharger(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
@@ -492,7 +492,13 @@ public final class ScooterService extends Service {
         if(simulating())return ble.simulationDetectedCharger();
         long now=SystemClock.elapsedRealtime();
         return ChargeAutoRecordPolicy.detectedLabel(chargeCharger(),chargerDetection.selected(profile.id,now),
-                learnedCharger.selected(profile.id,now),chargerHint.otherFamily(profile.id,now));
+                learnedCharger.selected(profile.id,now));
+    }
+    /** ChargerDetection's family alone, for a recording's audit (never the learned match). */
+    private ChargeSessionStore.Charger physicalDetectedCharger(){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        if(destroyed||profile==null)return null;
+        return simulating()?ble.simulationDetectedCharger():chargerDetection.selected(profile.id,SystemClock.elapsedRealtime());
     }
     /** This profile's learned curve for a family, or null (none saved, still loading, or simulating). */
     private ChargeSessionStore.Curve learnedCurve(String profileId,ChargeSessionStore.Charger charger){
@@ -558,21 +564,23 @@ public final class ScooterService extends Service {
             return M.serviceChargeAllowNotifications();
         return null;
     }
-    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null);}
+    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null,null);}
     /**
      * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start; setting:
-     * the charger setting at an automatic start (null: Automatic), kept in its id for audit. An
+     * the charger setting at an automatic start (null: Automatic), and detected ChargerDetection's family then (null: none, or
+     * the label came from the learned curves), both kept in its id for audit. An
      * automatic start that finds no room (every saved recording is manual) does not start and says so; its scooter is
      * marked (autoChargeNoRoom) so that clearing any scooter's recordings or turning the switch on again tries once more.
      */
-    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source,ChargeSessionStore.Charger setting){
+    private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source,ChargeSessionStore.Charger setting,
+            ChargeSessionStore.Charger detected){
         if(isChargeRecording())return false;
         CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
             if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
-            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,setting,wall,mono)){
+            else if(!chargeStore.startAutomatic(activeProfileId(),charger,source,setting,detected,wall,mono)){
                 autoChargeNoRoom.add(activeProfileId());chargeStatus=M.serviceChargeAutoNoRoom();changed();return false;}
             chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
@@ -649,14 +657,15 @@ public final class ScooterService extends Service {
                 // Ended by itself: no hold, and auto-record rides may start a ride in this same change. The work policy waits
                 // for that look (changed()): applied now, it could release the link the ride start needs (Stay connected off).
                 if(movedAway){workPolicyAfterAutoStart=true;finishChargeCapture(ChargeSessionStore.Stop.CHARGING_ENDED);return;}
-                ChargeSessionStore.Charger detected=labelDetectedCharger();
-                // The audit in the recording's id notes detection's family whatever the label (under the owner's choice too).
-                chargeStore.noteDetected(detected);
+                ChargeSessionStore.Charger detected=labelDetectedCharger(),physical=physicalDetectedCharger();
+                // The audit in the recording's id notes detection's family whatever the label (under the owner's choice too):
+                // ChargerDetection's only, never the learned match.
+                chargeStore.noteDetected(physical);
                 ChargeSessionStore.Charger relabel=ChargeAutoRecordPolicy.relabel(chargeStore.labelSource(),chargeStore.charger(),detected);
                 // A guess or the setting's label that detection confirms becomes DETECTED too (same family: the store renames only).
                 if(relabel!=null)try{
                     boolean familyChanges=relabel!=chargeStore.charger();
-                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED)){if(familyChanges)chargeReferenceGate.reset();updateNotification();}
+                    if(chargeStore.relabel(relabel,ChargeSessionStore.LabelSource.DETECTED,relabel==physical)){if(familyChanges)chargeReferenceGate.reset();updateNotification();}
                 }catch(IOException keepFirstLabel){/* the recording keeps its first label */}
                 return;
             }
@@ -670,7 +679,7 @@ public final class ScooterService extends Service {
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),labelDetectedCharger(),
                     qualifiedSessions(ChargeSessionStore.Charger.STOCK),qualifiedSessions(ChargeSessionStore.Charger.HIGH_SPEED));
-            if(!startChargeRecording(label.charger,label.source,label.setting)&&!isChargeRecording())autoChargeLatched.add(active.id);
+            if(!startChargeRecording(label.charger,label.source,label.setting,physicalDetectedCharger())&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
     /**
@@ -940,6 +949,17 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
+        ChargingEstimate.Result result=chargingEstimate(baseline,soc,rated,profile,charger,curve,readings);
+        // A family Automatic took from the learned curves (LearnedChargerMatch, not ChargerDetection) matched this charge's
+        // power, so it never reads "Charger mismatch": where the estimate's own power check can't confirm its curve, the
+        // estimate is the family's without past charges (the current rate on most models).
+        if(curve!=null&&chargerBasis()==ChargerBasis.DETECTED&&chargerDetection.selected(profile.id,SystemClock.elapsedRealtime())==null
+                &&M.chargingEstimateChargerMismatch().equals(result.labelMsg))
+            result=chargingEstimate(baseline,soc,rated,profile,charger,null,readings);
+        return result;
+    }
+    private ChargingEstimate.Result chargingEstimate(ChargingEstimate.Result baseline,ChargingEstimate.Value soc,ChargingEstimate.Value rated,
+            ScooterProfiles.Profile profile,ChargeSessionStore.Charger charger,ChargeSessionStore.Curve curve,Map<String,TelemetryHistory.Reading> readings){
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
             return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
