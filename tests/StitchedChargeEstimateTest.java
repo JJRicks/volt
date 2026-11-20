@@ -217,22 +217,32 @@ public final class StitchedChargeEstimateTest {
                 &&ChargingEstimate.provisionalAllowed(OTHER_MODEL,ChargeSessionStore.Charger.STOCK),"Only the UT5 MAX's pairs are excluded");
         check(!estimate(one,STOCK,30,90d,1,ut5).provisional,"A UT5 MAX on the stock charger gets no provisional estimate");
 
-        // One partial recording on another model (a charger chosen by Automatic from that one recording, or by hand): at
-        // a level it covers and whose power matches, never the mismatch label: a provisional time where it reaches the
-        // target, otherwise the plain current rate, as where it does not cover the level at all.
+        // One partial recording on another model, with the charger Automatic picks from it (LearnedChargerMatch, as
+        // ScooterService.detectedCharger: null where nothing matches): at a level it covers and whose power matches, never
+        // the mismatch label: a provisional time where it reaches the target, otherwise the plain current rate, as where it
+        // does not cover the level at all and Automatic has no charger.
         for(ChargeSessionStore.Charger charger:ChargeSessionStore.Charger.values()){
             Model model=charger==ChargeSessionStore.Charger.STOCK?STOCK:FAST;
             ChargeSessionStore partial=store();record(partial,charger,model,17,50,1);
             ChargeSessionStore.Curve lone=curve(partial,charger);
             check(lone.qualifiedSessions==1&&lone.powerMatch(30,model.watts(30))==ChargeSessionStore.Curve.PowerMatch.UNKNOWN
                     &&lone.powerMatch(30,model.watts(30),true)==ChargeSessionStore.Curve.PowerMatch.MATCH,charger+": one recording's power guards only provisional estimates");
-            for(int level=10;level<=95;level++)for(Double target:new Double[]{45d,80d,100d,null}){
-                ChargingEstimate.Result shown=estimate(lone,model,level,target);
+            for(int level=10;level<=95;level++){
+                LearnedChargerMatch match=new LearnedChargerMatch();
+                ChargeSessionStore.Charger auto=null;
+                for(int i=0;i<3;i++){long t=1000+i*2000L;
+                    auto=match.observe("one",true,(double)level,model.volts.applyAsDouble(level),-model.amps.applyAsDouble(level),t,t,
+                            charger==ChargeSessionStore.Charger.STOCK?lone:null,charger==ChargeSessionStore.Charger.STOCK?null:lone);}
+                check(auto==(level>=18&&level<=49?charger:null),charger+" at "+level+"%: Automatic picks the recorded charger exactly where it saved power: "+auto);
+              for(Double target:new Double[]{45d,80d,100d,null}){
+                ChargingEstimate.Result shown=ChargingEstimate.forScooter(baseline(model,level,target,1d),new ChargingEstimate.Value((double)level,true,100),
+                        new ChargingEstimate.Value(model.ratedAh,true,100),OTHER_MODEL,auto,auto==null?null:lone);
                 String where=charger+" at "+level+"% to "+target+": ";
                 check(!"Charger mismatch · rate estimate".equals(shown.label),where+"no mismatch label: "+shown.label);
                 boolean provisional=target!=null&&target==45&&level>=18&&level<45;
                 check(shown.learnedToLimit==provisional&&!shown.learnedToFull,where+"a provisional time exactly where the recording reaches the target: "+shown.status);
                 check(provisional?"From 1 past charge".equals(shown.label):"Current rate".equals(shown.label),where+shown.label);
+              }
             }
         }
 

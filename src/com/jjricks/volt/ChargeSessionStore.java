@@ -186,12 +186,15 @@ public final class ChargeSessionStore {
         private final boolean[] singleWatts;
         /** How many recordings have minutes for each percent, agreeing or not (summary's disagreeing percents). */
         private final int[] covering;
+        /** How many recordings measured each percent outside the learning temperatures (summary's words). */
+        private final int[] outsideTemperature;
         private final List<FinishingCurve> finishing = new ArrayList<>();
         /** finishing's recordings, as bits like sources. */
         private final List<Long> finishingSource = new ArrayList<>();
         Curve(String profile, Charger charger, List<Evidence> sessions) {
             this.profile=profile;this.charger=charger;qualifiedSessions=sessions.size();minutes=new double[100];watts=new double[100];counts=new int[100];
-            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];
+            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];outsideTemperature=new int[100];
+            for(Evidence session:sessions)for(int bin=0;bin<100;bin++)if(session.outsideTemperature[bin])outsideTemperature[bin]++;
             for (int i=0;i<sessions.size();i++) if (sessions.get(i).finishing != null){finishing.add(sessions.get(i).finishing);finishingSource.add(bit(i));}
             Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);
             for(int bin=0;bin<100;bin++) {
@@ -224,6 +227,39 @@ public final class ChargeSessionStore {
                     if(compatible.size()>=2)watts[bin]=median(compatible);
                 }
             }
+            familyWatts=familyPowers(sessions);
+        }
+        /**
+         * The family's power per 1% bin for telling chargers apart (LearnedChargerMatch, ChargeAutoRecordPolicy's labels and
+         * RecordChargerHint), never for timing: it is built from every qualified session's own bin power, one session
+         * included, so a first recording is already a baseline. Two or more sessions give the median of those within 25%
+         * of their median, and need two of them to agree; a lone disagreeing pair gives nothing, as in watts.
+         */
+        private final double[] familyWatts;
+        private static double[] familyPowers(List<Evidence> sessions){
+            double[] result=new double[100];Arrays.fill(result,Double.NaN);
+            for(int bin=0;bin<100;bin++){
+                List<Double> powers=new ArrayList<>();
+                for(Evidence session:sessions)if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1)powers.add(session.watts[bin]);
+                if(powers.isEmpty())continue;
+                if(powers.size()==1){result[bin]=powers.get(0);continue;}
+                double center=median(powers);List<Double> compatible=new ArrayList<>();
+                for(double power:powers)if(power>=center*.75&&power<=center*1.25)compatible.add(power);
+                if(compatible.size()>=2)result[bin]=median(compatible);
+            }
+            return result;
+        }
+        /** The family's saved power at this battery level (familyWatts), or null where no session saved one. */
+        public Double familyWatts(double soc){
+            if(!between(soc,0,100))return null;
+            double value=familyWatts[Math.min(99,(int)Math.floor(soc))];
+            return Double.isFinite(value)?value:null;
+        }
+        /** powerMatch's band against familyWatts: one recording is enough. For telling chargers apart only. */
+        public PowerMatch familyPowerMatch(double soc,Double liveWatts){
+            Double expected=familyWatts(soc);
+            if(expected==null||liveWatts==null||!Double.isFinite(liveWatts)||liveWatts<1)return PowerMatch.UNKNOWN;
+            return liveWatts>=expected*.65&&liveWatts<=expected*1.35?PowerMatch.MATCH:PowerMatch.DIFFERENT;
         }
         private static long bit(int index){return index<64?1L<<index:0;}
         /** Read-only: the curve's coverage per percent, for a chart of the saved curve. */
@@ -238,7 +274,7 @@ public final class ChargeSessionStore {
                         :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
                 boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
                 bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
-                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish));
+                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish,outsideTemperature[bin]>0));
             }
             return new Summary(charger,qualifiedSessions,starts,bins);
         }
@@ -364,8 +400,17 @@ public final class ChargeSessionStore {
             public final Double watts;
             /** A completed finish recording covers this percent (estimateFinishing can use it). */
             public final boolean finishCovered;
+            /**
+             * A recording measured this percent with the battery outside the fast charger's learning temperatures
+             * (learnsAtTemperature), so it taught nothing here.
+             */
+            public final boolean outsideTemperature;
             Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered){
+                this(percent,coverage,sessions,minutes,watts,finishCovered,false);
+            }
+            Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered,boolean outsideTemperature){
                 this.percent=percent;this.coverage=coverage;this.sessions=sessions;this.minutes=minutes;this.watts=watts;this.finishCovered=finishCovered;
+                this.outsideTemperature=outsideTemperature;
             }
         }
         public final Charger charger;public final int qualifiedSessions;
@@ -523,16 +568,26 @@ public final class ChargeSessionStore {
      * (null: Automatic); a DETECTED start also records detection's family, its charger.
      */
     public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,long wall,long mono) throws IOException {
+        startAutomatic(profile,charger,source,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    }
+    /**
+     * As above, with the family charger detection (ChargerDetection) has settled on for the audit given apart from the
+     * label: a DETECTED label from this scooter's learned curves (LearnedChargerMatch) audits no detection.
+     */
+    public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
-        begin(profile,charger,source,true,setting,wall,mono);
+        begin(profile,charger,source,true,setting,detected,wall,mono);
     }
     private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
+        begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    }
+    private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
         String id=UUID.randomUUID().toString();
         if(source!=null){
             id=automaticId(id,source);
-            if(audit)id=auditId(id,setting,source==LabelSource.DETECTED?charger:null);
+            if(audit)id=auditId(id,setting,detected);
         }
         File file=new File(directory,id+".active");
         append(file,"charge-v2,"+profile+","+charger.name()+","+wall+","+mono+"\n");
@@ -546,6 +601,13 @@ public final class ChargeSessionStore {
      * process death between the two leaves the new charger with the old source in the id, nothing worse.
      */
     public synchronized boolean relabel(Charger to,LabelSource source) throws IOException {
+        return relabel(to,source,true);
+    }
+    /**
+     * As above; auditDetection false leaves the audit's detected family as it is (a DETECTED label from the learned
+     * curves, LearnedChargerMatch, is not charger detection: noteDetected keeps the audit to ChargerDetection's family).
+     */
+    public synchronized boolean relabel(Charger to,LabelSource source,boolean auditDetection) throws IOException {
         if(active==null||labelSource==null||to==null||source==null)return false;
         if(to!=charger){
             byte[] bytes=java.nio.file.Files.readAllBytes(active.toPath());int end=0;
@@ -560,7 +622,7 @@ public final class ChargeSessionStore {
         }
         String id=automaticId(active.getName(),source);
         LabelAudit audit=labelAudit(id);
-        if(audit!=null&&source==LabelSource.DETECTED)id=auditId(id,audit.setting,to);
+        if(audit!=null&&source==LabelSource.DETECTED&&auditDetection)id=auditId(id,audit.setting,to);
         File renamed=new File(directory,id+".active");
         if(!renamed.equals(active)&&(renamed.exists()||!active.renameTo(renamed)))return true;
         active=renamed;labelSource=source;return true;
@@ -1101,6 +1163,8 @@ public final class ChargeSessionStore {
     }
     private static final class Evidence {
         final double[] minutes=new double[100],watts=new double[100];
+        /** Percents this recording measured that teach nothing because of the battery's temperature (learnsAtTemperature). */
+        final boolean[] outsideTemperature=new boolean[100];
         FinishingCurve finishing;
         Evidence(){Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);}
     }
@@ -1274,7 +1338,11 @@ public final class ChargeSessionStore {
                 Arrays.fill(result.minutes,Double.NaN);Arrays.fill(result.watts,Double.NaN);
             }
             boolean qualified=whole!=null||binsQualified;
-            for(int bin=0;bin<100;bin++)if(outsideBins[bin]){result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;}
+            for(int bin=0;bin<100;bin++)if(outsideBins[bin]){
+                // Only a percent measured in a qualified recording says "too cold or hot": a sparse one says nothing.
+                if(binsQualified&&Double.isFinite(result.minutes[bin]))result.outsideTemperature[bin]=true;
+                result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;
+            }
             if(whole!=null&&charger==Charger.HIGH_SPEED)result.finishing=FinishingCurve.from(this,true);
             return qualified?result:null;
         }
