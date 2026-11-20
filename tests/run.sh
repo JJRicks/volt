@@ -26,7 +26,7 @@ sources=()
 for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
 done
-sources+=("$APP_DIR/src/com/jjricks/volt/Ut5MaxStockVoltageReference.java" "$TEST_DIR/StockStartupReferenceTest.java" "$TEST_DIR/StockVoltageReferenceTest.java" "$TEST_DIR/StockVoltageReplayTrace.java" "$TEST_DIR/StockVoltageReplayTest.java" "$TEST_DIR/DualChargerEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxFastChargeReference.java" "$TEST_DIR/Ut5MaxFastChargeReferenceTest.java" "$APP_DIR/src/com/jjricks/volt/ChargeTaperMatcher.java" "$TEST_DIR/StockChargeHoldoutTrace.java" "$TEST_DIR/ChargeTaperMatcherTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerCaptureProcess.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxStockChargeReference.java" "$APP_DIR/src/com/jjricks/volt/ChargeReferenceGate.java" "$TEST_DIR/CompletedChargeEstimateTest.java" "$TEST_DIR/StockChargeReferenceTest.java" "$TEST_DIR/ChargeReferenceGateTest.java")
+sources+=("$APP_DIR/src/com/jjricks/volt/Ut5MaxStockVoltageReference.java" "$TEST_DIR/StockStartupReferenceTest.java" "$TEST_DIR/StockVoltageReferenceTest.java" "$TEST_DIR/StockVoltageReplayTrace.java" "$TEST_DIR/StockVoltageReplayTest.java" "$TEST_DIR/DualChargerEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxFastChargeReference.java" "$TEST_DIR/Ut5MaxFastChargeReferenceTest.java" "$APP_DIR/src/com/jjricks/volt/ChargeTaperMatcher.java" "$TEST_DIR/StockChargeHoldoutTrace.java" "$TEST_DIR/ChargeTaperMatcherTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerCaptureProcess.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxStockChargeReference.java" "$APP_DIR/src/com/jjricks/volt/ChargeReferenceGate.java" "$TEST_DIR/CompletedChargeEstimateTest.java" "$TEST_DIR/StitchedChargeEstimateTest.java" "$TEST_DIR/LearnNormalTemperatureTest.java" "$APP_DIR/src/com/jjricks/volt/UsableCapacity.java" "$TEST_DIR/UsableCapacityTest.java" "$TEST_DIR/StockChargeReferenceTest.java" "$TEST_DIR/ChargeReferenceGateTest.java")
 sources+=( )
 # Compile the actual Android coordinator against test-only binding and preferences APIs.
 # These stubs are confined to this test output and never enter the Android build.
@@ -42,6 +42,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ShizukuCaptureClient.java" "$TEST_DIR/S
 sources+=("$APP_DIR/src/com/jjricks/volt/RouteSpeedScale.java" "$TEST_DIR/RouteSpeedScaleTest.java")
 # Lock slider motion trail.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSliderTrailTest.java")
+# The emulator validations' hold on the never-ending animations: off by default, and no way in from the app.
+sources+=("$APP_DIR/src/com/jjricks/volt/EndlessMotion.java" "$TEST_DIR/EndlessMotionTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
 # Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
@@ -122,6 +124,8 @@ sources+=("$APP_DIR/android-tests/RidesOpenTiming.java" "$TEST_DIR/RidesOpenTimi
 # Unified backup: category registry, archive, plan and transaction (pure Java, temporary files only).
 for name in BackupRegistry BackupJson BackupProfiles BackupArchive BackupTransaction; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java"); done
 for name in BackupRegistryTest BackupTestStore BackupArchiveTest BackupPlanTest BackupTransactionTest; do sources+=("$TEST_DIR/$name.java"); done
+# Charge recordings as a compressed rotating buffer: budget, rotation, compression, recovery and the plain backup round trip.
+sources+=("$TEST_DIR/ChargeRecordingBudgetTest.java")
 # Report diagnostics' charging evidence (fuller diagnostics, part 1); uses the compat suites' CommandLog.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeEvidenceTest.java")
 # Report diagnostics, part 2: the settings allow-list, this connection's drive modes and power sign (Telemetry above
@@ -147,6 +151,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/LiveRangeEstimator.java" "$APP_DIR/src/
 # Maintenance reminders core: manual intervals, the forward-only odometer, due-ness and storage (maintenance plan, PR 1).
 for name in MaintenanceDistance MaintenancePolicy MaintenanceStore; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/MaintenanceDefaults.java" "$TEST_DIR/MaintenanceBackupTest.java")
+# Settings › Home style's overview readings: catalogue, defaults, each slot, fallback, diagnostics and the backup round trip.
+sources+=("$APP_DIR/src/com/jjricks/volt/HomeReadings.java" "$TEST_DIR/HomeReadingsTest.java")
 # Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
 # that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
 # ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
@@ -190,6 +196,12 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LiveRangeEstimatorTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.FastChargeTaperTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSlowdownTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
+# Partial recordings join, and a percent one recording covers counts provisionally (stitched-estimate-v1).
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StitchedChargeEstimateTest
+# Fast-charger percents outside 20–38 C battery temperature teach no curve (normal-temps-v1).
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LearnNormalTemperatureTest
+# A scooter's usable charge per gauge percent, learned below 80% (usable-capacity-v1).
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.UsableCapacityTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockStartupReferenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockChargeReferenceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockVoltageReplayTest
@@ -198,6 +210,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeReferenceGateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShizukuCaptureClientTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.EndlessMotionTest "$APP_DIR/src" "$APP_DIR/android-tests"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest
@@ -250,13 +263,14 @@ if [[ -d /dev/shm && -w /dev/shm ]]; then
     # The java function puts its own -Djava.io.tmpdir first, and the later one on a command line wins.
     backup_java+=(-Djava.io.tmpdir="$TEST_SHM_TMP")
 fi
-for name in BackupArchiveTest BackupPlanTest BackupTransactionTest; do
+for name in BackupArchiveTest BackupPlanTest BackupTransactionTest ChargeRecordingBudgetTest; do
     (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name")
 done
 
 # Maintenance reminders (MaintenanceStoreTest uses the compat suites' NaveeModels; the backup round trip uses the backup stores).
 for name in MaintenanceDistanceTest MaintenancePolicyTest MaintenanceStoreTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done
 (cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.MaintenanceBackupTest)
+(cd "$APP_DIR" && "${backup_java[@]}" -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HomeReadingsTest)
 
 # From the repo root: ModelRegistryTest checks the bundled model photos.
 for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"); done

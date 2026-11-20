@@ -26,7 +26,7 @@ import com.jjricks.volt.*;
  * minute, a reconnect inside the window keeps recording, and the phone's Bluetooth off ends after
  * 5 minutes (time-shifted). Never connects Bluetooth.
  */
-public final class RideAutoStopValidation extends Instrumentation {
+public final class RideAutoStopValidation extends ValidationInstrumentation {
     private Bundle args; private MainActivity activity; private int checks; private final List<String> screenshots = new ArrayList<>();
     private String profileId; private final List<String> automatic = new ArrayList<>(); private String manual;
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }

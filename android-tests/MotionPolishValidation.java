@@ -46,7 +46,7 @@ import com.jjricks.volt.*;
  * hardware-rendered window. Synthetic readings and the memory-only simulator; Bluetooth stays off,
  * no GATT is opened and no scooter command is built. Refuses physical devices and existing data.
  */
-public final class MotionPolishValidation extends Instrumentation {
+public final class MotionPolishValidation extends ValidationInstrumentation {
     private Bundle args;
     private MainActivity activity;
     private String mode, variant;
@@ -54,7 +54,8 @@ public final class MotionPolishValidation extends Instrumentation {
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>(), notes = new ArrayList<>();
     private File folder;
 
-    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
+    // It checks the charging glow's own breathing: the endless animations run here as on a phone.
+    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; runEndlessMotion(); start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
         boolean admitted = false;

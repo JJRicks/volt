@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Instrumentation;
 import android.app.Notification;
@@ -26,7 +27,7 @@ import java.util.function.BooleanSupplier;
  * a replug inside the window keeps the card, one after it doesn't re-arm, and a connected scooter that stops giving
  * a reading (null, a gap) keeps the card. Mode notifications-off runs the sweep's own hold check with notifications off.
  */
-public final class ChargeLiveUnplugValidation extends Instrumentation {
+public final class ChargeLiveUnplugValidation extends ValidationInstrumentation {
     private static final long S=1000L;
     private static final byte OFF=0,ON=1;
     private MainActivity activity;

@@ -24,7 +24,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable emulator only; uses the app's memory-only simulator and never opens a BLE link. */
-public final class BatteryWidgetValidation extends Instrumentation {
+public final class BatteryWidgetValidation extends ValidationInstrumentation {
     Bundle args;
     MainActivity activity;
     String profileId;

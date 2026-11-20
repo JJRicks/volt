@@ -59,7 +59,7 @@ import com.jjricks.volt.WideLayout;
  * real GATT, authentication, recording, or scooter command runs; quick-action checks use only
  * the memory-only simulator for local control taps.
  */
-public final class ResponsiveDashboardValidation extends Instrumentation {
+public final class ResponsiveDashboardValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;

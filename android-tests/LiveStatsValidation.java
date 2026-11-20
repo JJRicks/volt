@@ -30,7 +30,7 @@ import com.jjricks.volt.StatsScreen;
 import com.jjricks.volt.Ui;
 
 /** Destructive fixtures only on a fresh disposable emulator. Never connects a real scooter. */
-public final class LiveStatsValidation extends Instrumentation {
+public final class LiveStatsValidation extends ValidationInstrumentation {
     private Bundle args;
     private MainActivity activity;
     private int checks;

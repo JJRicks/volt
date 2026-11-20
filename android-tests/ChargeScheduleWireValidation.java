@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Instrumentation;
 import android.bluetooth.*;
@@ -15,7 +16,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /** Disposable emulator only. All packets go to an in-process GATT stand-in, never a radio. */
-public final class ChargeScheduleWireValidation extends Instrumentation {
+public final class ChargeScheduleWireValidation extends ValidationInstrumentation {
     private BleController ble;
     private ScooterProfiles profiles;
     private ScooterProfiles.Profile profile;

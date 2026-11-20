@@ -60,7 +60,7 @@ import com.jjricks.volt.ScooterService;
  * and the top mark reads "≥", the cursor reads "±984 ft", metres follow the setting, and the other lines are as before.
  * Screenshots at 344 and 725 dp, dark and light, 1.0x and 1.4x. With -e locale only the chips' fit at 344 dp 1.4x is checked.
  */
-public final class GpsAccuracyValidation extends Instrumentation {
+public final class GpsAccuracyValidation extends ValidationInstrumentation {
     private static final String PKG = "com.jjricks.volt";
     /** The GPS accuracy line's place in Ride details' graph: after build()'s readings (RideChartData.forRide). */
     private static final int GPS_LINE = RideChartData.KEYS.length;

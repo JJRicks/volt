@@ -424,8 +424,9 @@ public final class ChargeSessionStoreTest {
         ChargeSessionStore recovered=new ChargeSessionStore(dir);check(!recovered.active()&&recovered.snapshot().sessions==1&&recovered.snapshot().curves.isEmpty(),"Process restart finalizes but excludes interrupted capture");
         File sessionFile=dir.listFiles()[0];try(FileOutputStream out=new FileOutputStream(sessionFile,true)){out.write("s,broken".getBytes(StandardCharsets.UTF_8));}
         check(recovered.snapshot().sessions==0,"Trailing truncated data fails closed");
-        for(int i=0;i<25;i++){recovered.start("one",ChargeSessionStore.Charger.STOCK,WALL+i,MONO+i);recovered.stop(ChargeSessionStore.Stop.STOPPED);}
-        check(dir.listFiles().length<=ChargeSessionStore.MAX_SESSIONS,"Session retention is bounded");
+        ChargeSessionStore bounded=new ChargeSessionStore(dir,null,20,ChargeSessionStore.BUDGET_BYTES);
+        for(int i=0;i<25;i++){bounded.start("one",ChargeSessionStore.Charger.STOCK,WALL+i,MONO+i);bounded.stop(ChargeSessionStore.Stop.STOPPED);}
+        check(dir.listFiles().length<=20,"Session retention is bounded");
         recovered.clear("one");check(recovered.snapshot().sessions==0,"Per-profile clear removes recordings");
         ChargeSessionStore cadence=store();cadence.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
         check(cadence.sample(frame(MONO,50)),"Cadence fixture initial sample");
@@ -501,7 +502,7 @@ public final class ChargeSessionStoreTest {
         check(!observed(curve(mixedPower,"one",ChargeSessionStore.Charger.STOCK),60,4.125).learnedToFull,"Disagreeing training power cannot establish an invented middle charger");
         check(observed(curve(completed,"one",ChargeSessionStore.Charger.STOCK),99,2d).learnedToFull,"Zero-current final packet does not dilute the 99 percent interval's charging power");
 
-        ChargeSessionStore retained=store();
+        ChargeSessionStore retained=new ChargeSessionStore(Files.createTempDirectory("charge-test-").toFile(),null,20,ChargeSessionStore.BUDGET_BYTES);
         for(int n=0;n<2;n++){
             session(retained,"one",ChargeSessionStore.Charger.HIGH_SPEED,40,60,60000,false,false);
             session(retained,"two",ChargeSessionStore.Charger.STOCK,40,60,60000,false,false);
@@ -516,8 +517,8 @@ public final class ChargeSessionStoreTest {
         }
         check(curve(retained,"one",ChargeSessionStore.Charger.HIGH_SPEED).estimate(50,60)!=null,"Failed and short capture floods preserve usable minority charger evidence");
         check(curve(retained,"two",ChargeSessionStore.Charger.STOCK).estimate(50,60)!=null,"Failed captures preserve minority profile evidence");
-        check(curve(retained,"one",ChargeSessionStore.Charger.STOCK).qualifiedSessions==15,"Only the active capture's reserved slot reduces qualified data under a failed-capture flood");
-        check(retained.snapshot().sessions==20&&retained.snapshot().bytes<=ChargeSessionStore.MAX_SESSIONS*(ChargeSessionStore.MAX_FILE_BYTES+1024),"Retention retains both global file and byte bounds");
+        check(curve(retained,"one",ChargeSessionStore.Charger.STOCK).qualifiedSessions==15,"Only the newest failed capture's place (it was just saved) reduces qualified data under a failed-capture flood");
+        check(retained.snapshot().sessions==20&&retained.snapshot().bytes<=20*(ChargeSessionStore.MAX_FILE_BYTES+1024),"Retention retains both global file and byte bounds");
         ChargeSessionStore exports=store();
         exports.start("export_one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
         exports.sample(frame(MONO,50));

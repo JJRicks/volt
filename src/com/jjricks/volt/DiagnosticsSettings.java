@@ -34,7 +34,7 @@ final class DiagnosticsSettings {
             "report_diagnostics", "update_auto_check"));
     /** Per-scooter keys (prefix + profile id), shown for the selected scooter under the prefix's name. */
     static final List<String> SCOOTER_PREFIXES = Collections.unmodifiableList(Arrays.asList(
-            "charge_alerts_", "charge_charger_", "range_source_", "range_follow_mode_"));
+            "charge_alerts_", "charge_charger_", "range_source_", "range_follow_mode_", "home_reading_1_v1_", "home_reading_2_v1_"));
     static final String SET = "(set)";
     /** A fixed choice ("km", "dark", "HIGH_SPEED"), or an encoded switch list like charge alerts' "charge=1;at=80". */
     private static final Pattern CHOICE = Pattern.compile("[A-Za-z0-9_.:-]{1,32}"),

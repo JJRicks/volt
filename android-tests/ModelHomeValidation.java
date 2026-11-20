@@ -35,7 +35,7 @@ import com.jjricks.volt.ScooterProfiles;
  * speed; an owner's own tile choice is never touched; its reported drive modes read DRIVE and SPORT; and on a simulated
  * US GT5 Max a Top speed outside the model's choices shows a dash, not a raw number.
  */
-public final class ModelHomeValidation extends Instrumentation {
+public final class ModelHomeValidation extends ValidationInstrumentation {
     private static final List<String> DEFAULT = Arrays.asList("feature:maximum_speed", "feature:timed_charging"),
             GT5 = Arrays.asList("feature:cruise_control", "feature:energy_recovery"),
             GT5_BEFORE = Arrays.asList("feature:maximum_speed", "feature:cruise_control");

@@ -34,7 +34,7 @@ import com.jjricks.volt.ScooterService;
 import org.json.JSONObject;
 
 /** Emulator-only fixtures: refuses owner phones, saved profiles, files, or enabled Bluetooth. */
-public final class PhoneRideValidation extends Instrumentation {
+public final class PhoneRideValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private ScooterService service;

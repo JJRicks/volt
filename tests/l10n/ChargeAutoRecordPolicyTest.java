@@ -26,7 +26,6 @@ public final class ChargeAutoRecordPolicyTest {
         liveReadings();
         chargeOff();
         keep();
-        limit();
         hold();
         storeIds();
         storeKeep();
@@ -193,14 +192,6 @@ public final class ChargeAutoRecordPolicyTest {
         check(ChargeAutoRecordPolicy.keep(60 * MINUTE, 40), "A long charge is kept");
     }
 
-    static void limit() {
-        int max = ChargeSessionStore.MAX_SESSIONS;
-        check(ChargeAutoRecordPolicy.automaticToRemove(max - 1, 0, max) == 0, "Room for one more: nothing removed");
-        check(ChargeAutoRecordPolicy.automaticToRemove(max, 1, max) == 1, "At the limit: replace the oldest automatic one");
-        check(ChargeAutoRecordPolicy.automaticToRemove(max, 0, max) == -1, "All manual at the limit: the automatic one is not kept");
-        check(ChargeAutoRecordPolicy.automaticToRemove(max + 1, 1, max) == -1, "Never a manual one to make room");
-        check(ChargeAutoRecordPolicy.automaticToRemove(max + 1, 2, max) == 2, "Over the limit (a restore): only automatic ones go");
-    }
 
     static void hold() {
         check(ChargeAutoRecordPolicy.holdsAfterHandStop(true, true) && ChargeAutoRecordPolicy.holdsAfterHandStop(false, true), "A hand stop of an automatic recording holds, the switch on or since turned off");
@@ -222,7 +213,21 @@ public final class ChargeAutoRecordPolicyTest {
     // The store, with synthesized charges.
 
     static File folder() throws Exception { return Files.createTempDirectory("charge-auto").toFile(); }
-    static ChargeSessionStore store(File folder) throws Exception { return new ChargeSessionStore(folder, ChargeAutoRecordPolicy.RULES); }
+    static ChargeSessionStore store(File folder) throws Exception {
+        ChargeSessionStore store = new ChargeSessionStore(folder, ChargeAutoRecordPolicy.RULES, MAX, ChargeSessionStore.BUDGET_BYTES);
+        FOLDERS.put(store, folder); return store;
+    }
+    static final Map<ChargeSessionStore, File> FOLDERS = new IdentityHashMap<>();
+    /**
+     * Dates the journals saved since before, as a restore dates them. The store orders recordings by modification time,
+     * then by their random ids, so recordings saved within one millisecond would come back in a random order.
+     */
+    static void dateSaved(File folder, List<String> before, long time) {
+        for (String name : names(folder)) if (name.endsWith(".csv") && !before.contains(name)) check(new File(folder, name).setLastModified(time), "Fixture dated");
+    }
+    static final long HOUR = 3_600_000L;
+    /** The count these tests fill: the store's rules are the same at any count, and twenty keeps them quick. */
+    static final int MAX = 20;
     static ChargeSessionStore.Value value(double v, long mono) { return new ChargeSessionStore.Value(v, mono, 0x72); }
     static ChargeSessionStore.Frame frame(long offset, double soc) {
         long mono = MONO + offset;
@@ -245,7 +250,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(id(f).charAt(14) == '4' && !store.automatic() && store.labelSource() == null, "A manual recording keeps the plain UUID id");
         store.stop(ChargeSessionStore.Stop.STOPPED);
         File g = folder(); ChargeSessionStore auto = store(g);
-        check(auto.startAutomatic("one", STOCK, DETECTED, WALL, MONO), "An automatic recording starts");
+        auto.startAutomatic("one", STOCK, DETECTED, WALL, MONO); check(auto.active(), "An automatic recording starts");
         String id = id(g);
         check(id.charAt(14) == 'b' && auto.automatic() && auto.labelSource() == DETECTED, "The id carries how the label was chosen: " + id);
         check(names(g).get(0).matches("[a-f0-9-]{36}\\.(csv|active)")
@@ -266,6 +271,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(!store.stop(ChargeSessionStore.Stop.STOPPED) && names(f).isEmpty(), "No samples is not kept");
         store.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(store, 10, 5);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED) && names(f).size() == 1, "Exactly 10 minutes and 5 points is kept");
+        dateSaved(f, Collections.emptyList(), System.currentTimeMillis() - HOUR);
         List<ChargeSessionStore.HistorySession> saved = store.recordings("one");
         check(saved.size() == 1 && saved.get(0).automatic && saved.get(0).labelSource == GUESS, "History knows it started automatically");
         store.start("one", STOCK, WALL, MONO); charge(store, 1, 0);
@@ -273,29 +279,38 @@ public final class ChargeAutoRecordPolicyTest {
         check(!store.recordings("one").get(0).automatic && store.recordings("one").get(0).labelSource == null, "Manual history has no label source");
     }
 
+    /** Saves manual then automatic recordings, dated an hour apart in the past, oldest first; later saves are newer. */
     static void fill(ChargeSessionStore store, int manual, int automatic) throws Exception {
+        File folder = FOLDERS.get(store); long now = System.currentTimeMillis();
         for (int i = 0; i < manual + automatic; i++) {
+            List<String> before = names(folder);
             if (i < manual) store.start("one", STOCK, WALL + i * 100 * MINUTE, MONO); else store.startAutomatic("one", STOCK, CHOSEN, WALL + i * 100 * MINUTE, MONO);
             charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+            dateSaved(folder, before, now - (manual + automatic - i) * HOUR);
         }
     }
 
+    /** Owner, Nov 19 2026: "auto and manual recordings could be classed the same in that way. rotate away." */
     static void storeLimit() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max, 0);
-        check(!store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO) && !store.active() && names(f).size() == max, "All manual at the limit: no automatic recording, nothing deleted");
-        File g = folder(); ChargeSessionStore mixed = store(g); fill(mixed, max - 2, 2);
-        List<String> before = names(g); String oldestAutomatic = oldestAutomatic(g);
-        check(before.size() == max, "Fixture filled the store");
-        check(mixed.startAutomatic("one", STOCK, CHOSEN, WALL, MONO), "At the limit with automatic ones saved: an automatic one starts");
-        charge(mixed, 10, 5); mixed.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
-        List<String> after = names(g);
-        check(!after.contains(oldestAutomatic) && after.size() == max, "Once kept, only the oldest automatic recording was replaced");
-        int manualAfter = 0; for (String name : after) if (ChargeSessionStore.labelSource(name) == null) manualAfter++;
-        check(manualAfter == max - 2, "Every manual recording is still there");
+        String oldestManual = sortedByAge(f).get(0).getName();
+        List<String> before = names(f);
+        store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO);
+        check(store.active() && saved(f).equals(before), "All manual at the limit: an automatic recording starts, and nothing is deleted yet");
+        charge(store, 10, 5); check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "It is kept");
+        check(saved(f).size() == max && !saved(f).contains(oldestManual), "Once kept, the oldest recording went, though it was one started by hand");
+        File g = folder(); ChargeSessionStore mixed = store(g); fill(mixed, 2, max - 2);
+        String oldest = sortedByAge(g).get(0).getName();
+        check(ChargeSessionStore.labelSource(oldest) == null && names(g).size() == max, "Fixture: the oldest is manual, the rest automatic");
+        mixed.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(mixed, 10, 5); mixed.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        check(saved(g).size() == max && !saved(g).contains(oldest), "Automatic and manual alike: the oldest goes, whichever kind it is");
         File h = folder(); ChargeSessionStore manualStore = store(h); fill(manualStore, max - 1, 1);
-        manualStore.start("one", STOCK, WALL, MONO); charge(manualStore, 10, 5); manualStore.stop(ChargeSessionStore.Stop.STOPPED);
-        check(names(h).size() == max, "A manual start keeps today's pruning (it may remove an automatic one)");
+        String oldestOfAll = sortedByAge(h).get(0).getName();
+        manualStore.start("one", STOCK, WALL, MONO);
+        check(saved(h).size() == max, "A manual start deletes nothing either");
+        charge(manualStore, 10, 5); manualStore.stop(ChargeSessionStore.Stop.STOPPED);
+        check(saved(h).size() == max && !saved(h).contains(oldestOfAll), "Once saved, a manual recording makes room the same way");
     }
 
     static List<File> sortedByAge(File folder) {
@@ -349,8 +364,9 @@ public final class ChargeAutoRecordPolicyTest {
         Files.write(stale.toPath(), "x".getBytes(StandardCharsets.UTF_8));
         store(f);
         check(!stale.exists() && names(f).size() == 2, "A relabel's leftover temporary file is removed at start");
-        ChargeSessionStore plain = new ChargeSessionStore(folder());
-        check(!plain.startAutomatic("one", STOCK, GUESS, WALL, MONO) && !plain.active(), "Without rules a store never starts an automatic recording");
+        File bare = folder(); ChargeSessionStore plain = new ChargeSessionStore(bare);
+        plain.startAutomatic("one", STOCK, GUESS, WALL, MONO); charge(plain, 1, 0);
+        check(plain.stop(ChargeSessionStore.Stop.STOPPED) && saved(bare).size() == 1, "Without rules a store keeps every automatic recording");
     }
 
     static void storeChargeOff() throws Exception {
@@ -397,60 +413,58 @@ public final class ChargeAutoRecordPolicyTest {
 
     /** Terra #1: nothing saved is ever deleted for a recording that is not kept. */
     static void storeRoomOnlyWhenKept() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 2, 2);
         List<String> before = saved(f);
         check(before.size() == max, "Fixture: a full list");
-        check(store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO), "A full list with automatic recordings in it: an automatic start");
+        store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO);
+        check(store.active(), "A full list: an automatic start");
         check(saved(f).equals(before), "Starting deleted nothing: room is made only once it is kept");
         charge(store, 3, 1);
         check(!store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "A short automatic recording is not kept");
         check(saved(f).equals(before), "Discarded: the list is exactly as it was");
-        String oldest = oldestAutomatic(f);
+        String oldest = sortedByAge(f).get(0).getName();
         store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(store, 10, 5);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "A long enough one is kept");
         List<String> after = saved(f);
-        check(after.size() == max && !after.contains(oldest), "Kept: exactly the oldest automatic recording made room");
+        check(after.size() == max && !after.contains(oldest), "Kept: exactly the oldest recording made room");
         List<String> gone = new ArrayList<>(before); gone.removeAll(after);
         check(gone.size() == 1 && gone.get(0).equals(oldest), "Only that one went: " + gone);
-        check(automaticCount(f) == 2, "Still two automatic recordings (one old, the new one)");
+        check(automaticCount(f) == 3, "Three automatic recordings now (the oldest was manual)");
         File g = folder(); ChargeSessionStore manual = store(g); fill(manual, max, 0);
         List<String> manualBefore = saved(g);
-        check(!manual.startAutomatic("one", STOCK, CHOSEN, WALL, MONO) && !manual.active() && saved(g).equals(manualBefore),
-                "Every saved recording manual: no start, nothing removed");
+        manual.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(manual, 3, 1);
+        check(!manual.stop(ChargeSessionStore.Stop.CHARGING_ENDED) && saved(g).equals(manualBefore),
+                "Every saved recording manual: a short automatic one is discarded and costs nothing");
     }
 
     /** Terra #1, process death: there is no moment when both the old recording and the new one are gone. */
     static void storeRoomAfterProcessDeath() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         // Death mid-recording, too short to keep: the list is untouched.
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
         List<String> before = saved(f);
         store.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(store, 3, 1);
         store(f);
         check(saved(f).equals(before), "A short recording cut by a process death: the list is unchanged");
-        // Death mid-recording, long enough to keep: recovery keeps it and only then the oldest automatic one goes.
-        String oldest = oldestAutomatic(f);
+        // Death mid-recording, long enough to keep: recovery keeps it and only then the oldest goes.
+        String oldest = sortedByAge(f).get(0).getName();
         ChargeSessionStore again = store(f);
         again.startAutomatic("one", STOCK, CHOSEN, WALL, MONO); charge(again, 20, 10);
         check(saved(f).equals(before), "While it runs, nothing has gone");
         store(f);
         List<String> after = saved(f);
-        check(after.size() == max && !after.contains(oldest) && automaticCount(f) == 1, "Recovered and kept: the oldest automatic one made room");
-        int manual = 0; for (String n : after) if (ChargeSessionStore.labelSource(n) == null) manual++;
-        check(manual == max - 1, "Every manual recording is still there");
-        // Death after the new one was saved but before room was made: one file too many; the next start trims an automatic one.
+        check(after.size() == max && !after.contains(oldest) && automaticCount(f) == 2, "Recovered and kept: the oldest one made room");
+        // Death after the new one was saved but before room was made: one file too many; the next start trims the oldest.
         File g = folder(); ChargeSessionStore full = store(g); fill(full, max - 1, 1);
-        String old = oldestAutomatic(g);
+        String old = sortedByAge(g).get(0).getName();
         File newer = new File(g, "11111111-1111-a111-8111-111111111111.csv");
-        Files.copy(new File(g, old).toPath(), newer.toPath());
+        Files.copy(new File(g, oldestAutomatic(g)).toPath(), newer.toPath());
         newer.setLastModified(System.currentTimeMillis() + 60_000);
         check(saved(g).size() == max + 1, "Fixture: saved, room not yet made");
         store(g);
         List<String> trimmed = saved(g);
-        check(trimmed.size() == max && trimmed.contains(newer.getName()) && !trimmed.contains(old), "The next start removes the older automatic one, keeps the new one");
-        int manualLeft = 0; for (String n : trimmed) if (ChargeSessionStore.labelSource(n) == null) manualLeft++;
-        check(manualLeft == max - 1, "And no manual one");
+        check(trimmed.size() == max && trimmed.contains(newer.getName()) && !trimmed.contains(old), "The next start removes the oldest one, keeps the new one");
     }
 
     /** Terra #5: a recording that ends with a guessed label teaches no curve; chosen and detected ones learn as before. */
@@ -492,9 +506,9 @@ public final class ChargeAutoRecordPolicyTest {
 
     /** Terra (8be6104f) #2: a stop that a process death cut short after its end line: recovery adds no second end line. */
     static void storeStopCutShort() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
-        String olderAutomatic = oldestAutomatic(f);
+        String olderAutomatic = sortedByAge(f).get(0).getName();
         store.startAutomatic("one", STOCK, CHOSEN, WALL + 5000 * MINUTE, MONO); charge(store, 20, 10);
         File journal = active(f); String id = journal.getName().substring(0, 36);
         append(journal, "end,CHARGING_ENDED\n"); // stop() wrote its end line, then the process died before the rename
@@ -503,12 +517,12 @@ public final class ChargeAutoRecordPolicyTest {
         check(listed && names(f).contains(id + ".csv"), "Recovered with one end line: still a readable recording");
         int ends = 0; for (String line : Files.readAllLines(new File(f, id + ".csv").toPath())) if (line.startsWith("end,")) ends++;
         check(ends == 1, "Exactly one end line: " + ends);
-        check(saved(f).size() == max && !saved(f).contains(olderAutomatic), "It is kept, and the older automatic one made room for it, as a finished stop would");
+        check(saved(f).size() == max && !saved(f).contains(olderAutomatic), "It is kept, and the oldest one made room for it, as a finished stop would");
     }
 
     /** Terra (8be6104f) #2: an automatic file Volt cannot read never costs another recording its place. */
     static void storeUnreadableNeverCostsAnother() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 1, 1);
         String readable = oldestAutomatic(f);
         File broken = new File(f, "22222222-2222-a222-8222-222222222222.csv");
@@ -516,19 +530,19 @@ public final class ChargeAutoRecordPolicyTest {
         broken.setLastModified(System.currentTimeMillis() + 60_000);
         check(saved(f).size() == max + 1, "Fixture: one unreadable automatic file over the limit");
         store(f);
-        check(!broken.exists() && saved(f).contains(readable) && saved(f).size() == max, "The unreadable file goes, the readable automatic recording stays");
+        check(!broken.exists() && saved(f).contains(readable) && saved(f).size() == max, "The unreadable file goes, every readable recording stays");
     }
 
     /** Terra (8be6104f) #3: the recording just saved is never the one trimmed, whatever the other files' dates. */
     static void storeJustSavedNeverTrimmed() throws Exception {
-        int max = ChargeSessionStore.MAX_SESSIONS;
+        int max = MAX;
         File f = folder(); ChargeSessionStore store = store(f); fill(store, max - 2, 2);
         // A restore dates recordings by their saved start: here both automatic ones look newer than anything else.
         for (File file : f.listFiles()) if (ChargeSessionStore.labelSource(file.getName()) != null) file.setLastModified(System.currentTimeMillis() + 86_400_000L);
         store.startAutomatic("one", STOCK, CHOSEN, WALL + 9000 * MINUTE, MONO); charge(store, 10, 5);
         String id = active(f).getName().substring(0, 36);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "The kept recording is reported saved");
-        check(saved(f).contains(id + ".csv") && saved(f).size() == max && automaticCount(f) == 2, "It is still there; one older-dated automatic one made room");
+        check(saved(f).contains(id + ".csv") && saved(f).size() == max && automaticCount(f) == 3, "It is still there; the oldest-dated one made room");
     }
 
     /** Terra (bd671732): the lock on the charger choice is only for a label the owner chose. */
@@ -578,7 +592,7 @@ public final class ChargeAutoRecordPolicyTest {
     /** The setting's provisional label: the id, the audit, detection replacing it with either family, export and a restart. */
     static void storeSettingAudit() throws Exception {
         File f = folder(); ChargeSessionStore store = store(f);
-        check(store.startAutomatic("one", STOCK, SETTING, STOCK, WALL, MONO), "Starts with the setting's label");
+        store.startAutomatic("one", STOCK, SETTING, STOCK, WALL, MONO); check(store.active(), "Starts with the setting's label");
         String id = id(f);
         check(id.charAt(14) == 'd' && store.labelSource() == SETTING && store.charger() == STOCK, "The id marks the setting's label: " + id);
         check(id.charAt(19) == '1' && id.charAt(20) == '0', "The audit: setting stock, nothing detected: " + id);
@@ -600,15 +614,19 @@ public final class ChargeAutoRecordPolicyTest {
         check(names(f).size() == 1 && names(f).get(0).endsWith(".active"), "No temporary file is left");
         charge(store, 10, 6);
         check(store.stop(ChargeSessionStore.Stop.CHARGING_ENDED), "Kept");
+        long now = System.currentTimeMillis(); dateSaved(f, Collections.emptyList(), now - 4 * HOUR);
         ChargeSessionStore.HistorySession saved = store.recordings("one").get(0);
         check(saved.charger == FAST && saved.labelSource == DETECTED && saved.labelAudit != null && saved.labelAudit.setting == STOCK && saved.labelAudit.detected == FAST,
                 "Saved: detected high-speed, with the stock setting audited");
         // Never settles: the setting's label stays, marked as the setting's; Automatic is audited as such.
+        List<String> before = names(f);
         store.startAutomatic("one", FAST, SETTING, FAST, WALL + 1000 * MINUTE, MONO); charge(store, 10, 5);
         check(ChargeAutoRecordPolicy.relabel(store.labelSource(), store.charger(), null) == null, "No detection: nothing to relabel");
-        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED); dateSaved(f, before, now - 3 * HOUR); before = names(f);
         store.startAutomatic("one", STOCK, GUESS, null, WALL + 2000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        dateSaved(f, before, now - 2 * HOUR); before = names(f);
         store.startAutomatic("one", STOCK, DETECTED, null, WALL + 3000 * MINUTE, MONO); charge(store, 10, 5); store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        dateSaved(f, before, now - HOUR); before = names(f);
         List<ChargeSessionStore.HistorySession> list = store.recordings("one");
         ChargeSessionStore.HistorySession detectedAtStart = list.get(0), guess = list.get(1), kept = list.get(2);
         check(kept.labelSource == SETTING && kept.charger == FAST && kept.labelAudit.setting == FAST && kept.labelAudit.detected == null, "The setting's label, saved as the setting's");
@@ -620,7 +638,7 @@ public final class ChargeAutoRecordPolicyTest {
         check(json.contains("\"label_source\":\"guess\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null}"), "Export: Automatic, nothing detected");
         // A process death while the setting's label runs: recovered as the setting's.
         store.startAutomatic("one", STOCK, SETTING, STOCK, WALL + 4000 * MINUTE, MONO); charge(store, 20, 10);
-        ChargeSessionStore again = store(f);
+        ChargeSessionStore again = store(f); dateSaved(f, before, now);
         ChargeSessionStore.HistorySession recovered = again.recordings("one").get(0);
         check(recovered.stop == ChargeSessionStore.Stop.INTERRUPTED && recovered.labelSource == SETTING && recovered.automatic && recovered.labelAudit.setting == STOCK,
                 "Recovered after a process death with its label and audit");
