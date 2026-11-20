@@ -59,7 +59,20 @@ public final class ChargeLiveUpdateTest {
         check(!ChargeLiveUpdate.promote(35, true, true, false), "never before Android 16");
         check(!ChargeLiveUpdate.promote(36, false, true, false), "no request on this Android: plain card");
         check(!ChargeLiveUpdate.promote(36, true, false, false), "not allowed: plain card");
-        check(!ChargeLiveUpdate.promote(36, true, true, true), "a charge recording keeps the plain card's summary");
+        // Owner, Nov 20 2026: a charge recording no longer keeps the card plain. Only a paused recording does (#587 F02):
+        // charging, promoted as without a recording; charger stopped or schedule hold, the plain card with its summary;
+        // resumed, promoted again. The service passes no recording state but the pause.
+        ChargeLiveState.Kind charging = ChargeLiveState.Kind.CHARGING, waiting = ChargeLiveState.Kind.WAITING, away = ChargeLiveState.Kind.RECONNECTING;
+        check(ChargeLiveUpdate.promote(36, true, true, ChargeLiveUpdate.recordingStopped(false, false, charging)), "a recording while charging: promoted");
+        check(!ChargeLiveUpdate.promote(36, true, true, ChargeLiveUpdate.recordingStopped(true, true, charging)), "its charger stopped: the plain card, its text the recording's status");
+        check(ChargeLiveUpdate.promote(36, true, true, ChargeLiveUpdate.recordingStopped(false, false, charging)), "charging resumed (the pause closed): promoted again");
+        for (ChargeLiveState.Kind kind : ChargeLiveState.Kind.values())
+            check(ChargeLiveUpdate.recordingStopped(true, true, kind), "a stopped charger always counts, whatever the card shows: " + kind);
+        check(ChargeLiveUpdate.recordingStopped(false, true, charging) && ChargeLiveUpdate.recordingStopped(false, true, away),
+                "a schedule's hold on a card that reads as charging (or out of reach) counts");
+        check(!ChargeLiveUpdate.recordingStopped(false, true, waiting), "a schedule's hold on the schedule's own wait card doesn't: it already says Starts …");
+        check(!ChargeLiveUpdate.recordingStopped(false, false, away), "reconnecting isn't stopped: the card says so itself");
+        check(!ChargeLiveUpdate.promote(35, true, true, false) && !ChargeLiveUpdate.promote(36, true, false, true), "a pause never promotes where nothing else would");
     }
 
     private static void status() {

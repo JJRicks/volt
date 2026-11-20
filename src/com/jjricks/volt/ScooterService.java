@@ -86,6 +86,8 @@ public final class ScooterService extends Service {
     /** "Different charger? Record it": a sustained far-off run against the only recorded family (recordChargerHint). */
     private final RecordChargerHint chargerHint = new RecordChargerHint();
     private final ChargeProgressTracker chargeProgress = new ChargeProgressTracker();
+    /** The charging current the time estimates use: the last minute's mean of this charge's readings (ChargeCurrentAverage). */
+    private final ChargeCurrentAverage chargeCurrent = new ChargeCurrentAverage();
     private final FastChargeTaper chargeTaper = new FastChargeTaper();
     /** The UT5 MAX fast charger's "Charging slowed" observer; the estimate and the charging status share its state. */
     private final ChargeSlowdown chargeSlowdown = new ChargeSlowdown();
@@ -1070,6 +1072,11 @@ public final class ScooterService extends Service {
         TelemetryHistory.Reading reading=readings.get(key);
         return new ChargingEstimate.Value(reading==null?null:reading.number,reading!=null&&reading.live,reading==null?0:reading.capturedWallMs);
     }
+    /** The current the estimates use for this reading: ChargeCurrentAverage's mean where it holds the reading, else the reading. */
+    private ChargingEstimate.Value steadyCurrent(ChargingEstimate.Value current){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        return simulating()||profile==null?current:chargeCurrent.steady(profile.id,current,SystemClock.elapsedRealtime());
+    }
     /** Same service calculation used by the dashboard, also evaluated with the screen off. */
     private ChargeSessionStore.Estimate chargeRecordingEstimate(){
         return ChargingEstimate.recordingSnapshot(chargingEstimate(displayReadings()));
@@ -1090,8 +1097,10 @@ public final class ScooterService extends Service {
     }
     private ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
+        // The current is the last minute's mean, so a reading moving between two of the battery's current steps doesn't
+        // flip every time shown by a couple of minutes (ChargeCurrentAverage); a real change still shows at once.
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(chargingValue(readings,"charging_state"),chargingValue(readings,"voltage_v"),
-                chargingValue(readings,"current_a"),soc,rated,target);
+                steadyCurrent(chargingValue(readings,"current_a")),soc,rated,target);
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
@@ -1694,10 +1703,8 @@ public final class ScooterService extends Service {
      */
     private boolean chargeLiveShown(){
         if(destroyed||simulating())return false;
-        // A schedule test's status and Cancel come first, even over a charge recording (now often an automatic one).
-        if(isChargeRecording())return scheduleTestStatus()==null||isRecording()||phoneSaving();
-        if(isRecording()||phoneSaving()||chargeMeasure.active()||scheduleTestStatus()!=null||alarmPlaying()||alertWatchShown())return false;
-        return chargeLiveHold();
+        return ChargeLiveHold.cardShown(isChargeRecording(),scheduleTestStatus()!=null,isRecording()||phoneSaving(),chargeMeasure.active(),
+                alarmPlaying(),alertWatchShown(),chargeLiveHold());
     }
     private ChargeLiveState chargeLiveState(){
         ChargeLiveHold.Facts facts=chargeLiveFacts();
@@ -1719,16 +1726,23 @@ public final class ScooterService extends Service {
         }
         return ChargeLiveState.of(in,wall->DisplayTime.clock(this,settings,wall));
     }
-    /** The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner, 2026-11-06). */
-    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
+    /** A running recording's charge has stopped and the card would read as charging (ChargeLiveUpdate.recordingStopped). */
+    private boolean chargeLiveStopped(ChargeLiveState live){
+        return isChargeRecording()&&ChargeLiveUpdate.recordingStopped(chargeStore.chargerPaused(),chargeStore.paused(),live.kind);
+    }
+    /**
+     * The bar, scooter name and lock screen version of the live card (Android 8 and later alike); no countdown (owner,
+     * 2026-11-06). text: the card's text (the recording's status while it has stopped charging); capture: the summary.
+     */
+    private void chargeLiveCard(Notification.Builder builder,ChargeLiveState live,CharSequence text,CharSequence capture){
         int red=android.graphics.Color.rgb(0xE3,0x2B,0x2F);
         builder.setColor(red);
         if(live.subText!=null)builder.setSubText(live.subText);
         // Android 16 and later, where allowed: the same card asked to be a Live Update, with ProgressStyle's bar.
-        boolean asked=promoteChargeLive(builder,live,capture);
+        boolean asked=promoteChargeLive(builder,live);
         if(!asked&&live.progress>=0)builder.setProgress(live.max,live.progress,false);
         builder.setShowWhen(false);
-        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(live.text);
+        Notification.BigTextStyle big=new Notification.BigTextStyle().bigText(text);
         if(capture!=null)big.setSummaryText(capture);
         if(!asked)builder.setStyle(big);
         // Only a card Android really promoted takes the dial and the shorter title (ChargeLiveUpdate.Look): asking isn't enough, Android can decline. Everything else stays the plain card, the level in its title.
@@ -1787,10 +1801,12 @@ public final class ScooterService extends Service {
     /**
      * Asks Android to promote the live card: ProgressStyle's bar, the chip's short text and the request. Returns false,
      * with the builder as it was, when Volt doesn't ask (ChargeLiveUpdate.promote) or anything fails; the card is then
-     * the plain one, exactly as before.
+     * the plain one, exactly as before. During a charge recording too (owner, Nov 20 2026): the Live Update is the one
+     * shown without a recording, so the recording's status line (the plain card's summary) isn't on it; while the
+     * recording has stopped charging (chargeLiveStopped) the card stays plain, its text saying so.
      */
-    private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live,CharSequence capture){
-        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),capture!=null))return false;
+    private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live){
+        if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),chargeLiveStopped(live)))return false;
         ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
         ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
         try{
@@ -2284,6 +2300,7 @@ public final class ScooterService extends Service {
         learnedCharger.reset();
         chargerHint.reset();
         chargeProgress.reset();
+        chargeCurrent.reset();
         chargeTaper.reset();
         chargeSlowdown.reset();
     }
@@ -2295,7 +2312,7 @@ public final class ScooterService extends Service {
      */
     private void updateChargerDetection(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
+        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeCurrent.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
         if(ble!=null&&ble.currentTransportSerial().isEmpty()){chargerDetection.disconnected();learnedCharger.disconnected();chargerHint.disconnected();}
         if(ble==null||!ble.ready()||ble.profile()==null||!profile.id.equals(ble.profile().id))return;
         long now=SystemClock.elapsedRealtime();
@@ -2313,6 +2330,7 @@ public final class ScooterService extends Service {
         chargerHint.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.voltage.value:null,
                 paired?frame.current.value:null,paired?frame.current.mono:0,now,stock,fast);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
+        chargeCurrent.observe(profile.id,frame.state.value==1d,paired?frame.current.value:null,paired?frame.current.mono:0);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
         // After detection, so the charger in effect is this frame's. The limit is the scooter's own (unknown counts as 100).
         chargeSlowdown.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),ble.liveNumber("rated_capacity_ah"),
@@ -3523,9 +3541,11 @@ public final class ScooterService extends Service {
         // The live card takes the charge recording's place, or the plain connected notice's while the hold runs.
         ChargeLiveState live = chargeLiveShown() ? chargeLiveState() : null;
         chargeLiveBuilt = live;
+        // #587 F02: a recording whose charge stopped says so in the text itself (the card would read as charging).
+        boolean liveStopped = live != null && chargeLiveStopped(live);
         if (live != null) {
             title = live.title;
-            text = live.text;
+            text = liveStopped ? chargeCaptureStatus() : live.text;
         }
         boolean liveStop = live != null && !isChargeRecording();
         Notification.Builder builder =
@@ -3545,7 +3565,7 @@ public final class ScooterService extends Service {
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
-        if (live != null) chargeLiveCard(builder, live, isChargeRecording() ? chargeCaptureStatus() : null);
+        if (live != null) chargeLiveCard(builder, live, text, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
