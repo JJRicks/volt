@@ -663,6 +663,24 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         return charger==null?0:qualifiedSessions(charger);
     }
+    private ChargeSessionStore.Snapshot learnedFor;private String learnedProfile;private List<ChargeSessionStore.Summary> learned=Collections.emptyList();
+    /**
+     * The active scooter's learned charge curves, one Summary per charger that has one (Charge history & recordings' What
+     * Volt has learned); empty while loading or with none. Main thread; read again only when the snapshot or scooter changes.
+     */
+    public List<ChargeSessionStore.Summary> learnedChargeSummaries(){
+        if(chargeModelLoading||chargeSnapshot==null)return Collections.emptyList();
+        String profile=activeProfileId();
+        if(chargeSnapshot!=learnedFor||!profile.equals(learnedProfile)){
+            List<ChargeSessionStore.Summary> summaries=new ArrayList<>();
+            for(ChargeSessionStore.Charger charger:ChargeSessionStore.Charger.values()){
+                ChargeSessionStore.Curve curve=chargeSnapshot.curves.get(ChargeSessionStore.key(profile,charger));
+                if(curve!=null)summaries.add(curve.summary());
+            }
+            learnedFor=chargeSnapshot;learnedProfile=profile;learned=Collections.unmodifiableList(summaries);
+        }
+        return learned;
+    }
     public String chargeLearningSummary(){
         if(chargeModelLoading)return T.serviceChargeLoading();
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
