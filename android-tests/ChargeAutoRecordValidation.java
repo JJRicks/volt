@@ -390,31 +390,32 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
             require(copy.setLastModified(now - (ChargeSessionStore.MAX_RECORDINGS - i) * 3_600_000L), "Fixture time not set");
         }
         require(new File(folder, first).setLastModified(now - (ChargeSessionStore.MAX_RECORDINGS + 1) * 3_600_000L), "Fixture time not set");
-        Set<String> manual = names();
+        Set<String> manual = journals();
         require(manual.size() == ChargeSessionStore.MAX_RECORDINGS, "Expected " + ChargeSessionStore.MAX_RECORDINGS + " manual fixtures: " + manual.size());
         String oldest = saved()[0].getName();
         require(oldest.equals(first), "Fixture: the first is the oldest");
         ensureFront();
         plugIn();
         awaitRecording(20 * S, "with every saved recording manual");
-        Set<String> running = names(); running.removeIf(name -> name.endsWith(".active"));
+        Set<String> running = journals(); running.removeIf(name -> name.endsWith(".active"));
         require(running.equals(manual) && !onMain(this::latched), "An automatic start with the folder full deleted a saved one or was refused");
         log(ChargeSessionStore.MAX_RECORDINGS + " manual saved: the automatic recording started, nothing deleted");
         main(() -> service.stopChargeRecording());
-        require(names().equals(manual), "An automatic recording that was not kept cost a saved one");
+        require(journals().equals(manual), "An automatic recording that was not kept cost a saved one");
         log("stopped short, not kept: all " + ChargeSessionStore.MAX_RECORDINGS + " still there");
         // Still charging, and held by the hand stop: a recording started by hand, kept, rotates the oldest away. The stop's
-        // refresh reads (and the worker then compresses) the thousand fixtures first; a start waits for its learning.
+        // refresh reads (and the worker then compresses) the thousand fixtures first; a start waits for its learning. The
+        // compression may still run during the checks below, so they compare journals, not its temp files.
         await(() -> onMain(() -> !Boolean.TRUE.equals(field(service, "chargeModelLoading"))), 60 * S, "The charge model did not finish loading");
         require(onMain(() -> service.startChargeRecording(ChargeSessionStore.Charger.STOCK)), "A manual recording did not start with the folder full");
         require(onMain(() -> !chargeStore().automatic()), "Fixture: the recording is manual");
-        Set<String> during = names(); during.removeIf(name -> name.endsWith(".active"));
+        Set<String> during = journals(); during.removeIf(name -> name.endsWith(".active"));
         require(during.equals(manual), "A manual start deleted a saved recording");
-        String id = null; for (String name : names()) if (name.endsWith(".active")) id = name.substring(0, 36);
+        String id = null; for (String name : journals()) if (name.endsWith(".active")) id = name.substring(0, 36);
         require(id != null, "No running journal");
         SystemClock.sleep(2 * S);
         main(() -> service.stopChargeRecording());
-        Set<String> after = names();
+        Set<String> after = journals();
         require(after.size() == ChargeSessionStore.MAX_RECORDINGS && !after.contains(oldest) && after.contains(id + ".csv"),
                 "A kept recording at the limit did not rotate the oldest away: " + after.size() + " saved, oldest still " + after.contains(oldest));
         log("kept at the limit: the oldest went, " + ChargeSessionStore.MAX_RECORDINGS + " saved");
@@ -665,6 +666,8 @@ public final class ChargeAutoRecordValidation extends Instrumentation {
         if (files == null) return new File[0];
         Arrays.sort(files, Comparator.comparingLong(File::lastModified).thenComparing(File::getName)); return files;
     }
+    /** The folder's journals: names() without the worker's compression temp files (<id>.csv.repair), which come and go. */
+    private Set<String> journals() { Set<String> names = names(); names.removeIf(name -> name.endsWith(".repair")); return names; }
     private Set<String> names() { Set<String> names = new TreeSet<>(); File[] files = folder().listFiles(); if (files != null) for (File f : files) names.add(f.getName()); return names; }
     private void log(String line) { timeline.append(SystemClock.elapsedRealtime() / 1000).append("s ").append(line).append('\n'); Bundle status = new Bundle(); status.putString("progress", line); sendStatus(0, status); }
     private StatusBarNotification connection() { for (StatusBarNotification n : getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications()) if (n.getId() == 71) return n; return null; }
