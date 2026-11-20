@@ -57,7 +57,7 @@ public final class ChargeSessionStore {
      * CHOSEN ('a'): the owner chose the charger during this recording (Charger for estimates, while the label was a guess
      * or detected); detection never changes it. Recordings saved before SETTING existed carry 'a' for the charger setting
      * at their start too. DETECTED ('b'): charger detection settled on it. GUESS ('c'): no setting and no detection; it
-     * teaches no curve. SETTING ('d', Volt 2.0.1 and later): the charger setting at the start, provisional: detection
+     * teaches no curve, unless its audit marks it the scooter's stock baseline (LabelAudit.baseline). SETTING ('d', Volt 2.0.1 and later): the charger setting at the start, provisional: detection
      * replaces it when it settles. An older Volt that does not know 'd' reads such a file as a manual recording (it still
      * reads, lists, learns from and restores it; it only stops counting it as automatic).
      */
@@ -68,11 +68,20 @@ public final class ChargeSessionStore {
      * the id beside the source, because a journal line or header field an older Volt does not know makes the whole file
      * unreadable to it. The UUID's variant digit (index 19) is always 8, 9, a or b; an automatic recording that carries the
      * audit has 0, 1 or 2 there (setting: none, STOCK, HIGH_SPEED) and the next digit (index 20) 0, 1 or 2 (detection: none,
-     * STOCK, HIGH_SPEED). Any other id has none ({@link #labelAudit} null).
+     * STOCK, HIGH_SPEED), or 3: nothing detected, and the recording started as the scooter's stock baseline ({@link #baseline}).
+     * Any other id has none ({@link #labelAudit} null). A Volt that does not know 3 reads no audit there and lists, backs up,
+     * restores and exports the file as before; its guess then teaches it nothing.
      */
     public static final class LabelAudit {
         public final Charger setting,detected;
-        LabelAudit(Charger setting,Charger detected){this.setting=setting;this.detected=detected;}
+        /**
+         * The recording started as the scooter's stock baseline (ChargeAutoRecordPolicy.label): an automatic recording on a
+         * model without charger detection, under Automatic, while no recording of either charger taught a curve. Its label
+         * is a guess (STOCK) and shows as one, but it teaches the stock curve ({@link #learnsCurve}).
+         */
+        public final boolean baseline;
+        LabelAudit(Charger setting,Charger detected){this(setting,detected,false);}
+        LabelAudit(Charger setting,Charger detected,boolean baseline){this.setting=setting;this.detected=detected;this.baseline=baseline;}
     }
     /** Which automatic recordings are kept (ChargeAutoRecordPolicy). Manual ones never ask. */
     public interface AutomaticRules {
@@ -526,9 +535,14 @@ public final class ChargeSessionStore {
     }
     /** Null for a manual recording, an automatic one saved before the audit existed, or a malformed id. */
     public static LabelAudit labelAudit(String id){
-        if(labelSource(id)==null||id.length()<36||id.charAt(18)!='-'||auditDigit(id.charAt(19))<0||auditDigit(id.charAt(20))<0)return null;
-        return new LabelAudit(auditCharger(id.charAt(19)),auditCharger(id.charAt(20)));
+        if(labelSource(id)==null||id.length()<36||id.charAt(18)!='-'||auditDigit(id.charAt(19))<0
+                ||auditDigit(id.charAt(20))<0&&id.charAt(20)!=BASELINE_DIGIT)return null;
+        return new LabelAudit(auditCharger(id.charAt(19)),auditCharger(id.charAt(20)),id.charAt(20)==BASELINE_DIGIT);
     }
+    /** The audit's detection digit for "nothing detected; the stock baseline" (LabelAudit.baseline). */
+    private static final char BASELINE_DIGIT='3';
+    /** Whether this id is a recording that started as the scooter's stock baseline (LabelAudit.baseline). */
+    public static boolean baseline(String id){LabelAudit audit=labelAudit(id);return audit!=null&&audit.baseline;}
     private static int auditDigit(char digit){return digit>='0'&&digit<='2'?digit-'0':-1;}
     private static Charger auditCharger(char digit){return digit=='1'?Charger.STOCK:digit=='2'?Charger.HIGH_SPEED:null;}
     private static char auditChar(Charger charger){return charger==null?'0':(char)('1'+charger.ordinal());}
@@ -575,19 +589,29 @@ public final class ChargeSessionStore {
      * label: a DETECTED label from this scooter's learned curves (LearnedChargerMatch) audits no detection.
      */
     public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,long wall,long mono) throws IOException {
-        if(source==null)throw new IllegalArgumentException();
-        begin(profile,charger,source,true,setting,detected,wall,mono);
+        startAutomatic(profile,charger,source,setting,detected,false,wall,mono);
+    }
+    /**
+     * As above; baseline marks a guess as the scooter's stock baseline in the audit (LabelAudit.baseline), so it teaches the
+     * stock curve while it shows as the guess it is. Only a GUESS with nothing detected takes the mark.
+     */
+    public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,boolean baseline,
+            long wall,long mono) throws IOException {
+        if(source==null||baseline&&(source!=LabelSource.GUESS||detected!=null))throw new IllegalArgumentException();
+        begin(profile,charger,source,true,setting,detected,baseline,wall,mono);
     }
     private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
-        begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+        begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,false,wall,mono);
     }
-    private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,long wall,long mono) throws IOException {
+    private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,boolean baseline,
+            long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
         String id=UUID.randomUUID().toString();
         if(source!=null){
             id=automaticId(id,source);
             if(audit)id=auditId(id,setting,detected);
+            if(audit&&baseline){char[] chars=id.toCharArray();chars[20]=BASELINE_DIGIT;id=new String(chars);}
         }
         File file=new File(directory,id+".active");
         append(file,"charge-v2,"+profile+","+charger.name()+","+wall+","+mono+"\n");
@@ -1008,7 +1032,9 @@ public final class ChargeSessionStore {
     private static String auditJson(LabelAudit audit){
         if(audit==null)return "null";
         return "{\"charger_setting_at_start\":\""+(audit.setting==null?"automatic":audit.setting.name())
-                +"\",\"detected_charger\":"+(audit.detected==null?"null":"\""+audit.detected.name()+"\"")+"}";
+                +"\",\"detected_charger\":"+(audit.detected==null?"null":"\""+audit.detected.name()+"\"")
+                // Additive, only when set: the recording started as the scooter's stock baseline (LabelAudit.baseline).
+                +(audit.baseline?",\"stock_baseline\":true":"")+"}";
     }
     public static String key(String profile,Charger charger){return profile+":"+charger.name();}
     /** The battery temperatures (C, inclusive) a fast charge learns from: 68–100 F (owner, Nov 19 2026). */
@@ -1025,9 +1051,10 @@ public final class ChargeSessionStore {
     /**
      * Whether a saved recording may teach its charger's curve: a manual one, or an automatic one whose label was chosen,
      * detected or the charger setting's. A label that is still a guess when the recording ends labels the file and nothing
-     * else. The curve it teaches is its final label (the header, which a relabel rewrites).
+     * else, unless the guess is the scooter's stock baseline (LabelAudit.baseline), which teaches the stock curve. The curve
+     * it teaches is its final label (the header, which a relabel rewrites).
      */
-    public static boolean learnsCurve(String id){return labelSource(id)!=LabelSource.GUESS;}
+    public static boolean learnsCurve(String id){return labelSource(id)!=LabelSource.GUESS||baseline(id);}
     private static String csv(Object value){return value==null?"":value.toString();}
     private static void writeEstimateJson(Writer out,Estimate value)throws IOException{
         if(value==null){out.write("null");return;}

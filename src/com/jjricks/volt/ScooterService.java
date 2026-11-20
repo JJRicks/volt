@@ -571,22 +571,23 @@ public final class ScooterService extends Service {
             return M.serviceChargeAllowNotifications();
         return null;
     }
-    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null,null);}
+    public boolean startChargeRecording(ChargeSessionStore.Charger charger){return startChargeRecording(charger,null,null,null,false);}
     /**
      * source: how an automatic recording's label was chosen (observeAutoCharge), null for the owner's own start; setting:
      * the charger setting at an automatic start (null: Automatic), and detected ChargerDetection's family then (null: none, or
-     * the label came from the learned curves), both kept in its id for audit. Both kinds always find room:
+     * the label came from the learned curves), and baseline whether it is the scooter's stock baseline, all kept in its id for
+     * audit. Both kinds always find room:
      * once saved, a recording rotates the oldest away (ChargeSessionStore's budget).
      */
     private boolean startChargeRecording(ChargeSessionStore.Charger charger,ChargeSessionStore.LabelSource source,ChargeSessionStore.Charger setting,
-            ChargeSessionStore.Charger detected){
+            ChargeSessionStore.Charger detected,boolean baseline){
         if(isChargeRecording())return false;
         CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
             if(source==null)chargeStore.start(activeProfileId(),charger,wall,mono);
-            else chargeStore.startAutomatic(activeProfileId(),charger,source,setting,detected,wall,mono);
+            else chargeStore.startAutomatic(activeProfileId(),charger,source,setting,detected,baseline,wall,mono);
             chargeEndingMono=0;
             chargeRecovery=new ChargeRecoveryPolicy(activeProfileId(),ble.currentTransportSerial(),mono,ble.intentionalDisconnectSequence());
             ble.recordDiagnostic(ConnectionEventLog.Reason.CHARGE_STARTED,-1);
@@ -681,7 +682,8 @@ public final class ScooterService extends Service {
             boolean baseline=chargeSnapshot!=null&&!ChargerDetection.supports(ModelRegistry.chargeReferenceProduct(modelDescriptor(active)));
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),labelDetectedCharger(),
                     qualifiedRecordings(ChargeSessionStore.Charger.STOCK),qualifiedRecordings(ChargeSessionStore.Charger.HIGH_SPEED),baseline);
-            if(!startChargeRecording(label.charger,label.source,label.setting,physicalDetectedCharger())&&!isChargeRecording())autoChargeLatched.add(active.id);
+            if(!startChargeRecording(label.charger,label.source,label.setting,physicalDetectedCharger(),ChargeAutoRecordPolicy.baseline(label))
+                    &&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }
     /**
