@@ -205,8 +205,15 @@ public final class EstimateTipValidation extends ValidationInstrumentation {
     private void charger(boolean lookOnly, boolean recording) throws Exception {
         main(() -> { ScooterService.chargerTipRecordingForTest = recording; ScooterService.chargerTipForTest = ChargeSessionStore.Charger.HIGH_SPEED; });
         try {
-            redrawUntil(() -> tipShown() && ChargeEstimateTip.Tip.OTHER_CHARGER.equals(field(slot(), "tip")), "The charger tip did not show");
             String tag = "charger-" + (recording ? "recording-" : "") + label;
+            redrawUntil(() -> ChargeEstimateTip.Tip.OTHER_CHARGER.equals(field(slot(), "tip")) && (tipShown() || clean && !(Boolean) field(slot(), "fits")),
+                    "The charger tip did not show");
+            if (!tipShown()) {
+                // Clean at this size has no room to spare: the tip makes way (K's rule), and the view is as it was.
+                shot("tip-" + tag);
+                checks.add("Clean at this size has no room to spare: the charger tip makes way");
+                return;
+            }
             main(() -> {
                 TextView pill = pill();
                 String spoken = String.valueOf(pill.getContentDescription());
