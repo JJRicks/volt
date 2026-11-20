@@ -196,6 +196,8 @@ public final class HubText {
         Msg charger = highSpeed ? M.mainRowHighSpeed() : M.mainRowStock();
         return files ? M.hubChargerTipFileAs(charger) : M.hubChargerTipRecordAs(charger);
     }
+    /** Its Save button when the recording it offered has ended or was labelled since (#577 F03): nothing was changed. */
+    public static Msg chargerTipNotSaved() { return M.hubChargerTipNotSaved(); }
     /** The sheet's quiet button that hides the tip for good. */
     public static Msg estimateTipHide() { return M.hubEstimateTipHide(); }
     /**

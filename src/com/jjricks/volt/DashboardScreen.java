@@ -9818,15 +9818,14 @@ public final class DashboardScreen implements AppScreen {
                 if (s == null) return;
                 ChargeSessionStore.Charger family = s.chargerTipFamily();
                 boolean files = s.chargerTipFiles();
-                if (family == null) {
-                    // No charger to name (a charge far below the only stock curve): the record tip's question asks which.
-                    dismiss();
-                    dialog = RecordTipSheet.show(host, preferences, this::recordFromTip, () -> hideTip(tip));
-                    break;
-                }
+                // The tip shows only for a charger Volt can name (RecordChargerHint.show, #577 F01): a run that lapsed just
+                // before the tap opens nothing, and the next refresh takes the tip away.
+                if (family == null) { host.redraw(); return; }
+                // What the sheet offers is decided here, once: its button carries it (#577 F03).
+                long offered = files ? s.chargeRecordingStart() : 0;
                 dismiss();
                 dialog = ChargerTipSheet.show(host, files, family == ChargeSessionStore.Charger.HIGH_SPEED,
-                        () -> chargerTipAction(family), () -> hideTip(tip));
+                        () -> chargerTipAction(family, files, offered), () -> hideTip(tip));
                 break;
             }
             default:
@@ -9862,14 +9861,26 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /**
-     * The charger tip's main button. While Volt records this charge by itself with a guessed charger, that recording is
-     * saved as the named charger (ScooterService.fileChargeRecordingAs, the owner's choice); otherwise a recording of this
-     * charge starts as it (the reason shows when one can't, and the sheet stays). Returns whether the sheet closes.
+     * The charger tip's main button, as the sheet offered it when it opened (#577 F03). Save this recording (files): the
+     * automatic recording the sheet offered (offered, its start) is saved as the named charger, the owner's choice
+     * (ScooterService.fileChargeRecordingAs), even if the far-off run has lapsed since; if that recording has ended or was
+     * labelled since, a short reason shows instead, and this button never starts a recording. Record this charge: as
+     * before, a running automatic guess is filed, else a recording of this charge starts as the charger (the reason shows
+     * when one can't, and the sheet stays). Returns whether the sheet closes.
      */
-    private boolean chargerTipAction(ChargeSessionStore.Charger family) {
+    private boolean chargerTipAction(ChargeSessionStore.Charger family, boolean files, long offered) {
         ScooterService s = host.service();
         if (s == null || closed) return true;
-        if (s.chargerTipFiles()) { s.fileChargeRecordingAs(family); host.redraw(); return true; }
+        if (files) {
+            if (s.fileChargeRecordingAs(family, offered)) host.redraw();
+            else host.toast(HubText.chargerTipNotSaved().render());
+            return true;
+        }
+        if (s.chargerTipFiles()) {
+            if (!s.fileChargeRecordingAs(family)) host.toast(HubText.chargerTipNotSaved().render());
+            host.redraw();
+            return true;
+        }
         if (s.isChargeRecording()) return true;
         String unavailable = s.chargeCaptureUnavailable();
         if (unavailable != null) { host.toast(unavailable); return false; }

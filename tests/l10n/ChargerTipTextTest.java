@@ -32,6 +32,8 @@ public final class ChargerTipTextTest {
         check("Save this recording as High-speed".equals(HubText.chargerTipAction(true, true).render()), HubText.chargerTipAction(true, true).render());
         check("Save this recording as Stock".equals(HubText.chargerTipAction(true, false).render()), HubText.chargerTipAction(true, false).render());
         check(HubText.chargerTipAction(true, true).render().contains(M.mainRowHighSpeed().render()), "High-speed is the charger row's own word");
+        check("That recording has ended or its charger was already set. Nothing was changed.".equals(HubText.chargerTipNotSaved().render()),
+                "The Save button's reason: " + HubText.chargerTipNotSaved().render());
     }
 
     private static void wiring() throws Exception {
@@ -40,9 +42,17 @@ public final class ChargerTipTextTest {
         String strings = read("res/values/strings_hub.xml");
         check(home.contains("next=ChargeEstimateTip.withCharger(next,true,s.recordChargerHint(),stored);"), "The charger tip comes first, from the service's far-off rule");
         check(home.contains("caseOTHER_CHARGER:"), "Its tap is handled");
-        check(home.contains("ChargerTipSheet.show(host,files,family==ChargeSessionStore.Charger.HIGH_SPEED,\n()->chargerTipAction(family),()->hideTip(tip));"),
-                "Its tap opens its sheet, with the charger it files under");
-        check(home.contains("if(s.chargerTipFiles()){s.fileChargeRecordingAs(family);"), "During an automatic guess the button files that recording (CHOSEN, one tap)");
+        check(home.contains("ChargerTipSheet.show(host,files,family==ChargeSessionStore.Charger.HIGH_SPEED,\n()->chargerTipAction(family,files,offered),()->hideTip(tip));"),
+                "Its tap opens its sheet, with the charger it files under and what it offers, decided once (#577 F03)");
+        check(home.contains("longoffered=files?s.chargeRecordingStart():0;"), "Save this recording keeps the recording it offered");
+        check(home.contains("if(family==null){host.redraw();return;}") && !home.contains("ChargerTipSheet.show(host,files,family==null"),
+                "No charger to name: no sheet, never the record tip's (#577 F01)");
+        int files = home.indexOf("if(files){\nif(s.fileChargeRecordingAs(family,offered))host.redraw();\nelsehost.toast(HubText.chargerTipNotSaved().render());\nreturntrue;\n}");
+        check(files > 0, "Save this recording files only that recording, under the charger it named, else says why and closes");
+        int start = home.indexOf("s.startChargeRecording(family);");
+        check(start > files && home.lastIndexOf("privatebooleanchargerTipAction(", start) < files, "Save this recording returns before any recording could start");
+        check(home.contains("if(s.chargerTipFiles()){\nif(!s.fileChargeRecordingAs(family))host.toast(HubText.chargerTipNotSaved().render());"),
+                "During an automatic guess Record this charge files that recording (CHOSEN, one tap), and a failed rename says so");
         check(home.contains("s.startChargeRecording(family);"), "Otherwise it records this charge under that charger");
         check(home.contains("Stringunavailable=s.chargeCaptureUnavailable();\nif(unavailable!=null){host.toast(unavailable);returnfalse;}"), "A recording that can't start says why");
         check(sheet.contains("content.setTag(ChargeEstimateTip.TAG_CHARGER_SHEET);") && sheet.contains("main.setTag(ChargeEstimateTip.TAG_CHARGER_ACTION);")
