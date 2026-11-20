@@ -10,3 +10,4 @@
 {"back":"Expected end: %1$s","key":"charge_live_text_eta","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"6f6df833d3fb8846db45eae307e93dca8b27b5f0","target":"Fim previsto: %1$s"}
 {"back":"Expected end: %1$s · %2$s","key":"charge_live_text_eta_watts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"384dcf86a50b09de18e885e7a7b9261021ebe5f6","target":"Fim previsto: %1$s · %2$s"}
 {"back":"Charge ready by: %1$s","key":"charge_live_text_done_by","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"517cfe7d286a4a817adb7c4abeba5bc3072e0de1","target":"Carga pronta até: %1$s"}
+{"back":"Charging recording · %1$s%%","key":"charge_live_title_recording","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"335d67596533df11bcc3876706452a67bcc3d606","target":"Gravação de carregamento · %1$s%%"}

@@ -10,3 +10,4 @@
 {"back":"Charging start time: %1$s","key":"charge_live_title_waiting_time","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"9e0d3206d5c767badf6d2c49d83cea925a9a1666","target":"Şarj başlangıç saati: %1$s"}
 {"back":"End: %1$s","key":"charge_live_text_eta","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"6f6df833d3fb8846db45eae307e93dca8b27b5f0","target":"Bitiş: %1$s"}
 {"back":"End: %1$s · %2$s","key":"charge_live_text_eta_watts","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"384dcf86a50b09de18e885e7a7b9261021ebe5f6","target":"Bitiş: %1$s · %2$s"}
+{"back":"Charging record · %%%1$s","key":"charge_live_title_recording","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"335d67596533df11bcc3876706452a67bcc3d606","target":"Şarj kaydı · %%%1$s"}
