@@ -368,7 +368,7 @@ for background timeout and handlebar fallback behavior.
 
 ### Find it nearby
 
-Volt connects only to the Bluetooth address it saved for your scooter. If that address changes (after a repair, say), Volt keeps showing **Timed out** and retrying. When the last two tries at the saved address timed out, Home shows **Find it nearby**; you can also open **Settings › My scooters**, tap the scooter's pencil and choose **Find at a new address** at any time (it makes that scooter the current one).
+Volt connects only to the Bluetooth address it saved for your scooter. If that address changes (after a repair, say), Volt keeps showing **Timed out** and retrying. When two tries in a row at the saved address time out while you stay on Home (with Volt on screen), Home shows **Find it nearby**. Opening any other page, or leaving Volt, starts that count again, so the card only comes up while you wait on Home; you can also open **Settings › My scooters**, tap the scooter's pencil and choose **Find at a new address** at any time (it makes that scooter the current one).
 
 Both open the scan sheet as **Find <name> nearby**. It ends any connection first, scans, and lists the nearby scooters of the same model, closest first (a line says how many of another model it left out). The saved address, if Volt hears it, is marked **Saved address** and already selected. A scooter saved under another of your profiles is shown greyed and can't be picked.
 
