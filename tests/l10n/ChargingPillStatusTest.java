@@ -140,28 +140,41 @@ public final class ChargingPillStatusTest {
     }
 
     private static void keptLine() {
+        // The line wraps (taller than its one-line short form): the short form is kept.
+        keptLine(46, 23, true);
+        // The line is already one line, as tall as the short form (the slowed pill's longest rung that fits): the line
+        // itself is kept, not the short form's last rung (council P3 on #568).
+        keptLine(23, 23, false);
+        // A short form taller than the line (never expected): the line, as in the plain plan.
+        keptLine(23, 30, false);
+    }
+
+    private static void keptLine(int line, int shortLine, boolean wantShort) {
         float density = 1;
-        int line = 46, shortLine = 23, percent = 90, readings = 66;
+        int percent = 90, readings = 66;
+        String at = " (line " + line + ", short " + shortLine + ")";
         boolean dropped = false;
         for (int inner = 420; inner >= 0; inner--) {
             ChargingFit.Plan plain = ChargingFit.plan(inner, line, shortLine, percent, readings, density);
             ChargingFit.Plan kept = ChargingFit.plan(inner, line, shortLine, percent, readings, density, true);
             ChargingFit.Plan off = ChargingFit.plan(inner, line, shortLine, percent, readings, density, false);
-            check(off.toString().equals(plain.toString()) && off.kept == 0, "keepLine false is the plain plan at " + inner);
+            check(off.toString().equals(plain.toString()) && off.kept == 0, "keepLine false is the plain plan at " + inner + at);
             if (plain.line) {
-                check(kept.toString().equals(plain.toString()) && kept.kept == 0, "a line that shows anyway: the plain plan at " + inner);
+                check(kept.toString().equals(plain.toString()) && kept.kept == 0, "a line that shows anyway: the plain plan at " + inner + at);
                 continue;
             }
             dropped = true;
-            check(kept.line && kept.shortLine, "slowed: the short line stays at " + inner);
-            check(kept.kept == shortLine + ChargingFit.LINE_GAP_DP, "the kept line's height at " + inner);
+            check(kept.line && kept.shortLine == wantShort,
+                    "slowed: the " + (wantShort ? "short line" : "line") + " stays at " + inner + at + ": " + kept);
+            int shown = kept.shortLine ? shortLine : line;
+            check(kept.kept == shown + ChargingFit.LINE_GAP_DP, "the kept height is the line that shows at " + inner + at);
             int stacked = kept.stacked(line, shortLine, ChargingFit.LINE_GAP_DP, readings);
-            check(stacked <= Math.max(inner, kept.kept + readings), "the kept plan fits the slot at " + inner + " (" + stacked + ")");
+            check(stacked <= Math.max(inner, kept.kept + readings), "the kept plan fits the slot at " + inner + at + " (" + stacked + ")");
             ChargingFit.Plan rest = ChargingFit.plan(inner - kept.kept, line, shortLine, percent, readings, density);
             check(kept.stageHeight == rest.stageHeight && kept.percentScale == rest.percentScale && kept.readings == rest.readings,
-                    "the rest is planned in what the line leaves at " + inner);
+                    "the rest is planned in what the line leaves at " + inner + at);
         }
-        check(dropped, "the slots tried include one where the plain plan lets the line go");
+        check(dropped, "the slots tried include one where the plain plan lets the line go" + at);
     }
 
     // ---- Helpers -----------------------------------------------------------------------------------------

@@ -150,17 +150,20 @@ final class ChargingFit {
     /**
      * {@link #plan(int, int, int, int, int, float)}, with the line kept where {@code keepLine}: the pill while charging
      * is slowed (the owner's pick, Nov 19 2026), which must not vanish on a short slot (344 dp at the largest text) as
-     * the normal pill may. Where the plain plan lets the line make way, its one-line short form stays at the slot's
-     * top with its gap, and the rest is planned, line-less, in the height left (Plan.kept). Where the line shows
+     * the normal pill may. Where the plain plan lets the line make way, the line stays at the slot's top with its gap,
+     * in its one-line short form only where that is shorter (as in the plain plan), and the rest is planned, line-less, in the height left (Plan.kept). Where the line shows
      * anyway, the plan is the plain one.
      */
     static Plan plan(int inner, int lineHeight, int shortLineHeight, int percentHeight, int readingsHeight, float density,
                      boolean keepLine) {
         Plan plan = plan(inner, lineHeight, shortLineHeight, percentHeight, readingsHeight, density);
         if (!keepLine || plan.line) return plan;
-        int brief = Math.min(shortLineHeight, lineHeight) + dp(LINE_GAP_DP, density);
+        // As in the plain plan, the short form stands in only where it is shorter: where the line is already one line
+        // (the slowed pill's longest rung that fits, DashboardScreen.fitPill), the line itself is kept.
+        boolean shortens = shortLineHeight < lineHeight;
+        int brief = (shortens ? shortLineHeight : lineHeight) + dp(LINE_GAP_DP, density);
         Plan rest = plan(Math.max(0, inner - brief), lineHeight, shortLineHeight, percentHeight, readingsHeight, density);
-        return new Plan(true, true, rest.percent, rest.percentScale, rest.stageHeight, rest.photoHeight, rest.track,
+        return new Plan(true, shortens, rest.percent, rest.percentScale, rest.stageHeight, rest.photoHeight, rest.track,
                 rest.readings, rest.readingsGap, brief);
     }
 

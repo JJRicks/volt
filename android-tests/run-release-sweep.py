@@ -208,6 +208,12 @@ STEPS += [
     inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # The charging pill's states (charging, the limit, slowed hot, cold and plain, back): phones at 412 and 344 dp, the
+    # Fold unfolded, and Clean at 344 dp with the largest Text size, where a slowed pill keeps its short rung.
+    inst('charging-pill-412', T + 'ChargingPillValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charging-pill-344', T + 'ChargingPillValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('charging-pill-fold', T + 'ChargingPillValidation', '-e', 'size_label', 'fold', size='790x820'),
+    inst('charging-pill-344-large', T + 'ChargingPillValidation', '-e', 'size_label', '344', '-e', 'text', '1.8', '-e', 'styles', 'clean', '-e', 'unit', 'c', size=PHONE[0]),
     # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
     # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's
     # sizes and the Fold's folded and unfolded screens. With a network the "on" pictures show tiles.
