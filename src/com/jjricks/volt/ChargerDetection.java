@@ -34,6 +34,9 @@ public final class ChargerDetection {
     private boolean relinked;
     private double lastSoc = Double.NaN;
 
+    /** Whether detection knows this model's chargers (the UT5 MAX's two); on any other model it never settles. */
+    public static boolean supports(int productId) { return productId == Ut5MaxStockChargeReference.PRODUCT_ID; }
+
     /** Clears inference at a scooter, charging-state or manual-selection boundary. */
     public void reset() {
         profile = null;
@@ -63,7 +66,7 @@ public final class ChargerDetection {
     public ChargeSessionStore.Charger observe(String profile, int productId, boolean charging,
             Double soc, Double volts, Double amps, long frameMs, long nowMs) {
         if (profile == null || profile.isEmpty() || nowMs <= 0) return null;
-        boolean supported = productId == Ut5MaxStockChargeReference.PRODUCT_ID;
+        boolean supported = supports(productId);
         if (!supported || !charging || !profile.equals(this.profile) || nowMs < lastNow
                 || lastValid > 0 && nowMs - lastValid > RETAIN_MS
                 || between(soc, 0, 100) && soc <= lastSoc - 1) reset();

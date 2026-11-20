@@ -66,8 +66,13 @@ public final class ChargeAutoRecordPolicy {
         final ChargeSessionStore.Charger charger; final ChargeSessionStore.LabelSource source;
         /** The charger setting at the start (null: Automatic), kept in the recording's id for audit. */
         final ChargeSessionStore.Charger setting;
+        /** A stock guess that is the scooter's baseline: it teaches the stock curve (see the 5-argument label). */
+        final boolean baseline;
         Label(ChargeSessionStore.Charger charger, ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger setting) {
-            this.charger = charger; this.source = source; this.setting = setting;
+            this(charger, source, setting, false);
+        }
+        Label(ChargeSessionStore.Charger charger, ChargeSessionStore.LabelSource source, ChargeSessionStore.Charger setting, boolean baseline) {
+            this.charger = charger; this.source = source; this.setting = setting; this.baseline = baseline;
         }
     }
 
@@ -94,11 +99,34 @@ public final class ChargeAutoRecordPolicy {
      * {@link #detectedLabel}'s family (null: neither detection nor, under Automatic, the learned curves have settled).
      */
     public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
+        return label(setting, detected, stockRecordings, fastRecordings, false);
+    }
+
+    /**
+     * As above, with the first charge as a baseline (owner, Nov 19 2026: "a user records a charge, that's the baseline…
+     * next time with the high speed, that records as a separate curve"). baseline: the scooter's model has no charger
+     * detection (ChargerDetection.supports false) and its saved recordings are known (a snapshot has loaded). Then, under
+     * Automatic with nothing detected or matched and no recording of either charger that teaches a curve (the baseline
+     * itself counts as one once saved), the recording is the stock guess marked as the scooter's baseline
+     * ({@link Label#baseline}, kept in the id's audit, ChargeSessionStore.LabelAudit.baseline). It shows as the guess it is
+     * (nothing was detected), but it teaches the stock curve, and the next charges match it by power (LearnedChargerMatch);
+     * a charger far off it gets the hint, never a label. On a model with detection (the UT5 MAX) the recording keeps
+     * today's plain guess, so its physical rules name the charger. Accepted: a first charge on a high-speed charger is
+     * filed as stock on these models; the curve still matches that charger's power there, since no bundled reference
+     * stands behind the name.
+     */
+    public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings,
+            boolean baseline) {
         if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED, setting);
+        if (setting == null && baseline && stockRecordings == 0 && fastRecordings == 0)
+            return new Label(ChargeSessionStore.Charger.STOCK, ChargeSessionStore.LabelSource.GUESS, null, true);
         if (setting != null) return new Label(setting, ChargeSessionStore.LabelSource.SETTING, setting);
         return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK,
                 ChargeSessionStore.LabelSource.GUESS, null);
     }
+
+    /** Whether this start label is the scooter's stock baseline (the service passes it to the store's audit). */
+    public static boolean baseline(Label label) { return label != null && label.baseline; }
 
     /**
      * The family automatic recordings take as DETECTED ({@link #label} and {@link #relabel}'s detected), or null.

@@ -342,14 +342,20 @@ already charging starts then; the recording is partial.
   power at this battery level matches the live power (Auto's choice for
   estimates); it never replaces the charger setting, and a charge far off your
   only recorded charger never labels anything (it only suggests recording that
-  charger). A detected label follows detection when it settles on the other
+  charger). On a model without charger detection (every model but the UT5
+  MAX), under Automatic, the first automatic recording with nothing to match
+  (no recording of either charger teaches a curve yet) is the scooter's
+  **stock baseline**: a stock guess, shown as a guess everywhere, that still
+  teaches the stock curve, so the next charges can match it (a first charge on a
+  high-speed charger is then filed as stock). A detected label follows detection when it settles on the other
   charger; a guess becomes detected as soon as detection settles, on either
   charger, so a recording stays a guess only when detection never settled; a
   chosen one never changes. Only a chosen or detected label is
   the charger in effect: a guess labels the file and nothing else, so estimates,
   Charge done by and the charging view keep waiting for your choice or for
   detection, and a recording that ends with a guessed label is kept in the list
-  (marked as a guess) but teaches no charger curve. Its gauge readings still count
+  (marked as a guess) but teaches no charger curve, unless it is the stock
+  baseline. Its gauge readings still count
   toward the battery capacity estimate, which does not depend on the charger.
 - **Choosing during one.** The charger choice stays open during an automatic
   recording whose label you did not choose (a guess or a detected label): your
@@ -410,19 +416,27 @@ was chosen (see the [storage inventory](app-storage-inventory.md)); older Volt
 reads it as an ordinary recording. **Export charge recordings** and **Email to
 Volt** add `started_automatically` (true or false) and `label_source`
 (`setting`, `detected`, `chosen`, `guess`, or null for a manual recording) to each
-charge; `qualified_for_learning` is false for a guess. `setting` is the charger
-setting's label, kept because detection never settled; `detected` means charger
-detection settled on it (it outranks the setting, 2.0.1 and later) or, under
-Automatic, that its power matched that charger's saved recordings (the learned
-match, 2.0.1 and later); `chosen` means
-you chose the charger during the recording (on recordings from before 2.0.1, also
-the setting at its start). From 2.0.1 an automatic recording also has
-`label_audit`: `charger_setting_at_start` (`automatic`, `STOCK` or `HIGH_SPEED`)
-and `detected_charger` (the family charger detection last settled on, or null); it
-is detection's alone, never the learned match, so a `detected` label with a null
-`detected_charger` came from the learned match. `label_audit` is
-null for manual and older recordings. `charger` is always the final label, the
-one learning uses.
+charge, and `label_audit` from 2.0.1 (null for manual and older recordings):
+`charger_setting_at_start` (`automatic`, `STOCK` or `HIGH_SPEED`),
+`detected_charger` (the family charger detection last settled on, or null; it is
+detection's alone, never a learned match) and, only when true, `stock_baseline`.
+What the combinations mean:
+
+- `setting`: the charger setting's label, kept because detection never settled.
+- `detected` with a `detected_charger`: charger detection settled on it (it
+  outranks the setting).
+- `detected` with `detected_charger` null: under Automatic, its power matched
+  that charger's saved recordings (the learned match).
+- `guess` with `stock_baseline: true`: the scooter's stock baseline (above); it
+  teaches the stock curve.
+- `guess` without it: a guess; it teaches nothing.
+- `chosen`: you chose the charger during the recording (on recordings from
+  before 2.0.1, also the setting at its start).
+
+`qualified_for_learning` says whether the recording teaches its charger's curve:
+false for a plain guess, and for any recording too short or sparse to learn
+from. An older Volt reads the baseline as a plain guess. `charger` is always
+the final label, the one learning uses.
 
 The interface adapts to compact/expanded windows. Folding a foldable halfway
 (book or tabletop posture) leaves the screen exactly as it is: a crease never

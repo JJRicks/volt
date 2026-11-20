@@ -719,7 +719,10 @@ public final class ChargeAutoRecordPolicyTest {
             else check(!h.automatic && h.labelSource == null && h.labelAudit == null && h.charger == STOCK, "An old manual file reads as before");
         }
         check(ChargeSessionStore.labelAudit("11111111-1111-a111-2111-111111111111") != null && ChargeSessionStore.labelAudit("11111111-1111-a111-3111-111111111111") == null
-                && ChargeSessionStore.labelAudit("11111111-1111-a111-1311-111111111111") == null && ChargeSessionStore.labelAudit("short") == null, "Only 0-2 digits are an audit");
+                && ChargeSessionStore.labelAudit("11111111-1111-a111-1411-111111111111") == null && ChargeSessionStore.labelAudit("short") == null, "Only 0-2 digits are an audit");
+        // From the first-charge baseline on, 3 in the detection digit (index 20) also reads: nothing detected, the stock baseline.
+        ChargeSessionStore.LabelAudit marked = ChargeSessionStore.labelAudit("11111111-1111-c111-1311-111111111111");
+        check(marked != null && marked.baseline && marked.detected == null && marked.setting == STOCK, "3 at index 20 is the baseline mark");
         ChargeSessionStore.Snapshot snapshot = store.snapshot();
         check(snapshot.curves.get(ChargeSessionStore.key("one", FAST)) != null && snapshot.curves.get(ChargeSessionStore.key("one", STOCK)) != null, "Both still teach their curves");
         StringWriter out = new StringWriter(); store.exportJson("one", out); String json = out.toString();

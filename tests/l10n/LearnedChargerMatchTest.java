@@ -1,5 +1,7 @@
 package com.jjricks.volt;
 
+import java.io.File;
+import java.util.List;
 import java.util.function.DoubleUnaryOperator;
 
 /**
@@ -32,6 +34,8 @@ public final class LearnedChargerMatchTest {
         auditKeepsPhysicalDetection();
         learnedMatchNeverMismatch();
         estimatorVersionFits();
+        baselineLabel();
+        baselineCharges();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -247,8 +251,11 @@ public final class LearnedChargerMatchTest {
     }
 
     /** A learned match labels as DETECTED, but the audit keeps only ChargerDetection's family (council round 1, finding 4). */
+    static final java.util.Map<ChargeSessionStore, File> FOLDERS_OF = new java.util.IdentityHashMap<>();
     static ChargeSessionStore automaticStore() throws Exception {
-        return new ChargeSessionStore(java.nio.file.Files.createTempDirectory("learned-charger-audit-").toFile(), ChargeAutoRecordPolicy.RULES);
+        File folder = java.nio.file.Files.createTempDirectory("learned-charger-audit-").toFile();
+        ChargeSessionStore store = new ChargeSessionStore(folder, ChargeAutoRecordPolicy.RULES);
+        FOLDERS_OF.put(store, folder); return store;
     }
     static void auditKeepsPhysicalDetection() throws Exception {
         long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
@@ -475,6 +482,149 @@ public final class LearnedChargerMatchTest {
         ChargeSessionStore.Estimate estimate = new ChargeSessionStore.Estimate(version, 30d, null, null, null, null, 0);
         check(version.equals(estimate.version), "Estimate accepts the current version");
         check(ChargingEstimate.recordingSnapshot(null).version.equals(version), "A recording's snapshot carries it");
+    }
+
+    // ---- the first automatic charge as the baseline (models without charger detection) ----
+
+    static final int OTHER = -1, UT5 = Ut5MaxStockChargeReference.PRODUCT_ID;
+
+    /** label(setting, detected, stock, fast, baseline): the baseline only when nothing else says anything. */
+    static void baselineLabel() {
+        check(!ChargerDetection.supports(OTHER) && ChargerDetection.supports(UT5), "Detection knows only the UT5 MAX");
+        ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(null, null, 0, 0, true);
+        check(l.charger == STOCK && l.source == ChargeSessionStore.LabelSource.GUESS && l.setting == null && ChargeAutoRecordPolicy.baseline(l),
+                "No detection on the model, Automatic, nothing saved: the stock guess, marked as the baseline");
+        l = ChargeAutoRecordPolicy.label(null, null, 0, 0, false);
+        check(l.charger == STOCK && l.source == ChargeSessionStore.LabelSource.GUESS && !ChargeAutoRecordPolicy.baseline(l),
+                "UT5 MAX (or no snapshot yet): today's plain guess");
+        check(!ChargeAutoRecordPolicy.baseline(ChargeAutoRecordPolicy.label(null, null, 0, 0)), "The old form is unchanged");
+        l = ChargeAutoRecordPolicy.label(FAST, null, 0, 0, true);
+        check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.SETTING && !ChargeAutoRecordPolicy.baseline(l), "A charger setting wins");
+        l = ChargeAutoRecordPolicy.label(null, FAST, 0, 0, true);
+        check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.DETECTED && !ChargeAutoRecordPolicy.baseline(l), "A detection or a learned match wins");
+        l = ChargeAutoRecordPolicy.label(null, null, 1, 0, true);
+        check(l.source == ChargeSessionStore.LabelSource.GUESS && !ChargeAutoRecordPolicy.baseline(l), "A teaching stock recording (the baseline too): a plain guess");
+        l = ChargeAutoRecordPolicy.label(null, null, 0, 1, true);
+        check(l.charger == FAST && l.source == ChargeSessionStore.LabelSource.GUESS && !ChargeAutoRecordPolicy.baseline(l),
+                "A high-speed curve exists, nothing matched: the plain guess, never a second baseline");
+        // During the baseline recording every screen keeps the guess presentation: not the charger in effect (the live
+        // Charger rows read "Automatic", never "Detected from power"), the choice open, and the guessed mark on the page.
+        check(!ChargeAutoRecordPolicy.countsAsCharger(ChargeSessionStore.LabelSource.GUESS), "A guess is not the charger in effect");
+        check(ChargeAutoRecordPolicy.choiceAllowed(true, ChargeSessionStore.LabelSource.GUESS), "The owner may still choose the charger");
+    }
+
+    /** One automatic charge on Automatic, as observeAutoCharge starts and labels it, then saved; returns its id. */
+    static String autoCharge(ChargeSessionStore store, int product, long wall) throws Exception {
+        ChargeSessionStore.Snapshot snap = store.snapshot();
+        ChargeSessionStore.Curve stock = snap.curves.get(ChargeSessionStore.key(ONE, STOCK)), fast = snap.curves.get(ChargeSessionStore.key(ONE, FAST));
+        LearnedChargerMatch m = new LearnedChargerMatch();
+        ChargeSessionStore.Charger learned = feed(m, ONE, 40, 104, new long[]{1000}, 3, stock, fast);
+        ChargeAutoRecordPolicy.Label l = ChargeAutoRecordPolicy.label(null, ChargeAutoRecordPolicy.detectedLabel(null, null, learned),
+                snap.qualifiedRecordings(ONE, STOCK), snap.qualifiedRecordings(ONE, FAST), !ChargerDetection.supports(product));
+        long mono = ChargeSessionStoreTest.MONO;
+        store.startAutomatic(ONE, l.charger, l.source, l.setting, null, ChargeAutoRecordPolicy.baseline(l), wall, mono);
+        check(store.labelAudit() != null && store.labelAudit().detected == null, "The audit records no detection");
+        check(store.labelAudit().baseline == ChargeAutoRecordPolicy.baseline(l), "The audit carries the baseline mark");
+        for (long t = 0; t <= 50 * 60000L; t += 10000) {
+            long at = mono + t;
+            store.sample(new ChargeSessionStore.Frame(wall + t, at, ChargeSessionStoreTest.value(1d, at), ChargeSessionStoreTest.value(30d + t / 60000, at),
+                    ChargeSessionStoreTest.value(V, at), ChargeSessionStoreTest.value(-2d, at), ChargeSessionStoreTest.value(25d, at)));
+        }
+        check(store.labelSource() == l.source, "The label holds to the end");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        List<ChargeSessionStore.HistorySession> saved = store.recordings(ONE);
+        return saved.get(0).id;
+    }
+    static String export(ChargeSessionStore store, String id) throws Exception {
+        java.io.StringWriter out = new java.io.StringWriter(); store.exportJson(ONE, out); String json = out.toString();
+        int at = json.indexOf("\"id\":\"" + id + "\"");
+        check(at >= 0, "Exported: " + id);
+        return json.substring(at, json.indexOf("\"schedule_pauses\"", at));
+    }
+
+    static void baselineCharges() throws Exception {
+        long wall = ChargeSessionStoreTest.WALL;
+        // A model without detection: the first automatic charge is the marked stock guess, and it teaches.
+        ChargeSessionStore store = automaticStore();
+        String first = autoCharge(store, OTHER, wall);
+        check(ChargeSessionStore.labelSource(first) == ChargeSessionStore.LabelSource.GUESS && ChargeSessionStore.baseline(first)
+                && first.charAt(20) == '3', "Saved as the guess it is, marked as the baseline: " + first);
+        ChargeSessionStore.Curve curve = store.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK));
+        check(curve != null && curve.qualifiedSessions == 1, "The baseline teaches the stock curve");
+        check(store.snapshot().qualifiedRecordings(ONE, STOCK) == 1, "It counts as a teaching recording, so no second baseline");
+        // The second charge matches it by power: detected, no detection audited, no mark.
+        String second = autoCharge(store, OTHER, wall + 100 * 60000L);
+        check(ChargeSessionStore.labelSource(second) == ChargeSessionStore.LabelSource.DETECTED && !ChargeSessionStore.baseline(second),
+                "Second automatic charge: the learned match, detected");
+        curve = store.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK));
+        check(curve != null && curve.qualifiedSessions == 2, "Two automatic charges: a curve from both: " + (curve == null ? 0 : curve.qualifiedSessions));
+        // The exports tell them apart.
+        String a = export(store, first), b = export(store, second);
+        check(a.contains("\"label_source\":\"guess\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null,\"stock_baseline\":true}")
+                && a.contains("\"qualified_for_learning\":true"), "Baseline export: guess, marked, learning: " + a);
+        check(b.contains("\"label_source\":\"detected\",\"label_audit\":{\"charger_setting_at_start\":\"automatic\",\"detected_charger\":null}")
+                && !b.contains("stock_baseline"), "Power-match export: detected, no mark: " + b);
+        // An unmarked guess still teaches nothing.
+        ChargeSessionStore plain = automaticStore();
+        plain.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.GUESS, null, null, wall, ChargeSessionStoreTest.MONO);
+        for (long t = 0; t <= 50 * 60000L; t += 10000) { long at = ChargeSessionStoreTest.MONO + t;
+            plain.sample(new ChargeSessionStore.Frame(wall + t, at, ChargeSessionStoreTest.value(1d, at), ChargeSessionStoreTest.value(30d + t / 60000, at),
+                    ChargeSessionStoreTest.value(V, at), ChargeSessionStoreTest.value(-2d, at), ChargeSessionStoreTest.value(25d, at))); }
+        plain.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        String guess = plain.recordings(ONE).get(0).id;
+        check(!ChargeSessionStore.baseline(guess) && plain.snapshot().curves.isEmpty() && !ChargeSessionStore.learnsCurve(guess), "An unmarked guess teaches nothing");
+        boolean refused = false;
+        try { plain.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.DETECTED, null, null, true, wall, ChargeSessionStoreTest.MONO); }
+        catch (IllegalArgumentException expected) { refused = true; }
+        check(refused && !plain.active(), "Only a guess with nothing detected takes the mark");
+        // A backup round trip (the file by name, restaged for its scooter) keeps the mark and its teaching.
+        File backup = java.nio.file.Files.createTempDirectory("baseline-restore-").toFile();
+        File source = null;
+        for (File file : FOLDERS_OF.get(store).listFiles()) if (file.getName().startsWith(first)) source = file;
+        check(source != null && source.getName().equals(first + ".csv"), "The baseline's file");
+        File copy = new File(backup, source.getName());
+        java.nio.file.Files.copy(source.toPath(), copy.toPath());
+        ChargeSessionStore.reassignJournal(copy, ONE);
+        ChargeSessionStore restored = new ChargeSessionStore(backup, ChargeAutoRecordPolicy.RULES);
+        check(restored.recordings(ONE).size() == 1 && ChargeSessionStore.baseline(restored.recordings(ONE).get(0).id),
+                "Restored: listed and still marked");
+        ChargeSessionStore.Curve back = restored.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK));
+        check(back != null && back.qualifiedSessions == 1, "Restored: it still teaches the stock curve");
+        // An older build: Volt 2.0.0 and earlier 2.0.1 accept the name (its patterns) and read the guess; their audit reads
+        // digits 0-2 only, so it gives no audit (a plain guess there, teaching nothing) while the file stays listed.
+        check(first.matches("[a-f0-9-]{36}") && first.matches("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")
+                && first.charAt(14) == 'c', "Older builds' name patterns accept it, as a guess");
+        char detectionDigit = first.charAt(20);
+        check(!(detectionDigit >= '0' && detectionDigit <= '2'), "An older build's audit rejects the mark (no audit)");
+        check(ChargeSessionStore.labelAudit(first.substring(0, 20) + '0' + first.substring(21)) != null
+                && !ChargeSessionStore.labelAudit(first.substring(0, 20) + '0' + first.substring(21)).baseline, "Without the mark: an ordinary audit");
+        // The UT5 MAX keeps today's guess: nothing is learned from automatic charges its detection never placed.
+        ChargeSessionStore ut5 = automaticStore();
+        String u1 = autoCharge(ut5, UT5, wall), u2 = autoCharge(ut5, UT5, wall + 100 * 60000L);
+        check(!ChargeSessionStore.baseline(u1) && !ChargeSessionStore.baseline(u2)
+                && ChargeSessionStore.labelSource(u1) == ChargeSessionStore.LabelSource.GUESS && ut5.snapshot().curves.isEmpty(), "UT5 MAX: plain guesses, no curve");
+        // The next charge on the other model: before the match settles, the current rate; after, the baseline's curve,
+        // provisional, and Charge done by plans with the longer of the two.
+        ChargeSessionStore one = automaticStore();
+        autoCharge(one, OTHER, wall);
+        ChargeSessionStore.Curve baseline = one.snapshot().curves.get(ChargeSessionStore.key(ONE, STOCK));
+        ChargingEstimate.Result base = ChargingEstimate.calculate(live(1), live(V), live(-2), live(40), live(10), live(70));
+        ChargingEstimate.Result before = ChargingEstimate.forScooter(base, live(40), live(10), OTHER, null, null);
+        LearnedChargerMatch m = new LearnedChargerMatch();
+        long[] t = {1000};
+        check(feed(m, ONE, 40, 104, t, 2, baseline, null) == null, "Two frames: not settled yet");
+        check(!before.learnedToLimit && before.remainingMinutesToLimit.equals(before.planningMinutesToLimit), "Before it settles: the current rate");
+        ChargeSessionStore.Charger picked = feed(m, ONE, 40, 104, t, 1, baseline, null);
+        check(picked == STOCK, "Three frames: the baseline is picked");
+        ChargingEstimate.Result after = ChargingEstimate.forScooter(base, live(40), live(10), OTHER, picked, baseline);
+        check(after.learnedToLimit && after.provisional, "After: the baseline's provisional time");
+        check(after.remainingMinutesToLimit < before.remainingMinutesToLimit && after.planningMinutesToLimit.equals(before.remainingMinutesToLimit),
+                "Charge done by plans with the longer of it and the current rate: " + after.remainingMinutesToLimit + " / " + after.planningMinutesToLimit);
+        // A far-off charger against the baseline: the hint, as for any one-charger history.
+        RecordChargerHint h = new RecordChargerHint();
+        long[] u = {1000};
+        hintFeed(h, 50, 450, u, 13, baseline, null);
+        check(h.sustained(ONE, u[0]) && h.otherFamily(ONE, u[0]) == FAST, "High-speed power far off the baseline: the hint");
     }
 
     // ---- the estimate under Automatic ----
