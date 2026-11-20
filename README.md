@@ -14,7 +14,7 @@
   &nbsp;
   <img src="docs/images/readme-charging.webp" height="380" alt="Clean Home while charging: the battery level over the scooter's picture, charging power and the estimated time to full">
   &nbsp;
-  <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery, trip, ride time and power readouts">
+  <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery, trip, ride time, battery temperature and power readouts">
 </p>
 
 An Android companion for **NAVEE scooters**. Connect over Bluetooth, control your scooter, make the dashboard yours, and explore your rides and battery data. Everyday use works without a Volt account or server.
