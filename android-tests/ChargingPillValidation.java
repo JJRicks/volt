@@ -49,7 +49,7 @@ import com.jjricks.volt.*;
  * Android's animations on and changes at once with them off. Each state is captured, cropped to the pill and the
  * percentage, with a contact sheet per Home style (a JPEG beside them). Sends no scooter command.
  */
-public final class ChargingPillValidation extends Instrumentation {
+public final class ChargingPillValidation extends ValidationInstrumentation {
     private static final String[] STATES = {"charging", "limit", "hot", "cold", "slowed", "back"};
     private MainActivity activity;
     private ScooterService service;
@@ -59,7 +59,12 @@ public final class ChargingPillValidation extends Instrumentation {
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     private String animatorScale;
 
-    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
+    @Override public void onCreate(Bundle arguments) {
+        args = arguments == null ? new Bundle() : arguments;
+        // It checks the pill's crossfade, which the endless-motion hold would draw at once: motion runs as on a phone.
+        runEndlessMotion();
+        start();
+    }
     @Override public void onStart() {
         Bundle result = new Bundle();
         try {
