@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var bar = document.getElementById('moment-switch');
   var texts = Array.prototype.slice.call(document.querySelectorAll('.m-text[data-moment]'));
   var buttons = bar ? Array.prototype.slice.call(bar.querySelectorAll('button[data-moment]')) : [];
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   // Two panes with the Home held in view (styles.css: the sticky pane).
   var twoPanes = window.matchMedia('(min-width: 1024px) and (min-height: 760px)');
 
@@ -45,12 +44,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { rootMargin: '-45% 0px -50% 0px' }).observe(hero);
   }
 
-  // ----- The charging glow: breathes only while shown, in view, and the page visible and focused. -----
+  // ----- The charging glow: breathes while the charging view shows (CSS); paused in place, not reset, while the
+  // Home is off screen or the page is hidden or unfocused, so it resumes mid-breath. Reduced motion: none (CSS). -----
   var inView = true, focused = document.hasFocus ? document.hasFocus() : true;
   function breathe() {
     if (!area) return;
-    var on = current === 'charging' && inView && focused && !document.hidden && !reduced.matches;
-    area.classList.toggle('breathing', on);
+    area.classList.toggle('paused', !(inView && focused && !document.hidden));
   }
   if (area && 'IntersectionObserver' in window) {
     new IntersectionObserver(function (entries) { inView = entries[0].isIntersecting; breathe(); }).observe(area);
@@ -59,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('focus', function () { focused = true; breathe(); });
   window.addEventListener('blur', function () { focused = false; breathe(); });
   window.addEventListener('pagehide', function () { focused = false; breathe(); });
-  if (reduced.addEventListener) reduced.addEventListener('change', breathe);
 
   // ----- Sample Lock bar: drag the thumb (or press it); past halfway it snaps over in 180 ms. -----
   var lock = document.getElementById('lock');
