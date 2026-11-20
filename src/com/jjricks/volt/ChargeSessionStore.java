@@ -719,14 +719,14 @@ public final class ChargeSessionStore {
      */
     public int exportJson(String targetProfile, Writer out) throws IOException {
         if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Select a scooter");
-        final List<File> source;
+        final List<File> files;
         synchronized(this){
             if(active!=null)throw new IllegalStateException("Stop charge recording before exporting");
-            source=files();
+            files=files();
         }
         out.write("{\"format\":\"navee-charge-recordings-v1\",\"charger_selection\":\"manual\",\"sessions\":[");
         int count=0;
-        for(File file:source) {
+        for(File file:files) {
             if(!file.getName().endsWith(".csv"))continue;
             Facts facts;Session session;
             try{
