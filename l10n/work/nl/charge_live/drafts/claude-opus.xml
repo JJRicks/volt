@@ -6,6 +6,7 @@
     <string name="charge_live_title_waiting" volt:src="00e37e71aea4c0f86ab9e95c4c07291f45536713">Start: %1$s · %2$s%%</string>
     <string name="charge_live_title_waiting_time" volt:src="9e0d3206d5c767badf6d2c49d83cea925a9a1666">Laadstart: %1$s</string>
     <string name="charge_live_title_last_seen" volt:src="07cf423c0ba7146c9313c32555d6061b4e801db1">Laatst ontvangen: %1$s%%</string>
+    <string name="charge_live_title_recording" volt:src="335d67596533df11bcc3876706452a67bcc3d606">Laadopname · %1$s%%</string>
     <string name="charge_live_text_eta" volt:src="6f6df833d3fb8846db45eae307e93dca8b27b5f0">Klaar: %1$s</string>
     <string name="charge_live_text_eta_watts" volt:src="384dcf86a50b09de18e885e7a7b9261021ebe5f6">Klaar: %1$s · %2$s</string>
     <string name="charge_live_text_estimating" volt:src="15467b6f4c5664605c7208ae9b71e444e565c19b">Bezig met schatten van resterende tijd</string>
