@@ -266,7 +266,7 @@ public final class HubTestPages {
     }
 
     /** Null once the tapped ride's details show the way the layout says; else what is wrong. Main thread. */
-    private static String rideDetailsProblem(MainActivity activity, boolean wide, int dialogsBefore, String rideId, String rideTitle) {
+    static String rideDetailsProblem(MainActivity activity, boolean wide, int dialogsBefore, String rideId, String rideTitle) {
         Object screen = field(activity, "screen");
         List<?> dialogs = (List<?>) field(screen, "dialogs");
         if (wide) {
