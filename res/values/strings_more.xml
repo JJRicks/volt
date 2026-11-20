@@ -966,10 +966,17 @@
     <string name="more_learned_kind_disagree" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Recordings disagree</string>
     <!-- Legend: the tick where a recording that charged all the way to full starts. -->
     <string name="more_learned_kind_finish" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Finish recorded</string>
+    <!-- Legend: a stretch of battery the scooter's own battery percent jumped over near the top of a charge (it rose
+         several percent, seconds apart, so there is no time to learn for them). Not missing data. -->
+    <string name="more_learned_kind_jump" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Scooter\'s %% jump</string>
     <!-- %1$s and %2$s are battery levels without the percent sign (18, 100): the stretch Volt has learned. -->
     <string name="more_learned_span" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Learned %1$s–%2$s%%</string>
     <!-- %1$s is a battery level without the percent sign: where the lowest recording that charged to full starts. -->
     <string name="more_learned_finish_from" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Charge to full recorded from %1$s%%</string>
+    <!-- %1$s and %2$s are battery levels without the percent sign (83, 95): near the top of a charge the scooter's own
+         battery percent rises straight from the first to the second, seconds per percent, so Volt learns no time for the
+         percents between. Not missing data, and not the phone losing the scooter. -->
+    <string name="more_learned_jump" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">The scooter\'s %% jumps from %1$s%% to %2$s%%</string>
     <!-- %1$s is a battery level without the percent sign: no recording covers the battery below it. -->
     <string name="more_learned_gap_below" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">No data below %1$s%%</string>
     <!-- %1$s is a battery level without the percent sign: no recording covers the battery above it. -->
