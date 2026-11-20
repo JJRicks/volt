@@ -62,8 +62,11 @@ failure, and a later failure an earlier pass); skipped counts only where no run 
 a step with no verdict in any run is named, and the closing lines are the ones a single run prints, so they can be
 copied the same way; DIR gets the merged summary.json (each record with its run and tries; status no-verdict
 where none) and merge.txt, a copy of what was printed. It refuses (exit 2) when the runs used different app or
-runner APKs, or when a run's summary.json is missing or predates app_sha256 and runner_sha256. Exit 1: a gating
-step failed; 3: a step has no verdict (neither a pass nor a fail).
+runner APKs, or when a run's summary.json is missing or predates app_sha256 and runner_sha256. It names the
+pseudo-locale APK (pseudo_app_sha256) of the runs that ran a pseudo-locale step, and notes rather than refuses more
+than one, or such a run without one: those steps report only, each run checked its pseudo-locale APK's classes.dex
+against the same app, and each merged record keeps its own run's pseudo_app_sha256. Exit 1: a gating step failed;
+3: a step has no verdict (neither a pass nor a fail).
 
 Sizes. PHONE is the Fold5 cover (344x882 dp, dark, 1x text). WIDE is its open panel (725x604 dp, light) at
 1x text, so the wide layout (side rail, two columns) stays checked. WIDE_LARGE is the same panel at 1.4x
@@ -510,10 +513,30 @@ def read_run(folder, listed):
     return dict(folder=folder, rows=rows, started=min(started), app=app, runner=runner, outputs=outputs)
 
 
+def pseudo_apk_lines(runs, pseudo_steps):
+    """Which pseudo-locale APK each run that ran a pseudo-locale step used. Different ones are noted, not refused: those steps
+    report only, and each run checked its pseudo-locale APK's classes.dex against its app copy, the same app in every run."""
+    used = {}
+    for number, run in enumerate(runs, 1):
+        ran = [r.get('pseudo_app_sha256') for r in run['rows'] if r['step'] in pseudo_steps and r.get('status') in RAN]
+        for sha in {sha if isinstance(sha, str) and sha else None for sha in ran}:
+            used.setdefault(sha, []).append(number)
+    def which(numbers): return ('run ' if len(numbers) == 1 else 'runs ') + ', '.join(map(str, numbers))
+    if not used: return []
+    if len(used) == 1 and None not in used:
+        (sha, numbers), = used.items()
+        return [f'Pseudo-locale steps ran with one pseudo-locale APK: SHA-256 {sha} ({which(numbers)}).']
+    kinds = sorted(used.items(), key=lambda pair: pair[1][0])
+    return ['Note: the pseudo-locale steps (report only, so no gating effect) did not all run with one recorded pseudo-locale APK: '
+            + '; '.join(f'SHA-256 {sha} in {which(numbers)}' if sha else f'no SHA-256 recorded in {which(numbers)}' for sha, numbers in kinds)
+            + ". Each pseudo-locale record keeps its own run's pseudo_app_sha256; record this in VERIFICATION.txt."]
+
+
 def merge(out, folders):
     """--merge (see the module docstring); returns the exit code."""
     listed = [step['name'] for step in STEPS]
     report_only = {step['name'] for step in STEPS if step.get('report_only')}
+    pseudo_steps = {step['name'] for step in STEPS if step.get('pseudo')}
     if not folders: refuse('name at least one run folder')
     if any(out.resolve() == folder.resolve() for folder in folders): refuse(f'--out {out} is one of the run folders; its summary.json would be replaced')
     runs = [read_run(folder, set(listed)) for folder in folders]
@@ -558,6 +581,7 @@ def merge(out, folders):
     unknown = sorted({r['step'] for run in runs for r in run['rows']} - set(listed))
     if unknown: lines.append(f'Not in this checkout\'s --list, left out: {len(unknown)}: ' + ', '.join(unknown))
     if changed: lines.append(f'Verdicts that changed between tries (record each reason in VERIFICATION.txt): {len(changed)}: ' + '; '.join(changed))
+    lines += pseudo_apk_lines(runs, pseudo_steps)
     lines += closing_lines(merged)
     missing = [r['step'] for r in merged if r['status'] == 'no-verdict']
     if missing: lines.append(f'Without a verdict in any run (neither a pass nor a fail): {len(missing)}: ' + ', '.join(missing))
