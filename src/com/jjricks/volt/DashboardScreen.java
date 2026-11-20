@@ -8912,9 +8912,11 @@ public final class DashboardScreen implements AppScreen {
                 return;
             }
             List<String> picked = new ArrayList<>(chosen);
-            // A card with its own readings given the stock pair would follow Home style's two: they go back to the
-            // stock pair, so the card shows what was picked (HomeReadings.resetsHome), as a following card's pick does.
-            if (!followsHome && HomeReadings.resetsHome(picked, homeReadings())) forgetHomeReadings();
+            // An overview card with its own readings given the stock pair would follow Home style's two: they go back
+            // to the stock pair, so the card shows what was picked (HomeReadings.resetsHome), as a following card's pick
+            // does. Other cards' lists (a Scooter card's defaults are the same pair) never touch Home style's two.
+            boolean overviewCard = widget.type.equals("overview");
+            if (!followsHome && HomeReadings.resetsHome(overviewCard, picked, homeReadings())) forgetHomeReadings();
             if (!followsHome) {
                 widget.keys.clear();
                 widget.keys.addAll(picked);
