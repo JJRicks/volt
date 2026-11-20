@@ -159,6 +159,29 @@
     <!-- The chip when a charge limit is set: %1$s is the limit, a whole number, followed by the
          percent sign. -->
     <string name="dashboard_charging_limit" volt:screen="Home charging hero" volt:purpose="status" volt:safety="charge">Charging · limit %1$s%%</string>
+    <!-- The charging hero's chip (the pill) while charging is slowed.
+      The pill above the big percent on both Home styles, while the charge's power is well below what the battery
+      normally takes on the fast charger. The battery temperature names why: hot, cold, or no named reason. A narrow
+      screen or large text steps down to the _short and then the _compact rung; TalkBack reads the full one. -->
+    <!-- No named reason: the battery temperature is in between, or unknown. -->
+    <string name="dashboard_charging_slowed" volt:screen="Home charging view" volt:purpose="status" volt:ladder="full" volt:max="267dp@12.5sp" volt:safety="charge">Charging slowed</string>
+    <string name="dashboard_charging_slowed_short" volt:screen="Home charging view" volt:purpose="status" volt:ladder="short" volt:max="267dp@12.5sp" volt:safety="charge">Slowed</string>
+    <!-- %1$s is the battery temperature, a whole number in the user's unit (°F or °C); the degree sign follows it. -->
+    <string name="dashboard_charging_slowed_hot" volt:screen="Home charging view" volt:purpose="status" volt:ladder="full" volt:max="267dp@12.5sp" volt:safety="charge">Charging slowed · battery hot (%1$s°)</string>
+    <string name="dashboard_charging_slowed_hot_short" volt:screen="Home charging view" volt:purpose="status" volt:ladder="short" volt:max="267dp@12.5sp" volt:safety="charge">Slowed · battery hot %1$s°</string>
+    <string name="dashboard_charging_slowed_hot_compact" volt:screen="Home charging view" volt:purpose="status" volt:ladder="compact" volt:max="267dp@12.5sp" volt:safety="charge">Battery hot · %1$s°</string>
+    <!-- %1$s is the battery temperature, a whole number in the user's unit (°F or °C); the degree sign follows it. -->
+    <string name="dashboard_charging_slowed_cold" volt:screen="Home charging view" volt:purpose="status" volt:ladder="full" volt:max="267dp@12.5sp" volt:safety="charge">Charging slowed · battery cold (%1$s°)</string>
+    <string name="dashboard_charging_slowed_cold_short" volt:screen="Home charging view" volt:purpose="status" volt:ladder="short" volt:max="267dp@12.5sp" volt:safety="charge">Slowed · battery cold %1$s°</string>
+    <string name="dashboard_charging_slowed_cold_compact" volt:screen="Home charging view" volt:purpose="status" volt:ladder="compact" volt:max="267dp@12.5sp" volt:safety="charge">Battery cold · %1$s°</string>
+    <!-- Hot, while the battery temperature reading is briefly missing (the cause was named from an earlier one). -->
+    <string name="dashboard_charging_hot" volt:screen="Home charging view" volt:purpose="status" volt:ladder="full" volt:max="267dp@12.5sp" volt:safety="charge">Charging slowed · battery hot</string>
+    <string name="dashboard_charging_hot_short" volt:screen="Home charging view" volt:purpose="status" volt:ladder="short" volt:max="267dp@12.5sp" volt:safety="charge">Slowed · battery hot</string>
+    <string name="dashboard_charging_hot_compact" volt:screen="Home charging view" volt:purpose="status" volt:ladder="compact" volt:max="267dp@12.5sp" volt:safety="charge">Battery hot</string>
+    <!-- Cold, while the battery temperature reading is briefly missing (the cause was named from an earlier one). -->
+    <string name="dashboard_charging_cold" volt:screen="Home charging view" volt:purpose="status" volt:ladder="full" volt:max="267dp@12.5sp" volt:safety="charge">Charging slowed · battery cold</string>
+    <string name="dashboard_charging_cold_short" volt:screen="Home charging view" volt:purpose="status" volt:ladder="short" volt:max="267dp@12.5sp" volt:safety="charge">Slowed · battery cold</string>
+    <string name="dashboard_charging_cold_compact" volt:screen="Home charging view" volt:purpose="status" volt:ladder="compact" volt:max="267dp@12.5sp" volt:safety="charge">Battery cold</string>
     <!-- Spoken for the charging hero's photo. It says NAVEE UT5 MAX whatever model the photo shows (a
          known English wording, kept byte for byte: naming the active model changes English, so it is an
          ordinary change, best with the queued NAVEE trademark rename). -->

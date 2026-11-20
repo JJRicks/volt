@@ -932,6 +932,59 @@
     </plurals>
     <!-- Tooltip of the charge curves card. -->
     <string name="more_dev_curves_tooltip" volt:screen="Developer options" volt:purpose="tooltip" volt:safety="charge">A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings.</string>
+    <!-- Section label over the learned charge curve cards: what Volt learned from this scooter's charge recordings. -->
+    <string name="more_learned_label" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="label" volt:safety="charge">What Volt has learned</string>
+    <!-- Card title when no charge curve is learned yet. -->
+    <string name="more_learned_empty_title" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="title" volt:safety="charge">Nothing learned yet</string>
+    <!-- Card text when no charge curve is learned yet: it points at the Record this charge row on the same page. -->
+    <string name="more_learned_empty" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Record a charge and Volt learns how fast this scooter charges at each battery level.</string>
+    <!-- A charger's card when its recordings give no usable stretch yet (they disagree everywhere). -->
+    <string name="more_learned_none_usable" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">These recordings don\'t agree yet. Record another charge with this charger.</string>
+    <!-- A charger's card when its recordings give no usable stretch because the battery was outside the temperatures a
+         fast charge learns from (too cold or too hot). -->
+    <string name="more_learned_temperature" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Charged too cold or hot to learn from.</string>
+    <!-- A charger's card when its recordings give no usable stretch yet: too little data (a dropout, or too short). -->
+    <string name="more_learned_too_little" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="body" volt:safety="charge">Not enough data yet. Record another charge with this charger.</string>
+    <!-- Under a charger's name: how many saved recordings the learned curve uses. -->
+    <plurals name="more_learned_recordings" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="caption" volt:safety="charge">
+        <item quantity="one">From %1$d recording</item>
+        <item quantity="other">From %1$d recordings</item>
+    </plurals>
+    <!-- Name of the chart's vertical axis: how many minutes each 1% of battery takes to charge. -->
+    <string name="more_learned_axis" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="axis label" volt:safety="charge">Minutes per 1%%</string>
+    <!-- Legend: a stretch of battery with no recording. -->
+    <string name="more_learned_kind_none" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">No data</string>
+    <!-- Legend: a stretch of battery that one recording covers (used, but less certain). -->
+    <string name="more_learned_kind_one" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">One recording</string>
+    <!-- Legend: a stretch of battery where two or more recordings agree. -->
+    <string name="more_learned_kind_agree" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Two or more agree</string>
+    <!-- Legend: a stretch of battery where recordings disagree too much to be used. -->
+    <string name="more_learned_kind_disagree" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Recordings disagree</string>
+    <!-- Legend: the tick where a recording that charged all the way to full starts. -->
+    <string name="more_learned_kind_finish" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="legend" volt:safety="charge">Finish recorded</string>
+    <!-- %1$s and %2$s are battery levels without the percent sign (18, 100): the stretch Volt has learned. -->
+    <string name="more_learned_span" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Learned %1$s–%2$s%%</string>
+    <!-- %1$s is a battery level without the percent sign: where the lowest recording that charged to full starts. -->
+    <string name="more_learned_finish_from" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Charge to full recorded from %1$s%%</string>
+    <!-- %1$s is a battery level without the percent sign: no recording covers the battery below it. -->
+    <string name="more_learned_gap_below" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">No data below %1$s%%</string>
+    <!-- %1$s is a battery level without the percent sign: no recording covers the battery above it. -->
+    <string name="more_learned_gap_above" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">No data above %1$s%%</string>
+    <!-- %1$s and %2$s are battery levels without the percent sign: a gap inside the learned stretch. -->
+    <string name="more_learned_gap_between" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">No data %1$s–%2$s%%</string>
+    <!-- %1$s and %2$s are battery levels without the percent sign: recordings disagree there, so it is not used. -->
+    <string name="more_learned_gap_disagree" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">Recordings disagree %1$s–%2$s%%</string>
+    <!-- More gaps than the card lists by name. -->
+    <plurals name="more_learned_gap_more" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">
+        <item quantity="one">And %1$d more gap</item>
+        <item quantity="other">And %1$d more gaps</item>
+    </plurals>
+    <!-- %1$s is a battery level without the percent sign; %2$s a duration (stats_charge_duration_hours or _minutes): the
+         learned time to charge from there to full. -->
+    <string name="more_learned_to_full" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="detail" volt:safety="charge">%1$s%% to full: %2$s</string>
+    <!-- Spoken by TalkBack for each stretch of the coverage strip: %1$s is its legend name (more_learned_kind_*), %2$s and
+         %3$s battery levels without the percent sign. -->
+    <string name="more_learned_spoken_run" volt:screen="Charge history &amp; recordings › What Volt has learned" volt:purpose="accessibility" volt:safety="charge">%1$s from %2$s to %3$s%%</string>
     <!-- Row: show the full licence texts (they stay in English). -->
     <string name="more_notices_view" volt:screen="Licenses &amp; attribution" volt:purpose="row">View full notices</string>
     <!-- Title of the full licence texts (the texts stay in English). -->

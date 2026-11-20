@@ -186,12 +186,15 @@ public final class ChargeSessionStore {
         private final boolean[] singleWatts;
         /** How many recordings have minutes for each percent, agreeing or not (summary's disagreeing percents). */
         private final int[] covering;
+        /** How many recordings measured each percent outside the learning temperatures (summary's words). */
+        private final int[] outsideTemperature;
         private final List<FinishingCurve> finishing = new ArrayList<>();
         /** finishing's recordings, as bits like sources. */
         private final List<Long> finishingSource = new ArrayList<>();
         Curve(String profile, Charger charger, List<Evidence> sessions) {
             this.profile=profile;this.charger=charger;qualifiedSessions=sessions.size();minutes=new double[100];watts=new double[100];counts=new int[100];
-            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];
+            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];outsideTemperature=new int[100];
+            for(Evidence session:sessions)for(int bin=0;bin<100;bin++)if(session.outsideTemperature[bin])outsideTemperature[bin]++;
             for (int i=0;i<sessions.size();i++) if (sessions.get(i).finishing != null){finishing.add(sessions.get(i).finishing);finishingSource.add(bit(i));}
             Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);
             for(int bin=0;bin<100;bin++) {
@@ -271,7 +274,7 @@ public final class ChargeSessionStore {
                         :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
                 boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
                 bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
-                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish));
+                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish,outsideTemperature[bin]>0));
             }
             return new Summary(charger,qualifiedSessions,starts,bins);
         }
@@ -397,8 +400,17 @@ public final class ChargeSessionStore {
             public final Double watts;
             /** A completed finish recording covers this percent (estimateFinishing can use it). */
             public final boolean finishCovered;
+            /**
+             * A recording measured this percent with the battery outside the fast charger's learning temperatures
+             * (learnsAtTemperature), so it taught nothing here.
+             */
+            public final boolean outsideTemperature;
             Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered){
+                this(percent,coverage,sessions,minutes,watts,finishCovered,false);
+            }
+            Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered,boolean outsideTemperature){
                 this.percent=percent;this.coverage=coverage;this.sessions=sessions;this.minutes=minutes;this.watts=watts;this.finishCovered=finishCovered;
+                this.outsideTemperature=outsideTemperature;
             }
         }
         public final Charger charger;public final int qualifiedSessions;
@@ -1151,6 +1163,8 @@ public final class ChargeSessionStore {
     }
     private static final class Evidence {
         final double[] minutes=new double[100],watts=new double[100];
+        /** Percents this recording measured that teach nothing because of the battery's temperature (learnsAtTemperature). */
+        final boolean[] outsideTemperature=new boolean[100];
         FinishingCurve finishing;
         Evidence(){Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);}
     }
@@ -1324,7 +1338,11 @@ public final class ChargeSessionStore {
                 Arrays.fill(result.minutes,Double.NaN);Arrays.fill(result.watts,Double.NaN);
             }
             boolean qualified=whole!=null||binsQualified;
-            for(int bin=0;bin<100;bin++)if(outsideBins[bin]){result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;}
+            for(int bin=0;bin<100;bin++)if(outsideBins[bin]){
+                // Only a percent measured in a qualified recording says "too cold or hot": a sparse one says nothing.
+                if(binsQualified&&Double.isFinite(result.minutes[bin]))result.outsideTemperature[bin]=true;
+                result.minutes[bin]=Double.NaN;result.watts[bin]=Double.NaN;
+            }
             if(whole!=null&&charger==Charger.HIGH_SPEED)result.finishing=FinishingCurve.from(this,true);
             return qualified?result:null;
         }

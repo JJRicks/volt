@@ -1,0 +1,3 @@
+# What Volt has learned: why a curve has no usable percent, and gaps only where no recording is (#571 review).
+src/com/jjricks/volt/LearnedCurveChart.java
+tests/l10n/LearnedCurveReasonsTest.java

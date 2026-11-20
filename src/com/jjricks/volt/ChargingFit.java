@@ -106,11 +106,23 @@ final class ChargingFit {
         final boolean readings;
         final int readingsGap;
 
+        /**
+         * The height (pixels) the short line and its gap take above the rest where the line would have made way but is
+         * kept (a slowed charge's pill, {@link ChargingFit#plan(int, int, int, int, int, float, boolean)}); 0 otherwise.
+         * The rest of the plan was made for the slot less this height.
+         */
+        final int kept;
+
         Plan(boolean line, boolean shortLine, boolean percent, float percentScale, int stageHeight, int photoHeight,
              boolean track, boolean readings, int readingsGap) {
+            this(line, shortLine, percent, percentScale, stageHeight, photoHeight, track, readings, readingsGap, 0);
+        }
+
+        Plan(boolean line, boolean shortLine, boolean percent, float percentScale, int stageHeight, int photoHeight,
+             boolean track, boolean readings, int readingsGap, int kept) {
             this.line = line; this.shortLine = shortLine; this.percent = percent; this.percentScale = percentScale;
             this.stageHeight = stageHeight; this.photoHeight = photoHeight; this.track = track; this.readings = readings;
-            this.readingsGap = readingsGap;
+            this.readingsGap = readingsGap; this.kept = kept;
         }
 
         boolean photo() { return photoHeight > 0; }
@@ -133,6 +145,26 @@ final class ChargingFit {
     /** The percentage {@code percentHeight} pixels tall at full size can still be read at this share of it. */
     static boolean readable(int percentHeight, float scale, float density) {
         return (int) Math.floor(percentHeight * scale + 1e-3f) >= dp(PERCENT_LEAST_DP, density);
+    }
+
+    /**
+     * {@link #plan(int, int, int, int, int, float)}, with the line kept where {@code keepLine}: the pill while charging
+     * is slowed (the owner's pick, Nov 19 2026), which must not vanish on a short slot (344 dp at the largest text) as
+     * the normal pill may. Where the plain plan lets the line make way, the line stays at the slot's top with its gap,
+     * in its one-line short form only where that is shorter (as in the plain plan), and the rest is planned, line-less, in the height left (Plan.kept). Where the line shows
+     * anyway, the plan is the plain one.
+     */
+    static Plan plan(int inner, int lineHeight, int shortLineHeight, int percentHeight, int readingsHeight, float density,
+                     boolean keepLine) {
+        Plan plan = plan(inner, lineHeight, shortLineHeight, percentHeight, readingsHeight, density);
+        if (!keepLine || plan.line) return plan;
+        // As in the plain plan, the short form stands in only where it is shorter: where the line is already one line
+        // (the slowed pill's longest rung that fits, DashboardScreen.fitPill), the line itself is kept.
+        boolean shortens = shortLineHeight < lineHeight;
+        int brief = (shortens ? shortLineHeight : lineHeight) + dp(LINE_GAP_DP, density);
+        Plan rest = plan(Math.max(0, inner - brief), lineHeight, shortLineHeight, percentHeight, readingsHeight, density);
+        return new Plan(true, shortens, rest.percent, rest.percentScale, rest.stageHeight, rest.photoHeight, rest.track,
+                rest.readings, rest.readingsGap, brief);
     }
 
     /**
