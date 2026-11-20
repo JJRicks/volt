@@ -185,12 +185,16 @@ charge the scooter's own gauge takes per percent (`UsableCapacity`):
 - **Use:** below 80%, in place of the rated capacity, clamped to 0.8–1.0 times
   rated, and only when below 0.97 times rated (a gauge that holds its rating
   keeps the rated time exactly). Above 80% the rated capacity stays, the taper's
-  cushion. It applies wherever the current rate is shown: time to 100%, time to
-  a limit or a charge alert's level, and any part that past charges don't cover.
-  A learned curve or bundled reference that covers a target replaces it as
-  before. The label stays the current rate's; the status names the capacity used.
-- **Charge done by** keeps planning with the rated-capacity times, so it never
-  plans with a shorter time than before.
+  cushion. It is a display-only last pass over the finished estimate
+  (`ChargingEstimate.withUsableCapacity`): every time shown that is still the
+  rated-capacity current-rate time (time to 100%, to a limit or a charge alert's
+  level, and any part that past charges, a reference or a model don't set) is
+  shown with the learned capacity instead. A learned curve or bundled reference
+  that covers a target keeps its time. The label stays the current rate's; the
+  status names the capacity used.
+- **Charge done by** plans with exactly the minutes the estimate has without
+  this pass, on every path (held finishes, references, provisional fill-ins and
+  limits below 100% included), so it never plans with a shorter time than before.
 
 Replays: on a private set of stock-charger recordings from a model whose gauge
 holds about 87.5% of its rating, leave-one-out, the time to the level each

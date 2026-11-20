@@ -695,16 +695,16 @@ public final class ChargingEstimate {
         Double limit=learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit;
         // Provisional evidence plans with the longer of it and the estimate without past charges (withObservedCurve
         // compares with the current rate; prior is the same here unless a bundled reference set it).
-        Double planLimit=learned.learnedToLimit?atLeast(learned.planningMinutesToLimit,learned.provisional?prior.planningMinutesToLimit:null):prior.planningMinutesToLimit;
+        Double planLimit=learned.learnedToLimit?atLeast(learned.planningMinutesToLimit,learned.provisional?prior.planningMinutesToLimit:null):limit;
         // Only a finish from completed charges is held through a power dropout (withHeldPersonal): a provisional or joined
         // one is never remembered, so the hold can never hand Charge done by a provisional time without its longer-of rule.
         if(fast&&taper!=null&&learned.learnedToFull&&!learned.provisionalFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
         else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
                 limit,prior.remainingMinutesToFull,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,false,learned.learnedSessions,
-                referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,prior.planningMinutesToFull,false,rate,learned.provisional,learned.provisionalNote),soc,taper,nowMs);
+                referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,prior.remainingMinutesToFull,false,rate,learned.provisional,learned.provisionalNote),soc,taper,nowMs);
         Double full=learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull;
-        Double planFull=learned.learnedToFull?atLeast(learned.planningMinutesToFull,learned.provisionalFull?prior.planningMinutesToFull:null):prior.planningMinutesToFull;
+        Double planFull=learned.learnedToFull?atLeast(learned.planningMinutesToFull,learned.provisionalFull?prior.planningMinutesToFull:null):full;
         return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,
                 prior.targetPercent,M.chargingEstimatePastCharges(learned.learnedSessions,learned.learnedSessions),status,learned.learnedToLimit,learned.learnedToFull,learned.learnedSessions,
                 referenceLimit,referenceFull,prior.referenceCharger,null,planLimit,planFull,false,rate,learned.provisional,learned.provisionalNote);
@@ -875,30 +875,33 @@ public final class ChargingEstimate {
     }
 
     /**
-     * usable-capacity-v1: baseline (calculate's current-rate estimate) with the part below UsableCapacity.BULK_LIMIT at
-     * the usable capacity this scooter's recordings taught (UsableCapacity.usable) instead of its rated capacity; above
-     * it the rated capacity stays, the taper's cushion. Only the times shown change: Charge done by keeps planning with
-     * the rated-capacity times (planningMinutesToLimit, planningMinutesToFull), so it never plans with a shorter time
-     * than before. Everything else that falls back to the current rate (a target past charges don't cover, a charge
-     * alert's level) shows the learned time too; a learned curve or a bundled reference that covers a target replaces
-     * it as before. baseline unchanged without a learned value, at or above BULK_LIMIT, or without a usable reading.
-     * The label stays the current rate's; the status says what was used.
+     * usable-capacity-v1, a display-only last pass over the finished estimate (forScooter's result, shown): every time
+     * it shows that is still baseline's rated-capacity current-rate time (no past charges, reference or model set it)
+     * is shown instead with the part below UsableCapacity.BULK_LIMIT at the usable capacity this scooter's recordings
+     * taught (UsableCapacity.usable); above that level the rated capacity stays, the taper's cushion. Nothing else in
+     * shown changes: Charge done by's planning minutes are exactly the estimate's without this pass, so it never plans
+     * with a shorter time than before, whatever path set them. baseline is calculate()'s result forScooter was given.
+     * shown itself without a learned value, at or above BULK_LIMIT, without a usable reading, or where no shown time is
+     * baseline's. The label stays; the status says what was used.
      */
-    public static Result withUsableCapacity(Result baseline,Value soc,Value ratedAh,UsableCapacity.Learned learned) {
-        if(baseline==null||!baseline.charging||baseline.remainingMinutesToFull==null||baseline.inputAmps==null
-                ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||ratedAh.number<=0||soc.number>=UsableCapacity.BULK_LIMIT)return baseline;
+    public static Result withUsableCapacity(Result shown,Result baseline,Value soc,Value ratedAh,UsableCapacity.Learned learned) {
+        if(shown==null||baseline==null||!baseline.charging||baseline.remainingMinutesToFull==null||baseline.inputAmps==null
+                ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||ratedAh.number<=0||soc.number>=UsableCapacity.BULK_LIMIT)return shown;
         Double usable=UsableCapacity.usable(learned,ratedAh.number);
-        if(usable==null)return baseline;
-        Double full=UsableCapacity.minutes(soc.number,100,baseline.inputAmps,usable,ratedAh.number);
-        Double target=baseline.targetPercent;
-        Double limit=target==null||baseline.remainingMinutesToLimit==null?baseline.remainingMinutesToLimit
-                :UsableCapacity.minutes(soc.number,target,baseline.inputAmps,usable,ratedAh.number);
-        if(full==null||target!=null&&baseline.remainingMinutesToLimit!=null&&limit==null)return baseline;
-        String status=baseline.status+" Below "+Math.round(UsableCapacity.BULK_LIMIT)+"% it uses the charge this battery's gauge took per percent in "
+        if(usable==null)return shown;
+        boolean fullRate=shown.remainingMinutesToFull!=null&&shown.remainingMinutesToFull.equals(baseline.remainingMinutesToFull);
+        boolean limitRate=shown.remainingMinutesToLimit!=null&&shown.remainingMinutesToLimit.equals(baseline.remainingMinutesToLimit)
+                &&shown.targetPercent!=null&&shown.targetPercent.equals(baseline.targetPercent);
+        Double full=fullRate?UsableCapacity.minutes(soc.number,100,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToFull;
+        Double limit=limitRate?UsableCapacity.minutes(soc.number,baseline.targetPercent,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToLimit;
+        if(full==null||limit==null&&shown.remainingMinutesToLimit!=null||!fullRate&&!limitRate)return shown;
+        String status=(shown.status==null?"":shown.status)+" Below "+Math.round(UsableCapacity.BULK_LIMIT)+"% the current rate uses the charge this battery's gauge took per percent in "
                 +learned.recordings+" past charge"+(learned.recordings==1?", provisionally":"s")+" ("+Math.round(usable*10)/10.0
                 +" Ah per 100%); Charge done by plans with the rated capacity.";
-        return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,limit,full,target,baseline.labelMsg,status,
-                false,false,0,false,false,null,null,baseline.planningMinutesToLimit,baseline.planningMinutesToFull,false,null);
+        return new Result(shown.charging,shown.inputWatts,shown.inputAmps,limit,full,shown.targetPercent,shown.labelMsg,status,
+                shown.learnedToLimit,shown.learnedToFull,shown.learnedSessions,shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,
+                shown.stockVoltageMatch,shown.planningMinutesToLimit,shown.planningMinutesToFull,shown.stockPackModel,shown.limitRate,
+                shown.provisional,shown.provisionalNote,shown.provisionalFull);
     }
 
     /**
@@ -947,8 +950,7 @@ public final class ChargingEstimate {
             return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                     limitMinutes,finishing.minutes,baseline.targetPercent,
                     M.chargingEstimatePastCharges(finishing.sessions,finishing.sessions),status,limit!=null,true,finishing.sessions,
-                    false,false,null,null,limit==null?baseline.planningMinutesToLimit
-                            :provisionalLimit?atLeast(limitMinutes,baseline.planningMinutesToLimit):limitMinutes,finishing.minutes,false,null,
+                    false,false,null,null,provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,finishing.minutes,false,null,
                     provisionalLimit,note,false);
         }
         if(power!=ChargeSessionStore.Curve.PowerMatch.MATCH){
@@ -990,8 +992,8 @@ public final class ChargingEstimate {
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                 limitMinutes,fullMinutes,baseline.targetPercent,M.chargingEstimatePastCharges(sessions,sessions),status,limit!=null,full!=null,sessions,
                 false,false,null,null,
-                limit==null?baseline.planningMinutesToLimit:provisionalLimit?atLeast(limitMinutes,baseline.planningMinutesToLimit):limitMinutes,
-                full==null?baseline.planningMinutesToFull:provisionalFull?atLeast(fullMinutes,baseline.planningMinutesToFull):Double.valueOf(fullMinutes),false,null,
+                provisionalLimit?atLeast(limitMinutes,baseline.remainingMinutesToLimit):limitMinutes,
+                provisionalFull?atLeast(fullMinutes,baseline.remainingMinutesToFull):Double.valueOf(fullMinutes),false,null,
                 provisionalFull||provisionalLimit,note,provisionalFull);
     }
 

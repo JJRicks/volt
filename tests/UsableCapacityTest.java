@@ -46,6 +46,83 @@ public final class UsableCapacityTest {
                 new ChargingEstimate.Value(target,true,100));
     }
     private static ChargingEstimate.Value live(double v){return new ChargingEstimate.Value(v,true,100);}
+
+    /**
+     * Review of #567, round 1: the learned capacity must never reach Charge done by, whatever path set the estimate. The
+     * whole forScooter pipeline over many synthesized states (another model and the UT5 MAX, both chargers, no history,
+     * a robust curve, a provisional partial one, a complete finish, a held high-speed finish after a power drop, its
+     * own taper, references and the pack model, limits below and at 100%, none), with the learned capacity on (forced to
+     * 0.85 x rated, inside the band) and off: the planning minutes are identical everywhere, the shown times are never
+     * longer, and a shown time changes only where it is the rated current-rate time itself.
+     */
+    private static void planningNeverChanges(ChargeSessionStore robust,ChargeSessionStore partial)throws Exception{
+        ChargeSessionStore finish=store();
+        {
+            double amps=amps(11.2)*6;
+            finish.start("one",ChargeSessionStore.Charger.HIGH_SPEED,WALL,MONO);long t=0;
+            for(int level=45;level<100;level++)for(int i=0;i<33;i++,t+=10000)sample(finish,t,level,level<85?amps:amps*Math.max(.15,1-(level-85)/15d),25);
+            long mono=MONO+t;
+            check(finish.sampleCompletion(new ChargeSessionStore.Frame(WALL+t,mono,value(0,mono),value(100,mono),value(52,mono),value(-.2,mono),value(25,mono))),"Fixture: complete finish");
+            finish.stop(ChargeSessionStore.Stop.COMPLETE);
+        }
+        ChargeSessionStore[] stores={null,robust,partial,finish};
+        int[] products={OTHER_MODEL,Ut5MaxStockChargeReference.PRODUCT_ID};
+        int states=0,changed=0,held=0;
+        for(int product:products)for(ChargeSessionStore.Charger charger:ChargeSessionStore.Charger.values())for(ChargeSessionStore source:stores){
+            ChargeSessionStore.Curve curve=null;
+            if(source!=null)for(ChargeSessionStore.Curve c:source.snapshot().curves.values())if(c.charger==charger)curve=c;
+            if(source!=null&&curve==null)continue;
+            double rated=product==OTHER_MODEL?RATED:15.3;
+            UsableCapacity.Learned forced=new UsableCapacity.Learned(rated*.85,3,false);
+            for(double soc:new double[]{20,35,50,65,79,85})for(Double target:new Double[]{null,60d,80d,95d,100d})for(double factor:new double[]{.6,1,1.6}){
+                double amps=amps(11.2)*factor*(charger==ChargeSessionStore.Charger.HIGH_SPEED?6:1);
+                for(int pass=0;pass<2;pass++){
+                    // pass 1: a high-speed charge whose power drops to 0.6x within the hold after a matched reading.
+                    FastChargeTaper taper=null;long now=5_000_000L;double live=amps;
+                    if(pass==1){
+                        if(charger!=ChargeSessionStore.Charger.HIGH_SPEED)continue;
+                        taper=new FastChargeTaper();taper.observe("one",true,47+soc/20,amps,now);
+                        ChargingEstimate.forScooter(ChargingEstimate.calculate(live(1),live(47+soc/20),live(-amps),live(soc),live(rated),new ChargingEstimate.Value(target,true,100)),
+                                live(soc),live(rated),product,charger,curve,null,"one:test",now,now,null,taper,null);
+                        now+=60_000L;live=amps*.6;taper.observe("one",true,47+soc/20,live,now);
+                    }
+                    ChargingEstimate.Result base=ChargingEstimate.calculate(live(1),live(47+soc/20),live(-live),live(soc),live(rated),new ChargingEstimate.Value(target,true,100));
+                    ChargingEstimate.Result off=ChargingEstimate.forScooter(base,live(soc),live(rated),product,charger,curve,new ChargeReferenceGate(),"one:test",now,now,null,taper,null);
+                    ChargingEstimate.Result on=ChargingEstimate.withUsableCapacity(off,base,live(soc),live(rated),forced);
+                    String where=product+" "+charger+" "+(curve==null?"none":curve.qualifiedSessions)+" at "+soc+"% to "+target+" x"+factor+" pass "+pass+": ";
+                    check(java.util.Objects.equals(off.planningMinutesToLimit,on.planningMinutesToLimit)&&java.util.Objects.equals(off.planningMinutesToFull,on.planningMinutesToFull),
+                            where+"Charge done by's minutes are identical: "+off.planningMinutesToLimit+"/"+off.planningMinutesToFull+" vs "+on.planningMinutesToLimit+"/"+on.planningMinutesToFull);
+                    check(off.learnedToFull==on.learnedToFull&&off.learnedToLimit==on.learnedToLimit&&off.provisional==on.provisional&&off.referenceToFull==on.referenceToFull
+                            &&off.stockPackModel==on.stockPackModel&&off.label==null==(on.label==null)&&(off.label==null||off.label.equals(on.label)),where+"Nothing else changes");
+                    check(off.remainingMinutesToFull==null?on.remainingMinutesToFull==null:on.remainingMinutesToFull<=off.remainingMinutesToFull+1e-9,where+"Never longer to 100%");
+                    check(off.remainingMinutesToLimit==null?on.remainingMinutesToLimit==null:on.remainingMinutesToLimit<=off.remainingMinutesToLimit+1e-9,where+"Never longer to the limit");
+                    if(!java.util.Objects.equals(off.remainingMinutesToFull,on.remainingMinutesToFull))
+                        check(java.util.Objects.equals(off.remainingMinutesToFull,base.remainingMinutesToFull),where+"Only the rated current-rate time to 100% changes");
+                    if(!java.util.Objects.equals(off.remainingMinutesToLimit,on.remainingMinutesToLimit))
+                        check(java.util.Objects.equals(off.remainingMinutesToLimit,base.remainingMinutesToLimit),where+"Only the rated current-rate time to the limit changes");
+                    if(on!=off)changed++;
+                    if(off.status!=null&&off.status.startsWith("Holding the personal finish"))held++;
+                    states++;
+                }
+            }
+        }
+        check(states>500&&changed>50&&held>0,"The sweep covers many states, changes some shown times and reaches the held finish: "+states+" states, "+changed+" changed, "+held+" held");
+        // The review's own case: another model's held high-speed finish with a limit below 100% (withHeldPersonal keeps the
+        // limit at the current rate): shown at the learned capacity, planned exactly as without it.
+        ChargeSessionStore.Curve fast=finish.snapshot().curves.get(ChargeSessionStore.key("one",ChargeSessionStore.Charger.HIGH_SPEED));
+        double amps=amps(11.2)*6;FastChargeTaper taper=new FastChargeTaper();long now=5_000_000L;
+        taper.observe("one",true,47+60/20d,amps,now);
+        ChargingEstimate.Result first=ChargingEstimate.forScooter(ChargingEstimate.calculate(live(1),live(50),live(-amps),live(60),live(RATED),new ChargingEstimate.Value(70d,true,100)),
+                live(60),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.HIGH_SPEED,fast,null,"one:test",now,now,null,taper,null);
+        check(first.learnedToFull,"Fixture: the finish is matched: "+first.status);
+        now+=60_000L;taper.observe("one",true,50d,amps*.6,now);
+        ChargingEstimate.Result base=ChargingEstimate.calculate(live(1),live(50),live(-amps*.6),live(60),live(RATED),new ChargingEstimate.Value(70d,true,100));
+        ChargingEstimate.Result off=ChargingEstimate.forScooter(base,live(60),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.HIGH_SPEED,fast,null,"one:test",now,now,null,taper,null);
+        ChargingEstimate.Result on=ChargingEstimate.withUsableCapacity(off,base,live(60),live(RATED),new UsableCapacity.Learned(11.2,3,false));
+        check(off.status.startsWith("Holding the personal finish")&&off.remainingMinutesToLimit.equals(base.remainingMinutesToLimit),"Fixture: held finish, limit at the current rate: "+off.status);
+        check(on.remainingMinutesToLimit<off.remainingMinutesToLimit&&on.planningMinutesToLimit.equals(off.planningMinutesToLimit)&&on.planningMinutesToLimit.equals(base.remainingMinutesToLimit),
+                "The limit shows the learned capacity; Charge done by plans today's rated time");
+    }
     private static double rated(double from,double to,double amps){return RATED*(to-from)/100/amps*60;}
 
     public static void main(String[] args)throws Exception{
@@ -81,7 +158,7 @@ public final class UsableCapacityTest {
 
         // The current rate below 80% at the learned capacity; above it rated; Charge done by plans the rated time.
         ChargingEstimate.Result before=baseline(40,80d,amps);
-        ChargingEstimate.Result after=ChargingEstimate.withUsableCapacity(before,live(40),live(RATED),learned);
+        ChargingEstimate.Result after=ChargingEstimate.withUsableCapacity(before,before,live(40),live(RATED),learned);
         near(40*5.5,after.remainingMinutesToLimit,1,"40% to 80% at 5.5 minutes a percent");
         near(rated(40,80,amps),before.remainingMinutesToLimit,1e-9,"Fixture: the rated time is about 14% longer");
         near(40*5.5+rated(80,100,amps),after.remainingMinutesToFull,1,"To 100%: learned to 80%, rated above");
@@ -89,30 +166,30 @@ public final class UsableCapacityTest {
         near(before.remainingMinutesToFull,after.planningMinutesToFull,1e-9,"... and to 100%");
         check(after.planningMinutesToLimit>=after.remainingMinutesToLimit,"Never earlier than today's plan");
         check(after.label.equals(before.label)&&after.status.startsWith(before.status)
-                &&after.status.contains("Below 80% it uses the charge this battery's gauge took per percent in 3 past charges (11.2 Ah per 100%)")
+                &&after.status.contains("Below 80% the current rate uses the charge this battery's gauge took per percent in 3 past charges (11.2 Ah per 100%)")
                 &&after.status.contains("Charge done by plans with the rated capacity."),"Same label; the status says what was used: "+after.status);
         ChargeSessionStore.Estimate saved=ChargingEstimate.recordingSnapshot(after);
         check(saved.fullSource==ChargeSessionStore.Source.CURRENT_RATE&&saved.learnedSessions==0,"Recorded as the current rate");
         // No limit (a charge alert or a scooter without one): the time to 100% only.
-        ChargingEstimate.Result noLimit=ChargingEstimate.withUsableCapacity(baseline(40,null,amps),live(40),live(RATED),learned);
+        ChargingEstimate.Result noLimit=ChargingEstimate.withUsableCapacity(baseline(40,null,amps),baseline(40,null,amps),live(40),live(RATED),learned);
         check(noLimit.remainingMinutesToLimit==null,"No limit stays none");
         near(40*5.5+rated(80,100,amps),noLimit.remainingMinutesToFull,1,"Time to 100% with no limit");
         // At or above 80%: nothing changes (the taper's cushion).
         for(double level:new double[]{80,85,99}){
             ChargingEstimate.Result high=baseline(level,100d,amps);
-            check(ChargingEstimate.withUsableCapacity(high,live(level),live(RATED),learned)==high,"Unchanged at "+level+"%");
+            check(ChargingEstimate.withUsableCapacity(high,high,live(level),live(RATED),learned)==high,"Unchanged at "+level+"%");
         }
         // Low current, no learned value, or one near the rating: unchanged.
         ChargingEstimate.Result low=baseline(40,80d,.01);
-        check(ChargingEstimate.withUsableCapacity(low,live(40),live(RATED),learned)==low,"Low current: unchanged");
-        check(ChargingEstimate.withUsableCapacity(before,live(40),live(RATED),null)==before,"No learned value: unchanged");
-        check(ChargingEstimate.withUsableCapacity(before,live(40),live(RATED),new UsableCapacity.Learned(RATED*.98,3,false))==before,"A gauge holding its rating: unchanged");
+        check(ChargingEstimate.withUsableCapacity(low,low,live(40),live(RATED),learned)==low,"Low current: unchanged");
+        check(ChargingEstimate.withUsableCapacity(before,before,live(40),live(RATED),null)==before,"No learned value: unchanged");
+        check(ChargingEstimate.withUsableCapacity(before,before,live(40),live(RATED),new UsableCapacity.Learned(RATED*.98,3,false))==before,"A gauge holding its rating: unchanged");
 
         // Through the whole estimate (another model, stock charger, its learned curve): the curve covers 31–80%, so the
         // time to the 80% limit is the curve's; 100% falls back to the current rate, now at the learned capacity to 80%.
         ChargeSessionStore.Curve curve=snapshot.curves.get(ChargeSessionStore.key("one",ChargeSessionStore.Charger.STOCK));
-        ChargingEstimate.Result shown=ChargingEstimate.forScooter(after,live(40),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.STOCK,curve);
         ChargingEstimate.Result today=ChargingEstimate.forScooter(before,live(40),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.STOCK,curve);
+        ChargingEstimate.Result shown=ChargingEstimate.withUsableCapacity(today,before,live(40),live(RATED),learned);
         check(shown.learnedToLimit&&today.learnedToLimit,"A learned curve covers the limit");
         near(today.remainingMinutesToLimit,shown.remainingMinutesToLimit,1e-9,"No effect where a learned curve covers the range");
         near(today.planningMinutesToLimit,shown.planningMinutesToLimit,1e-9,"... nor on Charge done by");
@@ -122,8 +199,10 @@ public final class UsableCapacityTest {
         ChargeSessionStore partial=store();record(partial,ChargeSessionStore.Charger.STOCK,30,60,11.2,25);
         UsableCapacity.Learned single=partial.snapshot().usableCapacity.get("one");
         check(single!=null&&single.provisional&&single.recordings==1,"One recording: provisional");
-        ChargingEstimate.Result fill=ChargingEstimate.forScooter(ChargingEstimate.withUsableCapacity(baseline(40,55d,amps),live(40),live(RATED),single),
-                live(40),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.STOCK,partial.snapshot().curves.get(ChargeSessionStore.key("one",ChargeSessionStore.Charger.STOCK)));
+        ChargingEstimate.Result fillBase=baseline(40,55d,amps);
+        ChargingEstimate.Result fill=ChargingEstimate.withUsableCapacity(ChargingEstimate.forScooter(fillBase,
+                live(40),live(RATED),OTHER_MODEL,ChargeSessionStore.Charger.STOCK,partial.snapshot().curves.get(ChargeSessionStore.key("one",ChargeSessionStore.Charger.STOCK))),
+                fillBase,live(40),live(RATED),single);
         check(fill.provisional&&fill.planningMinutesToLimit>=rated(40,55,amps)-1e-9,"A provisional fill-in plans no earlier than the rated time: "+fill.planningMinutesToLimit);
         check(!fill.learnedToFull&&fill.planningMinutesToFull>=rated(40,100,amps)-1e-9&&fill.remainingMinutesToFull<fill.planningMinutesToFull,
                 "Its uncovered time to 100% shows the learned capacity and plans the rated one");
@@ -144,7 +223,8 @@ public final class UsableCapacityTest {
         UsableCapacity.Learned whole=full.snapshot().usableCapacity.get("one");
         near(RATED,whole.ahPer100,.06,"A full gauge learns its rating");
         ChargingEstimate.Result ratedBaseline=baseline(40,80d,amps(RATED));
-        check(ChargingEstimate.withUsableCapacity(ratedBaseline,live(40),live(RATED),whole)==ratedBaseline,"... and changes nothing");
+        check(ChargingEstimate.withUsableCapacity(ratedBaseline,ratedBaseline,live(40),live(RATED),whole)==ratedBaseline,"... and changes nothing");
+        planningNeverChanges(store,partial);
         System.out.println("Usable capacity tests passed: "+checks+" checks");
     }
 }
