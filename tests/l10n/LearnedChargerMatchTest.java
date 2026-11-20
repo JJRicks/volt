@@ -31,6 +31,7 @@ public final class LearnedChargerMatchTest {
         farOffNeverLabels();
         auditKeepsPhysicalDetection();
         learnedMatchNeverMismatch();
+        estimatorVersionFits();
         automaticEstimateUsesMatchedCurve();
         System.out.println("LearnedChargerMatchTest: " + checks + " checks");
     }
@@ -465,6 +466,15 @@ public final class LearnedChargerMatchTest {
                 }
             }
         }
+    }
+
+    /** Every recording sample saves the estimator version; Estimate (and every older Volt reading it) takes 1-64 characters. */
+    static void estimatorVersionFits() {
+        String version = ChargingEstimate.ESTIMATOR_VERSION;
+        check(version.length() >= 1 && version.length() <= 64 && version.matches("[A-Za-z0-9_.-]+"), "Version fits: " + version.length());
+        ChargeSessionStore.Estimate estimate = new ChargeSessionStore.Estimate(version, 30d, null, null, null, null, 0);
+        check(version.equals(estimate.version), "Estimate accepts the current version");
+        check(ChargingEstimate.recordingSnapshot(null).version.equals(version), "A recording's snapshot carries it");
     }
 
     // ---- the estimate under Automatic ----

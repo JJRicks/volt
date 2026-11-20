@@ -161,7 +161,7 @@ last such reading; one hot or cold at its end teaches no finish.
   average, with Charge done by's margin still about 20 minutes. Nothing else
   moved by more than 0.02 minutes.
 
-### Automatic picks a learned charger (match1)
+### Automatic picks a learned charger (chg-match-v1)
 
 Under **Auto**, when charger detection (the UT5 MAX's two chargers) has no family
 for this charge, `LearnedChargerMatch` picks the charger whose own recordings

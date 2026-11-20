@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-estimate-v1.normal-temps-v1.match1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-v1.normal-temps-v1.chg-match-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
