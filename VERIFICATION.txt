@@ -1,37 +1,142 @@
 VOLT 2.0.1 — CHARGING SLOWED, ESTIMATES THAT LEARN MORE, WHAT VOLT HAS LEARNED, OVERVIEW READINGS, JUST BACK BASEMAP (versionCode 61)
-Draft, November 19, 2026. The release checks below are still to run.
+Built, swept and tagged at commit 75667d5e, #579's merge into main,
+November 20, 2026. That merge is the release commit (RELEASING.md step
+2): the candidate was built on it, and the tests, ship_check and the
+VOLT_RELEASE=1 build ran again on it before the draft. Nothing merged into
+main between the release commit and the publish, so the checked, built and
+tagged commit is one SHA (step 7). The release APK is identical to the
+swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.0 is in
-  it: #552 to #575, 24 of them. Two change no app code: #552 (the
-  hardware sweep's navigation step) and #553 (2.0.0's record in this
-  file). The language top-up for this release's new text and this
-  release's own version, changelog and docs come after them. The "record
-  this charger too" tip (#576, #577) is not in this release.
-  [PHASE 2: the last PR number merged before the release commit; for each
-  PR, CI on its merged head and the independent review on the head that
-  merged.]
-- run-release-sweep.py lists 292 steps on main at #575's merge, 28 more
-  than 2.0.0's 264, none gone: Clean's charging bar and time tile (9),
-  What Volt has learned (5), the charging pill's slowed states (4), the
-  Just back basemap (4), Overview readings (3) and the Improve this
-  estimate tip (3). Every validation registered in
-  android-tests/AndroidManifest.xml is covered (the script's own guard).
-  [PHASE 2: confirm the step list and counts on the release commit.]
+  it: 26 of them, #552 to #579 apart from #576 and #577. Two change no
+  app code: #552 (the hardware sweep's navigation step) and #553 (2.0.0's
+  record in this file). The last two are this release's own version,
+  changelog and docs (#578) and the language top-up for its new text
+  (#579), whose merge is the release commit. The "record this charger
+  too" tip (#576, #577) merged into main at 2:20 AM MST, after the
+  publish, and is not in this release.
+- Every one of the 26 merged with CI passing on its merged head (4 checks
+  each: android-build, core-tests, english-proof and web-setup), and the
+  release commit passed the same 4. The independent review's last pass was
+  on the merged head for all 26, and none of those passes requested
+  changes. #552 and #553 were reviewed by a GPT seat; the other 24 by
+  Claude reviewer seats only, run apart from the authoring session,
+  because the Codex seats were unavailable those nights. Two upheld P3s
+  on text shipped as written: #563's Record a charge line and #579's
+  Polish and Portuguese (Portugal) Charging slowed wording, both below.
+  The other upheld P3s (logic and wording follow-ups) are tracked for
+  later releases.
+- run-release-sweep.py lists 292 steps on the release commit, 28 more
+  than 2.0.0's 264, none gone (compared with --list on both tags): Clean's
+  charging bar and time tile (9), What Volt has learned (5), the charging
+  pill's slowed states (4), the Just back basemap (4), Overview readings
+  (3) and the Improve this estimate tip (3). Every validation registered
+  in android-tests/AndroidManifest.xml is covered (the script's own
+  guard).
 - Emulator validations hold Volt's endless animations (the charging glow
   and pulses) still in steps that don't check motion, and bound the idle
   wait (#569), so a busy screen can't stall a step for minutes. Motion
   steps still run them.
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 2.0.0's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed, each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.]
-- Parked hardware sweep with the owner present: [PHASE 2: run-hardware-sweep
-  report.md outcomes on the candidate the owner installed, or say plainly
-  that it was not run.]
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4146 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly. Before #579, 44 keys in each
+  language still showed English; #579 added those 440 translations, made
+  and checked as its pull request describes.
+- Release candidate checks on the release commit (75667d5e):
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (217
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.1 (no -dev), versionCode 61, signed with 2.0.0's
+    certificate. APK SHA-256
+    595e04cec6df2566949b7f7cfa3a7c0bafce74f448a66dceb8174fc376e2bc54.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.1 (61). The validation runner was
+    built with the same key.
+- run-release-sweep.py on that build, November 20, 2026, 12:19 to 1:46 AM
+  MST: Medium Phone API 36.1 emulators on this Mac (four at once in the
+  main run) and API 36.1 x86_64 emulators on three remote Linux machines
+  (two per job). The owner agreed to the release-key candidate running on
+  the remote machines for this one sweep. The 292 steps were spread over
+  four runs, merged by the release kit's report merge, which keeps each
+  step's newest verdict: the main run (every step but rides-timing), a
+  run of the 42 steps whose remote job never started, a run of the two
+  compat steps of a Mac lane stopped early, and a finale alone on this
+  Mac (rides-timing, the ride auto-save check and one rerun). Three
+  earlier starts were stopped and replaced before any step recorded a
+  result. 480 tries in all; every step has a verdict. Closing numbers of
+  the merged result, as printed:
+  - Gating steps: 217 passed, 0 failed.
+  - Report-only steps (never counted as passes): 65 ran, 1 did not
+    finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
+    pseudo-locale steps: no pseudo-locale APK was supplied.
+  - The ride auto-save check passed on its second run.
+  Six gating steps failed a try and passed when rerun; none failed twice:
+  - guided: the remote emulator running it went offline mid-step. It
+    passed on this Mac.
+  - reveal-motion-rides ("the record card is not mid-fade at the second
+    tap"), report-invite-light ("A stopped check did not offer Try
+    again") and riding-config-menu-narrow ("The tune button should hide:
+    moving") failed on one remote Linux machine and passed on this Mac.
+  - auto-start-gps-grant failed on that same machine in the run of the 42
+    (the Ride page's Recording settings row didn't open its page on the
+    tap) and passed on another remote machine, as it had on this Mac in
+    the main run.
+  - reveal-motion-stats-tabs-725 failed on this Mac with four emulators
+    running ("Stats: Diagnostics is not mid-fade at the tap on Refresh",
+    opacity 0.95). On an idle rerun, alone on this Mac, it passed (2812
+    assertions).
+  Infrastructure, not the app, accounts for the other reruns: one remote
+  machine's emulators went offline mid-job, in two of its jobs (their
+  steps reran and passed), one remote job never started within its start
+  limit and was cancelled (its 42 steps reran on this Mac in the main run
+  and again in the separate run above), and stopping one Mac lane early
+  lost its summary, so its 29 finished steps reran.
+  - The ride auto-save check failed its first run after 302 checks, at
+    "Switch fully visible, not clipped", and passed on an idle rerun on a
+    freshly started emulator alone on this Mac (585 checks).
+  - The one report-only step that did not finish, gps-accuracy-riding-de,
+    stopped at the same check as in 2.0.0 and 1.13.2: in German, Halo's
+    GPS accuracy chip shows the no-reading dash instead of "Keine
+    Aufzeichnung" while nothing records. A shorter German text is still a
+    follow-up.
+  - rides-timing passed (205 s), alone on this Mac. Best of two cold
+    starts per case, slowest case: first frame 123 ms and service start
+    command 103 ms (budgets 1.5 s). Rides showed its first row within
+    35 ms, and the longest main-thread message on Rides was at most 32 ms
+    cold and 34 ms warm (budget 1 s). The longest main-thread message at
+    launch was 110 ms in any single run.
+- Parked hardware sweep with the owner present (run-hardware-sweep.py,
+  parked, no lock or PIN step), November 20, 2026, 2:03 to 2:08 AM MST, on
+  the owner's phone and scooter, parked and charging. With the owner's
+  OK, the release APK was installed over the published 2.0.0 as an
+  update. The runner was built from the release commit with the release
+  key. All 7 steps passed: snapshot, navigation, background, clock,
+  settings, charge-time and Test scheduled charging.
+  - settings changed, read back and restored 23 controls, among them the
+    charge limit (100 to 80 and back), the three assists and both light
+    zones. The 5 the plan never writes (speed limit, maximum speed, dual
+    drive, drive speed limit and timed charging) were excluded.
+  - navigation walked 29 pages, 33 controls and Experimental entries on
+    10 Scooter pages, Data's 4 sections, search, a favourite and Settings'
+    5 pages, with no scooter writes. Rides opened its 96 saved rides with
+    the first frame in 35 ms.
+  - Test scheduled charging passed on a real charge: charging paused and
+    resumed 5 s after the scheduled time. It had been owed since 2.0.0,
+    which published without it.
+- Known text slip shipped in 2.0.1: the Record a charge dialog
+  (more_dev_record_body, in English and all ten languages) still says it
+  "keeps the last 20" recordings. Since #563, Volt keeps up to 1,000
+  saved recordings (and about 150 MB) and clears the oldest first. #563's
+  review upheld this as a P3. The owner decided on November 20, at about
+  2:15 AM MST, a few minutes before the publish go, to ship 2.0.1 as
+  swept and fix the text in 2.0.2.
+- Also shipped as written: in Polish and Portuguese (Portugal), the full
+  wording of the Charging slowed pill for a hot or cold battery leaves out
+  the word for charging (dashboard_charging_slowed_hot and _cold), which
+  TalkBack reads. #579's review upheld it as a P3 and it goes to the 2.0.2
+  language top-up.
 - Charging slowed, the temperature-aware estimate and the top-up default
   were checked by replaying recorded UT5 MAX charges from two scooters on
   a computer (aggregate results in docs/validation/fast-charge-slowdown.md
@@ -48,7 +153,24 @@ Draft, November 19, 2026. The release checks below are still to run.
   charge, the Improve this estimate tip and What Volt has learned on a
   real scooter's recordings, riding mode's Lock and Record near a stop, a
   first automatic recording on a model without charger detection, and
-  2.0.0's list below, Test scheduled charging included.
+  2.0.0's list below apart from Test scheduled charging, which passed in
+  this release's hardware sweep (above).
+- Published November 20, 2026 at 2:18 AM MST (09:18 UTC) from main, on the
+  owner's go: tag v2.0.1 points at
+  75667d5eb7f0c4671e44663c7b7a1289e8b1460b, #579's merge, the release
+  commit, which was still main's newest commit. Its tests (217 suites),
+  ship_check and VOLT_RELEASE=1 build ran again before the draft. The
+  release APK (SHA-256
+  b7a4cb11b6531f3a111449983743f247722cb66bbbc1e7db7dd4ac632b891e70) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 2.0.0's certificate, zipaligned, and reads 2.0.1
+  (61). The source ZIP's SHA-256 is
+  69a4928492b41b41aa2a731c3921d2a39dd42df2d9560e76e3f05bb5054ccf10. The
+  published assets were downloaded again and matched, the release gates
+  passed on the published APK, and the update check offers its Download.
+  The homepage was deployed from the tag at 2:18 AM MST with
+  site/server/deploy-release.sh; the live variant stayed as chosen, and
+  every file was checked where it is served (98 of 98).
 
 --- Previous verification ---
 
