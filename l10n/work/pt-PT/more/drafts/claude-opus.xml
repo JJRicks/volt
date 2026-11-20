@@ -96,6 +96,7 @@
     <string name="more_prefs_battery_value_unrestricted" volt:src="d16106e031ab845bc6eaf37d7664c393c8552dbe">Sem restrições ✓</string>
     <string name="more_prefs_battery_value_optimized" volt:src="12c4694b62a8053f7d403d23c40c53baf0edf80d">Otimizada ⚠︎</string>
     <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Personalizado</string>
+    <string name="more_prefs_map_last_ride" volt:src="0b6b3c2d5b2107da2502b466dcad131dff2d00b7">Última viagem</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Escolhe a Volt para gerir as definições dela no Android</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Abre as definições da Volt no Android</string>
     <string name="more_units_distance" volt:src="1f80f00b9165f3a5a5a178d4cbd7eacd1cbabacf">Distância e velocidade</string>
@@ -412,7 +413,7 @@
     <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Tens de parar a gravação de carregamento antes de ocultar as opções de programador</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Termina ou cancela o teste primeiro</string>
     <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Conecta a trotinete primeiro</string>
-    <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Guardada no telemóvel · até aos 100% · ficam as últimas 20</string>
+    <string name="more_dev_record_body" volt:src="c6a3fec5d246d6a07a5788266be982cbea0986b0">Guardada no telemóvel · para nos 100% · sem espaço, a mais antiga é eliminada</string>
     <string name="more_dev_which_charger" volt:src="7b52501fb200660f62b9170ec96b9318ade02e6a">Que carregador está ligado?</string>
     <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Gravar com o carregador original?</string>
     <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Gravar com o carregador rápido?</string>
@@ -460,6 +461,7 @@
     <string name="more_learned_gap_above" volt:src="00df7e7b0f91fcb9ed94770c47b11c1eb234a27c">Sem dados acima de %1$s%%</string>
     <string name="more_learned_gap_between" volt:src="12585a3b7865864f8d59ce6e780e4e590c4201d9">Sem dados: %1$s–%2$s%%</string>
     <string name="more_learned_gap_disagree" volt:src="0d84bc5096f82b3008facc0e8a39b05d716fee6d">Gravações divergentes: %1$s–%2$s%%</string>
+    <string name="more_learned_gap_temperature" volt:src="9f08bab9de4ed403a17a908a38a127992facd6c7">Demasiado frio ou quente para aprender: %1$s–%2$s%%</string>
     <plurals name="more_learned_gap_more" volt:src="2b47608adf7fb9f1016f05ce901456f43a55eb54">
         <item quantity="one">E mais %1$d lacuna</item>
         <item quantity="many">E mais %1$d de lacunas</item>
