@@ -48,6 +48,8 @@ final class ChargeEstimateTip {
     static final String TAG_SLOT = "home-estimate-tip", TAG_PILL = "home-estimate-tip-pill",
             TAG_SHEET = "estimate-tip-sheet", TAG_RECORD = "estimate-tip-record", TAG_AUTO = "estimate-tip-auto",
             TAG_OPEN = "estimate-tip-open", TAG_NOT_NOW = "estimate-tip-not-now", TAG_HIDE = "estimate-tip-hide";
+    /** View tags: the charger tip's sheet and its main button (its Not now and Hide this tip keep the tags above). */
+    static final String TAG_CHARGER_SHEET = "charger-tip-sheet", TAG_CHARGER_ACTION = "charger-tip-action";
 
     /**
      * The tip to show now, or null for none.
@@ -71,6 +73,14 @@ final class ChargeEstimateTip {
         if (otherCharger && !hidden(Tip.OTHER_CHARGER, stored)) return Tip.OTHER_CHARGER;
         if (Boolean.FALSE.equals(recordingsSaved) && !recording && !hidden(Tip.NO_RECORDINGS, stored)) return Tip.NO_RECORDINGS;
         return null;
+    }
+
+    /**
+     * The tip Home shows: the charger tip when otherCharger holds and it isn't hidden, else chosen (the 4-argument
+     * {@link #choose}'s answer). The same order as the 5-argument choose, for a caller that already has chosen.
+     */
+    static Tip withCharger(Tip chosen, boolean timeShown, boolean otherCharger, Map<String, ?> stored) {
+        return timeShown && otherCharger && !hidden(Tip.OTHER_CHARGER, stored) ? Tip.OTHER_CHARGER : chosen;
     }
 
     /** Whether the owner hid this tip: only a stored TRUE hides it (a wrong type or damaged restore is no answer). */

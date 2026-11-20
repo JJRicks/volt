@@ -146,6 +146,15 @@ public final class ChargeEstimateTipRuleTest {
         Map<String, Object> other = new HashMap<>(); other.put(RECORD.hiddenKey(), Boolean.TRUE);
         check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, true, other) == CHARGER, "The record tip's hide doesn't hide it");
         check(ChargeEstimateTip.choose(true, Boolean.FALSE, false, none) == RECORD, "The old form never shows the charger tip");
+        // withCharger: the same order for a caller that already chose (Home).
+        check(ChargeEstimateTip.withCharger(RECORD, true, true, none) == CHARGER && ChargeEstimateTip.withCharger(null, true, true, none) == CHARGER,
+                "withCharger: the charger tip first");
+        check(ChargeEstimateTip.withCharger(RECORD, true, false, none) == RECORD && ChargeEstimateTip.withCharger(RECORD, true, true, hidden) == RECORD
+                && ChargeEstimateTip.withCharger(null, false, true, none) == null, "withCharger: not far off, hidden, or no time on screen");
+        for (Boolean saved : new Boolean[]{Boolean.TRUE, Boolean.FALSE, null}) for (boolean rec : new boolean[]{false, true})
+            for (boolean far : new boolean[]{false, true}) for (Map<String, Object> st : java.util.Arrays.asList(none, hidden, other))
+                check(ChargeEstimateTip.withCharger(ChargeEstimateTip.choose(true, saved, rec, st), true, far, st)
+                        == ChargeEstimateTip.choose(true, saved, rec, far, st), "withCharger agrees with choose");
         String service = read("src/com/jjricks/volt/ScooterService.java").replace(" ", "");
         check(service.contains("if(chargeModelLoading)returnfalse;") && service.contains("if(chargeModelLoading)returnnull;"),
                 "Both tips are held while the store's answer is refreshed after a stop (#574 F02)");
