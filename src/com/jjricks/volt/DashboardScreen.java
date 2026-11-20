@@ -3536,8 +3536,8 @@ public final class DashboardScreen implements AppScreen {
         /**
          * Shows the pill's state with its words (ChargingPillStatus.rungs, longest first): the line takes the longest rung
          * that fits on one line (fitPill), Clean's short line the shortest, and TalkBack the full text. A change of state
-         * crossfades the colours and the icon (Motion.CROSSFADE_MS), or changes at once with Android's animations off or
-         * before the pill has shown.
+         * crossfades the colours and the icon (Motion.CROSSFADE_MS), or changes at once with Android's animations off, under
+         * a validation's EndlessMotion hold, or before the pill has shown.
          */
         private void showPill(ChargingPillStatus.Kind kind, String[] rungs) {
             pillRungs = rungs;
@@ -3554,7 +3554,9 @@ public final class DashboardScreen implements AppScreen {
             int fill = ChargingPillStatus.accent(kind) ? ui.accent : ChargingPillStatus.base(kind, dark);
             int toFill = Ui.withAlpha(fill, ChargingPillStatus.alpha(dark));
             int toInk = ChargingPillStatus.accent(kind) ? ui.accentOnTint : ChargingPillStatus.ink(kind, dark);
-            boolean animate = pillStyled && Ui.motionEnabled() && isShown() && isLaidOut();
+            // Android's animations off, or an emulator validation's hold on endless motion (EndlessMotion, never in the
+            // app): the change is drawn at once, so a held screen has nothing still moving.
+            boolean animate = pillStyled && Ui.endlessMotionEnabled() && isShown() && isLaidOut();
             // From what is drawn now: mid-crossfade, the blend on screen.
             pillFromFill = blend(pillFromFill, pillToFill, pillT);
             pillFromInk = blend(pillFromInk, pillToInk, pillT);
