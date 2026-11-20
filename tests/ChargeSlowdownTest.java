@@ -620,7 +620,7 @@ public final class ChargeSlowdownTest {
             atLeast(b.planningMinutesToFull, b.remainingMinutesToFull, soc + "% planning covers the time shown");
             if (soc == 86) check(a.remainingMinutesToFull > 40 && b.remainingMinutesToFull >= a.remainingMinutesToFull, "The probe no longer drops: " + a.remainingMinutesToFull + " -> " + b.remainingMinutesToFull);
         }
-        int n = 0;
+        int n = 0, unexplained = 0;
         for (double soc = 20; soc <= 98; soc += 2)
             for (double amps : new double[]{2, 3, 4, 5.5, 6, 7, 7.5, 8.5, 9})
                 for (Double temp : new Double[]{null, 5d, 13d, 17d, 19.5d, 25d, 40d, 47d})
@@ -631,8 +631,9 @@ public final class ChargeSlowdownTest {
                                 ChargeSlowdown.State state = new ChargeSlowdown.State(true, ChargeSlowdown.cause(temp), temp, coldTail);
                                 ChargingEstimate.Result a = at(soc, volts, amps, RATED, limit, null, null, false), b = at(soc, volts, amps, RATED, limit, null, state, true);
                                 String what = soc + "% " + amps + " A " + volts + " V " + temp + " C limit " + limit;
-                                // The time shown may sit below the live-current estimate only while the cold model predicts the warm-up.
-                                if (temp == null || temp >= 20) {
+                                // The time shown may sit below the unslowed estimate only where a BMS cold level explains the current.
+                                if (!ChargeSlowdown.coldExplains(temp, amps, ChargeSlowdown.expectedAmps(soc))) {
+                                    unexplained++;
                                     atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what + " full shown");
                                     atLeast(b.remainingMinutesToLimit, a.remainingMinutesToLimit, what + " limit shown");
                                 }
@@ -644,7 +645,29 @@ public final class ChargeSlowdownTest {
                                 consistent(b, what);
                                 n++;
                             }
-        check(n > 50_000, "The sweep covers " + n + " readings");
+        check(n > 50_000 && unexplained > n / 2, "The sweep covers " + n + " readings, " + unexplained + " not explained by the cold");
+        // The cold model only where a cold level explains the current, and below the stage's expected current.
+        check(ChargeSlowdown.coldExplains(13d, 5.52, 10.05) && ChargeSlowdown.coldExplains(17d, 8.55, 10.05) && ChargeSlowdown.coldExplains(19d, 8.74, 10.05)
+                && ChargeSlowdown.coldExplains(15d, 5.5, 10.05), "The BMS's cold levels explain 5.5 A below 15 C (and at the step) and 8.5 A to 20 C");
+        check(!ChargeSlowdown.coldExplains(19d, 3, 10.05) && !ChargeSlowdown.coldExplains(17d, 5, 10.05) && !ChargeSlowdown.coldExplains(17d, 8.5, 8.0)
+                && !ChargeSlowdown.coldExplains(20d, 8.5, 10.05) && !ChargeSlowdown.coldExplains(null, 8.5, 10.05) && !ChargeSlowdown.coldExplains(17d, 5.5, 10.05),
+                "A current far from the level, a level above the 8 A stage's, 20 C or no temperature is not explained");
+        // The review's probe: a slowdown far below the cold level is never shown as recovering, and nothing jumps at 20 C.
+        for (double[] c : new double[][]{{40, 3}, {41, 3}, {50, 5}, {86, 3}}) {
+            double soc = c[0], amps = c[1], volts = soc >= 80 ? 53.1 : Sim.bulkVolts(soc, amps);
+            ChargingEstimate.Result a = at(soc, volts, amps, RATED, 100d, null, null, false);
+            Double before = null;
+            for (double temp : new double[]{14, 17, 19, 19.9, 20, 21}) {
+                ChargeSlowdown.State state = new ChargeSlowdown.State(true, ChargeSlowdown.cause(temp), temp, false);
+                ChargingEstimate.Result b = at(soc, volts, amps, RATED, 100d, null, state, true);
+                String what = "Probe " + soc + "% " + amps + " A " + temp + " C";
+                // 5 A at 14 C sits within the 5.5 A cold level's band, so there the warm-up may be shown.
+                if (!(amps == 5 && temp < 15)) atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what + " shown");
+                atLeast(b.planningMinutesToFull, a.planningMinutesToFull, what + " planned");
+                if (temp >= 17) check(before == null || Math.abs(b.remainingMinutesToFull - before) < 1e-9, what + ": no jump at the 20 C edge, " + before + " -> " + b.remainingMinutesToFull);
+                if (temp >= 17) before = b.remainingMinutesToFull;
+            }
+        }
     }
 
     /** Another pack (25 Ah): no slowdown state and no layer, so every field is v9's. */
@@ -702,7 +725,7 @@ public final class ChargeSlowdownTest {
                         boolean rerun = at(soc, volts + .1 * (expected - amps), expected, RATED, 100d, curve, null, false).learnedToFull;
                         check(b.learnedToFull == rerun, what + ": past charges named " + b.learnedToFull + ", but they set the nominal time: " + rerun);
                         if (a.learnedToFull != rerun) mixed++;
-                        if (temp >= 20) atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what);
+                        if (!ChargeSlowdown.coldExplains(temp, amps, ChargeSlowdown.expectedAmps(soc))) atLeast(b.remainingMinutesToFull, a.remainingMinutesToFull, what);
                         atLeast(b.planningMinutesToFull, a.planningMinutesToFull, what);
                         if (b.learnedToFull) personal++; else bundled++;
                     }

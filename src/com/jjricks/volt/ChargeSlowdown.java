@@ -92,6 +92,26 @@ public final class ChargeSlowdown {
     /** The healthy current at this displayed battery level. */
     static double expectedAmps(double soc) { return soc < STEP_SOC ? FULL_AMPS : STEP_AMPS; }
 
+    /** How far (as a share of the level) the live current may sit from a BMS cold level that explains it. */
+    static final double COLD_LEVEL_BAND = .10;
+
+    /**
+     * A BMS cold level explains this live current: the battery is below COLD_FULL_C and the current is within
+     * COLD_LEVEL_BAND of that temperature's level (COLDEST_AMPS below COLD_LOW_C, COOL_AMPS below COLD_FULL_C; in the
+     * first degree above COLD_LOW_C, COLDEST_AMPS too, as the BMS steps up on its own sensor), and that level lies below
+     * the expected current. Only then does the estimate expect the current to rise as the battery warms; a current far
+     * from the level (3 A at 19 C), or a level at or above the expected current (8.5 A in the 8 A stage), is not
+     * explained by the cold and is assumed to last.
+     */
+    static boolean coldExplains(Double temperatureC, double amps, double expected) {
+        if (temperatureC == null || !finite(temperatureC) || temperatureC >= COLD_FULL_C || !finite(amps)) return false;
+        double level = temperatureC < COLD_LOW_C ? COLDEST_AMPS : COOL_AMPS;
+        if (near(amps, level)) return level < expected;
+        return temperatureC < COLD_LOW_C + 1 && near(amps, COLDEST_AMPS) && COLDEST_AMPS < expected;
+    }
+
+    private static boolean near(double amps, double level) { return Math.abs(amps - level) <= COLD_LEVEL_BAND * level; }
+
     static Cause cause(Double temperatureC) {
         if (temperatureC == null || !finite(temperatureC)) return Cause.PLAIN;
         return temperatureC <= COLD_NAME_C ? Cause.COLD : temperatureC >= HOT_NAME_C ? Cause.HOT : Cause.PLAIN;

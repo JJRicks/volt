@@ -388,7 +388,10 @@ public final class ChargingEstimate {
         Double nominalLimit=rerun.remainingMinutesToLimit==null||voltage==null?rerun.remainingMinutesToLimit
                 :toFull?Double.valueOf(nominalFull):Double.valueOf(Math.min(nominalFull,rerun.remainingMinutesToLimit));
         boolean historyLimit=nominalLimit!=null&&(toFull?historyFull:rerun.learnedToLimit);
-        Double temperature=slowdown.batteryTempC;
+        // The cold model (the BMS's levels as the battery warms) applies only where a cold level explains the live
+        // current; any other slowdown, cold or not, is assumed to last (review of #561).
+        boolean cold=ChargeSlowdown.coldExplains(slowdown.batteryTempC,amps,expected);
+        Double temperature=cold?slowdown.batteryTempC:null;
         double fullShown=nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_SHOWN,.5,rated);
         double fullPlan=Math.max(fullShown,nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)
                 +(slowdown.coldTail?ChargeSlowdown.COLD_TAIL_MINUTES:0));
@@ -400,10 +403,9 @@ public final class ChargingEstimate {
                     nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)));
         }
         // A slowdown never makes Charge done by shorter than the same reading's estimate without it, nor the time shown,
-        // except where a cold battery's BMS levels predict the current rising as it warms (review of #561). There the
-        // estimate without a slowdown assumes the live current lasts, and drops by up to 25 minutes at each step up;
-        // Charge done by still keeps the longer time.
-        boolean cold=temperature!=null&&temperature<ChargeSlowdown.COLD_FULL_C;
+        // except where the cold model applies (a BMS cold level explains the live current) and predicts it rising as the
+        // battery warms (review of #561). There the estimate without a slowdown assumes the live current lasts, and
+        // drops by up to 25 minutes at each step up; Charge done by still keeps the longer time.
         if(!cold){
             fullShown=Math.max(fullShown,shown.remainingMinutesToFull);
             if(limitShown!=null&&shown.remainingMinutesToLimit!=null)limitShown=Math.max(limitShown,shown.remainingMinutesToLimit);

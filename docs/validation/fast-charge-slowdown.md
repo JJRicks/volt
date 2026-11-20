@@ -61,15 +61,18 @@ ones); healthy stretches stay at 0.997 × or more of the expected current.
   past charges; otherwise FastChargeTaper's voltage model (depth-aware since
   [v11](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11)), labelled and
   recorded as the bundled reference. The predicted current is:
-  - **cold** (battery below 20 °C): the BMS's cold levels as the battery warms 0.25 °C a minute from the
-    middle of its 1 °C reading, never below the live current;
-  - **hot or unexplained:** the live current lasts to the end of the bulk stage; no recovery is assumed.
+  - **cold**, only where a BMS cold level explains the live current (battery below 20 °C, the current within
+    10% of that temperature's level, 5.5 A below 15 °C or 8.5 A to 20 °C, and that level below the stage's
+    expected current): the BMS's cold levels as the battery warms 0.25 °C a minute from the middle of its
+    1 °C reading, never below the live current;
+  - **anything else** (hot, plain, or cold but far from a cold level, such as 3 A at 19 °C or 8.5 A in the
+    8 A stage): the live current lasts to the end of the bulk stage; no recovery is assumed.
 - **Charge done by:** the longer of the time shown and the same bulk calculation warming 0.15 °C a minute
   from the bottom of the reading, plus 6 minutes once this charge was slowed cold (a cold taper runs
   slower).
 - **Never less conservative** (review of #561): Charge done by is never shorter than the same reading's
-  estimate without a slowdown, to 100% or to a limit. Neither is the time shown, except while the cold
-  model predicts the warm-up: there the estimate without a slowdown assumes the live current lasts and
+  estimate without a slowdown, to 100% or to a limit. Neither is the time shown, except where a cold level
+  explains the current and the cold model predicts the warm-up: there the estimate without a slowdown assumes the live current lasts and
   drops by up to 25 minutes at each BMS step up, which the cold model avoids; Charge done by keeps the
   longer time.
 - **Hot onset is not predicted.** No recording shows one to tune on, and a guard fast enough to matter
