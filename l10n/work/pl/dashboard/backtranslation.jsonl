@@ -128,3 +128,5 @@
 {"back":"Switch time","key":"dashboard_charge_time_switch","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"13d494c3d3db09eb6ce058e1a82f206e6a00b846","target":"Przełącz czas"}
 {"back":"Remaining range: %1$s","key":"dashboard_range_left_spoken","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"6a60e792167ca3bcb8635b26b5811eb87dac17d6","target":"Pozostały zasięg: %1$s"}
 {"back":"≈%1$sh %2$smin","key":"dashboard_duration_hours_narrow","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"b9fb4887ba744f3f87621e15c8d5d05bc75ce876","target":"≈%1$sh %2$smin"}
+{"back":"Charging slowed","key":"dashboard_charging_slowed","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"36763ec3b3f3a7855b7eb26e0a7e12c018cf9be2","target":"Ładowanie spowolnione"}
+{"back":"Slowed","key":"dashboard_charging_slowed_short","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"45c3eb8d27b67e0465efa84ee81b834fe3eda494","target":"Spowolnione"}

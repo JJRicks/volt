@@ -70,7 +70,7 @@
     <string name="hub_charge_invite_step_nearby" volt:src="a83860cb7088b2d10e03b96dc4cc6e48954cc43b">Podczas ładowania należy trzymać telefon w pobliżu hulajnogi, aby aplikacja Volt pozostała połączona.</string>
     <string name="hub_charge_invite_step_send" volt:src="d157c439746955fe6c175f41b2e27c20cb39dca6">Następnie należy otworzyć ekran %1$s i dotknąć opcji %2$s. Wykorzystujemy Twoje zapisy do dopracowania oszacowania dla Twojego modelu hulajnogi.</string>
     <string name="hub_estimate_tip_record" volt:src="e385c8bfe54364415acaadccfbe8c4e399cb9337">Popraw to oszacowanie</string>
-    <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343">Popraw oszacowanie</string>
+    <string name="hub_estimate_tip_record_short" volt:src="8a738c6b7d656b08a91700ca364cdcc83a2ac343" volt:attempt="2">Popraw dokładność</string>
     <string name="hub_estimate_tip_record_title" volt:src="b89b3389d6d13ed0dc5e357c2f4d5ee150a53eea">Zapisywanie ładowań</string>
     <string name="hub_estimate_tip_hide" volt:src="fd71df508edfa68bc33b42a7fcf23245b16d793d">Ukryj tę wskazówkę</string>
     <string name="hub_recording_auto_background" volt:src="04bc34a391adb8a7ad639531d7934a68631293fd">Rozpocznij nagrywanie w tle</string>

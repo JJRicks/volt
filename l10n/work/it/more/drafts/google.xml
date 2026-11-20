@@ -442,7 +442,7 @@
     <string name="more_learned_empty" volt:src="248229d36d47db47881ffa4103a342a8c86645e3">Registra una ricarica e Volt apprenderà la velocità di ricarica di questo monopattino a ogni livello di batteria.</string>
     <string name="more_learned_none_usable" volt:src="279e0dccfab33bdff771a5fffb29b67c35190f9c">Queste registrazioni non concordano ancora. Registra un\'altra ricarica con questo caricabatterie.</string>
     <string name="more_learned_temperature" volt:src="9bf61430fd90da247529d4a205657c5b09804f6d">Ricarica effettuata a temperatura troppo bassa o alta per l\'apprendimento.</string>
-    <string name="more_learned_too_little" volt:src="0b2f256985dab9fa53c43f6b922e516f78119f23">Dati ancora insufficienti. Registra un\'altra ricarica con questo caricabatterie.</string>
+    <string name="more_learned_too_little" volt:src="0b2f256985dab9fa53c43f6b922e516f78119f23" volt:attempt="2">Dati non ancora sufficienti. Registra un\'altra ricarica con questo caricabatterie.</string>
     <plurals name="more_learned_recordings" volt:src="97a247d0391307bbbb8b1c19c60b236f28a3f0f0">
         <item quantity="one">Da %1$d registrazione</item>
         <item quantity="many">Da %1$d di registrazioni</item>

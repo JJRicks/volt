@@ -46,10 +46,10 @@
     <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">A carregar · limite %1$s%%</string>
     <string name="dashboard_charging_slowed" volt:src="36763ec3b3f3a7855b7eb26e0a7e12c018cf9be2">Carregamento abrandado</string>
     <string name="dashboard_charging_slowed_short" volt:src="45c3eb8d27b67e0465efa84ee81b834fe3eda494">Abrandado</string>
-    <string name="dashboard_charging_slowed_hot" volt:src="0af8e219a496c6d32654d93616b393b3aedae460">Carregamento abrandado · bateria quente (%1$s°)</string>
+    <string name="dashboard_charging_slowed_hot" volt:src="0af8e219a496c6d32654d93616b393b3aedae460" volt:attempt="2">A carregar mais devagar · bateria quente (%1$s°)</string>
     <string name="dashboard_charging_slowed_hot_short" volt:src="9e063a61c7cf48ac6296019450d16fe1a9149522">Abrandado · bateria quente %1$s°</string>
     <string name="dashboard_charging_slowed_hot_compact" volt:src="dd3c06e8af17d5e50e97d524fc5423ee49405486">Bateria quente · %1$s°</string>
-    <string name="dashboard_charging_slowed_cold" volt:src="3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd">Carregamento abrandado · bateria fria (%1$s°)</string>
+    <string name="dashboard_charging_slowed_cold" volt:src="3390f602c48c8c2a1d580afb2c64e9c1d21cd4bd" volt:attempt="2">A carregar mais devagar · bateria fria (%1$s°)</string>
     <string name="dashboard_charging_slowed_cold_short" volt:src="6da29c3111b775a4f09381f0cbdd3a51a2ca09c0">Abrandado · bateria fria %1$s°</string>
     <string name="dashboard_charging_slowed_cold_compact" volt:src="ca0021bc6fbb2a576cab1a79c671b7a7f93228fb">Bateria fria · %1$s°</string>
     <string name="dashboard_charging_hot" volt:src="3d52c20b374a8ce1926590f30d80f0a464dd7f62">Carregamento abrandado · bateria quente</string>
