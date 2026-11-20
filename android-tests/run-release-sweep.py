@@ -49,9 +49,11 @@ then report-only steps ran, did not finish and skipped, none of which is a pass.
 status (passed, failed, reported, did-not-finish, skipped); only gating steps have the passed field. Every
 record also names what the run tested and when it began: app_sha256 and runner_sha256 (the APKs' SHA-256), with
 app_version_name, app_version_code, app_cert_sha256 and runner_cert_sha256 when the SDK's aapt2 and apksigner
-(build-tools beside --adb, else ANDROID_HOME or ANDROID_SDK_ROOT) can read them, and sweep_started (Unix seconds).
-Those are the SHA-256 of the run's own copies, <out>/apks/app.apk and runner.apk, taken as the sweep starts; every
-step installs (and runner steps are given) only those copies, so a rebuild into --app's path mid-sweep changes nothing.
+(build-tools beside --adb, else ANDROID_HOME or ANDROID_SDK_ROOT) can read them, pseudo_app_sha256 when --pseudo-app
+is given, and sweep_started (Unix seconds). Those are the SHA-256 of the run's own copies, <out>/apks/app.apk,
+runner.apk and pseudo.apk, taken as the sweep starts (the pseudo copy's classes.dex is checked against the app copy's);
+every step installs (and runner steps are given) only those copies, so a rebuild into --app's, --runner's or
+--pseudo-app's path mid-sweep changes nothing.
 
 Split sweeps. --merge --out DIR RUN_DIR... reads the summary.json (and the <step>.txt outputs) of several runs of
 this script and gives each step of this checkout's --list one final verdict. Runs are read oldest first by
@@ -593,17 +595,19 @@ for flag in ('adb', 'serial', 'app', 'runner', 'out'):
     if getattr(args, flag) is None: parser.error(f'--{flag} is required')
 if not re.fullmatch(r'emulator-\d+', args.serial):
     parser.error('An explicit emulator serial is required; physical devices are refused')
-for flag in ('app', 'runner'):
-    if not getattr(args, flag).is_file(): parser.error(f'--{flag} {getattr(args, flag)} is not a file')
+for flag in ('app', 'runner', 'pseudo_app'):
+    if getattr(args, flag) is not None and not getattr(args, flag).is_file():
+        parser.error(f'--{flag.replace("_", "-")} {getattr(args, flag)} is not a file')
 names = {step['name'] for step in STEPS}
 for name in args.only or []:
     if name not in names: parser.error(f'Unknown step {name}; see --list')
 # The run's own copies: every step installs these, and summary.json names their SHA-256, so a rebuild into
-# --app's or --runner's path while the sweep runs changes neither what is installed nor what is recorded.
+# --app's, --runner's or --pseudo-app's path while the sweep runs changes neither what is installed nor what is recorded.
 copies = args.out / 'apks'
 copies.mkdir(parents=True, exist_ok=True)
-for flag in ('app', 'runner'):
-    copy = copies / f'{flag}.apk'
+for flag, name in (('app', 'app'), ('runner', 'runner'), ('pseudo_app', 'pseudo')):
+    if getattr(args, flag) is None: continue
+    copy = copies / f'{name}.apk'
     if getattr(args, flag).resolve() != copy.resolve(): shutil.copyfile(getattr(args, flag), copy)
     setattr(args, flag, copy)
 
@@ -637,6 +641,7 @@ def tool_output(*command):
 def apk_identity():
     """What every summary.json record names (see the module docstring); fields the SDK's tools can't read are left out."""
     identity = dict(app_sha256=hashlib.sha256(args.app.read_bytes()).hexdigest(), runner_sha256=hashlib.sha256(args.runner.read_bytes()).hexdigest())
+    if args.pseudo_app: identity['pseudo_app_sha256'] = hashlib.sha256(args.pseudo_app.read_bytes()).hexdigest()
     aapt2, apksigner = sdk_tool('aapt2'), sdk_tool('apksigner')
     badging = tool_output(aapt2, 'dump', 'badging', args.app) if aapt2 else ''
     package = next((line for line in badging.splitlines() if line.startswith('package:')), '')
