@@ -135,8 +135,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src
 COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/FeatureVariant.java" "$APP_DIR/src/com/jjricks/volt/KickStartTry.java" "$TEST_DIR/OemControlsTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerNotes.java" "$TEST_DIR/ExperimentalControlsTest.java")
-# Standard-charger pack model (ut5-stock-pack-v6), its generated parity table and charge-age tracking.
-for name in Ut5MaxStockPackModel ChargeProgressTracker ChargeMeasureWindow; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# Standard-charger pack model (ut5-stock-pack-v6), its generated parity table, charge-age tracking and the averaged current.
+for name in Ut5MaxStockPackModel ChargeProgressTracker ChargeMeasureWindow ChargeCurrentAverage; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$TEST_DIR/StockPackParity.java")
 # High-speed voltage/current taper (ut5-fast-taper-v8) and its owner-charge replay.
 sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastChargeTaperTest.java" "$TEST_DIR/FastChargeTaperReplay.java")
@@ -189,6 +189,7 @@ done
 
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxStockPackModelTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeProgressTrackerTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeCurrentAverageTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeMeasureWindowTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeAlertPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NotificationPacerTest

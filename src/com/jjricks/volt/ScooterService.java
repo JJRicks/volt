@@ -86,6 +86,8 @@ public final class ScooterService extends Service {
     /** "Different charger? Record it": a sustained far-off run against the only recorded family (recordChargerHint). */
     private final RecordChargerHint chargerHint = new RecordChargerHint();
     private final ChargeProgressTracker chargeProgress = new ChargeProgressTracker();
+    /** The charging current the time estimates use: the last minute's mean of this charge's readings (ChargeCurrentAverage). */
+    private final ChargeCurrentAverage chargeCurrent = new ChargeCurrentAverage();
     private final FastChargeTaper chargeTaper = new FastChargeTaper();
     /** The UT5 MAX fast charger's "Charging slowed" observer; the estimate and the charging status share its state. */
     private final ChargeSlowdown chargeSlowdown = new ChargeSlowdown();
@@ -1070,6 +1072,11 @@ public final class ScooterService extends Service {
         TelemetryHistory.Reading reading=readings.get(key);
         return new ChargingEstimate.Value(reading==null?null:reading.number,reading!=null&&reading.live,reading==null?0:reading.capturedWallMs);
     }
+    /** The current the estimates use for this reading: ChargeCurrentAverage's mean where it holds the reading, else the reading. */
+    private ChargingEstimate.Value steadyCurrent(ChargingEstimate.Value current){
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        return simulating()||profile==null?current:chargeCurrent.steady(profile.id,current,SystemClock.elapsedRealtime());
+    }
     /** Same service calculation used by the dashboard, also evaluated with the screen off. */
     private ChargeSessionStore.Estimate chargeRecordingEstimate(){
         return ChargingEstimate.recordingSnapshot(chargingEstimate(displayReadings()));
@@ -1090,8 +1097,10 @@ public final class ScooterService extends Service {
     }
     private ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
+        // The current is the last minute's mean, so a reading moving between two of the battery's current steps doesn't
+        // flip every time shown by a couple of minutes (ChargeCurrentAverage); a real change still shows at once.
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(chargingValue(readings,"charging_state"),chargingValue(readings,"voltage_v"),
-                chargingValue(readings,"current_a"),soc,rated,target);
+                steadyCurrent(chargingValue(readings,"current_a")),soc,rated,target);
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
@@ -2284,6 +2293,7 @@ public final class ScooterService extends Service {
         learnedCharger.reset();
         chargerHint.reset();
         chargeProgress.reset();
+        chargeCurrent.reset();
         chargeTaper.reset();
         chargeSlowdown.reset();
     }
@@ -2295,7 +2305,7 @@ public final class ScooterService extends Service {
      */
     private void updateChargerDetection(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
+        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeCurrent.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
         if(ble!=null&&ble.currentTransportSerial().isEmpty()){chargerDetection.disconnected();learnedCharger.disconnected();chargerHint.disconnected();}
         if(ble==null||!ble.ready()||ble.profile()==null||!profile.id.equals(ble.profile().id))return;
         long now=SystemClock.elapsedRealtime();
@@ -2313,6 +2323,7 @@ public final class ScooterService extends Service {
         chargerHint.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.voltage.value:null,
                 paired?frame.current.value:null,paired?frame.current.mono:0,now,stock,fast);
         chargeProgress.observe(profile.id,frame.state.value==1d,paired?frame.soc.value:null,paired?frame.current.value:null,now);
+        chargeCurrent.observe(profile.id,frame.state.value==1d,paired?frame.current.value:null,paired?frame.current.mono:0);
         chargeTaper.observe(profile.id,frame.state.value==1d,paired?frame.voltage.value:null,paired?frame.current.value:null,now);
         // After detection, so the charger in effect is this frame's. The limit is the scooter's own (unknown counts as 100).
         chargeSlowdown.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),ble.liveNumber("rated_capacity_ah"),
