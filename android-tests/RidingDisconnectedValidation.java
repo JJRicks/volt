@@ -191,16 +191,18 @@ public final class RidingDisconnectedValidation extends ValidationInstrumentatio
         main(change);
         main(() -> Choreographer.getInstance().postFrameCallback(new Choreographer.FrameCallback() {
             @Override public void doFrame(long nanos) {
+                if (!run[0]) return;
                 View controls = (View) field(screen(), "stoppedControls"), record = (View) field(screen(), "recordDisc");
                 samples.add(new float[]{controls.getVisibility(), record.getScaleX(), stoppedTakes() ? 1 : 0});
-                if (run[0]) Choreographer.getInstance().postFrameCallback(this);
+                Choreographer.getInstance().postFrameCallback(this);
             }
         }));
         // A hide starts only after 2 s at 1 mph or more (RidingFrames.HIDE_AFTER_MS, owner Nov 19): sample through it.
         SystemClock.sleep(600 + 2000);
-        run[0] = false;
-        waitForIdleSync();
-        return samples;
+        // Stop and copy on the main thread: a frame already posted can still run after an idle wait and add to the list.
+        List<float[]> taken = new ArrayList<>();
+        main(() -> { run[0] = false; taken.addAll(samples); });
+        return taken;
     }
 
     private void recordWhileDisconnected() throws Exception {
