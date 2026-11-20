@@ -593,14 +593,14 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
         else if(stopped)require(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)==null&&status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_TEXT)))
                 &&status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_BIG_TEXT))),
                 message+": a stopped recording's card doesn't say so in its text: "+notice.extras.getCharSequence(Notification.EXTRA_TEXT)+" vs "+status);
+        else require(status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
+                message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
         // #587 r2 F01: the lock screen's version (the default, the whole card) says the same as the card while stopped.
         if(stopped&&field(card,"publicTitle")!=null){
             Notification lock=notice.publicVersion;
             require(lock!=null&&title.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))&&status.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT))),
                     message+": the lock screen's version doesn't say the recording stopped: "+(lock==null?"(none)":lock.extras.getCharSequence(Notification.EXTRA_TITLE)+" | "+lock.extras.getCharSequence(Notification.EXTRA_TEXT)));
         }
-        else require(status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
-                message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
     }
     private void require(boolean condition,String message){checks++;if(!condition)throw new IllegalStateException(message);}
     private Object field(Object target,String name){try{Class<?> type=target.getClass();while(type!=null){try{Field f=type.getDeclaredField(name);f.setAccessible(true);return f.get(target);}catch(NoSuchFieldException missing){type=type.getSuperclass();}}throw new NoSuchFieldException(name);}catch(Exception e){throw new IllegalStateException(name,e);}}
