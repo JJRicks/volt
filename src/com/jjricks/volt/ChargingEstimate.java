@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-estimate-v1.normal-temps-v1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitched-v1.normal-temps-v1.usable-cap-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -872,6 +872,36 @@ public final class ChargingEstimate {
     private static String cutoffNote(Double target) {
         return target==null?" Cutoff unknown; 100% assumes charging continues."
                 :target<100?" The 100% time assumes a higher charge limit.":"";
+    }
+
+    /**
+     * usable-capacity-v1, a display-only last pass over the finished estimate (forScooter's result, shown): every time
+     * it shows that is still baseline's rated-capacity current-rate time (no past charges, reference or model set it)
+     * is shown instead with the part below UsableCapacity.BULK_LIMIT at the usable capacity this scooter's recordings
+     * taught (UsableCapacity.usable); above that level the rated capacity stays, the taper's cushion. Nothing else in
+     * shown changes: Charge done by's planning minutes are exactly the estimate's without this pass, so it never plans
+     * with a shorter time than before, whatever path set them. baseline is calculate()'s result forScooter was given.
+     * shown itself without a learned value, at or above BULK_LIMIT, without a usable reading, or where no shown time is
+     * baseline's. The label stays; the status says what was used.
+     */
+    public static Result withUsableCapacity(Result shown,Result baseline,Value soc,Value ratedAh,UsableCapacity.Learned learned) {
+        if(shown==null||baseline==null||!baseline.charging||baseline.remainingMinutesToFull==null||baseline.inputAmps==null
+                ||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||!valid(ratedAh)||ratedAh.number<=0||soc.number>=UsableCapacity.BULK_LIMIT)return shown;
+        Double usable=UsableCapacity.usable(learned,ratedAh.number);
+        if(usable==null)return shown;
+        boolean fullRate=shown.remainingMinutesToFull!=null&&shown.remainingMinutesToFull.equals(baseline.remainingMinutesToFull);
+        boolean limitRate=shown.remainingMinutesToLimit!=null&&shown.remainingMinutesToLimit.equals(baseline.remainingMinutesToLimit)
+                &&shown.targetPercent!=null&&shown.targetPercent.equals(baseline.targetPercent);
+        Double full=fullRate?UsableCapacity.minutes(soc.number,100,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToFull;
+        Double limit=limitRate?UsableCapacity.minutes(soc.number,baseline.targetPercent,baseline.inputAmps,usable,ratedAh.number):shown.remainingMinutesToLimit;
+        if(full==null||limit==null&&shown.remainingMinutesToLimit!=null||!fullRate&&!limitRate)return shown;
+        String status=(shown.status==null?"":shown.status)+" Below "+Math.round(UsableCapacity.BULK_LIMIT)+"% the current rate uses the charge this battery's gauge took per percent in "
+                +learned.recordings+" past charge"+(learned.recordings==1?", provisionally":"s")+" ("+Math.round(usable*10)/10.0
+                +" Ah per 100%); Charge done by plans with the rated capacity.";
+        return new Result(shown.charging,shown.inputWatts,shown.inputAmps,limit,full,shown.targetPercent,shown.labelMsg,status,
+                shown.learnedToLimit,shown.learnedToFull,shown.learnedSessions,shown.referenceToLimit,shown.referenceToFull,shown.referenceCharger,
+                shown.stockVoltageMatch,shown.planningMinutesToLimit,shown.planningMinutesToFull,shown.stockPackModel,shown.limitRate,
+                shown.provisional,shown.provisionalNote,shown.provisionalFull);
     }
 
     /**

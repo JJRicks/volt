@@ -441,7 +441,8 @@ reports both whole km and tenths is followed by the tenths, and no change of
 field drops the total. An orange dot by the odometer sends out a sonar
 ring until the number is tapped once (a still dot with animations off or while
 moving; nothing in riding mode);
-the tap explains it and offers an Undo of the latest carry-over. Rides, range,
+the tap explains it and offers an Undo of the latest carry-over (also from
+Settings > Home style > Overview readings while one exists). Rides, range,
 maintenance, Stats, exports and diagnostics keep the scooter's raw reading.
 Backups (Scooters & setup keys) carry the record per profile, newer reading
 wins; a forgotten or released scooter's record waits on this phone by serial
@@ -1411,7 +1412,12 @@ longer of that and the current rate). On every model, a high-speed charger's
 percents recorded with the battery outside 20-38 C (68-100 F) teach no curve
 (minutes, power or finish), because the battery limits its current there; the
 recording itself stays whole, the stock charger always learns, and a recording
-without battery temperature is used as before.
+without battery temperature is used as before. On every model, the current-rate
+estimate below 80% uses the charge the scooter's own gauge took per percent in its
+recordings (whole-percent steps below 80%, at least 10 per recording, recordings
+agreeing within 5%; one recording counts provisionally) when that is below 97% of
+the rated capacity, never below 80% of it; above 80% the rated capacity stays.
+Charge done by keeps planning with the rated capacity.
 Personal estimates require compatible live power at the current battery level;
 missing or incompatible evidence keeps the applicable default. The bundled
 reference is never counted as a personal recording. Lower cutoffs include only
@@ -1539,7 +1545,9 @@ the header has no Edit button, a long-press on a quick action opens it.
 What each model offers: see OTHER NAVEE MODELS above. The top area above the
 Lock bar keeps one height while parked, charging and Just back, so the Lock bar
 and quick actions never move between them. The parked battery card
-shows the scooter's photo right of the charge and range. While charging, Clean's
+shows the scooter's photo right of the charge and range, and two small
+readings under its bar: Odometer and Drive mode until changed in Settings >
+Home style > Overview readings. While charging, Clean's
 charging view sits on the page: "Charging to your 90% limit" (or "Charging"),
 the charge centred with the scooter's photo large under and behind it on a red
 glow, the track with a tick at the limit, then two fixed tiles: Charging power
@@ -1565,8 +1573,35 @@ to Home, while a ride opened from All rides goes back to that list. The Ride row
 and its time while a ride records, else the last ride, the same one Just back
 shows.
 Settings > Home style shows the two styles side by side, a Quick actions row
-naming Clean's four as their buttons do (opening the same picker as Edit Home) and the two moment
-switches, both on by default.
+naming Clean's four as their buttons do (opening the same picker as Edit Home),
+an Overview readings row and the two moment switches, both on by default.
+Overview readings (owner, Nov 19 2026) sets the two small readings under the
+battery card's bar on both styles: Clean's battery card and every Widgets
+Scooter overview card whose own reading list is still the stock Odometer and
+Drive mode (a card whose readings were picked in its own Readings sheet keeps
+them). That stock pair means "follow Home style" on any overview card, so
+picking exactly Odometer then Drive mode in a card's own Readings sheet also
+puts Home style's two back to that pair: the card shows the pick, and so do
+Clean and every card following Home style. Its line names the two ("Odometer, Drive mode"); it opens First reading
+and Second reading, each opening a list of the live ride and battery readings
+(speed, trip distance and time, trip average and top speed, odometer, drive
+mode, battery voltage, current, power and temperature, reported health and
+charges, capacity and energy counters), each with its latest value, where the
+slot's own reading is checked, under the Reading tiles picker's search field
+(the same matching and "No matching readings"). Picking the other slot's
+reading swaps the two. While an odometer carry-over exists (see the odometer
+record above), the sheet also has an "Odometer carried over" row with the
+distance carried over, opening the same explanation and Undo as a tap on
+Home's odometer, so they stay reachable with the odometer in neither reading
+(Clean then shows no odometer number to tap; its cue returns with the
+odometer, until the explanation is opened once).
+Each scooter keeps its own two, as its quick actions (Scooter preferences in a
+backup); untouched they stay Odometer and Drive mode. A reading the scooter
+hasn't reported shows a dash under its name, which TalkBack reads as "Not
+reported"; a stored reading this Volt can't show falls back to that slot's
+default. Values update live in the unit settings' units. A name too wide for
+its half takes its shorter name and then its icon alone, on one line, and a
+value keeps one line's height, so a slot change moves nothing on the card.
 Setup's last step offers the choice (Clean selected on a new install), each
 style drawn in detail with the scooter's photo and sample readings. Owners
 updating from a Volt without Clean (or a new phone restoring App preferences

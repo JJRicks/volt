@@ -16,7 +16,9 @@ import java.util.List;
 /**
  * Settings › Home style (page {@link HubPages#SETTINGS_HOME}, hub layout plan PR 8), as the Layout Plan's mock-up
  * draws it (the contributor's decisions on #383): the style choice with its two drawings, then one card holding
- * "Quick actions" (the four Clean shows, by their names on Clean; it opens the same picker as Clean's Edit sheet) and
+ * "Quick actions" (the four Clean shows, by their names on Clean; it opens the same picker as Clean's Edit sheet),
+ * "Overview readings" (the battery card's two small readings on both Home styles, HomeReadingsEditor.Row; owner, Nov 19
+ * 2026) and
  * Clean Home's two moments, "Show charging automatically" and "Show the last ride after riding", each a switch with
  * no line under it (answer 3). Both moments are on until turned off. Text from HubText only.
  */
@@ -33,6 +35,8 @@ final class HomeStyleScreen implements AppScreen {
     private final LinearLayout view;
     /** The Quick actions row's line of names, or null with no scooter (there is nowhere to keep the four then). */
     private final TextView quickNames;
+    /** The Overview readings row under Quick actions, or null with no scooter (as quickNames). */
+    private final HomeReadingsEditor.Row readings;
     /** The scooter whose four the row shows ("" for none); another one being active rebuilds the page. */
     private final String profileId;
     private DashboardScreen.QuickChooser chooser;
@@ -62,6 +66,12 @@ final class HomeStyleScreen implements AppScreen {
             card.addView(quickRow(quickNames));
             ui.divider(card);
         } else quickNames = null;
+        // The overview card's two readings, right under Quick actions (owner, Nov 19 2026).
+        readings = profile == null ? null : new HomeReadingsEditor.Row(host, actions, preferences, new OverviewWords());
+        if (readings != null) {
+            card.addView(readings.view());
+            ui.divider(card);
+        }
         card.addView(toggle(HomeMoment.CHARGING_KEY, HubText.momentCharging()));
         ui.divider(card);
         card.addView(toggle(HomeMoment.RIDE_KEY, HubText.momentRide()));
@@ -86,6 +96,7 @@ final class HomeStyleScreen implements AppScreen {
             String spoken = HomeQuickEditor.spokenSummary(ids);
             if (!spoken.contentEquals(String.valueOf(quickNames.getContentDescription()))) quickNames.setContentDescription(spoken);
         }
+        if (readings != null) readings.refresh();
         // The drawings too: on two panes an edit from Home's long-press sheet in the scooter pane doesn't rebuild this
         // page, so Clean's preview takes the stored four here (#394 council review, third round, P3).
         for (HomeStylePreview preview : previews) preview.refreshQuick(host);
@@ -104,6 +115,16 @@ final class HomeStyleScreen implements AppScreen {
         slotsSheet = null;
         if (chooser != null) chooser.close();
         chooser = null;
+        if (readings != null) readings.close();
+    }
+
+    /** The Overview readings row's words (HomeReadingsEditor.Words), from HubText. */
+    private static final class OverviewWords implements HomeReadingsEditor.Words {
+        @Override public String title() { return HubText.overviewReadings().render(); }
+        @Override public String slot(int slot) { return HubText.overviewReadingSlot(slot).render(); }
+        @Override public String slotSpoken(String slot, String reading) { return HubText.overviewReadingSlotSpoken(slot, reading).render(); }
+        @Override public String notReported() { return HubText.overviewReadingNotReported().render(); }
+        @Override public String close() { return HubText.overviewReadingsClose().render(); }
     }
 
     /** "Quick actions" over the four's names, with a chevron: opens the four, each opening the quick-action picker. */

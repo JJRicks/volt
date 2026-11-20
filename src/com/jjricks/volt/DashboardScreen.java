@@ -376,6 +376,48 @@ public final class DashboardScreen implements AppScreen {
             });
         }
 
+        /**
+         * The way to an odometer carry-over (OdometerCarry) from Settings › Home style › Overview readings' sheet, while
+         * one exists: "Odometer carried over" with the distance carried over. With the odometer in neither of the two,
+         * Clean shows no odometer number for the carry-over's cue and tap, and its explanation and Undo are reached here
+         * instead (never stranded). A tap runs opening (the caller closes its sheet), then opens the explanation, as a tap
+         * on Home's odometer does. Null without a carry-over, as Home's odometer then opens nothing either.
+         */
+        View odometerCarry(Runnable opening) {
+            OdometerCarry record = closed || service == null ? null : service.odometerRecord();
+            OdometerCarry.Carry last = record == null ? null : record.last();
+            if (last == null || record.carriedKm() <= 0) return null;
+            // As the sheet's slot rows: the odometer's icon, the title over what is carried over, and a chevron.
+            String title = T.dashboardOdometerCarryTitle(), carried = odometerText(record.carriedKm());
+            String includes = record.carries.size() == 1 ? T.dashboardOdometerCarryIncludes(carried, carryDate(last.wall))
+                    : T.dashboardOdometerCarryIncludesMany(carried, carryDate(last.wall));
+            LinearLayout line = row();
+            line.setGravity(Gravity.CENTER_VERTICAL);
+            line.setMinimumHeight(ui.dp(60));
+            line.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
+            line.addView(ui.icon(readingGlyph(ui, MaintenanceView.ODOMETER), 20, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
+            LinearLayout texts = column();
+            texts.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+            texts.addView(ui.text(title, 15, false), new LinearLayout.LayoutParams(-1, -2));
+            TextView under = ui.caption(includes);
+            under.setPadding(0, ui.dp(2), 0, 0);
+            texts.addView(under, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams textsSize = new LinearLayout.LayoutParams(0, -2, 1);
+            textsSize.setMarginStart(ui.dp(12));
+            textsSize.setMarginEnd(ui.dp(8));
+            line.addView(texts, textsSize);
+            line.addView(ui.icon("chevron", 15, ui.muted), new LinearLayout.LayoutParams(ui.dp(15), ui.dp(15)));
+            line.setContentDescription(readingWithGroup(title, includes));
+            line.setClickable(true);
+            line.setFocusable(true);
+            line.setBackground(ripple(Ui.withAlpha(ui.accent, 26), null, ui.shape(Color.WHITE, 10, 0)));
+            line.setOnClickListener(v -> {
+                opening.run();
+                showOdometerCarry();
+            });
+            return line;
+        }
+
         void close() {
             closed = true;
             chargingHero.stopReveal();
@@ -387,6 +429,9 @@ public final class DashboardScreen implements AppScreen {
      * The overview readings' picker: HomeReadings' catalogue under its two groups, each reading with its icon, its name as
      * the card names it and, under it, its latest value in the owner's units ("Not reported" where this scooter has none
      * yet) or, for the reading the other slot holds, that slot's name. The slot's own reading is checked. A tap picks.
+     * Over the list, the Reading tiles picker's search field, matching as it does (overviewReadingMatches); a group whose
+     * readings all fail the search hides its heading, and "No matching readings" shows when none match (owner, Nov 19
+     * 2026: "we could reuse the readings search bar from the Reading tiles widget").
      */
     private void chooseOverviewReading(String title, List<String> current, int slot, String other, String notReported,
             String close, java.util.function.Consumer<String> picked) {
@@ -394,12 +439,28 @@ public final class DashboardScreen implements AppScreen {
         String mine = current.get(slot), theirs = current.get(1 - slot);
         LinearLayout choices = column();
         choices.setTag("overview-reading-choices");
+        // The Reading tiles picker's search field and its "No matching readings" line, as that picker makes them.
+        EditText search = new EditText(dialogContext);
+        search.setSingleLine(true);
+        search.setHint(T.dashboardSearchReadings());
+        search.setContentDescription(T.dashboardSearchReadings());
+        ui.styleSearch(search);
+        search.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 14, ui.outline));
+        LinearLayout header = column();
+        header.addView(search, ui.searchLayout());
+        Map<String, Telemetry.Metric> metrics = new HashMap<>();
+        for (Telemetry.Metric metric : new Telemetry().metrics()) metrics.put(metric.key, metric);
+        // Each row with its metric and its group's heading, for the search: a heading shows while any of its rows does.
+        Map<View, Telemetry.Metric> metricOf = new LinkedHashMap<>();
+        Map<View, View> headingOf = new LinkedHashMap<>();
         String group = null;
+        View heading = null;
         for (String key : HomeReadings.catalog()) {
             String next = HomeReadings.group(key);
             if (!Objects.equals(next, group)) {
                 group = next;
                 choices.addView(sheetLabel(ScooterReadingLabels.group(group)));
+                heading = choices.getChildAt(choices.getChildCount() - 1);
             }
             TelemetryHistory.Reading r = values.get(key);
             String name = label(key);
@@ -440,8 +501,55 @@ public final class DashboardScreen implements AppScreen {
             item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
             item.setOnClickListener(v -> picked.accept(key));
             choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
+            metricOf.put(item, metrics.get(key));
+            headingOf.put(item, heading);
         }
-        showSheet(title, choices, null, close, null);
+        TextView empty = ui.caption(T.dashboardNoMatchingReadings());
+        empty.setGravity(Gravity.CENTER);
+        empty.setPadding(ui.dp(12), ui.dp(24), ui.dp(12), ui.dp(24));
+        choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
+        Runnable filter = () -> {
+            String query = SearchFold.fold(search.getText().toString().trim());
+            Set<View> shownHeadings = new HashSet<>();
+            for (Map.Entry<View, Telemetry.Metric> entry : metricOf.entrySet()) {
+                boolean visible = entry.getValue() != null && overviewReadingMatches(entry.getValue(), query);
+                entry.getKey().setVisibility(visible ? View.VISIBLE : View.GONE);
+                if (visible) shownHeadings.add(headingOf.get(entry.getKey()));
+            }
+            for (View label : new HashSet<>(headingOf.values()))
+                label.setVisibility(shownHeadings.contains(label) ? View.VISIBLE : View.GONE);
+            empty.setVisibility(shownHeadings.isEmpty() ? View.VISIBLE : View.GONE);
+            if (choices.getParent() instanceof ScrollView) ((ScrollView) choices.getParent()).scrollTo(0, 0);
+        };
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) { filter.run(); }
+            public void afterTextChanged(android.text.Editable text) {}
+        });
+        filter.run();
+        showSheet(title, header, choices, null, close, null);
+        if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
+    }
+
+    /**
+     * The space the Reading tiles picker's search puts between a reading's names. Written as its code point: this batch
+     * of catalog text may add no literal to src (tools/l10n's gates); one shared helper replaces both copies later.
+     */
+    private static final String READING_SEARCH_JOIN = String.valueOf((char) 0x20);
+
+    /**
+     * Whether the overview list's search (query, folded by SearchFold and trimmed) finds metric, exactly as the Reading
+     * tiles picker's does (chooseReadings): its English name, group, key and short name joined into one line, then the
+     * shown names, folded as the query is. In English that finds nothing more.
+     */
+    private static boolean overviewReadingMatches(Telemetry.Metric metric, String query) {
+        boolean visible = String.join(READING_SEARCH_JOIN, metric.label, metric.group, metric.key,
+                ScooterReadingLabels.label(metric.key, metric.label)).toLowerCase(Locale.ROOT).contains(query);
+        if (!visible)
+            visible = SearchFold.holds(metric.label, metric.group, query)
+                    || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
+                    || SearchFold.holdsShown(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query);
+        return visible;
     }
 
     /**
@@ -1438,6 +1546,11 @@ public final class DashboardScreen implements AppScreen {
         return HomeReadings.load(key -> {
             try { return preferences.getString(key, null); } catch (ClassCastException wrongType) { return null; }
         }, "unconfigured".equals(profileId) ? null : profileId);
+    }
+
+    /** This scooter's two overview readings back to the stock pair, Odometer and Drive mode (HomeReadings.resetsHome). */
+    private void forgetHomeReadings() {
+        preferences.edit().remove(HomeReadings.key(0, profileId)).remove(HomeReadings.key(1, profileId)).apply();
     }
 
     /**
@@ -5525,7 +5638,10 @@ public final class DashboardScreen implements AppScreen {
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
                         amount.setTextColor(r.number < 0 ? ui.ok : r.number > 0 ? ui.danger : ui.text);
                     amount.setContentDescription(
-                            r != null && !live
+                            overview != null && (r == null || r.value == null)
+                                    // The overview's dash: a reading this scooter hasn't reported is read as such.
+                                    ? T.dashboardReading(label(key), T.commonNotReported())
+                                    : r != null && !live
                                     ? T.dashboardReadingSeen(label(key), text, when(r.capturedWallMs))
                                     : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
@@ -8796,6 +8912,11 @@ public final class DashboardScreen implements AppScreen {
                 return;
             }
             List<String> picked = new ArrayList<>(chosen);
+            // An overview card with its own readings given the stock pair would follow Home style's two: they go back
+            // to the stock pair, so the card shows what was picked (HomeReadings.resetsHome), as a following card's pick
+            // does. Other cards' lists (a Scooter card's defaults are the same pair) never touch Home style's two.
+            boolean overviewCard = widget.type.equals("overview");
+            if (!followsHome && HomeReadings.resetsHome(overviewCard, picked, homeReadings())) forgetHomeReadings();
             if (!followsHome) {
                 widget.keys.clear();
                 widget.keys.addAll(picked);

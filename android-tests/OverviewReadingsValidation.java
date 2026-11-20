@@ -39,11 +39,16 @@ import com.jjricks.volt.*;
  * the second, by taps; both are stored for the scooter; the row names them. Clean shows them at once with live values and
  * names, in the same place and at the same height as before (nothing on the card moves); a reading the scooter hasn't
  * reported shows a dash and is read as Not reported. Picking the other slot's reading swaps the two. Widgets' Scooter
- * overview shows the same two; after a relaunch both Home styles still do.
+ * overview shows the same two; after a relaunch both Home styles still do. The list's Search readings field (as the
+ * Reading tiles picker's) narrows it to Pack temperature for "temp", shows "No matching readings" for a query matching
+ * nothing, brings every reading back when cleared, and a searched pick is stored. Then, with a synthesized odometer
+ * carry-over and the odometer in neither reading, the sheet's "Odometer carried over" row opens the explanation (seen)
+ * and its Undo removes the carry-over; the row goes with it.
  *
  * <p>Mode render: pictures only (with the checks above that apply to them), at the emulator's size, theme and text size
  * (arguments theme, text_scale, size_label): Clean and Widgets with the defaults, and with two long readings fed to the
- * card (Est. capacity (health) and Lifetime throughput, values in Ah), then Home style's page, its sheet and the list.
+ * card (Est. capacity (health) and Lifetime throughput, values in Ah), then Home style's page, its sheet and the list,
+ * the list searched ("temp") and matching nothing, and the sheet with a carry-over and the explanation it opens.
  */
 public final class OverviewReadingsValidation extends ValidationInstrumentation {
     private static final String ODO = "odometer_km", MODE = "driving_mode", VOLT = "voltage_v", POWER = "power_w";
@@ -158,6 +163,8 @@ public final class OverviewReadingsValidation extends ValidationInstrumentation 
         requireCard(VOLT, POWER, true);
         shot("clean-relaunched");
         checks.add("After a relaunch, both Home styles still show Battery voltage and Battery power");
+        overviewSearchSteps();
+        carryOverSteps();
     }
 
     // ---- Render mode -------------------------------------------------------------------------------------------
@@ -201,6 +208,8 @@ public final class OverviewReadingsValidation extends ValidationInstrumentation 
         shot("home-style-list");
         main(() -> ((Dialog) fieldIn(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog")).dismiss());
         settle();
+        overviewSearchPictures();
+        carryOverPictures();
     }
 
     // ---- Steps ---------------------------------------------------------------------------------------------------
@@ -372,6 +381,179 @@ public final class OverviewReadingsValidation extends ValidationInstrumentation 
         List<TextView> texts = new ArrayList<>();
         collectTexts(row, texts);
         return texts.size() < 2 ? "" : texts.get(1).getText().toString();
+    }
+
+    // ---- The reading list's search and the odometer carry-over ---------------------------------------------------
+
+    /**
+     * The reading list's search field (owner, Nov 19 2026: "reuse the readings search bar from the Reading tiles
+     * widget"): "Search readings" over the list; "temp" leaves only Pack temperature, under its heading alone; a query
+     * matching nothing leaves "No matching readings"; clearing brings every reading back; then Pack temperature is
+     * picked from the narrowed list for the second slot, by taps.
+     */
+    private void overviewSearchSteps() throws Exception {
+        openHomeStyle();
+        openOverviewList(2);
+        main(() -> {
+            android.widget.EditText field = overviewListField();
+            require(field != null && field.isShown() && "Search readings".contentEquals(field.getHint())
+                    && "Search readings".contentEquals(field.getContentDescription()), "The reading list has no Search readings field");
+        });
+        AtomicReference<Integer> everyReading = new AtomicReference<>();
+        main(() -> { List<View> allRows = new ArrayList<>(); collectTagged(picker(), "overview-reading-choice:", allRows); everyReading.set(allRows.size()); });
+        require(everyReading.get() >= 12, "The reading list has only " + everyReading.get() + " readings");
+        typeInOverviewList("temp");
+        requireOverviewListed(Collections.singletonList("temperature_c"), 1, false);
+        typeInOverviewList("zzqx");
+        requireOverviewListed(Collections.emptyList(), 0, true);
+        typeInOverviewList("");
+        main(() -> { List<View> backRows = new ArrayList<>(); collectTagged(picker(), "overview-reading-choice:", backRows);
+            int seen = 0; for (View one : backRows) if (one.getVisibility() == View.VISIBLE) seen++;
+            require(seen == everyReading.get(), "Clearing the search shows " + seen + " of " + everyReading.get() + " readings"); });
+        typeInOverviewList("temp");
+        requireOverviewListed(Collections.singletonList("temperature_c"), 1, false);
+        main(() -> click(picker().findViewWithTag("overview-reading-choice:temperature_c")));
+        settle(); SystemClock.sleep(400); settle();
+        await(() -> picker() == null && sheetRoot(row(), "sheet") == null, "The list and the sheet did not close after a searched pick");
+        await(() -> "temperature_c".equals(settings().getString("home_reading_2_v1_" + profile, null)), "Pack temperature was not stored from the searched list");
+        checks.add("The reading list's Search readings field: 'temp' leaves Pack temperature under its heading alone, 'zzqx' leaves No matching readings, clearing brings all " + everyReading.get() + " back, and a searched pick is stored");
+    }
+
+    /**
+     * An odometer carry-over with the odometer in neither reading (so Clean shows no odometer number to tap): Home
+     * style's Overview readings sheet offers "Odometer carried over" with the distance; it opens the explanation (marking
+     * it seen) and its Undo, which removes the carry-over; the row is gone afterwards. A synthesized record; the
+     * simulator off, since a simulation never reads the record.
+     */
+    private void carryOverSteps() throws Exception {
+        seedCarryOver();
+        openHomeStyle();
+        main(() -> click(root().findViewWithTag("home-style-overview-readings")));
+        settle();
+        await(() -> sheetRoot(row(), "sheet") != null && carryOverRowIn(sheetRoot(row(), "sheet")) != null, "The Overview readings sheet offers no Odometer carried over row");
+        main(() -> {
+            View carryRow = carryOverRowIn(sheetRoot(row(), "sheet"));
+            List<TextView> carryWords = new ArrayList<>(); collectTexts(carryRow, carryWords);
+            require(carryRow.isShown() && carryRow.isClickable() && carryWords.size() >= 2 && carryWords.get(1).getText().toString().startsWith("Includes ") && carryWords.get(1).getText().toString().contains(" from before a reset ("),
+                    "The carry-over row does not show the distance carried over");
+        });
+        shot("home-style-sheet-carry");
+        main(() -> click(carryOverRowIn(sheetRoot(row(), "sheet"))));
+        settle(); SystemClock.sleep(500);
+        await(() -> sheetRoot(row(), "sheet") == null && carryOverExplained(), "The carry-over row did not open its explanation with Undo");
+        await(() -> settings().getString("odometer_record" + profile, "").contains("\"seen\":true"), "Opening the explanation did not mark the carry-over seen");
+        shot("carry-explanation");
+        main(() -> click(carryOverText(sheetRoot(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog"), "Remove the carried-over distance")));
+        settle(); SystemClock.sleep(400);
+        await(() -> carryOverText(sheetRoot(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog"), "Remove") != null, "Undo did not ask to confirm");
+        main(() -> ((android.app.AlertDialog) fieldIn(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog")).getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick());
+        settle(); SystemClock.sleep(400);
+        await(() -> !settings().getString("odometer_record" + profile, "").contains("from_km"), "Undo did not remove the carry-over");
+        main(() -> click(root().findViewWithTag("home-style-overview-readings")));
+        settle();
+        await(() -> sheetRoot(row(), "sheet") != null, "The Overview readings sheet did not open again");
+        main(() -> require(carryOverRowIn(sheetRoot(row(), "sheet")) == null, "The carry-over row stays after Undo"));
+        main(() -> ((Dialog) fieldIn(row(), "sheet")).dismiss());
+        settle();
+        checks.add("With the odometer in neither reading, Home style's Overview readings sheet offers Odometer carried over with the distance; it opens the explanation, marks it seen, and its Undo removes the carry-over; the row then goes");
+    }
+
+    /** Render mode: the list searched ("temp") and with no match, then the sheet with a carry-over and its explanation. */
+    private void overviewSearchPictures() throws Exception {
+        main(() -> click(root().findViewWithTag("home-style-overview-readings")));
+        settle(); SystemClock.sleep(500);
+        await(() -> sheetRoot(row(), "sheet") != null, "The Overview readings sheet did not open");
+        main(() -> click(sheetRoot(row(), "sheet").findViewWithTag("home-reading-slot-1")));
+        settle(); SystemClock.sleep(500);
+        await(() -> picker() != null, "The reading list did not open");
+        typeInOverviewList("temp");
+        requireOverviewListed(Collections.singletonList("temperature_c"), 1, false);
+        shot("home-style-list-search");
+        typeInOverviewList("zzqx");
+        requireOverviewListed(Collections.emptyList(), 0, true);
+        shot("home-style-list-no-match");
+        main(() -> ((Dialog) fieldIn(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog")).dismiss());
+        settle();
+    }
+    private void carryOverPictures() throws Exception {
+        require(settings().edit().putString("home_reading_1_v1_" + profile, VOLT).putString("home_reading_2_v1_" + profile, POWER).commit(), "Could not store");
+        seedCarryOver();
+        openHomeStyle();
+        main(() -> click(root().findViewWithTag("home-style-overview-readings")));
+        settle(); SystemClock.sleep(500);
+        await(() -> sheetRoot(row(), "sheet") != null && carryOverRowIn(sheetRoot(row(), "sheet")) != null, "The Overview readings sheet offers no Odometer carried over row");
+        shot("home-style-sheet-carry");
+        main(() -> click(carryOverRowIn(sheetRoot(row(), "sheet"))));
+        settle(); SystemClock.sleep(500);
+        await(this::carryOverExplained, "The carry-over row did not open its explanation");
+        shot("carry-explanation");
+        main(() -> ((Dialog) fieldIn(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog")).dismiss());
+        settle();
+    }
+
+    /** A synthesized carry-over on the profile (1,843.6 km to 0.2 km two days ago), with the simulator off to read it. */
+    private void seedCarryOver() {
+        long now = System.currentTimeMillis();
+        String carryText = "{\"version\":1,\"last_raw_km\":12.4,\"bits\":32,\"last_wall\":" + now + ",\"wrapped_km\":0,\"carries\":[{\"wall\":"
+                + (now - 2L * 86_400_000L) + ",\"from_km\":1843.6,\"to_km\":0.2,\"seen\":false}]}";
+        require(settings().edit().putString("odometer_record" + profile, carryText).commit(), "Could not store the carry-over");
+        main(() -> { if (service.simulating()) service.setSimulation(false); });
+        settle(); SystemClock.sleep(400); settle();
+        require(onMain(() -> service.shownOdometerKm(0.2) > 1843), "The service does not read the synthesized carry-over");
+    }
+    /** Home style's sheet, then the slot's row (1 or 2), with the reading list open. */
+    private void openOverviewList(int slotNumber) {
+        main(() -> click(root().findViewWithTag("home-style-overview-readings")));
+        settle();
+        await(() -> sheetRoot(row(), "sheet") != null, "The Overview readings sheet did not open");
+        main(() -> click(sheetRoot(row(), "sheet").findViewWithTag("home-reading-slot-" + slotNumber)));
+        settle();
+        await(() -> picker() != null, "The reading list did not open");
+    }
+    private android.widget.EditText overviewListField() {
+        List<TextView> fieldWords = new ArrayList<>();
+        collectTexts(picker(), fieldWords);
+        android.widget.EditText found = null;
+        for (TextView one : fieldWords) if (found == null && one instanceof android.widget.EditText) found = (android.widget.EditText) one;
+        return found;
+    }
+    private void typeInOverviewList(String query) {
+        main(() -> overviewListField().setText(query));
+        settle();
+    }
+    /** The list shows exactly these readings, under that many group headings, and the No matching readings line or not. */
+    private void requireOverviewListed(List<String> expected, int headings, boolean noMatch) {
+        main(() -> {
+            List<View> listRows = new ArrayList<>();
+            collectTagged(picker(), "overview-reading-choice:", listRows);
+            List<String> listed = new ArrayList<>();
+            for (View one : listRows) if (one.getVisibility() == View.VISIBLE) listed.add(String.valueOf(one.getTag()).substring("overview-reading-choice:".length()));
+            require(listed.equals(expected), "The searched list shows " + listed + ", not " + expected);
+            View choices = picker().findViewWithTag("overview-reading-choices");
+            int headingsShown = 0;
+            int linesShown = 0;
+            for (int i = 0; i < ((ViewGroup) choices).getChildCount(); i++) {
+                View child = ((ViewGroup) choices).getChildAt(i);
+                if (child instanceof TextView && child.getVisibility() == View.VISIBLE) {
+                    if ("No matching readings".contentEquals(((TextView) child).getText())) linesShown++; else headingsShown++;
+                }
+            }
+            require(headingsShown == headings, "The searched list shows " + headingsShown + " group headings, not " + headings);
+            require(linesShown == (noMatch ? 1 : 0), "No matching readings is " + (linesShown == 1 ? "shown" : "hidden") + " for " + expected);
+        });
+    }
+    private static View carryOverRowIn(View sheetView) { return carryOverText(sheetView, "Odometer carried over") == null ? null : (View) carryOverText(sheetView, "Odometer carried over").getParent().getParent(); }
+    private static TextView carryOverText(View within, String words) {
+        List<TextView> found = new ArrayList<>();
+        collectTexts(within, found);
+        TextView match = null;
+        for (TextView one : found) if (match == null && one.isShown() && words.contentEquals(one.getText())) match = one;
+        return match;
+    }
+    private boolean carryOverExplained() {
+        View explanation = sheetRoot(fieldIn(fieldIn(row(), "chooser"), "this$0"), "dialog");
+        return explanation != null && carryOverText(explanation, "Odometer carried over") != null
+                && carryOverText(explanation, "Remove the carried-over distance") != null;
     }
 
     // ---- Plumbing ------------------------------------------------------------------------------------------------

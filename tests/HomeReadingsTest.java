@@ -22,9 +22,34 @@ public final class HomeReadingsTest {
         choicePerSlot();
         fallback();
         follows();
+        stockPairOnOwnCard();
         diagnostics();
         backup();
         System.out.println("HomeReadingsTest: " + checks + " checks passed (catalogue, defaults, each slot, fallback, Widgets follow rule, diagnostics, backup round trip)");
+    }
+
+    /**
+     * A Widgets card with its own readings given the stock pair (Odometer, then Drive mode) in its Readings sheet: that
+     * pair means "follow Home style", so Home style's two go back to the stock pair and the card shows what was picked.
+     */
+    private static void stockPairOnOwnCard() {
+        List<String> homePair = Arrays.asList("voltage_v", "power_w");
+        List<String> stockPick = Arrays.asList(ODO, MODE);
+        check(HomeReadings.resetsHome(true, stockPick, homePair), "the stock pair picked on an overview card with its own list puts Home style's two back to the stock pair");
+        check(!HomeReadings.resetsHome(true, stockPick, HomeReadings.DEFAULTS), "nothing to put back while Home style's two are the stock pair");
+        check(!HomeReadings.resetsHome(true, Arrays.asList(MODE, ODO), homePair), "Drive mode then Odometer is the card's own list, Home style's two stay");
+        check(!HomeReadings.resetsHome(true, Arrays.asList(ODO, MODE, "voltage_v"), homePair), "three readings are the card's own list");
+        check(!HomeReadings.resetsHome(true, Collections.singletonList(ODO), homePair), "Odometer alone is the card's own list");
+        check(!HomeReadings.resetsHome(true, homePair, homePair), "any other pair is the card's own list");
+        // Only an overview card follows Home style: a Scooter card's own default list is the same pair (saved unchanged
+        // from its Readings sheet), and a Reading tiles or reading list card may be given it; neither touches Home style.
+        // DashboardConfig.Widget's default list for a "scooter" card (Android code, outside this test's build).
+        List<String> scooterCardDefaults = Arrays.asList("odometer_km", "driving_mode");
+        check(!HomeReadings.resetsHome(false, scooterCardDefaults, homePair), "a Scooter card saved with its defaults leaves Home style's two alone");
+        check(!HomeReadings.resetsHome(false, stockPick, homePair), "a Reading tiles card given Odometer then Drive mode leaves Home style's two alone");
+        check(!HomeReadings.resetsHome(false, stockPick, HomeReadings.DEFAULTS), "a card that isn't an overview card never resets");
+        check(HomeReadings.followsHome(stockPick) && HomeReadings.load(key -> null, "p1").equals(stockPick),
+                "after the reset the card follows Home style, whose two are now the pick");
     }
 
     private static void catalog() {
