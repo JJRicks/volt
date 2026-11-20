@@ -203,6 +203,36 @@ first reading), with about 5% of rows shown more than 5 minutes short and
 Charge done by unchanged. On private UT5 MAX recordings the gauge learns 99.7–
 100.8% of the rating, inside the dead band: no estimate changes.
 
+### Automatic picks a learned charger (chg-match-v1)
+
+Under **Auto**, when charger detection (the UT5 MAX's two chargers) has no family
+for this charge, `LearnedChargerMatch` picks the charger whose own recordings
+match the live power, on any model. It compares fresh paired battery-side power
+with each charger's saved power at the same 1% battery level (`Curve.familyWatts`:
+one recording's interval power, or the median of two or more that agree within
+25%) using the same 35% band. Below 90% it picks the one charger that matches,
+or, when both match, the one clearly closer (at most half as far off by power
+ratio, with the two saved curves at least 25% apart); from 90% up only a clear
+two-sided match (within 15% of one curve, the other saved and not matching). It
+settles after three readings over four seconds, keeps its choice for the charge
+with charger detection's reset rules, never switches above 90%, and below 90%
+forgets it only on a sustained contrary run. The picked charger then feeds the
+estimate exactly as a detected one does: the evidence above, including
+provisional and joined estimates, with their own live-power checks. A family it
+picks never shows "Charger mismatch": where the estimate cannot confirm a curve,
+it is that charger's estimate without past charges.
+
+Automatic recordings under Auto take the picked charger as their detected label;
+the charger setting and a charger chosen during the recording still win, and the
+recording's audit (`label_audit.detected_charger`) stays charger detection's
+alone. `RecordChargerHint` decides when a charge is far off the only recorded
+charger (outside the 35% band, at least 1.8 times or at most half the saved
+power and 50 W apart, for a minute below 90%, not in a charge's first minute or
+right after a reconnect, with no recording running, no "Charging slowed", and
+the battery at 20–38 °C, where a high-speed recording would teach its curve:
+`learnsAtTemperature` above);
+that only suggests recording, never labels.
+
 ## Validation
 
 - `bash tests/run.sh`: all 16 suites passed, 46,296 assertions/checks including 77
