@@ -13,9 +13,10 @@ import java.util.List;
  *   stretch that is missing simply breaks the line; a "time to full from here" reading would be undefined below
  *   every gap;</li>
  *   <li>the coverage strip: runs of equal Coverage, 0% to 100%;</li>
- *   <li>the words: the learned span, the gaps (below, above and inside it), where a fast charge was too cold or hot to
- *   learn from, where recordings disagree, where a finish recording starts, and the time from the top learned stretch's
- *   start to full when that stretch reaches 100%.</li>
+ *   <li>the words: the learned span, the scooter's own percent jump, the gaps (below, above and inside it), where a fast
+ *   charge was too cold or hot to learn from, where recordings disagree, where a finish recording starts, and the time
+ *   from the top learned stretch's start to full when that stretch reaches 100%. Percents inside the jump that have no
+ *   minutes (Coverage.JUMP), or only a brisk half minute, are the jump on the strip and draw no speed, never a gap.</li>
  * </ul>
  */
 final class LearnedCurveChart {
@@ -45,7 +46,7 @@ final class LearnedCurveChart {
     final ChargeSessionStore.Charger charger;
     /** Recordings behind the curve (Summary.qualifiedSessions). */
     final int recordings;
-    /** Minutes for each 1%, 0% to 99%; NaN where nothing usable is learned. */
+    /** Minutes for each 1%, 0% to 99%, as drawn; NaN where nothing usable is learned, or the percent is drawn as the jump. */
     final double[] minutes;
     /** Equal coverage in a row, 0% to 100%, in order. */
     final List<Run> runs;
@@ -69,11 +70,15 @@ final class LearnedCurveChart {
     final int toFullFrom;
     /** Whether a recording measured some percent outside the fast charger's learning temperatures. */
     final boolean outsideTemperature;
+    /** The scooter's own percent jump (Summary.jumpFrom, jumpTo): "jumps from 83% to 95%"; -1 for none. */
+    final int jumpFrom, jumpTo;
     /** Per percent, 0% to 99%: a recording measured it outside the learning temperatures (Summary.Bin.outsideTemperature). */
     private final boolean[] outsideAt = new boolean[100];
 
     private LearnedCurveChart(ChargeSessionStore.Summary summary) {
         charger = summary.charger; recordings = summary.qualifiedSessions;
+        boolean jumps = summary.jumpFrom >= 0 && summary.jumpTo > summary.jumpFrom && summary.jumpTo <= 100;
+        jumpFrom = jumps ? summary.jumpFrom : -1; jumpTo = jumps ? summary.jumpTo : -1;
         minutes = new double[100];
         List<Run> all = new ArrayList<>();
         int start = 0; ChargeSessionStore.Summary.Coverage current = null;
@@ -83,6 +88,15 @@ final class LearnedCurveChart {
             ChargeSessionStore.Summary.Coverage coverage = b == null ? ChargeSessionStore.Summary.Coverage.NONE : b.coverage;
             boolean usable = b != null && usable(coverage) && b.minutes != null && Double.isFinite(b.minutes) && b.minutes > 0;
             if (!usable && usable(coverage)) coverage = ChargeSessionStore.Summary.Coverage.NONE;
+            if (coverage == ChargeSessionStore.Summary.Coverage.JUMP && !jumps) coverage = ChargeSessionStore.Summary.Coverage.NONE;
+            // Drawn as the jump (owner's pick from the renders, option B): inside the jump, a percent that was passed
+            // briskly too (its learned minutes under JUMP_BRISK, the 45 s the jump widens over) is part of the jump on
+            // the strip and draws no speed, so the jump reads as one stretch, not chevrons cut by half-minute slivers.
+            // The Summary, its minutes and every estimate keep it as learned; only the drawing changes. A percent another
+            // recording held normally keeps its learned look.
+            if (usable && jumps && bin > jumpFrom && bin < jumpTo && b.minutes < JUMP_BRISK) {
+                usable = false; coverage = ChargeSessionStore.Summary.Coverage.JUMP;
+            }
             minutes[bin] = usable ? b.minutes : Double.NaN;
             outsideAt[bin] = b != null && b.outsideTemperature;
             outside |= outsideAt[bin];
@@ -167,18 +181,21 @@ final class LearnedCurveChart {
     /** The learned span's ends: the first learned percent and the last one's end, or -1 with nothing learned. */
     int learnedFrom() { return learned.isEmpty() ? -1 : learned.get(0).from; }
     int learnedTo() { return learned.isEmpty() ? -1 : learned.get(learned.size() - 1).to; }
-    /** Coverage kinds the strip shows, in the legend's order (none, one, agreeing, disagreeing), each once. */
+    /** Whether the scooter's percent jumps (jumpFrom to jumpTo). */
+    boolean jumps() { return jumpFrom >= 0; }
+    /** Coverage kinds the strip shows, in the legend's order (none, one, agreeing, disagreeing, the jump), each once. */
     List<ChargeSessionStore.Summary.Coverage> legend() {
         List<ChargeSessionStore.Summary.Coverage> shown = new ArrayList<>();
         for (ChargeSessionStore.Summary.Coverage kind : new ChargeSessionStore.Summary.Coverage[]{ChargeSessionStore.Summary.Coverage.NONE,
-                ChargeSessionStore.Summary.Coverage.PROVISIONAL, ChargeSessionStore.Summary.Coverage.ROBUST, ChargeSessionStore.Summary.Coverage.DISAGREEING})
+                ChargeSessionStore.Summary.Coverage.PROVISIONAL, ChargeSessionStore.Summary.Coverage.ROBUST, ChargeSessionStore.Summary.Coverage.DISAGREEING,
+                ChargeSessionStore.Summary.Coverage.JUMP})
             for (Run run : runs) if (run.coverage == kind) { shown.add(kind); break; }
         return shown;
     }
     /** A change worth redrawing: what the card shows, as one string. */
     String signature() {
         StringBuilder out = new StringBuilder().append(charger).append(':').append(recordings).append(':').append(finishFrom).append(':').append(runs);
-        out.append(outsideTemperature);
+        out.append(outsideTemperature).append(':').append(jumpFrom).append('-').append(jumpTo).append(':');
         for (boolean at : outsideAt) out.append(at ? 1 : 0);
         for (double m : minutes) out.append(',').append(Double.isNaN(m) ? "-" : Long.toString(Math.round(m * 100)));
         return out.toString();
@@ -187,6 +204,8 @@ final class LearnedCurveChart {
     private static boolean usable(ChargeSessionStore.Summary.Coverage coverage) {
         return coverage == ChargeSessionStore.Summary.Coverage.PROVISIONAL || coverage == ChargeSessionStore.Summary.Coverage.ROBUST;
     }
+    /** Learned minutes under which a percent inside the jump is drawn as the jump: ChargeSessionStore.JUMP_HELD_MS. */
+    static final double JUMP_BRISK = ChargeSessionStore.JUMP_HELD_MS / 60000d;
     /** The speed axis' room over the slowest learned 1%. */
     static final double HEADROOM = 1.05;
     /** The axis' steps per power of ten: tight enough that the curve fills most of the chart. */

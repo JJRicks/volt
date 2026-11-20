@@ -261,8 +261,8 @@ STEPS += [
     inst('charge-invite-344', T + 'ChargeInviteValidation', '-e', 'size_label', '344', '-e', 'theme', 'dark', size=PHONE[0]),
     inst('charge-invite-fold', T + 'ChargeInviteValidation', '-e', 'size_label', 'fold', '-e', 'theme', 'light', size='790x820'),
     # Charge history & recordings' What Volt has learned (owner's 2.0.1 item 13): a card per learned charger from synthesized
-    # recordings (nothing learned, one partial, a joined pair, stock and high-speed, a gap and a disagreement); 412 dp both
-    # themes and large text, 344 dp, the Fold unfolded.
+    # recordings (nothing learned, one partial, a joined pair, stock and high-speed, a gap and a disagreement, the scooter's
+    # own percent jump); 412 dp both themes and large text, 344 dp, the Fold unfolded.
     inst('learned-curve-412', T + 'LearnedCurveValidation', '-e', 'size_label', '412', '-e', 'theme', 'light', size='412x915'),
     inst('learned-curve-412-dark', T + 'LearnedCurveValidation', '-e', 'size_label', '412', '-e', 'theme', 'dark', size='412x915'),
     inst('learned-curve-412-large', T + 'LearnedCurveValidation', '-e', 'size_label', '412', '-e', 'theme', 'dark', '-e', 'text_scale', '1.4', size='412x915'),

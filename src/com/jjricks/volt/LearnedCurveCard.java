@@ -19,7 +19,8 @@ import java.util.List;
  * <ul>
  *   <li>the speed: minutes per 1% over a 0–100% axis, a 2 dp line over a faint wash, broken where nothing is learned;</li>
  *   <li>under it the coverage strip: no data (the empty track), one recording (the light blue step, hatched), two or more
- *   agreeing (solid blue), recordings disagree (orange, cross-hatched): pattern and legend as well as colour;</li>
+ *   agreeing (solid blue), recordings disagree (orange, cross-hatched), the scooter's own percent jump (the empty track
+ *   with small chevrons in muted ink, pointing up the battery): pattern and legend as well as colour;</li>
  *   <li>a tick where the lowest finish recording starts;</li>
  *   <li>the legend and the words (recordings used, the learned span, the gaps, the time to full); TalkBack reads all of it
  *   as the card's description.</li>
@@ -41,7 +42,7 @@ final class LearnedCurveCard {
         String minutes(double value);
         /** An axis label: "50%". */
         String percent(int value);
-        /** The legend's name for a kind of coverage. */
+        /** The legend's name for a kind of coverage; null: the kind has no name yet (no legend entry, nothing spoken). */
         String kind(ChargeSessionStore.Summary.Coverage kind);
         /** The legend's name for the finish tick. */
         String finish();
@@ -49,6 +50,8 @@ final class LearnedCurveCard {
         String learned(int from, int to);
         /** "A finish recording from 46%". */
         String finishFrom(int from);
+        /** "The scooter's % jumps from 83% to 95%"; null for no line. */
+        String jump(int from, int to);
         /** "No data below 18%", "No data 50–54%", "No data above 50%", "Too cold or hot to learn 30–40%", "Recordings disagree 30–33%". */
         String gap(LearnedCurveChart.Gap gap);
         /** "And 2 more gaps". */
@@ -167,16 +170,19 @@ final class LearnedCurveCard {
                 lines.add(why == LearnedCurveChart.Why.DISAGREE ? words.unusable() : why == LearnedCurveChart.Why.TEMPERATURE ? words.temperature() : words.tooLittle());
             }
             if (speed || chart.finishFrom >= 0 || chart.why() == LearnedCurveChart.Why.DISAGREE)
-                for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) legend.addView(key(kind, words.kind(kind)));
+                for (ChargeSessionStore.Summary.Coverage kind : chart.legend()) { String name = words.kind(kind); if (name != null) legend.addView(key(kind, name)); }
             if (chart.finishFrom >= 0) legend.addView(key(null, words.finish()));
             if (speed) lines.add(words.learned(chart.learnedFrom(), chart.learnedTo()));
             if (chart.finishFrom >= 0) lines.add(words.finishFrom(chart.finishFrom));
+            String jump = chart.jumps() ? words.jump(chart.jumpFrom, chart.jumpTo) : null;
+            if (jump != null) lines.add(jump);
             for (LearnedCurveChart.Gap gap : chart.gaps) lines.add(words.gap(gap));
             if (chart.unlisted > 0) lines.add(words.more(chart.unlisted));
             if (chart.toFullFrom >= 0) lines.add(words.toFull(chart.toFullFrom, chart.toFullMinutes));
             for (String line : lines) note(line);
             spoken.addAll(lines);
-            for (LearnedCurveChart.Run run : chart.runs) if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE) spoken.add(words.spokenRun(run.coverage, run.from, run.to));
+            for (LearnedCurveChart.Run run : chart.runs)
+                if (run.coverage != ChargeSessionStore.Summary.Coverage.NONE && words.kind(run.coverage) != null) spoken.add(words.spokenRun(run.coverage, run.from, run.to));
         }
         StringBuilder description = new StringBuilder();
         for (String part : spoken) { if (part == null || part.isEmpty()) continue; if (description.length() > 0) description.append(". "); description.append(part); }
@@ -328,10 +334,11 @@ final class LearnedCurveCard {
             float radius = Math.min((bottom - top) / 2, ui.dp(4));
             rect.set(a, top, b, bottom);
             fill.setStyle(Paint.Style.FILL);
-            int base = kind == ChargeSessionStore.Summary.Coverage.NONE ? ui.raised : kind == ChargeSessionStore.Summary.Coverage.PROVISIONAL ? provisional(ui.dark)
+            int base = kind == ChargeSessionStore.Summary.Coverage.NONE || kind == ChargeSessionStore.Summary.Coverage.JUMP ? ui.raised : kind == ChargeSessionStore.Summary.Coverage.PROVISIONAL ? provisional(ui.dark)
                     : kind == ChargeSessionStore.Summary.Coverage.ROBUST ? robust(ui.dark) : Ui.withAlpha(disagreeing(ui.dark), 90);
             fill.setColor(base); fill.setAlpha(Math.round(Color.alpha(base) * opacity));
             canvas.drawRoundRect(rect, radius, radius, fill);
+            if (kind == ChargeSessionStore.Summary.Coverage.JUMP) { drawChevrons(canvas, a, top, b, bottom, opacity); return; }
             if (kind != ChargeSessionStore.Summary.Coverage.PROVISIONAL && kind != ChargeSessionStore.Summary.Coverage.DISAGREEING) return;
             // The pattern: 45° lines for one recording; both directions for recordings that disagree.
             canvas.save(); path.reset(); path.addRoundRect(rect, radius, radius, Path.Direction.CW); canvas.clipPath(path);
@@ -345,6 +352,22 @@ final class LearnedCurveCard {
             }
             stroke.setStrokeCap(Paint.Cap.ROUND); stroke.setAlpha(255);
             canvas.restore();
+        }
+        /**
+         * The jump's pattern on the empty track: small chevrons in muted ink, pointing the way the battery fills (the axis
+         * runs 0% to 100% left to right in every language), spaced evenly and centred, as many as fit whole.
+         */
+        private void drawChevrons(Canvas canvas, float a, float top, float b, float bottom, float opacity) {
+            float h = bottom - top, half = h * .28f, wide = h * .3f, step = ui.dp(6), mid = (top + bottom) / 2;
+            int count = (int) Math.floor((b - a - ui.dp(2) - wide) / step) + 1;
+            if (count < 1) return;
+            float x = a + (b - a - (wide + step * (count - 1))) / 2;
+            stroke.setStrokeWidth(Math.max(1, ui.dp(1.2f))); stroke.setColor(ui.muted); stroke.setAlpha(Math.round(255 * opacity));
+            for (int i = 0; i < count; i++, x += step) {
+                path.reset(); path.moveTo(x, mid - half); path.lineTo(x + wide, mid); path.lineTo(x, mid + half);
+                canvas.drawPath(path, stroke);
+            }
+            stroke.setAlpha(255);
         }
         /** The finish tick: a small head in the text's ink over a muted hairline down to the speed's baseline. legend: the head alone, centred. */
         void drawTick(Canvas canvas, float x, float top, float bottom, boolean legend) {
