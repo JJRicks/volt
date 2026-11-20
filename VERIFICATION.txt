@@ -21,8 +21,11 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   on the merged head for all 26, and none of those passes requested
   changes. #552 and #553 were reviewed by a GPT seat; the other 24 by
   Claude reviewer seats only, run apart from the authoring session,
-  because the Codex seats were unavailable those nights. One P3 upheld on
-  #563 shipped as written: the Record a charge text below.
+  because the Codex seats were unavailable those nights. Two upheld P3s
+  on text shipped as written: #563's Record a charge line and #579's
+  Polish and Portuguese (Portugal) Charging slowed wording, both below.
+  The other upheld P3s (logic and wording follow-ups) are tracked for
+  later releases.
 - run-release-sweep.py lists 292 steps on the release commit, 28 more
   than 2.0.0's 264, none gone (compared with --list on both tags): Clean's
   charging bar and time tile (9), What Volt has learned (5), the charging
@@ -127,7 +130,13 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   "keeps the last 20" recordings. Since #563, Volt keeps up to 1,000
   saved recordings (and about 150 MB) and clears the oldest first. #563's
   review upheld this as a P3. The owner decided on November 20, at about
-  2:45 AM MST, to ship 2.0.1 as swept and fix the text in 2.0.2.
+  2:15 AM MST, a few minutes before the publish go, to ship 2.0.1 as
+  swept and fix the text in 2.0.2.
+- Also shipped as written: in Polish and Portuguese (Portugal), the full
+  wording of the Charging slowed pill for a hot or cold battery leaves out
+  the word for charging (dashboard_charging_slowed_hot and _cold), which
+  TalkBack reads. #579's review upheld it as a P3 and it goes to the 2.0.2
+  language top-up.
 - Charging slowed, the temperature-aware estimate and the top-up default
   were checked by replaying recorded UT5 MAX charges from two scooters on
   a computer (aggregate results in docs/validation/fast-charge-slowdown.md
