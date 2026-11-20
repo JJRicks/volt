@@ -10,11 +10,11 @@
   <a href="CHANGELOG.md">What's new</a>
 </p>
 <p align="center">
-  <img src="docs/images/readme-home.webp" height="380" alt="Volt's home dashboard: battery, odometer, drive mode, the Lock bar and live readings">
+  <img src="docs/images/readme-home.webp" height="380" alt="Volt's Clean Home, parked: battery 78% with about 24 miles left, odometer, drive mode, the Lock bar, quick actions and the subject list">
   &nbsp;
-  <img src="docs/images/readme-scooter.webp" height="380" alt="An earlier Volt's scooter settings: maximum speed per mode and riding settings">
+  <img src="docs/images/readme-charging.webp" height="380" alt="Clean Home while charging: the battery level over the scooter's picture, charging power and the estimated time to full">
   &nbsp;
-  <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery and trip readouts">
+  <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery, trip, ride time and power readouts">
 </p>
 
 An Android companion for **NAVEE scooters**. Connect over Bluetooth, control your scooter, make the dashboard yours, and explore your rides and battery data. Everyday use works without a Volt account or server.
