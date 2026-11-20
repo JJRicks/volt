@@ -258,6 +258,8 @@ final class ChargeBar extends View {
     /** Where a percentage sits on the bar and the bar's centre line, in this view's pixels (the emulator validations aim with them). */
     float xAt(double percent) { return xOf(percent); }
     float floorY() { return floor(); }
+    /** The lowest y (this view's pixels) the press band reaches: the bar's line plus the band below it (30 dp above, 18 below). */
+    float bandBottom() { return floor() + bandBelow; }
     private boolean hasMark() { return kind != ChargeBarDrag.NONE && !Float.isNaN(drawn) && allowed.length > 0; }
 
     @Override protected void onDraw(Canvas canvas) {

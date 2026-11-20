@@ -86,7 +86,8 @@ import com.jjricks.volt.WideLayout;
  *   reach the screen of the window it pictures (the activity's, or the All sheet's own).</li>
  *   <li><b>Back from Just back's ride</b> (2.0.1 plan item 8): a tap on the Just back card opens its ride on All rides, and one
  *   system Back returns to Home with no details left showing; the same ride opened from All rides' own list (Ride row, All
- *   rides &amp; compare, its history row) still closes back to that list.</li>
+ *   rides &amp; compare, its history row) still closes back to that list; on the two panes, Just back tapped while that
+ *   All rides is the page beside it opens the ride over it, and one Back leaves All rides shown (#557 review, F01).</li>
  *   <li><b>Widgets Home</b>: its header is main's (no search or gear of its own); Search and Settings are the first rows
  *   of the dock's All sheet and open over Home, and Back returns to Widgets Home; the dock shows on Widgets Home only
  *   (never on a subject page, never on Clean), each shown subject's icon opens it, and its All item opens the sheet
@@ -1902,9 +1903,12 @@ public final class HubValidation extends ValidationInstrumentation {
         await(() -> onMain(() -> HubTestPages.rideDetailsProblem(activity, listWide, 0, ride, title) == null),
                 () -> "The ride from All rides' list: " + onMain(() -> HubTestPages.rideDetailsProblem(activity, listWide, 0, ride, title)));
         systemBack();
+        boolean overList = false;
         if (!listWide) {
             arrived(HubPages.RIDE_RIDES, HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES);
             require(!dialogShown(), "Back did not close the ride's details opened from All rides");
+            overList = onMain(this::twoPanes);
+            if (overList) justBackOverList(ride, title);
             systemBack();
         }
         arrived(HubPages.RIDE, HubPages.HOME, HubPages.RIDE);
@@ -1912,7 +1916,26 @@ public final class HubValidation extends ValidationInstrumentation {
         arrived(HubPages.HOME, HubPages.HOME);
         requireHome("CleanHomeScreen");
         checks.add("Just back's ride: a tap on the card opens it on All rides (" + (wide ? "selected in the wide panes" : "its details page") + "), and one system Back"
-                + " returns to Home; the same ride opened from All rides' list closes back to " + (listWide ? "the Ride page (wide panes, no details page)" : "that list") + " as before");
+                + " returns to Home; the same ride opened from All rides' list closes back to " + (listWide ? "the Ride page (wide panes, no details page)" : "that list") + " as before"
+                + (overList ? "; and on the two panes, Just back tapped while All rides is the page beside it closes back to that All rides" : ""));
+    }
+
+    /**
+     * The wide Clean Home with All rides already the page beside it (#557 review, F01): Home's Ride row, All rides &amp;
+     * compare, then a tap on Just back in the scooter pane opens the ride over that All rides, and one system Back closes
+     * only the details, leaving All rides shown with Home and Ride under it (the card's ride closed back to Home before).
+     */
+    private void justBackOverList(String ride, String title) throws Exception {
+        tapTag(JUST_BACK_TAG);
+        await(() -> onMain(() -> HubPages.RIDE_RIDES.equals(field(activity, "selectedPage")) && !Boolean.TRUE.equals(field(activity, "rebuilding"))
+                        && HubTestPages.rideDetailsProblem(activity, Boolean.TRUE.equals(field(field(activity, "screen"), "wide")), 0, ride, title) == null),
+                () -> "Just back over All rides: " + onMain(() -> field(activity, "selectedPage") + ", "
+                        + HubTestPages.rideDetailsProblem(activity, Boolean.TRUE.equals(field(field(activity, "screen"), "wide")), 0, ride, title)));
+        requireStack(HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES);
+        screenshot("just-back-over-all-rides");
+        systemBack();
+        arrived(HubPages.RIDE_RIDES, HubPages.HOME, HubPages.RIDE, HubPages.RIDE_RIDES);
+        require(!dialogShown(), "Back did not close the ride's details Just back opened over All rides");
     }
     /** JustBackView.TAG: the card itself, which opens its ride. */
     private static final String JUST_BACK_TAG = "home-just-back";

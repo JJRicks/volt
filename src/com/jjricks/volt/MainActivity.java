@@ -248,6 +248,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         private void connected(IBinder binder){
             scooterService=((ScooterService.LocalBinder)binder).service();bound=true;binding=false;
+            // Home's stay before anything here can start an attempt (visible() below), not only once rebuildForService gets
+            // there (#558 review, F02).
+            watchHome();
             releaseRecreationHold(getApplicationContext());
             observeConnectionFeedback(true);
             scooterService.listen(serviceChanged);scooterService.visible(resumed);
@@ -455,6 +458,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(inData())markStatsAway();
         // Volt leaving the screen ends a stay on Home for Find it nearby's count; a recreation on screen (a theme or text
         // size change) is not a leave (noteRidingLeft's rule).
+        if(!isChangingConfigurations())ScooterService.homeHint(false);
         if(scooterService!=null&&!isChangingConfigurations())scooterService.ble.homeShown(false);
         resumed=false;windowBack=false;windowBackWatch++;for(DashboardLockViews lock:dashboardLocks)if(lock.lockControl!=null)lock.lockControl.stopMotion();if(lockControl!=null)lockControl.stopMotion();ScooterService.setUiVisible(false);captureScroll();fold.stop();handler.removeCallbacks(pulse);cancelDeferredBodyRefresh();
         if(scooterService!=null)scooterService.visible(false);
@@ -583,8 +587,11 @@ public final class MainActivity extends Activity implements ScreenHost {
      * so a quick visit elsewhere between refreshes still ends the stay. Home not yet resumed waits for onResume.
      */
     private void watchHome(){
-        if(scooterService==null)return;
         boolean home=HubPages.HOME.equals(selectedPage)&&riding==null&&onboarding==null&&!enteringMaintenance&&!startupRedirect&&!destroyed;
+        // A service not bound yet hears it too: a fresh start's first attempt begins in its onCreate, before the bind (#558
+        // review, F02), and counts for Home only if it begins in a stay.
+        if(!home)ScooterService.homeHint(false);else if(resumed)ScooterService.homeHint(true);
+        if(scooterService==null)return;
         if(!home)scooterService.ble.homeShown(false);
         else if(resumed)scooterService.ble.homeShown(true);
     }
@@ -1865,6 +1872,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void select(String page){open(page,null);}
     /** ScreenHost: opens a page above the current one; the same page scrolls to its top. */
     @Override public void open(String page){open(page,null);}
+    @Override public String shownPage(){return selectedPage;}
     @Override public void open(String page,HubNav.Args args){
         String target=HubPages.canonical(page);
         if(target.equals(selectedPage)){

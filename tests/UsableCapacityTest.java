@@ -195,6 +195,10 @@ public final class UsableCapacityTest {
         near(today.planningMinutesToLimit,shown.planningMinutesToLimit,1e-9,"... nor on Charge done by");
         near(after.remainingMinutesToFull,shown.remainingMinutesToFull,1e-9,"The uncovered time to 100% uses the learned capacity");
         near(before.remainingMinutesToFull,shown.planningMinutesToFull,1e-9,"... and plans the rated time");
+        // Charge done by plans with the learned curve's time to the limit here: the status no longer says it plans with the
+        // rated capacity (#567 review, F01), and still says what the shown time to 100% used.
+        check(shown.status.contains("(11.2 Ah per 100%).")&&!shown.status.contains("Charge done by plans with the rated capacity."),
+                "A learned limit: the status doesn't name the rated capacity as the plan: "+shown.status);
         // A provisional fill-in (stitched estimate) plans with the longer of it and the rated time, never the learned one.
         ChargeSessionStore partial=store();record(partial,ChargeSessionStore.Charger.STOCK,30,60,11.2,25);
         UsableCapacity.Learned single=partial.snapshot().usableCapacity.get("one");
@@ -206,6 +210,9 @@ public final class UsableCapacityTest {
         check(fill.provisional&&fill.planningMinutesToLimit>=rated(40,55,amps)-1e-9,"A provisional fill-in plans no earlier than the rated time: "+fill.planningMinutesToLimit);
         check(!fill.learnedToFull&&fill.planningMinutesToFull>=rated(40,100,amps)-1e-9&&fill.remainingMinutesToFull<fill.planningMinutesToFull,
                 "Its uncovered time to 100% shows the learned capacity and plans the rated one");
+        boolean ratedFill=fill.planningMinutesToLimit.equals(fillBase.remainingMinutesToLimit)&&fill.planningMinutesToFull.equals(fillBase.remainingMinutesToFull);
+        check(fill.status.contains("Charge done by plans with the rated capacity.")==ratedFill,
+                "A provisional fill-in names the rated capacity as the plan only where it plans with the rated time ("+fill.planningMinutesToLimit+"): "+fill.status);
 
         // Disagreeing recordings teach nothing; nor do recordings with fewer than ten counted levels.
         ChargeSessionStore split=store();record(split,ChargeSessionStore.Charger.STOCK,30,80,11.2,25);record(split,ChargeSessionStore.Charger.STOCK,30,80,10.2,25);

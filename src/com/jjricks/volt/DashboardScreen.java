@@ -429,7 +429,7 @@ public final class DashboardScreen implements AppScreen {
      * The overview readings' picker: HomeReadings' catalogue under its two groups, each reading with its icon, its name as
      * the card names it and, under it, its latest value in the owner's units ("Not reported" where this scooter has none
      * yet) or, for the reading the other slot holds, that slot's name. The slot's own reading is checked. A tap picks.
-     * Over the list, the Reading tiles picker's search field, matching as it does (overviewReadingMatches); a group whose
+     * Over the list, the Reading tiles picker's search field, matching as it does (readingMatches); a group whose
      * readings all fail the search hides its heading, and "No matching readings" shows when none match (owner, Nov 19
      * 2026: "we could reuse the readings search bar from the Reading tiles widget").
      */
@@ -512,7 +512,7 @@ public final class DashboardScreen implements AppScreen {
             String query = SearchFold.fold(search.getText().toString().trim());
             Set<View> shownHeadings = new HashSet<>();
             for (Map.Entry<View, Telemetry.Metric> entry : metricOf.entrySet()) {
-                boolean visible = entry.getValue() != null && overviewReadingMatches(entry.getValue(), query);
+                boolean visible = entry.getValue() != null && readingMatches(entry.getValue(), query);
                 entry.getKey().setVisibility(visible ? View.VISIBLE : View.GONE);
                 if (visible) shownHeadings.add(headingOf.get(entry.getKey()));
             }
@@ -532,19 +532,14 @@ public final class DashboardScreen implements AppScreen {
     }
 
     /**
-     * The space the Reading tiles picker's search puts between a reading's names. Written as its code point: this batch
-     * of catalog text may add no literal to src (tools/l10n's gates); one shared helper replaces both copies later.
+     * Whether a reading picker's search (query, folded by SearchFold and trimmed) finds metric: its English name, group,
+     * key and short name joined into one line, then the shown names (short and full, with the shown group), folded as
+     * the query is, and the English ones. In English that finds nothing more. One matcher for both pickers: the Reading
+     * tiles picker (chooseReadings) and Home style's overview reading list.
      */
-    private static final String READING_SEARCH_JOIN = String.valueOf((char) 0x20);
-
-    /**
-     * Whether the overview list's search (query, folded by SearchFold and trimmed) finds metric, exactly as the Reading
-     * tiles picker's does (chooseReadings): its English name, group, key and short name joined into one line, then the
-     * shown names, folded as the query is. In English that finds nothing more.
-     */
-    private static boolean overviewReadingMatches(Telemetry.Metric metric, String query) {
-        boolean visible = String.join(READING_SEARCH_JOIN, metric.label, metric.group, metric.key,
-                ScooterReadingLabels.label(metric.key, metric.label)).toLowerCase(Locale.ROOT).contains(query);
+    private static boolean readingMatches(Telemetry.Metric metric, String query) {
+        boolean visible = (metric.label + " " + metric.group + " " + metric.key
+                + " " + ScooterReadingLabels.label(metric.key, metric.label)).toLowerCase(Locale.ROOT).contains(query);
         if (!visible)
             visible = SearchFold.holds(metric.label, metric.group, query)
                     || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
@@ -2879,7 +2874,44 @@ public final class DashboardScreen implements AppScreen {
          */
         @Override public boolean dispatchTouchEvent(android.view.MotionEvent event) {
             if (!clean && reveal != null) return true;
+            if (clean && barBelowStage(event)) return true;
             return super.dispatchTouchEvent(event);
+        }
+
+        /** Clean: the bar holds the gesture that began in its band below the stage's foot (barBelowStage), to the lift. */
+        private boolean barOverhang;
+
+        /**
+         * Clean: a touch below the stage's foot but inside the charge bar's press band goes to the bar (#556 review). The
+         * track sits 7.5 dp above the foot and the band reaches 18 dp below it, but the stage's bounds decide which touches
+         * reach its children (setClipChildren only affects drawing), so the band's lower part was lost to the tiles under
+         * it. The bar takes such a touch only near its mark, as any other (ChargeBar.onTouchEvent); one it refuses goes on
+         * to the views under it as before. True: the bar has the event.
+         */
+        private boolean barBelowStage(android.view.MotionEvent event) {
+            int action = event.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_DOWN) {
+                barOverhang = false;
+                if (bar.getVisibility() != VISIBLE || stage.getVisibility() != VISIBLE || bar.getWidth() == 0) return false;
+                float foot = stage.getHeight() - bar.getTop() - bar.getTranslationY();
+                float x = event.getX() - barLeft(), y = event.getY() - barTop();
+                if (!ChargeBarDrag.overhang(x, y, bar.getWidth(), foot, bar.bandBottom())) return false;
+                barOverhang = toBar(event);
+                return barOverhang;
+            }
+            if (!barOverhang) return false;
+            toBar(event);
+            if (action == android.view.MotionEvent.ACTION_UP || action == android.view.MotionEvent.ACTION_CANCEL) barOverhang = false;
+            return true;
+        }
+
+        private float barLeft() { return stage.getLeft() + stage.getTranslationX() + bar.getLeft() + bar.getTranslationX(); }
+        private float barTop() { return stage.getTop() + stage.getTranslationY() + bar.getTop() + bar.getTranslationY(); }
+
+        private boolean toBar(android.view.MotionEvent event) {
+            android.view.MotionEvent moved = android.view.MotionEvent.obtain(event);
+            moved.offsetLocation(-barLeft(), -barTop());
+            try { return bar.dispatchTouchEvent(moved); } finally { moved.recycle(); }
         }
 
         final TextView chip, percent, power;
@@ -9077,15 +9109,7 @@ public final class DashboardScreen implements AppScreen {
             String query = SearchFold.fold(search.getText().toString().trim());
             int matches = 0;
             for (int i = 0; i < metrics.size(); i++) {
-                Telemetry.Metric metric = metrics.get(i);
-                boolean visible = (metric.label + " " + metric.group + " " + metric.key
-                        + " " + ScooterReadingLabels.label(metric.key, metric.label))
-                        .toLowerCase(Locale.ROOT).contains(query);
-                // The shown names match too, folded as the query is, and so do the English ones. In English that finds nothing more.
-                if (!visible)
-                    visible = SearchFold.holds(metric.label, metric.group, query)
-                            || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
-                            || SearchFold.holdsShown(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query);
+                boolean visible = readingMatches(metrics.get(i), query);
                 items.get(i).setVisibility(visible ? View.VISIBLE : View.GONE);
                 if (visible) matches++;
             }

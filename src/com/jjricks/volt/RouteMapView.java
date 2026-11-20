@@ -33,8 +33,9 @@ public final class RouteMapView extends View {
     private int maximumTileZoom;
     private Consumer<String> statusListener;
     private final LruCache<String, Bitmap> tiles =
-            // Room for a full screen of the finer tiles (FINER_TILES): about 40 at 256 KB each.
-            new LruCache<String, Bitmap>(20 * 1024 * 1024) {
+            // 20 MB (80 tiles at 256 KB) until the view has its size; then room for every finer tile (FINER_TILES) it can
+            // show at once, half again over, within a cap (RouteTileBudget, onSizeChanged).
+            new LruCache<String, Bitmap>(RouteTileBudget.FLOOR_BYTES) {
                 @Override
                 protected int sizeOf(String key, Bitmap value) {
                     return value.getByteCount();
@@ -176,6 +177,8 @@ public final class RouteMapView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        // A large tablet's full-screen map shows more of the finer tiles than 80; the cache follows the view's size.
+        tiles.resize(RouteTileBudget.bytes(w, h, ui.dp(256) / Math.pow(2, FINER_TILES), Runtime.getRuntime().maxMemory() / 4));
         if (!preserveViewportOnFirstSize) fitted = false;
         preserveViewportOnFirstSize = false;
     }

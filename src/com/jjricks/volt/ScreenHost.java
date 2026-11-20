@@ -18,6 +18,8 @@ public interface ScreenHost {
     void open(String page);
     /** The same, with one-shot arguments for the page built (HubNav.Args); args may be null. */
     void open(String page, HubNav.Args args);
+    /** The page shown (HubPages id), or null where the host keeps no page stack. */
+    default String shownPage() { return null; }
     /**
      * The width a page has, in dp: the whole window since the Hub has no side rail (hub layout plan, PR 11). A pane that
      * hosts a page (PR 13) can say less.
