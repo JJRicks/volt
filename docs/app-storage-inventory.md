@@ -38,6 +38,7 @@ The main settings file. It mixes global options, per-scooter entries (key ends i
 | `phone_placement` | String | global | Durable | Retired: no longer read or written. Older Volt wrote `pocket`/`mounted`; the key stays registered so older backups that hold it restore it. |
 | `map_basemap_enabled` | Boolean | global | Durable | Online basemap opt-in (privacy choice). MapPreferences. |
 | `map_basemap_explained` | Boolean | global | Durable | First-enable privacy explanation acknowledged. |
+| `just_back_basemap` | Boolean | global | Durable | Clean Home Just back card's own basemap switch, separate from `map_basemap_enabled`; absent means off. JustBackBasemap, MapPreferences.setJustBack. |
 | `map_tile_url`, `map_tile_attribution`, `map_tile_attribution_url` | String | global | Durable | Map provider. MapSource. Absent: OpenStreetMap, or USGS Topo when the basemap is on or explained (approved under the old USGS default; MapDefault). Approving the explanation saves the provider it named. |
 | `map_usgs_switch_answered` | Boolean | global | Durable | The one-time offer to leave USGS was answered (either way). Saved only while the provider is still USGS by the old default (MapDefault.savesSwitchAnswer). MapDefault. |
 | `map_usgs_by_default` | Boolean | global | Durable | Set with USGS when Volt writes the old-default USGS pin down as the saved provider (MapSource.keepPin): USGS by the old default, not the person's own choice. Any other save of a provider removes it (MapSource.put). Travels in backups with the provider. MapDefault. |

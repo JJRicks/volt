@@ -1395,9 +1395,12 @@ public final class MoreScreen implements AppScreen {
     /** Current basemap as a row value: Off, USGS, OSM or Custom. */
     private String basemapSummary() {
         SharedPreferences settings = settings();
-        if (!MapPreferences.enabled(settings)) return T.commonOff();
+        boolean rides = MapPreferences.enabled(settings), card = MapPreferences.justBackEnabled(settings);
+        if (!rides && !card) return T.commonOff();
         String url = MapSource.load(settings).url;
-        return MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
+        String provider = MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
+        // Only the Just back card's own switch on: the provider, and that it is Home's (JustBackBasemap.summary).
+        return JustBackBasemap.summary(rides, card, provider, null, HubText.title(HubPages.HOME).render());
     }
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);

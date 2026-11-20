@@ -404,7 +404,8 @@ final class CleanHomeScreen implements AppScreen {
 
     /**
      * Reads the ride's route once, on the worker, from its phone journal's GPS fixes (RidesScreen.readThumb), only
-     * after the phone has finished saving it. A ride without fixes keeps the plain panel.
+     * after the phone has finished saving it, with the map area the card's basemap needs. A ride without fixes keeps the
+     * plain panel.
      */
     private void loadRoute(ScooterService service, RideStore.Summary ride) {
         if (ride == null || ride.id.equals(routeAsked) || service == null || service.phoneSaving()) return;
@@ -415,10 +416,12 @@ final class CleanHomeScreen implements AppScreen {
         try {
             worker.execute(() -> {
                 float[] outline;
-                try { outline = RidesScreen.readThumb(phone.rawCsv(id)); } catch (RuntimeException invalid) { outline = null; }
+                // With the outline, its fixes' map area, for the card's basemap (JustBackBasemap); NaN when there is no route.
+                double[] area = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
+                try { outline = RidesScreen.readThumb(phone.rawCsv(id), area); } catch (RuntimeException invalid) { outline = null; }
                 if (outline == null) return;
                 float[] shown = outline;
-                host.activity().runOnUiThread(() -> { if (!closed) justBack.setRoute(id, shown); });
+                host.activity().runOnUiThread(() -> { if (!closed) justBack.setRoute(id, shown, area); });
             });
         } catch (java.util.concurrent.RejectedExecutionException stopped) {
             routeAsked = null;
