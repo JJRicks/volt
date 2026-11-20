@@ -10,7 +10,8 @@ final class LearnedCurveWords implements LearnedCurveCard.Words {
     @Override public String recordings(int count) { return T.moreLearnedRecordings(count, count); }
     @Override public String axis() { return T.moreLearnedAxis(); }
     @Override public String minutes(double value) {
-        boolean whole = value == 0 || value >= 1;
+        // The axis' top is a nice step (LearnedCurveChart.niceCeiling): whole, or one decimal (2.5, 1.2, 0.3).
+        boolean whole = Math.abs(value - Math.rint(value)) < 1e-6;
         return T.statsChargeDurationMinutes(whole ? Fmt.integer(Math.round(value)) : Fmt.decimal(Locale.getDefault(), value, 1));
     }
     @Override public String percent(int value) { return T.fmtPercent(Fmt.integer(value)); }
