@@ -151,14 +151,14 @@ public final class ChargeEstimateHistoryTest {
         captured=ChargingEstimate.recordingSnapshot(partialLearned);
         check(captured.fullSource==ChargeSessionStore.Source.CURRENT_RATE&&captured.limitSource==ChargeSessionStore.Source.PERSONAL&&captured.learnedSessions==2,"Mixed personal and current-rate sources preserve independent provenance");
 
-        File boundedDir=Files.createTempDirectory("charge-estimate-bounds-").toFile();ChargeSessionStore bounded=new ChargeSessionStore(boundedDir);bounded.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
+        File boundedDir=Files.createTempDirectory("charge-estimate-bounds-").toFile();ChargeSessionStore bounded=new ChargeSessionStore(boundedDir,null,20,ChargeSessionStore.BUDGET_BYTES);bounded.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
         ChargeSessionStore.Estimate maximum=new ChargeSessionStore.Estimate("v123456789012345678901234567890123456789012345678901234567890123",Double.MAX_VALUE,Double.MAX_VALUE,100d,ChargeSessionStore.Source.PERSONAL,ChargeSessionStore.Source.PERSONAL,20);
         for(int i=0;i<ChargeSessionStore.MAX_SAMPLES;i++)check(bounded.sample(frame(i*9000L,100,0,false),maximum),"Full 6500-sample budget still fits expanded metadata");
         check(!bounded.sample(frame(ChargeSessionStore.MAX_SAMPLES*9000L,100,0,false),maximum)&&!bounded.active(),"Sample limit remains enforced");
         check(only(bounded).points.size()==ChargeSessionStore.MAX_SAMPLES,"All retained samples round-trip");
         check(boundedDir.listFiles()[0].length()<ChargeSessionStore.MAX_FILE_BYTES,"Expanded journal bounded below file cap");
         for(int i=0;i<25;i++){bounded.start("one",ChargeSessionStore.Charger.STOCK,WALL+i,MONO+i);bounded.stop(ChargeSessionStore.Stop.STOPPED);}
-        check(boundedDir.listFiles().length==ChargeSessionStore.MAX_SESSIONS,"Expanded metadata preserves session count retention");
+        check(boundedDir.listFiles().length==20,"Expanded metadata preserves session count retention");
         System.out.println("ChargeEstimateHistory: "+checks+" checks passed");
     }
 }

@@ -253,7 +253,8 @@ public final class LearnedChargerMatchTest {
         long wall = ChargeSessionStoreTest.WALL, mono = ChargeSessionStoreTest.MONO;
         // Started on a learned match: DETECTED, the audit's detection empty.
         ChargeSessionStore store = automaticStore();
-        check(store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.DETECTED, null, null, wall, mono), "Starts on a learned match");
+        store.startAutomatic(ONE, STOCK, ChargeSessionStore.LabelSource.DETECTED, null, null, wall, mono);
+        check(store.active(), "Starts on a learned match");
         check(store.labelSource() == ChargeSessionStore.LabelSource.DETECTED && store.labelAudit().detected == null,
                 "Learned match at the start: DETECTED, no detection audited");
         store.noteDetected(null);

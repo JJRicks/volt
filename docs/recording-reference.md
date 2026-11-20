@@ -375,13 +375,27 @@ already charging starts then; the recording is partial.
   ready, no ride or phone save running). Manual recordings end as before, and a
   ride by hand still waits for one.
 - **Kept.** An automatic recording under 10 minutes or 5 percentage points is
-  deleted when it ends, including one recovered after a process restart. At the
-  20-recording limit a kept one replaces the oldest automatic recording, never a
-  manual one, and only once it is kept: nothing saved is deleted for one that is
-  discarded, and a process end between saving it and making room is finished at
-  the next start. The recording just saved is never the one removed, and an
-  automatic file Volt cannot read goes before any readable one. A stop that a
-  process end cut short after writing its end is recovered with that one end. With 20 manual recordings it does not start.
+  deleted when it ends, including one recovered after a process restart. Room
+  (2.0.1, owner: "auto and manual recordings could be classed the same in that
+  way. rotate away."): automatic and manual recordings rotate alike, so an
+  automatic recording always starts. Once a recording of either kind is kept, the
+  oldest go to stay within the store's count and budget (below): nothing saved is
+  deleted for one that is discarded, and a process end between saving it and
+  making room is finished at the next start. The recording just saved is never the
+  one removed, and a file Volt cannot read goes before any readable one. A stop
+  that a process end cut short after writing its end is recovered with that one
+  end. Before 2.0.1 the limit was 20, a kept automatic recording replaced only the
+  oldest automatic one, and with 20 manual recordings it did not start.
+- **Storage (2.0.1).** Up to 1,000 saved recordings and about 150 MB on disk,
+  measured on the compressed files, shared by every scooter. A running recording
+  is a plain journal; once saved, the analysis worker rewrites it
+  gzip-compressed under the same name (older and restored files too), keeping its
+  modification time, with its summary in the gzip header so the list, rotation and
+  learning read no whole journal. Over the count or the budget, unusable ones go
+  first (unreadable, too short or broken to teach a curve, a guessed label), then
+  the oldest of the scooter and charger with the most, so about two per scooter
+  and charger stay. The learner reads the newest 20 that qualify per scooter and
+  charger. Backups and exports carry the plain journal.
 - **Hold.** Stopping a recording by hand (Stop on the page or in the
   notification, or a ride started by hand) holds that scooter until a fresh
   reading says it stopped charging while Volt is not holding the current off

@@ -462,18 +462,20 @@ public final class BackupPlanTest {
         BackupTestStore phone = BackupArchiveTest.phone(new File(root, "charge-limit"));
         Set<String> local = new HashSet<>(); List<String> newest = new ArrayList<>();
         for (String name : new File(phone.files(), "charge-recordings").list()) local.add(name.substring(0, 36));
-        for (int i = 0; i < 14; i++) local.add(phone.charge(C, 1761000000000L + i * 1000000L, false));
+        // The store's count less five: this phone holds one charge already (BackupArchiveTest.phone).
+        for (int i = 0; i < ChargeSessionStore.MAX_RECORDINGS - 6; i++) local.add(phone.charge(C, 1761000000000L + i * 1000000L, false));
         BackupTestStore source = new BackupTestStore(new File(root, "charge-limit-source"));
         for (int i = 0; i < 15; i++) { String id = source.charge(A, 1760000000000L + i * 1000000L, false); if (i >= 10) newest.add("charge-recordings/" + id + ".csv"); }
         BackupArchive.Plan plan = phone.plan(phone.stage(source.export(set(BackupRegistry.CHARGES))), set(BackupRegistry.CHARGES), false, C);
-        check(plan.lines.contains("Charges: 5 new · 0 already here · 0 kept here") && plan.lines.contains("10 charges skipped · 20-charge limit"), "a merge never passes the charge limit and says what it skipped: " + plan.lines);
+        String limit = "10 charges skipped · " + ChargeSessionStore.MAX_RECORDINGS + "-charge limit";
+        check(plan.lines.contains("Charges: 5 new · 0 already here · 0 kept here") && plan.lines.contains(limit), "a merge never passes the charge limit and says what it skipped: " + plan.lines);
         check(new HashSet<>(plan.additions).equals(new HashSet<>(newest)), "the newest backup charges fill the free places: " + plan.additions);
         BackupTransaction.apply(phone, plan);
         File folder = new File(phone.files(), "charge-recordings"); new ChargeSessionStore(folder);
         Set<String> after = new HashSet<>(); for (String name : folder.list()) after.add(name.substring(0, 36));
-        check(local.size() == 15 && after.size() == ChargeSessionStore.MAX_SESSIONS && after.containsAll(local), "the next start prunes nothing, so this phone's charges all stay");
+        check(local.size() == ChargeSessionStore.MAX_RECORDINGS - 5 && after.size() == ChargeSessionStore.MAX_RECORDINGS && after.containsAll(local), "the next start prunes nothing, so this phone's charges all stay");
         BackupArchive.Plan full = phone.plan(phone.stage(source.export(set(BackupRegistry.CHARGES))), set(BackupRegistry.CHARGES), false, C);
-        check(full.additions.isEmpty() && full.lines.contains("Charges: 0 new · 5 already here · 0 kept here") && full.lines.contains("10 charges skipped · 20-charge limit"), "a full store adds nothing: " + full.lines);
+        check(full.additions.isEmpty() && full.lines.contains("Charges: 0 new · 5 already here · 0 kept here") && full.lines.contains(limit), "a full store adds nothing: " + full.lines);
     }
 
     private static void noScooterLayout(File root, BackupTestStore source) throws Exception {

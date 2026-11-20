@@ -4,12 +4,39 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Bounded private charge journals and conservative, charger-specific SOC curves. No Android API. */
+/**
+ * Bounded private charge journals and conservative, charger-specific SOC curves. No Android API.
+ *
+ * <p>Storage (owner, Nov 19 2026: "bump the limit to say like, 100-200MB compressed, and auto clear old ones in a
+ * rotating buffer instead"; "auto and manual recordings could be classed the same in that way. rotate away."): a
+ * running recording is a plain journal, `<id>.active`. Once it ends it is `<id>.csv`, still plain, and the analysis
+ * worker ({@link #maintain}) rewrites it gzip-compressed under the same name, with a one-line summary of it
+ * ({@link Facts}) in the gzip header, so listing, pruning and choosing what to learn from never parse hundreds of
+ * journals. Every reader takes either form: older files and restored ones are plain until the worker compresses them.
+ * Backups and exports always carry the plain journal (BackupArchive), so an older Volt restores them unchanged.
+ *
+ * <p>Rotation: up to {@link #MAX_RECORDINGS} saved recordings and about {@link #BUDGET_BYTES} on disk, shared by every
+ * scooter. Over either, the oldest go first, automatic and manual alike, keeping each scooter and charger's curve
+ * ({@link #pruneTo}). The running recording and the one just saved are never removed.
+ */
 public final class ChargeSessionStore {
     public static final long SAMPLE_INTERVAL_MS = 10000, MAX_FRAME_AGE_MS = 5000, MAX_GAP_MS = 25000;
     // Estimate metadata keeps the same sample/session limits; even maximum-length rows fit.
     public static final long MAX_SESSION_MS = 18 * 60 * 60 * 1000L, MAX_FILE_BYTES = 3_500_000;
-    public static final int MAX_SESSIONS = 20, MAX_SAMPLES = 6500, MAX_PAUSES = 24;
+    public static final int MAX_SAMPLES = 6500, MAX_PAUSES = 24;
+    /** The saved recordings' budget on disk, measured on the compressed files (the running journal aside). */
+    public static final long BUDGET_BYTES = 150L * 1024 * 1024;
+    /**
+     * The count guard beside the budget, so a flood of tiny recordings cannot run away. A typical charge compresses to
+     * a few tens of kilobytes, so for most owners this, not the budget, is the limit: about three years of daily charges.
+     */
+    public static final int MAX_RECORDINGS = 1000;
+    /**
+     * The learner reads at most this many recordings per scooter and charger, the newest that qualify, and capacity
+     * evidence from at most this many completed charges per scooter. It is also the most a saved estimate can claim to
+     * have learned from, so an older Volt (which allows at most 20) still reads every saved prediction.
+     */
+    public static final int LEARN_SESSIONS = 20;
     /** After its plan is cancelled or starts, a recorded pause waits this long for current to return. */
     public static final long PAUSE_RELEASE_GRACE_MS = 2 * 60_000L;
     /**
@@ -47,17 +74,12 @@ public final class ChargeSessionStore {
         public final Charger setting,detected;
         LabelAudit(Charger setting,Charger detected){this.setting=setting;this.detected=detected;}
     }
-    /** Which automatic recordings are kept and which may make room (ChargeAutoRecordPolicy). Manual ones never ask. */
+    /** Which automatic recordings are kept (ChargeAutoRecordPolicy). Manual ones never ask. */
     public interface AutomaticRules {
         /** ranMs: start to last saved sample; gainedPoints: battery percent from first to last saved sample. */
         boolean keep(long ranMs,double gainedPoints);
-        /** How many of the oldest automatic recordings to remove so one more fits under max, or -1 for none possible. */
-        int toRemove(int saved,int automatic,int max);
     }
-    private static final AutomaticRules NO_AUTOMATIC=new AutomaticRules(){
-        public boolean keep(long ranMs,double gainedPoints){return true;}
-        public int toRemove(int saved,int automatic,int max){return -1;}
-    };
+    private static final AutomaticRules KEEP_ALL=(ranMs,gainedPoints)->true;
     /** A prediction made at capture time, never recalculated when a recording is read. */
     public static final class Estimate {
         public final String version;
@@ -70,7 +92,7 @@ public final class ChargeSessionStore {
             this.remainingMinutesToLimit=this.targetPercent==null?null:duration(limit);
             this.fullSource=this.remainingMinutesToFull==null?null:fullSource;
             this.limitSource=this.remainingMinutesToLimit==null?null:limitSource;
-            this.learnedSessions=this.fullSource==Source.PERSONAL||this.limitSource==Source.PERSONAL?Math.max(0,Math.min(MAX_SESSIONS,learnedSessions)):0;
+            this.learnedSessions=this.fullSource==Source.PERSONAL||this.limitSource==Source.PERSONAL?Math.max(0,Math.min(LEARN_SESSIONS,learnedSessions)):0;
         }
         private static Double duration(Double value){return value!=null&&Double.isFinite(value)&&value>=0?value:null;}
     }
@@ -79,7 +101,11 @@ public final class ChargeSessionStore {
         public final boolean gap;public final Estimate estimate;
         private HistoryPoint(Point point){wall=point.wall;mono=point.mono;batteryPercent=point.soc;voltage=point.voltage;current=point.current;power=point.signedPower;temperature=point.temperature;gap=point.gap;estimate=point.estimate;}
     }
-    /** Immutable, profile-scoped history for charts. Completion means observed displayed 100%. */
+    /**
+     * Immutable, profile-scoped history for charts. Completion means observed displayed 100%. A summary ({@link #light})
+     * carries every field but the points, read from the recording's {@link Facts} without parsing it: the list of
+     * recordings and the HISTORY card use those; a chart reads the whole recording ({@link #recording}).
+     */
     public static final class HistorySession {
         public final String id,profile;public final Charger charger;public final Stop stop;
         public final long startedWall,startedMono;public final List<HistoryPoint> points;
@@ -92,15 +118,17 @@ public final class ChargeSessionStore {
         public final LabelSource labelSource;public final boolean automatic;
         /** Null for a recording started by hand or an automatic one saved before the audit existed. */
         public final LabelAudit labelAudit;
-        private HistorySession(String id,Session session){
-            this.id=id;labelSource=labelSource(id);labelAudit=labelAudit(id);automatic=labelSource!=null;profile=session.profile;charger=session.charger;stop=session.stop;startedWall=session.startedWall;startedMono=session.startedMono;
-            List<HistoryPoint> copy=new ArrayList<>();for(Point point:session.points)copy.add(new HistoryPoint(point));points=Collections.unmodifiableList(copy);
-            observedCompleteMono=session.observedCompletion();observedCompleteWall=observedCompleteMono==null?null:clockAt(observedCompleteMono);
-            long last=session.points.isEmpty()?startedMono:session.points.get(session.points.size()-1).mono;
-            for(long[] pause:session.pauses)last=Math.max(last,pause[3]);// A recording can end inside its pause.
-            pausedMs=session.pausedMs(startedMono,last,0);chargerPausedMs=session.pausedMs(startedMono,last,1);
-            int charger=0;for(long[] pause:session.pauses)if(pause[4]==1)charger++;
-            chargerPauses=charger;pauses=session.pauses.size()-charger;
+        /** The first and last finite battery percent it saved (NaN for none), and its last sample's time (its start for none). */
+        public final double firstPercent,lastPercent;public final long lastSampleMono;
+        /** A summary: no points (they are read when the recording is opened). */
+        public final boolean light;
+        private HistorySession(String id,Facts facts,Session session){
+            this.id=id;labelSource=labelSource(id);labelAudit=labelAudit(id);automatic=labelSource!=null;profile=facts.profile;charger=facts.charger;stop=facts.stop;startedWall=facts.startedWall;startedMono=facts.startedMono;
+            List<HistoryPoint> copy=new ArrayList<>();if(session!=null)for(Point point:session.points)copy.add(new HistoryPoint(point));points=Collections.unmodifiableList(copy);
+            light=session==null;
+            observedCompleteMono=facts.observedCompleteMono;observedCompleteWall=observedCompleteMono==null?null:clockAt(observedCompleteMono);
+            pausedMs=facts.pausedMs;chargerPausedMs=facts.chargerPausedMs;pauses=facts.pauses;chargerPauses=facts.chargerPauses;
+            firstPercent=facts.firstPercent;lastPercent=facts.lastPercent;lastSampleMono=facts.lastSampleMono;
         }
         /** One stable wall-clock anchor avoids artificial jumps when the phone clock changes. */
         public long clockAt(long mono){return startedWall+(mono-startedMono);}
@@ -131,29 +159,63 @@ public final class ChargeSessionStore {
     }
     public static final class Duration {
         public final double minutes; public final int sessions;
-        Duration(double minutes,int sessions){this.minutes=minutes;this.sessions=sessions;}
+        /**
+         * Some of it rests on one recording, or it joins a finish recording's own time (Curve.estimateProvisional,
+         * Curve.estimateJoined). sessions then counts the recordings it uses, not the fewest behind any percent.
+         */
+        public final boolean provisional;
+        /** Whether some percent of it rests on a single recording. */
+        public final boolean single;
+        /** The level where a finish recording's own time takes over (the lowest, with several), or NaN for no join. */
+        public final double joinedAt;
+        Duration(double minutes,int sessions){this(minutes,sessions,false,false,Double.NaN);}
+        Duration(double minutes,int sessions,boolean provisional,boolean single,double joinedAt){
+            this.minutes=minutes;this.sessions=sessions;this.provisional=provisional;this.single=single;this.joinedAt=joinedAt;
+        }
     }
     public static final class Curve {
         public enum PowerMatch { MATCH, DIFFERENT, UNKNOWN }
         public final String profile; public final Charger charger; public final int qualifiedSessions;
         private final double[] minutes, watts; private final int[] counts;
+        /**
+         * The recordings behind each percent's minutes, bit i for the i-th qualified recording (the first 64), so a
+         * provisional or joined estimate can say how many recordings it uses.
+         */
+        private final long[] sources;
+        /** A percent whose power comes from one recording: the guard for a provisional estimate only (powerMatch). */
+        private final boolean[] singleWatts;
+        /** How many recordings have minutes for each percent, agreeing or not (summary's disagreeing percents). */
+        private final int[] covering;
         private final List<FinishingCurve> finishing = new ArrayList<>();
+        /** finishing's recordings, as bits like sources. */
+        private final List<Long> finishingSource = new ArrayList<>();
         Curve(String profile, Charger charger, List<Evidence> sessions) {
             this.profile=profile;this.charger=charger;qualifiedSessions=sessions.size();minutes=new double[100];watts=new double[100];counts=new int[100];
-            for (Evidence session : sessions) if (session.finishing != null) finishing.add(session.finishing);
+            sources=new long[100];singleWatts=new boolean[100];covering=new int[100];
+            for (int i=0;i<sessions.size();i++) if (sessions.get(i).finishing != null){finishing.add(sessions.get(i).finishing);finishingSource.add(bit(i));}
             Arrays.fill(minutes,Double.NaN);Arrays.fill(watts,Double.NaN);
             for(int bin=0;bin<100;bin++) {
-                List<Double> values=new ArrayList<>();for(Evidence session:sessions)if(Double.isFinite(session.minutes[bin]))values.add(session.minutes[bin]);
+                List<Double> values=new ArrayList<>();int only=-1;
+                for(int i=0;i<sessions.size();i++)if(Double.isFinite(sessions.get(i).minutes[bin])){values.add(sessions.get(i).minutes[bin]);only=i;}
+                covering[bin]=values.size();
+                if(values.size()==1){
+                    // One recording: provisional minutes and power, which only estimateProvisional, estimateJoined and
+                    // powerMatch(…, true) use. A second agreeing recording turns this into the average below.
+                    Evidence session=sessions.get(only);
+                    minutes[bin]=values.get(0);counts[bin]=1;sources[bin]=bit(only);
+                    if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1){watts[bin]=session.watts[bin];singleWatts[bin]=true;}
+                    continue;
+                }
                 Collections.sort(values);if(values.size()<2)continue;
                 double median=median(values);
                 // With just two strongly disagreeing sessions there is no reliable majority.
                 if(values.size()==2&&values.get(1)>values.get(0)*2.5)continue;
-                double sum=0;List<Double> powers=new ArrayList<>();
-                for(Evidence session:sessions)if(session.minutes[bin]>=median*.4&&session.minutes[bin]<=median*2.5){
-                    sum+=session.minutes[bin];counts[bin]++;
+                double sum=0;List<Double> powers=new ArrayList<>();long used=0;
+                for(int i=0;i<sessions.size();i++){Evidence session=sessions.get(i);if(session.minutes[bin]>=median*.4&&session.minutes[bin]<=median*2.5){
+                    sum+=session.minutes[bin];counts[bin]++;used|=bit(i);
                     if(Double.isFinite(session.watts[bin])&&session.watts[bin]>=1)powers.add(session.watts[bin]);
-                }
-                if(counts[bin]>=2)minutes[bin]=sum/counts[bin];
+                }}
+                if(counts[bin]>=2){minutes[bin]=sum/counts[bin];sources[bin]=used;}
                 // Use the same duration-qualified sessions, at this SOC, not a bulk-power guess
                 // during taper. Two disagreeing records cannot identify compatible live power.
                 if(powers.size()>=2){
@@ -196,11 +258,30 @@ public final class ChargeSessionStore {
             if(expected==null||liveWatts==null||!Double.isFinite(liveWatts)||liveWatts<1)return PowerMatch.UNKNOWN;
             return liveWatts>=expected*.65&&liveWatts<=expected*1.35?PowerMatch.MATCH:PowerMatch.DIFFERENT;
         }
+        private static long bit(int index){return index<64?1L<<index:0;}
+        /** Read-only: the curve's coverage per percent, for a chart of the saved curve. */
+        public Summary summary() {
+            List<Double> starts=new ArrayList<>();
+            for(FinishingCurve curve:finishing)starts.add(curve.points.get(0).soc);
+            Collections.sort(starts);
+            List<Summary.Bin> bins=new ArrayList<>();
+            for(int bin=0;bin<100;bin++){
+                boolean usable=Double.isFinite(minutes[bin])&&counts[bin]>=1;
+                Summary.Coverage coverage=usable?counts[bin]>=2?Summary.Coverage.ROBUST:Summary.Coverage.PROVISIONAL
+                        :covering[bin]>=2?Summary.Coverage.DISAGREEING:Summary.Coverage.NONE;
+                boolean finish=false;for(double start:starts)if(bin>=start){finish=true;break;}
+                bins.add(new Summary.Bin(bin,coverage,usable?counts[bin]:covering[bin],usable?Double.valueOf(minutes[bin]):null,
+                        Double.isFinite(watts[bin])?Double.valueOf(watts[bin]):null,finish));
+            }
+            return new Summary(charger,qualifiedSessions,starts,bins);
+        }
         /** A plausibility check, not charger identification; missing local power fails closed. */
-        public PowerMatch powerMatch(double soc,Double liveWatts) {
+        public PowerMatch powerMatch(double soc,Double liveWatts) {return powerMatch(soc,liveWatts,false);}
+        /** single: a percent one recording covers also checks against that recording's power (a provisional estimate). */
+        public PowerMatch powerMatch(double soc,Double liveWatts,boolean single) {
             if(!between(soc,0,100)||liveWatts==null||!Double.isFinite(liveWatts)||liveWatts<1)return PowerMatch.UNKNOWN;
             int bin=Math.min(99,(int)Math.floor(soc));double expected=watts[bin];
-            if(!Double.isFinite(expected))return PowerMatch.UNKNOWN;
+            if(!Double.isFinite(expected)||singleWatts[bin]&&!single)return PowerMatch.UNKNOWN;
             return liveWatts>=expected*.65&&liveWatts<=expected*1.35?PowerMatch.MATCH:PowerMatch.DIFFERENT;
         }
         /** Every remaining interval, including the final taper bin, needs two independent sessions. */
@@ -214,6 +295,62 @@ public final class ChargeSessionStore {
                 if(fraction>0){total+=fraction*minutes[bin];supported=Math.min(supported,counts[bin]);}
             }
             return Double.isFinite(total)?new Duration(total,supported):null;
+        }
+        /**
+         * Like estimate, but a percent that one recording covers counts too, provisionally, and per-percent stretches
+         * from different recordings join wherever every percent from soc to target is covered. A percent two
+         * recordings strongly disagree on stays uncovered, as in estimate. When every percent has two or more agreeing
+         * recordings this is estimate itself (not provisional). Null at or above target: there is nothing to learn.
+         */
+        public Duration estimateProvisional(double soc,double target) {
+            if(!between(soc,0,100)||!between(target,0,100)||soc>=target||qualifiedSessions<1)return null;
+            Duration robust=estimate(soc,target);
+            if(robust!=null)return robust;
+            double[] span=span(soc,target);
+            return span==null?null:new Duration(span[0],Long.bitCount((long)span[1]),true,span[2]>0,Double.NaN);
+        }
+        /**
+         * Per-percent times from soc up to where a completed finish recording starts, then that recording's own time
+         * from its start to target (its first reading at target, or its observed 100%). Only finish recordings that
+         * start above soc and below target join; one already covering soc is estimateFinishing's. single: percents
+         * one recording covers may fill the stretch below the join (otherwise only those two or more agree on). With
+         * several finish recordings, each joined time counts and they are combined like estimateFinishing (two that
+         * disagree by more than 2.5 times give none). Always provisional. Null when nothing joins.
+         */
+        public Duration estimateJoined(double soc,double target,boolean single) {
+            if(!between(soc,0,100)||!between(target,0,100)||soc>=target)return null;
+            List<Double> values=new ArrayList<>();List<Long> used=new ArrayList<>();List<Boolean> singles=new ArrayList<>();List<Double> starts=new ArrayList<>();
+            for(int i=0;i<finishing.size();i++){
+                FinishingCurve curve=finishing.get(i);double start=curve.points.get(0).soc;
+                if(!(start>soc&&start<target))continue;
+                double[] span=span(soc,start);
+                if(span==null||!single&&span[2]>0)continue;
+                Double tail=curve.minutesFromStart(target);
+                if(tail==null)continue;
+                values.add(span[0]+tail);used.add((long)span[1]|finishingSource.get(i));singles.add(span[2]>0);starts.add(start);
+            }
+            if(values.isEmpty())return null;
+            List<Double> sorted=new ArrayList<>(values);Collections.sort(sorted);
+            if(sorted.size()==2&&sorted.get(1)>sorted.get(0)*2.5)return null;
+            double center=median(sorted),sum=0;int count=0;long sources=0;boolean anySingle=false;double joinedAt=Double.NaN;
+            for(int i=0;i<values.size();i++){double value=values.get(i);if(value>=center*.4&&value<=center*2.5){
+                sum+=value;count++;sources|=used.get(i);anySingle|=singles.get(i);
+                if(!(starts.get(i)>=joinedAt))joinedAt=starts.get(i);
+            }}
+            return count==0?null:new Duration(sum/count,Math.max(1,Long.bitCount(sources)),true,anySingle,joinedAt);
+        }
+        /**
+         * {minutes, recordings as bits, 1 when some percent rests on one recording} from soc to target over percents
+         * that one or more agreeing recordings cover; null at the first uncovered percent.
+         */
+        private double[] span(double soc,double target) {
+            double total=0;long used=0;boolean single=false;
+            for(int bin=(int)Math.floor(soc);bin<Math.ceil(target);bin++) {
+                if(bin<0||bin>=100||!Double.isFinite(minutes[bin])||counts[bin]<1)return null;
+                double fraction=Math.min(target,bin+1)-Math.max(soc,bin);
+                if(fraction>0){total+=fraction*minutes[bin];used|=sources[bin];single|=counts[bin]<2;}
+            }
+            return Double.isFinite(total)?new double[]{total,used,single?1:0}:null;
         }
         /** Complete observed finishes can provide a provisional estimate after just one charge. */
         public Duration estimateFinishing(double soc, Double liveWatts) {
@@ -240,28 +377,80 @@ public final class ChargeSessionStore {
             return false;
         }
     }
+    /** A curve's coverage per 1% (Curve.summary): an immutable copy, for a chart of the saved curve. */
+    public static final class Summary {
+        /**
+         * NONE: no recording has this percent. PROVISIONAL: one does (estimateProvisional and estimateJoined use it).
+         * ROBUST: two or more agree (estimate uses it). DISAGREEING: two or more have it but no majority agrees, so
+         * nothing uses it unless a finish recording covers it.
+         */
+        public enum Coverage { NONE, PROVISIONAL, ROBUST, DISAGREEING }
+        public static final class Bin {
+            /** The percent from percent to percent + 1. */
+            public final int percent;
+            public final Coverage coverage;
+            /** Recordings behind the minutes (agreeing ones), or for DISAGREEING how many have the percent. */
+            public final int sessions;
+            /** Minutes for this 1%, null unless PROVISIONAL or ROBUST. */
+            public final Double minutes;
+            /** The saved charging power here in watts (one recording's for PROVISIONAL), or null. */
+            public final Double watts;
+            /** A completed finish recording covers this percent (estimateFinishing can use it). */
+            public final boolean finishCovered;
+            Bin(int percent,Coverage coverage,int sessions,Double minutes,Double watts,boolean finishCovered){
+                this.percent=percent;this.coverage=coverage;this.sessions=sessions;this.minutes=minutes;this.watts=watts;this.finishCovered=finishCovered;
+            }
+        }
+        public final Charger charger;public final int qualifiedSessions;
+        /** Where each finish recording starts (its first full percent), lowest first. */
+        public final List<Double> finishStarts;
+        /** 100 bins, 0% to 99%. */
+        public final List<Bin> bins;
+        Summary(Charger charger,int qualifiedSessions,List<Double> finishStarts,List<Bin> bins){
+            this.charger=charger;this.qualifiedSessions=qualifiedSessions;
+            this.finishStarts=Collections.unmodifiableList(new ArrayList<>(finishStarts));this.bins=Collections.unmodifiableList(new ArrayList<>(bins));
+        }
+    }
     public static final class Snapshot {
         public final Map<String,Curve> curves; public final int sessions; public final long bytes;
         /** Per profile: charge accepted per gauge point in completed charges (any charger). */
         public final Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge;
-        Snapshot(Map<String,Curve> curves,int sessions,long bytes){this(curves,sessions,bytes,Collections.emptyMap());}
-        Snapshot(Map<String,Curve> curves,int sessions,long bytes,Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge){
+        /**
+         * Per scooter and charger ({@link #key}): of the scooter's newest LEARN_SESSIONS recordings that could teach a curve,
+         * those with this charger. "The charger you have recorded more charges with" counts these, so after a switch to the
+         * other charger the guess follows within about LEARN_SESSIONS / 2 charges, not hundreds. (A cap per charger would
+         * not: both would sit at LEARN_SESSIONS, a tie, for good.)
+         */
+        private final Map<String,Integer> qualified;
+        Snapshot(Map<String,Curve> curves,int sessions,long bytes){this(curves,sessions,bytes,Collections.emptyMap(),Collections.emptyMap());}
+        Snapshot(Map<String,Curve> curves,int sessions,long bytes,Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge,Map<String,Integer> qualified){
             this.curves=Collections.unmodifiableMap(curves);this.sessions=sessions;this.bytes=bytes;
             this.gaugeCharge=Collections.unmodifiableMap(new LinkedHashMap<>(gaugeCharge));
+            this.qualified=Collections.unmodifiableMap(new LinkedHashMap<>(qualified));
         }
+        public int qualifiedRecordings(String profile,Charger charger){Integer n=qualified.get(key(profile,charger));return n==null?0:n;}
     }
     /** Longest sample spacing still integrated as continuous charging, unless a gap was recorded there. */
     static final long GAUGE_CHARGE_MAX_STEP_MS = 30*60000L;
     /** A flagged step longer than this was an outage: charging may have stopped unseen. Shorter
      *  flags mark rejected frames between normal samples (at most 0.2% of a full stock charge). */
     static final long GAUGE_CHARGE_GAP_MS = 30000L;
+    /** A saved or running journal's name, and what an interrupted relabel or compression leaves (compiled once: app start lists them all). */
+    private static final java.util.regex.Pattern JOURNAL=java.util.regex.Pattern.compile("[a-f0-9-]{36}\\.(csv|active)"),
+            LEFTOVER=java.util.regex.Pattern.compile("[a-f0-9-]{36}\\.(active\\.mapping|csv\\.repair)");
     private final File directory;
     private final AutomaticRules rules;
-    // snapshot() normally primes this on the analysis worker before capture is admitted,
-    // avoiding reparsing the full retained history in start()'s bounded pruning step.
-    private final Map<String,Retention> retentionCache=new HashMap<>();
-    private File active;
-    private String profile;
+    private final int maxRecordings;
+    private final long budgetBytes;
+    // Each saved file's facts, by name, checked against its length and modification time. snapshot() and maintain() prime
+    // it on the analysis worker, so a stop's pruning on the main thread reads at most the file it just saved.
+    private final Map<String,Known> known=new HashMap<>();
+    /** The recording last saved or recovered: never the one pruning removes. */
+    private final Set<String> justSaved=new HashSet<>();
+    // Written under the lock; read without it by active() and profile(), which the service asks from the main thread many
+    // times a second, so they never wait for a long walk of the folder.
+    private volatile File active;
+    private volatile String profile;
     private Charger charger;
     private LabelSource labelSource;
     private double firstSoc;
@@ -273,31 +462,38 @@ public final class ChargeSessionStore {
     private long candidateMono,candidateElectricalMono;
     private int candidateSamples;
 
-    public ChargeSessionStore(File directory) throws IOException {this(directory,NO_AUTOMATIC);}
-    public ChargeSessionStore(File directory,AutomaticRules rules) throws IOException {
-        this.directory=directory;this.rules=rules==null?NO_AUTOMATIC:rules;
+    public ChargeSessionStore(File directory) throws IOException {this(directory,KEEP_ALL);}
+    public ChargeSessionStore(File directory,AutomaticRules rules) throws IOException {this(directory,rules,MAX_RECORDINGS,BUDGET_BYTES);}
+    /** Tests choose smaller limits. */
+    ChargeSessionStore(File directory,AutomaticRules rules,int maxRecordings,long budgetBytes) throws IOException {
+        this.directory=directory;this.rules=rules==null?KEEP_ALL:rules;
+        if(maxRecordings<1||budgetBytes<1)throw new IllegalArgumentException();
+        this.maxRecordings=maxRecordings;this.budgetBytes=budgetBytes;
         if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException("Charge storage unavailable");
-        // A relabel that a process death interrupted before its rename: the journal itself is untouched.
-        File[] stale=directory.listFiles((dir,name)->name.matches("[a-f0-9-]{36}\\.active\\.mapping"));
-        if(stale!=null)for(File file:stale)file.delete();
-        // A process restart never silently resumes a capture. Interrupted journals remain inspectable,
-        // but do not enter learned curves because their stop/continuity was not observed.
-        List<File> recoveredFiles=new ArrayList<>();
-        for(File file:files())if(file.getName().endsWith(".active")){
+        // This runs at app start on the main thread: names only, no file is read but a journal a process death left open.
+        String[] names=directory.list();
+        if(names==null)throw new IOException("Charge recordings unavailable");
+        int saved=0;
+        for(String name:names){
+            // A relabel or a compression that a process death interrupted before its rename: the journal itself is untouched.
+            if(LEFTOVER.matcher(name).matches()){new File(directory,name).delete();continue;}
+            if(!JOURNAL.matcher(name).matches())continue;
+            if(name.endsWith(".csv")){saved++;continue;}
+            // A process restart never silently resumes a capture. Interrupted journals remain inspectable,
+            // but do not enter learned curves because their stop/continuity was not observed.
+            File file=new File(directory,name);
             // A stop that a process death cut short after its end line keeps that line: a second one would make it unreadable.
             if(!ended(file))append(file,"end,INTERRUPTED\n");
-            File recovered=new File(directory,file.getName().replace(".active",".csv"));
+            File recovered=new File(directory,name.replace(".active",".csv"));
             if(!file.renameTo(recovered))throw new IOException("Could not finalize interrupted charge");
-            // An interrupted automatic recording is judged like any other automatic one: a short one is not kept, and
-            // nothing saved made room for it.
+            // An interrupted automatic recording is judged like any other automatic one: a short one is not kept.
             Session session=labelSource(recovered.getName())==null?null:read(recovered);
-            if(session!=null&&!keeps(session))recovered.delete();
-            else if(session!=null)recoveredFiles.add(recovered);
+            if(session!=null&&!keeps(session)){recovered.delete();continue;}
+            justSaved.add(recovered.getName());saved++;
         }
-        // A kept automatic recording (recovered here, or saved by a stop that a process death cut short before it made
-        // room) makes room among automatic recordings only, before the ordinary pruning sees the folder.
-        trimAutomatic(recoveredFiles);
-        prune();
+        // Over the count (a recovered recording, or one saved by a stop that a process death cut short before it made
+        // room): the oldest go now. The budget in bytes waits for maintain(), on the analysis worker.
+        if(saved>maxRecordings)pruneTo(maxRecordings,Long.MAX_VALUE);
     }
     private boolean keeps(Session session){
         if(session.points.isEmpty())return false;
@@ -324,8 +520,8 @@ public final class ChargeSessionStore {
     private static String auditId(String id,Charger setting,Charger detected){
         char[] chars=id.substring(0,36).toCharArray();chars[19]=auditChar(setting);chars[20]=auditChar(detected);return new String(chars);
     }
-    public synchronized boolean active(){return active!=null;}
-    public synchronized String profile(){return profile;}
+    public boolean active(){return active!=null;}
+    public String profile(){return profile;}
     public synchronized Charger charger(){return charger;}
     public synchronized int sampleCount(){return samples;}
     public synchronized long lastFreshMono(){return lastFreshMono;}
@@ -333,47 +529,44 @@ public final class ChargeSessionStore {
     /** Null for a manual recording or none. */
     public synchronized LabelSource labelSource(){return active==null?null:labelSource;}
     public synchronized boolean automatic(){return active!=null&&labelSource!=null;}
+    /**
+     * A recording started by hand. Like an automatic one, it deletes nothing when it starts: room is made once it is
+     * saved ({@link #stop}), so the folder holds one journal over the limit while it runs.
+     */
     public synchronized void start(String profile,Charger charger,long wall,long mono) throws IOException {
         begin(profile,charger,null,false,null,wall,mono);
     }
     /**
-     * An automatic recording. It never deletes a manual one, and nothing saved is deleted for it until it is kept: at
-     * the limit it checks now that older automatic recordings could make room, and they make it only when it is saved
-     * (stop, or recovery after a process death; {@link #trimAutomatic}). When the rules find no room it does not start
-     * (false). Until then the folder holds one file over the limit: the running journal.
+     * An automatic recording. Nothing saved is deleted for it until it is kept: once saved (stop, or recovery after a
+     * process death) it makes room as any recording does, oldest first, manual or automatic alike.
      */
-    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
+    public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
-        return begin(profile,charger,source,false,null,wall,mono);
+        begin(profile,charger,source,false,null,wall,mono);
     }
     /**
      * An automatic recording whose id also records, for audit ({@link LabelAudit}), the charger setting at its start
      * (null: Automatic); a DETECTED start also records detection's family, its charger.
      */
-    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,long wall,long mono) throws IOException {
-        return startAutomatic(profile,charger,source,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,long wall,long mono) throws IOException {
+        startAutomatic(profile,charger,source,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
     }
     /**
      * As above, with the family charger detection (ChargerDetection) has settled on for the audit given apart from the
      * label: a DETECTED label from this scooter's learned curves (LearnedChargerMatch) audits no detection.
      */
-    public synchronized boolean startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,long wall,long mono) throws IOException {
+    public synchronized void startAutomatic(String profile,Charger charger,LabelSource source,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(source==null)throw new IllegalArgumentException();
-        return begin(profile,charger,source,true,setting,detected,wall,mono);
+        begin(profile,charger,source,true,setting,detected,wall,mono);
     }
-    private boolean begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
-        return begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
+    private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,long wall,long mono) throws IOException {
+        begin(profile,charger,source,audit,setting,source==LabelSource.DETECTED?charger:null,wall,mono);
     }
-    private boolean begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,long wall,long mono) throws IOException {
+    private void begin(String profile,Charger charger,LabelSource source,boolean audit,Charger setting,Charger detected,long wall,long mono) throws IOException {
         if(active!=null)throw new IllegalStateException("A charge capture is already active");
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}")||charger==null||wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS)throw new IllegalArgumentException("Choose a scooter and charger");
         String id=UUID.randomUUID().toString();
-        if(source==null)pruneTo(MAX_SESSIONS-1);
-        else{
-            // Room is only checked here; nothing is deleted for a recording that may not be kept.
-            List<File> entries=files();int automatic=0;
-            for(File file:entries)if(labelSource(file.getName())!=null)automatic++;
-            if(rules.toRemove(entries.size(),automatic,MAX_SESSIONS)<0)return false;
+        if(source!=null){
             id=automaticId(id,source);
             if(audit)id=auditId(id,setting,detected);
         }
@@ -382,7 +575,6 @@ public final class ChargeSessionStore {
         this.active=file;this.profile=profile;this.charger=charger;labelSource=source;startWall=wall;startMono=mono;lastFreshMono=mono;pauseGraceUntilMono=0;
         lastWriteMono=lastElectricalMono=0;lastSoc=lastPower=lastVoltage=null;firstSoc=Double.NaN;samples=0;gap=true;paused=false;pauses=0;
         resetElectricalCandidate();
-        return true;
     }
     /**
      * Changes a running automatic recording's charger label and how it was chosen. The header is rewritten through a
@@ -553,46 +745,116 @@ public final class ChargeSessionStore {
         boolean discarded=!kept&&file.delete();
         File saved=new File(directory,file.getName().replace(".active",".csv"));
         if(!discarded&&!file.renameTo(saved))throw new IOException("Charge could not be finalized");
-        // Saved first, then room made: a process death in between leaves one file too many, which the next start trims
-        // the same way. There is no moment when the old recording and the new one are both gone.
-        if(automatic&&!discarded)trimAutomatic(Collections.singletonList(saved));
-        prune();
+        // Saved first, then room made, by count only (the budget in bytes waits for maintain(), once it is compressed): a
+        // process death in between leaves one file too many, which the next start trims the same way. There is no moment
+        // when the old recording and the new one are both gone.
+        if(!discarded){justSaved.clear();justSaved.add(saved.getName());}
+        pruneTo(maxRecordings,Long.MAX_VALUE);
         return !discarded&&saved.exists();
     }
-    public synchronized void clear(String targetProfile) throws IOException {
-        if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
-        for(File file:files()) {
-            if(file.equals(active))continue;
-            Session session=read(file);
-            if(targetProfile==null||session!=null&&targetProfile.equals(session.profile)){
-                if(!file.delete())throw new IOException("Charge history could not be cleared");retentionCache.remove(file.getName());
-            }
+    /** Run outside the UI thread. Only the list is taken under the lock: reading up to MAX_RECORDINGS files' facts is not. */
+    public void clear(String targetProfile) throws IOException {
+        final List<File> source;final File current;
+        synchronized(this){
+            if(active!=null&&(targetProfile==null||targetProfile.equals(profile)))throw new IllegalStateException("Stop charge recording first");
+            source=files();current=active;
+        }
+        for(File file:source) {
+            if(file.equals(current))continue;
+            Facts facts;
+            try{facts=file.getName().endsWith(".csv")?facts(file):null;}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
+            if(targetProfile==null||facts!=null&&targetProfile.equals(facts.profile))remove(file,"Charge history could not be cleared");
         }
     }
-    /** Run outside the UI thread. Only closed, complete files are considered for learning. */
+    /**
+     * Run outside the UI thread. Only closed, complete files are considered for learning, and of those only the newest
+     * {@link #LEARN_SESSIONS} that qualify for each scooter and charger are read; the others are known by their facts.
+     */
     public Snapshot snapshot() throws IOException {
         final List<File> source;final File current;
         synchronized(this){source=files();current=active;}
-        Map<String,List<Evidence>> eligible=new LinkedHashMap<>();Map<String,Session> subjects=new LinkedHashMap<>();int sessions=0;long bytes=0;
+        Map<String,List<File>> chosen=new LinkedHashMap<>();Map<String,Facts> subjects=new LinkedHashMap<>();int sessions=0;long bytes=0;
+        Map<String,Integer> qualified=new HashMap<>(),recent=new HashMap<>();
         Map<String,double[]> gauge=new LinkedHashMap<>();
-        for(File file:source) {
+        for(int i=source.size()-1;i>=0;i--) {
+            File file=source.get(i);
             bytes+=file.length();if(file.equals(current)||!file.getName().endsWith(".csv"))continue;
-            Session session=read(file);Evidence bins=session==null?null:session.evidence();rememberRetention(file,session,bins);
-            if(session==null)continue;sessions++;
-            double[] accepted=gaugeCharge(session);
-            if(accepted!=null){double[] sum=gauge.computeIfAbsent(session.profile,ignored->new double[3]);sum[0]+=accepted[0];sum[1]+=accepted[1];sum[2]++;}
+            Facts facts;
+            try{facts=facts(file);}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
+            if(facts==null)continue;sessions++;
+            if(facts.gaugeAh!=null){
+                double[] sum=gauge.computeIfAbsent(facts.profile,ignored->new double[3]);
+                if(sum[2]<LEARN_SESSIONS){sum[0]+=facts.gaugeAh;sum[1]+=facts.gaugePoints;sum[2]++;}
+            }
             // A recording that ended with a guessed charger label teaches no curve (it stays in the list, marked as a guess).
             // Its gauge evidence above counts: ampere-hours per gauge point does not depend on which charger supplied them.
-            if(bins==null||!learnsCurve(file.getName()))continue;
-            String key=key(session.profile,session.charger);eligible.computeIfAbsent(key,ignored->new ArrayList<>()).add(bins);subjects.put(key,session);
+            if(!facts.qualified||!learnsCurve(file.getName()))continue;
+            String key=key(facts.profile,facts.charger);List<File> files=chosen.computeIfAbsent(key,ignored->new ArrayList<>());
+            if(recent.merge(facts.profile,1,Integer::sum)<=LEARN_SESSIONS)qualified.merge(key,1,Integer::sum);
+            if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);}
         }
-        Map<String,Curve> curves=new LinkedHashMap<>();for(Map.Entry<String,List<Evidence>> item:eligible.entrySet()){
-            Session session=subjects.get(item.getKey());curves.put(item.getKey(),new Curve(session.profile,session.charger,item.getValue()));
+        Map<String,Curve> curves=new LinkedHashMap<>();
+        for(Map.Entry<String,List<File>> item:chosen.entrySet()){
+            // Oldest first, as before: the newest LEARN_SESSIONS, read now in full.
+            List<Evidence> evidence=new ArrayList<>();
+            for(File file:item.getValue()){
+                Session session;
+                try{session=readSaved(file);}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
+                Evidence bins=session==null?null:session.evidence();
+                if(bins!=null)evidence.add(bins);
+            }
+            Facts facts=subjects.get(item.getKey());
+            if(!evidence.isEmpty())curves.put(item.getKey(),new Curve(facts.profile,facts.charger,evidence));
         }
         Map<String,BatteryCapacityEstimate.ChargeEvidence> charge=new LinkedHashMap<>();
         for(Map.Entry<String,double[]> item:gauge.entrySet())
             charge.put(item.getKey(),new BatteryCapacityEstimate.ChargeEvidence(item.getValue()[0],item.getValue()[1],(int)item.getValue()[2]));
-        return new Snapshot(curves,sessions,bytes,charge);
+        return new Snapshot(curves,sessions,bytes,charge,qualified);
+    }
+    /**
+     * The analysis worker's upkeep, after a snapshot: compresses every finished plain recording (an older Volt's, a
+     * restored one, or one just saved) and rotates the folder to the count and the budget. Compression happens outside
+     * the lock, so the running recording is never kept waiting; a file that changed meanwhile is left for the next run.
+     * Returns how many recordings it removed.
+     */
+    public int maintain() throws IOException {
+        final List<File> source;final File current;
+        synchronized(this){source=files();current=active;}
+        for(File file:source){
+            if(file.equals(current)||!file.getName().endsWith(".csv"))continue;
+            // One that failed (storage full, say) stays plain for the next run; rotation below still runs.
+            try{if(!settled(file))compress(file);facts(file);}catch(IOException skipped){}
+        }
+        synchronized(this){return pruneTo(maxRecordings,budgetBytes);}
+    }
+    /** Rewrites one finished plain journal gzip-compressed under its own name, keeping its modification time. */
+    private boolean compress(File file)throws IOException{
+        long length=file.length(),modified=file.lastModified();
+        if(length<=0||length>MAX_FILE_BYTES+1024)return false;
+        byte[] plain;
+        if(compressed(file)){
+            // Compressed without facts (or with facts this version cannot read): written again with them.
+            if(Facts.parse(gzipComment(file))!=null)return false;
+            try(InputStream in=open(file)){plain=readAll(in);}catch(java.util.zip.ZipException|EOFException corrupt){return false;}
+        }else plain=java.nio.file.Files.readAllBytes(file.toPath());
+        Session session=parse(plain);
+        // An unreadable journal stays as it is: it is no recording to Volt, and pruning takes it first.
+        if(session==null)return false;
+        Facts facts=Facts.of(session);
+        File temporary=new File(directory,file.getName()+".repair");
+        try{
+            writeCompressed(temporary,plain,facts.line());
+            byte[] check;try(InputStream in=open(temporary)){check=readAll(in);}
+            if(!Arrays.equals(check,plain))throw new IOException("Compressed charge did not read back");
+            // Rotation is by modification time: the compressed file keeps the recording's.
+            if(!temporary.setLastModified(modified)||temporary.lastModified()!=modified)return false;
+            synchronized(this){
+                if(file.equals(active)||!file.isFile()||file.length()!=length||file.lastModified()!=modified)return false;
+                if(!temporary.renameTo(file))return false;
+                synchronized(known){known.put(file.getName(),new Known(file.length(),file.lastModified(),facts,true));}
+                return true;
+            }
+        }finally{if(temporary.exists())temporary.delete();}
     }
     /**
      * {Ah, gauge points} from a completed charge's first percentage change to its first displayed
@@ -614,28 +876,59 @@ public final class ChargeSessionStore {
         }
         return null;
     }
-    /** Call on an analysis worker. Active files are excluded, so each returned session is stable. */
-    public List<HistorySession> recordings(String targetProfile)throws IOException {
+    /** Call on an analysis worker. Active files are excluded, so each returned session is stable. Newest first, in full. */
+    public List<HistorySession> recordings(String targetProfile)throws IOException {return history(targetProfile,Integer.MAX_VALUE);}
+    /**
+     * Call on an analysis worker. One scooter's saved recordings, newest first: the newest `full` with their points, the
+     * rest as summaries ({@link HistorySession#light}) from their facts, so a long history costs no parsing or memory.
+     */
+    public List<HistorySession> history(String targetProfile,int full)throws IOException {
         if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Select a scooter");
         final List<File> source;synchronized(this){source=files();}
         List<HistorySession> result=new ArrayList<>();
-        for(File file:source){
+        for(int i=source.size()-1;i>=0;i--){
+            File file=source.get(i);
             if(!file.getName().endsWith(".csv"))continue;
-            Session session;
-            try{session=read(file);}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
-            if(session!=null&&targetProfile.equals(session.profile))result.add(new HistorySession(file.getName().replace(".csv",""),session));
+            try{
+                Facts facts=facts(file);
+                if(facts==null||!targetProfile.equals(facts.profile))continue;
+                Session session=result.size()<full?readSaved(file):null;
+                if(result.size()<full&&session==null)continue;
+                result.add(new HistorySession(file.getName().replace(".csv",""),session==null?facts:Facts.of(session),session));
+            }catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
         }
-        Collections.reverse(result);return Collections.unmodifiableList(result);
+        return Collections.unmodifiableList(result);
     }
-    /** Stream saved journals for one scooter. No owner credentials, names, or radio identifiers. */
-    public synchronized int exportJson(String targetProfile, Writer out) throws IOException {
+    /** Call on an analysis worker. One saved recording of this scooter in full, or null when it is gone or unreadable. */
+    public HistorySession recording(String targetProfile,String id)throws IOException {
+        if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}")||id==null||!id.matches("[a-f0-9-]{36}"))return null;
+        File file=new File(directory,id+".csv");
+        Session session;
+        try{session=readSaved(file);}catch(FileNotFoundException removed){return null;}
+        return session==null||!targetProfile.equals(session.profile)?null:new HistorySession(id,Facts.of(session),session);
+    }
+    /**
+     * Stream saved journals for one scooter. No owner credentials, names, or radio identifiers. Only the list is taken under
+     * the lock: reading, inflating and writing up to MAX_RECORDINGS recordings is not, so the service's main-thread calls
+     * never wait for an export. A recording rotated away meanwhile is left out.
+     */
+    public int exportJson(String targetProfile, Writer out) throws IOException {
         if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Select a scooter");
-        if(active!=null)throw new IllegalStateException("Stop charge recording before exporting");
+        final List<File> files;
+        synchronized(this){
+            if(active!=null)throw new IllegalStateException("Stop charge recording before exporting");
+            files=files();
+        }
         out.write("{\"format\":\"navee-charge-recordings-v1\",\"charger_selection\":\"manual\",\"sessions\":[");
         int count=0;
-        for(File file:files()) {
+        for(File file:files) {
             if(!file.getName().endsWith(".csv"))continue;
-            Session session=read(file);
+            Facts facts;Session session;
+            try{
+                facts=facts(file);
+                if(facts==null||!targetProfile.equals(facts.profile))continue;
+                session=readSaved(file);
+            }catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
             if(session==null||!targetProfile.equals(session.profile))continue;
             if(count++>0)out.write(",");
             // Additive fields: whether Record charges automatically started it, and how its charger label was chosen.
@@ -688,27 +981,13 @@ public final class ChargeSessionStore {
     private static void append(File file,String text)throws IOException{
         try(FileOutputStream out=new FileOutputStream(file,true)){out.write(text.getBytes(StandardCharsets.UTF_8));out.flush();}
     }
+    /** Saved and running journals, oldest first (modification time, then name), each file's time read once. */
     private List<File> files() throws IOException {
-        File[] items=directory.listFiles((dir,name)->name.matches("[a-f0-9-]{36}\\.(csv|active)"));
+        File[] items=directory.listFiles((dir,name)->JOURNAL.matcher(name).matches());
         if(items==null)throw new IOException("Charge recordings unavailable");
-        List<File> result=new ArrayList<>(Arrays.asList(items));result.sort(Comparator.comparingLong(File::lastModified).thenComparing(File::getName));return result;
-    }
-    private void prune()throws IOException{pruneTo(MAX_SESSIONS);}
-    /**
-     * Over the limit, the oldest automatic recordings go first, and only they: a manual recording is never deleted to
-     * make room for an automatic one. A running journal is left alone. Called once an automatic recording is saved, never
-     * at its start. Never one in keep (the recording just saved or recovered, whatever its modification time: a restore
-     * dates a recording by its saved start). An automatic file that cannot be read is no recording to Volt (not listed,
-     * learned or exported), so it goes before any readable one: it never costs another recording its place.
-     */
-    private void trimAutomatic(List<File> keep)throws IOException{
-        List<File> entries=files();int over=entries.size()-MAX_SESSIONS;if(over<=0)return;
-        List<File> candidates=new ArrayList<>();
-        for(File file:entries)if(!file.equals(active)&&!keep.contains(file)&&labelSource(file.getName())!=null)candidates.add(file);
-        List<File> unreadable=new ArrayList<>();
-        for(File file:candidates)if(read(file)==null)unreadable.add(file);
-        candidates.removeAll(unreadable);candidates.addAll(0,unreadable);
-        for(File file:candidates)if(over>0){remove(file);over--;}
+        Map<File,Long> times=new HashMap<>();for(File item:items)times.put(item,item.lastModified());
+        List<File> result=new ArrayList<>(Arrays.asList(items));
+        result.sort(Comparator.comparingLong((File file)->times.get(file)).thenComparing(File::getName));return result;
     }
     /** Whether a journal already has its end line (a stop wrote it before a process death cut the stop short). */
     private static boolean ended(File file)throws IOException{
@@ -717,44 +996,98 @@ public final class ChargeSessionStore {
         }
         return false;
     }
-    private void pruneTo(int limit)throws IOException{
-        List<File> entries=files();int remove=entries.size()-limit;if(remove<=0)return;
-        Map<String,List<File>> qualified=new LinkedHashMap<>();List<File> rejected=new ArrayList<>();
+    /**
+     * Rotates the saved recordings to at most maxCount and maxBytes on disk (the running journal is neither counted nor
+     * touched), and returns how many went. Automatic and manual recordings are alike here. A file that is no usable
+     * recording goes first: one Volt cannot read (not listed, learned or exported), then, oldest first, one too short or
+     * broken to teach a curve or one whose charger label is still a guess. Then the oldest file of the scooter and charger with
+     * the most recordings, so frequent stock charges never evict a minority high-speed curve: about two per scooter and
+     * charger are protected while the limits can hold them. Never the recording just saved or recovered, whatever its
+     * modification time (a restore dates a recording by its saved start).
+     */
+    private int pruneTo(int maxCount,long maxBytes)throws IOException{
+        if(maxBytes==Long.MAX_VALUE){
+            // By count alone (a stop, on the main thread): names suffice until it is over.
+            String[] names=directory.list();int saved=0;
+            if(names!=null)for(String name:names)if(JOURNAL.matcher(name).matches()&&(active==null||!name.equals(active.getName())))saved++;
+            if(names!=null&&saved<=maxCount)return 0;
+        }
+        List<File> entries=files();int count=0;long bytes=0;
+        for(File file:entries)if(!file.equals(active)){count++;bytes+=file.length();}
+        if(count<=maxCount&&bytes<=maxBytes)return 0;
+        Map<String,List<File>> qualified=new LinkedHashMap<>();List<File> rejected=new ArrayList<>(),unreadable=new ArrayList<>();
         for(File file:entries){
-            if(file.equals(active))continue;
-            String bucket=retention(file).bucket;
-            if(bucket==null)rejected.add(file);
+            if(file.equals(active)||justSaved.contains(file.getName()))continue;
+            String bucket;Facts facts;
+            try{facts=file.getName().endsWith(".csv")?facts(file):null;bucket=bucket(file);}
+            catch(FileNotFoundException removed){if(!file.exists()){count--;continue;}throw removed;}
+            if(facts==null)unreadable.add(file);
+            else if(bucket==null)rejected.add(file);
             else qualified.computeIfAbsent(bucket,ignored->new ArrayList<>()).add(file);
         }
+        // A file Volt cannot read is no recording (not listed, learned or exported): it never costs one its place.
+        rejected.addAll(0,unreadable);
+        int removed=0;
         // Failed/short captures must not evict the only usable curve for another charger.
-        for(File file:rejected)if(remove>0){remove(file);remove--;}
+        for(File file:rejected){
+            if(count<=maxCount&&bytes<=maxBytes)break;
+            long length=file.length();remove(file,"Old charge recordings could not be removed");count--;bytes-=length;removed++;
+        }
         // Keep buckets balanced, preferring the oldest file in the most populated bucket.
-        // Two per bucket are therefore protected while the global budget can accommodate them.
-        while(remove>0){
+        while(count>maxCount||bytes>maxBytes){
             List<File> largest=null;
             for(List<File> bucket:qualified.values())if(!bucket.isEmpty()&&(largest==null||bucket.size()>largest.size()
                     ||bucket.size()==largest.size()&&bucket.get(0).lastModified()<largest.get(0).lastModified()))largest=bucket;
             if(largest==null)break;
-            remove(largest.remove(0));remove--;
+            File file=largest.remove(0);long length=file.length();
+            remove(file,"Old charge recordings could not be removed");count--;bytes-=length;removed++;
         }
+        return removed;
     }
-    private void remove(File file)throws IOException{
-        if(!file.delete())throw new IOException("Old charge recordings could not be removed");retentionCache.remove(file.getName());
+    private void remove(File file,String failure)throws IOException{
+        if(!file.delete()&&file.exists())throw new IOException(failure);
+        synchronized(known){known.remove(file.getName());}
     }
-    private static final class Retention {
-        final long length,modified;final String bucket;
-        Retention(File file,String bucket){length=file.length();modified=file.lastModified();this.bucket=bucket;}
+    /** The scooter and charger whose curve a saved file protects, or null: unreadable, unqualified, a guess or not saved. */
+    private String bucket(File file)throws IOException{
+        // A guessed label is in no charger's bucket: it protects no curve, so pruning may remove it first.
+        if(!file.getName().endsWith(".csv")||!learnsCurve(file.getName()))return null;
+        Facts facts=facts(file);
+        return facts==null||!facts.qualified?null:key(facts.profile,facts.charger);
     }
-    private synchronized Retention rememberRetention(File file,Session session,Evidence evidence){
-        // A guessed label is in no charger's bucket: it protects no curve, so the ordinary pruning may remove it first.
-        Retention info=new Retention(file,evidence==null||!learnsCurve(file.getName())?null:key(session.profile,session.charger));
-        retentionCache.put(file.getName(),info);return info;
+    /**
+     * A saved recording read in full. Facts come from the header alone, so a compressed file damaged after it was written
+     * is found out here: from then on it is no recording (not listed, learned or exported, and pruned first).
+     */
+    private Session readSaved(File file)throws IOException{
+        long length=file.length(),modified=file.lastModified();
+        Session session=read(file);
+        if(session==null)synchronized(known){known.put(file.getName(),new Known(length,modified,null,false));}
+        return session;
     }
-    private synchronized Retention retention(File file)throws IOException{
-        Retention cached=retentionCache.get(file.getName());
-        if(cached!=null&&cached.length==file.length()&&cached.modified==file.lastModified())return cached;
-        Session session=file.getName().endsWith(".csv")?read(file):null;
-        return rememberRetention(file,session,session==null?null:session.evidence());
+    private static final class Known {
+        final long length,modified;final Facts facts;
+        /** Its facts came from its compressed header: nothing left for maintain() to do. */
+        final boolean packed;
+        Known(long length,long modified,Facts facts,boolean packed){this.length=length;this.modified=modified;this.facts=facts;this.packed=packed;}
+    }
+    /** Unchanged since it was found compressed with its facts, or unreadable: maintain() leaves it. */
+    private boolean settled(File file){
+        long length=file.length(),modified=file.lastModified();
+        synchronized(known){Known cached=known.get(file.getName());return cached!=null&&cached.length==length&&cached.modified==modified&&(cached.packed||cached.facts==null);}
+    }
+    /**
+     * A saved file's facts, or null when Volt cannot read it: from the cache while the file is unchanged, else from a
+     * compressed file's header, else by reading it. Safe on any thread; reads happen outside every lock.
+     */
+    private Facts facts(File file)throws IOException{
+        long length=file.length(),modified=file.lastModified();
+        synchronized(known){Known cached=known.get(file.getName());if(cached!=null&&cached.length==length&&cached.modified==modified)return cached.facts;}
+        if(!file.exists())throw new FileNotFoundException(file.getName());
+        Facts facts=Facts.parse(gzipComment(file));boolean packed=facts!=null;
+        if(facts==null){Session session=read(file);facts=session==null?null:Facts.of(session);}
+        synchronized(known){known.put(file.getName(),new Known(length,modified,facts,packed));}
+        return facts;
     }
     private static double median(List<Double> values){
         Collections.sort(values);int middle=values.size()/2;
@@ -783,8 +1116,13 @@ public final class ChargeSessionStore {
         static final double FLAT_VOLT_TOLERANCE = .35;
         final List<Point> points;
         final boolean recoveredAfterBreak;
+        /** Minutes from the first point to the first at or above each whole level (NaN below the start), for joins. */
+        private final double[] reach = new double[101];
         FinishingCurve(List<Point> points, boolean recoveredAfterBreak) {
             this.points = new ArrayList<>(points); this.recoveredAfterBreak = recoveredAfterBreak;
+            Arrays.fill(reach, Double.NaN);
+            Point first = this.points.get(0); int level = (int) Math.ceil(first.soc);
+            for (Point point : this.points) while (level <= 100 && point.soc >= level) reach[level++] = (point.mono - first.mono) / 60000d;
         }
 
         static FinishingCurve from(Session session) {
@@ -811,6 +1149,16 @@ public final class ChargeSessionStore {
             if (start < 0 || points.size()-start < 61 || 100-points.get(start).soc < 10
                     || points.get(points.size()-1).mono-points.get(start).mono < 600000) return null;
             return new FinishingCurve(points.subList(start, points.size()), recoveredAfterBreak);
+        }
+
+        /**
+         * The recording's own minutes from its start (its first reading at its starting level) to its first reading at
+         * target or above, its observed 100% for 100; null below its start.
+         */
+        Double minutesFromStart(double target) {
+            if (!(target >= points.get(0).soc) || target > 100) return null;
+            double minutes = reach[(int) Math.ceil(target)];
+            return Double.isFinite(minutes) ? minutes : null;
         }
 
         Double estimate(double soc, double liveWatts, Double liveVolts) {
@@ -923,14 +1271,18 @@ public final class ChargeSessionStore {
         final String profile;final long startedWall,startedMono;final boolean finished;
         Journal(String profile,long wall,long mono,boolean finished){this.profile=profile;startedWall=wall;startedMono=mono;this.finished=finished;}
     }
+    /** A compressed journal answers from its facts; a plain one is read. */
     static Journal inspectJournal(File file)throws IOException{
         if(!file.isFile()||java.nio.file.Files.isSymbolicLink(file.toPath()))throw new IOException("Unexpected charge file.");
+        Facts facts=Facts.parse(gzipComment(file));
+        if(facts!=null)return new Journal(facts.profile,facts.startedWall,facts.startedMono,facts.stop!=null);
         Session session=read(file);if(session==null)throw new IOException("The backup contains an unreadable charge.");
         return new Journal(session.profile,session.startedWall,session.startedMono,session.stop!=null);
     }
-    /** Private restore staging only: the header names the destination scooter, samples are unchanged. */
+    /** Private restore staging only: the header names the destination scooter, samples are unchanged. Backups hold plain journals. */
     static void reassignJournal(File source,String profile)throws IOException{
         if(profile==null||!profile.matches("[A-Za-z0-9_-]{1,128}"))throw new IOException("Choose a destination scooter.");
+        if(compressed(source))throw new IOException("The backup contains an unreadable charge.");
         inspectJournal(source);byte[] bytes=java.nio.file.Files.readAllBytes(source.toPath());int end=0;
         while(end<bytes.length&&end<=512&&bytes[end]!='\n')end++;
         if(end>=bytes.length||end>512)throw new IOException("The backup contains an unreadable charge.");
@@ -947,10 +1299,16 @@ public final class ChargeSessionStore {
             out.write((count++>0?",":"")+"{\"start_wall_ms\":"+pause[0]+",\"start_elapsed_ms\":"+pause[1]
                     +",\"end_wall_ms\":"+(pause[3]==0?"null":String.valueOf(pause[2]))+",\"end_elapsed_ms\":"+(pause[3]==0?"null":String.valueOf(pause[3]))+"}");}
     }
+    /** A saved journal, plain or compressed; null when it is no readable recording (a corrupt compressed file included). */
     private static Session read(File file)throws IOException{
         if(file.length()>MAX_FILE_BYTES+1024)return null;
+        try(InputStream in=open(file)){return read(in);}
+        catch(java.util.zip.ZipException|EOFException corrupt){return null;}
+    }
+    private static Session parse(byte[] plain)throws IOException{return read(new ByteArrayInputStream(plain));}
+    private static Session read(InputStream input)throws IOException{
         Session session=new Session();int lines=0;
-        try(BufferedReader in=new BufferedReader(new InputStreamReader(new FileInputStream(file),StandardCharsets.UTF_8))){
+        try(BufferedReader in=new BufferedReader(new InputStreamReader(input,StandardCharsets.UTF_8))){
             String line;while((line=in.readLine())!=null){
                 if(++lines>MAX_SAMPLES+3+2*MAX_PAUSES||line.length()>512)return null;
                 String[] parts=line.split(",",-1);
@@ -983,11 +1341,157 @@ public final class ChargeSessionStore {
         try{
             Double full=optionalNumber(parts[10]),limit=optionalNumber(parts[11]),target=optionalNumber(parts[12]);
             int sessions=Integer.parseInt(parts[15]);
-            if(full!=null&&full<0||limit!=null&&limit<0||target!=null&&(target<=0||target>100)||sessions<0||sessions>MAX_SESSIONS)return null;
+            if(full!=null&&full<0||limit!=null&&limit<0||target!=null&&(target<=0||target>100)||sessions<0||sessions>LEARN_SESSIONS)return null;
             return new Estimate(parts[9],full,limit,target,parts[13].isEmpty()?null:Source.valueOf(parts[13]),parts[14].isEmpty()?null:Source.valueOf(parts[14]),sessions);
         }catch(IllegalArgumentException malformed){return null;}
     }
     private static Double optionalNumber(String value){
         if(value.isEmpty())return null;double number=Double.parseDouble(value);if(!Double.isFinite(number))throw new IllegalArgumentException("Invalid estimate");return number;
+    }
+
+    // ---- Compressed journals ----------------------------------------------------------------------------------------
+
+    private static final int GZIP_COMMENT_FLAG=0x10, MAX_COMMENT=1024;
+    /** Whether a file starts as gzip does. A plain journal starts with its "charge-v" header. */
+    static boolean compressed(File file)throws IOException{
+        try(InputStream in=new FileInputStream(file)){return in.read()==0x1f&&in.read()==0x8b;}
+    }
+    /**
+     * A saved journal's text, decompressed when it is compressed, and never more than a journal can hold: a compressed
+     * file that would expand past that, or is corrupt or cut short, fails with a ZipException or EOFException.
+     */
+    static InputStream open(File file)throws IOException{
+        BufferedInputStream raw=new BufferedInputStream(new FileInputStream(file),65536);
+        try{
+            raw.mark(2);int first=raw.read(),second=raw.read();raw.reset();
+            if(first!=0x1f||second!=0x8b)return raw;
+            return new Bounded(new java.util.zip.GZIPInputStream(raw,65536),MAX_FILE_BYTES+1024);
+        }catch(IOException|RuntimeException failure){raw.close();throw failure;}
+    }
+    /** The journal's plain length: exact for a plain file; for a compressed one, what it decompresses to, or -1 if corrupt. */
+    static long plainLength(File file)throws IOException{
+        if(!compressed(file))return file.length();
+        long total=0;byte[] buffer=new byte[65536];
+        try(InputStream in=open(file)){for(int n;(n=in.read(buffer))!=-1;)total+=n;}
+        catch(java.util.zip.ZipException|EOFException corrupt){return -1;}
+        return total;
+    }
+    /** A cheap guess at the plain length for listings: a compressed file's own size field (gzip ISIZE). */
+    static long plainLengthHint(File file)throws IOException{
+        if(!compressed(file))return file.length();
+        try(RandomAccessFile in=new RandomAccessFile(file,"r")){
+            long length=in.length();if(length<18)return length;
+            in.seek(length-4);byte[] size=new byte[4];in.readFully(size);
+            return (size[0]&0xffL)|(size[1]&0xffL)<<8|(size[2]&0xffL)<<16|(size[3]&0xffL)<<24;
+        }
+    }
+    /** SHA-256 of the journal's plain text, so a compressed copy and a plain one of the same recording match. */
+    static byte[] digest(File file)throws IOException{
+        java.security.MessageDigest hash;
+        try{hash=java.security.MessageDigest.getInstance("SHA-256");}catch(java.security.NoSuchAlgorithmException missing){throw new AssertionError(missing);}
+        byte[] buffer=new byte[65536];
+        try(InputStream in=open(file)){for(int n;(n=in.read(buffer))!=-1;)hash.update(buffer,0,n);}
+        return hash.digest();
+    }
+    /** The gzip header's comment (where Volt keeps a journal's facts), or null: plain, another header layout, or none. */
+    static String gzipComment(File file)throws IOException{
+        try(InputStream in=new BufferedInputStream(new FileInputStream(file),MAX_COMMENT+16)){
+            int[] header=new int[10];
+            for(int i=0;i<header.length;i++)if((header[i]=in.read())<0)return null;
+            if(header[0]!=0x1f||header[1]!=0x8b||header[2]!=8||header[3]!=GZIP_COMMENT_FLAG)return null;
+            StringBuilder comment=new StringBuilder();
+            for(int b;(b=in.read())!=0;){if(b<0||comment.length()>=MAX_COMMENT)return null;comment.append((char)b);}
+            return comment.toString();
+        }
+    }
+    /** A gzip file (RFC 1952) whose header holds the comment; any gzip reader reads it. Synced before it returns. */
+    static void writeCompressed(File target,byte[] plain,String comment)throws IOException{
+        byte[] text=comment.getBytes(StandardCharsets.ISO_8859_1);
+        if(text.length>=MAX_COMMENT)throw new IOException("Charge facts too long");
+        java.util.zip.CRC32 crc=new java.util.zip.CRC32();crc.update(plain,0,plain.length);
+        try(FileOutputStream file=new FileOutputStream(target)){
+            BufferedOutputStream out=new BufferedOutputStream(file,65536);
+            out.write(new byte[]{0x1f,(byte)0x8b,8,GZIP_COMMENT_FLAG,0,0,0,0,0,(byte)255});
+            out.write(text);out.write(0);
+            java.util.zip.Deflater deflater=new java.util.zip.Deflater(java.util.zip.Deflater.DEFAULT_COMPRESSION,true);
+            try{java.util.zip.DeflaterOutputStream body=new java.util.zip.DeflaterOutputStream(out,deflater,65536);body.write(plain);body.finish();}
+            finally{deflater.end();}
+            long sum=crc.getValue();int size=plain.length;
+            out.write(new byte[]{(byte)sum,(byte)(sum>>8),(byte)(sum>>16),(byte)(sum>>24),(byte)size,(byte)(size>>8),(byte)(size>>16),(byte)(size>>24)});
+            out.flush();file.getFD().sync();
+        }
+    }
+    private static byte[] readAll(InputStream in)throws IOException{
+        ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[65536];
+        for(int n;(n=in.read(buffer))!=-1;)out.write(buffer,0,n);
+        return out.toByteArray();
+    }
+    /** Stops a decompression at a journal's largest size, as a corrupt file. */
+    private static final class Bounded extends FilterInputStream {
+        private long left;
+        Bounded(InputStream in,long limit){super(in);left=limit;}
+        @Override public int read()throws IOException{int b=super.read();if(b>=0&&--left<0)throw new java.util.zip.ZipException("Charge journal too large");return b;}
+        @Override public int read(byte[] b,int off,int len)throws IOException{
+            int n=super.read(b,off,len);if(n>0&&(left-=n)<0)throw new java.util.zip.ZipException("Charge journal too large");return n;
+        }
+    }
+    /**
+     * What a saved recording is, kept in its compressed file's header so nothing needs to parse it to list, prune or
+     * choose what to learn from: its header, its stop, whether it qualifies to teach a curve, its capacity evidence and
+     * the summary its row shows. Written from the parsed journal when it is compressed, and the file never changes after.
+     * A recording read in full recomputes them. A change to what qualifies (Session.evidence) or to these fields needs a
+     * new VERSION: files with an older one are then read in full and written again (maintain).
+     */
+    static final class Facts {
+        static final String VERSION="volt-charge-facts-1";
+        final String profile;final Charger charger;final long startedWall,startedMono;final Stop stop;final boolean qualified;
+        /** Capacity evidence (gaugeCharge): ampere-hours and gauge points, both null for none. */
+        final Double gaugeAh,gaugePoints;
+        final double firstPercent,lastPercent;final long lastSampleMono;
+        final Long observedCompleteMono;final long pausedMs,chargerPausedMs;final int pauses,chargerPauses;
+        private Facts(String profile,Charger charger,long startedWall,long startedMono,Stop stop,boolean qualified,Double gaugeAh,Double gaugePoints,
+                double firstPercent,double lastPercent,long lastSampleMono,Long observedCompleteMono,long pausedMs,int pauses,long chargerPausedMs,int chargerPauses){
+            this.profile=profile;this.charger=charger;this.startedWall=startedWall;this.startedMono=startedMono;this.stop=stop;this.qualified=qualified;
+            this.gaugeAh=gaugeAh;this.gaugePoints=gaugePoints;this.firstPercent=firstPercent;this.lastPercent=lastPercent;this.lastSampleMono=lastSampleMono;
+            this.observedCompleteMono=observedCompleteMono;this.pausedMs=pausedMs;this.pauses=pauses;this.chargerPausedMs=chargerPausedMs;this.chargerPauses=chargerPauses;
+        }
+        static Facts of(Session session){
+            double first=Double.NaN,last=Double.NaN;long end=session.startedMono;
+            for(Point point:session.points){
+                if(Double.isFinite(point.soc)){if(Double.isNaN(first))first=point.soc;last=point.soc;}
+                end=Math.max(end,point.mono);
+            }
+            long until=session.points.isEmpty()?session.startedMono:session.points.get(session.points.size()-1).mono;
+            for(long[] pause:session.pauses)until=Math.max(until,pause[3]);// A recording can end inside its pause.
+            int charger=0;for(long[] pause:session.pauses)if(pause[4]==1)charger++;
+            double[] gauge=gaugeCharge(session);
+            return new Facts(session.profile,session.charger,session.startedWall,session.startedMono,session.stop,session.evidence()!=null,
+                    gauge==null?null:gauge[0],gauge==null?null:gauge[1],first,last,end,session.observedCompletion(),
+                    session.pausedMs(session.startedMono,until,0),session.pauses.size()-charger,session.pausedMs(session.startedMono,until,1),charger);
+        }
+        String line(){
+            return VERSION+","+profile+","+charger.name()+","+startedWall+","+startedMono+","+(stop==null?"":stop.name())+","+(qualified?1:0)
+                    +","+csv(gaugeAh)+","+csv(gaugePoints)+","+(Double.isNaN(firstPercent)?"":firstPercent)+","+(Double.isNaN(lastPercent)?"":lastPercent)
+                    +","+lastSampleMono+","+csv(observedCompleteMono)+","+pausedMs+","+pauses+","+chargerPausedMs+","+chargerPauses;
+        }
+        /** Null for anything but this version's line, whole and in range. */
+        static Facts parse(String line){
+            if(line==null)return null;
+            String[] p=line.split(",",-1);
+            if(p.length!=17||!p[0].equals(VERSION)||!p[1].matches("[A-Za-z0-9_-]{1,128}")||!(p[6].equals("0")||p[6].equals("1"))||p[7].isEmpty()!=p[8].isEmpty())return null;
+            try{
+                long wall=Long.parseLong(p[3]),mono=Long.parseLong(p[4]),end=Long.parseLong(p[11]),paused=Long.parseLong(p[13]),chargerPaused=Long.parseLong(p[15]);
+                int pauses=Integer.parseInt(p[14]),chargerPauses=Integer.parseInt(p[16]);
+                if(wall<=0||mono<=0||wall>Long.MAX_VALUE-MAX_SESSION_MS||mono>Long.MAX_VALUE-MAX_SESSION_MS||end<mono||paused<0||chargerPaused<0
+                        ||pauses<0||chargerPauses<0||pauses+chargerPauses>MAX_PAUSES)return null;
+                double first=p[9].isEmpty()?Double.NaN:Double.parseDouble(p[9]),last=p[10].isEmpty()?Double.NaN:Double.parseDouble(p[10]);
+                if(!p[9].isEmpty()&&!between(first,0,100)||!p[10].isEmpty()&&!between(last,0,100)||p[9].isEmpty()!=p[10].isEmpty())return null;
+                Double ah=p[7].isEmpty()?null:Double.parseDouble(p[7]),points=p[8].isEmpty()?null:Double.parseDouble(p[8]);
+                if(ah!=null&&!(Double.isFinite(ah)&&ah>0&&Double.isFinite(points)&&points>0&&points<=100))return null;
+                Long observed=p[12].isEmpty()?null:Long.parseLong(p[12]);
+                if(observed!=null&&(observed<mono||observed>end))return null;
+                return new Facts(p[1],Charger.valueOf(p[2]),wall,mono,p[5].isEmpty()?null:Stop.valueOf(p[5]),p[6].equals("1"),ah,points,first,last,end,observed,paused,pauses,chargerPaused,chargerPauses);
+            }catch(IllegalArgumentException bad){return null;}
+        }
     }
 }

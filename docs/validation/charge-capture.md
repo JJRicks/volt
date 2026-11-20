@@ -56,16 +56,26 @@ source opcode. Out-of-range values, electrical spikes and invalid samples are
 rejected. Temperature is optional. SOC rollbacks, skipped percentages, gaps over
 25 seconds and wall-clock discontinuities break the affected curve interval.
 
-Retention is at most 20 journals, approximately 70 MB in total, with an 18-hour,
-6,500-sample and approximately 3.5 MB cap per journal. The byte cap accommodates
-the longest versioned prediction rows; typical files are smaller. Non-qualifying captures are
+Retention (2.0.1) is at most 1,000 saved journals and approximately 150 MB on
+disk, measured on the compressed files, with an 18-hour, 6,500-sample and
+approximately 3.5 MB cap per plain journal. The byte cap accommodates the longest
+versioned prediction rows; typical files are smaller. A saved journal is
+gzip-compressed in place by the analysis worker, its summary (header, stop,
+qualification, capacity evidence, list row) in the gzip header's comment field.
+Non-qualifying captures (unreadable, failed or short, or a guessed label) are
 removed first. If all remaining files qualify, pruning removes the oldest file
 from the largest profile/charger bucket, balancing coverage instead of allowing
 frequent stock captures to evict a minority high-speed curve. Two sessions per
-bucket are protected while the global cap can accommodate them; an active capture
-reserves one of the 20 slots. The cap still takes precedence when too many buckets
-compete. The analysis worker caches closed-file qualification for subsequent
-pruning; changed files invalidate that cache. Abruptly interrupted journals
+bucket are protected while the limits can accommodate them. Room is made after a
+recording is saved, automatic or manual alike, never at a start (the running
+journal is one over), and never at the cost of the journal just saved or
+recovered. The count is enforced at that stop and at startup; the byte budget by
+the worker once the journal is compressed. The caps still take precedence when
+too many buckets compete. Each file's summary is cached in memory against its
+length and modification time; changed files invalidate that cache. The learner
+reads the newest 20 qualifying journals per profile/charger, and capacity
+evidence from the newest 20 completed charges per profile. Before 2.0.1:
+20 journals, about 70 MB plain, and a manual start reserved one of the 20 slots. Abruptly interrupted journals
 are finalized as interrupted on next launch and excluded from learning. A
 per-scooter clear action removes that scooter's closed journals and derived curves.
 Curve parsing runs on a dedicated worker; cached estimates are read on the UI
@@ -73,10 +83,11 @@ thread without disk parsing.
 
 A qualifying session needs at least 61 samples, ten minutes, ten complete
 one-percentage SOC intervals, and 90% contiguous time coverage. The initial
-partial interval is excluded. Each estimated remaining percentage interval needs
-at least two independently recorded qualifying sessions for this exact profile
-and selected charger. Durations are averaged after rejecting strong outliers;
-two strongly disagreeing sessions cannot establish a curve. Repeated intervals
+partial interval is excluded. The robust estimate needs, for each estimated
+remaining percentage interval, at least two independently recorded qualifying
+sessions for this exact profile and selected charger. Durations are averaged
+after rejecting strong outliers; two strongly disagreeing sessions cannot
+establish a curve, provisionally or not. Repeated intervals
 within one recording do not count as independent evidence. A missing 99–100%
 interval prevents a learned full-charge ETA; a covered lower cutoff may still
 use its learned estimate. The remaining full-charge time then retains its stated
@@ -92,6 +103,69 @@ power at the same SOC, rather than the charger's bulk power. Missing or conflict
 power fails closed to the current-rate estimate. These are conservative heuristic
 tolerances pending hardware validation, not charger identification or an accuracy
 guarantee; temperature and other changes can also cause a mismatch.
+
+### Provisional and joined estimates (stitched-estimate-v1)
+
+On a model and charger without a bundled reference (every pair except the UT5 MAX
+on either charger), a reading that the evidence above leaves without a learned
+time can use provisional evidence instead:
+
+- **Single-recording percents.** A one-percent interval that only one qualifying
+  session covers counts provisionally, with that session's interval power as the
+  live-power check (the same 35% band). Once a second session agrees, the
+  interval is robust again and the averaged path above applies unchanged.
+- **Joined stretches.** Per-percent intervals from different sessions join when
+  every interval from the current level to the target is covered (robust or
+  single). Any uncovered or disagreeing interval in between leaves no estimate.
+- **Joined finishes.** Per-percent times from the current level up to where a
+  completed finish recording starts are joined to that recording's own time from
+  its start to 100%, or to the limit (its first reading at the limit). With
+  several finish recordings each joined time counts; they are combined like
+  matched finishes, and two that disagree by more than 2.5 times give none. A
+  finish recording that covers the current level but cannot place it still
+  blocks provisional evidence there.
+- **Reporting.** The status names what was joined and says the estimate is
+  provisional; the short label stays "From N past charges", N counting the
+  recordings used. A provisional time to a lower limit is never longer than a
+  learned time to 100%.
+- **Planning.** Charge done by plans with the longer of a provisional time and
+  the estimate without past charges (the current rate on these models); the
+  countdown shown is the provisional time. A provisional finish is never held
+  through a high-speed power dropout.
+
+The UT5 MAX keeps its bundled references, voltage models and history weighting
+unchanged and gets no provisional evidence: a replay on private recordings
+showed no gain there and one slightly shorter time to a level. `Curve.summary()`
+exposes each percent's coverage (none, provisional, robust or disagreeing),
+minutes, saved power and finish coverage for a chart of the saved curve.
+
+### Automatic picks a learned charger (learned-charger-v1)
+
+Under **Auto**, when charger detection (the UT5 MAX's two chargers) has no family
+for this charge, `LearnedChargerMatch` picks the charger whose own recordings
+match the live power, on any model. It compares fresh paired battery-side power
+with each charger's saved power at the same 1% battery level (`Curve.familyWatts`:
+one recording's interval power, or the median of two or more that agree within
+25%) using the same 35% band. Below 90% it picks the one charger that matches,
+or, when both match, the one clearly closer (at most half as far off by power
+ratio, with the two saved curves at least 25% apart); from 90% up only a clear
+two-sided match (within 15% of one curve, the other saved and not matching). It
+settles after three readings over four seconds, keeps its choice for the charge
+with charger detection's reset rules, never switches above 90%, and below 90%
+forgets it only on a sustained contrary run. The picked charger then feeds the
+estimate exactly as a detected one does: the evidence above, including
+provisional and joined estimates, with their own live-power checks. A family it
+picks never shows "Charger mismatch"; where the estimate cannot confirm it, the
+estimate is that charger's without past charges.
+
+Automatic recordings under Auto take the picked charger as their detected label;
+the charger setting and a charger chosen during the recording still win, and the
+recording's audit (`label_audit.detected_charger`) stays charger detection's
+alone. `RecordChargerHint` decides when a charge is far off the only recorded
+charger (outside the 35% band, at least 1.8 times or at most half the saved
+power and 50 W apart, for a minute below 90%, not in a charge's first minute or
+right after a reconnect, with no recording running and no "Charging slowed");
+that only suggests recording, never labels.
 
 ## Validation
 

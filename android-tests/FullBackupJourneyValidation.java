@@ -187,7 +187,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         await(()->view(backup,"restore-choose")!=null,"Restore form missing");
         Map<String,Map<String,?>> before=new LinkedHashMap<>();for(String name:PREFS)if(existing&&!addAnother||!name.equals("profiles"))before.put(name,new LinkedHashMap<>(prefs(name).getAll()));
         String profileId=prefs("app_settings").getString("fixture_profile_id","");
-        Map<String,String> filesBefore=new LinkedHashMap<>();for(File file:durableFiles())filesBefore.put(relative(file),hash(Files.readAllBytes(file.toPath())));
+        Map<String,String> filesBefore=new LinkedHashMap<>();for(File file:durableFiles())filesBefore.put(relative(file),hash(content(file)));
         IntentFilter filter=new IntentFilter(Intent.ACTION_OPEN_DOCUMENT);filter.addCategory(Intent.CATEGORY_OPENABLE);filter.addDataType("*/*");
         ActivityMonitor picker=addMonitor(filter,new ActivityResult(Activity.RESULT_OK,new Intent().setData(android.net.Uri.fromFile(ownerFile))),true);
         click(backup,"restore-choose");await(()->view(backup,"restore-next")!=null&&!Boolean.TRUE.equals(field(backup,"busy")),"Owner file was not accepted by unified restore");
@@ -232,7 +232,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
             require(added!=null&&added.identity.equals(original.identity)&&added.role==original.role&&added.mac.isEmpty()&&added.serial.isEmpty(),"New same-account scooter did not keep an independent unbound profile");}
         for(Map.Entry<String,Map<String,?>> e:before.entrySet())require(e.getValue().equals(prefs(e.getKey()).getAll()),"Owner import changed unrelated preferences: "+e.getKey());
         require(filesBefore.size()==durableFiles().size(),"Owner import changed the saved file inventory");
-        for(File file:durableFiles())require(filesBefore.get(relative(file)).equals(hash(Files.readAllBytes(file.toPath()))),"Owner import changed "+relative(file));
+        for(File file:durableFiles())require(filesBefore.get(relative(file)).equals(hash(content(file))),"Owner import changed "+relative(file));
     }
     private void admitFresh() {
         String hardware=Build.HARDWARE.toLowerCase(Locale.ROOT);
@@ -296,7 +296,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
         readings.put("odometer_km",new TelemetryHistory.Reading("odometer_km","Odometer","Scooter","100 km","km",100d,wall,true));
         history.record(owner.id,new TelemetryHistory.Snapshot(readings,Collections.singletonMap("traction_control",1),wall),1,true);
         require(history.closeAndAwait(10000),"History writer did not close");
-        JSONObject hashes=new JSONObject();for(File file:durableFiles())hashes.put(relative(file),hash(Files.readAllBytes(file.toPath())));
+        JSONObject hashes=new JSONObject();for(File file:durableFiles())hashes.put(relative(file),hash(content(file)));
         require(settings.edit().putString("fixture_file_hashes",hashes.toString()).commit(),"Store dataset byte expectations");
         // The app's start finished before admitFresh (onStart), so its seed saw empty storage and wrote nothing: no Home
         // style travels in this backup and the digest holds exactly what populate() stored.
@@ -328,7 +328,7 @@ public final class FullBackupJourneyValidation extends Instrumentation {
             if(part[0].equals("app_settings")&&Arrays.asList(TARGET_LOCAL).contains(part[1]))require(Objects.equals(targetLocal.get(part[1]),prefs(part[0]).getAll().get(part[1])),"Excluded key restored: "+key);
             else require(!prefs(part[0]).contains(part[1]),"Excluded key restored: "+key);}
         JSONObject hashes=new JSONObject(settings.getString("fixture_file_hashes","{}"));List<File> files=durableFiles();require(hashes.length()==5&&files.size()==5,"Restored durable file inventory differs");
-        for(File file:files)require(hashes.getString(relative(file)).equals(hash(Files.readAllBytes(file.toPath()))),"Restored file byte hash differs: "+relative(file));
+        for(File file:files)require(hashes.getString(relative(file)).equals(hash(content(file))),"Restored file byte hash differs: "+relative(file));
         String profileId=settings.getString("fixture_profile_id",""),ride=settings.getString("fixture_ride_id","");
         ScooterProfiles profiles=new ScooterProfiles(app);require(profiles.all().size()==1&&profiles.active().id.equals(profileId)&&profiles.active().configured(),"Restored scooter owner setup is not usable by the real profile model");
         ScooterProfiles.Profile c1=profiles.active();String[] fw={c1.fwMeter,c1.fwController,c1.fwBms,c1.fwScreen,c1.fwUwb};
@@ -361,6 +361,17 @@ public final class FullBackupJourneyValidation extends Instrumentation {
     }
     private String preferenceKeys(){Map<String,Set<String>> result=new LinkedHashMap<>();for(String name:PREFS)result.put(name,new TreeSet<>(prefs(name).getAll().keySet()));return result.toString();}
     private static void text(DataOutputStream out,String s)throws Exception{byte[] bytes=s.getBytes(StandardCharsets.UTF_8);out.writeInt(bytes.length);out.write(bytes);}
+    /**
+     * A durable file's content. A saved charge recording is compressed on the phone once the app's worker reaches it
+     * (2.0.1), and a restore writes it back plain: the same recording either way, so it is compared by its plain text.
+     */
+    private static byte[] content(File file)throws Exception{
+        byte[] bytes=Files.readAllBytes(file.toPath());
+        if(!file.getParentFile().getName().equals("charge-recordings")||bytes.length<2||(bytes[0]&0xff)!=0x1f||(bytes[1]&0xff)!=0x8b)return bytes;
+        try(java.util.zip.GZIPInputStream in=new java.util.zip.GZIPInputStream(new ByteArrayInputStream(bytes));ByteArrayOutputStream out=new ByteArrayOutputStream()){
+            byte[] buffer=new byte[8192];for(int n;(n=in.read(buffer))>0;)out.write(buffer,0,n);return out.toByteArray();
+        }
+    }
     private static String hash(byte[] bytes)throws Exception{StringBuilder text=new StringBuilder();for(byte b:MessageDigest.getInstance("SHA-256").digest(bytes))text.append(String.format(Locale.ROOT,"%02x",b&255));return text.toString();}
     private void require(boolean okay,String message){assertions++;if(!okay)throw new AssertionError(message);}
 }

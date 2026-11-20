@@ -23,9 +23,11 @@ import java.util.Set;
  *   ({@link #chargerOffWaitMs}). Manual recordings keep the 30-minute charger-pause wait.
  *
  * Kept: an automatic recording that ran under {@link #MIN_KEEP_MS} or gained under {@link #MIN_KEEP_POINTS}
- * percentage points is discarded ({@link #keep}). At the 20-recording limit an automatic recording may replace only
- * older automatic ones, and only once it is kept; it never deletes a manual one, and nothing saved goes for one that is
- * discarded ({@link #automaticToRemove}, ChargeSessionStore.trimAutomatic).
+ * percentage points is discarded ({@link #keep}). Room: automatic and manual recordings are alike (owner, Nov 19 2026:
+ * "auto and manual recordings could be classed the same in that way. rotate away."). Once a recording is saved, the
+ * oldest go to keep the folder within ChargeSessionStore's count and budget, whichever kind they are; nothing saved
+ * goes for an automatic recording that is discarded, since room is made only after it is kept. So an automatic start
+ * never finds the folder full.
  *
  * Waits: an automatic start never arrives in the middle of other work a recording would block or cut short: a guided
  * setting test (running, or with a write-back outstanding) or a compatibility check ({@link #waits}). It starts by itself
@@ -41,8 +43,7 @@ import java.util.Set;
  * and one the owner started while the switch is on, so Volt never starts recording the charge the owner just stopped
  * recording (owner's answer 4: a manual stop holds until the next plug-in). The service
  * stores the held scooters ({@link #HOLD_KEY}). A recording that ended by itself sets no hold. A start that failed
- * (storage, or no room because every saved recording is manual) latches that scooter in memory by the same rule, so
- * it is not retried on every reading.
+ * (storage) latches that scooter in memory by the same rule, so it is not retried on every reading.
  */
 public final class ChargeAutoRecordPolicy {
     /** The switch, off by default (absent means off). An app preference, backed up with App preferences. */
@@ -58,11 +59,8 @@ public final class ChargeAutoRecordPolicy {
     /** Automatic recordings that gained fewer battery percentage points are not kept. */
     public static final double MIN_KEEP_POINTS = 5;
 
-    /** The store's keep and room rules for automatic recordings. Manual recordings never consult them. */
-    public static final ChargeSessionStore.AutomaticRules RULES = new ChargeSessionStore.AutomaticRules() {
-        public boolean keep(long ranMs, double gainedPoints) { return ChargeAutoRecordPolicy.keep(ranMs, gainedPoints); }
-        public int toRemove(int saved, int automatic, int max) { return automaticToRemove(saved, automatic, max); }
-    };
+    /** The store's keep rule for automatic recordings. Manual recordings never consult it. */
+    public static final ChargeSessionStore.AutomaticRules RULES = ChargeAutoRecordPolicy::keep;
 
     public static final class Label {
         final ChargeSessionStore.Charger charger; final ChargeSessionStore.LabelSource source;
@@ -153,16 +151,6 @@ public final class ChargeAutoRecordPolicy {
     /** Whether a finished automatic recording is kept. ranMs and gainedPoints are measured on its saved samples. */
     public static boolean keep(long ranMs, double gainedPoints) {
         return ranMs >= MIN_KEEP_MS && gainedPoints >= MIN_KEEP_POINTS;
-    }
-
-    /**
-     * How many of the oldest automatic recordings an automatic start removes to stay within max saved recordings
-     * (with the new one), or -1 when it cannot start because only manual recordings would have to go.
-     */
-    public static int automaticToRemove(int saved, int automatic, int max) {
-        int need = saved - (max - 1);
-        if (need <= 0) return 0;
-        return automatic >= need ? need : -1;
     }
 
     /**

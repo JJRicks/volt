@@ -208,7 +208,11 @@ approval saves it with the acknowledgement, so a later default change never move
 an approved basemap. Settings with no provider saved but the basemap on or
 explained were approved under the old USGS default and keep USGS (`MapDefault`);
 explicit choices never change. A ride map follows a provider change while open,
-tiles and attribution together.
+tiles and attribution together. Clean Home's Just back card has its own switch,
+`just_back_basemap` (`JustBackBasemap.KEY`, absent means off), never tied to
+`map_basemap_enabled` (owner: a light map popping into Home could "flashbang"
+someone); it shares the provider and the explanation (`map_basemap_explained`),
+and approving the explanation from the card turns on only the card's switch.
 
 `PhoneRideValidation` and `UiOrganizationValidation` are fresh-emulator-only. They
 refuse owner phones and existing app data; synthetic routes are test fixtures, not

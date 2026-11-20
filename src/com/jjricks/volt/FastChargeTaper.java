@@ -192,8 +192,7 @@ public final class FastChargeTaper {
      * be null (no watched decay): the reference tau applies and only voltage headroom marks CV.
      */
     public static Double minutes(double volts, double amps, double ratedAh, FastChargeTaper state) {
-        if (!finite(volts) || !finite(amps) || !finite(ratedAh) || Math.abs(ratedAh - RATED_AH) > RATED_AH * .1
-                || amps <= 0 || amps > MAX_AMPS || volts <= 0) return null;
+        if (!finite(volts) || !finite(amps) || !calibratedPack(ratedAh) || amps <= 0 || amps > MAX_AMPS || volts <= 0) return null;
         double tau = state == null ? TAU_MINUTES : state.tau();
         double tail = amps <= END_AMPS ? 0 : tau * Math.log(amps / END_AMPS);
         double headroom = CV_SET - CV_DROP * amps - volts;
@@ -202,6 +201,87 @@ public final class FastChargeTaper {
         Double ah = bulkAh(headroom);
         return ah == null ? null : ah / amps * 60 + tail;
     }
+
+    /**
+     * ut5-fast-cvpoint-v11: the BMS's step on a top-up. A charge that reaches a displayed STEP_SOC before the
+     * charger's voltage limit drops from about 10 A to STEP_ARRIVAL_AMPS there; the lower current lowers the pack
+     * voltage (resistance x 2 A), so about EXTRA_AH more is delivered before the limit, and the taper starts from
+     * the lower current. BULK_AH, fitted on a deep charge that met the limit at full current, does not see that.
+     * EXTRA_AH is one fitted constant (leave-one-out 0.36-0.39 Ah on seven top-ups of two scooters; the pack
+     * resistance predicts about 0.36).
+     */
+    static final double STEP_SOC = 80, STEP_ARRIVAL_AMPS = 8.03, EXTRA_AH = .38;
+    /** cvPoint applies before the voltage limit: V + CV_DROP x I below CV_SET less this. */
+    static final double PRE_CV_MARGIN = .08;
+    /** cvPoint's current levels: full current below FULL_BELOW_SOC, the 8 A stage from STAGE_FROM_SOC. */
+    static final double FULL_LOW_AMPS = 9.5, FULL_BELOW_SOC = 81, STAGE_LOW_AMPS = 7.7, STAGE_HIGH_AMPS = 8.4, STAGE_FROM_SOC = 79;
+
+    /** Where this charge meets the voltage limit, and the time to it and on to 100% (cvPoint). */
+    static final class CvPoint {
+        final double soc, amps, ratedAh, cvSoc, bulk, tail, full;
+        /** The 8 A stage, or a deep charge meeting the limit at full current (cvSoc at most STEP_SOC). */
+        final boolean stage, deep;
+        CvPoint(double soc, double amps, double ratedAh, double cvSoc, double bulk, double tail, boolean stage, boolean deep) {
+            this.soc = soc; this.amps = amps; this.ratedAh = ratedAh; this.cvSoc = cvSoc; this.bulk = bulk; this.tail = tail;
+            this.full = bulk + tail; this.stage = stage; this.deep = deep;
+        }
+
+        /**
+         * Minutes to a displayed target: at or below the voltage limit's level, the bulk time to it (full current to
+         * STEP_SOC, then STEP_ARRIVAL_AMPS); above it, the bulk plus a straight share of the taper by level, which
+         * errs long. Never more than the time to 100%, never negative.
+         */
+        double minutesTo(double target) {
+            if (target >= 100) return full;
+            double minutes;
+            if (target <= cvSoc) {
+                double ah = ratedAh * (target - soc) / 100;
+                if (stage || target <= STEP_SOC && soc < STEP_SOC) minutes = Math.max(0, ah) / amps * 60;
+                else {
+                    double before = Math.max(0, ratedAh * (STEP_SOC - soc) / 100);
+                    minutes = before / amps * 60 + Math.max(0, ah - before) / STEP_ARRIVAL_AMPS * 60;
+                }
+            } else minutes = bulk + tail * (target - cvSoc) / (100 - cvSoc);
+            return Math.max(0, Math.min(minutes, full));
+        }
+    }
+
+    /**
+     * The depth-aware bundled default before the voltage limit, or null where it does not apply: outside the
+     * calibrated pack, at or near the limit (PRE_CV_MARGIN), or away from the two normal current levels (full
+     * current below FULL_BELOW_SOC, the 8 A stage from STAGE_FROM_SOC). The Ah to the limit at this current,
+     * A = BULK_AH(CV_SET - CV_DROP x I - V), places it at cvSoc = soc + 100 x A / rated Ah (the gauge follows Ah
+     * in bulk).
+     * <ul>
+     * <li>The 8 A stage, or a deep charge (cvSoc at most STEP_SOC: the limit comes at full current): bulk A / I,
+     *     then the taper from I. The same as minutes() without a watched decay.</li>
+     * <li>A top-up: full current to STEP_SOC, then the rest of A plus EXTRA_AH at STEP_ARRIVAL_AMPS, then the taper
+     *     from STEP_ARRIVAL_AMPS.</li>
+     * </ul>
+     * The taper is TAU_MINUTES x ln(I / END_AMPS), as minutes() without a watched decay.
+     */
+    static CvPoint cvPoint(double soc, double volts, double amps, double ratedAh) {
+        if (!finite(soc) || !finite(volts) || !finite(amps) || !calibratedPack(ratedAh)
+                || soc < 0 || soc >= 100 || volts <= 0 || amps > MAX_AMPS) return null;
+        if (volts + CV_DROP * amps >= CV_SET - PRE_CV_MARGIN) return null;
+        boolean full = soc < FULL_BELOW_SOC && amps >= FULL_LOW_AMPS, stage = soc >= STAGE_FROM_SOC && amps >= STAGE_LOW_AMPS && amps <= STAGE_HIGH_AMPS;
+        if (!full && !stage) return null;
+        Double ah = bulkAh(CV_SET - CV_DROP * amps - volts);
+        if (ah == null) return null;
+        double cvSoc = soc + 100 * ah / ratedAh, bulk, from;
+        boolean deep = !stage && cvSoc <= STEP_SOC;
+        if (stage || deep) { bulk = ah / amps * 60; from = amps; }
+        else {
+            double before = Math.max(0, ratedAh * (STEP_SOC - soc) / 100);
+            bulk = before / amps * 60 + Math.max(0, ah - before + EXTRA_AH) / STEP_ARRIVAL_AMPS * 60;
+            from = STEP_ARRIVAL_AMPS;
+            cvSoc += 100 * EXTRA_AH / ratedAh;
+        }
+        return new CvPoint(soc, amps, ratedAh, cvSoc, bulk, TAU_MINUTES * Math.log(from / END_AMPS), stage, deep);
+    }
+
+    /** A pack this model (and the BMS current levels it was fitted with) covers: rated within 10% of RATED_AH. */
+    static boolean calibratedPack(double ratedAh) { return finite(ratedAh) && Math.abs(ratedAh - RATED_AH) <= RATED_AH * .1; }
 
     /** Ah delivered at constant current before CV; null below the calibrated range. */
     static Double bulkAh(double headroom) {

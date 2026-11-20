@@ -1395,9 +1395,12 @@ public final class MoreScreen implements AppScreen {
     /** Current basemap as a row value: Off, USGS, OSM or Custom. */
     private String basemapSummary() {
         SharedPreferences settings = settings();
-        if (!MapPreferences.enabled(settings)) return T.commonOff();
+        boolean rides = MapPreferences.enabled(settings), card = MapPreferences.justBackEnabled(settings);
+        if (!rides && !card) return T.commonOff();
         String url = MapSource.load(settings).url;
-        return MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
+        String provider = MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
+        // Only the Just back card's own switch on: the provider, and that it is Home's (JustBackBasemap.summary).
+        return JustBackBasemap.summary(rides, card, provider, null, HubText.title(HubPages.HOME).render());
     }
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);
@@ -3059,7 +3062,8 @@ public final class MoreScreen implements AppScreen {
 
     /**
      * "Record with Stock charger?": the charger is picked inside the dialog, and the title follows it.
-     * Older recordings beyond the 20 kept are dropped.
+     * Saved recordings rotate (ChargeSessionStore.MAX_RECORDINGS or BUDGET_BYTES, oldest first). The body's "keeps the last
+     * 20" is the old rule's text; it changes in the release's language top-up, with every language.
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
