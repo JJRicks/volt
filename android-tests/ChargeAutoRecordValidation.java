@@ -455,7 +455,8 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
     }
     /** Volt would ask Android for a Live Update now (ChargeLiveUpdate.promote): not while a recording is paused. */
     private boolean liveUpdateAsked() {
-        return onMain(() -> ChargeLiveUpdate.promote(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), service.liveUpdateAllowed(), recordingStopped()));
+        boolean stopped = recordingStopped();
+        return onMain(() -> ChargeLiveUpdate.promote(Build.VERSION.SDK_INT, ScooterService.liveUpdateRequestAvailable(), service.liveUpdateAllowed(), stopped));
     }
     /** The running recording's charge has stopped and its card would read as charging (ChargeLiveUpdate.recordingStopped). */
     private boolean recordingStopped() {
