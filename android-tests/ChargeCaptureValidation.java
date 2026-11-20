@@ -578,11 +578,14 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
     private void requireCaptureNotice(Notification notice,String state,String message){
         String status=service.chargeCaptureStatus();
         Object card=field(service,"chargeLiveBuilt");
-        require(card!=null&&String.valueOf(field(card,"title")).contentEquals(notice.extras.getCharSequence(Notification.EXTRA_TITLE)),message+": not the live charging card");
+        require(card!=null,message+": not the live charging card");
+        boolean stopped=ChargeLiveUpdate.recordingStopped(store().chargerPaused(),store().paused(),(ChargeLiveState.Kind)field(card,"kind"));
+        // #587 r2 F02: stopped, the card's title is the recording's (its own would read as charging).
+        String title=stopped?(String)invoke(service,"chargeRecordingTitle",new Class<?>[]{}):String.valueOf(field(card,"title"));
+        require(title.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_TITLE))),message+": not the live charging card's title: "+notice.extras.getCharSequence(Notification.EXTRA_TITLE)+" vs "+title);
         require(status.contains(state),message+": status "+status);
         boolean asked=(Boolean)field(service,"liveUpdateAsked");
         boolean allowed=(Boolean)invoke(service,"liveUpdateAllowed",new Class<?>[]{}),available=(Boolean)invoke(service,"liveUpdateRequestAvailable",new Class<?>[]{});
-        boolean stopped=ChargeLiveUpdate.recordingStopped(store().chargerPaused(),store().paused(),(ChargeLiveState.Kind)field(card,"kind"));
         require(asked==(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK&&available&&allowed&&!stopped),
                 message+": the recording's card "+(asked?"asked":"did not ask")+" for a Live Update; request available "+available+", allowed "+allowed);
         if(asked)require(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)==null&&String.valueOf(notice.extras.getString(Notification.EXTRA_TEMPLATE)).endsWith("$ProgressStyle"),
@@ -592,6 +595,12 @@ public final class ChargeCaptureValidation extends ValidationInstrumentation {
                 message+": a stopped recording's card doesn't say so in its text: "+notice.extras.getCharSequence(Notification.EXTRA_TEXT)+" vs "+status);
         else require(status.contentEquals(String.valueOf(notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT))),
                 message+": summary "+notice.extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)+" vs "+status);
+        // #587 r2 F01: the lock screen's version (the default, the whole card) says the same as the card while stopped.
+        if(stopped&&field(card,"publicTitle")!=null){
+            Notification lock=notice.publicVersion;
+            require(lock!=null&&title.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TITLE)))&&status.contentEquals(String.valueOf(lock.extras.getCharSequence(Notification.EXTRA_TEXT))),
+                    message+": the lock screen's version doesn't say the recording stopped: "+(lock==null?"(none)":lock.extras.getCharSequence(Notification.EXTRA_TITLE)+" | "+lock.extras.getCharSequence(Notification.EXTRA_TEXT)));
+        }
     }
     private void require(boolean condition,String message){checks++;if(!condition)throw new IllegalStateException(message);}
     private Object field(Object target,String name){try{Class<?> type=target.getClass();while(type!=null){try{Field f=type.getDeclaredField(name);f.setAccessible(true);return f.get(target);}catch(NoSuchFieldException missing){type=type.getSuperclass();}}throw new NoSuchFieldException(name);}catch(Exception e){throw new IllegalStateException(name,e);}}

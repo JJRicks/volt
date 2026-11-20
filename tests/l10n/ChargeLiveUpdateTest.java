@@ -16,6 +16,7 @@ public final class ChargeLiveUpdateTest {
         promote();
         status();
         reopen();
+        words();
         System.out.println("ChargeLiveUpdateTest: " + checks + " checks passed");
     }
 
@@ -134,5 +135,34 @@ public final class ChargeLiveUpdateTest {
         odd.restore(Status.NOT_ALLOWED, 1L);odd.restore(Status.READY, 1L);
         check(odd.status() == null && odd.row(36, true, true) == Status.READY, "only a card verdict is restored");
         check(!new ChargeLiveUpdate.Last().observed(true, 1L), "no reading counts before a card asked");
+    }
+
+    /**
+     * Review of #587 r2 (F01, F02): while a recording waits for a stopped charger, the plain card and its lock screen
+     * version both say so: the recording's title and status, not the card's "Charging · 62%" and "Estimating time
+     * left". A lock screen set to show nothing still shows nothing; a card that isn't stopped keeps its own words.
+     */
+    private static void words() {
+        String recordingTitle = T.serviceNoticeChargeActive(), status = T.serviceChargeStockChargerPaused();
+        for (ChargeLiveState.Detail detail : ChargeLiveState.Detail.values()) {
+            ChargeLiveState.Input in = new ChargeLiveState.Input();
+            in.percent = 62;in.scooter = "UT5 MAX";in.nowWall = 1_000_000L;in.detail = detail;
+            ChargeLiveState card = ChargeLiveState.of(in, t -> "3:40 AM");
+            check(card.title.contains("62") && card.text.equals(T.chargeLiveTextEstimating()), "the fixture reads as charging: " + card.title + " | " + card.text);
+
+            ChargeLiveUpdate.Words own = ChargeLiveUpdate.words(card, false, recordingTitle, null);
+            check(own.title.equals(card.title) && own.text.equals(card.text), detail + ": charging, the card's own title and text");
+            check(java.util.Objects.equals(own.publicTitle, card.publicTitle) && java.util.Objects.equals(own.publicText, card.publicText), detail + ": charging, the card's own lock screen");
+
+            ChargeLiveUpdate.Words stopped = ChargeLiveUpdate.words(card, true, recordingTitle, status);
+            check(stopped.title.equals(recordingTitle), detail + ": stopped, the recording's title (F02), not " + stopped.title);
+            check(stopped.text.equals(status), detail + ": stopped, the recording's status as the text");
+            if (detail == ChargeLiveState.Detail.HIDDEN) {
+                check(stopped.publicTitle == null && stopped.publicText == null, "hidden: still no lock screen version");
+            } else {
+                check(recordingTitle.equals(stopped.publicTitle), detail + ": stopped, the lock screen's title is the recording's (F01), not " + stopped.publicTitle);
+                check(status.equals(stopped.publicText), detail + ": stopped, the lock screen says the charger stopped (F01), not " + stopped.publicText);
+            }
+        }
     }
 }
