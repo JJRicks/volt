@@ -677,8 +677,10 @@ public final class ScooterService extends Service {
             if(ChargeAutoRecordPolicy.waits(ble.testing(),ble.restoreOutstanding(),ble.discovering()))return;
             if(!ChargeAutoRecordPolicy.shouldStart(enabled,selected,charging,simulating(),chargeCaptureBlocked()!=null,isChargeRecording(),held,movedAway))return;
             // The guess counts chargers among this scooter's newest LEARN_SESSIONS recordings that teach a curve, so it follows a switch.
+            // On a model without charger detection, the first charge that teaches is the baseline (ChargeAutoRecordPolicy.label).
+            boolean baseline=chargeSnapshot!=null&&!ChargerDetection.supports(ModelRegistry.chargeReferenceProduct(modelDescriptor(active)));
             ChargeAutoRecordPolicy.Label label=ChargeAutoRecordPolicy.label(chargeCharger(),labelDetectedCharger(),
-                    qualifiedRecordings(ChargeSessionStore.Charger.STOCK),qualifiedRecordings(ChargeSessionStore.Charger.HIGH_SPEED));
+                    qualifiedRecordings(ChargeSessionStore.Charger.STOCK),qualifiedRecordings(ChargeSessionStore.Charger.HIGH_SPEED),baseline);
             if(!startChargeRecording(label.charger,label.source,label.setting,physicalDetectedCharger())&&!isChargeRecording())autoChargeLatched.add(active.id);
         }finally{autoChargeBusy=false;}
     }

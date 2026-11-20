@@ -342,7 +342,11 @@ already charging starts then; the recording is partial.
   power at this battery level matches the live power (Auto's choice for
   estimates); it never replaces the charger setting, and a charge far off your
   only recorded charger never labels anything (it only suggests recording that
-  charger). A detected label follows detection when it settles on the other
+  charger). On a model without charger detection (every model but the UT5
+  MAX), under Automatic, the first automatic recording with nothing to match
+  (no recording of either charger teaches a curve yet) is labelled the stock
+  charger as `detected` (Volt's choice, the baseline); a first charge on a
+  high-speed charger is then filed as stock. A detected label follows detection when it settles on the other
   charger; a guess becomes detected as soon as detection settles, on either
   charger, so a recording stays a guess only when detection never settled; a
   chosen one never changes. Only a chosen or detected label is
@@ -414,7 +418,8 @@ charge; `qualified_for_learning` is false for a guess. `setting` is the charger
 setting's label, kept because detection never settled; `detected` means charger
 detection settled on it (it outranks the setting, 2.0.1 and later) or, under
 Automatic, that its power matched that charger's saved recordings (the learned
-match, 2.0.1 and later); `chosen` means
+match, 2.0.1 and later, also the first charge's stock baseline on a model without
+detection); `chosen` means
 you chose the charger during the recording (on recordings from before 2.0.1, also
 the setting at its start). From 2.0.1 an automatic recording also has
 `label_audit`: `charger_setting_at_start` (`automatic`, `STOCK` or `HIGH_SPEED`)

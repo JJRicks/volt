@@ -94,7 +94,25 @@ public final class ChargeAutoRecordPolicy {
      * {@link #detectedLabel}'s family (null: neither detection nor, under Automatic, the learned curves have settled).
      */
     public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
+        return label(setting, detected, stockRecordings, fastRecordings, false);
+    }
+
+    /**
+     * As above, with the first charge as a baseline (owner, Nov 19 2026: "a user records a charge, that's the baseline…
+     * next time with the high speed, that records as a separate curve"). baseline: the scooter's model has no charger
+     * detection (ChargerDetection.supports false) and its saved recordings are known (a snapshot has loaded). Then, under
+     * Automatic with nothing detected or matched and no recording of either charger that teaches a curve, the recording is
+     * labelled the stock charger as DETECTED: Volt's own choice, so it teaches that curve, and the next charges match it
+     * by power (LearnedChargerMatch); a charger far off it gets the hint, never a label. The audit's detected charger
+     * stays null, as for a learned match. On a model with detection (the UT5 MAX) the recording keeps today's guess, so
+     * its physical rules name the charger. Accepted: a first charge on a high-speed charger is filed as stock on these
+     * models; the curve still matches that charger's power there, since no bundled reference stands behind the name.
+     */
+    public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings,
+            boolean baseline) {
         if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED, setting);
+        if (setting == null && baseline && stockRecordings == 0 && fastRecordings == 0)
+            return new Label(ChargeSessionStore.Charger.STOCK, ChargeSessionStore.LabelSource.DETECTED, null);
         if (setting != null) return new Label(setting, ChargeSessionStore.LabelSource.SETTING, setting);
         return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK,
                 ChargeSessionStore.LabelSource.GUESS, null);
