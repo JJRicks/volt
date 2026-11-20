@@ -50,6 +50,8 @@ status (passed, failed, reported, did-not-finish, skipped); only gating steps ha
 record also names what the run tested and when it began: app_sha256 and runner_sha256 (the APKs' SHA-256), with
 app_version_name, app_version_code, app_cert_sha256 and runner_cert_sha256 when the SDK's aapt2 and apksigner
 (build-tools beside --adb, else ANDROID_HOME or ANDROID_SDK_ROOT) can read them, and sweep_started (Unix seconds).
+Those are the SHA-256 of the run's own copies, <out>/apks/app.apk and runner.apk, taken as the sweep starts; every
+step installs (and runner steps are given) only those copies, so a rebuild into --app's path mid-sweep changes nothing.
 
 Split sweeps. --merge --out DIR RUN_DIR... reads the summary.json (and the <step>.txt outputs) of several runs of
 this script and gives each step of this checkout's --list one final verdict. Runs are read oldest first by
@@ -594,6 +596,16 @@ if not re.fullmatch(r'emulator-\d+', args.serial):
 for flag in ('app', 'runner'):
     if not getattr(args, flag).is_file(): parser.error(f'--{flag} {getattr(args, flag)} is not a file')
 names = {step['name'] for step in STEPS}
+for name in args.only or []:
+    if name not in names: parser.error(f'Unknown step {name}; see --list')
+# The run's own copies: every step installs these, and summary.json names their SHA-256, so a rebuild into
+# --app's or --runner's path while the sweep runs changes neither what is installed nor what is recorded.
+copies = args.out / 'apks'
+copies.mkdir(parents=True, exist_ok=True)
+for flag in ('app', 'runner'):
+    copy = copies / f'{flag}.apk'
+    if getattr(args, flag).resolve() != copy.resolve(): shutil.copyfile(getattr(args, flag), copy)
+    setattr(args, flag, copy)
 
 
 def dex_hash(apk):
@@ -605,8 +617,6 @@ def dex_hash(apk):
 if args.pseudo_app:
     if dex_hash(args.pseudo_app) != dex_hash(args.app):
         parser.error('--pseudo-app has a different classes.dex from --app; build both with the same build.sh run (VOLT_PSEUDO_LOCALES=1)')
-for name in args.only or []:
-    if name not in names: parser.error(f'Unknown step {name}; see --list')
 prefix = [args.adb, '-s', args.serial]
 
 

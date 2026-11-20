@@ -22,6 +22,11 @@ elif argv[:2] == ['shell', 'pidof']: print('123')
 elif argv[:2] == ['shell', 'ps']: print('10:00')
 elif argv[:2] == ['shell', 'settings'] and argv[2] == 'get': print('null')
 elif line.startswith('shell date'): print('11-08 00:00:00.000')
+elif argv[0] == 'install':
+    # FAKE_INSTALLS logs each installed path and its bytes' SHA-256; FAKE_REBUILD's file is rewritten after the first install.
+    import hashlib, pathlib
+    with open(os.environ.get('FAKE_INSTALLS', os.devnull), 'a') as log: log.write(f'{argv[-1]} {hashlib.sha256(pathlib.Path(argv[-1]).read_bytes()).hexdigest()}\n')
+    if os.environ.get('FAKE_REBUILD'): pathlib.Path(os.environ['FAKE_REBUILD']).write_bytes(b'rebuilt mid-sweep')
 elif argv[:3] == ['shell', 'am', 'instrument']:
     bad = os.environ.get('FAKE_FAIL')
     print('INSTRUMENTATION_RESULT: result=' + ('FAIL' if bad and bad in line else 'PASS'))
@@ -42,8 +47,8 @@ class Summary(unittest.TestCase):
         self.adb.chmod(0o755)
         for name in ('app.apk', 'runner.apk'): (self.root / name).write_bytes(name.encode())
 
-    def sweep(self, *only, fail=None):
-        env = dict(os.environ)
+    def sweep(self, *only, fail=None, **fake):
+        env = dict(os.environ, **fake)
         if fail: env['FAKE_FAIL'] = fail
         command = [sys.executable, str(SWEEP), '--adb', str(self.adb), '--serial', 'emulator-5554', '--app', str(self.root / 'app.apk'),
                    '--runner', str(self.root / 'runner.apk'), '--out', str(self.root / 'out')]
@@ -70,6 +75,19 @@ class Summary(unittest.TestCase):
             self.assertIsInstance(row['sweep_started'], float)
         self.assertEqual(rows[GATING]['sweep_started'], rows[REPORT]['sweep_started'])
         self.assertFalse((self.root / 'out' / 'census').exists(), 'identity is recorded without --census')
+
+    def test_steps_install_the_runs_own_copies(self):
+        installs = self.root / 'installs.txt'
+        app = self.root / 'app.apk'
+        _, _, rows = self.sweep(GATING, OTHER_GATING, FAKE_INSTALLS=str(installs), FAKE_REBUILD=str(app))
+        self.assertEqual(app.read_bytes(), b'rebuilt mid-sweep', 'the original was replaced after the first install')
+        copies = self.root / 'out' / 'apks'
+        expected = {str((copies / 'app.apk').resolve()): hashlib.sha256(b'app.apk').hexdigest(),
+                    str((copies / 'runner.apk').resolve()): hashlib.sha256(b'runner.apk').hexdigest()}
+        logged = [line.split() for line in installs.read_text().splitlines()]
+        self.assertEqual(len(logged), 4, 'two steps, two APKs each')
+        for path, digest in logged: self.assertEqual(expected.get(path), digest, path)
+        for row in rows.values(): self.assertEqual(row['app_sha256'], hashlib.sha256(b'app.apk').hexdigest())
 
     def test_gating_failure_fails_the_run_and_is_named(self):
         code, lines, rows = self.sweep(GATING, OTHER_GATING, REPORT, fail=GATING_FAILS)
