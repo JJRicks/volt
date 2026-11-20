@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.1 (versionCode 61)
+Current version: 2.0.2 (versionCode 62)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,36 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.1
+NEW IN 2.0.2
+------------
+- Charging: with charge recordings from only one charger, a charge whose
+  power stays far off them (1.8 times or half, 50 W apart, for a minute
+  below 90%) shows a Record this charger tip under Home's charging time,
+  naming the other charger; its sheet records this charge as that charger
+  or files Volt's running automatic recording, still a guessed charger,
+  under it. Never while Charging slowed shows, or with the battery outside
+  68-100 F (20-38 C); it never labels anything by itself.
+- Charging: every time estimate uses the charging current averaged over the
+  last minute (a step of 0.1 A and 5% resets it at once), so the time to full
+  no longer flips between two values; Charging power moves less too. On
+  Android 16 the live charging card stays a Live Update while a charge
+  recording runs; the recording's status shows in Volt (and on the plain
+  card on older Android). While the recording waits for a stopped charger
+  the card is plain and says "charger stopped · waiting for it to resume",
+  a Live Update again once charging resumes. Estimator version: ...iavg-v1.
+- Words: Record a charge says the oldest recordings are cleared when full
+  (not "keeps the last 20"); Map settings names Just back's map switch Map
+  on Home's last ride; What Volt has learned says Too cold or hot to learn
+  for a stretch a high-speed charge covered only outside 20-38 C.
+- Fixes: on Clean's two panes, a ride opened from Just back while All rides
+  is beside Home closes back to All rides; Clean's charge-limit bar takes a
+  press just below it; Find it nearby counts the first connection
+  attempt when Volt opens on Home; ride maps on large tablets keep more
+  tiles; the estimate's long-press status names the rated capacity only
+  when Charge done by plans with it. All new text is translated in all ten
+  beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.1
 ------------
 - Charging: on a UT5 MAX on the high-speed charger the charging pill says
   Charging slowed, with battery cold (blue, snowflake) or battery hot
@@ -1484,7 +1513,9 @@ charger is unplugged, after 3 minutes with stale readings, after 12 hours, about
 Disconnect, which keeps the card off for that scooter's charge, even across a
 service restart, until Volt is opened again. While it shows, other apps,
 the official one included, can't connect. On Android 16 and later Volt asks for
-a Live Update (status-bar chip and segmented bar); Battery & charging >
+a Live Update (status-bar chip and segmented bar), also during a charge
+recording while the scooter charges (plain, with the recording's status, while
+it waits for a stopped charger); Battery & charging >
 Charge history & recordings > Live Update status reports the outcome. It keeps only the battery reads Volt
 already makes and sends no new scooter command. Out of sight, the card, the
 connection notice and Charge done by / Scheduled charging read the scooter on
@@ -1609,7 +1640,8 @@ one baseline. The names get a little smaller before one wraps and are never
 broken inside a word: where a name doesn't fit a third in two lines, the
 tiles stand two to a row (Battery across the second), the route giving up
 the height. Tapping the card opens the ride; Back (or Done) from it returns
-to Home, while a ride opened from All rides goes back to that list. The Ride row shows a running recording
+to Home (to All rides when that list is the page beside Home on a wide
+screen), while a ride opened from All rides goes back to that list. The Ride row shows a running recording
 and its time while a ride records, else the last ride, the same one Just back
 shows.
 Settings > Home style shows the two styles side by side, a Quick actions row

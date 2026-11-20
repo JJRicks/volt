@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.0.2 — 2026-11-20
+
+Volt 2.0.2 is a small release: a tip that helps Volt learn your second charger, a steadier time to full, the live charging card during charge recordings, clearer words in a few places and some fixes.
+
+- **Record this charger.** When your scooter has charge recordings from only one charger, and the charge on now draws far more or far less power than they did, Home shows a **Record this charger** tip under the charging time. Tap it to record this charge as the other charger, or, while Volt is already recording it by itself with a guessed charger, to save that recording as the other charger, so Volt learns an estimate for each.
+- **A steadier time to full.** The time to full no longer flips back and forth between two values a couple of minutes apart, as it could on the standard charger. Volt now uses the charging current averaged over the last minute; a real change, such as a charger plugged in, swapped or stepping down, still shows at once. **Charging power** beside it moves less too.
+- **The live charging card during a recording.** On Android 16 and later, while a charge recording runs and the scooter is charging, the charging card is the Live Update too (its status-bar chip and progress bar), not a plain notification. If the charger stops, the card turns plain and says so ("charger stopped · waiting for it to resume") until charging resumes.
+- **Clearer words.** The **Record a charge** dialog no longer says Volt keeps the last 20 recordings; it says the oldest are cleared when there's no more room (Volt keeps up to 1,000). In **Map settings**, the **Just back** card's map switch is **Map on Home's last ride** instead of **Home**. **What Volt has learned** says **Too cold or hot to learn** for a stretch a high-speed charge covered only at those temperatures, instead of calling it **No data**.
+- **Fixes:** On a wide Clean Home, closing a ride you opened from **Just back** while **All rides** is open beside Home goes back to All rides. Clean's charge-limit bar takes a drag started just below it. The card that says a scooter "may have a new Bluetooth address" also counts the first connection attempt when Volt opens on Home. Ride maps on large tablets keep more map tiles ready.
+- **Languages:** all new text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Charge recordings
+
+- **Record this charger.** Volt watches for a charge far off the only charger this scooter has recordings for: for a minute, below 90%, at least 1.8 times or at most half the power recorded at the same battery level, and at least 50 W apart. Far above the stock charger's recordings means the high-speed charger; far below the high-speed charger's means the stock one. It doesn't count the first minute of a charge or after a reconnect, and it stays quiet while **Charging slowed** shows and when the battery is colder than 68 °F (20 °C) or hotter than 100 °F (38 °C), where a high-speed recording wouldn't teach its curve. Then, on both Home styles, the tip under the time reads **Record this charger** (**Record charger**, or just a bolt icon, where there's less room), in the same place as **Improve this estimate**. Its sheet, **Different charger?**, has one main button that names the charger: **Record this charge as High-speed** (or Stock) starts a recording as that charger; while Volt is recording this charge by itself with a guessed charger, **Save this recording as High-speed** files that recording as that charger instead, as your choice, so it teaches that charger's curve. Neither changes **Charger for estimates**. **Not now** keeps the tip; **Hide this tip** hides this tip only, for good (backups keep that). The tip never labels a recording by itself, and it doesn't show during a recording you started or one whose charger was already set.
+- **Record a charge** now reads "Saved on phone · stops at 100% · oldest cleared when full". It said "keeps the last 20", which stopped being true in 2.0.1: Volt keeps up to 1,000 recordings (about 150 MB) and clears the oldest.
+- **What Volt has learned** words a stretch a high-speed charge recorded only with the battery too cold or hot to learn from (outside 68–100 °F, 20–38 °C) as **Too cold or hot to learn 30–40%**, apart from the gaps no recording covers (**No data 50–54%**).
+
+### Home
+
+- **Just back over All rides.** On a wide screen with Clean's two panes, a ride opened from **Just back** while **All rides** is the page beside Home now closes back to All rides, as a ride opened from that list does. Everywhere else it still closes back to Home.
+- **Clean's charge-limit bar** takes a press in the strip just below it, so its whole touch band works as on Widgets; since Clean got the bar in 2.0.1, that strip had never reached it. Scrolling the page is unchanged.
+- **Find it nearby** counts a failed connection attempt only while Home is on screen, as in 2.0.1, and now also the first one, which Volt starts as it opens (or reopens) on Home.
+
+### Charging estimates
+
+- **The time to full stops flipping.** The battery reports its charging current in small steps (about 0.02 A). When the current sat on a step's edge, every reading moved between the two steps, and the time to full flipped between two values about two minutes apart on a four-hour standard charge. Every time estimate now uses the current averaged over the last minute, weighted by time. A reading at least 0.1 A and 5% away from the average starts it again from that reading, so a charger plugged in, swapped or stepping down shows at once; slow changes such as the warm-up or the taper show about half a minute later. The average starts afresh when charging stops, on another scooter or after a gap of more than a minute. The same steadier current feeds the live card, alerts, recorded estimates and **Charge done by**, and the **Charging power** shown with the estimate. Recordings from 2.0.2 carry the estimator version `ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1`.
+- The time's long-press status says "Charge done by plans with the rated capacity" only when it does. When Charge done by plans with a learned curve or a provisional time instead, the sentence is left off.
+
+### Notifications
+
+- **The live charging card stays a Live Update during a charge recording** (Android 16 and later, with Live updates allowed). Before, a running recording kept the card plain so it could show the recording's status line. It is still the one card, with **Stop charge recording** as its button; as a Live Update it has no status line, so the recording's status shows in Volt, and on the plain card on older Android or with Live updates off. While the recording waits for a stopped charger (or for a schedule's start the card doesn't already show), the card is the plain one, still titled as charging, and its text is the recording's status, for example **Stock charger · charger stopped · waiting for it to resume**; it is a Live Update again once charging resumes.
+
+### Maps
+
+- **Map settings** names the **Just back** card's own map switch **Map on Home's last ride** (it said **Home**). While only that map is on, the Map settings row reads, for example, **OSM · Last ride**.
+- **Ride maps on large tablets** keep more map tiles in memory, scaled to the map's size (up to 64 MB), so panning reloads fewer tiles. Phones are unchanged.
+
+### Upgrading and going back
+
+- Nothing needs doing to update. Charge recordings and exports keep 2.0.1's format.
+
 ## 2.0.1 — 2026-11-20
 
 Volt 2.0.1 is mostly about charging: time estimates that learn more from your own charges, a charging pill that says when the battery's temperature is slowing the charge, and a look at what Volt has learned. It also adds a map on the **Just back** card, a choice of Home's two small readings and fixes riders reported.
@@ -50,7 +91,7 @@ Volt 2.0.1 is mostly about charging: time estimates that learn more from your ow
 ### Upgrading and going back
 
 - Recordings saved before this version keep their labels, and nothing needs doing to update.
-- Backups and exports from 2.0.1 keep the plain recording format, so Volt 2.0.0 can still restore them, within its limit of 20 recordings. 2.0.0 counts an automatic recording labelled from your charger setting as one you started, so it won't replace those to make room.
+- A backup made by 2.0.1 restores only in 2.0.1 or later: Volt 2.0.0 refuses it and says the backup needs a newer app version. Backups and exports still hold charge recordings uncompressed.
 
 ## 2.0.0 — 2026-11-18
 

@@ -1,3 +1,75 @@
+VOLT 2.0.2 — RECORD THIS CHARGER, A STEADIER TIME TO FULL, THE LIVE CARD WHILE RECORDING, CLEARER WORDS, FIXES (versionCode 62)
+Draft, November 20, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.1
+  (75667d5e) is in it: the "record this charger" tip (#576 and #577,
+  held out of 2.0.1) and the P3 sweep (#580: Just back over All rides,
+  Home's stay on a fresh bind, the route map tile cache, Clean's bar
+  band, one reading matcher), the English text fixes (#585: Record a
+  charge's line, Map settings' Map on Home's last ride switch, What Volt
+  has learned's too cold or hot stretches), the steadier charging current
+  behind every time estimate (#586) and the live charging card as a Live
+  Update during a charge recording (#587). #581 (RELEASING.md's split
+  release sweep) and #582 (2.0.1's record in this file) change no app
+  code, nor does any other docs-only pull request that merges before the
+  release commit. The language top-up for this release's new text and
+  this release's own version, changelog and docs come after them.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR, CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 297 steps on main at #587's merge, 5 more
+  than 2.0.1's 292, none gone: the charger tip on Widgets and Clean at
+  344 and 412 dp, two of them during an automatic recording
+  (estimate-tip-charger-*), and the live card during a charge recording
+  (charge-live-recording). Every validation registered in
+  android-tests/AndroidManifest.xml is covered (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.1's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- No parked hardware sweep. The owner decided 2.0.2 ships without one
+  ("small enough"), so this release is checked on emulators and by tests
+  only, and nothing in it was tried on a real scooter. Untried on real
+  hardware: the Record this charger tip on a real second charger (the
+  far-off rule on live power, Record this charge as High-speed or Stock
+  from its sheet, and Save this recording filing a running automatic
+  recording), the steadier time to full on a real standard charge (no
+  flipping, and real steps still shown at once), the Live Update during
+  a real charge recording on an Android 16 phone, Find it nearby's first
+  attempt when Volt opens on Home, and everything 2.0.1's list below
+  still owes.
+- The steadier current (#586) was checked by JVM tests on synthesized
+  charges and by replaying 8 recorded standard-charger charges on a
+  computer (aggregate results in #586; the recordings stay private): the
+  time to full going up for 2 minutes or more fell from 84 times to 6,
+  and back-and-forth flips of 2 minutes or more from 43 to 1. The
+  emulator steps run on the simulator, where the average isn't used.
+  The Live Update during a recording (#587) was checked on an Android 16
+  emulator (charge-live-recording), not on a phone, including the plain
+  card while a recording waits for a stopped charger. #586 changed
+  ChargingEstimate.ESTIMATOR_VERSION to
+  ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1, which
+  recordings from 2.0.2 carry (docs/validation/charge-estimate-history.md
+  lists every version main carried).
+- The charger tip's emulator steps set its state through validation-only
+  fields, because the simulator never records or runs the far-off rule.
+  They check the tip, its sheet's words for both actions, Not now and
+  Hide this tip, but they don't tap the sheet's main button; that button's
+  filing and recording are covered by JVM tests
+  (LearnedChargerMatchTest, ChargeEstimateTipRuleTest,
+  ChargerTipTextTest) with synthesized charges only.
+- ModelRegistry.REPORTED is unchanged from 2.0.1 (22131, 23452, 24162,
+  24182, 25462, 25852): no compatibility report for a new Model ID is
+  recorded since then. Adding any that reached volt-reports@jjricks.com is
+  the owner's step.
+
+--- Previous verification ---
+
 VOLT 2.0.1 — CHARGING SLOWED, ESTIMATES THAT LEARN MORE, WHAT VOLT HAS LEARNED, OVERVIEW READINGS, JUST BACK BASEMAP (versionCode 61)
 Built, swept and tagged at commit 75667d5e, #579's merge into main,
 November 20, 2026. That merge is the release commit (RELEASING.md step
