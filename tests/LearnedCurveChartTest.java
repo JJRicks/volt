@@ -80,7 +80,7 @@ public final class LearnedCurveChartTest {
         check(partial.gaps.toString().equals("[BELOW 0-17, ABOVE 50-100]"), "No data below 17% or above 50%: " + partial.gaps);
         check(partial.legend().equals(Arrays.asList(NONE, ONE)), "Legend: no data and one recording: " + partial.legend());
         check(partial.finishFrom == -1 && Double.isNaN(partial.toFullMinutes) && partial.toFullFrom == -1, "No finish, no time to full");
-        check(partial.scaleMax == 5 && partial.slowest == 17, "Scale 0–5 min: " + partial.scaleMax);
+        check(partial.scaleMax == 3 && partial.slowest == 17, "Scale 0–3 min over 2.5 min: " + partial.scaleMax);
         check(Double.isNaN(partial.minutes[16]) && partial.minutes[17] == 2.5 && partial.minutes[49] == 2.5 && Double.isNaN(partial.minutes[50]), "Minutes only where learned");
 
         // Two partial recordings joined: 17–45% one, 45–50% both, 50–100% one; a finish recording from 45%.
@@ -90,7 +90,7 @@ public final class LearnedCurveChartTest {
         check(joined.legend().equals(Arrays.asList(NONE, ONE, TWO)), "Legend: three kinds");
         check(joined.finishFrom == 45, "Finish tick at 45%");
         check(joined.toFullFrom == 17 && Math.abs(joined.toFullMinutes - (78 * 2.5 + 5 * 10)) < 1e-9, "17% to full: " + joined.toFullMinutes);
-        check(joined.scaleMax == 10 && joined.slowest == 95, "The taper sets the scale: " + joined.scaleMax);
+        check(joined.scaleMax == 12 && joined.slowest == 95, "The taper sets the scale, 12 over 10 min: " + joined.scaleMax);
 
         // Inside gaps and disagreement: two listed, the rest counted.
         LearnedCurveChart gappy = LearnedCurveChart.of(summary(ChargeSessionStore.Charger.HIGH_SPEED, 3,
@@ -107,8 +107,9 @@ public final class LearnedCurveChartTest {
         check(!empty.any() && empty.gaps.isEmpty() && empty.scaleMax == 0 && empty.runs.size() == 1, "No minutes: nothing learned, one run of no data");
 
         // Nice ceilings.
-        check(LearnedCurveChart.niceCeiling(2.5) == 5 && LearnedCurveChart.niceCeiling(1) == 1 && LearnedCurveChart.niceCeiling(10.4) == 20
-                && LearnedCurveChart.niceCeiling(0.3) == .5 && LearnedCurveChart.niceCeiling(55) == 100, "1, 2, 5 steps");
+        check(LearnedCurveChart.niceCeiling(2.5) == 2.5 && LearnedCurveChart.niceCeiling(1) == 1 && LearnedCurveChart.niceCeiling(10.4) == 12
+                && LearnedCurveChart.niceCeiling(13.9) == 15 && LearnedCurveChart.niceCeiling(0.3) == .3 && LearnedCurveChart.niceCeiling(55) == 60
+                && LearnedCurveChart.niceCeiling(8.5) == 10 && LearnedCurveChart.niceCeiling(1.1) == 1.2, "Nice steps just over the value");
 
         // From synthesized recordings: a stock 17–50% and 45–100%, and a fast 30–100%: stock first, then high-speed.
         ChargeSessionStore store = new ChargeSessionStore(Files.createTempDirectory("learned-curve-chart-").toFile());
@@ -120,7 +121,7 @@ public final class LearnedCurveChartTest {
         LearnedCurveChart stock = charts.get(0), fast = charts.get(1);
         check(stock.recordings == 2 && stock.learnedFrom() == 18 && stock.learnedTo() == 100 && stock.gaps.toString().equals("[BELOW 0-18]"), "Stock joined, learned from 18% (a recording's first part-percent is not counted): " + stock.gaps + " " + stock.learned);
         check(stock.legend().contains(TWO) && stock.legend().contains(ONE), "Stock: one and two recordings: " + stock.runs);
-        check(stock.finishFrom == 46 && stock.slowest >= 85, "Stock finish from 46%, slowest in the taper: " + stock.finishFrom + " " + stock.slowest);
+        check(stock.finishFrom == 46 && stock.slowest >= 85 && stock.scaleMax >= stock.minutes[stock.slowest] * LearnedCurveChart.HEADROOM && stock.scaleMax < stock.minutes[stock.slowest] * 1.5, "Stock finish from 46%, slowest in the taper: " + stock.finishFrom + " " + stock.slowest);
         check(stock.toFullFrom == 18 && stock.toFullMinutes > 0, "Stock time to full");
         check(fast.recordings == 1 && fast.learnedFrom() == 31 && fast.learnedTo() == 100 && fast.minutes[50] < stock.minutes[50], "Fast learned from 31%, faster: " + fast.learned);
         check(!stock.signature().equals(fast.signature()) && stock.signature().equals(LearnedCurveChart.of(summaries(store)).get(0).signature()), "Signatures follow the data");
