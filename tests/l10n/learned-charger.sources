@@ -1,0 +1,12 @@
+# Automatic's learned-curve charger match, automatic recordings' labels from it, and the "Different charger? Record it"
+# hint (LearnedChargerMatch, ChargeAutoRecordPolicy.detectedLabel, RecordChargerHint, Curve.familyWatts).
+src/com/jjricks/volt/LearnedChargerMatch.java
+src/com/jjricks/volt/RecordChargerHint.java
+src/com/jjricks/volt/ChargerDetection.java
+src/com/jjricks/volt/ChargeAutoRecordPolicy.java
+src/com/jjricks/volt/AutoStartPolicy.java
+src/com/jjricks/volt/GuidedTest.java
+src/com/jjricks/volt/ChargeSessionStore.java
+src/com/jjricks/volt/ChargingEstimate.java
+tests/ChargeSessionStoreTest.java
+tests/l10n/LearnedChargerMatchTest.java

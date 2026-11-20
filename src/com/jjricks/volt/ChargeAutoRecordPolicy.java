@@ -14,7 +14,8 @@ import java.util.Set;
  * hold or latch stands for that scooter. Connecting to a scooter that is already charging starts then: a partial
  * recording is fine. Never a prompt.
  *
- * Label: see {@link #label}. The recording keeps how its label was chosen.
+ * Label: see {@link #label}, with {@link #detectedLabel} as its detected family. The recording keeps how its label was
+ * chosen.
  *
  * End, for automatic recordings only, on top of every rule that ends a recording today:
  * - at once when a live speed reading is above {@link #END_SPEED_KMH} ({@link #movedAway});
@@ -22,9 +23,11 @@ import java.util.Set;
  *   ({@link #chargerOffWaitMs}). Manual recordings keep the 30-minute charger-pause wait.
  *
  * Kept: an automatic recording that ran under {@link #MIN_KEEP_MS} or gained under {@link #MIN_KEEP_POINTS}
- * percentage points is discarded ({@link #keep}). At the 20-recording limit an automatic recording may replace only
- * older automatic ones, and only once it is kept; it never deletes a manual one, and nothing saved goes for one that is
- * discarded ({@link #automaticToRemove}, ChargeSessionStore.trimAutomatic).
+ * percentage points is discarded ({@link #keep}). Room: automatic and manual recordings are alike (owner, Nov 19 2026:
+ * "auto and manual recordings could be classed the same in that way. rotate away."). Once a recording is saved, the
+ * oldest go to keep the folder within ChargeSessionStore's count and budget, whichever kind they are; nothing saved
+ * goes for an automatic recording that is discarded, since room is made only after it is kept. So an automatic start
+ * never finds the folder full.
  *
  * Waits: an automatic start never arrives in the middle of other work a recording would block or cut short: a guided
  * setting test (running, or with a write-back outstanding) or a compatibility check ({@link #waits}). It starts by itself
@@ -40,8 +43,7 @@ import java.util.Set;
  * and one the owner started while the switch is on, so Volt never starts recording the charge the owner just stopped
  * recording (owner's answer 4: a manual stop holds until the next plug-in). The service
  * stores the held scooters ({@link #HOLD_KEY}). A recording that ended by itself sets no hold. A start that failed
- * (storage, or no room because every saved recording is manual) latches that scooter in memory by the same rule, so
- * it is not retried on every reading.
+ * (storage) latches that scooter in memory by the same rule, so it is not retried on every reading.
  */
 public final class ChargeAutoRecordPolicy {
     /** The switch, off by default (absent means off). An app preference, backed up with App preferences. */
@@ -57,11 +59,8 @@ public final class ChargeAutoRecordPolicy {
     /** Automatic recordings that gained fewer battery percentage points are not kept. */
     public static final double MIN_KEEP_POINTS = 5;
 
-    /** The store's keep and room rules for automatic recordings. Manual recordings never consult them. */
-    public static final ChargeSessionStore.AutomaticRules RULES = new ChargeSessionStore.AutomaticRules() {
-        public boolean keep(long ranMs, double gainedPoints) { return ChargeAutoRecordPolicy.keep(ranMs, gainedPoints); }
-        public int toRemove(int saved, int automatic, int max) { return automaticToRemove(saved, automatic, max); }
-    };
+    /** The store's keep rule for automatic recordings. Manual recordings never consult it. */
+    public static final ChargeSessionStore.AutomaticRules RULES = ChargeAutoRecordPolicy::keep;
 
     public static final class Label {
         final ChargeSessionStore.Charger charger; final ChargeSessionStore.LabelSource source;
@@ -92,13 +91,28 @@ public final class ChargeAutoRecordPolicy {
      * (SETTING), provisional until detection settles ({@link #relabel}); otherwise a best guess (GUESS). The guess is the
      * family with more qualified saved recordings for this scooter (the charger the owner actually uses), and on a tie or
      * none, the stock charger every scooter ships with. setting is the charger setting (null: Automatic), detected
-     * ChargerDetection's settled family (null: not settled, or a model it does not know).
+     * {@link #detectedLabel}'s family (null: neither detection nor, under Automatic, the learned curves have settled).
      */
     public static Label label(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detected, int stockRecordings, int fastRecordings) {
         if (detected != null) return new Label(detected, ChargeSessionStore.LabelSource.DETECTED, setting);
         if (setting != null) return new Label(setting, ChargeSessionStore.LabelSource.SETTING, setting);
         return new Label(fastRecordings > stockRecordings ? ChargeSessionStore.Charger.HIGH_SPEED : ChargeSessionStore.Charger.STOCK,
                 ChargeSessionStore.LabelSource.GUESS, null);
+    }
+
+    /**
+     * The family automatic recordings take as DETECTED ({@link #label} and {@link #relabel}'s detected), or null.
+     * ChargerDetection's settled family first (detection: it rests on what each charger can physically deliver, and
+     * outranks the setting, as since #555). Then, only under Automatic (setting null), the family LearnedChargerMatch
+     * settled on: this charge's power matches that family's own learned curve. Nothing else: a charge far off the only
+     * recorded family (RecordChargerHint) suggests recording it, but labels nothing, since a throttled charge can look
+     * like the other charger. A likeness never replaces the charger setting, and a label the owner chose is never
+     * replaced (relabel). With neither, the recording keeps the setting's label or its guess.
+     */
+    public static ChargeSessionStore.Charger detectedLabel(ChargeSessionStore.Charger setting, ChargeSessionStore.Charger detection,
+            ChargeSessionStore.Charger learned) {
+        if (detection != null) return detection;
+        return setting == null ? learned : null;
     }
 
     /**
@@ -137,16 +151,6 @@ public final class ChargeAutoRecordPolicy {
     /** Whether a finished automatic recording is kept. ranMs and gainedPoints are measured on its saved samples. */
     public static boolean keep(long ranMs, double gainedPoints) {
         return ranMs >= MIN_KEEP_MS && gainedPoints >= MIN_KEEP_POINTS;
-    }
-
-    /**
-     * How many of the oldest automatic recordings an automatic start removes to stay within max saved recordings
-     * (with the new one), or -1 when it cannot start because only manual recordings would have to go.
-     */
-    public static int automaticToRemove(int saved, int automatic, int max) {
-        int need = saved - (max - 1);
-        if (need <= 0) return 0;
-        return automatic >= need ? need : -1;
     }
 
     /**

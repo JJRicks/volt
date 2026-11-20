@@ -44,7 +44,7 @@ import com.jjricks.volt.ScooterService;
  * which follow the official app's regions) and firmware refusals, the Lights page and
  * Quick access tiles. Every change it makes goes to the simulator; nothing reaches Bluetooth.
  */
-public final class CompatControlsValidation extends Instrumentation {
+public final class CompatControlsValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;

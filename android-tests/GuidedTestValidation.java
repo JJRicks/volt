@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Activity;
 import android.app.Instrumentation;
@@ -69,7 +70,7 @@ import org.json.JSONObject;
  * The guided mode now drives Help verify and the UT5 MAX's Lab prompt sound in Experimental controls (the checker's
  * Try a setting is gone); recovery-navigation seeds a version 1 journal as an older Volt left it.
  */
-public final class GuidedTestValidation extends Instrumentation {
+public final class GuidedTestValidation extends ValidationInstrumentation {
     // Synthetic private values: none of them may reach a report.
     private static final String[][] MODELS = {
             // label, serial, advertised PID, MAC, identity, name

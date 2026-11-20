@@ -35,7 +35,7 @@ import com.jjricks.volt.ScooterProfiles;
  * shares one title edge, is a 48 dp target with a spoken name, and keeps its words whole and uncut. Pass -e wide true
  * or false to say which window class the emulator's size must give (Ui.wideLayout), so a run can't pass on the other.
  */
-public final class MoreMenuValidation extends Instrumentation {
+public final class MoreMenuValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;

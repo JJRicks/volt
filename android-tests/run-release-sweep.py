@@ -208,6 +208,13 @@ STEPS += [
     inst('charge-transition-344', T + 'ChargeTransitionValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charge-transition-725', T + 'ChargeTransitionValidation', '-e', 'size_label', '725', size=WIDE[0]),
     inst('charge-time-sizes-fold', T + 'ChargeTimeSizeValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
+    # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's
+    # sizes and the Fold's folded and unfolded screens. With a network the "on" pictures show tiles.
+    inst('just-back-basemap-344', PKG + '.JustBackBasemapValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('just-back-basemap-412', PKG + '.JustBackBasemapValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('just-back-basemap-fold-folded', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold-folded', size='411x900'),
+    inst('just-back-basemap-fold', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Every model's photo framed like the UT5 MAX's (owner, Nov 17 2026): the whole set side by side, and Home (Widgets and Clean)
     # as the UT5 MAX, GT3 Max, GT5 Max and N65i, at 412 dp in light and dark and on the Fold unfolded.
     inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
@@ -367,6 +374,16 @@ STEPS += [inst(f'hub-search-targets-{w}', T + 'HubValidation', '-e', 'mode', 'se
 STEPS += [inst('dock-sheet-344', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='344x882'),
           inst('dock-sheet-725', T + 'DockSheetValidation', '-e', 'theme', 'light', '-e', 'list_scrolls', 'true', size='725x604'),
           inst('dock-sheet-fold', T + 'DockSheetValidation', '-e', 'theme', 'dark', size='790x820')]
+# Settings › Home style › Overview readings (owner, 19 Nov 2026): the overview card's two small readings picked by taps
+# on the simulator (Battery voltage and Battery power), shown on Clean in place with nothing on the card moving, read as
+# Not reported where unreported, swapped by picking the other slot's, on Widgets' Scooter overview too and after a
+# relaunch (phone, dark). The render steps take the pictures with the defaults and two long readings fed to the card
+# (the 344 dp phone at large text in light; an unfolded Fold's inner screen in dark), and of the setting itself.
+STEPS += [inst('overview-readings-344', T + 'OverviewReadingsValidation', '-e', 'theme', 'dark', '-e', 'size_label', '344', size='344x882'),
+          inst('overview-readings-render-344-large', T + 'OverviewReadingsValidation', '-e', 'mode', 'render', '-e', 'theme', 'light',
+               '-e', 'text_scale', '1.4', '-e', 'size_label', '344', size='344x882'),
+          inst('overview-readings-render-fold', T + 'OverviewReadingsValidation', '-e', 'mode', 'render', '-e', 'theme', 'dark',
+               '-e', 'size_label', '790', size='790x820')]
 STEPS += [inst('more-menu-phone', T + 'MoreMenuValidation', '-e', 'wide', 'false', '-e', 'theme', 'dark', size='344x882'),
           inst('more-menu-wide', T + 'MoreMenuValidation', '-e', 'wide', 'true', '-e', 'theme', 'light', size='850x880')]
 STEPS += [inst(name, cls) for name, cls in (

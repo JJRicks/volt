@@ -2,5 +2,4 @@
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
 multiword	"Custom map"
 multiword	"USGS (US)"
-sink	"map_basemap_enabled"
 sink	"map_basemap_explained"

@@ -47,7 +47,7 @@ import com.jjricks.volt.*;
  * 2026) to be named and pictured, the P50 named only (the catalog has no picture of it). {@code look} only takes the
  * pictures, so the same file run on an older build gives the before pictures. Sends no scooter command.
  */
-public final class ModelPhotosValidation extends Instrumentation {
+public final class ModelPhotosValidation extends ValidationInstrumentation {
     /** Every scooter Model ID in the catalog. */
     private static final String[] CATALOG = {"27452", "25463", "25093", "26432", "26202", "26192", "26122", "26232", "26342", "26112", "26142",
             "25431", "25852", "24492", "26582", "25432", "26572", "25732", "25472", "25382", "25462", "25452", "25172", "25362", "25092", "25292",

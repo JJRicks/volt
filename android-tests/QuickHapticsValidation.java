@@ -25,7 +25,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable emulator regression: real Quick access touches and system vibrator history. */
-public final class QuickHapticsValidation extends Instrumentation {
+public final class QuickHapticsValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private final Bundle result = new Bundle();
     private final ArrayList<String> checks = new ArrayList<>();

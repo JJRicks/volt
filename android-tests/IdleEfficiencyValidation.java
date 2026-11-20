@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.Activity;
 import android.app.Instrumentation;
@@ -36,7 +37,7 @@ import java.util.function.BooleanSupplier;
  * reports the counts and the service state without asserting them (for a run on main); part (notice, window, simulator)
  * runs one section.
  */
-public final class IdleEfficiencyValidation extends Instrumentation {
+public final class IdleEfficiencyValidation extends ValidationInstrumentation {
     private static final long S = 1000L;
     private static final byte OFF = 0;
     private MainActivity activity;

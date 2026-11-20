@@ -53,7 +53,7 @@ import com.jjricks.volt.ScooterService;
  *
  * Arguments: size_label (for the evidence's names). The step's window size decides one pane or two.
  */
-public final class ChargeTransitionValidation extends Instrumentation {
+public final class ChargeTransitionValidation extends ValidationInstrumentation {
     private Bundle args;
     private MainActivity activity;
     private ScooterService service;
@@ -65,7 +65,8 @@ public final class ChargeTransitionValidation extends Instrumentation {
     private final StringBuilder notes = new StringBuilder();
     private float density = 1;
 
-    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
+    // Frame by frame, the glow's hand-over and its held pulse: the endless animations run here as on a phone.
+    @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; runEndlessMotion(); start(); }
 
     @Override public void onStart() {
         Bundle result = new Bundle();

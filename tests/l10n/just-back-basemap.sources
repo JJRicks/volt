@@ -1,0 +1,4 @@
+# Clean Home's Just back basemap (owner, Nov 19 2026): its own preference, its backup round trip and the card's map
+# geometry (JustBackBasemap). The backup classes, BackupTestStore and DiagnosticsSettings are compiled by tests/run.sh.
+src/com/jjricks/volt/JustBackBasemap.java
+tests/l10n/JustBackBasemapTest.java

@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /** Isolated synthetic SQLite fixtures; never connects Bluetooth or touches real app databases. */
-public final class HistoryValidation extends Instrumentation {
+public final class HistoryValidation extends ValidationInstrumentation {
     private static final long DAY = 86400000L;
     private final ArrayList<String> checks = new ArrayList<>();
     private File directory;

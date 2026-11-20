@@ -22,6 +22,28 @@ public final class MapPreferences {
     private MapPreferences() { }
     static boolean enabled(SharedPreferences settings) { return settings.getBoolean("map_basemap_enabled", false); }
 
+    /** The basemap switch's name, "Basemap": the ride maps' switch, and the Just back card's round one (JustBackView). */
+    static String basemapName() { return T.mapsBasemap(); }
+
+    /** Clean Home's Just back card's own basemap (JustBackBasemap.KEY), off unless turned on there. */
+    static boolean justBackEnabled(SharedPreferences settings) { return settings.getBoolean(JustBackBasemap.KEY, false); }
+
+    /**
+     * Turns the Just back card's basemap on or off; changed runs once the switch has its answer. Off is at once. On is
+     * at once when the privacy explanation the ride maps share was approved (map_basemap_explained); otherwise the
+     * explanation shows first, so no tile is requested before it, and only its approval turns the card's basemap on,
+     * never the ride maps' (the owner: its own preference). Returns the explanation while it shows, else null.
+     */
+    static AlertDialog setJustBack(ScreenHost host, boolean on, Runnable changed) {
+        SharedPreferences settings = host.appSettings();
+        MapSource.keepPin(settings);
+        if (on && !settings.getBoolean("map_basemap_explained", false))
+            return consent(host, JustBackBasemap.KEY, changed, dialog -> changed.run());
+        settings.edit().putBoolean(JustBackBasemap.KEY, on).apply();
+        changed.run();
+        return null;
+    }
+
     /** One remembered choice, shared by inline maps, expanded maps and app preferences. */
     static View basemapControl(ScreenHost host, Consumer<Boolean> changed) {
         return new BasemapControl(host, changed);
@@ -45,9 +67,9 @@ public final class MapPreferences {
             Ui ui = host.ui();
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(T.mapsBasemap());
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(basemapName());
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
-            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(T.mapsBasemap());
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(basemapName());
             ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
             // The old-default USGS pin is written down before anything here can turn the basemap off (MapSource.keepPin).
             MapSource.keepPin(settings);
@@ -80,7 +102,7 @@ public final class MapPreferences {
 
         private void explain() {
             if (!isAttachedToWindow() || (prompt != null && prompt.isShowing())) return;
-            prompt = consent(host, this::refresh, dialog -> { if (prompt == dialog) prompt = null; refresh(); });
+            prompt = consent(host, "map_basemap_enabled", this::refresh, dialog -> { if (prompt == dialog) prompt = null; refresh(); });
         }
 
         @Override protected void onAttachedToWindow() {
@@ -99,9 +121,10 @@ public final class MapPreferences {
     /**
      * The one copy of the map privacy fact; approval enables tiles and is remembered. It names the provider
      * the basemap will use, and approval saves that provider when none is saved, so a later change of
-     * Volt's default never moves an approved basemap to a provider that was not named (MapDefault).
+     * Volt's default never moves an approved basemap to a provider that was not named (MapDefault). key is the switch
+     * the approval turns on: the ride maps' map_basemap_enabled, or the Just back card's own (JustBackBasemap.KEY).
      */
-    private static AlertDialog consent(ScreenHost host, Runnable approved, Consumer<AlertDialog> closed) {
+    private static AlertDialog consent(ScreenHost host, String key, Runnable approved, Consumer<AlertDialog> closed) {
         Ui ui = host.ui(); SharedPreferences settings = host.appSettings();
         MapSource named = MapSource.load(settings);
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
@@ -115,7 +138,7 @@ public final class MapPreferences {
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll)
                 .setNegativeButton(T.commonCancel(), null)
                 .setPositiveButton(T.mapsConsentEnable(), (d, which) -> {
-                    SharedPreferences.Editor approval = settings.edit().putBoolean("map_basemap_enabled", true)
+                    SharedPreferences.Editor approval = settings.edit().putBoolean(key, true)
                             .putBoolean("map_basemap_explained", true);
                     if (!settings.contains(MapDefault.URL_KEY)) named.put(approval);
                     approval.apply();
@@ -204,7 +227,61 @@ public final class MapPreferences {
             }
             // Do not show an enabled state or start tile requests before approval.
             if (!isAttachedToWindow() || (prompt != null && prompt.isShowing())) { refresh(); return; }
-            prompt = consent(host, this::refresh, dialog -> { if (prompt == dialog) prompt = null; refresh(); });
+            prompt = consent(host, "map_basemap_enabled", this::refresh, dialog -> { if (prompt == dialog) prompt = null; refresh(); });
+        }
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            settings.registerOnSharedPreferenceChangeListener(preferenceChanged); listening = true;
+            refresh();
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            if (listening) { settings.unregisterOnSharedPreferenceChangeListener(preferenceChanged); listening = false; }
+            if (prompt != null) prompt.dismiss();
+            super.onDetachedFromWindow();
+        }
+    }
+
+    /**
+     * Map settings' switch for the Just back card's own basemap (JustBackBasemap.KEY), named Home (the card is Clean
+     * Home's), so it can be turned off or on without waiting for a ride (council, #560 r1). It stays its own preference:
+     * the selector above is the ride maps'. Turning it on goes through the shared explanation when it was never
+     * approved (setJustBack); a change anywhere else (the card, a restore) shows here at once.
+     */
+    private static final class JustBackControl extends LinearLayout {
+        private final ScreenHost host;
+        private final SharedPreferences settings;
+        private final Switch toggle;
+        private boolean updating, listening;
+        private AlertDialog prompt;
+        private final SharedPreferences.OnSharedPreferenceChangeListener preferenceChanged = (p, key) -> {
+            if (key == null || key.equals(JustBackBasemap.KEY)) refresh();
+        };
+
+        JustBackControl(ScreenHost host) {
+            super(host.activity());
+            this.host = host; this.settings = host.appSettings();
+            Ui ui = host.ui();
+            setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
+            setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
+            setTag("map-settings-just-back");
+            String name = HubText.title(HubPages.HOME).render();
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(name);
+            toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(name);
+            ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
+            refresh();
+            toggle.setOnCheckedChangeListener((button, on) -> {
+                if (updating || (prompt != null && prompt.isShowing())) return;
+                // Not on before an approval: refresh puts the switch back until the explanation's answer.
+                prompt = setJustBack(host, on, this::refresh);
+                refresh();
+            });
+        }
+
+        private void refresh() {
+            updating = true; toggle.setChecked(justBackEnabled(settings)); updating = false;
         }
 
         @Override protected void onAttachedToWindow() {
@@ -345,6 +422,7 @@ public final class MapPreferences {
         body.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(20));
         body.addView(ui.text(T.mapsSettingsTitle(), 22, true));
         body.addView(new ProviderControl(host));
+        body.addView(new JustBackControl(host));
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton(T.commonDone(), null).create();
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();

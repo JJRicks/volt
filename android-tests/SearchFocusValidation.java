@@ -44,7 +44,7 @@ import com.jjricks.volt.StatsScreen;
 import com.jjricks.volt.Telemetry;
 
 /** Real IME and touch checks on a fresh emulator; no scooter or radio changes. */
-public final class SearchFocusValidation extends Instrumentation {
+public final class SearchFocusValidation extends ValidationInstrumentation {
     private static final String[] PREFS = {"app_settings", "profiles", "scooter", "pending_documents", "onboarding"};
     private final List<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     private MainActivity activity;

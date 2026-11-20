@@ -22,7 +22,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable emulator only: verifies UI/guards/lifecycle without pretending BLE is connected. */
-public final class ChargeCaptureValidation extends Instrumentation {
+public final class ChargeCaptureValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

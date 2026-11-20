@@ -27,7 +27,7 @@ import com.jjricks.volt.ScooterSimulation;
  * every width from roomy to tiny, so it lands on each compact rung's exact boundary whatever the fonts: every chip it keeps
  * has to fit whole, gaps included, and the first one shown has to start at the row's edge. Simulator only; takes no screenshots.
  */
-public final class RidingChipRowValidation extends Instrumentation {
+public final class RidingChipRowValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private String profileId;
 

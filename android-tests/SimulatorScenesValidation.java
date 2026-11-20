@@ -56,7 +56,7 @@ import com.jjricks.volt.TelemetryHistory;
  * scene, capture or assertion here depends on an animation running; the pulses themselves are checked by
  * MotionPolishValidation (they animate with animations on, nothing else moves) and ChargePictureValidation.
  */
-public final class SimulatorScenesValidation extends Instrumentation {
+public final class SimulatorScenesValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private boolean admitted;
