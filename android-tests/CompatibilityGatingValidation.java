@@ -59,7 +59,7 @@ import com.jjricks.volt.T;
  * the app cache, copied next to the screenshots). The UT5 MAX connection read policy is compared
  * with the 1.3.1 arrays.
  */
-public final class CompatibilityGatingValidation extends Instrumentation {
+public final class CompatibilityGatingValidation extends ValidationInstrumentation {
     private static final String[][] MODELS = {{"", "ut5"}, {"24431", "mapped"}, {"39991", "unknown"}};
     // Synthetic private values: none of them may reach a shared or saved report.
     private static final String FIXTURE_NAME = "Synthetic compatibility fixture", FIXTURE_IDENTITY = "A1B2C3D4E5F6",

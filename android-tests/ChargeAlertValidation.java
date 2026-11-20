@@ -40,7 +40,7 @@ import com.jjricks.volt.*;
  * simulator), then delivery through the service's own notices and alarm, fed by a policy stepped with
  * synthetic readings. Sends no scooter command. Mode notifications-off runs without POST_NOTIFICATIONS.
  */
-public final class ChargeAlertValidation extends Instrumentation {
+public final class ChargeAlertValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;

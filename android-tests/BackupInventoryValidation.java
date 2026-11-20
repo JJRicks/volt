@@ -15,7 +15,7 @@ import java.util.Map;
  * (rides, charges, history, dashboards, map tiles, exports): every preference namespace and key,
  * and every storage root actually present, must be classified by the backup registry.
  */
-public final class BackupInventoryValidation extends Instrumentation {
+public final class BackupInventoryValidation extends ValidationInstrumentation {
     private int assertions;
     /** Written only by AppDataMaintenanceValidation to prove writers are frozen; not app storage. */
     private static final java.util.Set<String> TEST_MARKERS = new java.util.HashSet<>(java.util.Arrays.asList(

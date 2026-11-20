@@ -21,7 +21,7 @@ import org.json.*;
 import com.jjricks.volt.*;
 
 /** Explicit ADB-only validation; this runner is a separate APK, never a production component. */
-public final class ParkedValidation extends Instrumentation {
+public final class ParkedValidation extends ValidationInstrumentation {
     private Bundle args;private volatile ScooterService service;private final JSONArray results=new JSONArray();private boolean bound;private Boolean originalBackground;
     private Activity launchedActivity;private Map<String,Object> smokePreferences;private boolean smokeMode,reconnectAfterSmoke;
     private static final String[] SMOKE_PREFS={"background_connection","auto_connect","charge_live_enabled","scooter_section","stats_section","stats_query","stats_favourites","stats_favourite_order","stats_favourites_only","more_section"};

@@ -32,7 +32,7 @@ import com.jjricks.volt.ScooterService;
 import com.jjricks.volt.TelemetryHistory;
 
 /** Disposable fresh emulator only. Confirms a portable backup cannot race service writes. */
-public final class AppDataMaintenanceValidation extends Instrumentation {
+public final class AppDataMaintenanceValidation extends ValidationInstrumentation {
     private ScooterService service;
     private boolean bound;
     private int assertions;

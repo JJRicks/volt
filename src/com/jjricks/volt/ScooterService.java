@@ -933,15 +933,21 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Charger charger=effectiveChargeCharger();
         ChargeSessionStore.Curve curve=simulating()||chargeSnapshot==null||charger==null?null:chargeSnapshot.curves.get(ChargeSessionStore.key(activeProfileId(),charger));
         ScooterProfiles.Profile profile=profiles.active();
+        ChargingEstimate.Result shown;
         if(!canRetainStockReference()){
             chargeReferenceGate.reset();
-            return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
+            shown=ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve);
+        }else{
+            // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
+            long now=SystemClock.elapsedRealtime();
+            shown=ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
+                    profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
+                    chargeTaper.tracking(profile.id)?chargeTaper:null,chargeSlowdown.state(profile.id,now));
         }
-        // UT5 MAX reference curves only for the UT5 MAX layer; other models get live measured estimates.
-        long now=SystemClock.elapsedRealtime();
-        return ChargingEstimate.forScooter(baseline,soc,rated,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),charger,curve,chargeReferenceGate,
-                profile.id+":"+ble.currentTransportSerial(),chargingValue(readings,"current_a").observedMs,now,chargeProgress.progress(profile.id,now),
-                chargeTaper.tracking(profile.id)?chargeTaper:null,chargeSlowdown.state(profile.id,now));
+        // Display only, last: the current-rate times shown below 80% use this scooter's usable capacity from its own
+        // recordings (UsableCapacity); Charge done by's planning minutes stay the estimate's own.
+        return simulating()||chargeSnapshot==null?shown
+                :ChargingEstimate.withUsableCapacity(shown,baseline,soc,rated,chargeSnapshot.usableCapacity.get(activeProfileId()));
     }
 
     /**

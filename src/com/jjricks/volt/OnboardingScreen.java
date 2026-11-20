@@ -2517,7 +2517,7 @@ public final class OnboardingScreen implements AppScreen {
             paint.setStrokeWidth(stroke); paint.setColor(mode == ACTIVE ? ui.raised : ui.outline);
             canvas.drawOval(ring, paint);
             if (mode == ACTIVE) {
-                boolean moving = motionEnabled();
+                boolean moving = EndlessMotion.allowed(motionEnabled());
                 float angle = moving ? (android.os.SystemClock.uptimeMillis() % 1000L) * 0.36f : 0f;
                 paint.setColor(ui.accent);
                 canvas.drawArc(ring, angle - 90, 100, false, paint);

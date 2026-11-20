@@ -1124,7 +1124,7 @@ final class RidingScreen implements AppScreen {
         GradientDrawable fill = ui.shape(ui.accent, TOUCH_DP / 2, 0);
         if (look == RecordingPill.Look.RECORDING_PROBLEM) fill.setStroke(ui.dp(3), ui.orange);
         statusPill.setBackground(fill);
-        if (RecordingPill.pulses(look, Ui.motionEnabled())) {
+        if (RecordingPill.pulses(look, Ui.endlessMotionEnabled())) {
             pulse = ValueAnimator.ofFloat(1f, .35f);
             pulse.setDuration(900);
             pulse.setRepeatMode(ValueAnimator.REVERSE);

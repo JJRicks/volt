@@ -44,7 +44,7 @@ import com.jjricks.volt.ScooterService;
  * them, or charge_form=plain); measure then also reports when the charge model was first ready (owner, Nov 19 2026:
  * "if any of this slows down app launch we should separate it out").
  */
-public final class RidesTimingValidation extends Instrumentation {
+public final class RidesTimingValidation extends ValidationInstrumentation {
     private Bundle args;
     private final List<long[]> draws = new ArrayList<>();
     /** Main-thread messages: {start, end}, with labels in the same order. */

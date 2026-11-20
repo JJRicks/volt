@@ -28,7 +28,7 @@ import com.jjricks.volt.ScooterService;
  * it sits whole inside its cell, and checks a cell without the battery holds no gauge at all. The default layout's geometry is
  * written out so a build without this change can be compared with it ({@code -e only default}). Simulator only.
  */
-public final class RidingBatteryGaugeValidation extends Instrumentation {
+public final class RidingBatteryGaugeValidation extends ValidationInstrumentation {
     private static final String[] FOCUS_SLOTS = {"big", "highlight", "tile_1", "tile_2", "tile_3", "tile_4"};
     private static final int[][] WINDOWS = {{344, 882}, {850, 1100}, {882, 344}, {1100, 850}};
     private MainActivity activity;

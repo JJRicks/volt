@@ -69,7 +69,7 @@ import com.jjricks.volt.ScooterService;
  * binding saves (FirstConnectionValidation covers the binding itself). Synthetic identities only; none is printed.
  *   -e theme dark|light   -e text_scale 1|1.4   -e label <screen-size label for screenshot names>
  */
-public final class NewOwnerKeyValidation extends Instrumentation {
+public final class NewOwnerKeyValidation extends ValidationInstrumentation {
     private static final int PATH = 1, IMPORT = 6, IDENTITY = 7, CONNECT = 9, DONE = 10;
     private static final String NEW_ROUTE = "onboarding-path-new_key";
     private static final String UNOWNED = "Scooter is new or reset";

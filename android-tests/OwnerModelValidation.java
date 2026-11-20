@@ -33,7 +33,7 @@ import com.jjricks.volt.ScooterProfiles;
  * (bundled ahead of its Model ID) appears in My scooters and on Home, Change model starts from the answer, and Not
  * sure clears it. A scooter Volt identifies itself (the UT5 MAX) offers no such choice.
  */
-public final class OwnerModelValidation extends Instrumentation {
+public final class OwnerModelValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;

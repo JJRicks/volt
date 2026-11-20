@@ -15,7 +15,7 @@ import java.util.function.BooleanSupplier;
 import com.jjricks.volt.*;
 
 /** Disposable empty emulator only: actual private-storage merge, reopen, and the unified restore flow for a .voltrides file. */
-public final class RideBackupValidation extends Instrumentation {
+public final class RideBackupValidation extends ValidationInstrumentation {
     private String theme="dark";private boolean checkReopened;private int assertions;private Activity current;private Class<?> archive,storageType,preparedType,planType;
     @Override public void onCreate(Bundle args){if(args!=null){theme=args.getString("theme","dark");checkReopened="check-reopened-range".equals(args.getString("mode"));}start();}
     @Override public void onStart(){Bundle result=new Bundle();try{

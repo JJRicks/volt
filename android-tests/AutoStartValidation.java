@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import com.jjricks.volt.tests.ValidationInstrumentation;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Instrumentation;
@@ -38,7 +39,7 @@ import com.jjricks.volt.tests.HubTestPages;
  * revoke and clear its flags, again-offer-decline; grant, again-settings-grant; revoke and clear flags, again-offer-decline;
  * set user-set and user-fixed, again-dontask.
  */
-public final class AutoStartValidation extends Instrumentation {
+public final class AutoStartValidation extends ValidationInstrumentation {
     private MainActivity activity; private ScooterService service; private BleController ble;
     private ScooterProfiles.Profile profile; private FakeLink link; private int checks; private boolean admitted;
     private final List<String> screenshots = new ArrayList<>();

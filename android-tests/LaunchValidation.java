@@ -31,7 +31,7 @@ import com.jjricks.volt.ScooterService;
 import com.jjricks.volt.Ui;
 
 /** Fresh-emulator-only launch checks. Never grants permissions or contacts a scooter. */
-public final class LaunchValidation extends Instrumentation {
+public final class LaunchValidation extends ValidationInstrumentation {
     private Bundle arguments;
     private boolean admitted;
     private final List<Activity> activities = new ArrayList<>();
