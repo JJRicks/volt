@@ -230,8 +230,9 @@ charger (outside the 35% band, at least 1.8 times or at most half the saved
 power and 50 W apart, for a minute below 90%, not in a charge's first minute or
 right after a reconnect, with no recording running, no "Charging slowed", and
 the battery at 20–38 °C, where a high-speed recording would teach its curve:
-`learnsAtTemperature` above);
-that only suggests recording, never labels.
+`learnsAtTemperature` above).
+It never labels, and 2.0.1 shows nothing from it: no tip asks to record the
+other charger in that version.
 
 ## Validation
 

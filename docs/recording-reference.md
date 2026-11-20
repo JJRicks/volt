@@ -341,8 +341,8 @@ already charging starts then; the recording is partial.
   when the charger detection has nothing, the charger whose saved recordings'
   power at this battery level matches the live power (Auto's choice for
   estimates); it never replaces the charger setting, and a charge far off your
-  only recorded charger never labels anything (it only suggests recording that
-  charger). On a model without charger detection (every model but the UT5
+  only recorded charger gets no label from it (choosing that charger during the
+  recording, or recording it with Record this charge, teaches its curve). On a model without charger detection (every model but the UT5
   MAX), under Automatic, the first automatic recording with nothing to match
   (no recording of either charger teaches a curve yet) is the scooter's
   **stock baseline**: a stock guess, shown as a guess everywhere, that still

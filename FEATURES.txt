@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.0 (versionCode 60)
+Current version: 2.0.1 (versionCode 61)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,36 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.0
+NEW IN 2.0.1
+------------
+- Charging: on a UT5 MAX on the high-speed charger the charging pill says
+  Charging slowed, with battery cold (blue, snowflake) or battery hot
+  (red-orange, thermometer) and the temperature in your units, when the
+  battery holds the current down; the time shown allows for it and Charge
+  done by plans on the safe side. Top-ups on that charger are estimated
+  better before any recording.
+- Estimates learn more from recordings: Auto picks the charger whose saved
+  recordings match the live power (every model); Volt learns the charge
+  per gauge percent below 80% (every model); partial recordings join and a
+  single one counts provisionally (all but the UT5 MAX); high-speed
+  stretches outside 20-38 C (68-100 F) don't teach.
+- Charge recordings: up to 1,000 (about 150 MB), compressed on the phone,
+  the oldest going first whoever started them. Automatic ones take the
+  detected (UT5 MAX) or power-matched charger; on models without detection
+  the first is the stock baseline. Charge history & recordings shows What
+  Volt has learned for each charger, and Home's charging view has an
+  Improve this estimate tip until the scooter's first saved recording.
+- Home: Settings > Home style > Overview readings chooses the battery
+  card's two small readings; Just back has its own Basemap button (off by
+  default) and ride maps use finer tiles; Clean's charging view has
+  Widgets' draggable bar and two-time tile; Back from a ride opened on
+  Just back returns to Home; Find it nearby counts only while Home stays on
+  screen.
+- Riding mode's Lock, Record and tune show under 1 mph and stay 2 s past
+  it; a Lock tap while rolling waits up to 5 s for a full stop. All new
+  text is translated in all ten beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.0
 ------------
 - The Hub: Home leads to seven subjects (Ride, Battery & charging, Controls,
   Lights & sound, Security, Service, Data), each a short page; the tabs are
@@ -382,7 +411,7 @@ PREVIOUSLY IN 1.4.0
 - UT5 MAX automatic stock/high-speed charger selection, separate provisional
   charging curves and matching personal history. On every model (2.0.1), Auto also
   picks the charger whose saved recordings match the live power at this battery
-  level, and Volt can tell when a charge is far off the only recorded charger.
+  level.
   Ambiguous/unsupported cases fall back to live power; manual family overrides
   remain available.
 - Simpler homepage with the alternating lock/unlock demonstration.
@@ -1553,10 +1582,16 @@ and quick actions never move between them. The parked battery card
 shows the scooter's photo right of the charge and range, and two small
 readings under its bar: Odometer and Drive mode until changed in Settings >
 Home style > Overview readings. While charging, Clean's
-charging view sits on the page: "Charging to your 90% limit" (or "Charging"),
+charging view sits on the page: "Charging to your 90% limit" (or "Charging";
+on a UT5 MAX on the high-speed charger held back by a cold or hot battery,
+"Charging slowed · battery cold (53°)" in blue or "battery hot" in red-orange),
 the charge centred with the scooter's photo large under and behind it on a red
-glow, the track with a tick at the limit, then two fixed tiles: Charging power
-and Time to 90% (Time to full without a limit). Where the view is too small,
+glow, then the bar along its foot: Widgets' draggable bar, drawn as Clean's
+track, with a mark at the charge limit (or at the charge alert's level on a
+model without one) to drag, or a light tick where the limit can't be changed
+from Volt. Then two tiles: Charging power and the time tile, which holds Time
+to 90% and Time to 100% (tap or swipe to switch, remembered on both Home
+styles), or Time to full without a limit or alert. Where the view is too small,
 nothing is dropped: the line shortens, the photo and then the charge get
 smaller, and only then the line goes; the tiles always stay, and in the
 shortest spaces the charge shrinks over them and gives way below a readable

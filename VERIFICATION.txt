@@ -1,3 +1,57 @@
+VOLT 2.0.1 — CHARGING SLOWED, ESTIMATES THAT LEARN MORE, WHAT VOLT HAS LEARNED, OVERVIEW READINGS, JUST BACK BASEMAP (versionCode 61)
+Draft, November 19, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.0 is in
+  it: #552 to #575, 24 of them. Two change no app code: #552 (the
+  hardware sweep's navigation step) and #553 (2.0.0's record in this
+  file). The language top-up for this release's new text and this
+  release's own version, changelog and docs come after them. The "record
+  this charger too" tip (#576, #577) is not in this release.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR, CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 292 steps on main at #575's merge, 28 more
+  than 2.0.0's 264, none gone: Clean's charging bar and time tile (9),
+  What Volt has learned (5), the charging pill's slowed states (4), the
+  Just back basemap (4), Overview readings (3) and the Improve this
+  estimate tip (3). Every validation registered in
+  android-tests/AndroidManifest.xml is covered (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Emulator validations hold Volt's endless animations (the charging glow
+  and pulses) still in steps that don't check motion, and bound the idle
+  wait (#569), so a busy screen can't stall a step for minutes. Motion
+  steps still run them.
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.0's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed, each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.]
+- Parked hardware sweep with the owner present: [PHASE 2: run-hardware-sweep
+  report.md outcomes on the candidate the owner installed, or say plainly
+  that it was not run.]
+- Charging slowed, the temperature-aware estimate and the top-up default
+  were checked by replaying recorded UT5 MAX charges from two scooters on
+  a computer (aggregate results in docs/validation/fast-charge-slowdown.md
+  and fast-charge-taper.md); the recordings stay private. The
+  usable-capacity rule was replayed the same way on another model's
+  stock-charger recordings (docs/validation/charge-capture.md). JVM tests
+  use synthesized charges only. None of this is a live check on a
+  charging scooter.
+- ModelRegistry.REPORTED is unchanged from 2.0.0 (22131, 23452, 24162,
+  24182, 25462, 25852): no compatibility report for a new Model ID is
+  recorded since then. Adding any that reached volt-reports@jjricks.com is
+  the owner's step.
+- Still owed on real hardware: Charging slowed on a real cold or hot
+  charge, the Improve this estimate tip and What Volt has learned on a
+  real scooter's recordings, riding mode's Lock and Record near a stop, a
+  first automatic recording on a model without charger detection, and
+  2.0.0's list below, Test scheduled charging included.
+
+--- Previous verification ---
+
 VOLT 2.0.0 — THE HUB: NEW HOME AND NAVIGATION, CLEAN HOME, MOTION, EVERY MODEL PICTURED (versionCode 60)
 Built and swept at commit 4a050efe on claude/release-2-0-0 (#550),
 November 17, 2026. Commits on #550 after 4a050efe change only test code
