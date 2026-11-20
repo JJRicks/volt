@@ -198,8 +198,15 @@ public final class ChargingPillValidation extends ValidationInstrumentation {
                 boolean normalShort = shown == chipShort && !slowed;
                 int index = normalShort ? 0 : Arrays.asList(rungs).indexOf(words.toString());
                 require(index >= 0, label + " " + name + ": the pill's words '" + words + "' are one of its rungs " + Arrays.toString(rungs));
-                if (shown == chipShort && slowed) require(index == rungs.length - 1, label + " " + name + ": Clean's short line holds the shortest rung");
-                if (shown == chip && rungs.length > 1) {
+                if (shown == chipShort && slowed) {
+                    require(index == rungs.length - 1, label + " " + name + ": Clean's short line holds the shortest rung");
+                    // The short form stands in only where it is shorter than the line (ChargingFit.plan, as for the
+                    // normal pill): never where the line already fits on one line (council P3 on #568).
+                    require(chipShort.getMeasuredHeight() < chip.getMeasuredHeight(), label + " " + name
+                            + ": the short line shows only where the line is taller (" + chipShort.getMeasuredHeight() + " vs " + chip.getMeasuredHeight() + " px)");
+                }
+                // Whichever line shows while slowed, its words are the longest rung that fits on one line.
+                if ((shown == chip || slowed) && rungs.length > 1) {
                     int room = (Integer) field(h, "pillRoom");
                     int extra = chip.getCompoundPaddingLeft() + chip.getCompoundPaddingRight();
                     for (int i = 0; i < index; i++)
@@ -232,6 +239,13 @@ public final class ChargingPillValidation extends ValidationInstrumentation {
             h.getGlobalVisibleRect(hr);
             boolean pillShown = shown != null && shown.getGlobalVisibleRect(pr);
             percent.getGlobalVisibleRect(nr);
+            if (slowed && pillShown) {
+                // The kept line sits inside the slot, above the percentage, and the percentage stays in the slot.
+                require(pr.top >= hr.top && pr.bottom <= hr.bottom, label + " " + name + ": the pill inside the slot " + pr + " in " + hr);
+                require(nr.bottom <= hr.bottom, label + " " + name + ": the percentage inside the slot " + nr + " in " + hr);
+                int digitsTop = nr.top + percent.getPaddingTop();
+                rung += ", " + Math.round((digitsTop - pr.bottom) / density) + " dp to the percentage's top padding edge";
+            }
             int pad = Math.round(12 * density);
             geometry.set(new int[] {hr.left, Math.max(0, pillShown ? pr.top - pad : hr.top), hr.right,
                     Math.max(nr.bottom, pillShown ? pr.bottom : hr.top) + Math.round(8 * density),
