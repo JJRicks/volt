@@ -1,0 +1,5 @@
+# Home's charger tip (ChargeEstimateTip.Tip.OTHER_CHARGER): its words, its sheet's words and how Home and the sheet are wired.
+src/com/jjricks/volt/ChargeEstimateTip.java
+src/com/jjricks/volt/HubText.java
+src/com/jjricks/volt/HubPages.java
+tests/l10n/ChargerTipTextTest.java
