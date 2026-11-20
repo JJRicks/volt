@@ -57,6 +57,12 @@ final class JustBackView extends LinearLayout {
      * on the dark panel against plain dimming, which left a flat mid-grey map as bright as the text (Nov 19 2026).
      */
     private static final float DARK_SATURATION = .4f, DARK_CONTRAST = .85f, DARK_LIFT = 20;
+    /**
+     * The size a tile is drawn at its own zoom: half the ride maps' 256 dp (owner, Nov 19 2026: "let's get a finer map"),
+     * so the card asks for the zoom one finer than a ride map would at the same scale: crisper streets and smaller
+     * labels on the small panel, about four times the tiles (still only those the panel shows, through the same cache).
+     */
+    private static final int TILE_DP = 128;
     /** The route's casing over a map: RouteMapView's. */
     private static final int CASING = 0xff20242c;
     /** Below this height the route panel is not worth drawing; the words and tiles keep the space. */
@@ -576,10 +582,11 @@ final class JustBackView extends LinearLayout {
      * takes the top one), and the route is fitted clear of it: where the usual fit would put a fix, a stretch of the
      * route or a dot's ring under the switch's 48 dp target, the route is fitted again in the room beside it
      * (JustBackBasemap.touches), so the switch never covers the end dot. Switched on (JustBackBasemap.KEY, the card's own
-     * preference, off by default), map tiles from the ride maps' provider (MapSource) lie behind the route, with its
-     * credit in the other bottom corner and a dark casing under the route: the layer and each tile fade in, never pop,
-     * and in the dark theme the tiles are drawn dark (JustBackBasemap.darkTiles), so no white map flashes up on a dark
-     * Home. Until a tile arrives, and without a network, the panel stays as it is off, with no message.
+     * preference, off by default), map tiles from the ride maps' provider (MapSource) lie behind the route, one zoom
+     * finer than the ride maps draw them (TILE_DP), with its credit in the other bottom corner drawn over the route and a
+     * dark casing under the route: the layer and each tile fade in, never pop, and in the dark theme the tiles are drawn
+     * dark (JustBackBasemap.darkTiles), so no white map flashes up on a dark Home. Until a tile arrives, and without a
+     * network, the panel stays as it is off, with no message.
      */
     private static final class RouteView extends FrameLayout {
         private final ScreenHost host;
@@ -601,7 +608,7 @@ final class JustBackView extends LinearLayout {
         private android.app.AlertDialog prompt;
         private MapSource source;
         private MapTiles provider;
-        private final android.util.LruCache<String, Bitmap> tiles = new android.util.LruCache<String, Bitmap>(6 * 1024 * 1024) {
+        private final android.util.LruCache<String, Bitmap> tiles = new android.util.LruCache<String, Bitmap>(8 * 1024 * 1024) {
             @Override protected int sizeOf(String key, Bitmap value) { return value.getByteCount(); }
         };
         private final java.util.Set<String> pending = new java.util.HashSet<>();
@@ -756,7 +763,6 @@ final class JustBackView extends LinearLayout {
             float ox = fit[0], oy = fit[1], scale = fit[2];
             float layer = layer(SystemClock.uptimeMillis());
             if (layer > 0 && area != null) mapShown = drawTiles(canvas, layer);
-            if (mapShown) drawCredit(canvas, layer);
             if (layer > 0 && layer < 1) postInvalidateOnAnimation();
             float sx = ox + route[2] * scale, sy = oy + route[3] * scale;
             float ex = ox + route[route.length - 2] * scale, ey = oy + route[route.length - 1] * scale;
@@ -789,6 +795,8 @@ final class JustBackView extends LinearLayout {
             canvas.drawCircle(ex, ey, ui.dp(5), paint);
             paint.setColor(ui.ok);
             canvas.drawCircle(sx, sy, ui.dp(together ? 3 : 5), paint);
+            // The credit last, over the route (owner, Nov 19 2026: "draw the credit over"), so it always reads whole.
+            if (mapShown) drawCredit(canvas, layer);
         }
 
         /**
@@ -812,7 +820,7 @@ final class JustBackView extends LinearLayout {
          */
         private boolean drawTiles(Canvas canvas, float layer) {
             if (source == null) followSource();
-            double tilePx = ui.dp(256);
+            double tilePx = ui.dp(TILE_DP);
             double world = JustBackBasemap.world(route, area, fit[2], tilePx);
             int zoom = JustBackBasemap.tileZoom(world, tilePx, MapSource.maximumTileZoom(source.url));
             if (zoom < 0) return false;

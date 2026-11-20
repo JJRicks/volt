@@ -70,8 +70,8 @@ final class JustBackBasemap {
     }
 
     /**
-     * The tile zoom for a world of world px with tiles drawn tilePx at their own zoom (Volt's maps draw a 256 px tile at
-     * 256 dp): the zoom whose tiles are drawn at least their size, at most maxZoom; -1 when even maxZoom's tiles would be
+     * The tile zoom for a world of world px with tiles drawn tilePx at their own zoom (the ride maps draw a 256 px tile at
+     * 256 dp, the Just back card at 128 dp, one zoom finer): the zoom whose tiles are drawn at least their size, at most maxZoom; -1 when even maxZoom's tiles would be
      * drawn more than 8 times their size (a route only a few metres across), where a map would show nothing readable.
      */
     static int tileZoom(double world, double tilePx, int maxZoom) {
