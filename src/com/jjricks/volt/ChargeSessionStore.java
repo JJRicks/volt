@@ -389,8 +389,15 @@ public final class ChargeSessionStore {
          * not: both would sit at LEARN_SESSIONS, a tie, for good.)
          */
         private final Map<String,Integer> qualified;
+        /** Per profile: the usable capacity its recordings teach (UsableCapacity), any charger; absent for none. */
+        public final Map<String,UsableCapacity.Learned> usableCapacity;
         Snapshot(Map<String,Curve> curves,int sessions,long bytes){this(curves,sessions,bytes,Collections.emptyMap(),Collections.emptyMap());}
         Snapshot(Map<String,Curve> curves,int sessions,long bytes,Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge,Map<String,Integer> qualified){
+            this(curves,sessions,bytes,gaugeCharge,qualified,Collections.emptyMap());
+        }
+        Snapshot(Map<String,Curve> curves,int sessions,long bytes,Map<String,BatteryCapacityEstimate.ChargeEvidence> gaugeCharge,Map<String,Integer> qualified,
+                Map<String,UsableCapacity.Learned> usableCapacity){
+            this.usableCapacity=Collections.unmodifiableMap(new LinkedHashMap<>(usableCapacity));
             this.curves=Collections.unmodifiableMap(curves);this.sessions=sessions;this.bytes=bytes;
             this.gaugeCharge=Collections.unmodifiableMap(new LinkedHashMap<>(gaugeCharge));
             this.qualified=Collections.unmodifiableMap(new LinkedHashMap<>(qualified));
@@ -744,6 +751,7 @@ public final class ChargeSessionStore {
             if(files.size()<LEARN_SESSIONS){files.add(0,file);subjects.put(key,facts);}
         }
         Map<String,Curve> curves=new LinkedHashMap<>();
+        Map<String,List<double[]>> usable=new LinkedHashMap<>();
         for(Map.Entry<String,List<File>> item:chosen.entrySet()){
             // Oldest first, as before: the newest LEARN_SESSIONS, read now in full.
             List<Evidence> evidence=new ArrayList<>();
@@ -752,6 +760,8 @@ public final class ChargeSessionStore {
                 try{session=readSaved(file);}catch(FileNotFoundException removed){if(!file.exists())continue;throw removed;}
                 Evidence bins=session==null?null:session.evidence();
                 if(bins!=null)evidence.add(bins);
+                // The same recordings teach the scooter's usable capacity, whichever charger: charge per gauge percent.
+                if(bins!=null)usable.computeIfAbsent(session.profile,ignored->new ArrayList<>()).add(usableSteps(session));
             }
             Facts facts=subjects.get(item.getKey());
             if(!evidence.isEmpty())curves.put(item.getKey(),new Curve(facts.profile,facts.charger,evidence));
@@ -759,7 +769,34 @@ public final class ChargeSessionStore {
         Map<String,BatteryCapacityEstimate.ChargeEvidence> charge=new LinkedHashMap<>();
         for(Map.Entry<String,double[]> item:gauge.entrySet())
             charge.put(item.getKey(),new BatteryCapacityEstimate.ChargeEvidence(item.getValue()[0],item.getValue()[1],(int)item.getValue()[2]));
-        return new Snapshot(curves,sessions,bytes,charge,qualified);
+        Map<String,UsableCapacity.Learned> capacity=new LinkedHashMap<>();
+        for(Map.Entry<String,List<double[]>> item:usable.entrySet()){
+            UsableCapacity.Learned learned=UsableCapacity.combine(item.getValue());
+            if(learned!=null)capacity.put(item.getKey(),learned);
+        }
+        return new Snapshot(curves,sessions,bytes,charge,qualified,capacity);
+    }
+    /**
+     * {ampere-hours, steps} over a recording's whole-percent steps below UsableCapacity.BULK_LIMIT: each entered by a
+     * step up from the level below and left by a step up to the next, continuous (no gap, clock jump, rollback or
+     * skipped percent), its charge the integral of |current| over it. A step with a reading the charger and battery
+     * temperature keep from learning (learnsAtTemperature) does not count. The partly observed first level never counts.
+     */
+    static double[] usableSteps(Session session){
+        double total=0,ah=0,level=Double.NaN;int steps=0;boolean entered=false,counts=true;Point previous=null;
+        for(Point point:session.points){
+            boolean continuous=previous!=null&&!point.gap&&point.mono>previous.mono&&point.mono-previous.mono<=MAX_GAP_MS
+                    &&Math.abs((point.wall-previous.wall)-(point.mono-previous.mono))<=2000&&point.soc>=previous.soc&&point.soc-previous.soc<=1;
+            if(!continuous){level=point.soc;entered=false;ah=0;counts=learnsAtTemperature(session.charger,point.temperature);previous=point;continue;}
+            ah+=(point.mono-previous.mono)/3600000d*(Math.abs(previous.current)+Math.abs(point.current))/2;
+            counts&=learnsAtTemperature(session.charger,point.temperature);
+            if(point.soc>level){
+                if(entered&&level==Math.floor(level)&&point.soc<=UsableCapacity.BULK_LIMIT&&counts){total+=ah;steps++;}
+                level=point.soc;entered=true;ah=0;counts=learnsAtTemperature(session.charger,point.temperature);
+            }
+            previous=point;
+        }
+        return new double[]{total,steps};
     }
     /**
      * The analysis worker's upkeep, after a snapshot: compresses every finished plain recording (an older Volt's, a

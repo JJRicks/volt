@@ -1,5 +1,6 @@
 # Hard-coded English in src/com/jjricks/volt/ChargingEstimate.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	" Ah per 100%); Charge done by plans with the rated capacity."
 multiword	" Charge cutoff unknown; the 100% time assumes charging continues."
 multiword	" Charge done by plans with the longer of this and the estimate without past charges."
 multiword	" Charging is slowed by a cold battery; the time assumes the current rises in steps as the battery warms."
@@ -21,8 +22,10 @@ multiword	" Uncertain bulk timing limits how much shorter percentage-only histor
 multiword	" charges; live power is compatible at this battery level."
 multiword	" completed high-speed charge"
 multiword	" completed high-speed charge"
+multiword	" past charge"
 multiword	" qualified charges. "
 multiword	" while live power moves between saved charges. Time to displayed 100%; balancing may continue."
+multiword	"% the current rate uses the charge this battery's gauge took per percent in "
 multiword	"%, then a completed charge's own time from there"
 multiword	", some percents resting on one charge"
 multiword	", up to the time to 100%. Time to 100% uses pack voltage, charging current and this charge's own taper. "

@@ -161,6 +161,48 @@ last such reading; one hot or cold at its end teaches no finish.
   average, with Charge done by's margin still about 20 minutes. Nothing else
   moved by more than 0.02 minutes.
 
+### Learned usable capacity (usable-capacity-v1)
+
+The current-rate estimate assumes the rated capacity fills the battery gauge's
+0–100%. A battery controller can map a smaller share of the pack there; then
+every current-rate time reads long by the same factor (about 14% on one
+scooter whose gauge holds 87.5% of its rating). On every model, Volt learns the
+charge the scooter's own gauge takes per percent (`UsableCapacity`):
+
+- **Per recording:** its whole-percent steps below 80%, each entered by a step up
+  from the level below and left by a step up to the next, continuous (no gap,
+  clock jump, rollback or skipped percent), each step's charge the integral of
+  |current| over it. The partly observed first level never counts. A recording
+  counts with at least 10 steps; its value is its charge over its steps. A
+  high-speed charger's steps with the battery outside 20–38 °C don't count, as
+  for the learned curve.
+- **Across recordings** (the same recordings that teach curves, any charger): a
+  recording agrees when within 5% of the recordings' median (two recordings:
+  within 5% of each other). Two or more that agree give a robust value (their
+  mean); one recording gives a provisional value; two or more without two that
+  agree give none. 5%: one step's charge varies about 14% around its level's,
+  so a 10-step recording's own value is good to about 4.5%.
+- **Use:** below 80%, in place of the rated capacity, clamped to 0.8–1.0 times
+  rated, and only when below 0.97 times rated (a gauge that holds its rating
+  keeps the rated time exactly). Above 80% the rated capacity stays, the taper's
+  cushion. It is a display-only last pass over the finished estimate
+  (`ChargingEstimate.withUsableCapacity`): every time shown that is still the
+  rated-capacity current-rate time (time to 100%, to a limit or a charge alert's
+  level, and any part that past charges, a reference or a model don't set) is
+  shown with the learned capacity instead. A learned curve or bundled reference
+  that covers a target keeps its time. The label stays the current rate's; the
+  status names the capacity used.
+- **Charge done by** plans with exactly the minutes the estimate has without
+  this pass, on every path (held finishes, references, provisional fill-ins and
+  limits below 100% included), so it never plans with a shorter time than before.
+
+Replays: on a private set of stock-charger recordings from a model whose gauge
+holds about 87.5% of its rating, leave-one-out, the time to the level each
+charge reached went from 11.4 to 2.7 minutes average error (16.8 to 2.3 at the
+first reading), with about 5% of rows shown more than 5 minutes short and
+Charge done by unchanged. On private UT5 MAX recordings the gauge learns 99.7–
+100.8% of the rating, inside the dead band: no estimate changes.
+
 ## Validation
 
 - `bash tests/run.sh`: all 16 suites passed, 46,296 assertions/checks including 77
