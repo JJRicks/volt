@@ -102,8 +102,6 @@
     <string name="onboarding_path_identity">Saisir une clé de propriétaire de 12 caractères</string>
     <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
     <string name="onboarding_path_new_key">Créer une nouvelle clé de propriétaire</string>
-    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
-    <string name="onboarding_path_new_key_detail">Trottinette neuve ou réinitialisée · sans ordinateur</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Nécessite Android 11 ou version ultérieure</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -332,10 +330,6 @@
     <string name="onboarding_new_title">Créer une nouvelle clé de propriétaire</string>
     <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
     <string name="onboarding_new_body">Volt crée une clé de propriétaire et la conserve sur ce téléphone. Une trottinette sans propriétaire accepte la première clé qu’elle reçoit.</string>
-    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
-    <string name="onboarding_new_unowned">Trottinette neuve ou réinitialisée</string>
-    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
-    <string name="onboarding_new_unowned_detail">Jamais configurée, ou retirée de l’application NAVEE</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">L’application NAVEE ne peut pas ajouter cette trottinette tant qu’elle possède la clé de Volt. Pour revenir à l’application NAVEE, libérez d’abord la trottinette dans Volt.</string>
     <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->

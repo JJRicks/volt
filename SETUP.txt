@@ -129,19 +129,21 @@ You can also paste an existing 12-character identity or private setup backup
 under Settings → My scooters → Add with owner identity. Backup imports preserve owner/shared role.
 Never paste an account password or an HTTP token into this field.
 
-NEW OR RESET SCOOTER — NO COMPUTER
+SCOOTER NOT IN THE NAVEE APP — NO COMPUTER
 
-A scooter that has never been set up, or was removed from the NAVEE app, has
-no owner. In Volt's guided setup, choose Make a new owner key: Volt makes an
-owner key, keeps it only on this phone, and connects with it. Set it up in
-Volt before adding it in the NAVEE app. While it has Volt's key, the NAVEE app
-can't add it; release it in Volt first (Settings → My scooters, the pencil,
-Edit scooter → Release this scooter). A scooter already saved in Volt must be
-released from its saved profile first; setup refuses it otherwise. Once the
-key has been offered to a scooter, Volt keeps it, even if setup goes another
-way, and until that scooter is saved offers it to no other scooter unless
-that one refuses it; forget it later from My scooters. Back up Volt after it connects: the key is nowhere
-else. This route has not yet been tried on a real scooter.
+A scooter that was never added to the NAVEE app, or was removed from it, has
+no owner. A new scooter you already added in the NAVEE app does have one: copy
+its key instead (Chrome + USB). In Volt's guided setup, choose Make a new
+owner key: Volt makes an owner key, keeps it only on this phone, and connects
+with it. Set it up in Volt before adding it in the NAVEE app. While it has
+Volt's key, the NAVEE app can't add it; release it in Volt first (Settings →
+My scooters, the pencil, Edit scooter → Release this scooter). A scooter
+already saved in Volt must be released from its saved profile first; setup
+refuses it otherwise. Once the key has been offered to a scooter, Volt keeps
+it, even if setup goes another way, and until that scooter is saved offers it
+to no other scooter unless that one refuses it; forget it later from My
+scooters. Back up Volt after it connects: the key is nowhere else. This route
+has not yet been tried on a real scooter.
 
 IF CAPTURE DOES NOT WORK
 

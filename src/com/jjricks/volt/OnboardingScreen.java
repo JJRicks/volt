@@ -128,6 +128,8 @@ public final class OnboardingScreen implements AppScreen {
     private final SharedPreferences prefs;
     private final FrameLayout root;
     private final List<Runnable> updaters = new ArrayList<>();
+    /** Runs after each tap on the shown page's ticks, for a page whose button waits for a tick (the new-key page); null elsewhere. */
+    private Runnable tickChanged;
     private final List<AlertDialog> dialogs = new ArrayList<>();
     private LinearLayout page, content, footer;
     /** What scaffold() put in root: the page alone, or the step list and page side by side. */
@@ -596,6 +598,7 @@ public final class OnboardingScreen implements AppScreen {
         int keepStep = renderedKey.isEmpty() ? -1 : Integer.parseInt(renderedKey.substring(0, renderedKey.indexOf('|')));
         if (identityField != null) identityField.setText("");
         updaters.clear(); identityField = null; nameField = null; title = null; sheet = null;
+        tickChanged = null;
         root.removeAllViews();
         switch (step) {
             case WELCOME: welcome(); break;
@@ -1315,9 +1318,11 @@ public final class OnboardingScreen implements AppScreen {
     // ---------------------------------------------------------------- new owner key
 
     /**
-     * "Make a new owner key": for a scooter with no owner yet (new, or removed from the NAVEE app). Volt makes the key
-     * ({@link NewOwnerKey}) when the owner continues, saves it as an ordinary owner profile (role 0) and connects; the
-     * scooter takes it at the owner check. Nothing is sent from this page.
+     * "Make a new owner key": for a scooter that isn't in the NAVEE app (never added there, or removed from it), so it
+     * has no owner. Volt makes the key ({@link NewOwnerKey}) when the owner continues, saves it as an ordinary owner
+     * profile (role 0) and connects; the scooter takes it at the owner check. Nothing is sent from this page.
+     * Continue waits for the "isn't in the NAVEE app" tick ({@link NewKeyGate}); a scooter still in the NAVEE app
+     * refuses a made key, so the link under the note takes it to the recommended route, which copies its key.
      */
     private void newKey() {
         scaffold(true);
@@ -1326,10 +1331,13 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
         content.addView(group, gp);
+        // Each tap on a tick re-runs the page's updaters, so Continue follows the NAVEE tick at once.
+        tickChanged = this::runUpdaters;
         group.addView(tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail()));
         group.addView(tick("new1", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail()));
         TextView note = fine(T.onboardingNewNaveeNote());
         ((LinearLayout.LayoutParams) note.getLayoutParams()).topMargin = ui.dp(6);
+        copyKeyInstead();
         ScooterProfiles.Profile generated = generatedProfile();
         nameField = nameInput(generated == null || generated.nameDefault ? "" : generated.name);
         TextView next = primary(T.onboardingContinue(), this::makeNewKey);
@@ -1337,8 +1345,38 @@ public final class OnboardingScreen implements AppScreen {
         View starting = spinnerOn(next);
         updaters.add(() -> {
             boolean storeReady = profiles() != null;
-            next.setEnabled(storeReady);
+            // The normal disabled button until the "isn't in the NAVEE app" tick, as the typed-key page's Save waits for
+            // a whole key; the parked tick is a reminder and doesn't gate.
+            next.setEnabled(NewKeyGate.continueEnabled(storeReady, notInNaveeTicked()));
             starting.setVisibility(storeReady ? View.GONE : View.VISIBLE);
+        });
+    }
+
+    /** The new-key page's "Scooter isn't in the NAVEE app" tick, kept with setup's progress like every tick. */
+    private boolean notInNaveeTicked() { return prefs.getBoolean(KEY_TICK + "new0", false); }
+
+    private void runUpdaters() { for (Runnable updater : updaters) updater.run(); }
+
+    /**
+     * The new-key page's way out, under the NAVEE note, for a scooter that's in the NAVEE app: like the import page's
+     * links that switch routes, it chooses the recommended Chrome/USB route and opens its first page, Before you start,
+     * whose Back returns to the choices with that route selected. It works ticked or not. The narrow-label ladder: the
+     * full line while it fits on one line, else its short rung (which may still wrap, only at spaces, at large text).
+     */
+    private void copyKeyInstead() {
+        String full = T.onboardingNewCopyInstead(), brief = T.onboardingNewCopyInsteadShort();
+        TextView instead = link(full, () -> {
+            prefs.edit().putString(KEY_PATH, WEBADB).apply();
+            go(PREPARE);
+        });
+        instead.setTag("onboarding_new_copy_instead");
+        instead.setContentDescription(full);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(6);
+        content.addView(instead, lp);
+        instead.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int room = right - left - v.getPaddingLeft() - v.getPaddingRight();
+            CharSequence pick = TileRung.pick(full, instead.getPaint().measureText(full, 0, full.length()), brief, room);
+            if (TileRung.needsSet(pick, instead.getText())) instead.setText(pick.toString());
         });
     }
 
@@ -1373,7 +1411,7 @@ public final class OnboardingScreen implements AppScreen {
      */
     private void makeNewKey() {
         ScooterProfiles store = profiles();
-        if (store == null) return;
+        if (!NewKeyGate.continueEnabled(store != null, notInNaveeTicked())) return;
         if (!prepareProfileChange()) return;
         // As with a typed key: an owner file picked earlier in this flow but not yet applied is dropped, with its name.
         File abandoned = pendingOwnerFile();
@@ -2119,6 +2157,7 @@ public final class OnboardingScreen implements AppScreen {
         card.setOnClickListener(v -> {
             prefs.edit().putBoolean(KEY_TICK + key, !prefs.getBoolean(KEY_TICK + key, false)).apply();
             style.run();
+            if (tickChanged != null) tickChanged.run();
         });
         style.run();
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.bottomMargin = ui.dp(10);

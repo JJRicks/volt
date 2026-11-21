@@ -102,8 +102,6 @@
     <string name="onboarding_path_identity">Wpisz 12-znakowy klucz właściciela</string>
     <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
     <string name="onboarding_path_new_key">Utwórz nowy klucz właściciela</string>
-    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
-    <string name="onboarding_path_new_key_detail">Nowa lub zresetowana hulajnoga · bez komputera</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Wymaga systemu Android 11 lub nowszego</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -332,10 +330,6 @@
     <string name="onboarding_new_title">Utwórz nowy klucz właściciela</string>
     <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
     <string name="onboarding_new_body">Aplikacja Volt tworzy klucz właściciela i przechowuje go na tym telefonie. Hulajnoga bez właściciela przyjmuje pierwszy otrzymany klucz.</string>
-    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
-    <string name="onboarding_new_unowned">Hulajnoga jest nowa lub zresetowana</string>
-    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
-    <string name="onboarding_new_unowned_detail">Nigdy nie była konfigurowana lub została usunięta z aplikacji NAVEE</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">Aplikacja NAVEE nie może dodać tej hulajnogi, dopóki ma ona klucz aplikacji Volt. Aby wrócić do aplikacji NAVEE, należy najpierw zrzec się hulajnogi w aplikacji Volt.</string>
     <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->

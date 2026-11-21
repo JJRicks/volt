@@ -2,7 +2,7 @@
 
 ## Behavior
 
-Every setup route so far needs an owner identity from a NAVEE account that already owns the scooter: captured with a helper, typed in, or imported from a backup. A scooter that's new, or was removed from the NAVEE app, has no owner, so a computer and the NAVEE app were needed before Volt could connect to it at all.
+Every setup route so far needs an owner identity from a NAVEE account that already owns the scooter: captured with a helper, typed in, or imported from a backup. A scooter that was never added to the NAVEE app, or was removed from it, has no owner, so a computer and the NAVEE app were needed before Volt could connect to it at all.
 
 **Make a new owner key** is a setup route for that case. Volt makes an owner key, stores it in a new scooter profile exactly like a captured or typed identity, and connects with it. The scooter takes it as its owner key, the same way it takes the first account that binds it in the NAVEE app.
 
