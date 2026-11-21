@@ -363,11 +363,17 @@ STEPS += [inst(f'maintenance-offline-{size_name(case)}', T + 'MaintenanceOffline
           for case in (PHONE, WIDE)]
 STEPS += [inst('riding-chip-row', T + 'RidingChipRowValidation', size='344x882')]
 STEPS += [inst('riding-chip-choices', T + 'RidingChipChoicesValidation')]
-# GPS accuracy: the riding reading in every state (no location permission at first; fixes from a GPS test provider) and the
-# ride graph's line, in English, German and both Portuguese. The translated runs are report only, as the other translated
-# steps are, so they stay out of the English text census.
+# GPS accuracy: the riding reading in every state (no location permission at first; fixes from a GPS test provider) in
+# English and every shipped language, at 344 dp (the narrowest chip row, where a state's words must fit its 130dp@17sp
+# budget) and in the wide window (725x604, the chip and tile looks only); and the ride graph's line in English, German and
+# both Portuguese. The translated runs are report only, as the other translated steps are, so they stay out of the English
+# text census.
+GPS_TAGS = ('',) + tuple(tag for tag, _ in shipped_languages())
 STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'riding',
-               *(('-e', 'locale', tag) if tag else ()), grant=NEARBY, report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
+               *(('-e', 'locale', tag) if tag else ()), grant=NEARBY, report_only=bool(tag)) for tag in GPS_TAGS]
+STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else '') + '-725', T + 'GpsAccuracyValidation', '-e', 'part', 'riding',
+               *(('-e', 'locale', tag) if tag else ()), '-e', 'size', '725x604', grant=NEARBY, report_only=bool(tag), size='725x604')
+          for tag in GPS_TAGS]
 STEPS += [inst('gps-accuracy-graph' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'graph',
                *(('-e', 'locale', tag) if tag else ()), report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),

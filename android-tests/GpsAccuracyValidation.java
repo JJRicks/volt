@@ -52,7 +52,8 @@ import com.jjricks.volt.ScooterService;
  * provider (appops mock_location), which stands in for the emulator's own GPS, so the test sets every fix's accuracy and can
  * leave ten seconds of silence. Checks that showing the reading starts no recorder and holds no wake lock or keep-screen-on,
  * that names follow the label ladder whole, that spoken text carries the value and unit, and that no coordinate is shown.
- * -e locale de (or pt-PT, pt-BR) runs the same in that app language.
+ * -e locale de (or any shipped language) runs the same in that app language. -e size 725x604 runs the chip and tile looks
+ * in that window instead of 344x882; the cramped spots (Trace, Focus, at their own sizes) run only in the 344x882 step.
  *
  * -e part graph: saved rides with a phone journal whose fixes vary in accuracy, with a gap and two very poor fixes; a ride
  * with no phone journal, one with a journal and no GPS, one with a single fix and one with two fixes across a gap. Checks the
@@ -70,6 +71,8 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
     private Bundle args;
     private MainActivity activity;
     private String profileId, immersivePrevious, locale = "";
+    /** The window the chip and tile looks run in (-e size, dp): the phone by default. */
+    private int homeWidth = 344, homeHeight = 882;
     private File evidence;
     private boolean testProvider;
     private final List<String> notes = new ArrayList<>();
@@ -92,6 +95,9 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
         Bundle result = new Bundle();
         String part = args.getString("part", "riding");
         locale = args.getString("locale", "");
+        String[] home = args.getString("size", "344x882").split("x");
+        homeWidth = Integer.parseInt(home[0]);
+        homeHeight = Integer.parseInt(home[1]);
         // The preference files as they were before this run: restored after an admitted run, and compared after a refused one.
         java.util.Map<String, java.util.Map<String, ?>> before = snapshot();
         java.util.Map<String, byte[]> files = prefFiles();
@@ -107,7 +113,7 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
             shell("settings put secure immersive_mode_confirmations confirmed");
             resized = true;
             shell("wm density 480");
-            size(344, 882);
+            size(homeWidth, homeHeight);
             if (!locale.isEmpty()) {
                 localeSet = true;
                 getTargetContext().getSystemService(LocaleManager.class).setApplicationLocales(LocaleList.forLanguageTags(locale));
@@ -353,6 +359,7 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
      * A live fix (metres > 0) is pushed before each look and always shows its value.
      */
     private void cramped(String label, String text, GpsAccuracy.State state, double metres) throws Exception {
+        if (!phoneHome()) return;
         String dash = str("riding_no_value");
         int[][] sizes = {{344, 882}, {412, 915}};
         float[] scales = {1f, 1.4f};
@@ -400,7 +407,7 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
                 }
             }
         } finally {
-            size(344, 882);
+            size(homeWidth, homeHeight);
             prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
         }
     }
@@ -413,6 +420,7 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
      * Terra on #428: every GPS state's dash is the same text, so a new state under it measured nothing and kept the dash.
      */
     private void underTheDash(String label, String text, GpsAccuracy.State state) throws Exception {
+        if (!phoneHome()) return;
         String notRecording = str("riding_gps_not_recording"), dash = str("riding_no_value");
         int[][] sizes = {{344, 882}, {412, 915}};
         float[] scales = {1f, 1.4f};
@@ -461,10 +469,13 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
             if (english && state == GpsAccuracy.State.OFF) require(exercised > 0, label + ": no size showed the dash for Not recording and the words for " + text);
             note(label + ": dash then words at " + exercised + " of 4 sizes");
         } finally {
-            size(344, 882);
+            size(homeWidth, homeHeight);
             prefs("app_settings").edit().putFloat("text_scale", 1.4f).commit();
         }
     }
+
+    /** True in the phone window: the cramped spots set their own sizes, so a run in another window leaves them to that step. */
+    private boolean phoneHome() { return homeWidth == 344 && homeHeight == 882; }
 
     private void requireState(String label, GpsAccuracy.State state) {
         await(() -> activity.service().gpsAccuracy(SystemClock.elapsedRealtime()).state == state, label + ": the reading is not " + state, 5000);
