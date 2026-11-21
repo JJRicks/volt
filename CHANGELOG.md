@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.0.4 — 2026-11-21
+
+Volt 2.0.4 is a small release: setup's **Make a new owner key** now says plainly that it's for a scooter that isn't in the NAVEE app, riding mode's GPS chip shows its words in every language, and a few fixes.
+
+- **Make a new owner key is for a scooter that isn't in the NAVEE app.** A scooter that is still in the NAVEE app already has an owner, and it refuses a key Volt makes. Setup's choice now reads **Not in the NAVEE app · no computer** (it said **New or reset scooter**), and **Continue** on its page waits until you tick **Scooter isn't in the NAVEE app**. If your scooter is in the NAVEE app, the new link **Already in the NAVEE app? Copy its key instead** takes you to the recommended Chrome/USB route.
+- **The GPS chip's words fit in every language.** With no reading to show, riding mode's GPS accuracy chip says **Not recording**, **Waiting** or **No fix**. In German, French and Italian some of these were too long for the chip, which showed a bare dash instead. They're shorter now, for example German **Nimmt nicht auf**, French **N'enregistre pas** and Italian **Non registra**, and two Polish ones are shorter too.
+- **Languages:** all new and changed text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Setup
+
+- **The new owner key page.** The first tick reads **Scooter isn't in the NAVEE app**, with **Never added there, or removed from it** under it. Until it's ticked, **Continue** is greyed out and makes nothing; unticking it greys Continue out again. The **Scooter parked and powered on** tick doesn't gate it. Setup still remembers your ticks.
+- **Already in the NAVEE app?** The link sits under the note about the NAVEE app and works ticked or not. On a narrow screen it reads **In the NAVEE app? Copy its key**; TalkBack reads the full line. It opens **Before you start** on the Chrome/USB route, and Back from there returns to the setup choices with Chrome/USB selected. **Settings › My scooters › Add a scooter** works the same way.
+
+### Charging
+
+- **Charge done by's measurement is no longer cut short by a scooter change.** While Charge done by measures the charge, which takes up to about 12 minutes, **Use** on another scooter, adding or forgetting one, **Find at a new address** and Home's **Find it nearby** could disconnect the scooter being measured, and the plan then ended without being set. They now wait and say **Wait for Charge done by to finish measuring**, and Home's **Find it nearby** offer stays hidden until the measurement ends. An owner file waiting to be imported applies once it ends.
+
+### Issue reports
+
+- **Diagnostics say how your scooter was set up.** With **Include diagnostics** ticked, a report now says how the selected scooter's owner key reached Volt (made by Volt, typed, captured with Shizuku, or from a helper's file or another setup file), the state of a key Volt made (for example offered and refused), whether you're its owner or a shared user, whether a key, Bluetooth address and serial number are saved, the Model ID it advertises and how many scooters are saved. It never includes the key, the address, the serial or the scooter's name. A scooter set up before 2.0.4 reports its route as unknown, unless Volt made its key.
+
+### Upgrading and going back
+
+- Nothing needs doing to update, and scooters you've already set up keep working as before. Charge recordings and exports keep 2.0.3's format.
+- A backup made by 2.0.4 restores only in 2.0.4 or later: Volt 2.0.3 refuses it and says the backup needs a newer app version.
+
 ## 2.0.3 — 2026-11-20
 
 Volt 2.0.3 is a small release: the live charging card now says when a charge recording is waiting for the charger, with the battery level, and What Volt has learned shows the scooter's own battery-percent jump instead of calling it missing data.

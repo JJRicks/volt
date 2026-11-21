@@ -1,3 +1,87 @@
+VOLT 2.0.4 — MAKE A NEW OWNER KEY IS FOR A SCOOTER NOT IN THE NAVEE APP, THE GPS CHIP'S WORDS FIT, FIXES (versionCode 64)
+Draft, November 21, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.3
+  (2b57b2cb) is in it: the riding GPS chip's state words get a width
+  budget and riding steps in every language (#603), with shorter de, fr,
+  it and pl texts that fit it (#604); Charge done by's measuring window
+  refusing a scooter change (#605); report diagnostics saying how the
+  selected scooter's owner key was set up (#608); and Make a new owner key
+  as the route for a scooter not in the NAVEE app, with Continue waiting
+  for its tick and a link to the Chrome/USB route (#609). #602 (2.0.3's
+  record in this file) changes docs only, and #606 and #607 (sweep steps
+  starting in touch mode and putting back the device state they change)
+  change test tooling only; none changes the app. The language top-up for
+  this release's five new and changed setup texts and this release's own
+  version, changelog and docs come after them.
+  [PHASE 2: the last PR number merged before the release commit; for each
+  PR, CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 315 steps on main at #609's merge, 18 more
+  than 2.0.3's 297, all from #603: gps-accuracy-riding-<tag> now runs for
+  every shipped language (es, fr, it, nl, pl, sv and tr join de, pt-PT and
+  pt-BR), and gps-accuracy-riding[-<tag>]-725 runs the same chip in the
+  725x604 window for English and each language. The English 725 step
+  gates; the translated ones report only. #606 and #607 change how steps
+  start and end, not the list, and #608 and #609 add checks to
+  new-owner-key-*, compat-gating and report-diagnostics-*. Every
+  validation registered in android-tests/AndroidManifest.xml is covered
+  (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit. Before the top-up, 5 keys
+  per language fell back to English: onboarding_path_new_key_detail,
+  onboarding_new_unowned, onboarding_new_unowned_detail (#609 rewords
+  them, so their old translations are dropped), onboarding_new_copy_instead
+  and onboarding_new_copy_instead_short (new in #609).]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.3's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed (from
+  --merge for a split sweep, with its pseudo-locale note), each rerun and
+  why, numbers after reruns, rides-timing, ride auto-save.] The sweep runs
+  on the shared test machines and this Mac, under the owner's standing
+  approval for release candidates on the shared test machines (RELEASING.md
+  step 4, from November 20, 2026). gps-accuracy-riding-de, which stopped
+  at its own check in every release sweep through 2.0.3, is expected to
+  pass now that #604's German text fits.
+- No parked hardware sweep. The owner decided 2.0.4 ships without one, as
+  for 2.0.2 and 2.0.3 (a small release), so this release is checked on
+  emulators and by tests only, and nothing in it was tried on a real
+  scooter. Not yet tried on real hardware: the new-key route's tick and
+  link on a phone, a Charge done by measurement refusing a scooter change
+  during a real charge, the diagnostics' scooter_setup section in a report
+  from a real setup, and everything 2.0.3's list below still owes.
+- The new-key route (#609) was checked by NewKeyRouteTest (the gate's
+  truth table, the English with its no-break spaces, the link's
+  full-or-short ladder measured with Saira at 14.5 sp, the wiring) and on
+  an Android 16 emulator (new-owner-key-344, -725 and -725-large,
+  first-connection, reveal-motion-onboarding, launch-denied and
+  launch-granted): Continue disabled until the NAVEE tick, the parked tick
+  alone not enabling it, the link's rung and spoken text, the link landing
+  on Before you start with Chrome/USB chosen, ticked or not, and Back
+  returning to the routes with nothing made.
+- The measuring guard (#605) was checked by ScooterChangeMeasureTest only
+  (the guard's line and order, and that Use and Home's Find reach it
+  first). It wasn't run on an emulator: the in-app simulator can't start
+  a Charge done by measurement.
+- The diagnostics section (#608) was checked by KeyRouteTest (every route
+  word, a made key's states through NewOwnerKey's own record functions,
+  every field of the section, and a profile stuffed with its own name,
+  serial, MAC, key and id, which the file still leaves out) and on an
+  emulator (new-owner-key-344, report-diagnostics-dark, compat-gating,
+  first-connection, my-scooters-344). format stays volt-diagnostics-v1:
+  G9's golden file is byte-identical.
+- The GPS chip's texts (#603, #604) were checked by ship_check's width
+  budget (130dp@17sp, Saira Medium): all 30 texts fit.
+- ModelRegistry.REPORTED is unchanged from 2.0.3 (22131, 23452, 24162,
+  24182, 25462, 25852): the one report received since 2.0.3 carried no
+  compatibility report, so no new Model ID is recorded. Adding any that
+  reaches volt-reports@jjricks.com is the owner's step.
+
+--- Previous verification ---
+
 VOLT 2.0.3 — A PAUSED CHARGE RECORDING'S CARD SHOWS THE LEVEL, WHAT VOLT HAS LEARNED NAMES THE SCOOTER'S % JUMP (versionCode 63)
 Built, swept and tagged at commit 2b57b2cb, #601's merge into main,
 November 20, 2026. That merge is the release commit (RELEASING.md step

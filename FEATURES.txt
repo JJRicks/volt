@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.3 (versionCode 63)
+Current version: 2.0.4 (versionCode 64)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,27 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.3
+NEW IN 2.0.4
+------------
+- Setup: Make a new owner key is for a scooter that isn't in the NAVEE app
+  (the choice reads Not in the NAVEE app · no computer, was New or reset
+  scooter); its Continue waits for the "Scooter isn't in the NAVEE app"
+  tick, and a link, "Already in the NAVEE app? Copy its key instead" (short
+  rung "In the NAVEE app? Copy its key"), opens the Chrome/USB route.
+- Riding mode: the GPS accuracy chip's state words (Not recording, Waiting,
+  No fix) have a width budget (130 dp at 17 sp); the de, fr, it and pl
+  texts over it are shorter, so the chip row shows a word, not the dash, in
+  every language (Trace's and Focus's cramped spots keep their dash).
+- Charge done by's measuring window refuses a scooter change (Use, add,
+  forget, Find at a new address, Find it nearby) with "Wait for Charge done
+  by to finish measuring", so the measured scooter stays connected.
+- Report diagnostics: a scooter_setup section says how the selected
+  scooter's owner key was set up (made, typed, Shizuku, helper or setup
+  file), a made key's state, the role, and whether a key, address and
+  serial are saved; never the values. All new and changed text is
+  translated in all ten beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.3
 ------------
 - Charging: while a charge recording waits for a stopped charger, the
   plain live charging card's title is the recording with the level
@@ -374,7 +394,8 @@ PREVIOUSLY IN 1.5.0
   Permissions need granting again; Bluetooth pairing stays with the phone.
 - One Back up & restore in More, full by default, also offered during setup.
 - My scooters lists every scooter, switches without connecting, and refuses to
-  save a scooter already saved under another name.
+  save a scooter already saved under another name. A scooter change waits
+  for a charge recording or Charge done by's measuring window to end.
 - UT5 MAX standard-charger estimates from pack voltage and charge age (v6), with
   a cautious Charge done by plan, an optional measuring window and recordings
   that survive the scheduled pause.
