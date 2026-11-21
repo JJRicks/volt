@@ -102,8 +102,6 @@
     <string name="onboarding_path_identity">Eigenaarssleutel van 12 tekens invoeren</string>
     <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
     <string name="onboarding_path_new_key">Nieuwe eigenaarssleutel maken</string>
-    <!-- src:f695e6ad02bbc18ce4a1b414e86bc381381229a9 -->
-    <string name="onboarding_path_new_key_detail">Step nieuw of gereset · geen computer</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Android 11 of nieuwer vereist</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -332,10 +330,6 @@
     <string name="onboarding_new_title">Nieuwe eigenaarssleutel maken</string>
     <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
     <string name="onboarding_new_body">Volt maakt een eigenaarssleutel en bewaart die op deze telefoon. Een step zonder eigenaar neemt de eerste eigenaarssleutel aan die hij krijgt.</string>
-    <!-- src:44c901a962ae29ccdd339e0a6798a06f29b0bbaa -->
-    <string name="onboarding_new_unowned">Step is nieuw of gereset</string>
-    <!-- src:5b3d1d715451f3597301465890a2b78cac6c06c2 -->
-    <string name="onboarding_new_unowned_detail">Nooit ingesteld, of verwijderd uit de NAVEE-app</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">De NAVEE-app kan deze step niet toevoegen zolang hij de eigenaarssleutel van Volt heeft. Wil je terug, geef hem dan eerst vrij in Volt.</string>
     <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->

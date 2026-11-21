@@ -40,6 +40,11 @@ import com.jjricks.volt.ScooterService;
  * Disposable emulator only: fresh app data, Bluetooth off, Nearby devices granted. Setup's "Make a new owner key" route
  * through the real screens and stores, under the rule that setup never deletes a made key once any scooter was offered it:
  *   - the route list (the new route second, after the recommended one) and the new-key page, which makes nothing;
+ *   - the new-key page's Continue: disabled until "Scooter isn't in the NAVEE app" is ticked (the parked tick alone
+ *     never enables it), enabled at once when it is, disabled again when it is unticked, and remembered with setup's
+ *     progress; the link under the NAVEE note ("Already in the NAVEE app? Copy its key instead", or its short rung where
+ *     the full line doesn't fit one line), ticked or not, chooses Chrome/USB and opens Before you start, whose Back
+ *     returns to the routes with Chrome/USB selected;
  *   - Continue makes one owner key of NAVEE's shape, on disk with its record ("made", in app_settings) and setup's
  *     pointer to it before Connect, and reaching Connect alone ties it to no scooter; Back + Continue reuses it;
  *   - a key never offered (no owner check went out, as when the chooser is cancelled) may be replaced by a typed key,
@@ -71,8 +76,12 @@ import com.jjricks.volt.ScooterService;
  */
 public final class NewOwnerKeyValidation extends ValidationInstrumentation {
     private static final int PATH = 1, IMPORT = 6, IDENTITY = 7, CONNECT = 9, DONE = 10;
+    private static final int PREPARE = 2;
+    private static final String COPY_INSTEAD = "onboarding_new_copy_instead";
+    private static final String COPY_FULL = "Already in the NAVEE app? Copy its key instead", COPY_SHORT = "In the NAVEE app? Copy its key";
+    private static final String PARKED = "Scooter parked and powered on";
     private static final String NEW_ROUTE = "onboarding-path-new_key";
-    private static final String UNOWNED = "Scooter is new or reset";
+    private static final String UNOWNED = "Scooter isn't in the NAVEE app";
     private static final String REFUSED = "This scooter already has an owner, so it refused the new key. Remove it from the NAVEE app and try again, or set up another way.";
     private static final String OTHER_WAY = "Set up another way";
     private static final String DONE_NOTE = "Volt made this scooter's owner key, and it's only on this phone. Back up Volt so you can set it up on another phone.";
@@ -169,7 +178,7 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             require(order.size() >= 2 && "onboarding-path-webadb".equals(order.get(0)) && NEW_ROUTE.equals(order.get(1)),
                     "The new route is not second, after the recommended route: " + order);
             View option = tag(NEW_ROUTE);
-            require(text(option, "Make a new owner key") != null && text(option, "New or reset scooter · no computer") != null,
+            require(text(option, "Make a new owner key") != null && text(option, "Not in the NAVEE app\u00a0· no\u00a0computer") != null,
                     "New route copy");
             option.performClick();
         });
@@ -188,7 +197,93 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             require(first(root(), EditText.class) != null, "New-key page lost the name field");
             require(profiles().all().isEmpty(), "Opening the new-key page made a key");
         });
+        newKeyGate();
         shot("new-key");
+    }
+
+    /**
+     * Continue waits for "Scooter isn't in the NAVEE app": disabled at first, still disabled with only the parked tick,
+     * enabled at once by the NAVEE tick and disabled again without it. The link under the NAVEE note leaves for
+     * Chrome/USB, unticked and ticked, and Back from there returns to the routes with Chrome/USB selected; the tick is
+     * remembered when the page opens again. Ends on the new-key page with both ticks checked.
+     */
+    private void newKeyGate() throws Exception {
+        main(() -> {
+            require(!shown("Scooter is new or reset") && !shown("New or reset scooter · no computer"), "The old new-or-reset text is still shown");
+            require(shown("Never added there, or removed from it"), "The NAVEE tick's detail");
+            require(!onboarding().getBoolean("tick_new0", false) && !continueEnabled(), "Continue works before the NAVEE tick");
+            TextView next = continueButton();
+            require(next.getCurrentTextColor() == next.getTextColors().getColorForState(new int[]{-android.R.attr.state_enabled}, 0)
+                    && next.getVisibility() == View.VISIBLE, "Continue does not show as the normal disabled button");
+            // A click that reaches the disabled button anyway (performClick ignores enabled) still makes nothing.
+            next.performClick();
+        });
+        waitForIdleSync();
+        main(() -> require(step() == IDENTITY && profiles().all().isEmpty(), "A click on the disabled Continue made a key or left the page"));
+        shot("new-key-unticked");
+        copyInstead(false);
+        tickRow(PARKED);
+        main(() -> require(onboarding().getBoolean("tick_new1", false) && !continueEnabled(), "The parked tick alone enabled Continue"));
+        tickRow(UNOWNED);
+        main(() -> require(onboarding().getBoolean("tick_new0", false) && continueEnabled(), "The NAVEE tick did not enable Continue at once"));
+        tickRow(UNOWNED);
+        main(() -> require(!onboarding().getBoolean("tick_new0", false) && !continueEnabled(), "Unticking the NAVEE tick left Continue enabled"));
+        tickRow(UNOWNED);
+        main(() -> require(continueEnabled(), "Ticking again did not enable Continue"));
+        shot("new-key-ticked");
+        copyInstead(true);
+        main(() -> require(onboarding().getBoolean("tick_new0", false) && continueEnabled(), "The NAVEE tick was not remembered"));
+    }
+
+    /** The link under the NAVEE note: its rung, then a tap to Before you start, Back to the routes, and the new-key page again. */
+    private void copyInstead(boolean ticked) throws Exception {
+        String state = ticked ? "ticked" : "unticked";
+        main(() -> {
+            View link = tag(COPY_INSTEAD);
+            require(link instanceof TextView && link.isShown() && link.isEnabled() && link.isClickable(), "The copy-its-key link is missing (" + state + ")");
+            TextView view = (TextView) link;
+            String shownText = view.getText().toString();
+            float room = view.getWidth() - view.getPaddingLeft() - view.getPaddingRight();
+            boolean fullFits = view.getPaint().measureText(COPY_FULL) <= room;
+            require(shownText.equals(fullFits ? COPY_FULL : COPY_SHORT), "The link's rung: \"" + shownText + "\" with " + room + " px of room");
+            require(!fullFits || view.getLineCount() == 1, "The full link is not on one line");
+            require(textScale > 1f || view.getLineCount() == 1, "The link is not on one line at 1x text");
+            require(COPY_FULL.equals(String.valueOf(view.getContentDescription())), "The link's spoken text is not the full line");
+            View note = text(root(), "The NAVEE app can't add this scooter while it has Volt's key. To switch back, release it in Volt first.");
+            require(note != null && top(link) >= bottom(note), "The link is not under the NAVEE note");
+            link.performClick();
+        });
+        waitForIdleSync();
+        await(() -> step() == PREPARE && shown("Before you start"), "The link did not open Before you start (" + state + ")");
+        main(() -> require("webadb".equals(onboarding().getString("path", "")), "The link did not choose Chrome/USB"));
+        if (!ticked) shot("link-before-you-start");
+        main(() -> setup().back());
+        await(() -> step() == PATH && tag(NEW_ROUTE) != null, "Back from Before you start did not return to the routes");
+        main(() -> {
+            require(checked(tag("onboarding-path-webadb")), "Back from Before you start: Chrome/USB is not selected");
+            require(!checked(tag(NEW_ROUTE)), "Back from Before you start: the new route is still selected");
+            require(profiles().all().isEmpty(), "The link made a key");
+        });
+        if (!ticked) shot("link-back-routes");
+        click(NEW_ROUTE); clickText("Continue");
+        await(() -> step() == IDENTITY && shown(UNOWNED), "The new route did not open again after the link");
+    }
+
+    private boolean continueEnabled() { TextView c = continueButton(); return c != null && c.isEnabled(); }
+    private TextView continueButton() { return text(root(), "Continue"); }
+    private void tickRow(String heading) {
+        main(() -> {
+            View row = text(root(), heading);
+            while (row != null && !row.isClickable()) row = row.getParent() instanceof View ? (View) row.getParent() : null;
+            require(row != null, "No tick row for " + heading);
+            row.performClick();
+        });
+        waitForIdleSync();
+    }
+    private static boolean checked(View view) {
+        if (view == null) return false;
+        AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
+        try { return node.isCheckable() && node.isChecked(); } finally { node.recycle(); }
     }
 
     /**

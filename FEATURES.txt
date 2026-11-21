@@ -482,8 +482,10 @@ Existing parked write/readback checks below do not establish helper capture.
 
 NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (NEW IN 2.0.0)
 
-For a scooter with no owner (never set up, or removed from the NAVEE app),
-setup can make an owner key instead of capturing one: 88 and five random
+For a scooter with no owner (not in the NAVEE app: never added there, or
+removed from it), setup can make an owner key instead of capturing one. Its
+Continue waits for the "Scooter isn't in the NAVEE app" tick, and a link
+opens the Chrome/USB route for a scooter that is. The key is 88 and five random
 bytes, kept only in that scooter's profile on this phone. No computer, helper
 or NAVEE account is needed. The NAVEE app can't add the scooter while it has
 Volt's key; release it in Volt first. Once the key has been offered to a
