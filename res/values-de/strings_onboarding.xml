@@ -478,9 +478,9 @@
     <!-- src:ac9d30c02516108c170cc923800e5814ebf9193a -->
     <string name="onboarding_hero">Scooter NAVEE UT5 MAX</string>
     <!-- MOCK-UP ONLY: draft German for rendering, not a reviewed translation (the language pipeline translates later). -->
-    <string name="onboarding_mock_path_new_key_detail">Nicht in der NAVEE-App · kein Computer</string>
+    <string name="onboarding_mock_path_new_key_detail">Nicht in der NAVEE-App · kein Computer</string>
     <string name="onboarding_mock_new_unowned">Scooter ist nicht in der NAVEE-App</string>
     <string name="onboarding_mock_new_unowned_detail">Nie dort hinzugefügt oder daraus entfernt</string>
-    <string name="onboarding_mock_new_copy_instead">Schon in der NAVEE-App? Lies stattdessen den Besitzerschlüssel aus</string>
+    <string name="onboarding_mock_new_copy_instead">Schon in der NAVEE-App? Dann lies den Schlüssel aus</string>
     <string name="onboarding_mock_new_copy_instead_short">In der NAVEE-App? Schlüssel auslesen</string>
 </resources>

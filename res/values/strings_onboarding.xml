@@ -500,9 +500,10 @@
         volt:safety="owner-key" volt:dnt="Volt">Volt made this scooter\'s owner key, and it\'s only on this phone. Back up Volt so you can set it up on another phone.</string>
     <!-- MOCK-UP ONLY (claude/new-key-mockups, never merged as is): wording variants A to C for the new-key route,
          shown only when setup's mockup_variant switch says so. -->
-    <!-- Mock-up: under "Make a new owner key": it only works on a scooter that isn't in the NAVEE app; needs no computer. -->
+    <!-- Mock-up: under "Make a new owner key": it only works on a scooter that isn't in the NAVEE app; needs no computer.
+         No-break spaces keep "no computer" whole and the dot with "app", so a narrow card wraps at the dot. -->
     <string name="onboarding_mock_path_new_key_detail" volt:screen="Setup choices" volt:purpose="option detail"
-        volt:safety="owner-key" volt:dnt="NAVEE">Not in the NAVEE app · no computer</string>
+        volt:safety="owner-key" volt:dnt="NAVEE">Not in the NAVEE app · no computer</string>
     <!-- Mock-up checklist item: the scooter has no owner because the NAVEE app doesn't have it. -->
     <string name="onboarding_mock_new_unowned" volt:screen="New owner key" volt:purpose="checklist item"
         volt:safety="owner-key" volt:dnt="NAVEE">Scooter isn\'t in the NAVEE app</string>
