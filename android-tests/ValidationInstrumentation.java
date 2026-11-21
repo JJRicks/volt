@@ -7,10 +7,13 @@ import android.os.Looper;
 import android.os.MessageQueue;
 import android.os.SystemClock;
 import android.util.Log;
+import android.view.View;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * What every emulator validation shares: a waitForIdleSync with a time limit, and a hold on the app's never-ending
@@ -33,6 +36,9 @@ import java.util.concurrent.TimeUnit;
  * messages, and a screen that is still animating is reported once, in the log and in the step's result
  * ({@code idle_waits}), with the main thread's stack. If the main thread has not even run a message posted at the
  * call after {@link #BLOCKED_LIMIT_MS}, it is stuck, and the step fails saying so, with that stack.
+ *
+ * <p><b>Touch mode.</b> A check that sends key events runs through {@link #keysThenTouchMode}, which puts the display
+ * back in touch mode afterwards, passed or failed; see there.
  */
 public abstract class ValidationInstrumentation extends Instrumentation {
     private static final String TAG = "VoltValidation";
@@ -122,6 +128,54 @@ public abstract class ValidationInstrumentation extends Instrumentation {
                     + " endless motion " + (endlessMotionHeld() ? "held" : "running") + "); going on. Waiting at "
                     + caller + ". Main thread: " + stack);
         }
+    }
+
+    /** A check that sends key events, for {@link #keysThenTouchMode}. */
+    interface KeyCheck<E extends Exception> { void run() throws E; }
+
+    /** How long a window may take to hear that the display is back in touch mode. */
+    static final long TOUCH_MODE_LIMIT_MS = 10_000;
+
+    /**
+     * Runs a check that sends key events, then puts the display back in touch mode, whether the check passed or not.
+     *
+     * <p>A D-pad, Tab or Enter key, or a typed character (Instrumentation's sendKeyDownUpSync and sendStringSync are a
+     * hardware keyboard's keys), takes the display out of touch mode until a real touch. That is the device's state,
+     * not the app's: it outlives the app's reinstall between sweep steps, and out of it a focusable view that becomes
+     * visible while nothing has focus takes focus (ViewRootImpl.focusableViewAvailable), so a later step's focus checks
+     * failed (#606: the backups step's typed passwords, then reveal-motion-find-clean). Instrumentation.setInTouchMode
+     * sets it for the display, as a tap does; it stays set after the step's process ends (checked with dumpsys window's
+     * mInTouchMode after each step). When the check passed, the window (window, read afterwards) must then report touch
+     * mode within {@link #TOUCH_MODE_LIMIT_MS}; when it failed, touch mode is still set and the failure is what's thrown.
+     */
+    static <E extends Exception> void keysThenTouchMode(Instrumentation runner, Supplier<View> window, KeyCheck<E> check) throws E {
+        boolean passed = false;
+        try {
+            check.run();
+            passed = true;
+        } finally {
+            runner.setInTouchMode(true);
+            if (passed) {
+                long end = SystemClock.uptimeMillis() + TOUCH_MODE_LIMIT_MS;
+                AtomicBoolean back = new AtomicBoolean();
+                while (true) {
+                    runner.runOnMainSync(() -> {
+                        try { View view = window.get(); back.set(view != null && view.isInTouchMode()); }
+                        catch (RuntimeException gone) { back.set(false); }  // no window to ask yet: ask again
+                    });
+                    if (back.get()) break;
+                    if (SystemClock.uptimeMillis() > end)
+                        throw new IllegalStateException("The window did not go back to touch mode after the key checks");
+                    SystemClock.sleep(50);
+                }
+                runner.waitForIdleSync();
+            }
+        }
+    }
+
+    /** {@link #keysThenTouchMode(Instrumentation, Supplier, KeyCheck)} for this validation. */
+    protected final <E extends Exception> void keysThenTouchMode(Supplier<View> window, KeyCheck<E> check) throws E {
+        keysThenTouchMode(this, window, check);
     }
 
     /** The step's result carries the count of idle waits that ran out, when there were any. */

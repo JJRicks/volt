@@ -44,6 +44,8 @@ public final class RidingConfigMenuValidation extends ValidationInstrumentation 
     private File evidence;
     private String label = "normal";
     private String profileId;
+    /** immersive_mode_confirmations as the step found it (null: not read yet), put back as it ends. */
+    private String immersivePrevious;
     private int assertions;
 
     @Override public void onCreate(Bundle args) {
@@ -55,8 +57,10 @@ public final class RidingConfigMenuValidation extends ValidationInstrumentation 
         try {
             require(Build.HARDWARE.contains("ranchu") || Build.HARDWARE.contains("goldfish") || Build.PRODUCT.startsWith("sdk_gphone"), "Refusing physical device");
             require(prefs("profiles").getAll().isEmpty() && prefs("scooter").getAll().isEmpty(), "Refusing existing profiles; clear disposable app first");
-            // Android's one-time "viewing full screen" note would take the window focus these checks watch.
-            getUiAutomation().executeShellCommand("settings put secure immersive_mode_confirmations confirmed").close();
+            // Android's one-time "viewing full screen" note would take the window focus these checks watch. A device
+            // setting: what it was goes back as the step ends.
+            immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
+            shell("settings put secure immersive_mode_confirmations confirmed");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "riding-config-menu");
             require(evidence.mkdirs() || evidence.isDirectory(), "Evidence directory");
             main(() -> {
@@ -75,6 +79,10 @@ public final class RidingConfigMenuValidation extends ValidationInstrumentation 
             result.putInt("assertions", assertions);
             result.putStringArrayList("notes", notes);
             try { if (activity != null) main(() -> { activity.service().setSimulation(false); activity.finish(); }); } catch (Throwable ignored) { }
+            try {
+                if (immersivePrevious != null) shell(immersivePrevious.isEmpty() || immersivePrevious.equals("null") ? "settings delete secure immersive_mode_confirmations"
+                        : "settings put secure immersive_mode_confirmations " + immersivePrevious);
+            } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
@@ -460,6 +468,14 @@ public final class RidingConfigMenuValidation extends ValidationInstrumentation 
 
     private void schedule(String which) {
         main(() -> prefs("app_settings").edit().putString("riding_night_vision", "scheduled").putString("riding_night_schedule", which).commit());
+    }
+
+    private String shell(String command) throws Exception {
+        StringBuilder out = new StringBuilder();
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(new android.os.ParcelFileDescriptor.AutoCloseInputStream(getUiAutomation().executeShellCommand(command))))) {
+            for (String line; (line = reader.readLine()) != null; ) out.append(line).append('\n');
+        }
+        return out.toString();
     }
 
     private String storedFrame() { String s = prefs("app_settings").getString("riding_layout_v1_" + profileId, ""); return s == null ? "" : s; }

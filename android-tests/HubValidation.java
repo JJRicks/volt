@@ -1599,7 +1599,7 @@ public final class HubValidation extends ValidationInstrumentation {
      */
     private void search() throws Exception {
         Object[] pane = scooterPane();
-        if (pane[0] != null) keyboardSearch(pane);
+        if (pane[0] != null) keysThenTouchMode(this::root, () -> keyboardSearch(pane));
         tapTag("home-search");
         arrived(HubPages.SEARCH, HubPages.HOME, HubPages.SEARCH);
         requireSamePane(pane, HubPages.SEARCH);
@@ -1734,7 +1734,8 @@ public final class HubValidation extends ValidationInstrumentation {
 
     /**
      * The wide Home's search field from a keyboard (#394 early review, finding 1): it takes focus by key, not by touch,
-     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home.
+     * and Enter on it opens the search in the page pane with the scooter pane unchanged; Back returns to Home. Run
+     * through keysThenTouchMode, so the walk after it, and the next step, start in touch mode again.
      */
     private void keyboardSearch(Object[] pane) throws Exception {
         // A Tab leaves touch mode, as a keyboard's first key does.

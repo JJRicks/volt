@@ -2,7 +2,9 @@
 """Unified backup journeys on an explicitly selected disposable emulator; never a physical phone.
 
 Each journey clears the app with pm clear first. Run android-tests/run-ride-backups.py separately
-for the ride-file restore and cold-reopen range check at several window sizes.
+for the ride-file restore and cold-reopen range check at several window sizes. The device settings the
+UI journeys change (system night mode, font scale, window size and density, the keyboard-with-hardware-keys
+setting) go back to what this script found when it ends, so the next step starts where this one did.
 """
 import argparse
 import json
@@ -39,6 +41,14 @@ run('install', str(args.runner.resolve()))
 run('shell', 'cmd', 'bluetooth_manager', 'disable')
 results = []
 software_keyboard = run('shell', 'settings', 'get', 'secure', 'show_ime_with_hard_keyboard').strip()
+original_font = run('shell', 'settings', 'get', 'system', 'font_scale').strip()
+original_size = re.search(r'Override size:\s*(\d+x\d+)', run('shell', 'wm', 'size'))
+original_density = re.search(r'Override density:\s*(\d+)', run('shell', 'wm', 'density'))
+# "Night mode: yes" (the emulator boots with yes); the UI journeys set yes or no per theme. A custom schedule
+# can't be put back with one command, so it is refused rather than lost.
+original_night = re.fullmatch(r'Night mode: (yes|no|auto)', run('shell', 'cmd', 'uimode', 'night').strip())
+if not original_night:
+    raise SystemExit('The system night mode is not yes, no or auto (cmd uimode night); set one of those first')
 def instrument(name, runner, *extra):
     output = run('shell', 'am', 'instrument', '-w', *extra, RUNNER + runner, check=False)
     (args.out / (name + '.txt')).write_text(output)
@@ -97,8 +107,11 @@ finally:
         run('shell', 'settings', 'delete', 'secure', 'show_ime_with_hard_keyboard', check=False)
     else:
         run('shell', 'settings', 'put', 'secure', 'show_ime_with_hard_keyboard', software_keyboard, check=False)
-    run('shell', 'wm', 'size', 'reset', check=False); run('shell', 'wm', 'density', 'reset', check=False)
-    run('shell', 'settings', 'put', 'system', 'font_scale', '1.0', check=False)
+    run('shell', 'wm', 'size', original_size.group(1) if original_size else 'reset', check=False)
+    run('shell', 'wm', 'density', original_density.group(1) if original_density else 'reset', check=False)
+    if original_font == 'null': run('shell', 'settings', 'delete', 'system', 'font_scale', check=False)
+    else: run('shell', 'settings', 'put', 'system', 'font_scale', original_font, check=False)
+    run('shell', 'cmd', 'uimode', 'night', original_night.group(1), check=False)
     (args.out / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
 if not all(result['passed'] for result in results):
     raise SystemExit(1)

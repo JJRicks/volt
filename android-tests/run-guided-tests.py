@@ -46,6 +46,7 @@ run('install', '--no-incremental', str(args.app.resolve()))
 run('install', '--no-incremental', str(args.runner.resolve()))
 run('shell', 'cmd', 'bluetooth_manager', 'disable')
 previous_policy = run('shell', 'settings', 'get', 'global', 'hidden_api_policy').strip()
+previous_demo = run('shell', 'settings', 'get', 'global', 'sysui_demo_allowed').strip()
 run('shell', 'settings', 'put', 'global', 'hidden_api_policy', '1')
 run('shell', 'settings', 'put', 'global', 'sysui_demo_allowed', '1', check=False)
 for command in (['-e', 'command', 'enter'], ['-e', 'command', 'clock', '-e', 'hhmm', '1200'],
@@ -121,6 +122,10 @@ finally:
         run('shell', 'settings', 'delete', 'global', 'hidden_api_policy', check=False)
     else:
         run('shell', 'settings', 'put', 'global', 'hidden_api_policy', previous_policy, check=False)
+    if previous_demo in ('', 'null'):
+        run('shell', 'settings', 'delete', 'global', 'sysui_demo_allowed', check=False)
+    else:
+        run('shell', 'settings', 'put', 'global', 'sysui_demo_allowed', previous_demo, check=False)
     (args.out / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
 if not all(result['passed'] for result in results):
     raise SystemExit(1)

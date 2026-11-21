@@ -20,7 +20,11 @@ final class PasswordKeyboardChecks {
     static void verify(Instrumentation runner, Activity activity, EditText input) {
         verify(runner,activity,input,false);
     }
+    /** The typed characters are a hardware keyboard's keys: the display goes back to touch mode after, passed or failed. */
     static void verify(Instrumentation runner, Activity activity, EditText input, boolean keepKeyboard) {
+        ValidationInstrumentation.keysThenTouchMode(runner, () -> activity.getWindow().getDecorView(), () -> type(runner, activity, input, keepKeyboard));
+    }
+    private static void type(Instrumentation runner, Activity activity, EditText input, boolean keepKeyboard) {
         require(Build.VERSION.SDK_INT >= 30, "Password keyboard validation needs Android 11+");
         require(input != null, "Missing password editor");
         View decor = activity.getWindow().getDecorView();
