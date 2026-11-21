@@ -131,6 +131,9 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeE
 # Report diagnostics, part 2: the settings allow-list, this connection's drive modes and power sign (Telemetry above
 # feeds them) and the last crash's record (CrashRecord runs with the compat suites).
 sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src/com/jjricks/volt/DiagnosticsTally.java")
+# Report diagnostics' scooter setup: how the selected scooter's owner key reached Volt (KeyRoute) and a made key's state
+# (NewOwnerKey's record); BackupProfiles checks a backup's route word by KeyRoute's shape.
+sources+=("$APP_DIR/src/com/jjricks/volt/KeyRoute.java" "$APP_DIR/src/com/jjricks/volt/NewOwnerKey.java" "$TEST_DIR/KeyRouteTest.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
 COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
@@ -283,6 +286,7 @@ for name in "${COMPAT_TESTS[@]}" OemControls ExperimentalControls; do (cd "$APP_
 
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.DualChargerEstimateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeEvidenceTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.KeyRouteTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxFastChargeReferenceTest "$TEST_DIR/fixtures/ut5-max-fast-charge-calibration.csv"
 
 for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done

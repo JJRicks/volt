@@ -28,6 +28,8 @@ public final class ScooterProfiles {
         public String fwMeter="",fwController="",fwBms="",fwScreen="",fwUwb=""; public long fwWall;
         /** The listed NAVEE model the owner said this scooter is ("" = not answered): Volt's name and photo for it until Volt can identify it. */
         public String ownerModel="";
+        /** How the owner key reached Volt (KeyRoute's words; "" = not saved: unknown). Saved with the key, never the key itself. */
+        public String keyRoute="";
         public Profile(String id,String name,String identity,int role,String mac,String serial,long lastConnected){this.id=id;this.name=name;this.identity=identity;this.role=role;this.mac=mac;this.serial=serial;this.lastConnected=lastConnected;}
         public int pid(){try{return Integer.parseInt(serial.substring(1,5));}catch(Exception e){return -1;}}
         /** This connection's descriptor: session firmware (fresh = read in this session) plus the saved identity evidence. */
@@ -44,7 +46,7 @@ public final class ScooterProfiles {
     private final ArrayList<Profile> profiles=new ArrayList<>();
     public ScooterProfiles(Context context){
         prefs=context.getSharedPreferences("profiles",Context.MODE_PRIVATE);legacy=context.getSharedPreferences("scooter",Context.MODE_PRIVATE);
-        try{JSONArray array=new JSONArray(prefs.getString("items","[]"));for(int i=0;i<array.length();i++){JSONObject o=array.getJSONObject(i);profiles.add(new Profile(o.getString("id"),o.optString("name","UT5 MAX"),o.optString("identity",""),o.optInt("role",0),o.optString("mac",""),o.optString("serial",""),o.optLong("lastConnected",0)));Profile p=profiles.get(profiles.size()-1);p.advertisedPid=o.optString("pid_advertised","");p.advertisedPidWall=o.optLong("pid_advertised_wall",0);p.nameDefault=o.optBoolean("name_default",false);p.fwMeter=o.optString("fw_meter","");p.fwController=o.optString("fw_controller","");p.fwBms=o.optString("fw_bms","");p.fwScreen=o.optString("fw_screen","");p.fwUwb=o.optString("fw_uwb","");p.fwWall=o.optLong("fw_wall",0);p.ownerModel=o.optString("owner_model","");}}catch(JSONException ignored){}
+        try{JSONArray array=new JSONArray(prefs.getString("items","[]"));for(int i=0;i<array.length();i++){JSONObject o=array.getJSONObject(i);profiles.add(new Profile(o.getString("id"),o.optString("name","UT5 MAX"),o.optString("identity",""),o.optInt("role",0),o.optString("mac",""),o.optString("serial",""),o.optLong("lastConnected",0)));Profile p=profiles.get(profiles.size()-1);p.advertisedPid=o.optString("pid_advertised","");p.advertisedPidWall=o.optLong("pid_advertised_wall",0);p.nameDefault=o.optBoolean("name_default",false);p.fwMeter=o.optString("fw_meter","");p.fwController=o.optString("fw_controller","");p.fwBms=o.optString("fw_bms","");p.fwScreen=o.optString("fw_screen","");p.fwUwb=o.optString("fw_uwb","");p.fwWall=o.optLong("fw_wall",0);p.ownerModel=o.optString("owner_model","");p.keyRoute=KeyRoute.kept(o.optString("key_route",""));}}catch(JSONException ignored){}
         if(profiles.isEmpty()&&!prefs.getBoolean("legacy_migrated",false)){
             SharedPreferences old=context.getSharedPreferences("scooter",Context.MODE_PRIVATE);
             String identity=old.getString("identity","");
@@ -64,23 +66,25 @@ public final class ScooterProfiles {
     }
     public synchronized Profile active(){String id=prefs.getString("active","");for(Profile p:profiles)if(p.id.equals(id))return p;return profiles.isEmpty()?null:profiles.get(0);}
     public synchronized void select(String id){prefs.edit().putString("active",id).apply();}
-    public synchronized Profile create(String name,String identity,int role){return createWithId(UUID.randomUUID().toString(),name,identity,role);}
+    public synchronized Profile create(String name,String identity,int role){return create(name,identity,role,KeyRoute.UNKNOWN);}
+    /** create(), saving how the key reached Volt (KeyRoute). */
+    synchronized Profile create(String name,String identity,int role,String route){return createWithId(UUID.randomUUID().toString(),name,identity,role,route);}
     /** A private staged request owns one ID even if the process stops before its receipt is saved. */
     static String ownerImportProfileId(String importId){
         if(importId==null||!importId.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))throw new SetupException(M.ownerSetupImportFailed());
         return UUID.nameUUIDFromBytes(("volt-owner-import:"+importId.toLowerCase(Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
-    synchronized Profile createForOwnerImport(String importId,String name,String identity,int role){
+    synchronized Profile createForOwnerImport(String importId,String name,String identity,int role,String route){
         String id=ownerImportProfileId(importId);
         for(Profile profile:profiles)if(profile.id.equals(id))throw new IllegalStateException("Owner import profile already exists");
-        return createWithId(id,name,identity,role);
+        return createWithId(id,name,identity,role,route);
     }
-    private Profile createWithId(String id,String name,String identity,int role){if(!identity.matches("(?i)[0-9a-f]{12}")||role<0||role>1)throw new SetupException(M.ownerSetupEnterIdentity());boolean generic=name==null||name.trim().isEmpty();Profile p=new Profile(id,generic?DEFAULT_NAME:name.trim(),identity.toUpperCase(Locale.ROOT),role,"","",0);p.nameDefault=generic;profiles.add(p);select(p.id);save();return p;}
+    private Profile createWithId(String id,String name,String identity,int role,String route){if(!identity.matches("(?i)[0-9a-f]{12}")||role<0||role>1)throw new SetupException(M.ownerSetupEnterIdentity());boolean generic=name==null||name.trim().isEmpty();Profile p=new Profile(id,generic?DEFAULT_NAME:name.trim(),identity.toUpperCase(Locale.ROOT),role,"","",0);p.nameDefault=generic;p.keyRoute=KeyRoute.saved(route);profiles.add(p);select(p.id);save();return p;}
     /** create() under a new ID chosen first: a made key's record is saved under its ID before the profile exists (OnboardingScreen). */
-    synchronized Profile createMade(String id,String name,String identity){return createWithId(id,name,identity,0);}
+    synchronized Profile createMade(String id,String name,String identity){return createWithId(id,name,identity,0,KeyRoute.MADE);}
     public synchronized void update(Profile p){save();}
     public synchronized void remove(String id){String identity="";for(Profile p:profiles)if(p.id.equals(id))identity=p.identity;profiles.removeIf(p->p.id.equals(id));boolean retained=false;for(Profile p:profiles)retained|=p.identity.equalsIgnoreCase(identity);if(!retained&&!identity.isEmpty()&&identity.equalsIgnoreCase(legacy.getString("identity","")))legacy.edit().remove("identity").remove("role").apply();prefs.edit().putBoolean("legacy_migrated",true).apply();if(active()!=null)select(active().id);save();}
-    public synchronized void save(){try{JSONArray a=new JSONArray();for(Profile p:profiles){JSONObject o=new JSONObject();o.put("id",p.id);o.put("name",p.name);o.put("identity",p.identity);o.put("role",p.role);o.put("mac",p.mac);o.put("serial",p.serial);o.put("lastConnected",p.lastConnected);o.put("pid_advertised",p.advertisedPid);o.put("pid_advertised_wall",p.advertisedPidWall);o.put("name_default",p.nameDefault);o.put("fw_meter",p.fwMeter);o.put("fw_controller",p.fwController);o.put("fw_bms",p.fwBms);o.put("fw_screen",p.fwScreen);o.put("fw_uwb",p.fwUwb);o.put("fw_wall",p.fwWall);if(!p.ownerModel.isEmpty())o.put("owner_model",p.ownerModel);a.put(o);}prefs.edit().putString("items",a.toString()).apply();}catch(JSONException e){throw new IllegalStateException(e);}}
+    public synchronized void save(){try{JSONArray a=new JSONArray();for(Profile p:profiles){JSONObject o=new JSONObject();o.put("id",p.id);o.put("name",p.name);o.put("identity",p.identity);o.put("role",p.role);o.put("mac",p.mac);o.put("serial",p.serial);o.put("lastConnected",p.lastConnected);o.put("pid_advertised",p.advertisedPid);o.put("pid_advertised_wall",p.advertisedPidWall);o.put("name_default",p.nameDefault);o.put("fw_meter",p.fwMeter);o.put("fw_controller",p.fwController);o.put("fw_bms",p.fwBms);o.put("fw_screen",p.fwScreen);o.put("fw_uwb",p.fwUwb);o.put("fw_wall",p.fwWall);if(!p.ownerModel.isEmpty())o.put("owner_model",p.ownerModel);if(!p.keyRoute.isEmpty())o.put("key_route",p.keyRoute);a.put(o);}prefs.edit().putString("items",a.toString()).apply();}catch(JSONException e){throw new IllegalStateException(e);}}
     /**
      * save(), then waits for the disk write and reports it: an empty commit() writes, or waits for, everything applied
      * before it and returns false if that never reached the disk. For a key that exists nowhere else, before it is used.

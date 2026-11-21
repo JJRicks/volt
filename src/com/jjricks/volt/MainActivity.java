@@ -5595,7 +5595,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(result==RESULT_OK&&owner!=null){try{
                 if(pendingOwnerFile().exists())throw new IllegalStateException();
                 JSONObject setup=new JSONObject();setup.put("owner_identity",owner.identity);setup.put("role",owner.role);setup.put("name",IMPORTED_NAME);
-                stageOwnerImport(setup.toString());
+                stageOwnerImport(setup.toString(),KeyRoute.SHIZUKU);
                 if(onboarding!=null)onboarding.onOwnerImportStaged();
                 maybeApplyOwnerImport();
             }catch(Exception ignored){toast(T.mainImportRetrySetup());}}
@@ -5612,18 +5612,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             }catch(Exception error){handler.post(()->toast(T.mainImportNotLayout()));}},"Volt-layout-import").start();
             return;
         }
-        if(request==IMPORT_OWNER&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();pickedOwnerUri=null;try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new java.io.IOException();stageOwnerImport(readLimited(in));pickedOwnerUri=uri;maybeApplyOwnerImport();}catch(Exception e){pickedOwnerUri=null;
+        if(request==IMPORT_OWNER&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();pickedOwnerUri=null;try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new java.io.IOException();String text=readLimited(in);stageOwnerImport(text,KeyRoute.ofFile(onboarding==null?null:onboarding.fileRouteHelper(),text));pickedOwnerUri=uri;maybeApplyOwnerImport();}catch(Exception e){pickedOwnerUri=null;
             if(onboarding==null&&e instanceof IllegalArgumentException){toast(SetupException.shown((IllegalArgumentException)e));return;}
             // First-run setup shows its own inline "Not an owner file."; elsewhere the parser's reason is a toast.
             if(onboarding==null)toast(e instanceof IllegalArgumentException?e.getMessage():T.mainImportSetupUnreadable());else onboarding.onOwnerImported(false);}}
     }
-    /** Only the normalized owner setup is staged, never raw Bluetooth capture logs. */
-    private void stageOwnerImport(String text)throws Exception{
+    /** Only the normalized owner setup is staged, never raw Bluetooth capture logs; with it, how the key came (KeyRoute). */
+    private void stageOwnerImport(String text,String route)throws Exception{
         OwnerIdentityParser.Result parsed=OwnerIdentityParser.parse(text);String name=IMPORTED_NAME,mac="",serial="";
         try{JSONObject json=new JSONObject(text);name=json.optString("name",name);mac=json.optString("scooter_address","");serial=json.optString("scooter_serial","");}catch(Exception ignored){}
         name=name.trim();if(name.isEmpty())name=IMPORTED_NAME;if(name.length()>80)name=name.substring(0,80);
         if(!mac.matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}"))mac="";else mac=mac.toUpperCase(Locale.ROOT);if(!serial.matches("[A-Za-z][A-Za-z0-9]{16}"))serial="";
-        JSONObject normalized=new JSONObject();normalized.put("format","navee-private-pending-owner-v1");normalized.put("import_id",UUID.randomUUID().toString());normalized.put("owner_identity",parsed.identity);normalized.put("role",parsed.role);normalized.put("name",name);normalized.put("scooter_address",mac);normalized.put("scooter_serial",serial);
+        JSONObject normalized=new JSONObject();normalized.put("format","navee-private-pending-owner-v1");normalized.put("import_id",UUID.randomUUID().toString());normalized.put("owner_identity",parsed.identity);normalized.put("role",parsed.role);normalized.put("name",name);normalized.put("scooter_address",mac);normalized.put("scooter_serial",serial);normalized.put("key_route",KeyRoute.known(route));
         writePendingOwnerImport(normalized);importWaitNotified=false;
     }
     private void writePendingOwnerImport(JSONObject normalized)throws java.io.IOException{
@@ -5662,7 +5662,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(!"navee-private-pending-owner-v1".equals(json.optString("format")))throw new SetupException(M.mainImportPickAgain());
             String newProfileId=ScooterProfiles.ownerImportProfileId(importId),targetId=json.optString("target_profile_id","");
             boolean applied=importId.equals(preferences.getString("owner_import_applied",""));
-            String name=json.optString("name",IMPORTED_NAME),mac=json.optString("scooter_address",""),serial=json.optString("scooter_serial","");
+            String name=json.optString("name",IMPORTED_NAME),mac=json.optString("scooter_address",""),serial=json.optString("scooter_serial",""),route=KeyRoute.known(json.optString("key_route",""));
             // NAVEE's owner identity belongs to the account, not the physical scooter. An earlier
             // unconnected scooter with the same identity must not absorb a fresh Add a scooter flow.
             ScooterProfiles.Profile match=null;
@@ -5691,8 +5691,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // selecting a profile, after checking recording and pending-command state.
             scooterService.ble.disconnect();
             // Volt's own fallback stays a default name, so a later model name can replace it.
-            if(match==null)match=scooterService.profiles.createForOwnerImport(importId,name,parsed.identity,parsed.role);
+            if(match==null)match=scooterService.profiles.createForOwnerImport(importId,name,parsed.identity,parsed.role,route);
             else{scooterService.profiles.select(match.id);scooterService.ble.scooterSwitched();}
+            // The same key arriving again keeps the route it first came by; one saved with none takes this one.
+            if(match.keyRoute.isEmpty())match.keyRoute=KeyRoute.saved(route);
             if(match.id.equals(newProfileId)&&(match.name.trim().isEmpty()||IMPORTED_NAME.equals(match.name.trim())))match.nameDefault=true;
             if(!mac.isEmpty())match.mac=mac;if(!serial.isEmpty())match.serial=serial;scooterService.profiles.update(match);
             // Commit the existing profile snapshot before deleting its recovery staging file.
