@@ -7,8 +7,8 @@ import java.io.File;
 /**
  * Setup's "Make a new owner key" page, version C (a scooter still in the NAVEE app refuses a made key):
  *   - NewKeyGate: Continue works only once the store is ready and "Scooter isn't in the NAVEE app" is ticked; the
- *     parked tick is no input. In source, newKey() enables Continue through the gate from the new0 tick alone, the
- *     tick re-runs the page's updaters on each tap, and makeNewKey() refuses through the same gate.
+ *     parked tick is no input. In source, newKey() enables Continue through the gate from the new0 tick alone, its
+ *     ticks re-run the page's updaters on each tap (no other page's do), and makeNewKey() refuses through the same gate.
  *   - The English: the choice detail keeps its no-break spaces (a narrow card wraps after the dot and never splits
  *     "no computer"), and the new-key tick no longer says "new or reset".
  *   - The link's ladder: in source, the full rung or the _short rung picked by TileRung with the link's own paint and
@@ -78,10 +78,9 @@ public final class NewKeyRouteTest {
     private static void sources() {
         String screen = L10nFiles.read(new File(L10nFiles.root(), "src/com/jjricks/volt/OnboardingScreen.java"));
         String page = body(screen, "private void newKey()");
-        check(page.contains("tick(\"new0\", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail(), this::runUpdaters)"),
-                "the NAVEE tick re-runs the page's updaters on each tap");
-        check(page.contains("tick(\"new1\", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail())"),
-                "the parked tick keeps its plain row, with no callback");
+        check(page.indexOf("tickChanged = this::runUpdaters;") >= 0
+                && page.indexOf("tickChanged = this::runUpdaters;") < page.indexOf("tick(\"new0\", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail())"),
+                "the page's ticks re-run its updaters on each tap");
         check(page.contains("next.setEnabled(NewKeyGate.continueEnabled(storeReady, notInNaveeTicked()));"),
                 "Continue is enabled through the gate");
         check(page.indexOf("copyKeyInstead();") > page.indexOf("T.onboardingNewNaveeNote()"), "the link comes under the NAVEE note");
@@ -94,8 +93,9 @@ public final class NewKeyRouteTest {
         check(link.contains("TileRung.pick(full, instead.getPaint().measureText(full, 0, full.length()), brief, room)")
                 && link.contains("if (TileRung.needsSet(pick, instead.getText()))"), "the link picks its rung with its own paint");
         check(link.contains("instead.setContentDescription(full);"), "TalkBack reads the full rung");
-        String tick = body(screen, "private View tick(String key, String heading, String detail, Runnable changed)");
-        check(tick.contains("if (changed != null) changed.run();"), "a tick's callback runs after the tap");
+        String tick = body(screen, "private View tick(String key, String heading, String detail)");
+        check(tick.contains("if (tickChanged != null) tickChanged.run();"), "a tick tap runs the page's callback");
+        check(body(screen, "private void render()").contains("tickChanged = null;"), "every other page starts with no tick callback");
     }
 
     /** The text of the method starting at signature, through its matching closing brace. */

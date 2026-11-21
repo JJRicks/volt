@@ -128,6 +128,8 @@ public final class OnboardingScreen implements AppScreen {
     private final SharedPreferences prefs;
     private final FrameLayout root;
     private final List<Runnable> updaters = new ArrayList<>();
+    /** Runs after each tap on the shown page's ticks, for a page whose button waits for a tick (the new-key page); null elsewhere. */
+    private Runnable tickChanged;
     private final List<AlertDialog> dialogs = new ArrayList<>();
     private LinearLayout page, content, footer;
     /** What scaffold() put in root: the page alone, or the step list and page side by side. */
@@ -587,6 +589,7 @@ public final class OnboardingScreen implements AppScreen {
         int keepStep = renderedKey.isEmpty() ? -1 : Integer.parseInt(renderedKey.substring(0, renderedKey.indexOf('|')));
         if (identityField != null) identityField.setText("");
         updaters.clear(); identityField = null; nameField = null; title = null; sheet = null;
+        tickChanged = null;
         root.removeAllViews();
         switch (step) {
             case WELCOME: welcome(); break;
@@ -1318,7 +1321,9 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
         content.addView(group, gp);
-        group.addView(tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail(), this::runUpdaters));
+        // Each tap on a tick re-runs the page's updaters, so Continue follows the NAVEE tick at once.
+        tickChanged = this::runUpdaters;
+        group.addView(tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail()));
         group.addView(tick("new1", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail()));
         TextView note = fine(T.onboardingNewNaveeNote());
         ((LinearLayout.LayoutParams) note.getLayoutParams()).topMargin = ui.dp(6);
@@ -2106,10 +2111,7 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     /** Tickable reminder row; its state is kept with the setup progress. */
-    private View tick(String key, String heading, String detail) { return tick(key, heading, detail, null); }
-
-    /** As above; changed (when given) runs after each tap, for a page whose button waits for the tick. */
-    private View tick(String key, String heading, String detail, Runnable changed) {
+    private View tick(String key, String heading, String detail) {
         LinearLayout card = row(); card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
         card.setMinimumHeight(ui.dp(64));
@@ -2145,7 +2147,7 @@ public final class OnboardingScreen implements AppScreen {
         card.setOnClickListener(v -> {
             prefs.edit().putBoolean(KEY_TICK + key, !prefs.getBoolean(KEY_TICK + key, false)).apply();
             style.run();
-            if (changed != null) changed.run();
+            if (tickChanged != null) tickChanged.run();
         });
         style.run();
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.bottomMargin = ui.dp(10);
