@@ -5612,11 +5612,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             }catch(Exception error){handler.post(()->toast(T.mainImportNotLayout()));}},"Volt-layout-import").start();
             return;
         }
-        if(request==IMPORT_OWNER&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();pickedOwnerUri=null;try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new java.io.IOException();String text=readLimited(in);stageOwnerImport(text,KeyRoute.ofFile(onboarding==null?null:onboarding.fileRouteHelper(),text));pickedOwnerUri=uri;maybeApplyOwnerImport();}catch(Exception e){pickedOwnerUri=null;
+        if(request==IMPORT_OWNER&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();pickedOwnerUri=null;try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new java.io.IOException();stageOwnerImport(readLimited(in));pickedOwnerUri=uri;maybeApplyOwnerImport();}catch(Exception e){pickedOwnerUri=null;
             if(onboarding==null&&e instanceof IllegalArgumentException){toast(SetupException.shown((IllegalArgumentException)e));return;}
             // First-run setup shows its own inline "Not an owner file."; elsewhere the parser's reason is a toast.
             if(onboarding==null)toast(e instanceof IllegalArgumentException?e.getMessage():T.mainImportSetupUnreadable());else onboarding.onOwnerImported(false);}}
     }
+    /** A picked owner file, staged with its route: a helper's capture file takes the helper route setup is on (KeyRoute.ofFile). */
+    private void stageOwnerImport(String text)throws Exception{stageOwnerImport(text,KeyRoute.ofFile(onboarding==null?null:onboarding.fileRouteHelper(),text));}
     /** Only the normalized owner setup is staged, never raw Bluetooth capture logs; with it, how the key came (KeyRoute). */
     private void stageOwnerImport(String text,String route)throws Exception{
         OwnerIdentityParser.Result parsed=OwnerIdentityParser.parse(text);String name=IMPORTED_NAME,mac="",serial="";

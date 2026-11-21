@@ -208,6 +208,7 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             require(p.id.equals(profiles().active().id), "The made key is not the active scooter");
             require(p.id.equals(onboarding().getString("generated_profile_id", "")), "Setup does not point at the made key");
             require("made".equals(record(p.id)), "Reaching Connect tied the made key to a scooter, or it has no record");
+            require("made".equals(p.keyRoute) && onDisk("profiles").contains("key_route"), "The made key's profile does not save its route (KeyRoute)");
             require(onDisk("profiles").contains(p.identity) && onDisk("onboarding").contains(p.id)
                     && onDisk("app_settings").contains(recordXml(p.id, "made")),
                     "The made key, its record or setup's pointer to it is not on disk before Connect");
@@ -233,6 +234,7 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             List<ScooterProfiles.Profile> all = profiles().all();
             require(profileById(madeId) == null && all.size() == 1 && TYPED_KEY.equals(all.get(0).identity),
                     "A typed key did not replace a made key that was never offered");
+            require("typed".equals(all.get(0).keyRoute), "A typed key's profile does not save its route (KeyRoute): " + all.get(0).keyRoute);
             require(!onboarding().contains("generated_profile_id") && record(madeId) == null,
                     "Setup still points at a removed key, or its record stayed");
         });

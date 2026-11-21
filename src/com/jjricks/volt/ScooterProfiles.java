@@ -74,6 +74,8 @@ public final class ScooterProfiles {
         if(importId==null||!importId.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))throw new SetupException(M.ownerSetupImportFailed());
         return UUID.nameUUIDFromBytes(("volt-owner-import:"+importId.toLowerCase(Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
+    synchronized Profile createForOwnerImport(String importId,String name,String identity,int role){return createForOwnerImport(importId,name,identity,role,KeyRoute.UNKNOWN);}
+    /** createForOwnerImport(), saving how the key reached Volt (KeyRoute). */
     synchronized Profile createForOwnerImport(String importId,String name,String identity,int role,String route){
         String id=ownerImportProfileId(importId);
         for(Profile profile:profiles)if(profile.id.equals(id))throw new IllegalStateException("Owner import profile already exists");
