@@ -170,7 +170,7 @@
     <string name="onboarding_new_unowned_detail" volt:src="a4a77a880a35967aedb23aad337239044f1c5485">Nooit daaraan toegevoegd, of eruit verwijderd</string>
     <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">De NAVEE-app kan deze step niet toevoegen zolang deze de sleutel van Volt heeft. Om weer terug te schakelen, geef je de step eerst vrij in Volt.</string>
     <string name="onboarding_new_copy_instead" volt:src="3a568186f2bff90cda99c073d97fcebb09b8f01d">Al in de NAVEE-app? Kopieer liever de eigenaarssleutel</string>
-    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476">In de NAVEE-app? Kopieer de eigenaarssleutel</string>
+    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476" volt:attempt="2">NAVEE-app? Kopieer de eigenaarssleutel</string>
     <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Deze step heeft al een eigenaar en weigerde daarom de nieuwe sleutel. Verwijder de step uit de NAVEE-app en probeer het opnieuw, of stel op een andere manier in.</string>
     <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Op een andere manier instellen</string>
     <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">De nieuwe eigenaarssleutel kon niet worden opgeslagen. Maak wat opslagruimte vrij en probeer het opnieuw.</string>

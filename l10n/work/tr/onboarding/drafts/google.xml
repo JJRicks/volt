@@ -170,7 +170,7 @@
     <string name="onboarding_new_unowned_detail" volt:src="a4a77a880a35967aedb23aad337239044f1c5485">Oraya hiç eklenmedi veya oradan kaldırıldı</string>
     <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">NAVEE uygulaması, üzerinde Volt’un anahtarı varken bu scooter’ı ekleyemez. Geri dönmek için önce Volt’ta serbest bırakın.</string>
     <string name="onboarding_new_copy_instead" volt:src="3a568186f2bff90cda99c073d97fcebb09b8f01d">Zaten NAVEE uygulamasında mı? Bunun yerine anahtarını kopyalayın</string>
-    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476">NAVEE uygulamasında mı? Anahtarını kopyalayın</string>
+    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476" volt:attempt="2">NAVEE uygulamasında mı? Anahtarı kopyala</string>
     <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Bu scooter’ın zaten bir sahibi var, bu nedenle yeni anahtarı reddetti. Scooter’ı NAVEE uygulamasından kaldırıp yeniden deneyin veya başka bir yöntemle kurun.</string>
     <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Başka bir yöntemle kur</string>
     <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">Yeni sahip anahtarı kaydedilemedi. Depolama alanında yer açın ve yeniden deneyin.</string>
