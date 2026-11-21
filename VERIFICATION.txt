@@ -1,5 +1,11 @@
 VOLT 2.0.3 — A PAUSED CHARGE RECORDING'S CARD SHOWS THE LEVEL, WHAT VOLT HAS LEARNED NAMES THE SCOOTER'S % JUMP (versionCode 63)
-Draft, November 20, 2026. The release checks below are still to run.
+Built, swept and tagged at commit 2b57b2cb, #601's merge into main,
+November 20, 2026. That merge is the release commit (RELEASING.md step
+2): the candidate was built on it, and the tests, ship_check and the
+VOLT_RELEASE=1 build ran again on it before the draft. Nothing merged into
+main between the release commit and the publish, so the checked, built and
+tagged commit is one SHA (step 7). The release APK is identical to the
+swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.2
   (d7bb98d0) is in it: the paused charge recording's card title and lock
@@ -13,10 +19,20 @@ Draft, November 20, 2026. The release checks below are still to run.
   docs only, as do #597 (the homepage's Clean Home variant) and #598
   (README screenshots); none changes the app. The language top-up for
   this release's new text (#599) and this release's own version,
-  changelog and docs come after them.
-  [PHASE 2: the last PR number merged before the release commit; for each
-  PR, CI on its merged head and the independent review on the head that
-  merged.]
+  changelog and docs come after them: #600, and #601 (RELEASING.md: the
+  owner's standing approval for release candidates on the shared test
+  machines, docs only), whose merge is the release commit. That makes 14
+  pull requests: #584 and #589 to #601. #584 merged after 2.0.2's publish
+  and is in this release.
+- Every one of the 14 merged with CI passing on its merged head (4 checks
+  each: android-build, core-tests, english-proof and web-setup), and the
+  release commit passed the same 4. On #596's merged head english-proof
+  failed its first run and passed when run again; the other three checks
+  passed in both runs. The independent review's last pass was on the
+  merged head for all 14, and none of those passes requested changes.
+  All 14 were reviewed by Claude reviewer seats only, run apart from the
+  authoring session, because the Codex seats were unavailable. Their
+  upheld P3s (#584's one and #591's two) are tracked for later releases.
 - run-release-sweep.py lists 297 steps on main at #597's merge, the same
   list as 2.0.2: #595 adds a jump state to LearnedCurveValidation's
   default states, so the existing learned-curve-* steps (412 dp light,
@@ -24,24 +40,72 @@ Draft, November 20, 2026. The release checks below are still to run.
   #594 add checks to charge-live-recording and charge-capture. Every
   validation registered in android-tests/AndroidManifest.xml is covered
   (the script's own guard).
-  [PHASE 2: confirm the step list and counts on the release commit.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit. Before #599, 3 keys per
+  Confirmed on the release commit: 297 steps, the same list.
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4159 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly. Before #599, 3 keys per
   language fell back to English: charge_live_title_recording,
-  more_learned_kind_jump and more_learned_jump.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 2.0.2's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed (from
-  --merge for a split sweep, with its pseudo-locale note), each rerun and
-  why, numbers after reruns, rides-timing, ride auto-save.]
-- Parked hardware sweep: [PHASE 2: its report.md outcomes, or the owner's
-  decision to ship without one.] Not yet tried on real hardware: the
-  paused card's title and lock screen during a real charge recording
-  whose charger stops, on a phone (Android 16 and older), the jump on
-  What Volt has learned from a real recording, and everything 2.0.2's
-  list below still owes.
+  more_learned_kind_jump and more_learned_jump. #599 translated them in
+  all ten, made and checked as its pull request describes.
+- Release candidate checks on the release commit (2b57b2cb):
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (220
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.3 (no -dev), versionCode 63, signed with 2.0.2's
+    certificate. APK SHA-256
+    4d1ee6b32c66fed229e256266182b801a47b47ff2250f484a1c371155f1dac17.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.3 (63). The validation runner was
+    built with the same key.
+- run-release-sweep.py on that build, November 20, 2026, 3:28 to 4:56 PM
+  MST (87 minutes): Medium Phone API 36.1 emulators on this Mac (six at
+  once at the start: four lanes of the main run and two for the compat
+  steps) and two API 36.1 x86_64 emulators on a shared Linux test machine
+  rendering in software (one job), under the owner's approval for this
+  release's candidate on the shared test machines (#601). The 297 steps
+  were spread over three runs, merged by the release kit's merge-tally.py,
+  which keeps each step's newest verdict, and cross-checked with
+  report-merge: the main run (294 steps, every step but the two compat
+  steps and rides-timing, with one rerun round), the compat run (2
+  steps), and a finale alone on this Mac (rides-timing and the ride
+  auto-save check). Every step has a verdict. Closing numbers of the
+  merged result, as printed:
+  - Gating steps: 222 passed, 0 failed.
+  - Report-only steps (never counted as passes): 65 ran, 1 did not
+    finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
+    pseudo-locale steps: no pseudo-locale APK was supplied.
+  - The ride auto-save check passed.
+  Two gating steps failed their first try, both on the shared Linux
+  machine, and passed when rerun on this Mac; none failed twice. Both are
+  frame-timing checks, and software rendering under heavy load starves
+  frames on that machine; neither is an app fault:
+  - reveal-motion-night: the validation reported STARVED, inconclusive
+    and not a pop: in all 4 measurements a frame came more than 50 ms
+    late. It passed on the Mac rerun.
+  - hub-no-nearby-344: Settings' Language row jumped 257 px in one frame
+    through the grant; the frame before that one came 149 ms after its
+    own. It passed on the Mac rerun.
+  - The one report-only step that did not finish, gps-accuracy-riding-de,
+    stopped on the shared machine and again on its rerun there at the
+    same check as in 2.0.2, 2.0.1, 2.0.0 and 1.13.2: in German, Halo's
+    GPS accuracy chip shows the no-reading dash instead of "Keine
+    Aufzeichnung" while nothing records. A shorter German text is still a
+    follow-up.
+  - rides-timing passed (200 s), alone on this Mac. Best of two cold
+    starts per case, slowest case: first frame 110 ms and service start
+    command 98 ms (budgets 1.5 s). In any run, Rides showed its first row
+    within 48 ms, and the longest main-thread message on Rides was at
+    most 47 ms cold and 45 ms warm (budget 1 s). The longest main-thread
+    message at launch was 110 ms in any single run.
+- No parked hardware sweep. The owner decided 2.0.3 ships without one, as
+  for 2.0.2 (a small release), so this release is checked on emulators
+  and by tests only, and nothing in it was tried on a real scooter. Not
+  yet tried on real hardware: the paused card's title and lock screen
+  during a real charge recording whose charger stops, on a phone (Android
+  16 and older), the jump on What Volt has learned from a real recording,
+  and everything 2.0.2's list below still owes.
 - The paused card (#591, #594) was checked by JVM tests
   (ChargeLiveUpdateTest, ChargeLivePausedTitleTest) and on an Android 16
   emulator (charge-live-recording and charge-capture): the paused card's
@@ -60,6 +124,22 @@ Draft, November 20, 2026. The release checks below are still to run.
   24182, 25462, 25852): no compatibility report for a new Model ID is
   recorded since then. Adding any that reached volt-reports@jjricks.com is
   the owner's step.
+- Published November 20, 2026 at 5:07 PM MST (00:07 UTC, November 21)
+  from main, on the owner's go, without a hardware sweep: tag v2.0.3
+  points at 2b57b2cbbc34b4b2826690add0f7979358ccc59f, #601's merge, the
+  release commit, which was still main's newest commit. Its tests (220
+  suites), ship_check and VOLT_RELEASE=1 build ran again before the
+  draft. The release APK (SHA-256
+  4b73dd3e3f14c897713283595d44ddfde8dcec0ba094ac4fdf7ab74147dbd69e) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 2.0.2's certificate, zipaligned, and reads 2.0.3
+  (63). The source ZIP's SHA-256 is
+  9860f7ab7b08153de4378d9d8760af0083a8f09fb93d93aef106357fba740fcd. The
+  published assets were downloaded again and matched, the release gates
+  passed on the published APK, and the update check offers its Download.
+  The homepage was deployed from the tag at 5:08 PM MST with
+  site/server/deploy-release.sh, which reported UPDATE_OK with the live
+  variant kept as chosen (app).
 
 --- Previous verification ---
 
