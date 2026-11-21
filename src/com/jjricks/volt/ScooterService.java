@@ -330,10 +330,15 @@ public final class ScooterService extends Service {
     public void listen(Runnable listener){listeners.add(listener);}public void unlisten(Runnable listener){listeners.remove(listener);}
     public boolean simulating() { return ble != null && ble.simulating(); }
 
-    /** Profile changes must not interrupt recordings, saved sensor data or an in-flight command. */
+    /**
+     * Profile changes must not interrupt recordings, Charge done by's measuring window, saved sensor data or an in-flight
+     * command. A change disconnects the measured scooter, and the window would then end without arming. active() covers
+     * the arming writes too (arming() implies active()), and is checked before the brief waits so they say why.
+     */
     public String scooterChangeUnavailable() {
         if (destroyed || dataMaintenance || DataMaintenance.active()) return T.serviceWaitBackup();
         if (isRecording() || isChargeRecording()) return T.serviceStopRecordingFirst();
+        if (chargeMeasure.active()) return T.serviceWaitMeasuring();
         if (phoneSaving()) return T.serviceWaitRideSaving();
         if ((ble != null && ble.pending() != null) || (chargeScheduleController != null && chargeScheduleController.busy()))
             return T.serviceWaitScooterChange();
