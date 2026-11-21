@@ -893,7 +893,7 @@ public final class OnboardingScreen implements AppScreen {
         boolean shizukuSupported = Build.VERSION.SDK_INT >= 30;
         String[][] options = {
                 {WEBADB, "screen", T.onboardingPathWebadb(), T.onboardingPathWebadbDetail(), T.onboardingPathRecommended()},
-                {NEW_KEY, "plus", T.onboardingPathNewKey(), T.onboardingPathNewKeyDetail(), null},
+                {NEW_KEY, "plus", T.onboardingPathNewKey(), mockVariant().isEmpty() ? T.onboardingPathNewKeyDetail() : T.onboardingMockPathNewKeyDetail(), null},
                 {RESTORE, "download", T.onboardingRestoreBackup(), T.onboardingPathRestoreDetail(), null},
                 {CAPTURE, "screen", T.onboardingPathCapture(), T.onboardingPathCaptureDetail(), null},
                 {SHIZUKU, "screen", T.onboardingPathShizuku(), T.onboardingPathShizukuDetail(), null},
@@ -1316,10 +1316,28 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
         content.addView(group, gp);
-        group.addView(tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail()));
+        String variant = mockVariant();
+        boolean gated = variant.equals("B") || variant.equals("C");
+        group.addView(variant.isEmpty() ? tick("new0", T.onboardingNewUnowned(), T.onboardingNewUnownedDetail())
+                : tick("new0", T.onboardingMockNewUnowned(), T.onboardingMockNewUnownedDetail(), () -> { for (Runnable u : updaters) u.run(); }));
         group.addView(tick("new1", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail()));
         TextView note = fine(T.onboardingNewNaveeNote());
         ((LinearLayout.LayoutParams) note.getLayoutParams()).topMargin = ui.dp(6);
+        if (variant.equals("C")) {
+            // Mock-up C: the way out for a scooter that's in the NAVEE app, to the recommended route (as Choose's Continue does).
+            String full = T.onboardingMockNewCopyInstead(), brief = T.onboardingMockNewCopyInsteadShort();
+            TextView instead = link(full, () -> { prefs.edit().putString(KEY_PATH, WEBADB).apply(); go(PREPARE); });
+            instead.setTag("onboarding-new-copy-instead");
+            instead.setContentDescription(full);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(6);
+            content.addView(instead, lp);
+            // The narrow-label ladder: the full line while it fits on one line, else the short rung (wrapping only at spaces).
+            instead.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                int room = r - l - v.getPaddingLeft() - v.getPaddingRight();
+                CharSequence pick = TileRung.pick(full, instead.getPaint().measureText(full), brief, room);
+                if (TileRung.needsSet(pick, instead.getText())) instead.setText(pick.toString());
+            });
+        }
         ScooterProfiles.Profile generated = generatedProfile();
         nameField = nameInput(generated == null || generated.nameDefault ? "" : generated.name);
         TextView next = primary(T.onboardingContinue(), this::makeNewKey);
@@ -1327,9 +1345,16 @@ public final class OnboardingScreen implements AppScreen {
         View starting = spinnerOn(next);
         updaters.add(() -> {
             boolean storeReady = profiles() != null;
-            next.setEnabled(storeReady);
+            // Mock-ups B and C: Continue waits for the "isn't in the NAVEE app" tick, as Save waits for a whole key.
+            next.setEnabled(storeReady && (!gated || prefs.getBoolean(KEY_TICK + "new0", false)));
             starting.setVisibility(storeReady ? View.GONE : View.VISIBLE);
         });
+    }
+
+    /** Mock-up switch (claude/new-key-mockups only): "" is today's route, "A" new wording, "B" A + gate, "C" B + link. */
+    private String mockVariant() {
+        String v = prefs.getString("mockup_variant", "");
+        return v.equals("A") || v.equals("B") || v.equals("C") ? v : "";
     }
 
     /** The profile holding the key this setup made, while it still exists. */
@@ -2073,7 +2098,10 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     /** Tickable reminder row; its state is kept with the setup progress. */
-    private View tick(String key, String heading, String detail) {
+    private View tick(String key, String heading, String detail) { return tick(key, heading, detail, null); }
+
+    /** As above; changed runs after each tap (the new-key mock-up's gate). */
+    private View tick(String key, String heading, String detail, Runnable changed) {
         LinearLayout card = row(); card.setGravity(Gravity.CENTER_VERTICAL);
         card.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
         card.setMinimumHeight(ui.dp(64));
@@ -2109,6 +2137,7 @@ public final class OnboardingScreen implements AppScreen {
         card.setOnClickListener(v -> {
             prefs.edit().putBoolean(KEY_TICK + key, !prefs.getBoolean(KEY_TICK + key, false)).apply();
             style.run();
+            if (changed != null) changed.run();
         });
         style.run();
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.bottomMargin = ui.dp(10);

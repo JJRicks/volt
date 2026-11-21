@@ -498,6 +498,23 @@
     <!-- Under "You're connected" after "Make a new owner key": the key is only on this phone until Volt is backed up. -->
     <string name="onboarding_done_new_key_note" volt:screen="You\'re connected" volt:purpose="note"
         volt:safety="owner-key" volt:dnt="Volt">Volt made this scooter\'s owner key, and it\'s only on this phone. Back up Volt so you can set it up on another phone.</string>
+    <!-- MOCK-UP ONLY (claude/new-key-mockups, never merged as is): wording variants A to C for the new-key route,
+         shown only when setup's mockup_variant switch says so. -->
+    <!-- Mock-up: under "Make a new owner key": it only works on a scooter that isn't in the NAVEE app; needs no computer. -->
+    <string name="onboarding_mock_path_new_key_detail" volt:screen="Setup choices" volt:purpose="option detail"
+        volt:safety="owner-key" volt:dnt="NAVEE">Not in the NAVEE app · no computer</string>
+    <!-- Mock-up checklist item: the scooter has no owner because the NAVEE app doesn't have it. -->
+    <string name="onboarding_mock_new_unowned" volt:screen="New owner key" volt:purpose="checklist item"
+        volt:safety="owner-key" volt:dnt="NAVEE">Scooter isn\'t in the NAVEE app</string>
+    <!-- Mock-up: under that item. "there" and "it" are the NAVEE app. -->
+    <string name="onboarding_mock_new_unowned_detail" volt:screen="New owner key" volt:purpose="checklist detail"
+        volt:safety="owner-key">Never added there, or removed from it</string>
+    <!-- Mock-up link under the note: the scooter is in the NAVEE app, so take the recommended route that copies its key. -->
+    <string name="onboarding_mock_new_copy_instead" volt:screen="New owner key" volt:purpose="link"
+        volt:safety="owner-key" volt:dnt="NAVEE">Already in the NAVEE app? Copy its key instead</string>
+    <!-- Mock-up: the link's short rung, when the full text doesn't fit one line. -->
+    <string name="onboarding_mock_new_copy_instead_short" volt:screen="New owner key" volt:purpose="link"
+        volt:safety="owner-key" volt:dnt="NAVEE">In the NAVEE app? Copy its key</string>
     <!-- Popup over "You're connected", shown once after "Make a new owner key": the only time Volt shows the key itself.
          The key is the scooter's owner access; never soften the warning or say the key is safe to share. -->
     <string name="onboarding_key_title" volt:screen="Write down your owner key" volt:purpose="title"
