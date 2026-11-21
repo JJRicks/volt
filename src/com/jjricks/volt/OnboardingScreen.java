@@ -1278,7 +1278,8 @@ public final class OnboardingScreen implements AppScreen {
 
     private void saveIdentity() {
         if (identityField == null) return;
-        OwnerIdentityParser.Result parsed = parseIdentity(identityField.getText().toString());
+        String entered = identityField.getText().toString();
+        OwnerIdentityParser.Result parsed = parseIdentity(entered);
         if (parsed == null) return;
         ScooterProfiles store = profiles();
         if (store == null) return;
@@ -1302,7 +1303,7 @@ public final class OnboardingScreen implements AppScreen {
                 store.update(earlier); store.select(earlier.id); profile = earlier;
             } else {
                 if (earlier != null && mayRemoveCreated(earlier)) store.remove(earlier.id);
-                profile = store.create(name, parsed.identity, parsed.role, KeyRoute.TYPED);
+                profile = store.create(name, parsed.identity, parsed.role, KeyRoute.ofIdentityInput(entered));
             }
             prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).apply();
         } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }

@@ -60,6 +60,20 @@ public final class KeyRouteTest {
         for (String other : new String[]{backup, OWNER_KEY, capture, handMade, "", null})
             for (String helper : new String[]{KeyRoute.CHROME_USB, KeyRoute.DESKTOP_HELPER, null})
                 require(KeyRoute.ofFile(helper, other).equals(KeyRoute.SETUP_FILE), "not a helper's capture file: a setup file");
+        // The identity step: twelve characters, however they're spaced, are typed; pasted text reads as that text picked as a file.
+        for (String typed : new String[]{OWNER_KEY, OWNER_KEY.toLowerCase(Locale.ROOT), spaced(OWNER_KEY, " "), spaced(OWNER_KEY, ":"), spaced(OWNER_KEY, "-"), " " + OWNER_KEY + "\n"})
+            require(KeyRoute.ofIdentityInput(typed).equals(KeyRoute.TYPED), "twelve characters on the identity step: typed");
+        for (String helperFile : new String[]{browser, computer})
+            require(KeyRoute.ofIdentityInput(helperFile).equals(KeyRoute.HELPER_FILE), "a helper's file pasted on the identity step");
+        for (String other : new String[]{backup, capture, handMade, "", null})
+            require(KeyRoute.ofIdentityInput(other).equals(KeyRoute.SETUP_FILE), "other text pasted on the identity step: a setup file");
+    }
+
+    /** A twelve-character key with a separator between each pair, as people write it down. */
+    private static String spaced(String key, String separator) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < key.length(); i += 2) { if (i > 0) out.append(separator); out.append(key, i, i + 2); }
+        return out.toString();
     }
 
     /** A made key's state through untied, tied, refused and untied, tied again and accepted; the route says made throughout. */

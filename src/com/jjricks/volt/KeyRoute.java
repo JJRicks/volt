@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 final class KeyRoute {
     /** Make a new owner key (NewOwnerKey). */
     static final String MADE = "made";
-    /** Twelve characters typed on setup's identity step. */
+    /** Twelve characters typed (or pasted on their own) on setup's identity step. */
     static final String TYPED = "typed";
     /** Phone-only capture through Shizuku. */
     static final String SHIZUKU = "shizuku";
@@ -44,6 +44,17 @@ final class KeyRoute {
     private static final Pattern WORD = Pattern.compile(SHAPE);
 
     private KeyRoute() { }
+
+    /**
+     * The route of what was entered on setup's identity step: twelve hex characters (spaces, colons and dashes allowed, as
+     * OnboardingScreen.parseIdentity reads them) are TYPED. Anything else the identity parser accepted there, such as a pasted
+     * owner file, backup or log with owner-check frames, reads as the same text picked as a file outside the helper routes
+     * would ({@link #ofFile}): a helper's capture is HELPER_FILE, any other text SETUP_FILE.
+     */
+    static String ofIdentityInput(String raw) {
+        String compact = raw == null ? "" : raw.replaceAll("[\\s:\\-]", "");
+        return compact.matches("(?i)[0-9a-f]{12}") ? TYPED : ofFile(null, raw);
+    }
 
     /** A saved word as it is when Volt knows it, else unknown (null, empty or any other text). */
     static String known(String stored) { return stored != null && ROUTES.contains(stored) ? stored : UNKNOWN; }
