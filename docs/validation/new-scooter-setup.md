@@ -93,7 +93,7 @@ This needs the owner's scooter, phone and go-ahead. It also needs **Release this
 **Steps**
 
 4. **NAVEE app:** remove the scooter from the account. Note the app's version and its exact message. Close the NAVEE app.
-5. **Volt:** **More → My scooters → Add a scooter → Make a new owner key → Continue**, then pick the scooter.
+5. **Volt:** **More → My scooters → Add a scooter → Make a new owner key**, tick **Scooter isn't in the NAVEE app** (Continue waits for it), then **Continue** and pick the scooter.
    - **Pass:** it connects, reads the serial and shows **You're connected** with the backup note. Lock and unlock once and check that live values arrive.
    - **Refused:** "This scooter already has an owner" means the removal didn't clear the owner. Tap **Set up another way**, restore the backup, and stop here. Volt keeps the new key in **My scooters**; forget it there once the scooter is back on its account.
    - **Timed out:** move closer and try again. The same key is kept.
