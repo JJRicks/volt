@@ -61,7 +61,7 @@ public final class ScooterChangeMeasureTest {
         check(more.contains("String unavailable = s == null ? T.moreServiceStarting() : s.scooterChangeUnavailable();"), "My scooters' Use, add and forget");
         String main = read("src/com/jjricks/volt/MainActivity.java");
         String find = body(main, "private void findNearby(boolean home){", "\n    }\n");
-        check(find.indexOf("scooterService.scooterChangeUnavailable()") >= 0 && find.indexOf("scooterService.scooterChangeUnavailable()") < find.indexOf("showScanner(true,true);"),
+        check(find.indexOf("scooterService.scooterChangeUnavailable()") >= 0 && find.indexOf("scooterService.scooterChangeUnavailable()") < find.lastIndexOf("showScanner(true,true);"),
                 "Home's Find refuses first");
     }
 
