@@ -59,7 +59,8 @@ import com.jjricks.volt.ScooterProfiles;
  *   left behind.</li>
  *   <li><b>The activity recreated mid-arrival</b> (as a rotation, fold or text-size change rebuilds Home): the new Home
  *   shows the site at rest.</li>
- *   <li><b>Focus</b>: an arrival takes no focus; the view with focus before has it after.</li>
+ *   <li><b>Focus</b>: an arrival takes no focus; the view with focus before has it after. In touch mode, which the
+ *   validation sets as it launches (key events from an earlier step can leave the display out of it).</li>
  *   <li><b>Animations off</b> (scale 0): every frame shows the site and its neighbours either before or after, never
  *   between.</li>
  *   <li><b>An instant change mid-departure</b> (a null root, as Home's edit-mode switch is): shown at once two frames
@@ -2590,10 +2591,19 @@ public final class RevealMotionValidation extends ValidationInstrumentation {
                     .putBoolean("connect_tried", true).commit(), "Setup fixture failed");
         else prefs("onboarding").edit().putBoolean("onboarding_done", true).commit();
     }
+    /**
+     * In touch mode, as a rider's finger leaves it. Key events from an earlier step (the backups step's typed passwords,
+     * a D-pad or Tab check) leave the display out of touch mode until a real touch, and touch mode outlives the app's
+     * reinstall. Out of it, nothing focused, Android hands focus to a focusable view that becomes visible
+     * (ViewRootImpl.focusableViewAvailable): Find it nearby's button, shown a second time, "took focus before the
+     * pulse". These are finger checks (the taps go through the window), as MotionPolishValidation's are, so set it here.
+     */
     private void launch() {
+        setInTouchMode(true);
         activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> activity.service() != null, "App did not launch");
         settle();
+        main(() -> require(root().isInTouchMode(), "The window is not in touch mode (an earlier step's key events?)"));
     }
     private MainActivity recreate() {
         Instrumentation.ActivityMonitor monitor = addMonitor(MainActivity.class.getName(), null, false);
