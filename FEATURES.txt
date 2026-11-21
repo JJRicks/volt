@@ -480,7 +480,7 @@ identifying the helper used; successful real-scooter capture is not yet confirme
 separately for each new path. The computer ADB helper is the established route.
 Existing parked write/readback checks below do not establish helper capture.
 
-NEW OR RESET SCOOTERS: MAKE A NEW OWNER KEY (NEW IN 2.0.0)
+SCOOTERS NOT IN THE NAVEE APP: MAKE A NEW OWNER KEY (NEW IN 2.0.0)
 
 For a scooter with no owner (not in the NAVEE app: never added there, or
 removed from it), setup can make an owner key instead of capturing one. Its
