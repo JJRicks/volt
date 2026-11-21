@@ -75,6 +75,7 @@
     <string name="riding_label_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Horloge</string>
     <string name="riding_label_odometer" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">Total</string>
     <string name="riding_label_odometer_short" volt:src="31adf29d5b21915924c4aa05d92e9631f043c10e">Total</string>
+    <string name="riding_gps_not_recording" volt:src="1fb222cbc3bda1c0b4d26fea2e13a42696c1d768">Pas d’enregistrement</string>
     <string name="riding_speed_last" volt:src="2f0265913cb02528d0a25d25b2eb57febffbadac">dernière : %1$s</string>
     <string name="riding_power_draw_peak" volt:src="0579aa52f3ff283354e835d1d3b21d9baa7ce6c8">puissance · pic %1$s</string>
     <string name="riding_power_draw_peak_short" volt:src="9f2b97d4e294e50a65441b6ff2864e994de11722">puissance</string>
