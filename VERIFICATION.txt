@@ -138,8 +138,14 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   published assets were downloaded again and matched, the release gates
   passed on the published APK, and the update check offers its Download.
   The homepage was deployed from the tag at 5:08 PM MST with
-  site/server/deploy-release.sh, which reported UPDATE_OK with the live
-  variant kept as chosen (app).
+  site/server/deploy-release.sh; the live variant stayed as chosen (app),
+  and the deploy's checks passed: every served file of its manifest at
+  its URL, byte for byte (126 of 126), the live page at /, each of the
+  five variants (original, refined, hybrid, app and the new clean) at
+  /preview/<name>/ answering 200 with noindex and every security header,
+  each variant's link-preview card at its content-addressed URL, and the
+  neighbouring sites on the same server. The live page and
+  /preview/clean/ show Volt 2.0.3.
 
 --- Previous verification ---
 
