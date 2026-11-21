@@ -251,6 +251,15 @@ public final class OnboardingScreen implements AppScreen {
         return context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
     }
 
+    /**
+     * The helper route a picked owner file came by (KeyRoute.ofFile): the Chrome and USB route's or the computer route's
+     * helper while setup is on that route, else null.
+     */
+    String fileRouteHelper() {
+        if (closed) return null;
+        return WEBADB.equals(path()) ? KeyRoute.CHROME_USB : CAPTURE.equals(path()) ? KeyRoute.DESKTOP_HELPER : null;
+    }
+
     /** Only this setup attempt may reuse an unidentified profile; Add a scooter clears these IDs. */
     ScooterProfiles.Profile ownerImportProfile() {
         if (closed) return null;
@@ -1269,7 +1278,8 @@ public final class OnboardingScreen implements AppScreen {
 
     private void saveIdentity() {
         if (identityField == null) return;
-        OwnerIdentityParser.Result parsed = parseIdentity(identityField.getText().toString());
+        String entered = identityField.getText().toString();
+        OwnerIdentityParser.Result parsed = parseIdentity(entered);
         if (parsed == null) return;
         ScooterProfiles store = profiles();
         if (store == null) return;
@@ -1293,7 +1303,7 @@ public final class OnboardingScreen implements AppScreen {
                 store.update(earlier); store.select(earlier.id); profile = earlier;
             } else {
                 if (earlier != null && mayRemoveCreated(earlier)) store.remove(earlier.id);
-                profile = store.create(name, parsed.identity, parsed.role);
+                profile = store.create(name, parsed.identity, parsed.role, KeyRoute.ofIdentityInput(entered));
             }
             prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).apply();
         } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }

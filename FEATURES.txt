@@ -821,7 +821,11 @@ and end; a free-space class and whether the last ride write failed; the last
 uncaught crash (CrashRecord: exception classes and Volt's own frames, never a
 message); clock changes in the connection log; and, for the current connection
 (marked when simulated), each drive mode code with the top speed seen in it and
-whether the current reports a direction (PowerSign). The whole file is refused
+whether the current reports a direction (PowerSign); the saved scooter count and
+the selected scooter's setup (scooter_setup: how its owner key reached Volt as
+a fixed word, KeyRoute, a made key's state, role, whether a key, address and
+serial are saved, and the advertised model ID; never the values themselves).
+The whole file is refused
 if it holds anything shaped like a MAC, email, coordinate or storage path.
 
 No decoded per-cell voltages, cell balance, motor/controller temperature,

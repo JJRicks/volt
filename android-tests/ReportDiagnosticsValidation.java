@@ -175,6 +175,10 @@ public final class ReportDiagnosticsValidation extends ValidationInstrumentation
         require(file.indexOf("\"power_sign\": {") > file.indexOf("\"readings\": [") && file.substring(file.indexOf("\"power_sign\": {")).contains("\"simulated\": true"),
                 "The simulated connection's power sign is not marked simulated");
         noSecrets(file, "Report an issue's file");
+        // How the selected scooter was set up: words and yes/no only, never the key, address or serial noSecrets looked for.
+        for (String setup : new String[]{"\"scooter_setup\": {", "\"saved_scooters\": 1", "\"key_route\": \"typed\"", "\"made_key\": \"none\"",
+                "\"role\": \"owner\"", "\"key_saved\": true", "\"address_saved\": true", "\"serial_saved\": true", "\"advertised_model_id\": \"25462\""})
+            require(file.contains(setup), "The file's scooter setup lacks " + setup);
         firstUri = attachedUri; firstFile = file;
         require(!sheetShowing() && settings().getAll().get("report_diagnostics") == null, "Open email did not close the sheet, or stored a choice nobody made");
 
@@ -479,6 +483,7 @@ public final class ReportDiagnosticsValidation extends ValidationInstrumentation
             ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
             ScooterProfiles.Profile profile = profiles.create(FIXTURE_NAME, FIXTURE_IDENTITY, 0);
             profile.serial = FIXTURE_SERIAL; profile.mac = FIXTURE_MAC; profile.lastConnected = System.currentTimeMillis() - 60000; profiles.update(profile);
+            profile.keyRoute = "typed"; profile.advertisedPid = "25462"; profiles.update(profile);
         });
         prefs("onboarding").edit().putBoolean("onboarding_done", true).commit();
     }

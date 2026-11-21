@@ -787,6 +787,8 @@ public final class CompatibilityGatingValidation extends ValidationInstrumentati
                 ScooterProfiles reloaded = new ScooterProfiles(getTargetContext());
                 ScooterProfiles.Profile saved = null; for (ScooterProfiles.Profile p : reloaded.all()) if (p.id.equals(profile.id)) saved = p;
                 require(saved != null && saved.nameDefault && saved.name.equals("Imported scooter"), "name_default did not persist");
+                // A picked file that isn't a helper's capture, outside setup: its route is a setup file (KeyRoute.ofFile).
+                require("setup_file".equals(saved.keyRoute), "An imported setup file's route was not saved: " + saved.keyRoute);
                 // The connect-time rule (BleController.remember): the model name, else "NAVEE scooter".
                 String model = ModelRegistry.modelName(saved.savedDescriptor());
                 require(model.equals(saved.serial.startsWith("X2538") ? "UT5 MAX" : ""), "Model name for " + saved.serial + ": " + model);

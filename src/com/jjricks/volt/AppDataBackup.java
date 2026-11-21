@@ -131,11 +131,12 @@ public final class AppDataBackup {
         }catch(IOException e){throw e;}catch(Exception e){throw new BackupException(M.backupEngineBackupUnreadableScooterProfiles(),e);}
     }
 
-    /** Model evidence fields (advertised PID, last-seen firmware, default name, the owner's model answer). Types and bounds only, so a newer backup is not rejected. */
+    /** Model evidence fields (advertised PID, last-seen firmware, default name, the owner's model answer) and the key's route (KeyRoute). Types and bounds only, so a newer backup is not rejected. */
     static boolean validDescriptorFields(JSONObject p) {
         Object pid=p.opt("pid_advertised");if(pid!=null&&!(pid instanceof String&&((String)pid).matches("[0-9]{0,5}")))return false;
         for(String field:new String[]{"fw_meter","fw_controller","fw_bms","fw_screen","fw_uwb"}){Object v=p.opt(field);if(v!=null&&!(v instanceof String&&((String)v).matches("[\\x20-\\x7e]{0,16}")))return false;}
         Object owner=p.opt("owner_model");if(owner!=null&&!(owner instanceof String&&((String)owner).matches("[\\x20-\\x7e]{0,40}")))return false;
+        Object route=p.opt("key_route");if(route!=null&&!(route instanceof String&&((String)route).matches(KeyRoute.SHAPE)))return false;
         for(String field:new String[]{"pid_advertised_wall","fw_wall"})if(p.has(field)&&!(p.opt(field) instanceof Number))return false;
         return !p.has("name_default")||p.opt("name_default") instanceof Boolean;
     }
