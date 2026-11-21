@@ -126,8 +126,8 @@ public final class DockSheetValidation extends ValidationInstrumentation {
                             case "window": ownWindow(); break;
                             case "early": earlyTap(); break;
                             case "nested": nested(); break;
-                            case "keys": keys(); break;
-                            case "keys-back": keysBack(); break;
+                            case "keys": keysThenTouchMode(this::root, this::keys); break;
+                            case "keys-back": keysThenTouchMode(this::root, this::keysBack); break;
                             default: require(false, "Unknown -e only " + only + " (window, early, nested or keys)");
                         }
                         result.putString("result", "PASS");
@@ -507,7 +507,7 @@ public final class DockSheetValidation extends ValidationInstrumentation {
     private void ownWindow() {
         earlyTap();
         nested();
-        keys();
+        keysThenTouchMode(this::root, this::keys);
     }
 
     /**
@@ -780,7 +780,8 @@ public final class DockSheetValidation extends ValidationInstrumentation {
      * Keys, out of touch mode (a keyboard or D-pad): with Home's lock focused, All opened by TalkBack's click takes key
      * focus off the lock, so ENTER never reaches it. Opened from All by ENTER, with Settings focused in the sheet, Back
      * then ENTER at once: the closing sheet's rows lose focus (All is hidden under the morph, so the overlay holds it in
-     * All's place), Settings never opens and the sheet carries on closing. Gone, focus is back on All.
+     * All's place), Settings never opens and the sheet carries on closing. Gone, focus is back on All. Run through
+     * keysThenTouchMode, so the checks after it, and the next step, start in touch mode again.
      */
     private void keys() {
         requireHome();

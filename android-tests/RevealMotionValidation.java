@@ -147,6 +147,8 @@ public final class RevealMotionValidation extends ValidationInstrumentation {
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), notes = new ArrayList<>();
     private String scaleBefore, part, home, card, linePage;
+    /** immersive_mode_confirmations as the riding-alert part found it (null: not changed), put back as the step ends. */
+    private String immersiveBefore;
     private String profileId;
     private ScooterProfiles.Profile fixture;
     private Site site;
@@ -241,6 +243,9 @@ public final class RevealMotionValidation extends ValidationInstrumentation {
             for (Throwable cause = error; cause != null && !starved; cause = cause.getCause()) starved = cause instanceof Starved;
             result.putString("result", starved ? "INCONCLUSIVE" : "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
         } finally {
+            if (immersiveBefore != null) try {
+                shell(immersiveBefore.isEmpty() || immersiveBefore.equals("null") ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersiveBefore);
+            } catch (Throwable ignored) { }
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks); result.putStringArrayList("notes", notes);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
@@ -672,7 +677,11 @@ public final class RevealMotionValidation extends ValidationInstrumentation {
     /** Riding mode's battery alert banner: a synthetic silent charge alert fires in riding mode; its close button hides it. */
     private Site ridingAlert() {
         // Riding mode hides the system bars: Android's one-time "Viewing full screen" note would take the close tap.
-        try { shell("settings put secure immersive_mode_confirmations confirmed"); } catch (Exception error) { throw new IllegalStateException(error); }
+        // A device setting: what it was goes back as the step ends.
+        try {
+            if (immersiveBefore == null) immersiveBefore = shell("settings get secure immersive_mode_confirmations").trim();
+            shell("settings put secure immersive_mode_confirmations confirmed");
+        } catch (Exception error) { throw new IllegalStateException(error); }
         Supplier<View> subject = () -> root().findViewWithTag("riding_alert_banner");
         Site site = new Site("Riding mode's battery alert banner", subject, () -> { List<View> self = new ArrayList<>(); self.add(subject.get()); return self; },
                 () -> main(this::fireAlert), () -> main(() -> { View close = root().findViewWithTag("riding_alert_close"); if (close != null && close.isShown()) close.performClick(); }));
