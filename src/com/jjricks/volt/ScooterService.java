@@ -3721,7 +3721,7 @@ public final class ScooterService extends Service {
         try{installer=Build.VERSION.SDK_INT>=30?getPackageManager().getInstallSourceInfo(getPackageName()).getInstallingPackageName():installerBefore30();}catch(Exception unavailable){}
         bundle.app(versionCode,installer).phoneState(diagnosticsDevice());
         Map<String,?> stored=null;try{stored=settings.getAll();}catch(RuntimeException unavailable){}
-        bundle.settings(stored,selected).report(report)
+        bundle.settings(stored,selected).scooterSetup(diagnosticsSetup()).report(report)
                 .connections(connectionEvents,ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
                 .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
                 .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).tally(ble.telemetry.tally,simulating())
@@ -3743,6 +3743,18 @@ public final class ScooterService extends Service {
             if(!p.nameDefault)names.add(p.name);
         }
         return bundle.json(identities,names);
+    }
+    /** The saved scooters' count and the selected scooter's setup facts for the diagnostics file (DiagnosticsBundle.ScooterSetup); null when unreadable. */
+    private DiagnosticsBundle.ScooterSetup diagnosticsSetup(){
+        try{
+            DiagnosticsBundle.ScooterSetup s=new DiagnosticsBundle.ScooterSetup();
+            s.saved=profiles.all().size();
+            ScooterProfiles.Profile p=profiles.active();
+            if(p==null)return s;
+            s.selected=true;s.keyRoute=p.keyRoute;s.madeRecord=OnboardingScreen.madeKeyRecord(this,p.id);s.role=p.role;
+            s.keySaved=p.configured();s.addressSaved=p.mac!=null&&!p.mac.isEmpty();s.serialSaved=p.serial!=null&&!p.serial.isEmpty();s.advertisedPid=p.advertisedPid;
+            return s;
+        }catch(RuntimeException unavailable){return null;}
     }
     /** getLongVersionCode is Android 9's; before it, the int versionCode. */
     @SuppressWarnings("deprecation")

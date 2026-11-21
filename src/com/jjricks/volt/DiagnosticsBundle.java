@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 /**
  * The diagnostics file a report email can carry (volt-diagnostics-v1): Volt's and Android's versions, the
  * phone model, the sanitized compatibility report, the connection and command logs, the charging schedule record and
- * the current readings, without identities or payload bytes. Built only from typed or sanitized sources; json() then refuses to
+ * the current readings and how the selected scooter was set up, without identities or payload bytes. Built only from typed or sanitized sources; json() then refuses to
  * return a file that contains any saved scooter's serial, MAC or owner key, or a chosen name in a value (never in a key or
  * in Volt's own words; see json). Pure and Android-free.
  */
@@ -383,6 +383,54 @@ final class DiagnosticsBundle {
     /** The allow-listed settings (DiagnosticsSettings); the selected scooter's under their own names, never its id. */
     DiagnosticsBundle settings(Map<String, ?> stored, String profileId) {
         guard("settings", () -> { Map<String, Object> m = DiagnosticsSettings.section(stored, profileId); strings(m, outside); return m; });
+        return this;
+    }
+
+    /**
+     * The saved scooters' count and the selected scooter's setup facts, read from its profile and its made key's record
+     * when the file is made. Only booleans, the role, KeyRoute's words and digits come out: never the key, the scooter's
+     * address or serial, the profile's name or id, or the record itself (it can hold an address).
+     */
+    static final class ScooterSetup {
+        int saved;
+        /** False when no scooter is selected; the fields below are then not read. */
+        boolean selected;
+        /** The profile's saved route word (KeyRoute) and its made key's record (NewOwnerKey: null for any other key). */
+        String keyRoute, madeRecord;
+        /** 0 owner, 1 shared user (ScooterProfiles.Profile.role). */
+        int role;
+        /** Whether an owner key, a scooter address and a serial are saved (an address is saved only after the owner check). */
+        boolean keySaved, addressSaved, serialSaved;
+        /** The advertised model ID (ScooterProfiles.Profile.advertisedPid), "" when not captured. */
+        String advertisedPid;
+    }
+    private static final Pattern MODEL_ID = Pattern.compile("[0-9]{1,5}");
+
+    /**
+     * How the selected scooter was set up: how its owner key reached Volt (KeyRoute), a made key's state, the role, and
+     * whether a key, scooter address and serial are saved, with the advertised model ID when captured. Tells a key Volt
+     * made and offered to a scooter that still has an owner from a captured or typed key the scooter doesn't know, when
+     * the connection log shows refused owner checks. selected is null when no scooter is selected.
+     */
+    DiagnosticsBundle scooterSetup(ScooterSetup s) {
+        guard("scooter_setup", () -> {
+            if (s == null) return null;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("saved_scooters", (long) Math.max(0, s.saved));
+            if (!s.selected) { m.put("selected", null); return m; }
+            Map<String, Object> p = new LinkedHashMap<>();
+            p.put("key_route", KeyRoute.reported(s.keyRoute, s.madeRecord));
+            p.put("made_key", KeyRoute.madeKey(s.keyRoute, s.madeRecord, s.addressSaved));
+            p.put("role", s.role == 0 ? "owner" : s.role == 1 ? "shared" : "unknown");
+            p.put("key_saved", s.keySaved);
+            p.put("address_saved", s.addressSaved);
+            p.put("serial_saved", s.serialSaved);
+            String pid = s.advertisedPid != null && MODEL_ID.matcher(s.advertisedPid).matches() ? s.advertisedPid : null;
+            if (pid != null) outside.add(pid);
+            p.put("advertised_model_id", pid);
+            m.put("selected", p);
+            return m;
+        });
         return this;
     }
 
