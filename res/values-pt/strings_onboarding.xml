@@ -102,6 +102,8 @@
     <string name="onboarding_path_identity">Introduzir uma chave de proprietário de 12 carateres</string>
     <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
     <string name="onboarding_path_new_key">Criar uma nova chave de proprietário</string>
+    <!-- src:bd0d3c721e2c711ee9ea319dbe1334770425fdc4 -->
+    <string name="onboarding_path_new_key_detail">Não está na app NAVEE · sem computador</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Requer Android 11 ou mais recente</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -330,8 +332,16 @@
     <string name="onboarding_new_title">Criar uma nova chave de proprietário</string>
     <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
     <string name="onboarding_new_body">A Volt cria uma chave de proprietário e guarda-a neste telemóvel. Uma trotinete sem proprietário fica com a primeira chave que receber.</string>
+    <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
+    <string name="onboarding_new_unowned">A trotinete não está na app NAVEE</string>
+    <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
+    <string name="onboarding_new_unowned_detail">Nunca adicionada à app ou removida dela</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">A app NAVEE não consegue adicionar esta trotinete enquanto tiver a chave da Volt. Para voltar à app NAVEE, liberta-a primeiro na Volt.</string>
+    <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
+    <string name="onboarding_new_copy_instead">Já está na app NAVEE? Copiar a sua chave em vez disso</string>
+    <!-- src:1223aa5761155ac6d8f820a82ecfc8aaa9a8d476 -->
+    <string name="onboarding_new_copy_instead_short">Na app NAVEE? Copiar a sua chave</string>
     <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->
     <string name="onboarding_new_refused">Esta trotinete já tem um proprietário, por isso recusou a nova chave. Remove-a da app NAVEE e tenta novamente, ou configura de outra forma.</string>
     <!-- src:c1c5a5b0c56c6d3755c62adf36a948419bd31a8f -->

@@ -102,6 +102,8 @@
     <string name="onboarding_path_identity">12-stelligen Besitzerschlüssel eingeben</string>
     <!-- src:93e3aa1b2e4b51dee3e87167175e4ae88226e5cc -->
     <string name="onboarding_path_new_key">Neuen Besitzerschlüssel erstellen</string>
+    <!-- src:bd0d3c721e2c711ee9ea319dbe1334770425fdc4 -->
+    <string name="onboarding_path_new_key_detail">Nicht in der NAVEE-App · kein Computer</string>
     <!-- src:8ca9fb2e39e9b3b68213423499cec931491b43a8 -->
     <string name="onboarding_needs_android_11">Erfordert Android 11 oder höher</string>
     <!-- src:7adc8e48bf95d7c0ba873add49f183c50b3f71d4 -->
@@ -330,8 +332,16 @@
     <string name="onboarding_new_title">Neuen Besitzerschlüssel erstellen</string>
     <!-- src:9b9f43625124da4a7ce73bc9f42654de01d92dfc -->
     <string name="onboarding_new_body">Volt erstellt einen Besitzerschlüssel und speichert ihn auf diesem Telefon. Ein Scooter ohne Besitzer übernimmt den ersten Besitzerschlüssel, den er erhält.</string>
+    <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
+    <string name="onboarding_new_unowned">Scooter ist nicht in der NAVEE-App</string>
+    <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
+    <string name="onboarding_new_unowned_detail">Nie zur NAVEE-App hinzugefügt oder daraus entfernt</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">Die NAVEE-App kann diesen Scooter nicht hinzufügen, solange er den Besitzerschlüssel von Volt hat. Um zurückzuwechseln, gib den Scooter zuerst in Volt frei.</string>
+    <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
+    <string name="onboarding_new_copy_instead">Schon in der NAVEE-App? Stattdessen Besitzerschlüssel kopieren</string>
+    <!-- src:1223aa5761155ac6d8f820a82ecfc8aaa9a8d476 -->
+    <string name="onboarding_new_copy_instead_short">NAVEE-App? Besitzerschlüssel kopieren</string>
     <!-- src:ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0 -->
     <string name="onboarding_new_refused">Dieser Scooter hat bereits einen Besitzer und hat den neuen Besitzerschlüssel daher abgelehnt. Entferne den Scooter aus der NAVEE-App und versuche es erneut, oder richte ihn auf andere Weise ein.</string>
     <!-- src:c1c5a5b0c56c6d3755c62adf36a948419bd31a8f -->
