@@ -1,5 +1,11 @@
 VOLT 2.0.4 — MAKE A NEW OWNER KEY IS FOR A SCOOTER NOT IN THE NAVEE APP, THE GPS CHIP'S WORDS FIT, FIXES (versionCode 64)
-Draft, November 21, 2026. The release checks below are still to run.
+Built, swept and tagged at commit 47778a2d, #611's merge into main,
+November 21, 2026. That merge is the release commit (RELEASING.md step
+2): the candidate was built on it, and the tests, ship_check and the
+VOLT_RELEASE=1 build ran again on it before the draft. Nothing merged into
+main between the release commit and the publish, so the checked, built and
+tagged commit is one SHA (step 7). The release APK is identical to the
+swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.3
   (2b57b2cb) is in it: the riding GPS chip's state words get a width
@@ -13,10 +19,21 @@ Draft, November 21, 2026. The release checks below are still to run.
   starting in touch mode and putting back the device state they change)
   change test tooling only; none changes the app. The language top-up for
   this release's five new and changed setup texts and this release's own
-  version, changelog and docs come after them.
-  [PHASE 2: the last PR number merged before the release commit; for each
-  PR, CI on its merged head and the independent review on the head that
-  merged.]
+  version, changelog and docs come after them: #610 (version, changelog
+  and docs), and #611 (the language top-up), whose merge is the release
+  commit. That makes 10 pull requests: #602 to #611.
+- Every one of the 10 merged with CI passing on its merged head (4 checks
+  each: android-build, core-tests, english-proof and web-setup), and the
+  release commit passed the same 4. On #604's merged head an earlier run
+  was cancelled before english-proof finished (its other three checks
+  passed); a later run passed all 4. The independent review's last pass
+  was on the merged head for all 10, and none of those passes requested
+  changes. All 10 were reviewed by Claude reviewer seats only, run apart
+  from the authoring session, because the Codex seats were unavailable.
+  Their upheld P3s (one each on #609, #610 and #611) are tracked for
+  later releases, except #610's (this release's measuring-window guard
+  written into FEATURES.txt's 1.5.0 entry), which this record's pull
+  request fixes.
 - run-release-sweep.py lists 315 steps on main at #609's merge, 18 more
   than 2.0.3's 297, all from #603: gps-accuracy-riding-<tag> now runs for
   every shipped language (es, fr, it, nl, pl, sv and tr join de, pt-PT and
@@ -27,25 +44,57 @@ Draft, November 21, 2026. The release checks below are still to run.
   new-owner-key-*, compat-gating and report-diagnostics-*. Every
   validation registered in android-tests/AndroidManifest.xml is covered
   (the script's own guard).
-  [PHASE 2: confirm the step list and counts on the release commit.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit. Before the top-up, 5 keys
-  per language fell back to English: onboarding_path_new_key_detail,
+  Confirmed on the release commit: 315 steps, the same list.
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4161 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly. Before the top-up, 5 keys per
+  language fell back to English: onboarding_path_new_key_detail,
   onboarding_new_unowned, onboarding_new_unowned_detail (#609 rewords
   them, so their old translations are dropped), onboarding_new_copy_instead
-  and onboarding_new_copy_instead_short (new in #609).]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 2.0.3's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed (from
-  --merge for a split sweep, with its pseudo-locale note), each rerun and
-  why, numbers after reruns, rides-timing, ride auto-save.] The sweep runs
-  on the shared test machines and this Mac, under the owner's standing
-  approval for release candidates on the shared test machines (RELEASING.md
-  step 4, from November 20, 2026). gps-accuracy-riding-de, which stopped
-  at its own check in every release sweep through 2.0.3, is expected to
-  pass now that #604's German text fits.
+  and onboarding_new_copy_instead_short (new in #609). #611 translated
+  them in all ten, made and checked as its pull request describes.
+- Release candidate checks on the release commit (47778a2d):
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (222
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.4 (no -dev), versionCode 64, signed with 2.0.3's
+    certificate. APK SHA-256
+    ff7dc8fca8c1ed74b1adbe14623a45833cd520e0ae30b6dd15acf8a9b872516b.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.4 (64). The validation runner was
+    built with the same key.
+- run-release-sweep.py on that build, November 21, 2026, 5:22 to 6:51 PM
+  MST (88 minutes): Medium Phone API 36.1 emulators on the maintainer's
+  Mac only (five lanes for the main run, and two for the compat steps
+  alongside it). The owner's standing approval for release
+  candidates on the shared test pool (RELEASING.md step 4) applied, but
+  no pool machine took a step: the pool's shares were full of other
+  people's jobs when the plan was made. The 315 steps were spread over
+  three runs, merged by the release kit's merge-tally.py, which keeps
+  each step's newest verdict, and cross-checked with report-merge: the
+  main run (312 steps, every step but the two compat steps and
+  rides-timing), the compat run (2 steps), and a finale alone on the
+  Mac (rides-timing and the ride auto-save check). Every step has a
+  verdict. Closing numbers of the merged result, as printed:
+  - Gating steps: 223 passed, 0 failed.
+  - Report-only steps (never counted as passes): 83 ran, 0 did not
+    finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
+    pseudo-locale steps: no pseudo-locale APK was supplied.
+  - The ride auto-save check passed.
+  No step failed and none was rerun: 315 tries in 3 runs, no verdict
+  changed by a rerun.
+  - gps-accuracy-riding-de, which stopped at its own check in every
+    release sweep through 2.0.3, finished this time, as did every other
+    translated gps-accuracy-riding step at both sizes. They report only
+    and are not counted as passes.
+  - rides-timing passed, alone on the Mac. Best of two cold starts per
+    case, slowest case: first frame 113 ms and service start command
+    98 ms (budgets 1.5 s). In any run, Rides showed its first row within
+    56 ms, and the longest main-thread message on Rides was at most 50 ms
+    cold and 55 ms warm (budget 1 s). The longest main-thread message at
+    launch was 113 ms in any single run.
 - No parked hardware sweep. The owner decided 2.0.4 ships without one, as
   for 2.0.2 and 2.0.3 (a small release), so this release is checked on
   emulators and by tests only, and nothing in it was tried on a real
@@ -79,6 +128,25 @@ Draft, November 21, 2026. The release checks below are still to run.
   24182, 25462, 25852): the one report received since 2.0.3 carried no
   compatibility report, so no new Model ID is recorded. Adding any that
   reaches volt-reports@jjricks.com is the owner's step.
+- Published November 21, 2026 at 6:58 PM MST (01:58 UTC, November 22)
+  from main, on the owner's go, without a hardware sweep: tag v2.0.4
+  points at 47778a2d9676fcfa11daf10859458c2a60b8ef5a, #611's merge, the
+  release commit, which was still main's newest commit. Its tests (222
+  suites), ship_check and VOLT_RELEASE=1 build ran again before the
+  draft. The release APK (SHA-256
+  926c850db1446656e3f126b5ecb532ff688c8cd2140989b1d9b5360d35dae485) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 2.0.3's certificate, zipaligned, and reads 2.0.4
+  (64). The source ZIP's SHA-256 is
+  4691411e700190ccd0cb4f68392a10252451bb801b251dc087c88f13d411eae9. The
+  drafted and published assets were downloaded again and matched the
+  final build, the release gates passed on the published APK, the tag
+  and the latest release were checked, and the update check offers its
+  Download: the APK is listed at its expected address. The homepage was
+  deployed from the tag with site/server/deploy-release.sh by the
+  release script; the live variant stayed as chosen, and the deploy's
+  checks passed (every served file of its manifest at its URL, byte for
+  byte, 126 of 126). The live page shows Volt 2.0.4.
 
 --- Previous verification ---
 

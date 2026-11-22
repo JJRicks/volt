@@ -394,8 +394,7 @@ PREVIOUSLY IN 1.5.0
   Permissions need granting again; Bluetooth pairing stays with the phone.
 - One Back up & restore in More, full by default, also offered during setup.
 - My scooters lists every scooter, switches without connecting, and refuses to
-  save a scooter already saved under another name. A scooter change waits
-  for a charge recording or Charge done by's measuring window to end.
+  save a scooter already saved under another name.
 - UT5 MAX standard-charger estimates from pack voltage and charge age (v6), with
   a cautious Charge done by plan, an optional measuring window and recordings
   that survive the scheduled pause.
