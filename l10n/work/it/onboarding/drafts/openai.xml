@@ -51,7 +51,7 @@
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Solo accesso al monopattino · niente corse né cronologia</string>
     <string name="onboarding_path_identity" volt:src="d961ad5c00ad8effde507bf15d014e73b523ab29">Inserisci una chiave del proprietario di 12 caratteri</string>
     <string name="onboarding_path_new_key" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Crea una nuova chiave del proprietario</string>
-    <string name="onboarding_path_new_key_detail" volt:src="f695e6ad02bbc18ce4a1b414e86bc381381229a9">Monopattino nuovo o ripristinato · senza computer</string>
+    <string name="onboarding_path_new_key_detail" volt:src="bd0d3c721e2c711ee9ea319dbe1334770425fdc4">Non presente nell\'app NAVEE · senza computer</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Richiede Android 11 o versioni successive</string>
     <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Richiede Android 11 o versioni successive</string>
@@ -166,9 +166,11 @@
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Interrompi prima la registrazione</string>
     <string name="onboarding_new_title" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Crea una nuova chiave del proprietario</string>
     <string name="onboarding_new_body" volt:src="9b9f43625124da4a7ce73bc9f42654de01d92dfc">Volt crea una chiave del proprietario e la conserva su questo telefono. Un monopattino senza proprietario accetta la prima chiave che riceve.</string>
-    <string name="onboarding_new_unowned" volt:src="44c901a962ae29ccdd339e0a6798a06f29b0bbaa">Monopattino nuovo o ripristinato</string>
-    <string name="onboarding_new_unowned_detail" volt:src="5b3d1d715451f3597301465890a2b78cac6c06c2">Mai configurato o rimosso dall\'app NAVEE</string>
+    <string name="onboarding_new_unowned" volt:src="b25db0c09133b077998dcceaf5e91ac4fb7d3030">Il monopattino non è nell\'app NAVEE</string>
+    <string name="onboarding_new_unowned_detail" volt:src="a4a77a880a35967aedb23aad337239044f1c5485">Mai aggiunto all\'app o rimosso da essa</string>
     <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">L\'app NAVEE non può aggiungere questo monopattino finché ha la chiave di Volt. Per tornare all\'app NAVEE, rilascialo prima in Volt.</string>
+    <string name="onboarding_new_copy_instead" volt:src="3a568186f2bff90cda99c073d97fcebb09b8f01d">Già nell\'app NAVEE? Copia invece la chiave</string>
+    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476">Nell\'app NAVEE? Copia la sua chiave</string>
     <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Questo monopattino ha già un proprietario, quindi ha rifiutato la nuova chiave. Rimuovilo dall\'app NAVEE e riprova oppure usa un altro metodo di configurazione.</string>
     <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Usa un altro metodo di configurazione</string>
     <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">Non è stato possibile salvare la nuova chiave del proprietario. Libera spazio di archiviazione e riprova.</string>

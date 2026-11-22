@@ -51,7 +51,7 @@
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Nur Scooter-Zugriff · keine Fahrten oder Verlauf</string>
     <string name="onboarding_path_identity" volt:src="d961ad5c00ad8effde507bf15d014e73b523ab29">12-stelligen Besitzerschlüssel eingeben</string>
     <string name="onboarding_path_new_key" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Neuen Besitzerschlüssel erstellen</string>
-    <string name="onboarding_path_new_key_detail" volt:src="f695e6ad02bbc18ce4a1b414e86bc381381229a9">Neuer oder zurückgesetzter Scooter · kein Computer</string>
+    <string name="onboarding_path_new_key_detail" volt:src="bd0d3c721e2c711ee9ea319dbe1334770425fdc4">Nicht in der NAVEE-App · kein Computer</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Erfordert Android 11 oder höher</string>
     <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Erfordert Android 11 oder höher</string>
@@ -166,9 +166,11 @@
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb" volt:attempt="2">Beende die Aufzeichnung zuerst</string>
     <string name="onboarding_new_title" volt:src="93e3aa1b2e4b51dee3e87167175e4ae88226e5cc">Neuen Besitzerschlüssel erstellen</string>
     <string name="onboarding_new_body" volt:src="9b9f43625124da4a7ce73bc9f42654de01d92dfc">Volt erstellt einen Besitzerschlüssel und speichert ihn auf diesem Telefon. Ein Scooter ohne Besitzer übernimmt den ersten Besitzerschlüssel, den er erhält.</string>
-    <string name="onboarding_new_unowned" volt:src="44c901a962ae29ccdd339e0a6798a06f29b0bbaa">Scooter ist neu oder zurückgesetzt</string>
-    <string name="onboarding_new_unowned_detail" volt:src="5b3d1d715451f3597301465890a2b78cac6c06c2">Nie eingerichtet oder aus der NAVEE-App entfernt</string>
+    <string name="onboarding_new_unowned" volt:src="b25db0c09133b077998dcceaf5e91ac4fb7d3030">Scooter ist nicht in der NAVEE-App</string>
+    <string name="onboarding_new_unowned_detail" volt:src="a4a77a880a35967aedb23aad337239044f1c5485">Dort nie hinzugefügt oder daraus entfernt</string>
     <string name="onboarding_new_navee_note" volt:src="6d87e3deb7df1cf9d6b122a75ea3676e12cd3221">Die NAVEE-App kann diesen Scooter nicht hinzufügen, solange er den Besitzerschlüssel von Volt hat. Um zurückzuwechseln, gib den Scooter zuerst in Volt wieder frei.</string>
+    <string name="onboarding_new_copy_instead" volt:src="3a568186f2bff90cda99c073d97fcebb09b8f01d">Schon in der NAVEE-App? Stattdessen Besitzerschlüssel kopieren</string>
+    <string name="onboarding_new_copy_instead_short" volt:src="1223aa5761155ac6d8f820a82ecfc8aaa9a8d476" volt:attempt="2">NAVEE-App? Besitzerschlüssel kopieren</string>
     <string name="onboarding_new_refused" volt:src="ddd3c12b736b1f4ee3a01d8516e00f5e95739ea0">Dieser Scooter hat bereits einen Besitzer und hat deshalb den neuen Besitzerschlüssel abgelehnt. Entferne ihn aus der NAVEE-App und versuche es erneut oder wähle eine andere Einrichtungsmethode.</string>
     <string name="onboarding_new_other_way" volt:src="c1c5a5b0c56c6d3755c62adf36a948419bd31a8f">Andere Einrichtungsmethode wählen</string>
     <string name="onboarding_new_save_failed" volt:src="4de2502027c3ae77e8c820d10f9676531c5b73eb">Der neue Besitzerschlüssel konnte nicht gespeichert werden. Gib Speicherplatz frei und versuche es erneut.</string>
