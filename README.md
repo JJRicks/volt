@@ -46,8 +46,8 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
       <sub>Charging, on a model shown with a still picture</sub>
     </td>
     <td align="center" valign="top" width="50%">
-      <img src="docs/images/readme-charge-graph.webp" width="180" alt="A recorded high-speed charge from 18% to 100%, expanded: battery percent and pack voltage over 1 h 46 min, the voltage levelling off for the last part of the charge"><br>
-      <sub>Recorded charges, graphed: battery % and voltage from plug-in to full</sub>
+      <img src="docs/images/readme-charge-graph.webp" width="180" alt="A recorded high-speed charge from 27% to 100% over 81 minutes, expanded: battery percent rising while Volt's estimated time to full, saved during the charge, falls in step with the actual time it took"><br>
+      <sub>Recorded charges, graphed: the time-to-full estimate against the real finish</sub>
     </td>
   </tr>
 </table>
@@ -80,8 +80,8 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
       <sub>Edit mode: move, resize, add and remove widgets; unfolded screens keep their own layout</sub>
     </td>
     <td align="center" valign="top">
-      <img src="docs/images/readme-live-chart.webp" width="180" alt="Data, Charts: a two-minute window with the Ride group open and a live speed chart at 17.1 mph"><br>
-      <sub>Live charts for the scooter's readings</sub>
+      <img src="docs/images/readme-live-chart.webp" width="180" alt="A live Battery power chart over the last hour of a high-speed charge: steady at about 500 W, then tapering off as the battery fills, now at 72.4 W (charging shows as negative power)"><br>
+      <sub>Live charts: battery power through a high-speed charge's taper</sub>
     </td>
   </tr>
 </table>
