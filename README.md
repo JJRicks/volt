@@ -42,7 +42,7 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 <table>
   <tr>
     <td align="center" valign="top" width="50%">
-      <img src="docs/images/readme-charging-folded.webp" width="180" alt="Clean Home charging a GT3 Max: its still picture under 46%, charging power 144 W and about 2 h 45 min to 100%"><br>
+      <img src="docs/images/readme-charging-folded.webp" width="180" alt="Clean Home charging a GT3 Max: its still picture under 46%, charging power 144 W and about 2 h 45 min to 100% if uncapped"><br>
       <sub>Charging, on a model shown with a still picture</sub>
     </td>
     <td align="center" valign="top" width="50%">
@@ -62,7 +62,7 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
     </td>
     <td align="center" valign="top" width="50%">
       <img src="docs/images/readme-ride-map.webp" width="360" alt="The same ride's route, expanded over an OpenStreetMap basemap and colored by scooter speed from start to end, with route color choices for power, speed, grade, acceleration and elevation"><br>
-      <sub>The route map, expanded and colored by speed</sub>
+      <sub>The route map, expanded and colored by speed<br>Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></sub>
     </td>
   </tr>
 </table>
