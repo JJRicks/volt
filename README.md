@@ -12,7 +12,7 @@
 <p align="center">
   <img src="docs/images/readme-home.webp" height="380" alt="Volt's Clean Home, parked: battery 78% with about 24 miles left, odometer, drive mode, the Lock bar, quick actions and the subject list">
   &nbsp;
-  <img src="docs/images/readme-charging.webp" height="380" alt="Clean Home while charging: the battery level over the scooter's picture, charging power and the estimated time to full">
+  <img src="docs/images/readme-charging.gif" height="380" alt="Clean Home while charging on a high-speed charger: green pulses run down the cable into the scooter's battery cells over 32%, with charging power 496 W and about 1 h 9 min to full">
   &nbsp;
   <img src="docs/images/readme-riding.webp" height="380" alt="Riding mode: large speed, range at this pace, battery, trip, ride time, battery temperature and power readouts">
 </p>
@@ -34,6 +34,57 @@ An Android companion for **NAVEE scooters**. Connect over Bluetooth, control you
 | 🔋 **Battery insights** | Optional range learned from your rides, charging estimates, a live charging card on the lock screen and experimental usable ride energy. |
 | 🔧 **Maintenance** | Distance and time reminders, with a quiet notification when a check is due. |
 | 🌐 **Languages** | English, plus Spanish, Portuguese (Portugal), Portuguese (Brazil), Swedish, German, French, Italian, Dutch, Turkish and Polish (all beta, fully translated), with more in progress. |
+
+## A closer look
+
+### Charging
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/images/readme-charging-folded.webp" width="180" alt="Clean Home charging a GT3 Max: its still picture under 46%, charging power 144 W and about 2 h 45 min to 100% if uncapped"><br>
+      <sub>Charging, on a model shown with a still picture</sub>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/images/readme-charge-graph.webp" width="180" alt="A recorded high-speed charge from 27% to 100% over 81 minutes, expanded: battery percent rising while Volt's estimated time to full, saved during the charge, falls in step with the actual time it took"><br>
+      <sub>Recorded charges, graphed: the time-to-full estimate against the real finish</sub>
+    </td>
+  </tr>
+</table>
+
+### Rides
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/images/readme-ride-graphs.webp" width="360" alt="A saved ride's graphs on an unfolded phone, expanded: power, wheel speed, battery percent and elevation over the ride's 6.5 minutes, with the readings at the cursor below"><br>
+      <sub>Ride graphs on an unfolded screen: wheel speed, power, elevation and battery %</sub>
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/images/readme-ride-map.webp" width="360" alt="The same ride's route, expanded over an OpenStreetMap basemap and colored by scooter speed from start to end, with route color choices for power, speed, grade, acceleration and elevation"><br>
+      <sub>The route map, expanded and colored by speed<br>Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></sub>
+    </td>
+  </tr>
+</table>
+
+### Widgets and live charts
+
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <img src="docs/images/readme-widgets.webp" width="180" alt="Widgets Home as it first comes: a battery card with the scooter's photo, the Lock bar, battery power, temperature and health tiles, max speed, charge schedule, Record ride and usable ride energy, above the subject dock"><br>
+      <sub>Widgets Home, as it comes</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="docs/images/readme-widgets-edit.webp" width="360" alt="Widgets in edit mode on an unfolded phone: each widget has move, settings, duplicate and delete buttons and a resize corner, with Add widget, Layout, undo, redo and Done at the top"><br>
+      <sub>Edit mode: move, resize, add and remove widgets; unfolded screens keep their own layout</sub>
+    </td>
+    <td align="center" valign="top">
+      <img src="docs/images/readme-live-chart.webp" width="180" alt="A live Battery power chart over the last hour of a high-speed charge: steady at about 500 W, then tapering off as the battery fills, now at 72.4 W (charging shows as negative power)"><br>
+      <sub>Live charts: battery power through a high-speed charge's taper</sub>
+    </td>
+  </tr>
+</table>
 
 ## Install & connect
 
